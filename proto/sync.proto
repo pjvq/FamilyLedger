@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package familyledger.sync.v1;
+
+option go_package = "github.com/familyledger/server/proto/sync";
+
+import "google/protobuf/timestamp.proto";
+
+service SyncService {
+  rpc PushOperations(PushOperationsRequest) returns (PushOperationsResponse);
+  rpc PullChanges(PullChangesRequest) returns (PullChangesResponse);
+}
+
+enum OperationType {
+  OPERATION_TYPE_UNSPECIFIED = 0;
+  OPERATION_TYPE_CREATE = 1;
+  OPERATION_TYPE_UPDATE = 2;
+  OPERATION_TYPE_DELETE = 3;
+}
+
+message SyncOperation {
+  string id = 1;
+  string entity_type = 2;    // "transaction", "account", "category"
+  string entity_id = 3;
+  OperationType op_type = 4;
+  string payload = 5;        // JSON payload
+  string client_id = 6;
+  google.protobuf.Timestamp timestamp = 7;
+}
+
+message PushOperationsRequest {
+  repeated SyncOperation operations = 1;
+}
+
+message PushOperationsResponse {
+  int32 accepted_count = 1;
+  repeated string failed_ids = 2;
+}
+
+message PullChangesRequest {
+  google.protobuf.Timestamp since = 1;  // 上次同步时间
+  string client_id = 2;
+}
+
+message PullChangesResponse {
+  repeated SyncOperation operations = 1;
+  google.protobuf.Timestamp server_time = 2;
+}

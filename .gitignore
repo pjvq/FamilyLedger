@@ -1,0 +1,29 @@
+# Go
+server/server
+*.exe
+*.test
+
+# Flutter
+app/.dart_tool/
+app/.packages
+app/.pub-cache/
+app/.pub/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/android/.gradle/
+app/ios/Pods/
+app/ios/.symlinks/
+app/macos/Pods/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Generated
+server/proto/**/*.pb.go
+
+# Docker
+pgdata/

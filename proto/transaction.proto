@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package familyledger.transaction.v1;
+
+option go_package = "github.com/familyledger/server/proto/transaction";
+
+import "google/protobuf/timestamp.proto";
+
+service TransactionService {
+  rpc CreateTransaction(CreateTransactionRequest) returns (CreateTransactionResponse);
+  rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
+  rpc GetCategories(GetCategoriesRequest) returns (GetCategoriesResponse);
+}
+
+enum TransactionType {
+  TRANSACTION_TYPE_UNSPECIFIED = 0;
+  TRANSACTION_TYPE_INCOME = 1;
+  TRANSACTION_TYPE_EXPENSE = 2;
+}
+
+message Transaction {
+  string id = 1;
+  string user_id = 2;
+  string account_id = 3;
+  string category_id = 4;
+  int64 amount = 5;          // 金额(分)
+  string currency = 6;
+  int64 amount_cny = 7;      // 人民币金额(分)
+  double exchange_rate = 8;
+  TransactionType type = 9;
+  string note = 10;
+  google.protobuf.Timestamp txn_date = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+message Category {
+  string id = 1;
+  string name = 2;
+  string icon = 3;
+  TransactionType type = 4;
+  bool is_preset = 5;
+  int32 sort_order = 6;
+}
+
+message CreateTransactionRequest {
+  string account_id = 1;
+  string category_id = 2;
+  int64 amount = 3;
+  string currency = 4;
+  int64 amount_cny = 5;
+  double exchange_rate = 6;
+  TransactionType type = 7;
+  string note = 8;
+  google.protobuf.Timestamp txn_date = 9;
+}
+
+message CreateTransactionResponse {
+  Transaction transaction = 1;
+}
+
+message ListTransactionsRequest {
+  string account_id = 1;               // 可选，按账户过滤
+  google.protobuf.Timestamp start_date = 2;  // 可选，开始时间
+  google.protobuf.Timestamp end_date = 3;    // 可选，结束时间
+  int32 page_size = 4;
+  string page_token = 5;               // 上一页最后一条的 id
+}
+
+message ListTransactionsResponse {
+  repeated Transaction transactions = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message GetCategoriesRequest {
+  TransactionType type = 1;  // 可选，按类型过滤
+}
+
+message GetCategoriesResponse {
+  repeated Category categories = 1;
+}
