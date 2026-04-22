@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package familyledger.asset.v1;
+
+option go_package = "github.com/familyledger/server/proto/asset";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service AssetService {
+    rpc CreateAsset(CreateAssetRequest) returns (Asset);
+    rpc GetAsset(GetAssetRequest) returns (Asset);
+    rpc ListAssets(ListAssetsRequest) returns (ListAssetsResponse);
+    rpc UpdateAsset(UpdateAssetRequest) returns (Asset);
+    rpc DeleteAsset(DeleteAssetRequest) returns (google.protobuf.Empty);
+    rpc UpdateValuation(UpdateValuationRequest) returns (AssetValuation);
+    rpc ListValuations(ListValuationsRequest) returns (ListValuationsResponse);
+    rpc SetDepreciationRule(SetDepreciationRuleRequest) returns (DepreciationRule);
+    rpc RunDepreciation(RunDepreciationRequest) returns (Asset); // 手动触发折旧
+}
+
+enum AssetType {
+    ASSET_TYPE_UNSPECIFIED = 0;
+    ASSET_TYPE_REAL_ESTATE = 1;  // 房产
+    ASSET_TYPE_VEHICLE = 2;       // 车辆
+    ASSET_TYPE_ELECTRONICS = 3;   // 电子设备
+    ASSET_TYPE_FURNITURE = 4;     // 家具家电
+    ASSET_TYPE_JEWELRY = 5;       // 珠宝收藏
+    ASSET_TYPE_OTHER = 6;
+}
+
+enum DepreciationMethod {
+    DEPRECIATION_METHOD_UNSPECIFIED = 0;
+    DEPRECIATION_METHOD_STRAIGHT_LINE = 1;         // 直线法
+    DEPRECIATION_METHOD_DOUBLE_DECLINING = 2;       // 双倍余额递减法
+    DEPRECIATION_METHOD_NONE = 3;                   // 不折旧（如房产可能升值）
+}
+
+message Asset {
+    string id = 1;
+    string user_id = 2;
+    string name = 3;
+    AssetType asset_type = 4;
+    int64 purchase_price = 5;       // 购入价（分）
+    int64 current_value = 6;        // 当前净值（分）
+    google.protobuf.Timestamp purchase_date = 7;
+    string description = 8;
+    google.protobuf.Timestamp created_at = 9;
+    google.protobuf.Timestamp updated_at = 10;
+}
+
+message AssetValuation {
+    string id = 1;
+    string asset_id = 2;
+    int64 value = 3;                // 估值（分）
+    string source = 4;             // manual / depreciation / market
+    google.protobuf.Timestamp valuation_date = 5;
+}
+
+message DepreciationRule {
+    string id = 1;
+    string asset_id = 2;
+    DepreciationMethod method = 3;
+    int32 useful_life_years = 4;    // 使用年限
+    double salvage_rate = 5;        // 残值率 0-1
+    google.protobuf.Timestamp created_at = 6;
+}
+
+// ── Request / Response messages ─────────────────────────────────────────────
+
+message CreateAssetRequest {
+    string name = 1;
+    AssetType asset_type = 2;
+    int64 purchase_price = 3;
+    google.protobuf.Timestamp purchase_date = 4;
+    string description = 5;
+}
+
+message GetAssetRequest {
+    string asset_id = 1;
+}
+
+message ListAssetsRequest {
+    AssetType asset_type = 1;  // optional filter
+}
+
+message ListAssetsResponse {
+    repeated Asset assets = 1;
+}
+
+message UpdateAssetRequest {
+    string asset_id = 1;
+    string name = 2;
+    string description = 3;
+}
+
+message DeleteAssetRequest {
+    string asset_id = 1;
+}
+
+message UpdateValuationRequest {
+    string asset_id = 1;
+    int64 value = 2;
+    string source = 3;     // manual / market
+}
+
+message ListValuationsRequest {
+    string asset_id = 1;
+}
+
+message ListValuationsResponse {
+    repeated AssetValuation valuations = 1;
+}
+
+message SetDepreciationRuleRequest {
+    string asset_id = 1;
+    DepreciationMethod method = 2;
+    int32 useful_life_years = 3;    // 0 = use preset
+    double salvage_rate = 4;        // 0 = use preset
+}
+
+message RunDepreciationRequest {
+    string asset_id = 1;
+}

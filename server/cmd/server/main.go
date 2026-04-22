@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/familyledger/server/internal/account"
+	"github.com/familyledger/server/internal/asset"
 	"github.com/familyledger/server/internal/auth"
 	"github.com/familyledger/server/internal/budget"
 	"github.com/familyledger/server/internal/family"
@@ -30,6 +31,7 @@ import (
 	"github.com/familyledger/server/pkg/ws"
 
 	acctpb "github.com/familyledger/server/proto/account"
+	assetpb "github.com/familyledger/server/proto/asset"
 	authpb "github.com/familyledger/server/proto/auth"
 	budgetpb "github.com/familyledger/server/proto/budget"
 	familypb "github.com/familyledger/server/proto/family"
@@ -82,6 +84,7 @@ func main() {
 	loanService := loan.NewService(pool)
 	notifyService := notify.NewService(pool)
 	investmentService := investment.NewService(pool)
+	assetService := asset.NewService(pool)
 	marketFetcher := market.NewMockFetcher()
 	marketService := market.NewService(pool, marketFetcher)
 
@@ -101,6 +104,7 @@ func main() {
 	notifypb.RegisterNotifyServiceServer(grpcServer, notifyService)
 	investpb.RegisterInvestmentServiceServer(grpcServer, investmentService)
 	investpb.RegisterMarketDataServiceServer(grpcServer, marketService)
+	assetpb.RegisterAssetServiceServer(grpcServer, assetService)
 	reflection.Register(grpcServer)
 
 	// Start gRPC
@@ -139,6 +143,7 @@ func main() {
 	// Start scheduled tasks
 	go runScheduledTasks(ctx, notifyService)
 	go runMarketRefreshTasks(ctx, marketService)
+	go runDepreciationTask(ctx, assetService)
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
@@ -262,6 +267,45 @@ func computeMarketInterval(now time.Time) time.Duration {
 	// Off-hours: still 15 min for crypto, but since we batch, use 15 min
 	// (stock refresh is also fine hourly, but the crypto branch runs anyway)
 	return 15 * time.Minute
+}
+
+// runDepreciationTask runs monthly depreciation on the 1st of each month at 00:05 CST.
+func runDepreciationTask(ctx context.Context, assetService *asset.Service) {
+	cst, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		log.Printf("depreciation-scheduler: failed to load CST timezone, falling back to UTC+8: %v", err)
+		cst = time.FixedZone("CST", 8*60*60)
+	}
+
+	log.Println("depreciation-scheduler: started, monthly depreciation on 1st at 00:05 CST")
+
+	for {
+		now := time.Now().In(cst)
+		// Next 1st of month, 00:05
+		next := time.Date(now.Year(), now.Month()+1, 1, 0, 5, 0, 0, cst)
+		// If we're before the 1st 00:05 this month, use this month
+		thisMonth1st := time.Date(now.Year(), now.Month(), 1, 0, 5, 0, 0, cst)
+		if now.Before(thisMonth1st) {
+			next = thisMonth1st
+		}
+
+		waitDuration := time.Until(next)
+		log.Printf("depreciation-scheduler: next run at %s (in %s)", next.Format(time.RFC3339), waitDuration.Round(time.Minute))
+
+		select {
+		case <-ctx.Done():
+			log.Println("depreciation-scheduler: stopped")
+			return
+		case <-time.After(waitDuration):
+			log.Println("depreciation-scheduler: running monthly depreciation...")
+			depCtx, depCancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			if err := assetService.RunMonthlyDepreciationAll(depCtx); err != nil {
+				log.Printf("depreciation-scheduler: error: %v", err)
+			}
+			depCancel()
+			log.Println("depreciation-scheduler: complete")
+		}
+	}
 }
 
 func getEnv(key, fallback string) string {
