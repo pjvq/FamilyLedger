@@ -60,9 +60,12 @@ class _CategoryItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primaryColor = theme.colorScheme.primary;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
+    return Semantics(
+      label: name,
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
@@ -96,6 +99,7 @@ class _CategoryItem extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ],
+        ),
         ),
       ),
     );
