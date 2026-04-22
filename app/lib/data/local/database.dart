@@ -143,9 +143,14 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // Balance summary
+  /// 总余额 = 所有收入 - 所有支出（从交易记录直接聚合，不依赖 account.balance）
   Future<int> getTotalBalance(String userId) async {
-    final accs = await getAllAccounts(userId);
-    return accs.fold<int>(0, (sum, a) => sum + a.balance);
+    final allTxns = await (select(transactions)
+          ..where((t) => t.userId.equals(userId)))
+        .get();
+    return allTxns.fold<int>(0, (sum, t) {
+      return sum + (t.type == 'income' ? t.amountCny : -t.amountCny);
+    });
   }
 
   Future<int> getTodayExpense(String userId) async {
