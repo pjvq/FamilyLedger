@@ -106,7 +106,10 @@ class NumberPad extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          child: const Icon(Icons.backspace_outlined, size: 22),
+          child: Semantics(
+            label: '删除',
+            child: const Icon(Icons.backspace_outlined, size: 22),
+          ),
         ),
       ),
     );
@@ -131,7 +134,10 @@ class NumberPad extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          child: const Icon(Icons.check_rounded, size: 26),
+          child: Semantics(
+            label: '确认',
+            child: const Icon(Icons.check_rounded, size: 26),
+          ),
         ),
       ),
     );
