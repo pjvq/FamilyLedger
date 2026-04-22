@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package familyledger.family.v1;
+
+option go_package = "github.com/familyledger/server/proto/family";
+
+import "google/protobuf/timestamp.proto";
+
+service FamilyService {
+  rpc CreateFamily(CreateFamilyRequest) returns (CreateFamilyResponse);
+  rpc JoinFamily(JoinFamilyRequest) returns (JoinFamilyResponse);
+  rpc GetFamily(GetFamilyRequest) returns (GetFamilyResponse);
+  rpc GenerateInviteCode(GenerateInviteCodeRequest) returns (GenerateInviteCodeResponse);
+  rpc SetMemberRole(SetMemberRoleRequest) returns (SetMemberRoleResponse);
+  rpc SetMemberPermissions(SetMemberPermissionsRequest) returns (SetMemberPermissionsResponse);
+  rpc ListFamilyMembers(ListFamilyMembersRequest) returns (ListFamilyMembersResponse);
+  rpc LeaveFamily(LeaveFamilyRequest) returns (LeaveFamilyResponse);
+}
+
+enum FamilyRole {
+  FAMILY_ROLE_UNSPECIFIED = 0;
+  FAMILY_ROLE_OWNER = 1;
+  FAMILY_ROLE_ADMIN = 2;
+  FAMILY_ROLE_MEMBER = 3;
+}
+
+message MemberPermissions {
+  bool can_view = 1;
+  bool can_create = 2;
+  bool can_edit = 3;
+  bool can_delete = 4;
+  bool can_manage_accounts = 5;
+}
+
+message Family {
+  string id = 1;
+  string name = 2;
+  string owner_id = 3;
+  string invite_code = 4;
+  google.protobuf.Timestamp invite_expires_at = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message FamilyMember {
+  string id = 1;
+  string user_id = 2;
+  string email = 3;
+  FamilyRole role = 4;
+  MemberPermissions permissions = 5;
+  google.protobuf.Timestamp joined_at = 6;
+}
+
+// CreateFamily
+message CreateFamilyRequest {
+  string name = 1;
+}
+
+message CreateFamilyResponse {
+  Family family = 1;
+}
+
+// JoinFamily
+message JoinFamilyRequest {
+  string invite_code = 1;
+}
+
+message JoinFamilyResponse {
+  Family family = 1;
+}
+
+// GetFamily
+message GetFamilyRequest {
+  string family_id = 1;
+}
+
+message GetFamilyResponse {
+  Family family = 1;
+  repeated FamilyMember members = 2;
+}
+
+// GenerateInviteCode
+message GenerateInviteCodeRequest {
+  string family_id = 1;
+}
+
+message GenerateInviteCodeResponse {
+  string invite_code = 1;
+  google.protobuf.Timestamp expires_at = 2;
+}
+
+// SetMemberRole
+message SetMemberRoleRequest {
+  string family_id = 1;
+  string user_id = 2;
+  FamilyRole role = 3;
+}
+
+message SetMemberRoleResponse {}
+
+// SetMemberPermissions
+message SetMemberPermissionsRequest {
+  string family_id = 1;
+  string user_id = 2;
+  MemberPermissions permissions = 3;
+}
+
+message SetMemberPermissionsResponse {}
+
+// ListFamilyMembers
+message ListFamilyMembersRequest {
+  string family_id = 1;
+}
+
+message ListFamilyMembersResponse {
+  repeated FamilyMember members = 1;
+}
+
+// LeaveFamily
+message LeaveFamilyRequest {
+  string family_id = 1;
+}
+
+message LeaveFamilyResponse {}

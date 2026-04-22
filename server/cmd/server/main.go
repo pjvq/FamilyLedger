@@ -13,7 +13,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
+	"github.com/familyledger/server/internal/account"
 	"github.com/familyledger/server/internal/auth"
+	"github.com/familyledger/server/internal/family"
 	syncsvc "github.com/familyledger/server/internal/sync"
 	"github.com/familyledger/server/internal/transaction"
 	"github.com/familyledger/server/pkg/db"
@@ -21,7 +23,9 @@ import (
 	"github.com/familyledger/server/pkg/middleware"
 	"github.com/familyledger/server/pkg/ws"
 
+	acctpb "github.com/familyledger/server/proto/account"
 	authpb "github.com/familyledger/server/proto/auth"
+	familypb "github.com/familyledger/server/proto/family"
 	syncpb "github.com/familyledger/server/proto/sync"
 	txnpb "github.com/familyledger/server/proto/transaction"
 )
@@ -62,6 +66,8 @@ func main() {
 	authService := auth.NewService(pool, jwtManager)
 	txnService := transaction.NewService(pool)
 	syncService := syncsvc.NewService(pool, hub)
+	familyService := family.NewService(pool)
+	accountService := account.NewService(pool)
 
 	// gRPC Server
 	grpcServer := grpc.NewServer(
@@ -72,6 +78,8 @@ func main() {
 	authpb.RegisterAuthServiceServer(grpcServer, authService)
 	txnpb.RegisterTransactionServiceServer(grpcServer, txnService)
 	syncpb.RegisterSyncServiceServer(grpcServer, syncService)
+	familypb.RegisterFamilyServiceServer(grpcServer, familyService)
+	acctpb.RegisterAccountServiceServer(grpcServer, accountService)
 	reflection.Register(grpcServer)
 
 	// Start gRPC
