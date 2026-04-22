@@ -12,6 +12,9 @@ part 'database.g.dart';
   Accounts,
   Categories,
   Transactions,
+  Families,
+  FamilyMembers,
+  Transfers,
   SyncQueue,
 ])
 class AppDatabase extends _$AppDatabase {
@@ -20,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -28,6 +31,17 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
           // Seed preset categories
           await _seedCategories();
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            // v1 → v2: add new tables & columns
+            await m.createTable(families);
+            await m.createTable(familyMembers);
+            await m.createTable(transfers);
+            await m.addColumn(accounts, accounts.familyId);
+            await m.addColumn(accounts, accounts.accountType);
+            await m.addColumn(accounts, accounts.isActive);
+          }
         },
       );
 
@@ -207,6 +221,103 @@ class AppDatabase extends _$AppDatabase {
         .get();
     return rows.fold<int>(0, (sum, t) => sum + t.amountCny);
   }
+
+  // ---- Family CRUD ----
+
+  Future<List<Familie>> getAllFamilies() =>
+      select(families).get();
+
+  Future<Familie?> getFamilyById(String id) =>
+      (select(families)..where((f) => f.id.equals(id))).getSingleOrNull();
+
+  Future<int> insertFamily(FamiliesCompanion entry) =>
+      into(families).insert(entry);
+
+  Future<bool> updateFamily(FamiliesCompanion entry) =>
+      update(families).replace(entry);
+
+  Future<int> deleteFamily(String id) =>
+      (delete(families)..where((f) => f.id.equals(id))).go();
+
+  // ---- Family Members CRUD ----
+
+  Future<List<FamilyMember>> getFamilyMembers(String familyId) =>
+      (select(familyMembers)..where((m) => m.familyId.equals(familyId))).get();
+
+  Future<FamilyMember?> getFamilyMember(String familyId, String userId) =>
+      (select(familyMembers)
+            ..where((m) => m.familyId.equals(familyId) & m.userId.equals(userId)))
+          .getSingleOrNull();
+
+  Future<int> insertFamilyMember(FamilyMembersCompanion entry) =>
+      into(familyMembers).insert(entry);
+
+  Future<void> updateFamilyMemberRole(String familyId, String userId, String role) async {
+    await (update(familyMembers)
+          ..where((m) => m.familyId.equals(familyId) & m.userId.equals(userId)))
+        .write(FamilyMembersCompanion(role: Value(role)));
+  }
+
+  Future<void> updateFamilyMemberPermissions({
+    required String familyId,
+    required String userId,
+    required bool canView,
+    required bool canCreate,
+    required bool canEdit,
+    required bool canDelete,
+    required bool canManageAccounts,
+  }) async {
+    await (update(familyMembers)
+          ..where((m) => m.familyId.equals(familyId) & m.userId.equals(userId)))
+        .write(FamilyMembersCompanion(
+      canView: Value(canView),
+      canCreate: Value(canCreate),
+      canEdit: Value(canEdit),
+      canDelete: Value(canDelete),
+      canManageAccounts: Value(canManageAccounts),
+    ));
+  }
+
+  Future<int> deleteFamilyMember(String familyId, String userId) =>
+      (delete(familyMembers)
+            ..where((m) => m.familyId.equals(familyId) & m.userId.equals(userId)))
+          .go();
+
+  Future<int> deleteAllFamilyMembers(String familyId) =>
+      (delete(familyMembers)..where((m) => m.familyId.equals(familyId))).go();
+
+  // ---- Account extended CRUD ----
+
+  Future<List<Account>> getAccountsByFamily(String familyId) =>
+      (select(accounts)..where((a) => a.familyId.equals(familyId) & a.isActive.equals(true))).get();
+
+  Future<List<Account>> getActiveAccounts(String userId) =>
+      (select(accounts)..where((a) => a.userId.equals(userId) & a.isActive.equals(true))).get();
+
+  Future<Account?> getAccountById(String accountId) =>
+      (select(accounts)..where((a) => a.id.equals(accountId))).getSingleOrNull();
+
+  Future<void> updateAccountFields(String accountId, AccountsCompanion entry) async {
+    await (update(accounts)..where((a) => a.id.equals(accountId))).write(entry);
+  }
+
+  Future<int> softDeleteAccount(String accountId) async {
+    await (update(accounts)..where((a) => a.id.equals(accountId)))
+        .write(const AccountsCompanion(isActive: Value(false)));
+    return 1;
+  }
+
+  // ---- Transfer CRUD ----
+
+  Future<int> insertTransfer(TransfersCompanion entry) =>
+      into(transfers).insert(entry);
+
+  Future<List<Transfer>> getRecentTransfers(String userId, int limit) =>
+      (select(transfers)
+            ..where((t) => t.userId.equals(userId))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
+            ..limit(limit))
+          .get();
 }
 
 LazyDatabase _openConnection() {

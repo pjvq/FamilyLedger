@@ -6,6 +6,8 @@ import '../../domain/providers/app_providers.dart';
 import '../../generated/proto/auth.pbgrpc.dart';
 import '../../generated/proto/transaction.pbgrpc.dart';
 import '../../generated/proto/sync.pbgrpc.dart';
+import '../../generated/proto/family.pbgrpc.dart';
+import '../../generated/proto/account.pbgrpc.dart';
 
 /// gRPC channel singleton
 final grpcChannelProvider = Provider<ClientChannel>((ref) {
@@ -60,4 +62,18 @@ final syncClientProvider = Provider<SyncServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
   final prefs = ref.watch(sharedPreferencesProvider);
   return SyncServiceClient(channel, interceptors: [AuthInterceptor(prefs)]);
+});
+
+/// Family gRPC client
+final familyClientProvider = Provider<FamilyServiceClient>((ref) {
+  final channel = ref.watch(grpcChannelProvider);
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return FamilyServiceClient(channel, interceptors: [AuthInterceptor(prefs)]);
+});
+
+/// Account gRPC client
+final accountClientProvider = Provider<AccountServiceClient>((ref) {
+  final channel = ref.watch(grpcChannelProvider);
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return AccountServiceClient(channel, interceptors: [AuthInterceptor(prefs)]);
 });

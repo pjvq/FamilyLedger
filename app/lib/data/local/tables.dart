@@ -15,10 +15,13 @@ class Users extends Table {
 class Accounts extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text().references(Users, #id)();
+  TextColumn get familyId => text().withDefault(const Constant(''))(); // 空=个人账户
   TextColumn get name => text().withLength(min: 1, max: 50)();
+  TextColumn get accountType => text().withDefault(const Constant('other'))(); // cash, bank_card, credit_card, alipay, wechat_pay, investment, other
   TextColumn get icon => text().withDefault(const Constant('💳'))();
   IntColumn get balance => integer().withDefault(const Constant(0))(); // 分
   TextColumn get currency => text().withDefault(const Constant('CNY'))();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -56,6 +59,51 @@ class Transactions extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   BoolColumn get synced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 家庭表
+class Families extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text().withLength(min: 1, max: 50)();
+  TextColumn get ownerId => text()();
+  TextColumn get inviteCode => text().withDefault(const Constant(''))();
+  DateTimeColumn get inviteExpiresAt => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 家庭成员表
+class FamilyMembers extends Table {
+  TextColumn get id => text()();
+  TextColumn get familyId => text().references(Families, #id)();
+  TextColumn get userId => text()();
+  TextColumn get email => text().withDefault(const Constant(''))();
+  TextColumn get role => text().withDefault(const Constant('member'))(); // owner, admin, member
+  BoolColumn get canView => boolean().withDefault(const Constant(true))();
+  BoolColumn get canCreate => boolean().withDefault(const Constant(true))();
+  BoolColumn get canEdit => boolean().withDefault(const Constant(false))();
+  BoolColumn get canDelete => boolean().withDefault(const Constant(false))();
+  BoolColumn get canManageAccounts => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get joinedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 转账记录表
+class Transfers extends Table {
+  TextColumn get id => text()();
+  TextColumn get userId => text()();
+  TextColumn get fromAccountId => text().references(Accounts, #id)();
+  TextColumn get toAccountId => text().references(Accounts, #id)();
+  IntColumn get amount => integer()(); // 分
+  TextColumn get note => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column> get primaryKey => {id};
