@@ -123,7 +123,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   }
 
   void _handleDelete() {
-    HapticFeedback.lightImpact();
+    HapticFeedback.selectionClick();
     setState(() {
       if (_amountStr.length <= 1) {
         _amountStr = '0';
