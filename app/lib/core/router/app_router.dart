@@ -19,6 +19,9 @@ import '../../features/investment/investments_page.dart';
 import '../../features/investment/add_investment_page.dart';
 import '../../features/investment/investment_detail_page.dart';
 import '../../features/investment/trade_page.dart';
+import '../../features/asset/assets_page.dart';
+import '../../features/asset/add_asset_page.dart';
+import '../../features/asset/asset_detail_page.dart';
 
 class AppRouter {
   AppRouter._();
@@ -43,6 +46,9 @@ class AppRouter {
   static const addInvestment = '/investments/add';
   static const investmentDetail = '/investments/detail';
   static const investmentTrade = '/investments/trade';
+  static const assets = '/assets';
+  static const addAsset = '/assets/add';
+  static const assetDetail = '/assets/detail';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -90,6 +96,13 @@ class AppRouter {
       case investmentTrade:
         final investmentId = settings.arguments as String;
         return _slideUp(TradePage(investmentId: investmentId));
+      case assets:
+        return _slide(const AssetsPage());
+      case addAsset:
+        return _slideUp(const AddAssetPage());
+      case assetDetail:
+        final assetId = settings.arguments as String;
+        return _slide(AssetDetailPage(assetId: assetId));
       default:
         return _fade(const HomePage());
     }

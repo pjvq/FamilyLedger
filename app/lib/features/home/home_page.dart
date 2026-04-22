@@ -11,6 +11,7 @@ import '../../domain/providers/notification_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/loan_provider.dart';
 import '../../domain/providers/investment_provider.dart';
+import '../../domain/providers/asset_provider.dart';
 import '../../sync/sync_engine.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/transaction_list_item.dart';
@@ -113,6 +114,7 @@ class _DashboardTab extends ConsumerWidget {
     final notifState = ref.watch(notificationProvider);
     final loanState = ref.watch(loanProvider);
     final invState = ref.watch(investmentProvider);
+    final assetState = ref.watch(assetProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -179,6 +181,17 @@ class _DashboardTab extends ConsumerWidget {
                         isDark: isDark,
                         onTap: () => Navigator.of(context)
                             .pushNamed(AppRouter.investments),
+                      ),
+                    ),
+                  // Asset overview (if any assets)
+                  if (assetState.assets.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: _AssetOverviewCard(
+                        totalNetValue: assetState.totalNetValue,
+                        count: assetState.assets.length,
+                        isDark: isDark,
+                        onTap: () => Navigator.of(context)
+                            .pushNamed(AppRouter.assets),
                       ),
                     ),
                   // Section header
@@ -637,6 +650,105 @@ class _InvestmentOverviewCard extends StatelessWidget {
   }
 }
 
+// ────────── Asset Overview Card ──────────
+
+class _AssetOverviewCard extends StatelessWidget {
+  final int totalNetValue;
+  final int count;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _AssetOverviewCard({
+    required this.totalNetValue,
+    required this.count,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Semantics(
+      label: '资产概览，共$count项资产，总净值${_fmtYuan(totalNetValue)}元',
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF1A2A3A), const Color(0xFF0F1F2F)]
+                  : [const Color(0xFFF0F4FF), const Color(0xFFE8EDFF)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: (isDark ? AppColors.assetDark : AppColors.asset)
+                  .withValues(alpha: 0.2),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: (isDark ? AppColors.assetDark : AppColors.asset)
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Center(
+                  child: Text('🏠', style: TextStyle(fontSize: 20)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '固定资产',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.5),
+                      ),
+                    ),
+                    Text(
+                      '¥${_fmtYuan(totalNetValue)}',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        color: isDark ? AppColors.assetDark : AppColors.asset,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '$count项资产 ›',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _fmtYuan(int cents) {
+    final yuan = cents / 100;
+    if (yuan.abs() >= 10000) {
+      final wan = yuan / 10000;
+      return '${wan.toStringAsFixed(2)}万';
+    }
+    return yuan.toStringAsFixed(2);
+  }
+}
+
 // ────────── Placeholder tabs ──────────
 
 class _AccountsTab extends ConsumerWidget {
@@ -1002,6 +1114,13 @@ class _InlineSettingsContent extends ConsumerWidget {
           subtitle: '跟踪投资持仓、实时行情',
           onTap: () =>
               Navigator.of(context).pushNamed(AppRouter.investments),
+        ),
+        _SettingListTile(
+          icon: Icons.real_estate_agent_rounded,
+          title: '资产管理',
+          subtitle: '固定资产跟踪、自动折旧计算',
+          onTap: () =>
+              Navigator.of(context).pushNamed(AppRouter.assets),
         ),
         _SettingListTile(
           icon: Icons.notifications_outlined,
