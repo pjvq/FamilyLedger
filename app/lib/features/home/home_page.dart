@@ -5,17 +5,12 @@ import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/app_providers.dart';
-import '../../domain/providers/auth_provider.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/notification_provider.dart';
-import '../../domain/providers/transaction_provider.dart';
-import '../../domain/providers/loan_provider.dart';
-import '../../domain/providers/investment_provider.dart';
-import '../../domain/providers/asset_provider.dart';
 import '../../sync/sync_engine.dart';
-import 'widgets/balance_card.dart';
-import 'widgets/transaction_list_item.dart';
 import '../budget/budget_page.dart';
+import '../dashboard/dashboard_page.dart';
+import '../more/more_page.dart';
 
 /// Main shell with bottom navigation
 class HomePage extends ConsumerStatefulWidget {
@@ -40,23 +35,31 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final familyState = ref.watch(familyProvider);
+    final familyId = ref.watch(currentFamilyIdProvider);
+    final notifState = ref.watch(notificationProvider);
+    final hasFamily = familyState.currentFamily != null;
 
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: const [
-          _DashboardTab(),
-          _AccountsTab(),
-          SizedBox(), // placeholder for FAB center
-          BudgetPage(),
-          _SettingsTab(),
+        children: [
+          _DashboardShell(
+            hasFamily: hasFamily,
+            isFamilyMode: familyId != null,
+            familyName: familyState.currentFamily?.name ?? '',
+            unreadCount: notifState.unreadCount,
+          ),
+          const _AccountsTab(),
+          const SizedBox(), // placeholder for FAB center
+          const BudgetPage(),
+          const MorePage(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex == 2 ? 0 : _currentIndex, // FAB center doesn't select
+        selectedIndex: _currentIndex == 2 ? 0 : _currentIndex,
         onDestinationSelected: (index) {
           if (index == 2) {
-            // Center: 记一笔
             Navigator.of(context).pushNamed(AppRouter.addTransaction);
             return;
           }
@@ -64,9 +67,9 @@ class _HomePageState extends ConsumerState<HomePage> {
         },
         destinations: [
           const NavigationDestination(
-            icon: Icon(Icons.home_rounded),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: '首页',
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard_rounded),
+            label: '仪表盘',
           ),
           const NavigationDestination(
             icon: Icon(Icons.account_balance_wallet_outlined),
@@ -91,9 +94,9 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: '预算',
           ),
           const NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings_rounded),
-            label: '设置',
+            icon: Icon(Icons.more_horiz_rounded),
+            selectedIcon: Icon(Icons.more_horiz_rounded),
+            label: '更多',
           ),
         ],
       ),
@@ -101,141 +104,51 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
-// ────────── Dashboard Tab (the original Home) ──────────
+// ────────── Dashboard Shell (AppBar + family switcher + DashboardPage) ──────
 
-class _DashboardTab extends ConsumerWidget {
-  const _DashboardTab();
+class _DashboardShell extends ConsumerWidget {
+  final bool hasFamily;
+  final bool isFamilyMode;
+  final String familyName;
+  final int unreadCount;
+
+  const _DashboardShell({
+    required this.hasFamily,
+    required this.isFamilyMode,
+    required this.familyName,
+    required this.unreadCount,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final txnState = ref.watch(transactionProvider);
-    final familyState = ref.watch(familyProvider);
-    final familyId = ref.watch(currentFamilyIdProvider);
-    final notifState = ref.watch(notificationProvider);
-    final loanState = ref.watch(loanProvider);
-    final invState = ref.watch(investmentProvider);
-    final assetState = ref.watch(assetProvider);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final hasFamily = familyState.currentFamily != null;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('FamilyLedger'),
         centerTitle: false,
         actions: [
           _NotificationBell(
-            unreadCount: notifState.unreadCount,
+            unreadCount: unreadCount,
             onTap: () =>
                 Navigator.of(context).pushNamed(AppRouter.notifications),
           ),
         ],
       ),
-      body: txnState.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () async {
-                await ref.read(syncEngineProvider).syncNow();
+      body: Column(
+        children: [
+          // Personal ↔ Family switcher
+          if (hasFamily)
+            _ModeSwitcher(
+              isFamilyMode: isFamilyMode,
+              familyName: familyName,
+              onToggle: (isFamily) {
+                final familyState = ref.read(familyProvider);
+                ref.read(currentFamilyIdProvider.notifier).state =
+                    isFamily ? familyState.currentFamily?.id : null;
               },
-              child: CustomScrollView(
-                slivers: [
-                  // Personal ↔ Family switcher
-                  if (hasFamily)
-                    SliverToBoxAdapter(
-                      child: _ModeSwitcher(
-                        isFamilyMode: familyId != null,
-                        familyName: familyState.currentFamily!.name,
-                        onToggle: (isFamily) {
-                          ref.read(currentFamilyIdProvider.notifier).state =
-                              isFamily
-                                  ? familyState.currentFamily!.id
-                                  : null;
-                        },
-                      ),
-                    ),
-                  // Balance card
-                  SliverToBoxAdapter(
-                    child: BalanceCard(
-                      totalBalance: txnState.totalBalance,
-                      todayExpense: txnState.todayExpense,
-                      monthExpense: txnState.monthExpense,
-                    ),
-                  ),
-                  // Loan overview (if any loans)
-                  if (loanState.loans.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: _LoanOverviewCard(
-                        loans: loanState.loans,
-                        notifier: ref.read(loanProvider.notifier),
-                        onTap: () => Navigator.of(context)
-                            .pushNamed(AppRouter.loans),
-                      ),
-                    ),
-                  // Investment overview (if any holdings)
-                  if (invState.investments.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: _InvestmentOverviewCard(
-                        portfolio: invState.portfolio,
-                        count: invState.investments.length,
-                        isDark: isDark,
-                        onTap: () => Navigator.of(context)
-                            .pushNamed(AppRouter.investments),
-                      ),
-                    ),
-                  // Asset overview (if any assets)
-                  if (assetState.assets.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: _AssetOverviewCard(
-                        totalNetValue: assetState.totalNetValue,
-                        count: assetState.assets.length,
-                        isDark: isDark,
-                        onTap: () => Navigator.of(context)
-                            .pushNamed(AppRouter.assets),
-                      ),
-                    ),
-                  // Section header
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-                      child: Text(
-                        '最近交易',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Transaction list
-                  if (txnState.transactions.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: _TransactionEmptyState(theme: theme),
-                    )
-                  else
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final txn = txnState.transactions[index];
-                          final allCats = [
-                            ...txnState.expenseCategories,
-                            ...txnState.incomeCategories,
-                          ];
-                          final cat = allCats
-                              .where((c) => c.id == txn.categoryId)
-                              .firstOrNull;
-                          return TransactionListItem(
-                            transaction: txn,
-                            categoryName: cat?.name ?? '未知',
-                            categoryIcon: cat?.icon ?? '📦',
-                          );
-                        },
-                        childCount: txnState.transactions.length,
-                      ),
-                    ),
-                ],
-              ),
             ),
+          const Expanded(child: DashboardPage()),
+        ],
+      ),
     );
   }
 }
@@ -384,9 +297,7 @@ class _NotificationBell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Semantics(
-      label: unreadCount > 0
-          ? '通知，$unreadCount条未读'
-          : '通知',
+      label: unreadCount > 0 ? '通知，$unreadCount条未读' : '通知',
       button: true,
       child: IconButton(
         onPressed: onTap,
@@ -406,484 +317,111 @@ class _NotificationBell extends StatelessWidget {
   }
 }
 
-// ────────── Loan Overview Card ──────────
-
-class _LoanOverviewCard extends StatelessWidget {
-  final List<dynamic> loans;
-  final LoanNotifier notifier;
-  final VoidCallback onTap;
-
-  const _LoanOverviewCard({
-    required this.loans,
-    required this.notifier,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    // Calculate this month's total payment
-    int monthlyTotal = 0;
-    for (final loan in loans) {
-      if (loan.paidMonths < loan.totalMonths) {
-        monthlyTotal += notifier.getMonthlyPayment(loan);
-      }
-    }
-
-    return Semantics(
-      label: '贷款概览，共${loans.length}笔贷款，本月需还${_fmtYuan(monthlyTotal)}元',
-      button: true,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isDark
-                  ? [const Color(0xFF2A1A1A), const Color(0xFF1C1010)]
-                  : [const Color(0xFFFFF0F0), const Color(0xFFFFE8E8)],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: (isDark ? AppColors.liabilityDark : AppColors.liability)
-                  .withValues(alpha: 0.2),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: (isDark ? AppColors.liabilityDark : AppColors.liability)
-                      .withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Center(
-                  child: Text('🏦', style: TextStyle(fontSize: 20)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          '贷款 ${loans.length} 笔',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.6),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          '本月需还 ',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.4),
-                          ),
-                        ),
-                        Text(
-                          '¥${_fmtYuan(monthlyTotal)}',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                            color: isDark
-                                ? AppColors.liabilityDark
-                                : AppColors.liability,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _fmtYuan(int cents) {
-    final yuan = cents / 100;
-    if (yuan >= 10000) {
-      final wan = yuan / 10000;
-      return '${wan.toStringAsFixed(2)}万';
-    }
-    return yuan.toStringAsFixed(2);
-  }
-}
-
-// ────────── Investment Overview Card ──────────
-
-class _InvestmentOverviewCard extends StatelessWidget {
-  final PortfolioSummary portfolio;
-  final int count;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _InvestmentOverviewCard({
-    required this.portfolio,
-    required this.count,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isUp = portfolio.totalProfit >= 0;
-    final profitColor = isUp
-        ? (isDark ? AppColors.incomeDark : AppColors.income)
-        : (isDark ? AppColors.expenseDark : AppColors.expense);
-
-    return Semantics(
-      label: '投资概览，共$count个持仓，总市值${_fmtYuan(portfolio.totalValue)}元',
-      button: true,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isDark
-                  ? [const Color(0xFF1A2A1A), const Color(0xFF0F1F10)]
-                  : [const Color(0xFFF0F8F0), const Color(0xFFE8F5E8)],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: (isDark ? AppColors.incomeDark : AppColors.income)
-                  .withValues(alpha: 0.2),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: (isDark ? AppColors.incomeDark : AppColors.income)
-                      .withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Center(
-                  child: Text('📈', style: TextStyle(fontSize: 20)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '投资持仓',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.5),
-                      ),
-                    ),
-                    Text(
-                      '¥${_fmtYuan(portfolio.totalValue)}',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        color: isDark ? AppColors.incomeDark : AppColors.income,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '$count个持仓 ›',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${isUp ? "+" : ""}${_fmtYuan(portfolio.totalProfit)}',
-                    style: TextStyle(
-                      color: profitColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _fmtYuan(int cents) {
-    final yuan = cents / 100;
-    if (yuan.abs() >= 10000) {
-      final wan = yuan / 10000;
-      return '${wan.toStringAsFixed(2)}万';
-    }
-    return yuan.toStringAsFixed(2);
-  }
-}
-
-// ────────── Asset Overview Card ──────────
-
-class _AssetOverviewCard extends StatelessWidget {
-  final int totalNetValue;
-  final int count;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _AssetOverviewCard({
-    required this.totalNetValue,
-    required this.count,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Semantics(
-      label: '资产概览，共$count项资产，总净值${_fmtYuan(totalNetValue)}元',
-      button: true,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isDark
-                  ? [const Color(0xFF1A2A3A), const Color(0xFF0F1F2F)]
-                  : [const Color(0xFFF0F4FF), const Color(0xFFE8EDFF)],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: (isDark ? AppColors.assetDark : AppColors.asset)
-                  .withValues(alpha: 0.2),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: (isDark ? AppColors.assetDark : AppColors.asset)
-                      .withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Center(
-                  child: Text('🏠', style: TextStyle(fontSize: 20)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '固定资产',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.5),
-                      ),
-                    ),
-                    Text(
-                      '¥${_fmtYuan(totalNetValue)}',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        color: isDark ? AppColors.assetDark : AppColors.asset,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '$count项资产 ›',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _fmtYuan(int cents) {
-    final yuan = cents / 100;
-    if (yuan.abs() >= 10000) {
-      final wan = yuan / 10000;
-      return '${wan.toStringAsFixed(2)}万';
-    }
-    return yuan.toStringAsFixed(2);
-  }
-}
-
-// ────────── Placeholder tabs ──────────
+// ────────── Accounts Tab ──────────
 
 class _AccountsTab extends ConsumerWidget {
   const _AccountsTab();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Reuse the AccountsPage but embedded (no separate scaffold push)
-    return const _EmbeddedAccountsTab();
-  }
-}
-
-class _EmbeddedAccountsTab extends ConsumerWidget {
-  const _EmbeddedAccountsTab();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Import and use inline — avoiding circular issues
-    // We just push the accounts route
-    return Scaffold(
-      appBar: AppBar(title: const Text('账户')),
-      body: Builder(
-        builder: (context) {
-          // Use a redirect to the accounts page
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            // This is a bit of a hack — let's just build inline
-          });
-          return const _AccountsInline();
-        },
-      ),
-    );
-  }
-}
-
-class _AccountsInline extends ConsumerWidget {
-  const _AccountsInline();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Inline version of accounts — reuse the provider
     final accountState = ref.watch(accountProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    if (accountState.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (accountState.accounts.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.account_balance_wallet_rounded,
-              size: 80,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.15),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '还没有账户',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '点击下方按钮添加第一个账户',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-              ),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: () =>
-                  Navigator.of(context).pushNamed(AppRouter.addAccount),
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('添加账户'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: () => ref.read(accountProvider.notifier).refresh(),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-        children: [
-          // Total
-          _InlineTotalCard(
-            total: accountState.totalBalance,
-            count: accountState.accounts.length,
-            isDark: isDark,
-          ),
-          const SizedBox(height: 12),
-          ...accountState.accounts.map((acc) => _InlineAccountTile(
-                account: acc,
-                theme: theme,
-                isDark: isDark,
-              )),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(AppRouter.transfer),
-                  icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                  label: const Text('转账'),
+    return Scaffold(
+      appBar: AppBar(title: const Text('账户')),
+      body: accountState.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : accountState.accounts.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.account_balance_wallet_rounded,
+                        size: 80,
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.15),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '还没有账户',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.4),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '点击下方按钮添加第一个账户',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.3),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton.icon(
+                        onPressed: () => Navigator.of(context)
+                            .pushNamed(AppRouter.addAccount),
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('添加账户'),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: () =>
+                      ref.read(accountProvider.notifier).refresh(),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                    children: [
+                      _TotalCard(
+                        total: accountState.totalBalance,
+                        count: accountState.accounts.length,
+                        isDark: isDark,
+                      ),
+                      const SizedBox(height: 12),
+                      ...accountState.accounts.map((acc) => _AccountTile(
+                            account: acc,
+                            theme: theme,
+                            isDark: isDark,
+                          )),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => Navigator.of(context)
+                                  .pushNamed(AppRouter.transfer),
+                              icon: const Icon(Icons.swap_horiz_rounded,
+                                  size: 18),
+                              label: const Text('转账'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: () => Navigator.of(context)
+                                  .pushNamed(AppRouter.addAccount),
+                              icon: const Icon(Icons.add_rounded, size: 18),
+                              label: const Text('添加'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed(AppRouter.addAccount),
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('添加'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }
 
-class _InlineTotalCard extends StatelessWidget {
+class _TotalCard extends StatelessWidget {
   final int total;
   final int count;
   final bool isDark;
 
-  const _InlineTotalCard({
+  const _TotalCard({
     required this.total,
     required this.count,
     required this.isDark,
@@ -940,12 +478,12 @@ class _InlineTotalCard extends StatelessWidget {
   }
 }
 
-class _InlineAccountTile extends StatelessWidget {
+class _AccountTile extends StatelessWidget {
   final Account account;
   final ThemeData theme;
   final bool isDark;
 
-  const _InlineAccountTile({
+  const _AccountTile({
     required this.account,
     required this.theme,
     required this.isDark,
@@ -969,8 +507,8 @@ class _InlineAccountTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
-                child: Text(account.icon,
-                    style: const TextStyle(fontSize: 20)),
+                child:
+                    Text(account.icon, style: const TextStyle(fontSize: 20)),
               ),
             ),
             const SizedBox(width: 12),
@@ -1001,247 +539,5 @@ class _InlineAccountTile extends StatelessWidget {
     final yuan = cents / 100;
     if (yuan == yuan.truncateToDouble()) return yuan.toInt().toString();
     return yuan.toStringAsFixed(2);
-  }
-}
-
-class _SettingsTab extends StatelessWidget {
-  const _SettingsTab();
-
-  @override
-  Widget build(BuildContext context) {
-    // We can't directly import SettingsPage here because it's already a full Scaffold
-    // So we push to the route
-    return Scaffold(
-      appBar: AppBar(title: const Text('设置')),
-      body: Builder(
-        builder: (context) {
-          // Inline settings — redirect to settings page content
-          return const _InlineSettingsContent();
-        },
-      ),
-    );
-  }
-}
-
-/// Inline settings content mirroring SettingsPage but embedded in the tab
-class _InlineSettingsContent extends ConsumerWidget {
-  const _InlineSettingsContent();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Push to the full settings page
-    // This is cleaner than duplicating all the settings UI
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // No-op — we'll just build the settings inline
-    });
-
-    final authState = ref.watch(authProvider);
-    final familyState = ref.watch(familyProvider);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      children: [
-        // User info card
-        Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: isDark
-                      ? AppColors.primaryDark.withValues(alpha: 0.2)
-                      : AppColors.primary.withValues(alpha: 0.1),
-                  child: Icon(
-                    Icons.person_rounded,
-                    size: 28,
-                    color: isDark ? AppColors.primaryDark : AppColors.primary,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '我的账号',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        authState.userId ?? '',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Navigate to full settings page for family management
-        _SettingListTile(
-          icon: Icons.family_restroom_rounded,
-          title: familyState.currentFamily != null
-              ? familyState.currentFamily!.name
-              : '家庭管理',
-          subtitle: familyState.currentFamily != null
-              ? '${familyState.members.length} 位成员'
-              : '创建或加入家庭',
-          onTap: () =>
-              Navigator.of(context).pushNamed(AppRouter.settings),
-        ),
-        _SettingListTile(
-          icon: Icons.account_balance_rounded,
-          title: '贷款管理',
-          subtitle: '跟踪还款进度、模拟提前还款',
-          onTap: () =>
-              Navigator.of(context).pushNamed(AppRouter.loans),
-        ),
-        _SettingListTile(
-          icon: Icons.trending_up_rounded,
-          title: '投资管理',
-          subtitle: '跟踪投资持仓、实时行情',
-          onTap: () =>
-              Navigator.of(context).pushNamed(AppRouter.investments),
-        ),
-        _SettingListTile(
-          icon: Icons.real_estate_agent_rounded,
-          title: '资产管理',
-          subtitle: '固定资产跟踪、自动折旧计算',
-          onTap: () =>
-              Navigator.of(context).pushNamed(AppRouter.assets),
-        ),
-        _SettingListTile(
-          icon: Icons.notifications_outlined,
-          title: '通知设置',
-          subtitle: '管理预算提醒和日常通知',
-          onTap: () =>
-              Navigator.of(context).pushNamed(AppRouter.notificationSettings),
-        ),
-        _SettingListTile(
-          icon: Icons.logout_rounded,
-          title: '退出登录',
-          isDestructive: true,
-          onTap: () async {
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('退出登录'),
-                content: const Text('确定要退出登录吗？'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: const Text('取消'),
-                  ),
-                  FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.expense,
-                    ),
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                    child: const Text('退出'),
-                  ),
-                ],
-              ),
-            );
-            if (confirmed == true && context.mounted) {
-              await ref.read(authProvider.notifier).logout();
-              if (context.mounted) {
-                Navigator.of(context)
-                    .pushNamedAndRemoveUntil(AppRouter.login, (_) => false);
-              }
-            }
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _SettingListTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final bool isDestructive;
-  final VoidCallback onTap;
-
-  const _SettingListTile({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-    this.isDestructive = false,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color =
-        isDestructive ? AppColors.expense : theme.colorScheme.onSurface;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
-      child: ListTile(
-        leading: Icon(icon, color: color.withValues(alpha: 0.7)),
-        title: Text(title, style: TextStyle(color: color, fontWeight: FontWeight.w500)),
-        subtitle: subtitle != null
-            ? Text(subtitle!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                ))
-            : null,
-        trailing: Icon(Icons.chevron_right_rounded,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        onTap: onTap,
-      ),
-    );
-  }
-}
-
-// ────────── Transaction Empty State ──────────
-
-class _TransactionEmptyState extends StatelessWidget {
-  final ThemeData theme;
-  const _TransactionEmptyState({required this.theme});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.receipt_long_rounded,
-            size: 80,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.15),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '还没有交易记录',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '点击下方 "记账" 按钮开始',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
