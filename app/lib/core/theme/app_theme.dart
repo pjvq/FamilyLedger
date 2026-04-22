@@ -10,7 +10,7 @@ class AppTheme {
         brightness: Brightness.light,
         colorSchemeSeed: AppColors.primary,
         scaffoldBackgroundColor: AppColors.surfaceLight,
-        fontFamily: 'DINRoundPro',
+        // fontFamily: 'DINRoundPro', // TODO: add font files
         cardTheme: const CardThemeData(
           color: AppColors.cardLight,
           elevation: 0,
@@ -25,7 +25,7 @@ class AppTheme {
           elevation: 0,
           centerTitle: true,
           titleTextStyle: TextStyle(
-            fontFamily: 'DINRoundPro',
+            // fontFamily: 'DINRoundPro', // TODO: add font files
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
@@ -61,7 +61,7 @@ class AppTheme {
               borderRadius: BorderRadius.circular(14),
             ),
             textStyle: const TextStyle(
-              fontFamily: 'DINRoundPro',
+              // fontFamily: 'DINRoundPro', // TODO: add font files
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -75,7 +75,7 @@ class AppTheme {
         brightness: Brightness.dark,
         colorSchemeSeed: AppColors.primaryDark,
         scaffoldBackgroundColor: AppColors.surfaceDark,
-        fontFamily: 'DINRoundPro',
+        // fontFamily: 'DINRoundPro', // TODO: add font files
         cardTheme: const CardThemeData(
           color: AppColors.cardDark,
           elevation: 0,
@@ -90,7 +90,7 @@ class AppTheme {
           elevation: 0,
           centerTitle: true,
           titleTextStyle: TextStyle(
-            fontFamily: 'DINRoundPro',
+            // fontFamily: 'DINRoundPro', // TODO: add font files
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimaryDark,
@@ -126,7 +126,7 @@ class AppTheme {
               borderRadius: BorderRadius.circular(14),
             ),
             textStyle: const TextStyle(
-              fontFamily: 'DINRoundPro',
+              // fontFamily: 'DINRoundPro', // TODO: add font files
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
