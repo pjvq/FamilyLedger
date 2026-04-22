@@ -96,11 +96,17 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     required String type, // 'income' | 'expense'
     String note = '',
     DateTime? txnDate,
+    String currency = 'CNY',
+    int? amountCny,
+    String tags = '',
+    String imageUrls = '',
   }) async {
     final now = DateTime.now();
     final id = _uuid.v4();
     final account = await _db.getDefaultAccount(_userId);
     if (account == null) return;
+
+    final effectiveAmountCny = amountCny ?? amount;
 
     // 1. 写本地 DB
     final companion = TransactionsCompanion.insert(
@@ -109,15 +115,17 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       accountId: account.id,
       categoryId: categoryId,
       amount: amount,
-      amountCny: amount,
+      amountCny: effectiveAmountCny,
       type: type,
       note: Value(note),
+      tags: Value(tags),
+      imageUrls: Value(imageUrls),
       txnDate: txnDate ?? now,
     );
     await _db.insertTransaction(companion);
 
-    // 2. 更新账户余额
-    final delta = type == 'income' ? amount : -amount;
+    // 2. 更新账户余额（始终用人民币计）
+    final delta = type == 'income' ? effectiveAmountCny : -effectiveAmountCny;
     await _db.updateAccountBalance(account.id, delta);
 
     // 3. 尝试推服务端
@@ -128,9 +136,9 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           ..accountId = account.id
           ..categoryId = categoryId
           ..amount = Int64(amount)
-          ..currency = 'CNY'
-          ..amountCny = Int64(amount)
-          ..exchangeRate = 1.0
+          ..currency = currency
+          ..amountCny = Int64(effectiveAmountCny)
+          ..exchangeRate = amount > 0 ? effectiveAmountCny / amount : 1.0
           ..type = type == 'income'
               ? pbe.TransactionType.TRANSACTION_TYPE_INCOME
               : pbe.TransactionType.TRANSACTION_TYPE_EXPENSE
