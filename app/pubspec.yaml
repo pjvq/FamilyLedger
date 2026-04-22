@@ -40,6 +40,9 @@ dependencies:
   vibration: ^2.0.0
   # Share / Export
   share_plus: ^10.0.0
+  # File / Image picker
+  file_picker: ^8.0.0
+  image_picker: ^1.0.0
 
 dev_dependencies:
   flutter_test:

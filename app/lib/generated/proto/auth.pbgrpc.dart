@@ -33,6 +33,10 @@ class AuthServiceClient extends $grpc.Client {
       '/familyledger.auth.v1.AuthService/RefreshToken',
       ($0.RefreshTokenRequest value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $0.RefreshTokenResponse.fromBuffer(value));
+  static final _$oAuthLogin = $grpc.ClientMethod<$0.OAuthLoginRequest, $0.OAuthLoginResponse>(
+      '/familyledger.auth.v1.AuthService/OAuthLogin',
+      ($0.OAuthLoginRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.OAuthLoginResponse.fromBuffer(value));
 
   AuthServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -50,6 +54,10 @@ class AuthServiceClient extends $grpc.Client {
 
   $grpc.ResponseFuture<$0.RefreshTokenResponse> refreshToken($0.RefreshTokenRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$refreshToken, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.OAuthLoginResponse> oAuthLogin($0.OAuthLoginRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$oAuthLogin, request, options: options);
   }
 }
 
@@ -79,6 +87,13 @@ abstract class AuthServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.RefreshTokenRequest.fromBuffer(value),
         ($0.RefreshTokenResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.OAuthLoginRequest, $0.OAuthLoginResponse>(
+        'OAuthLogin',
+        oAuthLogin_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.OAuthLoginRequest.fromBuffer(value),
+        ($0.OAuthLoginResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.RegisterResponse> register_Pre($grpc.ServiceCall call, $async.Future<$0.RegisterRequest> request) async {
@@ -93,7 +108,12 @@ abstract class AuthServiceBase extends $grpc.Service {
     return refreshToken(call, await request);
   }
 
+  $async.Future<$0.OAuthLoginResponse> oAuthLogin_Pre($grpc.ServiceCall call, $async.Future<$0.OAuthLoginRequest> request) async {
+    return oAuthLogin(call, await request);
+  }
+
   $async.Future<$0.RegisterResponse> register($grpc.ServiceCall call, $0.RegisterRequest request);
   $async.Future<$0.LoginResponse> login($grpc.ServiceCall call, $0.LoginRequest request);
   $async.Future<$0.RefreshTokenResponse> refreshToken($grpc.ServiceCall call, $0.RefreshTokenRequest request);
+  $async.Future<$0.OAuthLoginResponse> oAuthLogin($grpc.ServiceCall call, $0.OAuthLoginRequest request);
 }

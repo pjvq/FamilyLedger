@@ -170,6 +170,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear_rounded),
+                          tooltip: '清除搜索',
                           onPressed: () {
                             _searchController.clear();
                             setState(() => _selectedSymbol = null);

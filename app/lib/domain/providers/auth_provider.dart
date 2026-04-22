@@ -176,6 +176,55 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _ref.read(currentUserIdProvider.notifier).state = null;
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
+
+  /// OAuth 登录 — 调用 gRPC OAuthLogin
+  Future<void> oauthLogin({
+    required String provider,
+    required String code,
+    String redirectUri = '',
+  }) async {
+    state = state.copyWith(status: AuthStatus.loading);
+    try {
+      final resp = await _authClient.oAuthLogin(
+        OAuthLoginRequest()
+          ..provider = provider
+          ..code = code
+          ..redirectUri = redirectUri,
+      );
+
+      await _prefs.setString(AppConstants.accessTokenKey, resp.accessToken);
+      await _prefs.setString(AppConstants.refreshTokenKey, resp.refreshToken);
+      await _prefs.setString(AppConstants.userIdKey, resp.userId);
+
+      // Cache user locally
+      await _db.into(_db.users).insertOnConflictUpdate(UsersCompanion.insert(
+            id: resp.userId,
+            email: '$provider@oauth',
+          ));
+
+      if (resp.isNewUser) {
+        // Create default account for new OAuth users
+        await _db.insertAccount(AccountsCompanion.insert(
+          id: 'acc_default_${resp.userId}',
+          userId: resp.userId,
+          name: '默认账户',
+        ));
+      }
+
+      _ref.read(currentUserIdProvider.notifier).state = resp.userId;
+      state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
+    } on GrpcError catch (e) {
+      state = AuthState(
+        status: AuthStatus.error,
+        errorMessage: '第三方登录失败: ${e.message}',
+      );
+    } catch (e) {
+      state = AuthState(
+        status: AuthStatus.error,
+        errorMessage: '第三方登录失败: $e',
+      );
+    }
+  }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {

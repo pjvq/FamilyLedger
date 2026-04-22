@@ -106,6 +106,13 @@ class MorePage extends ConsumerWidget {
             onTap: () =>
                 Navigator.of(context).pushNamed(AppRouter.export),
           ),
+          _MoreTile(
+            icon: Icons.file_upload_rounded,
+            title: 'CSV 导入',
+            subtitle: '从 CSV 文件导入交易记录',
+            onTap: () =>
+                Navigator.of(context).pushNamed(AppRouter.csvImport),
+          ),
 
           _SectionHeader(title: '设置', theme: theme),
           _MoreTile(

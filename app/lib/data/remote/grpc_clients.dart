@@ -15,6 +15,7 @@ import '../../generated/proto/investment.pbgrpc.dart';
 import '../../generated/proto/asset.pbgrpc.dart';
 import '../../generated/proto/dashboard.pbgrpc.dart';
 import '../../generated/proto/export.pbgrpc.dart';
+import '../../generated/proto/import.pbgrpc.dart';
 
 /// gRPC channel singleton
 final grpcChannelProvider = Provider<ClientChannel>((ref) {
@@ -139,4 +140,11 @@ final exportClientProvider = Provider<ExportServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
   final prefs = ref.watch(sharedPreferencesProvider);
   return ExportServiceClient(channel, interceptors: [AuthInterceptor(prefs)]);
+});
+
+/// Import gRPC client
+final importClientProvider = Provider<ImportServiceClient>((ref) {
+  final channel = ref.watch(grpcChannelProvider);
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return ImportServiceClient(channel, interceptors: [AuthInterceptor(prefs)]);
 });

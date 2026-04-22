@@ -151,6 +151,7 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
                         icon: const Icon(Icons.close_rounded),
+                        tooltip: '关闭',
                       ),
                     ],
                   ),

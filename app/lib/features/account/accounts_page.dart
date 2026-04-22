@@ -51,6 +51,7 @@ class AccountsPage extends ConsumerWidget {
         children: [
           FloatingActionButton.small(
             heroTag: 'transfer',
+            tooltip: '转账',
             onPressed: () {
               Navigator.of(context).pushNamed(AppRouter.transfer);
             },

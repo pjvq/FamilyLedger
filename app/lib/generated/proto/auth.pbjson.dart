@@ -106,3 +106,37 @@ final $typed_data.Uint8List refreshTokenResponseDescriptor = $convert.base64Deco
     'VuEiMKDXJlZnJlc2hfdG9rZW4YAiABKAlSDHJlZnJlc2hUb2tlbhI5CgpleHBpcmVzX2F0GAMg'
     'ASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJZXhwaXJlc0F0');
 
+@$core.Deprecated('Use oAuthLoginRequestDescriptor instead')
+const OAuthLoginRequest$json = {
+  '1': 'OAuthLoginRequest',
+  '2': [
+    {'1': 'provider', '3': 1, '4': 1, '5': 9, '10': 'provider'},
+    {'1': 'code', '3': 2, '4': 1, '5': 9, '10': 'code'},
+    {'1': 'redirect_uri', '3': 3, '4': 1, '5': 9, '10': 'redirectUri'},
+  ],
+};
+
+/// Descriptor for `OAuthLoginRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List oAuthLoginRequestDescriptor = $convert.base64Decode(
+    'ChFPQXV0aExvZ2luUmVxdWVzdBIaCghwcm92aWRlchgBIAEoCVIIcHJvdmlkZXISEgoEY29kZR'
+    'gCIAEoCVIEY29kZRIhCgxyZWRpcmVjdF91cmkYAyABKAlSC3JlZGlyZWN0VXJp');
+
+@$core.Deprecated('Use oAuthLoginResponseDescriptor instead')
+const OAuthLoginResponse$json = {
+  '1': 'OAuthLoginResponse',
+  '2': [
+    {'1': 'user_id', '3': 1, '4': 1, '5': 9, '10': 'userId'},
+    {'1': 'access_token', '3': 2, '4': 1, '5': 9, '10': 'accessToken'},
+    {'1': 'refresh_token', '3': 3, '4': 1, '5': 9, '10': 'refreshToken'},
+    {'1': 'expires_at', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'expiresAt'},
+    {'1': 'is_new_user', '3': 5, '4': 1, '5': 8, '10': 'isNewUser'},
+  ],
+};
+
+/// Descriptor for `OAuthLoginResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List oAuthLoginResponseDescriptor = $convert.base64Decode(
+    'ChJPQXV0aExvZ2luUmVzcG9uc2USFwoHdXNlcl9pZBgBIAEoCVIGdXNlcklkEiEKDGFjY2Vzc1'
+    '90b2tlbhgCIAEoCVILYWNjZXNzVG9rZW4SIwoNcmVmcmVzaF90b2tlbhgDIAEoCVIMcmVmcmVz'
+    'aFRva2VuEjkKCmV4cGlyZXNfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUg'
+    'lleHBpcmVzQXQSHgoLaXNfbmV3X3VzZXIYBSABKAhSCWlzTmV3VXNlcg==');
+

@@ -143,6 +143,57 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       style: TextStyle(color: theme.colorScheme.primary),
                     ),
                   ),
+                  const SizedBox(height: 32),
+                  // OAuth divider
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Divider(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          '其他登录方式',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.4),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  // OAuth buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // WeChat login
+                      _OAuthButton(
+                        icon: Icons.chat_rounded,
+                        label: '微信',
+                        color: const Color(0xFF07C160),
+                        onTap: () => _handleOAuthLogin('wechat'),
+                      ),
+                      const SizedBox(width: 32),
+                      // Apple login
+                      _OAuthButton(
+                        icon: Icons.apple_rounded,
+                        label: 'Apple',
+                        color: theme.brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
+                        onTap: () => _handleOAuthLogin('apple'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
@@ -158,5 +209,56 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           _emailController.text.trim(),
           _passwordController.text,
         );
+  }
+
+  void _handleOAuthLogin(String provider) {
+    ref.read(authProvider.notifier).oauthLogin(
+          provider: provider,
+          code: 'test', // Mock: use test code
+        );
+  }
+}
+
+class _OAuthButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _OAuthButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
+                ),
+          ),
+        ],
+      ),
+    );
   }
 }

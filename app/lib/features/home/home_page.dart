@@ -301,6 +301,7 @@ class _NotificationBell extends StatelessWidget {
       button: true,
       child: IconButton(
         onPressed: onTap,
+        tooltip: unreadCount > 0 ? '通知，$unreadCount条未读' : '通知',
         icon: Badge(
           isLabelVisible: unreadCount > 0,
           label: Text(

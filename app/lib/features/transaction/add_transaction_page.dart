@@ -51,6 +51,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.close_rounded, size: 24),
+          tooltip: '关闭',
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text('记一笔'),

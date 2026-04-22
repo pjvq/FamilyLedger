@@ -34,6 +34,8 @@ class Transaction extends $pb.GeneratedMessage {
     $3.Timestamp? txnDate,
     $3.Timestamp? createdAt,
     $3.Timestamp? updatedAt,
+    $core.Iterable<$core.String>? tags,
+    $core.Iterable<$core.String>? imageUrls,
   }) {
     final $result = create();
     if (id != null) {
@@ -75,6 +77,12 @@ class Transaction extends $pb.GeneratedMessage {
     if (updatedAt != null) {
       $result.updatedAt = updatedAt;
     }
+    if (tags != null) {
+      $result.tags.addAll(tags);
+    }
+    if (imageUrls != null) {
+      $result.imageUrls.addAll(imageUrls);
+    }
     return $result;
   }
   Transaction._() : super();
@@ -95,6 +103,8 @@ class Transaction extends $pb.GeneratedMessage {
     ..aOM<$3.Timestamp>(11, _omitFieldNames ? '' : 'txnDate', subBuilder: $3.Timestamp.create)
     ..aOM<$3.Timestamp>(12, _omitFieldNames ? '' : 'createdAt', subBuilder: $3.Timestamp.create)
     ..aOM<$3.Timestamp>(13, _omitFieldNames ? '' : 'updatedAt', subBuilder: $3.Timestamp.create)
+    ..pPS(14, _omitFieldNames ? '' : 'tags')
+    ..pPS(15, _omitFieldNames ? '' : 'imageUrls')
     ..hasRequiredFields = false
   ;
 
@@ -241,6 +251,12 @@ class Transaction extends $pb.GeneratedMessage {
   void clearUpdatedAt() => clearField(13);
   @$pb.TagNumber(13)
   $3.Timestamp ensureUpdatedAt() => $_ensure(12);
+
+  @$pb.TagNumber(14)
+  $core.List<$core.String> get tags => $_getList(13);
+
+  @$pb.TagNumber(15)
+  $core.List<$core.String> get imageUrls => $_getList(14);
 }
 
 class Category extends $pb.GeneratedMessage {
@@ -374,6 +390,8 @@ class CreateTransactionRequest extends $pb.GeneratedMessage {
     TransactionType? type,
     $core.String? note,
     $3.Timestamp? txnDate,
+    $core.Iterable<$core.String>? tags,
+    $core.Iterable<$core.String>? imageUrls,
   }) {
     final $result = create();
     if (accountId != null) {
@@ -403,6 +421,12 @@ class CreateTransactionRequest extends $pb.GeneratedMessage {
     if (txnDate != null) {
       $result.txnDate = txnDate;
     }
+    if (tags != null) {
+      $result.tags.addAll(tags);
+    }
+    if (imageUrls != null) {
+      $result.imageUrls.addAll(imageUrls);
+    }
     return $result;
   }
   CreateTransactionRequest._() : super();
@@ -419,6 +443,8 @@ class CreateTransactionRequest extends $pb.GeneratedMessage {
     ..e<TransactionType>(7, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: TransactionType.TRANSACTION_TYPE_UNSPECIFIED, valueOf: TransactionType.valueOf, enumValues: TransactionType.values)
     ..aOS(8, _omitFieldNames ? '' : 'note')
     ..aOM<$3.Timestamp>(9, _omitFieldNames ? '' : 'txnDate', subBuilder: $3.Timestamp.create)
+    ..pPS(10, _omitFieldNames ? '' : 'tags')
+    ..pPS(11, _omitFieldNames ? '' : 'imageUrls')
     ..hasRequiredFields = false
   ;
 
@@ -525,6 +551,12 @@ class CreateTransactionRequest extends $pb.GeneratedMessage {
   void clearTxnDate() => clearField(9);
   @$pb.TagNumber(9)
   $3.Timestamp ensureTxnDate() => $_ensure(8);
+
+  @$pb.TagNumber(10)
+  $core.List<$core.String> get tags => $_getList(9);
+
+  @$pb.TagNumber(11)
+  $core.List<$core.String> get imageUrls => $_getList(10);
 }
 
 class CreateTransactionResponse extends $pb.GeneratedMessage {
