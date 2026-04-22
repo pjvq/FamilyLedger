@@ -55,6 +55,8 @@ class Transactions extends Table {
       real().withDefault(const Constant(1.0))();
   TextColumn get type => text()(); // 'income' | 'expense'
   TextColumn get note => text().withDefault(const Constant(''))();
+  TextColumn get tags => text().withDefault(const Constant(''))(); // JSON array string
+  TextColumn get imageUrls => text().withDefault(const Constant(''))(); // JSON array string
   DateTimeColumn get txnDate => dateTime()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
@@ -344,4 +346,17 @@ class SyncQueue extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+}
+
+/// 汇率缓存表
+class ExchangeRates extends Table {
+  @override
+  String get tableName => 'exchange_rates';
+
+  TextColumn get currencyPair => text()(); // e.g. 'USD/CNY'
+  RealColumn get rate => real()();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {currencyPair};
 }

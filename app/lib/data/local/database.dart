@@ -29,6 +29,7 @@ part 'database.g.dart';
   AssetValuations,
   DepreciationRules,
   SyncQueue,
+  ExchangeRates,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -36,7 +37,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -79,6 +80,12 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(fixedAssets);
             await m.createTable(assetValuations);
             await m.createTable(depreciationRules);
+          }
+          if (from < 7) {
+            // v6 → v7: transaction tags/images + exchange rates
+            await m.addColumn(transactions, transactions.tags);
+            await m.addColumn(transactions, transactions.imageUrls);
+            await m.createTable(exchangeRates);
           }
         },
       );

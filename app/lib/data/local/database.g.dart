@@ -1486,6 +1486,28 @@ class $TransactionsTable extends Transactions
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
+  @override
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+    'tags',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _imageUrlsMeta = const VerificationMeta(
+    'imageUrls',
+  );
+  @override
+  late final GeneratedColumn<String> imageUrls = GeneratedColumn<String>(
+    'image_urls',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _txnDateMeta = const VerificationMeta(
     'txnDate',
   );
@@ -1546,6 +1568,8 @@ class $TransactionsTable extends Transactions
     exchangeRate,
     type,
     note,
+    tags,
+    imageUrls,
     txnDate,
     createdAt,
     updatedAt,
@@ -1637,6 +1661,18 @@ class $TransactionsTable extends Transactions
         note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
+    if (data.containsKey('tags')) {
+      context.handle(
+        _tagsMeta,
+        tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta),
+      );
+    }
+    if (data.containsKey('image_urls')) {
+      context.handle(
+        _imageUrlsMeta,
+        imageUrls.isAcceptableOrUnknown(data['image_urls']!, _imageUrlsMeta),
+      );
+    }
     if (data.containsKey('txn_date')) {
       context.handle(
         _txnDateMeta,
@@ -1712,6 +1748,14 @@ class $TransactionsTable extends Transactions
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       )!,
+      tags: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tags'],
+      )!,
+      imageUrls: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}image_urls'],
+      )!,
       txnDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}txn_date'],
@@ -1748,6 +1792,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
   final double exchangeRate;
   final String type;
   final String note;
+  final String tags;
+  final String imageUrls;
   final DateTime txnDate;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -1763,6 +1809,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     required this.exchangeRate,
     required this.type,
     required this.note,
+    required this.tags,
+    required this.imageUrls,
     required this.txnDate,
     required this.createdAt,
     required this.updatedAt,
@@ -1781,6 +1829,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     map['exchange_rate'] = Variable<double>(exchangeRate);
     map['type'] = Variable<String>(type);
     map['note'] = Variable<String>(note);
+    map['tags'] = Variable<String>(tags);
+    map['image_urls'] = Variable<String>(imageUrls);
     map['txn_date'] = Variable<DateTime>(txnDate);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -1800,6 +1850,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       exchangeRate: Value(exchangeRate),
       type: Value(type),
       note: Value(note),
+      tags: Value(tags),
+      imageUrls: Value(imageUrls),
       txnDate: Value(txnDate),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -1823,6 +1875,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       exchangeRate: serializer.fromJson<double>(json['exchangeRate']),
       type: serializer.fromJson<String>(json['type']),
       note: serializer.fromJson<String>(json['note']),
+      tags: serializer.fromJson<String>(json['tags']),
+      imageUrls: serializer.fromJson<String>(json['imageUrls']),
       txnDate: serializer.fromJson<DateTime>(json['txnDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1843,6 +1897,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       'exchangeRate': serializer.toJson<double>(exchangeRate),
       'type': serializer.toJson<String>(type),
       'note': serializer.toJson<String>(note),
+      'tags': serializer.toJson<String>(tags),
+      'imageUrls': serializer.toJson<String>(imageUrls),
       'txnDate': serializer.toJson<DateTime>(txnDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1861,6 +1917,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     double? exchangeRate,
     String? type,
     String? note,
+    String? tags,
+    String? imageUrls,
     DateTime? txnDate,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -1876,6 +1934,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     exchangeRate: exchangeRate ?? this.exchangeRate,
     type: type ?? this.type,
     note: note ?? this.note,
+    tags: tags ?? this.tags,
+    imageUrls: imageUrls ?? this.imageUrls,
     txnDate: txnDate ?? this.txnDate,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1897,6 +1957,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           : this.exchangeRate,
       type: data.type.present ? data.type.value : this.type,
       note: data.note.present ? data.note.value : this.note,
+      tags: data.tags.present ? data.tags.value : this.tags,
+      imageUrls: data.imageUrls.present ? data.imageUrls.value : this.imageUrls,
       txnDate: data.txnDate.present ? data.txnDate.value : this.txnDate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1917,6 +1979,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ..write('exchangeRate: $exchangeRate, ')
           ..write('type: $type, ')
           ..write('note: $note, ')
+          ..write('tags: $tags, ')
+          ..write('imageUrls: $imageUrls, ')
           ..write('txnDate: $txnDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1937,6 +2001,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     exchangeRate,
     type,
     note,
+    tags,
+    imageUrls,
     txnDate,
     createdAt,
     updatedAt,
@@ -1956,6 +2022,8 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           other.exchangeRate == this.exchangeRate &&
           other.type == this.type &&
           other.note == this.note &&
+          other.tags == this.tags &&
+          other.imageUrls == this.imageUrls &&
           other.txnDate == this.txnDate &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -1973,6 +2041,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
   final Value<double> exchangeRate;
   final Value<String> type;
   final Value<String> note;
+  final Value<String> tags;
+  final Value<String> imageUrls;
   final Value<DateTime> txnDate;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1989,6 +2059,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.exchangeRate = const Value.absent(),
     this.type = const Value.absent(),
     this.note = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.imageUrls = const Value.absent(),
     this.txnDate = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -2006,6 +2078,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.exchangeRate = const Value.absent(),
     required String type,
     this.note = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.imageUrls = const Value.absent(),
     required DateTime txnDate,
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -2030,6 +2104,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Expression<double>? exchangeRate,
     Expression<String>? type,
     Expression<String>? note,
+    Expression<String>? tags,
+    Expression<String>? imageUrls,
     Expression<DateTime>? txnDate,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -2047,6 +2123,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       if (exchangeRate != null) 'exchange_rate': exchangeRate,
       if (type != null) 'type': type,
       if (note != null) 'note': note,
+      if (tags != null) 'tags': tags,
+      if (imageUrls != null) 'image_urls': imageUrls,
       if (txnDate != null) 'txn_date': txnDate,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -2066,6 +2144,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Value<double>? exchangeRate,
     Value<String>? type,
     Value<String>? note,
+    Value<String>? tags,
+    Value<String>? imageUrls,
     Value<DateTime>? txnDate,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -2083,6 +2163,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       exchangeRate: exchangeRate ?? this.exchangeRate,
       type: type ?? this.type,
       note: note ?? this.note,
+      tags: tags ?? this.tags,
+      imageUrls: imageUrls ?? this.imageUrls,
       txnDate: txnDate ?? this.txnDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -2124,6 +2206,12 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
+    }
+    if (imageUrls.present) {
+      map['image_urls'] = Variable<String>(imageUrls.value);
+    }
     if (txnDate.present) {
       map['txn_date'] = Variable<DateTime>(txnDate.value);
     }
@@ -2155,6 +2243,8 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
           ..write('exchangeRate: $exchangeRate, ')
           ..write('type: $type, ')
           ..write('note: $note, ')
+          ..write('tags: $tags, ')
+          ..write('imageUrls: $imageUrls, ')
           ..write('txnDate: $txnDate, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -11079,6 +11169,276 @@ class SyncQueueCompanion extends UpdateCompanion<SyncQueueData> {
   }
 }
 
+class $ExchangeRatesTable extends ExchangeRates
+    with TableInfo<$ExchangeRatesTable, ExchangeRate> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExchangeRatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _currencyPairMeta = const VerificationMeta(
+    'currencyPair',
+  );
+  @override
+  late final GeneratedColumn<String> currencyPair = GeneratedColumn<String>(
+    'currency_pair',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rateMeta = const VerificationMeta('rate');
+  @override
+  late final GeneratedColumn<double> rate = GeneratedColumn<double>(
+    'rate',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [currencyPair, rate, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'exchange_rates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExchangeRate> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('currency_pair')) {
+      context.handle(
+        _currencyPairMeta,
+        currencyPair.isAcceptableOrUnknown(
+          data['currency_pair']!,
+          _currencyPairMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_currencyPairMeta);
+    }
+    if (data.containsKey('rate')) {
+      context.handle(
+        _rateMeta,
+        rate.isAcceptableOrUnknown(data['rate']!, _rateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rateMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {currencyPair};
+  @override
+  ExchangeRate map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExchangeRate(
+      currencyPair: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency_pair'],
+      )!,
+      rate: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}rate'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ExchangeRatesTable createAlias(String alias) {
+    return $ExchangeRatesTable(attachedDatabase, alias);
+  }
+}
+
+class ExchangeRate extends DataClass implements Insertable<ExchangeRate> {
+  final String currencyPair;
+  final double rate;
+  final DateTime updatedAt;
+  const ExchangeRate({
+    required this.currencyPair,
+    required this.rate,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['currency_pair'] = Variable<String>(currencyPair);
+    map['rate'] = Variable<double>(rate);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ExchangeRatesCompanion toCompanion(bool nullToAbsent) {
+    return ExchangeRatesCompanion(
+      currencyPair: Value(currencyPair),
+      rate: Value(rate),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ExchangeRate.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExchangeRate(
+      currencyPair: serializer.fromJson<String>(json['currencyPair']),
+      rate: serializer.fromJson<double>(json['rate']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'currencyPair': serializer.toJson<String>(currencyPair),
+      'rate': serializer.toJson<double>(rate),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ExchangeRate copyWith({
+    String? currencyPair,
+    double? rate,
+    DateTime? updatedAt,
+  }) => ExchangeRate(
+    currencyPair: currencyPair ?? this.currencyPair,
+    rate: rate ?? this.rate,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ExchangeRate copyWithCompanion(ExchangeRatesCompanion data) {
+    return ExchangeRate(
+      currencyPair: data.currencyPair.present
+          ? data.currencyPair.value
+          : this.currencyPair,
+      rate: data.rate.present ? data.rate.value : this.rate,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExchangeRate(')
+          ..write('currencyPair: $currencyPair, ')
+          ..write('rate: $rate, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(currencyPair, rate, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExchangeRate &&
+          other.currencyPair == this.currencyPair &&
+          other.rate == this.rate &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ExchangeRatesCompanion extends UpdateCompanion<ExchangeRate> {
+  final Value<String> currencyPair;
+  final Value<double> rate;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ExchangeRatesCompanion({
+    this.currencyPair = const Value.absent(),
+    this.rate = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExchangeRatesCompanion.insert({
+    required String currencyPair,
+    required double rate,
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : currencyPair = Value(currencyPair),
+       rate = Value(rate);
+  static Insertable<ExchangeRate> custom({
+    Expression<String>? currencyPair,
+    Expression<double>? rate,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (currencyPair != null) 'currency_pair': currencyPair,
+      if (rate != null) 'rate': rate,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExchangeRatesCompanion copyWith({
+    Value<String>? currencyPair,
+    Value<double>? rate,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ExchangeRatesCompanion(
+      currencyPair: currencyPair ?? this.currencyPair,
+      rate: rate ?? this.rate,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (currencyPair.present) {
+      map['currency_pair'] = Variable<String>(currencyPair.value);
+    }
+    if (rate.present) {
+      map['rate'] = Variable<double>(rate.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExchangeRatesCompanion(')
+          ..write('currencyPair: $currencyPair, ')
+          ..write('rate: $rate, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -11112,6 +11472,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DepreciationRulesTable depreciationRules =
       $DepreciationRulesTable(this);
   late final $SyncQueueTable syncQueue = $SyncQueueTable(this);
+  late final $ExchangeRatesTable exchangeRates = $ExchangeRatesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -11138,6 +11499,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     assetValuations,
     depreciationRules,
     syncQueue,
+    exchangeRates,
   ];
 }
 
@@ -12651,6 +13013,8 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       Value<double> exchangeRate,
       required String type,
       Value<String> note,
+      Value<String> tags,
+      Value<String> imageUrls,
       required DateTime txnDate,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -12669,6 +13033,8 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<double> exchangeRate,
       Value<String> type,
       Value<String> note,
+      Value<String> tags,
+      Value<String> imageUrls,
       Value<DateTime> txnDate,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -12778,6 +13144,16 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<String> get note => $composableBuilder(
     column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imageUrls => $composableBuilder(
+    column: $table.imageUrls,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12915,6 +13291,16 @@ class $$TransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get imageUrls => $composableBuilder(
+    column: $table.imageUrls,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get txnDate => $composableBuilder(
     column: $table.txnDate,
     builder: (column) => ColumnOrderings(column),
@@ -13037,6 +13423,12 @@ class $$TransactionsTableAnnotationComposer
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
 
+  GeneratedColumn<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
+
+  GeneratedColumn<String> get imageUrls =>
+      $composableBuilder(column: $table.imageUrls, builder: (column) => column);
+
   GeneratedColumn<DateTime> get txnDate =>
       $composableBuilder(column: $table.txnDate, builder: (column) => column);
 
@@ -13157,6 +13549,8 @@ class $$TransactionsTableTableManager
                 Value<double> exchangeRate = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<String> note = const Value.absent(),
+                Value<String> tags = const Value.absent(),
+                Value<String> imageUrls = const Value.absent(),
                 Value<DateTime> txnDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -13173,6 +13567,8 @@ class $$TransactionsTableTableManager
                 exchangeRate: exchangeRate,
                 type: type,
                 note: note,
+                tags: tags,
+                imageUrls: imageUrls,
                 txnDate: txnDate,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -13191,6 +13587,8 @@ class $$TransactionsTableTableManager
                 Value<double> exchangeRate = const Value.absent(),
                 required String type,
                 Value<String> note = const Value.absent(),
+                Value<String> tags = const Value.absent(),
+                Value<String> imageUrls = const Value.absent(),
                 required DateTime txnDate,
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -13207,6 +13605,8 @@ class $$TransactionsTableTableManager
                 exchangeRate: exchangeRate,
                 type: type,
                 note: note,
+                tags: tags,
+                imageUrls: imageUrls,
                 txnDate: txnDate,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -20011,6 +20411,170 @@ typedef $$SyncQueueTableProcessedTableManager =
       SyncQueueData,
       PrefetchHooks Function()
     >;
+typedef $$ExchangeRatesTableCreateCompanionBuilder =
+    ExchangeRatesCompanion Function({
+      required String currencyPair,
+      required double rate,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ExchangeRatesTableUpdateCompanionBuilder =
+    ExchangeRatesCompanion Function({
+      Value<String> currencyPair,
+      Value<double> rate,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$ExchangeRatesTableFilterComposer
+    extends Composer<_$AppDatabase, $ExchangeRatesTable> {
+  $$ExchangeRatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get currencyPair => $composableBuilder(
+    column: $table.currencyPair,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rate => $composableBuilder(
+    column: $table.rate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ExchangeRatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ExchangeRatesTable> {
+  $$ExchangeRatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get currencyPair => $composableBuilder(
+    column: $table.currencyPair,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get rate => $composableBuilder(
+    column: $table.rate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ExchangeRatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ExchangeRatesTable> {
+  $$ExchangeRatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get currencyPair => $composableBuilder(
+    column: $table.currencyPair,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get rate =>
+      $composableBuilder(column: $table.rate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$ExchangeRatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ExchangeRatesTable,
+          ExchangeRate,
+          $$ExchangeRatesTableFilterComposer,
+          $$ExchangeRatesTableOrderingComposer,
+          $$ExchangeRatesTableAnnotationComposer,
+          $$ExchangeRatesTableCreateCompanionBuilder,
+          $$ExchangeRatesTableUpdateCompanionBuilder,
+          (
+            ExchangeRate,
+            BaseReferences<_$AppDatabase, $ExchangeRatesTable, ExchangeRate>,
+          ),
+          ExchangeRate,
+          PrefetchHooks Function()
+        > {
+  $$ExchangeRatesTableTableManager(_$AppDatabase db, $ExchangeRatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ExchangeRatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ExchangeRatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ExchangeRatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> currencyPair = const Value.absent(),
+                Value<double> rate = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExchangeRatesCompanion(
+                currencyPair: currencyPair,
+                rate: rate,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String currencyPair,
+                required double rate,
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExchangeRatesCompanion.insert(
+                currencyPair: currencyPair,
+                rate: rate,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ExchangeRatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ExchangeRatesTable,
+      ExchangeRate,
+      $$ExchangeRatesTableFilterComposer,
+      $$ExchangeRatesTableOrderingComposer,
+      $$ExchangeRatesTableAnnotationComposer,
+      $$ExchangeRatesTableCreateCompanionBuilder,
+      $$ExchangeRatesTableUpdateCompanionBuilder,
+      (
+        ExchangeRate,
+        BaseReferences<_$AppDatabase, $ExchangeRatesTable, ExchangeRate>,
+      ),
+      ExchangeRate,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -20060,4 +20624,6 @@ class $AppDatabaseManager {
       $$DepreciationRulesTableTableManager(_db, _db.depreciationRules);
   $$SyncQueueTableTableManager get syncQueue =>
       $$SyncQueueTableTableManager(_db, _db.syncQueue);
+  $$ExchangeRatesTableTableManager get exchangeRates =>
+      $$ExchangeRatesTableTableManager(_db, _db.exchangeRates);
 }
