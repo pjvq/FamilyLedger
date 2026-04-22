@@ -397,14 +397,16 @@ class _LoanOverviewCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // Total remaining principal
-    int totalRemaining = 0;
+    // Calculate this month's total payment
+    int monthlyTotal = 0;
     for (final loan in loans) {
-      totalRemaining += loan.remainingPrincipal as int;
+      if (loan.paidMonths < loan.totalMonths) {
+        monthlyTotal += notifier.getMonthlyPayment(loan);
+      }
     }
 
     return Semantics(
-      label: '贷款概览，共${loans.length}笔贷款，总负债${_fmtYuan(totalRemaining)}元',
+      label: '贷款概览，共${loans.length}笔贷款，本月需还${_fmtYuan(monthlyTotal)}元',
       button: true,
       child: GestureDetector(
         onTap: onTap,
@@ -442,31 +444,49 @@ class _LoanOverviewCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '贷款负债',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.5),
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          '贷款 ${loans.length} 笔',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '¥${_fmtYuan(totalRemaining)}',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        color: isDark
-                            ? AppColors.liabilityDark
-                            : AppColors.liability,
-                      ),
+                    const SizedBox(height: 2),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          '本月需还 ',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.4),
+                          ),
+                        ),
+                        Text(
+                          '¥${_fmtYuan(monthlyTotal)}',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                            color: isDark
+                                ? AppColors.liabilityDark
+                                : AppColors.liability,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              Text(
-                '${loans.length}笔 ›',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
               ),
             ],
           ),
