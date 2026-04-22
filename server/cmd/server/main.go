@@ -18,7 +18,9 @@ import (
 	"github.com/familyledger/server/internal/auth"
 	"github.com/familyledger/server/internal/budget"
 	"github.com/familyledger/server/internal/family"
+	"github.com/familyledger/server/internal/investment"
 	"github.com/familyledger/server/internal/loan"
+	"github.com/familyledger/server/internal/market"
 	"github.com/familyledger/server/internal/notify"
 	syncsvc "github.com/familyledger/server/internal/sync"
 	"github.com/familyledger/server/internal/transaction"
@@ -31,6 +33,7 @@ import (
 	authpb "github.com/familyledger/server/proto/auth"
 	budgetpb "github.com/familyledger/server/proto/budget"
 	familypb "github.com/familyledger/server/proto/family"
+	investpb "github.com/familyledger/server/proto/investment"
 	loanpb "github.com/familyledger/server/proto/loan"
 	notifypb "github.com/familyledger/server/proto/notify"
 	syncpb "github.com/familyledger/server/proto/sync"
@@ -78,6 +81,9 @@ func main() {
 	budgetService := budget.NewService(pool)
 	loanService := loan.NewService(pool)
 	notifyService := notify.NewService(pool)
+	investmentService := investment.NewService(pool)
+	marketFetcher := market.NewMockFetcher()
+	marketService := market.NewService(pool, marketFetcher)
 
 	// gRPC Server
 	grpcServer := grpc.NewServer(
@@ -93,6 +99,8 @@ func main() {
 	budgetpb.RegisterBudgetServiceServer(grpcServer, budgetService)
 	loanpb.RegisterLoanServiceServer(grpcServer, loanService)
 	notifypb.RegisterNotifyServiceServer(grpcServer, notifyService)
+	investpb.RegisterInvestmentServiceServer(grpcServer, investmentService)
+	investpb.RegisterMarketDataServiceServer(grpcServer, marketService)
 	reflection.Register(grpcServer)
 
 	// Start gRPC
@@ -130,6 +138,7 @@ func main() {
 
 	// Start scheduled tasks
 	go runScheduledTasks(ctx, notifyService)
+	go runMarketRefreshTasks(ctx, marketService)
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
@@ -186,6 +195,73 @@ func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 			log.Println("scheduler: all checks complete")
 		}
 	}
+}
+
+// runMarketRefreshTasks refreshes market quotes on a schedule:
+// - A-share/HK: trading hours (9:30-15:00 CST weekdays) every 15 min, else hourly
+// - Crypto: 24/7 every 15 min
+func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
+	cst, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		log.Printf("market-scheduler: failed to load CST timezone, falling back to UTC+8: %v", err)
+		cst = time.FixedZone("CST", 8*60*60)
+	}
+
+	log.Println("market-scheduler: started")
+
+	for {
+		now := time.Now().In(cst)
+		interval := computeMarketInterval(now)
+
+		select {
+		case <-ctx.Done():
+			log.Println("market-scheduler: stopped")
+			return
+		case <-time.After(interval):
+			now = time.Now().In(cst)
+			refreshCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+
+			// Always refresh crypto
+			if err := marketService.RefreshQuotes(refreshCtx, []string{"crypto"}); err != nil {
+				log.Printf("market-scheduler: crypto refresh error: %v", err)
+			}
+
+			// Refresh stocks during trading hours or hourly
+			stockTypes := []string{"a_share", "hk_stock", "fund"}
+			if err := marketService.RefreshQuotes(refreshCtx, stockTypes); err != nil {
+				log.Printf("market-scheduler: stock refresh error: %v", err)
+			}
+
+			// US stocks — check if within US trading hours (roughly 21:30-04:00 CST)
+			hour := now.Hour()
+			if hour >= 21 || hour < 5 {
+				if err := marketService.RefreshQuotes(refreshCtx, []string{"us_stock"}); err != nil {
+					log.Printf("market-scheduler: us_stock refresh error: %v", err)
+				}
+			}
+
+			cancel()
+		}
+	}
+}
+
+// computeMarketInterval returns the sleep duration until the next refresh.
+func computeMarketInterval(now time.Time) time.Duration {
+	weekday := now.Weekday()
+	hour := now.Hour()
+	minute := now.Minute()
+	hhmm := hour*60 + minute
+
+	isWeekday := weekday >= time.Monday && weekday <= time.Friday
+	// CN/HK trading: 9:30 - 15:00 → 570 - 900 in minutes
+	isTradingHours := isWeekday && hhmm >= 570 && hhmm < 900
+
+	if isTradingHours {
+		return 15 * time.Minute
+	}
+	// Off-hours: still 15 min for crypto, but since we batch, use 15 min
+	// (stock refresh is also fine hourly, but the crypto branch runs anyway)
+	return 15 * time.Minute
 }
 
 func getEnv(key, fallback string) string {

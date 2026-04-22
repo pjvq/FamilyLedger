@@ -1,0 +1,197 @@
+syntax = "proto3";
+
+package familyledger.investment.v1;
+
+option go_package = "github.com/familyledger/server/proto/investment";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service InvestmentService {
+    rpc CreateInvestment(CreateInvestmentRequest) returns (Investment);
+    rpc GetInvestment(GetInvestmentRequest) returns (Investment);
+    rpc ListInvestments(ListInvestmentsRequest) returns (ListInvestmentsResponse);
+    rpc UpdateInvestment(UpdateInvestmentRequest) returns (Investment);
+    rpc DeleteInvestment(DeleteInvestmentRequest) returns (google.protobuf.Empty);
+    rpc RecordTrade(RecordTradeRequest) returns (InvestmentTrade);
+    rpc ListTrades(ListTradesRequest) returns (ListTradesResponse);
+    rpc GetPortfolioSummary(GetPortfolioSummaryRequest) returns (PortfolioSummary);
+}
+
+service MarketDataService {
+    rpc GetQuote(GetQuoteRequest) returns (MarketQuote);
+    rpc BatchGetQuotes(BatchGetQuotesRequest) returns (BatchGetQuotesResponse);
+    rpc SearchSymbol(SearchSymbolRequest) returns (SearchSymbolResponse);
+    rpc GetPriceHistory(GetPriceHistoryRequest) returns (PriceHistoryResponse);
+}
+
+enum MarketType {
+    MARKET_TYPE_UNSPECIFIED = 0;
+    MARKET_TYPE_A_SHARE = 1;    // A股
+    MARKET_TYPE_HK_STOCK = 2;   // 港股
+    MARKET_TYPE_US_STOCK = 3;   // 美股
+    MARKET_TYPE_CRYPTO = 4;     // 加密货币
+    MARKET_TYPE_FUND = 5;       // 基金
+}
+
+enum TradeType {
+    TRADE_TYPE_UNSPECIFIED = 0;
+    TRADE_TYPE_BUY = 1;
+    TRADE_TYPE_SELL = 2;
+}
+
+// ── Core messages ───────────────────────────────────────────────────────────
+
+message Investment {
+    string id = 1;
+    string user_id = 2;
+    string symbol = 3;             // 代码 (600519, AAPL, BTC)
+    string name = 4;               // 名称
+    MarketType market_type = 5;
+    double quantity = 6;           // 持有数量
+    int64 cost_basis = 7;          // 成本（分）
+    int64 current_value = 8;       // 当前市值（分）
+    double total_return = 9;       // 总收益率
+    double annualized_return = 10; // 年化收益率
+    google.protobuf.Timestamp created_at = 11;
+    google.protobuf.Timestamp updated_at = 12;
+}
+
+message InvestmentTrade {
+    string id = 1;
+    string investment_id = 2;
+    TradeType trade_type = 3;
+    double quantity = 4;
+    int64 price = 5;               // 成交价（分/股）
+    int64 total_amount = 6;        // 总金额（分）
+    int64 fee = 7;                 // 手续费（分）
+    google.protobuf.Timestamp trade_date = 8;
+}
+
+message MarketQuote {
+    string symbol = 1;
+    string name = 2;
+    MarketType market_type = 3;
+    int64 current_price = 4;       // 当前价（分）
+    int64 change = 5;              // 涨跌额（分）
+    double change_percent = 6;     // 涨跌幅
+    int64 open = 7;
+    int64 high = 8;
+    int64 low = 9;
+    int64 prev_close = 10;
+    google.protobuf.Timestamp updated_at = 11;
+}
+
+message PortfolioSummary {
+    int64 total_value = 1;         // 总市值（分）
+    int64 total_cost = 2;          // 总成本（分）
+    int64 total_profit = 3;        // 总盈亏（分）
+    double total_return = 4;       // 总收益率
+    repeated HoldingItem holdings = 5;
+}
+
+message HoldingItem {
+    string investment_id = 1;
+    string symbol = 2;
+    string name = 3;
+    double quantity = 4;
+    int64 current_value = 5;
+    double weight = 6;             // 占比 0-1
+    double return_rate = 7;
+}
+
+message PricePoint {
+    google.protobuf.Timestamp timestamp = 1;
+    int64 price = 2;               // 分
+}
+
+message SymbolInfo {
+    string symbol = 1;
+    string name = 2;
+    MarketType market_type = 3;
+}
+
+// ── Request/Response messages ───────────────────────────────────────────────
+
+// InvestmentService
+message CreateInvestmentRequest {
+    string symbol = 1;
+    string name = 2;
+    MarketType market_type = 3;
+}
+
+message GetInvestmentRequest {
+    string investment_id = 1;
+}
+
+message ListInvestmentsRequest {
+    MarketType market_type = 1;    // optional filter
+}
+
+message ListInvestmentsResponse {
+    repeated Investment investments = 1;
+}
+
+message UpdateInvestmentRequest {
+    string investment_id = 1;
+    string name = 2;               // only name can be updated
+}
+
+message DeleteInvestmentRequest {
+    string investment_id = 1;
+}
+
+message RecordTradeRequest {
+    string investment_id = 1;
+    TradeType trade_type = 2;
+    double quantity = 3;
+    int64 price = 4;               // 成交价（分/股）
+    int64 fee = 5;                 // 手续费（分）
+    google.protobuf.Timestamp trade_date = 6;
+}
+
+message ListTradesRequest {
+    string investment_id = 1;
+}
+
+message ListTradesResponse {
+    repeated InvestmentTrade trades = 1;
+}
+
+message GetPortfolioSummaryRequest {}
+
+// MarketDataService
+message GetQuoteRequest {
+    string symbol = 1;
+    MarketType market_type = 2;
+}
+
+message BatchGetQuotesRequest {
+    repeated GetQuoteRequest requests = 1;
+}
+
+message BatchGetQuotesResponse {
+    repeated MarketQuote quotes = 1;
+}
+
+message SearchSymbolRequest {
+    string query = 1;
+    MarketType market_type = 2;    // optional filter
+}
+
+message SearchSymbolResponse {
+    repeated SymbolInfo symbols = 1;
+}
+
+message GetPriceHistoryRequest {
+    string symbol = 1;
+    MarketType market_type = 2;
+    google.protobuf.Timestamp start_date = 3;
+    google.protobuf.Timestamp end_date = 4;
+}
+
+message PriceHistoryResponse {
+    string symbol = 1;
+    MarketType market_type = 2;
+    repeated PricePoint points = 3;
+}
