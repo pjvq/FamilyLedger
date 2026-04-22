@@ -15,6 +15,10 @@ import '../../features/loan/loans_page.dart';
 import '../../features/loan/add_loan_page.dart';
 import '../../features/loan/loan_detail_page.dart';
 import '../../features/loan/prepayment_page.dart';
+import '../../features/investment/investments_page.dart';
+import '../../features/investment/add_investment_page.dart';
+import '../../features/investment/investment_detail_page.dart';
+import '../../features/investment/trade_page.dart';
 
 class AppRouter {
   AppRouter._();
@@ -35,6 +39,10 @@ class AppRouter {
   static const addLoan = '/loans/add';
   static const loanDetail = '/loans/detail';
   static const prepayment = '/loans/prepayment';
+  static const investments = '/investments';
+  static const addInvestment = '/investments/add';
+  static const investmentDetail = '/investments/detail';
+  static const investmentTrade = '/investments/trade';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -72,6 +80,16 @@ class AppRouter {
       case prepayment:
         final loanId = settings.arguments as String;
         return _slideUp(PrepaymentPage(loanId: loanId));
+      case investments:
+        return _slide(const InvestmentsPage());
+      case addInvestment:
+        return _slideUp(const AddInvestmentPage());
+      case investmentDetail:
+        final investmentId = settings.arguments as String;
+        return _slide(InvestmentDetailPage(investmentId: investmentId));
+      case investmentTrade:
+        final investmentId = settings.arguments as String;
+        return _slideUp(TradePage(investmentId: investmentId));
       default:
         return _fade(const HomePage());
     }

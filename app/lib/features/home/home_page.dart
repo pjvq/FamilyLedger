@@ -10,6 +10,7 @@ import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/notification_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/loan_provider.dart';
+import '../../domain/providers/investment_provider.dart';
 import '../../sync/sync_engine.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/transaction_list_item.dart';
@@ -111,7 +112,9 @@ class _DashboardTab extends ConsumerWidget {
     final familyId = ref.watch(currentFamilyIdProvider);
     final notifState = ref.watch(notificationProvider);
     final loanState = ref.watch(loanProvider);
+    final invState = ref.watch(investmentProvider);
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     final hasFamily = familyState.currentFamily != null;
 
@@ -165,6 +168,17 @@ class _DashboardTab extends ConsumerWidget {
                         notifier: ref.read(loanProvider.notifier),
                         onTap: () => Navigator.of(context)
                             .pushNamed(AppRouter.loans),
+                      ),
+                    ),
+                  // Investment overview (if any holdings)
+                  if (invState.investments.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: _InvestmentOverviewCard(
+                        portfolio: invState.portfolio,
+                        count: invState.investments.length,
+                        isDark: isDark,
+                        onTap: () => Navigator.of(context)
+                            .pushNamed(AppRouter.investments),
                       ),
                     ),
                   // Section header
@@ -498,6 +512,124 @@ class _LoanOverviewCard extends StatelessWidget {
   String _fmtYuan(int cents) {
     final yuan = cents / 100;
     if (yuan >= 10000) {
+      final wan = yuan / 10000;
+      return '${wan.toStringAsFixed(2)}万';
+    }
+    return yuan.toStringAsFixed(2);
+  }
+}
+
+// ────────── Investment Overview Card ──────────
+
+class _InvestmentOverviewCard extends StatelessWidget {
+  final PortfolioSummary portfolio;
+  final int count;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _InvestmentOverviewCard({
+    required this.portfolio,
+    required this.count,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isUp = portfolio.totalProfit >= 0;
+    final profitColor = isUp
+        ? (isDark ? AppColors.incomeDark : AppColors.income)
+        : (isDark ? AppColors.expenseDark : AppColors.expense);
+
+    return Semantics(
+      label: '投资概览，共$count个持仓，总市值${_fmtYuan(portfolio.totalValue)}元',
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF1A2A1A), const Color(0xFF0F1F10)]
+                  : [const Color(0xFFF0F8F0), const Color(0xFFE8F5E8)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: (isDark ? AppColors.incomeDark : AppColors.income)
+                  .withValues(alpha: 0.2),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: (isDark ? AppColors.incomeDark : AppColors.income)
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Center(
+                  child: Text('📈', style: TextStyle(fontSize: 20)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '投资持仓',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.5),
+                      ),
+                    ),
+                    Text(
+                      '¥${_fmtYuan(portfolio.totalValue)}',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        color: isDark ? AppColors.incomeDark : AppColors.income,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '$count个持仓 ›',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${isUp ? "+" : ""}${_fmtYuan(portfolio.totalProfit)}',
+                    style: TextStyle(
+                      color: profitColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _fmtYuan(int cents) {
+    final yuan = cents / 100;
+    if (yuan.abs() >= 10000) {
       final wan = yuan / 10000;
       return '${wan.toStringAsFixed(2)}万';
     }
@@ -863,6 +995,13 @@ class _InlineSettingsContent extends ConsumerWidget {
           subtitle: '跟踪还款进度、模拟提前还款',
           onTap: () =>
               Navigator.of(context).pushNamed(AppRouter.loans),
+        ),
+        _SettingListTile(
+          icon: Icons.trending_up_rounded,
+          title: '投资管理',
+          subtitle: '跟踪投资持仓、实时行情',
+          onTap: () =>
+              Navigator.of(context).pushNamed(AppRouter.investments),
         ),
         _SettingListTile(
           icon: Icons.notifications_outlined,

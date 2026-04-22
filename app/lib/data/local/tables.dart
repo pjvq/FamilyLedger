@@ -222,6 +222,62 @@ class LoanRateChanges extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 投资持仓表
+class Investments extends Table {
+  @override
+  String get tableName => 'investments';
+
+  TextColumn get id => text()();
+  TextColumn get userId => text().references(Users, #id)();
+  TextColumn get symbol => text()();
+  TextColumn get name => text()();
+  TextColumn get marketType => text()();
+  RealColumn get quantity => real().withDefault(const Constant(0.0))();
+  IntColumn get costBasis => integer().withDefault(const Constant(0))(); // 分
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 投资交易记录表
+class InvestmentTrades extends Table {
+  @override
+  String get tableName => 'investment_trades';
+
+  TextColumn get id => text()();
+  TextColumn get investmentId => text().references(Investments, #id)();
+  TextColumn get tradeType => text()(); // buy / sell
+  RealColumn get quantity => real()();
+  IntColumn get price => integer()(); // 成交价（分/股）
+  IntColumn get totalAmount => integer()(); // 总金额（分）
+  IntColumn get fee => integer().withDefault(const Constant(0))(); // 手续费（分）
+  DateTimeColumn get tradeDate => dateTime()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 行情报价缓存表（composite PK: symbol + marketType）
+class MarketQuotes extends Table {
+  @override
+  String get tableName => 'market_quotes';
+
+  TextColumn get symbol => text()();
+  TextColumn get marketType => text()();
+  TextColumn get name => text().withDefault(const Constant(''))();
+  IntColumn get currentPrice => integer().withDefault(const Constant(0))(); // 分
+  IntColumn get changeAmount => integer().withDefault(const Constant(0))(); // 分
+  RealColumn get changePercent => real().withDefault(const Constant(0.0))();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {symbol, marketType};
+}
+
 /// 离线同步队列
 class SyncQueue extends Table {
   TextColumn get id => text()();

@@ -22,6 +22,9 @@ part 'database.g.dart';
   Loans,
   LoanSchedules,
   LoanRateChanges,
+  Investments,
+  InvestmentTrades,
+  MarketQuotes,
   SyncQueue,
 ])
 class AppDatabase extends _$AppDatabase {
@@ -30,7 +33,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -61,6 +64,12 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(loans);
             await m.createTable(loanSchedules);
             await m.createTable(loanRateChanges);
+          }
+          if (from < 5) {
+            // v4 → v5: investment + market tables
+            await m.createTable(investments);
+            await m.createTable(investmentTrades);
+            await m.createTable(marketQuotes);
           }
         },
       );
@@ -505,6 +514,55 @@ class AppDatabase extends _$AppDatabase {
             ..where((r) => r.loanId.equals(loanId))
             ..orderBy([(r) => OrderingTerm.desc(r.effectiveDate)]))
           .get();
+
+  // ---- Investment CRUD ----
+
+  Future<void> upsertInvestment(InvestmentsCompanion entry) async {
+    await into(investments).insertOnConflictUpdate(entry);
+  }
+
+  Future<List<Investment>> getInvestments(String userId) =>
+      (select(investments)
+            ..where((i) => i.userId.equals(userId) & i.deletedAt.isNull())
+            ..orderBy([(i) => OrderingTerm.desc(i.createdAt)]))
+          .get();
+
+  Future<Investment?> getInvestmentById(String id) =>
+      (select(investments)..where((i) => i.id.equals(id))).getSingleOrNull();
+
+  Future<void> updateInvestmentFields(String id, InvestmentsCompanion entry) async {
+    await (update(investments)..where((i) => i.id.equals(id))).write(entry);
+  }
+
+  Future<int> softDeleteInvestment(String id) async {
+    await (update(investments)..where((i) => i.id.equals(id))).write(
+      InvestmentsCompanion(deletedAt: Value(DateTime.now())),
+    );
+    return 1;
+  }
+
+  // Investment Trades
+  Future<int> insertInvestmentTrade(InvestmentTradesCompanion entry) =>
+      into(investmentTrades).insert(entry);
+
+  Future<List<InvestmentTrade>> getInvestmentTrades(String investmentId) =>
+      (select(investmentTrades)
+            ..where((t) => t.investmentId.equals(investmentId))
+            ..orderBy([(t) => OrderingTerm.desc(t.tradeDate)]))
+          .get();
+
+  // Market Quotes cache
+  Future<void> upsertMarketQuote(MarketQuotesCompanion entry) async {
+    await into(marketQuotes).insertOnConflictUpdate(entry);
+  }
+
+  Future<MarketQuote?> getMarketQuote(String symbol, String marketType) =>
+      (select(marketQuotes)
+            ..where((q) => q.symbol.equals(symbol) & q.marketType.equals(marketType)))
+          .getSingleOrNull();
+
+  Future<List<MarketQuote>> getAllMarketQuotes() =>
+      select(marketQuotes).get();
 }
 
 LazyDatabase _openConnection() {
