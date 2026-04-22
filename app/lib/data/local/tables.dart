@@ -109,6 +109,66 @@ class Transfers extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 预算表
+class Budgets extends Table {
+  TextColumn get id => text()();
+  TextColumn get userId => text()();
+  TextColumn get familyId => text().withDefault(const Constant(''))();
+  IntColumn get year => integer()();
+  IntColumn get month => integer()();
+  IntColumn get totalAmount => integer()(); // 分
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 分类预算表
+class CategoryBudgetsTable extends Table {
+  @override
+  String get tableName => 'category_budgets';
+
+  TextColumn get id => text()();
+  TextColumn get budgetId => text().references(Budgets, #id)();
+  TextColumn get categoryId => text()();
+  IntColumn get amount => integer()(); // 分
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 通知表
+class Notifications extends Table {
+  TextColumn get id => text()();
+  TextColumn get userId => text()();
+  TextColumn get type => text()();
+  TextColumn get title => text()();
+  TextColumn get body => text()();
+  TextColumn get dataJson => text().withDefault(const Constant(''))();
+  BoolColumn get isRead => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 通知设置表
+class NotificationSettingsTable extends Table {
+  @override
+  String get tableName => 'notification_settings';
+
+  TextColumn get userId => text()();
+  BoolColumn get budgetAlert => boolean().withDefault(const Constant(true))();
+  BoolColumn get budgetWarning => boolean().withDefault(const Constant(true))();
+  BoolColumn get dailySummary => boolean().withDefault(const Constant(false))();
+  BoolColumn get loanReminder => boolean().withDefault(const Constant(true))();
+  IntColumn get reminderDaysBefore => integer().withDefault(const Constant(3))();
+
+  @override
+  Set<Column> get primaryKey => {userId};
+}
+
 /// 离线同步队列
 class SyncQueue extends Table {
   TextColumn get id => text()();

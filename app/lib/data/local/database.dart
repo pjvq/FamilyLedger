@@ -15,6 +15,10 @@ part 'database.g.dart';
   Families,
   FamilyMembers,
   Transfers,
+  Budgets,
+  CategoryBudgetsTable,
+  Notifications,
+  NotificationSettingsTable,
   SyncQueue,
 ])
 class AppDatabase extends _$AppDatabase {
@@ -23,7 +27,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -41,6 +45,13 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(accounts, accounts.familyId);
             await m.addColumn(accounts, accounts.accountType);
             await m.addColumn(accounts, accounts.isActive);
+          }
+          if (from < 3) {
+            // v2 → v3: budget + notification tables
+            await m.createTable(budgets);
+            await m.createTable(categoryBudgetsTable);
+            await m.createTable(notifications);
+            await m.createTable(notificationSettingsTable);
           }
         },
       );
@@ -318,6 +329,106 @@ class AppDatabase extends _$AppDatabase {
             ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
             ..limit(limit))
           .get();
+
+  // ---- Budget CRUD ----
+
+  Future<int> insertBudget(BudgetsCompanion entry) =>
+      into(budgets).insert(entry);
+
+  Future<Budget?> getBudgetByMonth(String userId, int year, int month) =>
+      (select(budgets)
+            ..where((b) =>
+                b.userId.equals(userId) &
+                b.year.equals(year) &
+                b.month.equals(month)))
+          .getSingleOrNull();
+
+  Future<Budget?> getBudgetById(String id) =>
+      (select(budgets)..where((b) => b.id.equals(id))).getSingleOrNull();
+
+  Future<List<Budget>> getBudgetsByYear(String userId, int year) =>
+      (select(budgets)
+            ..where((b) => b.userId.equals(userId) & b.year.equals(year))
+            ..orderBy([(b) => OrderingTerm.asc(b.month)]))
+          .get();
+
+  Future<bool> updateBudget(BudgetsCompanion entry) =>
+      update(budgets).replace(entry);
+
+  Future<int> deleteBudget(String id) =>
+      (delete(budgets)..where((b) => b.id.equals(id))).go();
+
+  // Category Budgets
+  Future<int> insertCategoryBudget(CategoryBudgetsTableCompanion entry) =>
+      into(categoryBudgetsTable).insert(entry);
+
+  Future<List<CategoryBudgetsTableData>> getCategoryBudgets(String budgetId) =>
+      (select(categoryBudgetsTable)
+            ..where((cb) => cb.budgetId.equals(budgetId)))
+          .get();
+
+  Future<int> deleteCategoryBudgets(String budgetId) =>
+      (delete(categoryBudgetsTable)
+            ..where((cb) => cb.budgetId.equals(budgetId)))
+          .go();
+
+  /// Get expense sum per category for a given month
+  Future<Map<String, int>> getMonthCategoryExpenses(
+      String userId, int year, int month) async {
+    final startOfMonth = DateTime(year, month, 1);
+    final endOfMonth =
+        DateTime(year, month + 1, 1).subtract(const Duration(milliseconds: 1));
+    final rows = await (select(transactions)
+          ..where((t) =>
+              t.userId.equals(userId) &
+              t.type.equals('expense') &
+              t.txnDate.isBiggerOrEqualValue(startOfMonth) &
+              t.txnDate.isSmallerOrEqualValue(endOfMonth)))
+        .get();
+    final map = <String, int>{};
+    for (final t in rows) {
+      map[t.categoryId] = (map[t.categoryId] ?? 0) + t.amountCny;
+    }
+    return map;
+  }
+
+  // ---- Notification CRUD ----
+
+  Future<int> insertNotification(NotificationsCompanion entry) =>
+      into(notifications).insert(entry);
+
+  Future<List<Notification>> getNotifications(
+      String userId, int limit, int offset) =>
+      (select(notifications)
+            ..where((n) => n.userId.equals(userId))
+            ..orderBy([(n) => OrderingTerm.desc(n.createdAt)])
+            ..limit(limit, offset: offset))
+          .get();
+
+  Future<int> getUnreadNotificationCount(String userId) async {
+    final rows = await (select(notifications)
+          ..where(
+              (n) => n.userId.equals(userId) & n.isRead.equals(false)))
+        .get();
+    return rows.length;
+  }
+
+  Future<void> markNotificationsAsRead(List<String> ids) async {
+    await (update(notifications)..where((n) => n.id.isIn(ids)))
+        .write(const NotificationsCompanion(isRead: Value(true)));
+  }
+
+  // Notification Settings
+  Future<NotificationSettingsTableData?> getNotificationSettings(
+          String userId) =>
+      (select(notificationSettingsTable)
+            ..where((s) => s.userId.equals(userId)))
+          .getSingleOrNull();
+
+  Future<void> upsertNotificationSettings(
+      NotificationSettingsTableCompanion entry) async {
+    await into(notificationSettingsTable).insertOnConflictUpdate(entry);
+  }
 }
 
 LazyDatabase _openConnection() {

@@ -8,6 +8,8 @@ import '../../generated/proto/transaction.pbgrpc.dart';
 import '../../generated/proto/sync.pbgrpc.dart';
 import '../../generated/proto/family.pbgrpc.dart';
 import '../../generated/proto/account.pbgrpc.dart';
+import '../../generated/proto/budget.pbgrpc.dart';
+import '../../generated/proto/notify.pbgrpc.dart';
 
 /// gRPC channel singleton
 final grpcChannelProvider = Provider<ClientChannel>((ref) {
@@ -76,4 +78,18 @@ final accountClientProvider = Provider<AccountServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
   final prefs = ref.watch(sharedPreferencesProvider);
   return AccountServiceClient(channel, interceptors: [AuthInterceptor(prefs)]);
+});
+
+/// Budget gRPC client
+final budgetClientProvider = Provider<BudgetServiceClient>((ref) {
+  final channel = ref.watch(grpcChannelProvider);
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return BudgetServiceClient(channel, interceptors: [AuthInterceptor(prefs)]);
+});
+
+/// Notify gRPC client
+final notifyClientProvider = Provider<NotifyServiceClient>((ref) {
+  final channel = ref.watch(grpcChannelProvider);
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return NotifyServiceClient(channel, interceptors: [AuthInterceptor(prefs)]);
 });
