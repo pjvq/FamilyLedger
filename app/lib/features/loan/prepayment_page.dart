@@ -17,6 +17,7 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
   String _amountText = '';
   String _strategy = 'reduce_months';
   bool _showNewSchedule = false;
+  int _simulationKey = 0; // for AnimatedSwitcher
 
   @override
   void initState() {
@@ -51,8 +52,8 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
                 // Amount input
                 _SectionTitle(title: '提前还款金额（元）', theme: theme),
                 const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: () {},
+                Semantics(
+                  label: '提前还款金额输入框，当前${_amountText.isEmpty ? "未输入" : "$_amountText元"}',
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 16),
@@ -110,27 +111,30 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
                 // Strategy selection
                 _SectionTitle(title: '还款策略', theme: theme),
                 const SizedBox(height: 8),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                      value: 'reduce_months',
-                      label: Text('缩短期限'),
-                      icon: Icon(Icons.schedule_rounded, size: 18),
-                    ),
-                    ButtonSegment(
-                      value: 'reduce_payment',
-                      label: Text('减少月供'),
-                      icon: Icon(Icons.trending_down_rounded, size: 18),
-                    ),
-                  ],
-                  selected: {_strategy},
-                  onSelectionChanged: (v) {
-                    setState(() {
-                      _strategy = v.first;
-                      // Re-simulate if amount is available
+                Semantics(
+                  label: '还款策略选择，当前选择${_strategy == "reduce_months" ? "缩短期限" : "减少月供"}',
+                  child: SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                        value: 'reduce_months',
+                        label: Text('缩短期限'),
+                        icon: Icon(Icons.schedule_rounded, size: 18),
+                      ),
+                      ButtonSegment(
+                        value: 'reduce_payment',
+                        label: Text('减少月供'),
+                        icon: Icon(Icons.trending_down_rounded, size: 18),
+                      ),
+                    ],
+                    selected: {_strategy},
+                    onSelectionChanged: (v) {
+                      setState(() {
+                        _strategy = v.first;
+                        _showNewSchedule = false;
+                      });
                       _runSimulation();
-                    });
-                  },
+                    },
+                  ),
                 ),
 
                 const SizedBox(height: 20),
@@ -141,63 +145,35 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
                   label: const Text('开始模拟'),
                 ),
 
-                // Results
-                if (simulation != null) ...[
-                  const SizedBox(height: 24),
-                  _ComparisonCard(
-                    simulation: simulation,
-                    isDark: isDark,
-                    theme: theme,
-                    strategy: _strategy,
-                  ),
-                  const SizedBox(height: 16),
-                  // New schedule toggle
-                  if (simulation.newSchedule.isNotEmpty) ...[
-                    InkWell(
-                      onTap: () =>
-                          setState(() => _showNewSchedule = !_showNewSchedule),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 8, horizontal: 4),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _showNewSchedule
-                                  ? Icons.expand_less_rounded
-                                  : Icons.expand_more_rounded,
-                              color: isDark
-                                  ? AppColors.primaryDark
-                                  : AppColors.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '新还款计划（${simulation.newSchedule.length}期）',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: isDark
-                                    ? AppColors.primaryDark
-                                    : AppColors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
+                // Results with AnimatedSwitcher
+                const SizedBox(height: 24),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SizeTransition(
+                        sizeFactor: animation,
+                        axisAlignment: -1.0,
+                        child: child,
                       ),
-                    ),
-                    AnimatedCrossFade(
-                      firstChild: const SizedBox.shrink(),
-                      secondChild: _NewScheduleList(
-                        schedule: simulation.newSchedule,
-                        theme: theme,
-                        isDark: isDark,
-                      ),
-                      crossFadeState: _showNewSchedule
-                          ? CrossFadeState.showSecond
-                          : CrossFadeState.showFirst,
-                      duration: const Duration(milliseconds: 300),
-                    ),
-                  ],
-                ],
+                    );
+                  },
+                  child: simulation != null
+                      ? _SimulationResults(
+                          key: ValueKey(_simulationKey),
+                          simulation: simulation,
+                          isDark: isDark,
+                          theme: theme,
+                          strategy: _strategy,
+                          showNewSchedule: _showNewSchedule,
+                          onToggleSchedule: () => setState(
+                              () => _showNewSchedule = !_showNewSchedule),
+                        )
+                      : const SizedBox.shrink(key: ValueKey('empty')),
+                ),
                 const SizedBox(height: 40),
               ],
             ),
@@ -238,11 +214,98 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
     final amount = double.tryParse(_amountText);
     if (amount == null || amount <= 0) return;
 
+    setState(() {
+      _simulationKey++;
+      _showNewSchedule = false;
+    });
+
     ref.read(loanProvider.notifier).simulatePrepayment(
           loanId: widget.loanId,
           amount: (amount * 100).round(),
           strategy: _strategy,
         );
+  }
+}
+
+// ── Simulation Results ──
+
+class _SimulationResults extends StatelessWidget {
+  final PrepaymentSimulationResult simulation;
+  final bool isDark;
+  final ThemeData theme;
+  final String strategy;
+  final bool showNewSchedule;
+  final VoidCallback onToggleSchedule;
+
+  const _SimulationResults({
+    super.key,
+    required this.simulation,
+    required this.isDark,
+    required this.theme,
+    required this.strategy,
+    required this.showNewSchedule,
+    required this.onToggleSchedule,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ComparisonCard(
+          simulation: simulation,
+          isDark: isDark,
+          theme: theme,
+          strategy: strategy,
+        ),
+        const SizedBox(height: 16),
+        // New schedule toggle
+        if (simulation.newSchedule.isNotEmpty) ...[
+          InkWell(
+            onTap: onToggleSchedule,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                  vertical: 8, horizontal: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    showNewSchedule
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    color: isDark
+                        ? AppColors.primaryDark
+                        : AppColors.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '新还款计划（${simulation.newSchedule.length}期）',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? AppColors.primaryDark
+                          : AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: _NewScheduleList(
+              schedule: simulation.newSchedule,
+              theme: theme,
+              isDark: isDark,
+            ),
+            crossFadeState: showNewSchedule
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 300),
+          ),
+        ],
+      ],
+    );
   }
 }
 
@@ -282,14 +345,21 @@ class _ComparisonCard extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    Text(
-                      '节省利息',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: isDark
-                            ? AppColors.incomeDark
-                            : AppColors.income,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('💰', style: TextStyle(fontSize: 18)),
+                        const SizedBox(width: 6),
+                        Text(
+                          '节省利息',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isDark
+                                ? AppColors.incomeDark
+                                : AppColors.income,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -307,34 +377,38 @@ class _ComparisonCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              // Comparison rows
-              _ComparisonRow(
-                label: '总利息',
-                before: '¥${_fmtCents(simulation.totalInterestBefore)}',
-                after: '¥${_fmtCents(simulation.totalInterestAfter)}',
-                theme: theme,
-                isDark: isDark,
+              // Comparison: original vs new
+              Row(
+                children: [
+                  Expanded(
+                    child: _ComparisonBox(
+                      title: '原方案',
+                      items: [
+                        ('总利息', '¥${_fmtCents(simulation.totalInterestBefore)}'),
+                      ],
+                      isDark: isDark,
+                      theme: theme,
+                      isOriginal: true,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _ComparisonBox(
+                      title: '提前还款后',
+                      items: [
+                        ('总利息', '¥${_fmtCents(simulation.totalInterestAfter)}'),
+                        if (strategy == 'reduce_months')
+                          ('缩短', '${simulation.monthsReduced} 个月')
+                        else
+                          ('新月供', '¥${_fmtCents(simulation.newMonthlyPayment)}'),
+                      ],
+                      isDark: isDark,
+                      theme: theme,
+                      isOriginal: false,
+                    ),
+                  ),
+                ],
               ),
-              const Divider(height: 20),
-              if (strategy == 'reduce_months') ...[
-                _ComparisonRow(
-                  label: '缩短期限',
-                  before: '',
-                  after: '${simulation.monthsReduced} 个月',
-                  theme: theme,
-                  isDark: isDark,
-                  isHighlight: true,
-                ),
-              ] else ...[
-                _ComparisonRow(
-                  label: '新月供',
-                  before: '',
-                  after: '¥${_fmtCents(simulation.newMonthlyPayment)}',
-                  theme: theme,
-                  isDark: isDark,
-                  isHighlight: true,
-                ),
-              ],
             ],
           ),
         ),
@@ -343,66 +417,85 @@ class _ComparisonCard extends StatelessWidget {
   }
 }
 
-class _ComparisonRow extends StatelessWidget {
-  final String label;
-  final String before;
-  final String after;
-  final ThemeData theme;
+class _ComparisonBox extends StatelessWidget {
+  final String title;
+  final List<(String, String)> items;
   final bool isDark;
-  final bool isHighlight;
+  final ThemeData theme;
+  final bool isOriginal;
 
-  const _ComparisonRow({
-    required this.label,
-    required this.before,
-    required this.after,
-    required this.theme,
+  const _ComparisonBox({
+    required this.title,
+    required this.items,
     required this.isDark,
-    this.isHighlight = false,
+    required this.theme,
+    required this.isOriginal,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-        ),
-        if (before.isNotEmpty)
-          Expanded(
-            flex: 3,
-            child: Text(
-              before,
-              textAlign: TextAlign.right,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontFeatures: const [FontFeature.tabularFigures()],
-                decoration: TextDecoration.lineThrough,
-                color:
-                    theme.colorScheme.onSurface.withValues(alpha: 0.3),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark
+            ? (isOriginal
+                ? const Color(0xFF2C2C2E)
+                : AppColors.primaryDark.withValues(alpha: 0.08))
+            : (isOriginal
+                ? const Color(0xFFF2F2F7)
+                : AppColors.primary.withValues(alpha: 0.06)),
+        borderRadius: BorderRadius.circular(12),
+        border: isOriginal
+            ? null
+            : Border.all(
+                color: (isDark ? AppColors.primaryDark : AppColors.primary)
+                    .withValues(alpha: 0.2),
               ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: isOriginal
+                  ? theme.colorScheme.onSurface.withValues(alpha: 0.5)
+                  : (isDark ? AppColors.primaryDark : AppColors.primary),
             ),
           ),
-        const SizedBox(width: 8),
-        Expanded(
-          flex: 3,
-          child: Text(
-            after,
-            textAlign: TextAlign.right,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              fontFeatures: const [FontFeature.tabularFigures()],
-              color: isHighlight
-                  ? (isDark ? AppColors.primaryDark : AppColors.primary)
-                  : null,
-            ),
-          ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          ...items.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.$1,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.4),
+                      ),
+                    ),
+                    Text(
+                      item.$2,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        decoration: isOriginal
+                            ? TextDecoration.lineThrough
+                            : null,
+                        color: isOriginal
+                            ? theme.colorScheme.onSurface
+                                .withValues(alpha: 0.4)
+                            : null,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+        ],
+      ),
     );
   }
 }
@@ -424,44 +517,48 @@ class _NewScheduleList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: schedule.map((item) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: isDark
-                    ? const Color(0xFF3A3A3C)
-                    : const Color(0xFFE5E5EA),
-                width: 0.5,
+        return Semantics(
+          label: '第${item.monthNumber}期，${DateFormat("yyyy/MM").format(item.dueDate)}，'
+              '月供${_fmtCents(item.payment)}元',
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark
+                      ? const Color(0xFF3A3A3C)
+                      : const Color(0xFFE5E5EA),
+                  width: 0.5,
+                ),
               ),
             ),
-          ),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 50,
-                child: Text(
-                  '第${item.monthNumber}期',
-                  style: theme.textTheme.labelSmall,
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  DateFormat('yyyy/MM').format(item.dueDate),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurface
-                        .withValues(alpha: 0.4),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 50,
+                  child: Text(
+                    '第${item.monthNumber}期',
+                    style: theme.textTheme.labelSmall,
                   ),
                 ),
-              ),
-              Text(
-                '¥${_fmtCents(item.payment)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+                Expanded(
+                  child: Text(
+                    DateFormat('yyyy/MM').format(item.dueDate),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurface
+                          .withValues(alpha: 0.4),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+                Text(
+                  '¥${_fmtCents(item.payment)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       }).toList(),
