@@ -3,6 +3,11 @@ import '../../features/auth/login_page.dart';
 import '../../features/auth/register_page.dart';
 import '../../features/home/home_page.dart';
 import '../../features/transaction/add_transaction_page.dart';
+import '../../features/settings/settings_page.dart';
+import '../../features/settings/family_members_page.dart';
+import '../../features/account/accounts_page.dart';
+import '../../features/account/add_account_page.dart';
+import '../../features/account/transfer_page.dart';
 
 class AppRouter {
   AppRouter._();
@@ -11,6 +16,11 @@ class AppRouter {
   static const register = '/register';
   static const home = '/';
   static const addTransaction = '/add-transaction';
+  static const settings = '/settings';
+  static const familyMembers = '/settings/members';
+  static const accounts = '/accounts';
+  static const addAccount = '/accounts/add';
+  static const transfer = '/transfer';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -22,6 +32,16 @@ class AppRouter {
         return _fade(const HomePage());
       case addTransaction:
         return _slideUp(const AddTransactionPage());
+      case AppRouter.settings:
+        return _slide(const SettingsPage());
+      case familyMembers:
+        return _slide(const FamilyMembersPage());
+      case accounts:
+        return _slide(const AccountsPage());
+      case addAccount:
+        return _slideUp(const AddAccountPage());
+      case transfer:
+        return _slideUp(const TransferPage());
       default:
         return _fade(const HomePage());
     }
