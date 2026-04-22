@@ -30,6 +30,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     final theme = Theme.of(context);
 
     ref.listen<AuthState>(authProvider, (prev, next) {
+      if (!context.mounted) return;
       if (next.status == AuthStatus.authenticated) {
         Navigator.of(context).pushNamedAndRemoveUntil(
           AppRouter.home,
@@ -41,7 +42,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           SnackBar(
             content: Text(next.errorMessage!),
             backgroundColor: Colors.red.shade400,
-            behavior: SnackBarBehavior.floating,
+            behavior: SnackBarBehavior.fixed,
           ),
         );
       }

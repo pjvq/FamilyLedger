@@ -28,6 +28,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final theme = Theme.of(context);
 
     ref.listen<AuthState>(authProvider, (prev, next) {
+      if (!context.mounted) return;
       if (next.status == AuthStatus.authenticated) {
         Navigator.of(context).pushReplacementNamed(AppRouter.home);
       }
@@ -36,7 +37,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           SnackBar(
             content: Text(next.errorMessage!),
             backgroundColor: Colors.red.shade400,
-            behavior: SnackBarBehavior.floating,
+            behavior: SnackBarBehavior.fixed,
           ),
         );
       }
