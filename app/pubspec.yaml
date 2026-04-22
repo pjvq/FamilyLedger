@@ -38,6 +38,8 @@ dependencies:
   google_fonts: ^6.2.1
   # Haptic feedback
   vibration: ^2.0.0
+  # Share / Export
+  share_plus: ^10.0.0
 
 dev_dependencies:
   flutter_test:
