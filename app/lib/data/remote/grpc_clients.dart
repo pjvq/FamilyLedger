@@ -10,6 +10,7 @@ import '../../generated/proto/family.pbgrpc.dart';
 import '../../generated/proto/account.pbgrpc.dart';
 import '../../generated/proto/budget.pbgrpc.dart';
 import '../../generated/proto/notify.pbgrpc.dart';
+import '../../generated/proto/loan.pbgrpc.dart';
 
 /// gRPC channel singleton
 final grpcChannelProvider = Provider<ClientChannel>((ref) {
@@ -92,4 +93,11 @@ final notifyClientProvider = Provider<NotifyServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
   final prefs = ref.watch(sharedPreferencesProvider);
   return NotifyServiceClient(channel, interceptors: [AuthInterceptor(prefs)]);
+});
+
+/// Loan gRPC client
+final loanClientProvider = Provider<LoanServiceClient>((ref) {
+  final channel = ref.watch(grpcChannelProvider);
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return LoanServiceClient(channel, interceptors: [AuthInterceptor(prefs)]);
 });

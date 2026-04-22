@@ -19,6 +19,9 @@ part 'database.g.dart';
   CategoryBudgetsTable,
   Notifications,
   NotificationSettingsTable,
+  Loans,
+  LoanSchedules,
+  LoanRateChanges,
   SyncQueue,
 ])
 class AppDatabase extends _$AppDatabase {
@@ -27,7 +30,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -52,6 +55,12 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(categoryBudgetsTable);
             await m.createTable(notifications);
             await m.createTable(notificationSettingsTable);
+          }
+          if (from < 4) {
+            // v3 → v4: loan tables
+            await m.createTable(loans);
+            await m.createTable(loanSchedules);
+            await m.createTable(loanRateChanges);
           }
         },
       );
@@ -429,6 +438,73 @@ class AppDatabase extends _$AppDatabase {
       NotificationSettingsTableCompanion entry) async {
     await into(notificationSettingsTable).insertOnConflictUpdate(entry);
   }
+
+  // ---- Loan CRUD ----
+
+  Future<int> insertLoan(LoansCompanion entry) =>
+      into(loans).insert(entry);
+
+  Future<void> upsertLoan(LoansCompanion entry) async {
+    await into(loans).insertOnConflictUpdate(entry);
+  }
+
+  Future<List<Loan>> getLoans(String userId) =>
+      (select(loans)
+            ..where((l) => l.userId.equals(userId) & l.deletedAt.isNull())
+            ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
+          .get();
+
+  Future<Loan?> getLoanById(String id) =>
+      (select(loans)..where((l) => l.id.equals(id))).getSingleOrNull();
+
+  Future<void> updateLoanFields(String loanId, LoansCompanion entry) async {
+    await (update(loans)..where((l) => l.id.equals(loanId))).write(entry);
+  }
+
+  Future<int> softDeleteLoan(String loanId) async {
+    await (update(loans)..where((l) => l.id.equals(loanId))).write(
+      LoansCompanion(deletedAt: Value(DateTime.now())),
+    );
+    return 1;
+  }
+
+  // Loan Schedules
+  Future<void> insertLoanSchedule(LoanSchedulesCompanion entry) async {
+    await into(loanSchedules).insert(entry);
+  }
+
+  Future<void> upsertLoanSchedule(LoanSchedulesCompanion entry) async {
+    await into(loanSchedules).insertOnConflictUpdate(entry);
+  }
+
+  Future<List<LoanSchedule>> getLoanSchedules(String loanId) =>
+      (select(loanSchedules)
+            ..where((s) => s.loanId.equals(loanId))
+            ..orderBy([(s) => OrderingTerm.asc(s.monthNumber)]))
+          .get();
+
+  Future<void> deleteLoanSchedules(String loanId) async {
+    await (delete(loanSchedules)..where((s) => s.loanId.equals(loanId))).go();
+  }
+
+  Future<void> markSchedulePaid(String scheduleId) async {
+    await (update(loanSchedules)..where((s) => s.id.equals(scheduleId))).write(
+      LoanSchedulesCompanion(
+        isPaid: const Value(true),
+        paidDate: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  // Loan Rate Changes
+  Future<int> insertLoanRateChange(LoanRateChangesCompanion entry) =>
+      into(loanRateChanges).insert(entry);
+
+  Future<List<LoanRateChange>> getLoanRateChanges(String loanId) =>
+      (select(loanRateChanges)
+            ..where((r) => r.loanId.equals(loanId))
+            ..orderBy([(r) => OrderingTerm.desc(r.effectiveDate)]))
+          .get();
 }
 
 LazyDatabase _openConnection() {
