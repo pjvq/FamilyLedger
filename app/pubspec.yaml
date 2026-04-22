@@ -18,6 +18,10 @@ dependencies:
   sqlite3_flutter_libs: ^0.5.30
   path_provider: ^2.1.5
   path: ^1.9.1
+
+  # Pin iOS platform packages to avoid objective_c FFI issue on iOS 26 simulator
+  shared_preferences_foundation: 2.4.0
+  path_provider_foundation: 2.4.0
   # gRPC
   grpc: ^4.0.1
   protobuf: ^3.1.0
@@ -30,7 +34,7 @@ dependencies:
   # Utils
   uuid: ^4.5.1
   intl: ^0.20.2
-  shared_preferences: ^2.3.5
+  shared_preferences: ^2.2.3
   google_fonts: ^6.2.1
   # Haptic feedback
   vibration: ^2.0.0
