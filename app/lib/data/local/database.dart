@@ -120,6 +120,37 @@ class AppDatabase extends _$AppDatabase {
   Future<int> insertTransaction(TransactionsCompanion entry) =>
       into(transactions).insert(entry);
 
+  /// Upsert: 远程同步时使用，有则更新无则插入
+  Future<void> insertOrUpdateTransaction({
+    required String id,
+    required String userId,
+    required String accountId,
+    required String categoryId,
+    required int amount,
+    required int amountCny,
+    required String type,
+    required String note,
+    required DateTime txnDate,
+  }) async {
+    await into(transactions).insertOnConflictUpdate(
+      TransactionsCompanion.insert(
+        id: id,
+        userId: userId,
+        accountId: accountId,
+        categoryId: categoryId,
+        amount: amount,
+        amountCny: amountCny,
+        type: type,
+        note: Value(note),
+        txnDate: txnDate,
+      ),
+    );
+  }
+
+  /// 删除指定交易（远程同步删除时使用）
+  Future<int> deleteTransaction(String id) =>
+      (delete(transactions)..where((t) => t.id.equals(id))).go();
+
   Stream<List<Transaction>> watchTransactions(String userId) =>
       (select(transactions)
             ..where((t) => t.userId.equals(userId))
