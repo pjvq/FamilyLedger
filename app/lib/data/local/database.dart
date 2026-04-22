@@ -25,6 +25,9 @@ part 'database.g.dart';
   Investments,
   InvestmentTrades,
   MarketQuotes,
+  FixedAssets,
+  AssetValuations,
+  DepreciationRules,
   SyncQueue,
 ])
 class AppDatabase extends _$AppDatabase {
@@ -33,7 +36,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -70,6 +73,12 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(investments);
             await m.createTable(investmentTrades);
             await m.createTable(marketQuotes);
+          }
+          if (from < 6) {
+            // v5 → v6: fixed asset tables
+            await m.createTable(fixedAssets);
+            await m.createTable(assetValuations);
+            await m.createTable(depreciationRules);
           }
         },
       );
@@ -563,6 +572,54 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<MarketQuote>> getAllMarketQuotes() =>
       select(marketQuotes).get();
+
+  // ---- Fixed Asset CRUD ----
+
+  Future<void> upsertFixedAsset(FixedAssetsCompanion entry) async {
+    await into(fixedAssets).insertOnConflictUpdate(entry);
+  }
+
+  Future<List<FixedAsset>> getFixedAssets(String userId) =>
+      (select(fixedAssets)
+            ..where((a) => a.userId.equals(userId) & a.deletedAt.isNull())
+            ..orderBy([(a) => OrderingTerm.desc(a.createdAt)]))
+          .get();
+
+  Future<FixedAsset?> getFixedAssetById(String id) =>
+      (select(fixedAssets)..where((a) => a.id.equals(id))).getSingleOrNull();
+
+  Future<void> updateFixedAssetFields(String id, FixedAssetsCompanion entry) async {
+    await (update(fixedAssets)..where((a) => a.id.equals(id))).write(entry);
+  }
+
+  Future<int> softDeleteFixedAsset(String id) async {
+    await (update(fixedAssets)..where((a) => a.id.equals(id))).write(
+      FixedAssetsCompanion(deletedAt: Value(DateTime.now())),
+    );
+    return 1;
+  }
+
+  // Asset Valuations
+  Future<int> insertAssetValuation(AssetValuationsCompanion entry) =>
+      into(assetValuations).insert(entry);
+
+  Future<List<AssetValuation>> getAssetValuations(String assetId) =>
+      (select(assetValuations)
+            ..where((v) => v.assetId.equals(assetId))
+            ..orderBy([(v) => OrderingTerm.asc(v.valuationDate)]))
+          .get();
+
+  // Depreciation Rules
+  Future<void> upsertDepreciationRule(DepreciationRulesCompanion entry) async {
+    await into(depreciationRules).insertOnConflictUpdate(entry);
+  }
+
+  Future<DepreciationRule?> getDepreciationRule(String assetId) =>
+      (select(depreciationRules)
+            ..where((r) => r.assetId.equals(assetId))
+            ..orderBy([(r) => OrderingTerm.desc(r.createdAt)])
+            ..limit(1))
+          .getSingleOrNull();
 }
 
 LazyDatabase _openConnection() {

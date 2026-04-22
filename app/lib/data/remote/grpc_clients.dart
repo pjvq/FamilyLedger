@@ -12,6 +12,7 @@ import '../../generated/proto/budget.pbgrpc.dart';
 import '../../generated/proto/notify.pbgrpc.dart';
 import '../../generated/proto/loan.pbgrpc.dart';
 import '../../generated/proto/investment.pbgrpc.dart';
+import '../../generated/proto/asset.pbgrpc.dart';
 
 /// gRPC channel singleton
 final grpcChannelProvider = Provider<ClientChannel>((ref) {
@@ -115,4 +116,11 @@ final marketDataClientProvider = Provider<MarketDataServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
   final prefs = ref.watch(sharedPreferencesProvider);
   return MarketDataServiceClient(channel, interceptors: [AuthInterceptor(prefs)]);
+});
+
+/// Asset gRPC client
+final assetClientProvider = Provider<AssetServiceClient>((ref) {
+  final channel = ref.watch(grpcChannelProvider);
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return AssetServiceClient(channel, interceptors: [AuthInterceptor(prefs)]);
 });
