@@ -167,7 +167,10 @@ class _AmountDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isExpense ? AppColors.expense : AppColors.income;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isExpense
+        ? (isDark ? AppColors.expenseDark : AppColors.expense)
+        : (isDark ? AppColors.incomeDark : AppColors.income);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),

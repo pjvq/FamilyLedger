@@ -18,8 +18,11 @@ class TransactionListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isExpense = transaction.type == 'expense';
-    final amountColor = isExpense ? AppColors.expense : AppColors.income;
+    final amountColor = isExpense
+        ? (isDark ? AppColors.expenseDark : AppColors.expense)
+        : (isDark ? AppColors.incomeDark : AppColors.income);
     final sign = isExpense ? '-' : '+';
     final amount = (transaction.amountCny / 100).toStringAsFixed(2);
 

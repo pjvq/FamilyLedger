@@ -118,12 +118,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ? null
                         : _handleLogin,
                     child: authState.status == AuthStatus.loading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: Theme.of(context)
+                                  .elevatedButtonTheme
+                                  .style
+                                  ?.foregroundColor
+                                  ?.resolve({}) ?? Colors.white,
                             ),
                           )
                         : const Text('登录'),
