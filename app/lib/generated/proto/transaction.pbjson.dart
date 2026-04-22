@@ -1,0 +1,184 @@
+//
+//  Generated code. Do not modify.
+//  source: transaction.proto
+//
+// @dart = 2.12
+
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
+// ignore_for_file: constant_identifier_names, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_final_fields
+// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+
+import 'dart:convert' as $convert;
+import 'dart:core' as $core;
+import 'dart:typed_data' as $typed_data;
+
+@$core.Deprecated('Use transactionTypeDescriptor instead')
+const TransactionType$json = {
+  '1': 'TransactionType',
+  '2': [
+    {'1': 'TRANSACTION_TYPE_UNSPECIFIED', '2': 0},
+    {'1': 'TRANSACTION_TYPE_INCOME', '2': 1},
+    {'1': 'TRANSACTION_TYPE_EXPENSE', '2': 2},
+  ],
+};
+
+/// Descriptor for `TransactionType`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List transactionTypeDescriptor = $convert.base64Decode(
+    'Cg9UcmFuc2FjdGlvblR5cGUSIAocVFJBTlNBQ1RJT05fVFlQRV9VTlNQRUNJRklFRBAAEhsKF1'
+    'RSQU5TQUNUSU9OX1RZUEVfSU5DT01FEAESHAoYVFJBTlNBQ1RJT05fVFlQRV9FWFBFTlNFEAI=');
+
+@$core.Deprecated('Use transactionDescriptor instead')
+const Transaction$json = {
+  '1': 'Transaction',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'user_id', '3': 2, '4': 1, '5': 9, '10': 'userId'},
+    {'1': 'account_id', '3': 3, '4': 1, '5': 9, '10': 'accountId'},
+    {'1': 'category_id', '3': 4, '4': 1, '5': 9, '10': 'categoryId'},
+    {'1': 'amount', '3': 5, '4': 1, '5': 3, '10': 'amount'},
+    {'1': 'currency', '3': 6, '4': 1, '5': 9, '10': 'currency'},
+    {'1': 'amount_cny', '3': 7, '4': 1, '5': 3, '10': 'amountCny'},
+    {'1': 'exchange_rate', '3': 8, '4': 1, '5': 1, '10': 'exchangeRate'},
+    {'1': 'type', '3': 9, '4': 1, '5': 14, '6': '.familyledger.transaction.v1.TransactionType', '10': 'type'},
+    {'1': 'note', '3': 10, '4': 1, '5': 9, '10': 'note'},
+    {'1': 'txn_date', '3': 11, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'txnDate'},
+    {'1': 'created_at', '3': 12, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
+    {'1': 'updated_at', '3': 13, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+  ],
+};
+
+/// Descriptor for `Transaction`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List transactionDescriptor = $convert.base64Decode(
+    'CgtUcmFuc2FjdGlvbhIOCgJpZBgBIAEoCVICaWQSFwoHdXNlcl9pZBgCIAEoCVIGdXNlcklkEh'
+    '0KCmFjY291bnRfaWQYAyABKAlSCWFjY291bnRJZBIfCgtjYXRlZ29yeV9pZBgEIAEoCVIKY2F0'
+    'ZWdvcnlJZBIWCgZhbW91bnQYBSABKANSBmFtb3VudBIaCghjdXJyZW5jeRgGIAEoCVIIY3Vycm'
+    'VuY3kSHQoKYW1vdW50X2NueRgHIAEoA1IJYW1vdW50Q255EiMKDWV4Y2hhbmdlX3JhdGUYCCAB'
+    'KAFSDGV4Y2hhbmdlUmF0ZRJACgR0eXBlGAkgASgOMiwuZmFtaWx5bGVkZ2VyLnRyYW5zYWN0aW'
+    '9uLnYxLlRyYW5zYWN0aW9uVHlwZVIEdHlwZRISCgRub3RlGAogASgJUgRub3RlEjUKCHR4bl9k'
+    'YXRlGAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIHdHhuRGF0ZRI5CgpjcmVhdG'
+    'VkX2F0GAwgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3JlYXRlZEF0EjkKCnVw'
+    'ZGF0ZWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUgl1cGRhdGVkQXQ=');
+
+@$core.Deprecated('Use categoryDescriptor instead')
+const Category$json = {
+  '1': 'Category',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'icon', '3': 3, '4': 1, '5': 9, '10': 'icon'},
+    {'1': 'type', '3': 4, '4': 1, '5': 14, '6': '.familyledger.transaction.v1.TransactionType', '10': 'type'},
+    {'1': 'is_preset', '3': 5, '4': 1, '5': 8, '10': 'isPreset'},
+    {'1': 'sort_order', '3': 6, '4': 1, '5': 5, '10': 'sortOrder'},
+  ],
+};
+
+/// Descriptor for `Category`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List categoryDescriptor = $convert.base64Decode(
+    'CghDYXRlZ29yeRIOCgJpZBgBIAEoCVICaWQSEgoEbmFtZRgCIAEoCVIEbmFtZRISCgRpY29uGA'
+    'MgASgJUgRpY29uEkAKBHR5cGUYBCABKA4yLC5mYW1pbHlsZWRnZXIudHJhbnNhY3Rpb24udjEu'
+    'VHJhbnNhY3Rpb25UeXBlUgR0eXBlEhsKCWlzX3ByZXNldBgFIAEoCFIIaXNQcmVzZXQSHQoKc2'
+    '9ydF9vcmRlchgGIAEoBVIJc29ydE9yZGVy');
+
+@$core.Deprecated('Use createTransactionRequestDescriptor instead')
+const CreateTransactionRequest$json = {
+  '1': 'CreateTransactionRequest',
+  '2': [
+    {'1': 'account_id', '3': 1, '4': 1, '5': 9, '10': 'accountId'},
+    {'1': 'category_id', '3': 2, '4': 1, '5': 9, '10': 'categoryId'},
+    {'1': 'amount', '3': 3, '4': 1, '5': 3, '10': 'amount'},
+    {'1': 'currency', '3': 4, '4': 1, '5': 9, '10': 'currency'},
+    {'1': 'amount_cny', '3': 5, '4': 1, '5': 3, '10': 'amountCny'},
+    {'1': 'exchange_rate', '3': 6, '4': 1, '5': 1, '10': 'exchangeRate'},
+    {'1': 'type', '3': 7, '4': 1, '5': 14, '6': '.familyledger.transaction.v1.TransactionType', '10': 'type'},
+    {'1': 'note', '3': 8, '4': 1, '5': 9, '10': 'note'},
+    {'1': 'txn_date', '3': 9, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'txnDate'},
+  ],
+};
+
+/// Descriptor for `CreateTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createTransactionRequestDescriptor = $convert.base64Decode(
+    'ChhDcmVhdGVUcmFuc2FjdGlvblJlcXVlc3QSHQoKYWNjb3VudF9pZBgBIAEoCVIJYWNjb3VudE'
+    'lkEh8KC2NhdGVnb3J5X2lkGAIgASgJUgpjYXRlZ29yeUlkEhYKBmFtb3VudBgDIAEoA1IGYW1v'
+    'dW50EhoKCGN1cnJlbmN5GAQgASgJUghjdXJyZW5jeRIdCgphbW91bnRfY255GAUgASgDUglhbW'
+    '91bnRDbnkSIwoNZXhjaGFuZ2VfcmF0ZRgGIAEoAVIMZXhjaGFuZ2VSYXRlEkAKBHR5cGUYByAB'
+    'KA4yLC5mYW1pbHlsZWRnZXIudHJhbnNhY3Rpb24udjEuVHJhbnNhY3Rpb25UeXBlUgR0eXBlEh'
+    'IKBG5vdGUYCCABKAlSBG5vdGUSNQoIdHhuX2RhdGUYCSABKAsyGi5nb29nbGUucHJvdG9idWYu'
+    'VGltZXN0YW1wUgd0eG5EYXRl');
+
+@$core.Deprecated('Use createTransactionResponseDescriptor instead')
+const CreateTransactionResponse$json = {
+  '1': 'CreateTransactionResponse',
+  '2': [
+    {'1': 'transaction', '3': 1, '4': 1, '5': 11, '6': '.familyledger.transaction.v1.Transaction', '10': 'transaction'},
+  ],
+};
+
+/// Descriptor for `CreateTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createTransactionResponseDescriptor = $convert.base64Decode(
+    'ChlDcmVhdGVUcmFuc2FjdGlvblJlc3BvbnNlEkoKC3RyYW5zYWN0aW9uGAEgASgLMiguZmFtaW'
+    'x5bGVkZ2VyLnRyYW5zYWN0aW9uLnYxLlRyYW5zYWN0aW9uUgt0cmFuc2FjdGlvbg==');
+
+@$core.Deprecated('Use listTransactionsRequestDescriptor instead')
+const ListTransactionsRequest$json = {
+  '1': 'ListTransactionsRequest',
+  '2': [
+    {'1': 'account_id', '3': 1, '4': 1, '5': 9, '10': 'accountId'},
+    {'1': 'start_date', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'startDate'},
+    {'1': 'end_date', '3': 3, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'endDate'},
+    {'1': 'page_size', '3': 4, '4': 1, '5': 5, '10': 'pageSize'},
+    {'1': 'page_token', '3': 5, '4': 1, '5': 9, '10': 'pageToken'},
+  ],
+};
+
+/// Descriptor for `ListTransactionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listTransactionsRequestDescriptor = $convert.base64Decode(
+    'ChdMaXN0VHJhbnNhY3Rpb25zUmVxdWVzdBIdCgphY2NvdW50X2lkGAEgASgJUglhY2NvdW50SW'
+    'QSOQoKc3RhcnRfZGF0ZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCXN0YXJ0'
+    'RGF0ZRI1CghlbmRfZGF0ZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSB2VuZE'
+    'RhdGUSGwoJcGFnZV9zaXplGAQgASgFUghwYWdlU2l6ZRIdCgpwYWdlX3Rva2VuGAUgASgJUglw'
+    'YWdlVG9rZW4=');
+
+@$core.Deprecated('Use listTransactionsResponseDescriptor instead')
+const ListTransactionsResponse$json = {
+  '1': 'ListTransactionsResponse',
+  '2': [
+    {'1': 'transactions', '3': 1, '4': 3, '5': 11, '6': '.familyledger.transaction.v1.Transaction', '10': 'transactions'},
+    {'1': 'next_page_token', '3': 2, '4': 1, '5': 9, '10': 'nextPageToken'},
+    {'1': 'total_count', '3': 3, '4': 1, '5': 5, '10': 'totalCount'},
+  ],
+};
+
+/// Descriptor for `ListTransactionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listTransactionsResponseDescriptor = $convert.base64Decode(
+    'ChhMaXN0VHJhbnNhY3Rpb25zUmVzcG9uc2USTAoMdHJhbnNhY3Rpb25zGAEgAygLMiguZmFtaW'
+    'x5bGVkZ2VyLnRyYW5zYWN0aW9uLnYxLlRyYW5zYWN0aW9uUgx0cmFuc2FjdGlvbnMSJgoPbmV4'
+    'dF9wYWdlX3Rva2VuGAIgASgJUg1uZXh0UGFnZVRva2VuEh8KC3RvdGFsX2NvdW50GAMgASgFUg'
+    'p0b3RhbENvdW50');
+
+@$core.Deprecated('Use getCategoriesRequestDescriptor instead')
+const GetCategoriesRequest$json = {
+  '1': 'GetCategoriesRequest',
+  '2': [
+    {'1': 'type', '3': 1, '4': 1, '5': 14, '6': '.familyledger.transaction.v1.TransactionType', '10': 'type'},
+  ],
+};
+
+/// Descriptor for `GetCategoriesRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getCategoriesRequestDescriptor = $convert.base64Decode(
+    'ChRHZXRDYXRlZ29yaWVzUmVxdWVzdBJACgR0eXBlGAEgASgOMiwuZmFtaWx5bGVkZ2VyLnRyYW'
+    '5zYWN0aW9uLnYxLlRyYW5zYWN0aW9uVHlwZVIEdHlwZQ==');
+
+@$core.Deprecated('Use getCategoriesResponseDescriptor instead')
+const GetCategoriesResponse$json = {
+  '1': 'GetCategoriesResponse',
+  '2': [
+    {'1': 'categories', '3': 1, '4': 3, '5': 11, '6': '.familyledger.transaction.v1.Category', '10': 'categories'},
+  ],
+};
+
+/// Descriptor for `GetCategoriesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getCategoriesResponseDescriptor = $convert.base64Decode(
+    'ChVHZXRDYXRlZ29yaWVzUmVzcG9uc2USRQoKY2F0ZWdvcmllcxgBIAMoCzIlLmZhbWlseWxlZG'
+    'dlci50cmFuc2FjdGlvbi52MS5DYXRlZ29yeVIKY2F0ZWdvcmllcw==');
+

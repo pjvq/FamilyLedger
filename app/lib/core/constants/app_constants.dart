@@ -3,9 +3,9 @@ class AppConstants {
   AppConstants._();
 
   // Server
-  static const defaultHost = '10.0.2.2'; // Android emulator → host
-  static const defaultPort = 50051; // gRPC
-  static const wsPort = 8080; // WebSocket
+  static const serverHost = 'localhost';
+  static const grpcPort = 50051;
+  static const wsPort = 8080;
 
   // Auth
   static const accessTokenKey = 'access_token';

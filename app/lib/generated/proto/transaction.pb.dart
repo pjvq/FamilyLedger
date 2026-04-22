@@ -1,0 +1,860 @@
+//
+//  Generated code. Do not modify.
+//  source: transaction.proto
+//
+// @dart = 2.12
+
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
+// ignore_for_file: constant_identifier_names, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_final_fields
+// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+
+import 'dart:core' as $core;
+
+import 'package:fixnum/fixnum.dart' as $fixnum;
+import 'package:protobuf/protobuf.dart' as $pb;
+
+import 'google/protobuf/timestamp.pb.dart' as $3;
+import 'transaction.pbenum.dart';
+
+export 'transaction.pbenum.dart';
+
+class Transaction extends $pb.GeneratedMessage {
+  factory Transaction({
+    $core.String? id,
+    $core.String? userId,
+    $core.String? accountId,
+    $core.String? categoryId,
+    $fixnum.Int64? amount,
+    $core.String? currency,
+    $fixnum.Int64? amountCny,
+    $core.double? exchangeRate,
+    TransactionType? type,
+    $core.String? note,
+    $3.Timestamp? txnDate,
+    $3.Timestamp? createdAt,
+    $3.Timestamp? updatedAt,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    if (userId != null) {
+      $result.userId = userId;
+    }
+    if (accountId != null) {
+      $result.accountId = accountId;
+    }
+    if (categoryId != null) {
+      $result.categoryId = categoryId;
+    }
+    if (amount != null) {
+      $result.amount = amount;
+    }
+    if (currency != null) {
+      $result.currency = currency;
+    }
+    if (amountCny != null) {
+      $result.amountCny = amountCny;
+    }
+    if (exchangeRate != null) {
+      $result.exchangeRate = exchangeRate;
+    }
+    if (type != null) {
+      $result.type = type;
+    }
+    if (note != null) {
+      $result.note = note;
+    }
+    if (txnDate != null) {
+      $result.txnDate = txnDate;
+    }
+    if (createdAt != null) {
+      $result.createdAt = createdAt;
+    }
+    if (updatedAt != null) {
+      $result.updatedAt = updatedAt;
+    }
+    return $result;
+  }
+  Transaction._() : super();
+  factory Transaction.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory Transaction.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Transaction', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'userId')
+    ..aOS(3, _omitFieldNames ? '' : 'accountId')
+    ..aOS(4, _omitFieldNames ? '' : 'categoryId')
+    ..aInt64(5, _omitFieldNames ? '' : 'amount')
+    ..aOS(6, _omitFieldNames ? '' : 'currency')
+    ..aInt64(7, _omitFieldNames ? '' : 'amountCny')
+    ..a<$core.double>(8, _omitFieldNames ? '' : 'exchangeRate', $pb.PbFieldType.OD)
+    ..e<TransactionType>(9, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: TransactionType.TRANSACTION_TYPE_UNSPECIFIED, valueOf: TransactionType.valueOf, enumValues: TransactionType.values)
+    ..aOS(10, _omitFieldNames ? '' : 'note')
+    ..aOM<$3.Timestamp>(11, _omitFieldNames ? '' : 'txnDate', subBuilder: $3.Timestamp.create)
+    ..aOM<$3.Timestamp>(12, _omitFieldNames ? '' : 'createdAt', subBuilder: $3.Timestamp.create)
+    ..aOM<$3.Timestamp>(13, _omitFieldNames ? '' : 'updatedAt', subBuilder: $3.Timestamp.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  Transaction clone() => Transaction()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  Transaction copyWith(void Function(Transaction) updates) => super.copyWith((message) => updates(message as Transaction)) as Transaction;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Transaction create() => Transaction._();
+  Transaction createEmptyInstance() => create();
+  static $pb.PbList<Transaction> createRepeated() => $pb.PbList<Transaction>();
+  @$core.pragma('dart2js:noInline')
+  static Transaction getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Transaction>(create);
+  static Transaction? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get userId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set userId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasUserId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearUserId() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get accountId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set accountId($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasAccountId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAccountId() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get categoryId => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set categoryId($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasCategoryId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearCategoryId() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get amount => $_getI64(4);
+  @$pb.TagNumber(5)
+  set amount($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasAmount() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearAmount() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get currency => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set currency($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasCurrency() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearCurrency() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get amountCny => $_getI64(6);
+  @$pb.TagNumber(7)
+  set amountCny($fixnum.Int64 v) { $_setInt64(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasAmountCny() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearAmountCny() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.double get exchangeRate => $_getN(7);
+  @$pb.TagNumber(8)
+  set exchangeRate($core.double v) { $_setDouble(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasExchangeRate() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearExchangeRate() => clearField(8);
+
+  @$pb.TagNumber(9)
+  TransactionType get type => $_getN(8);
+  @$pb.TagNumber(9)
+  set type(TransactionType v) { setField(9, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasType() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearType() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get note => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set note($core.String v) { $_setString(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasNote() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearNote() => clearField(10);
+
+  @$pb.TagNumber(11)
+  $3.Timestamp get txnDate => $_getN(10);
+  @$pb.TagNumber(11)
+  set txnDate($3.Timestamp v) { setField(11, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasTxnDate() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearTxnDate() => clearField(11);
+  @$pb.TagNumber(11)
+  $3.Timestamp ensureTxnDate() => $_ensure(10);
+
+  @$pb.TagNumber(12)
+  $3.Timestamp get createdAt => $_getN(11);
+  @$pb.TagNumber(12)
+  set createdAt($3.Timestamp v) { setField(12, v); }
+  @$pb.TagNumber(12)
+  $core.bool hasCreatedAt() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearCreatedAt() => clearField(12);
+  @$pb.TagNumber(12)
+  $3.Timestamp ensureCreatedAt() => $_ensure(11);
+
+  @$pb.TagNumber(13)
+  $3.Timestamp get updatedAt => $_getN(12);
+  @$pb.TagNumber(13)
+  set updatedAt($3.Timestamp v) { setField(13, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasUpdatedAt() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearUpdatedAt() => clearField(13);
+  @$pb.TagNumber(13)
+  $3.Timestamp ensureUpdatedAt() => $_ensure(12);
+}
+
+class Category extends $pb.GeneratedMessage {
+  factory Category({
+    $core.String? id,
+    $core.String? name,
+    $core.String? icon,
+    TransactionType? type,
+    $core.bool? isPreset,
+    $core.int? sortOrder,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    if (name != null) {
+      $result.name = name;
+    }
+    if (icon != null) {
+      $result.icon = icon;
+    }
+    if (type != null) {
+      $result.type = type;
+    }
+    if (isPreset != null) {
+      $result.isPreset = isPreset;
+    }
+    if (sortOrder != null) {
+      $result.sortOrder = sortOrder;
+    }
+    return $result;
+  }
+  Category._() : super();
+  factory Category.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory Category.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Category', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..aOS(3, _omitFieldNames ? '' : 'icon')
+    ..e<TransactionType>(4, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: TransactionType.TRANSACTION_TYPE_UNSPECIFIED, valueOf: TransactionType.valueOf, enumValues: TransactionType.values)
+    ..aOB(5, _omitFieldNames ? '' : 'isPreset')
+    ..a<$core.int>(6, _omitFieldNames ? '' : 'sortOrder', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  Category clone() => Category()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  Category copyWith(void Function(Category) updates) => super.copyWith((message) => updates(message as Category)) as Category;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Category create() => Category._();
+  Category createEmptyInstance() => create();
+  static $pb.PbList<Category> createRepeated() => $pb.PbList<Category>();
+  @$core.pragma('dart2js:noInline')
+  static Category getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Category>(create);
+  static Category? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get icon => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set icon($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasIcon() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearIcon() => clearField(3);
+
+  @$pb.TagNumber(4)
+  TransactionType get type => $_getN(3);
+  @$pb.TagNumber(4)
+  set type(TransactionType v) { setField(4, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasType() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearType() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get isPreset => $_getBF(4);
+  @$pb.TagNumber(5)
+  set isPreset($core.bool v) { $_setBool(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasIsPreset() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearIsPreset() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get sortOrder => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set sortOrder($core.int v) { $_setSignedInt32(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasSortOrder() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearSortOrder() => clearField(6);
+}
+
+class CreateTransactionRequest extends $pb.GeneratedMessage {
+  factory CreateTransactionRequest({
+    $core.String? accountId,
+    $core.String? categoryId,
+    $fixnum.Int64? amount,
+    $core.String? currency,
+    $fixnum.Int64? amountCny,
+    $core.double? exchangeRate,
+    TransactionType? type,
+    $core.String? note,
+    $3.Timestamp? txnDate,
+  }) {
+    final $result = create();
+    if (accountId != null) {
+      $result.accountId = accountId;
+    }
+    if (categoryId != null) {
+      $result.categoryId = categoryId;
+    }
+    if (amount != null) {
+      $result.amount = amount;
+    }
+    if (currency != null) {
+      $result.currency = currency;
+    }
+    if (amountCny != null) {
+      $result.amountCny = amountCny;
+    }
+    if (exchangeRate != null) {
+      $result.exchangeRate = exchangeRate;
+    }
+    if (type != null) {
+      $result.type = type;
+    }
+    if (note != null) {
+      $result.note = note;
+    }
+    if (txnDate != null) {
+      $result.txnDate = txnDate;
+    }
+    return $result;
+  }
+  CreateTransactionRequest._() : super();
+  factory CreateTransactionRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateTransactionRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateTransactionRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'accountId')
+    ..aOS(2, _omitFieldNames ? '' : 'categoryId')
+    ..aInt64(3, _omitFieldNames ? '' : 'amount')
+    ..aOS(4, _omitFieldNames ? '' : 'currency')
+    ..aInt64(5, _omitFieldNames ? '' : 'amountCny')
+    ..a<$core.double>(6, _omitFieldNames ? '' : 'exchangeRate', $pb.PbFieldType.OD)
+    ..e<TransactionType>(7, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: TransactionType.TRANSACTION_TYPE_UNSPECIFIED, valueOf: TransactionType.valueOf, enumValues: TransactionType.values)
+    ..aOS(8, _omitFieldNames ? '' : 'note')
+    ..aOM<$3.Timestamp>(9, _omitFieldNames ? '' : 'txnDate', subBuilder: $3.Timestamp.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateTransactionRequest clone() => CreateTransactionRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateTransactionRequest copyWith(void Function(CreateTransactionRequest) updates) => super.copyWith((message) => updates(message as CreateTransactionRequest)) as CreateTransactionRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateTransactionRequest create() => CreateTransactionRequest._();
+  CreateTransactionRequest createEmptyInstance() => create();
+  static $pb.PbList<CreateTransactionRequest> createRepeated() => $pb.PbList<CreateTransactionRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CreateTransactionRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateTransactionRequest>(create);
+  static CreateTransactionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get accountId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set accountId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAccountId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAccountId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get categoryId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set categoryId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasCategoryId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCategoryId() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get amount => $_getI64(2);
+  @$pb.TagNumber(3)
+  set amount($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasAmount() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAmount() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get currency => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set currency($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasCurrency() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearCurrency() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get amountCny => $_getI64(4);
+  @$pb.TagNumber(5)
+  set amountCny($fixnum.Int64 v) { $_setInt64(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasAmountCny() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearAmountCny() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.double get exchangeRate => $_getN(5);
+  @$pb.TagNumber(6)
+  set exchangeRate($core.double v) { $_setDouble(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasExchangeRate() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearExchangeRate() => clearField(6);
+
+  @$pb.TagNumber(7)
+  TransactionType get type => $_getN(6);
+  @$pb.TagNumber(7)
+  set type(TransactionType v) { setField(7, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasType() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearType() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get note => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set note($core.String v) { $_setString(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasNote() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearNote() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $3.Timestamp get txnDate => $_getN(8);
+  @$pb.TagNumber(9)
+  set txnDate($3.Timestamp v) { setField(9, v); }
+  @$pb.TagNumber(9)
+  $core.bool hasTxnDate() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearTxnDate() => clearField(9);
+  @$pb.TagNumber(9)
+  $3.Timestamp ensureTxnDate() => $_ensure(8);
+}
+
+class CreateTransactionResponse extends $pb.GeneratedMessage {
+  factory CreateTransactionResponse({
+    Transaction? transaction,
+  }) {
+    final $result = create();
+    if (transaction != null) {
+      $result.transaction = transaction;
+    }
+    return $result;
+  }
+  CreateTransactionResponse._() : super();
+  factory CreateTransactionResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateTransactionResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateTransactionResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..aOM<Transaction>(1, _omitFieldNames ? '' : 'transaction', subBuilder: Transaction.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateTransactionResponse clone() => CreateTransactionResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateTransactionResponse copyWith(void Function(CreateTransactionResponse) updates) => super.copyWith((message) => updates(message as CreateTransactionResponse)) as CreateTransactionResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateTransactionResponse create() => CreateTransactionResponse._();
+  CreateTransactionResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateTransactionResponse> createRepeated() => $pb.PbList<CreateTransactionResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreateTransactionResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateTransactionResponse>(create);
+  static CreateTransactionResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  Transaction get transaction => $_getN(0);
+  @$pb.TagNumber(1)
+  set transaction(Transaction v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTransaction() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTransaction() => clearField(1);
+  @$pb.TagNumber(1)
+  Transaction ensureTransaction() => $_ensure(0);
+}
+
+class ListTransactionsRequest extends $pb.GeneratedMessage {
+  factory ListTransactionsRequest({
+    $core.String? accountId,
+    $3.Timestamp? startDate,
+    $3.Timestamp? endDate,
+    $core.int? pageSize,
+    $core.String? pageToken,
+  }) {
+    final $result = create();
+    if (accountId != null) {
+      $result.accountId = accountId;
+    }
+    if (startDate != null) {
+      $result.startDate = startDate;
+    }
+    if (endDate != null) {
+      $result.endDate = endDate;
+    }
+    if (pageSize != null) {
+      $result.pageSize = pageSize;
+    }
+    if (pageToken != null) {
+      $result.pageToken = pageToken;
+    }
+    return $result;
+  }
+  ListTransactionsRequest._() : super();
+  factory ListTransactionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListTransactionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListTransactionsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'accountId')
+    ..aOM<$3.Timestamp>(2, _omitFieldNames ? '' : 'startDate', subBuilder: $3.Timestamp.create)
+    ..aOM<$3.Timestamp>(3, _omitFieldNames ? '' : 'endDate', subBuilder: $3.Timestamp.create)
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'pageSize', $pb.PbFieldType.O3)
+    ..aOS(5, _omitFieldNames ? '' : 'pageToken')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListTransactionsRequest clone() => ListTransactionsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListTransactionsRequest copyWith(void Function(ListTransactionsRequest) updates) => super.copyWith((message) => updates(message as ListTransactionsRequest)) as ListTransactionsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListTransactionsRequest create() => ListTransactionsRequest._();
+  ListTransactionsRequest createEmptyInstance() => create();
+  static $pb.PbList<ListTransactionsRequest> createRepeated() => $pb.PbList<ListTransactionsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListTransactionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListTransactionsRequest>(create);
+  static ListTransactionsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get accountId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set accountId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAccountId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAccountId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $3.Timestamp get startDate => $_getN(1);
+  @$pb.TagNumber(2)
+  set startDate($3.Timestamp v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasStartDate() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearStartDate() => clearField(2);
+  @$pb.TagNumber(2)
+  $3.Timestamp ensureStartDate() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  $3.Timestamp get endDate => $_getN(2);
+  @$pb.TagNumber(3)
+  set endDate($3.Timestamp v) { setField(3, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasEndDate() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearEndDate() => clearField(3);
+  @$pb.TagNumber(3)
+  $3.Timestamp ensureEndDate() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  $core.int get pageSize => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set pageSize($core.int v) { $_setSignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasPageSize() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPageSize() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get pageToken => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set pageToken($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasPageToken() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearPageToken() => clearField(5);
+}
+
+class ListTransactionsResponse extends $pb.GeneratedMessage {
+  factory ListTransactionsResponse({
+    $core.Iterable<Transaction>? transactions,
+    $core.String? nextPageToken,
+    $core.int? totalCount,
+  }) {
+    final $result = create();
+    if (transactions != null) {
+      $result.transactions.addAll(transactions);
+    }
+    if (nextPageToken != null) {
+      $result.nextPageToken = nextPageToken;
+    }
+    if (totalCount != null) {
+      $result.totalCount = totalCount;
+    }
+    return $result;
+  }
+  ListTransactionsResponse._() : super();
+  factory ListTransactionsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListTransactionsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListTransactionsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..pc<Transaction>(1, _omitFieldNames ? '' : 'transactions', $pb.PbFieldType.PM, subBuilder: Transaction.create)
+    ..aOS(2, _omitFieldNames ? '' : 'nextPageToken')
+    ..a<$core.int>(3, _omitFieldNames ? '' : 'totalCount', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListTransactionsResponse clone() => ListTransactionsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListTransactionsResponse copyWith(void Function(ListTransactionsResponse) updates) => super.copyWith((message) => updates(message as ListTransactionsResponse)) as ListTransactionsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListTransactionsResponse create() => ListTransactionsResponse._();
+  ListTransactionsResponse createEmptyInstance() => create();
+  static $pb.PbList<ListTransactionsResponse> createRepeated() => $pb.PbList<ListTransactionsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListTransactionsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListTransactionsResponse>(create);
+  static ListTransactionsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<Transaction> get transactions => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.String get nextPageToken => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set nextPageToken($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasNextPageToken() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearNextPageToken() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get totalCount => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set totalCount($core.int v) { $_setSignedInt32(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasTotalCount() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTotalCount() => clearField(3);
+}
+
+class GetCategoriesRequest extends $pb.GeneratedMessage {
+  factory GetCategoriesRequest({
+    TransactionType? type,
+  }) {
+    final $result = create();
+    if (type != null) {
+      $result.type = type;
+    }
+    return $result;
+  }
+  GetCategoriesRequest._() : super();
+  factory GetCategoriesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetCategoriesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetCategoriesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..e<TransactionType>(1, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: TransactionType.TRANSACTION_TYPE_UNSPECIFIED, valueOf: TransactionType.valueOf, enumValues: TransactionType.values)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetCategoriesRequest clone() => GetCategoriesRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetCategoriesRequest copyWith(void Function(GetCategoriesRequest) updates) => super.copyWith((message) => updates(message as GetCategoriesRequest)) as GetCategoriesRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetCategoriesRequest create() => GetCategoriesRequest._();
+  GetCategoriesRequest createEmptyInstance() => create();
+  static $pb.PbList<GetCategoriesRequest> createRepeated() => $pb.PbList<GetCategoriesRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetCategoriesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetCategoriesRequest>(create);
+  static GetCategoriesRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  TransactionType get type => $_getN(0);
+  @$pb.TagNumber(1)
+  set type(TransactionType v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasType() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearType() => clearField(1);
+}
+
+class GetCategoriesResponse extends $pb.GeneratedMessage {
+  factory GetCategoriesResponse({
+    $core.Iterable<Category>? categories,
+  }) {
+    final $result = create();
+    if (categories != null) {
+      $result.categories.addAll(categories);
+    }
+    return $result;
+  }
+  GetCategoriesResponse._() : super();
+  factory GetCategoriesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetCategoriesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetCategoriesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..pc<Category>(1, _omitFieldNames ? '' : 'categories', $pb.PbFieldType.PM, subBuilder: Category.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetCategoriesResponse clone() => GetCategoriesResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetCategoriesResponse copyWith(void Function(GetCategoriesResponse) updates) => super.copyWith((message) => updates(message as GetCategoriesResponse)) as GetCategoriesResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetCategoriesResponse create() => GetCategoriesResponse._();
+  GetCategoriesResponse createEmptyInstance() => create();
+  static $pb.PbList<GetCategoriesResponse> createRepeated() => $pb.PbList<GetCategoriesResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetCategoriesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetCategoriesResponse>(create);
+  static GetCategoriesResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<Category> get categories => $_getList(0);
+}
+
+
+const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
+const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

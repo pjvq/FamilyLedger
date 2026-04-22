@@ -3,7 +3,13 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
+import 'package:fixnum/fixnum.dart';
+import '../../generated/proto/google/protobuf/timestamp.pb.dart'
+    as proto_ts;
 import '../../data/local/database.dart';
+import '../../data/remote/grpc_clients.dart';
+import '../../generated/proto/transaction.pbgrpc.dart' as pb;
+import '../../generated/proto/transaction.pbenum.dart' as pbe;
 import 'app_providers.dart';
 
 class TransactionState {
@@ -48,10 +54,11 @@ class TransactionState {
 class TransactionNotifier extends StateNotifier<TransactionState> {
   final AppDatabase _db;
   final String _userId;
+  final pb.TransactionServiceClient? _txnClient;
   final _uuid = const Uuid();
   StreamSubscription? _sub;
 
-  TransactionNotifier(this._db, this._userId)
+  TransactionNotifier(this._db, this._userId, this._txnClient)
       : super(const TransactionState()) {
     _load();
     _sub = _db.watchTransactions(_userId).listen((txns) {
@@ -82,7 +89,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     );
   }
 
-  /// 添加交易
+  /// 添加交易 — 先写本地，然后尝试推服务端
   Future<void> addTransaction({
     required String categoryId,
     required int amount, // 分
@@ -95,45 +102,65 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     final account = await _db.getDefaultAccount(_userId);
     if (account == null) return;
 
+    // 1. 写本地 DB
     final companion = TransactionsCompanion.insert(
       id: id,
       userId: _userId,
       accountId: account.id,
       categoryId: categoryId,
       amount: amount,
-      amountCny: amount, // Phase 1 只支持 CNY
+      amountCny: amount,
       type: type,
       note: Value(note),
       txnDate: txnDate ?? now,
     );
-
     await _db.insertTransaction(companion);
 
-    // 更新账户余额
+    // 2. 更新账户余额
     final delta = type == 'income' ? amount : -amount;
     await _db.updateAccountBalance(account.id, delta);
 
-    // 加入同步队列
-    await _db.insertSyncOp(SyncQueueCompanion.insert(
-      id: _uuid.v4(),
-      entityType: 'transaction',
-      entityId: id,
-      opType: 'create',
-      payload: jsonEncode({
-        'id': id,
-        'account_id': account.id,
-        'category_id': categoryId,
-        'amount': amount,
-        'currency': 'CNY',
-        'amount_cny': amount,
-        'exchange_rate': 1.0,
-        'type': type,
-        'note': note,
-        'txn_date': (txnDate ?? now).toIso8601String(),
-      }),
-      clientId: 'client_$_userId',
-      timestamp: now,
-    ));
+    // 3. 尝试推服务端
+    try {
+      if (_txnClient != null) {
+        final txnDate0 = txnDate ?? now;
+        final req = pb.CreateTransactionRequest()
+          ..accountId = account.id
+          ..categoryId = categoryId
+          ..amount = Int64(amount)
+          ..currency = 'CNY'
+          ..amountCny = Int64(amount)
+          ..exchangeRate = 1.0
+          ..type = type == 'income'
+              ? pbe.TransactionType.TRANSACTION_TYPE_INCOME
+              : pbe.TransactionType.TRANSACTION_TYPE_EXPENSE
+          ..note = note
+          ..txnDate = _toTimestamp(txnDate0);
+        await _txnClient.createTransaction(req);
+      }
+    } catch (_) {
+      // 服务端推送失败，加入同步队列
+      await _db.insertSyncOp(SyncQueueCompanion.insert(
+        id: _uuid.v4(),
+        entityType: 'transaction',
+        entityId: id,
+        opType: 'create',
+        payload: jsonEncode({
+          'id': id,
+          'account_id': account.id,
+          'category_id': categoryId,
+          'amount': amount,
+          'currency': 'CNY',
+          'amount_cny': amount,
+          'exchange_rate': 1.0,
+          'type': type,
+          'note': note,
+          'txn_date': (txnDate ?? now).toIso8601String(),
+        }),
+        clientId: 'client_$_userId',
+        timestamp: now,
+      ));
+    }
   }
 
   @override
@@ -143,12 +170,26 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   }
 }
 
+proto_ts.Timestamp _toTimestamp(DateTime dt) {
+  final seconds = dt.millisecondsSinceEpoch ~/ 1000;
+  final nanos = (dt.millisecondsSinceEpoch % 1000) * 1000000;
+  return proto_ts.Timestamp()
+    ..seconds = Int64(seconds)
+    ..nanos = nanos;
+}
+
 final transactionProvider =
     StateNotifierProvider<TransactionNotifier, TransactionState>((ref) {
   final db = ref.watch(databaseProvider);
   final userId = ref.watch(currentUserIdProvider);
-  if (userId == null) {
-    return TransactionNotifier(db, '');
+  pb.TransactionServiceClient? txnClient;
+  try {
+    txnClient = ref.watch(transactionClientProvider);
+  } catch (_) {
+    // gRPC 未初始化时忽略
   }
-  return TransactionNotifier(db, userId);
+  if (userId == null) {
+    return TransactionNotifier(db, '', null);
+  }
+  return TransactionNotifier(db, userId, txnClient);
 });
