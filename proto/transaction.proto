@@ -32,6 +32,8 @@ message Transaction {
   google.protobuf.Timestamp txn_date = 11;
   google.protobuf.Timestamp created_at = 12;
   google.protobuf.Timestamp updated_at = 13;
+  repeated string tags = 14;
+  repeated string image_urls = 15;
 }
 
 message Category {
@@ -53,6 +55,8 @@ message CreateTransactionRequest {
   TransactionType type = 7;
   string note = 8;
   google.protobuf.Timestamp txn_date = 9;
+  repeated string tags = 10;
+  repeated string image_urls = 11;
 }
 
 message CreateTransactionResponse {

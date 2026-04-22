@@ -21,6 +21,7 @@ import (
 	"github.com/familyledger/server/internal/dashboard"
 	"github.com/familyledger/server/internal/export"
 	"github.com/familyledger/server/internal/family"
+	"github.com/familyledger/server/internal/importcsv"
 	"github.com/familyledger/server/internal/investment"
 	"github.com/familyledger/server/internal/loan"
 	"github.com/familyledger/server/internal/market"
@@ -39,6 +40,7 @@ import (
 	dashpb "github.com/familyledger/server/proto/dashboard"
 	exportpb "github.com/familyledger/server/proto/export"
 	familypb "github.com/familyledger/server/proto/family"
+	importpbpb "github.com/familyledger/server/proto/importpb"
 	investpb "github.com/familyledger/server/proto/investment"
 	loanpb "github.com/familyledger/server/proto/loan"
 	notifypb "github.com/familyledger/server/proto/notify"
@@ -91,8 +93,10 @@ func main() {
 	assetService := asset.NewService(pool)
 	marketFetcher := market.NewMockFetcher()
 	marketService := market.NewService(pool, marketFetcher)
+	exchangeService := market.NewExchangeService(pool)
 	dashboardService := dashboard.NewService(pool)
 	exportService := export.NewService(pool)
+	importService := importcsv.NewService(pool)
 
 	// gRPC Server
 	grpcServer := grpc.NewServer(
@@ -113,6 +117,7 @@ func main() {
 	assetpb.RegisterAssetServiceServer(grpcServer, assetService)
 	dashpb.RegisterDashboardServiceServer(grpcServer, dashboardService)
 	exportpb.RegisterExportServiceServer(grpcServer, exportService)
+	importpbpb.RegisterImportServiceServer(grpcServer, importService)
 	reflection.Register(grpcServer)
 
 	// Start gRPC
@@ -152,6 +157,8 @@ func main() {
 	go runScheduledTasks(ctx, notifyService)
 	go runMarketRefreshTasks(ctx, marketService)
 	go runDepreciationTask(ctx, assetService)
+	go runExchangeRateRefreshTask(ctx, exchangeService)
+	go runImportSessionCleanupTask(ctx, importService)
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
@@ -321,4 +328,49 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// runExchangeRateRefreshTask refreshes exchange rates every hour.
+func runExchangeRateRefreshTask(ctx context.Context, exchangeService *market.ExchangeService) {
+	log.Println("exchange-scheduler: started, refresh every hour")
+
+	// Initial refresh on startup
+	refreshCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	if err := exchangeService.RefreshExchangeRates(refreshCtx); err != nil {
+		log.Printf("exchange-scheduler: initial refresh error: %v", err)
+	}
+	cancel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("exchange-scheduler: stopped")
+			return
+		case <-time.After(1 * time.Hour):
+			refreshCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			if err := exchangeService.RefreshExchangeRates(refreshCtx); err != nil {
+				log.Printf("exchange-scheduler: refresh error: %v", err)
+			}
+			cancel()
+		}
+	}
+}
+
+// runImportSessionCleanupTask cleans up expired import sessions every hour.
+func runImportSessionCleanupTask(ctx context.Context, importService *importcsv.Service) {
+	log.Println("import-cleanup-scheduler: started, cleanup every hour")
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("import-cleanup-scheduler: stopped")
+			return
+		case <-time.After(1 * time.Hour):
+			cleanCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			if err := importService.CleanupExpiredSessions(cleanCtx); err != nil {
+				log.Printf("import-cleanup-scheduler: error: %v", err)
+			}
+			cancel()
+		}
+	}
 }

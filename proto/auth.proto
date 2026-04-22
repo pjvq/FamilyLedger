@@ -10,6 +10,7 @@ service AuthService {
   rpc Register(RegisterRequest) returns (RegisterResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc OAuthLogin(OAuthLoginRequest) returns (OAuthLoginResponse);
 }
 
 message RegisterRequest {
@@ -44,4 +45,18 @@ message RefreshTokenResponse {
   string access_token = 1;
   string refresh_token = 2;
   google.protobuf.Timestamp expires_at = 3;
+}
+
+message OAuthLoginRequest {
+  string provider = 1;      // wechat, apple
+  string code = 2;
+  string redirect_uri = 3;
+}
+
+message OAuthLoginResponse {
+  string user_id = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+  google.protobuf.Timestamp expires_at = 4;
+  bool is_new_user = 5;
 }

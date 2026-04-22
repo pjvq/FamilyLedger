@@ -96,11 +96,19 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	// Create transaction
 	var txnID uuid.UUID
 	var createdAt, updatedAt time.Time
+	tags := req.Tags
+	if tags == nil {
+		tags = []string{}
+	}
+	imageURLs := req.ImageUrls
+	if imageURLs == nil {
+		imageURLs = []string{}
+	}
 	err = tx.QueryRow(ctx,
-		`INSERT INTO transactions (user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8::transaction_type, $9, $10)
+		`INSERT INTO transactions (user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, tags, image_urls)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8::transaction_type, $9, $10, $11, $12)
 		 RETURNING id, created_at, updated_at`,
-		uid, accountID, categoryID, req.Amount, currency, amountCny, exchangeRate, txnType, req.Note, txnDate,
+		uid, accountID, categoryID, req.Amount, currency, amountCny, exchangeRate, txnType, req.Note, txnDate, tags, imageURLs,
 	).Scan(&txnID, &createdAt, &updatedAt)
 	if err != nil {
 		log.Printf("transaction: create error: %v", err)
@@ -144,6 +152,8 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 			TxnDate:      timestamppb.New(txnDate),
 			CreatedAt:    timestamppb.New(createdAt),
 			UpdatedAt:    timestamppb.New(updatedAt),
+			Tags:         tags,
+			ImageUrls:    imageURLs,
 		},
 	}, nil
 }
@@ -213,7 +223,7 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 
 	// Query transactions
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, created_at, updated_at
+		`SELECT id, user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, created_at, updated_at, tags, image_urls
 		 FROM transactions
 		 WHERE user_id = $1 AND deleted_at IS NULL
 		 AND ($2::uuid IS NULL OR account_id = $2)
@@ -313,8 +323,9 @@ func scanTransaction(rows pgx.Rows) (*pb.Transaction, error) {
 	var currency, txnType, note string
 	var exchangeRate float64
 	var txnDate, createdAt, updatedAt time.Time
+	var tags, imageURLs []string
 
-	err := rows.Scan(&id, &userID, &accountID, &categoryID, &amount, &currency, &amountCny, &exchangeRate, &txnType, &note, &txnDate, &createdAt, &updatedAt)
+	err := rows.Scan(&id, &userID, &accountID, &categoryID, &amount, &currency, &amountCny, &exchangeRate, &txnType, &note, &txnDate, &createdAt, &updatedAt, &tags, &imageURLs)
 	if err != nil {
 		return nil, err
 	}
@@ -322,6 +333,13 @@ func scanTransaction(rows pgx.Rows) (*pb.Transaction, error) {
 	pbType := pb.TransactionType_TRANSACTION_TYPE_EXPENSE
 	if txnType == "income" {
 		pbType = pb.TransactionType_TRANSACTION_TYPE_INCOME
+	}
+
+	if tags == nil {
+		tags = []string{}
+	}
+	if imageURLs == nil {
+		imageURLs = []string{}
 	}
 
 	return &pb.Transaction{
@@ -338,6 +356,8 @@ func scanTransaction(rows pgx.Rows) (*pb.Transaction, error) {
 		TxnDate:      timestamppb.New(txnDate),
 		CreatedAt:    timestamppb.New(createdAt),
 		UpdatedAt:    timestamppb.New(updatedAt),
+		Tags:         tags,
+		ImageUrls:    imageURLs,
 	}, nil
 }
 

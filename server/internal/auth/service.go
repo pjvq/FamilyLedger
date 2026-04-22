@@ -161,3 +161,114 @@ func (s *Service) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest)
 		ExpiresAt:    timestamppb.New(tokenPair.ExpiresAt),
 	}, nil
 }
+
+// OAuthLogin handles OAuth-based login for WeChat and Apple providers.
+// Currently uses a mock implementation: code="test" creates a test user directly.
+// In production, replace with real OAuth flows.
+func (s *Service) OAuthLogin(ctx context.Context, req *pb.OAuthLoginRequest) (*pb.OAuthLoginResponse, error) {
+	if req.Provider == "" {
+		return nil, status.Error(codes.InvalidArgument, "provider is required")
+	}
+	if req.Code == "" {
+		return nil, status.Error(codes.InvalidArgument, "code is required")
+	}
+
+	provider := req.Provider
+	if provider != "wechat" && provider != "apple" {
+		return nil, status.Error(codes.InvalidArgument, "unsupported provider; use wechat or apple")
+	}
+
+	// Mock implementation: code="test" → create/find test user
+	// In production, exchange code for access_token with the provider
+	oauthID, displayName, avatarURL, err := s.exchangeOAuthCode(ctx, provider, req.Code, req.RedirectUri)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "oauth exchange failed: %v", err)
+	}
+
+	// Look up existing user by oauth_provider + oauth_id
+	var userID uuid.UUID
+	isNewUser := false
+
+	err = s.pool.QueryRow(ctx,
+		`SELECT id FROM users WHERE oauth_provider = $1 AND oauth_id = $2`,
+		provider, oauthID,
+	).Scan(&userID)
+
+	if err != nil {
+		// User not found — create new user
+		tx, txErr := s.pool.Begin(ctx)
+		if txErr != nil {
+			return nil, status.Error(codes.Internal, "failed to begin transaction")
+		}
+		defer tx.Rollback(ctx)
+
+		// Create user with OAuth fields; email and password_hash are set to placeholders
+		email := fmt.Sprintf("%s_%s@oauth.local", provider, oauthID)
+		placeholderHash := "oauth_no_password"
+
+		err = tx.QueryRow(ctx,
+			`INSERT INTO users (email, password_hash, oauth_provider, oauth_id, display_name, avatar_url)
+			 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+			email, placeholderHash, provider, oauthID, displayName, avatarURL,
+		).Scan(&userID)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "create oauth user: %v", err)
+		}
+
+		// Create default account
+		_, err = tx.Exec(ctx,
+			`INSERT INTO accounts (user_id, name, type, balance, currency, is_default) VALUES ($1, $2, $3, $4, $5, $6)`,
+			userID, "默认账户", "cash", 0, "CNY", true,
+		)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "create default account: %v", err)
+		}
+
+		if err := tx.Commit(ctx); err != nil {
+			return nil, status.Error(codes.Internal, "failed to commit transaction")
+		}
+
+		isNewUser = true
+		log.Printf("auth: new oauth user created: %s (provider=%s)", userID, provider)
+	} else {
+		// Update display_name and avatar_url if changed
+		_, _ = s.pool.Exec(ctx,
+			`UPDATE users SET display_name = $1, avatar_url = $2, updated_at = NOW() WHERE id = $3`,
+			displayName, avatarURL, userID,
+		)
+		log.Printf("auth: oauth user logged in: %s (provider=%s)", userID, provider)
+	}
+
+	tokenPair, err := s.jwtManager.GenerateTokenPair(userID.String())
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to generate tokens")
+	}
+
+	return &pb.OAuthLoginResponse{
+		UserId:       userID.String(),
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		ExpiresAt:    timestamppb.New(tokenPair.ExpiresAt),
+		IsNewUser:    isNewUser,
+	}, nil
+}
+
+// exchangeOAuthCode exchanges an OAuth code for user info.
+// This is a mock implementation. In production:
+// - wechat: POST https://api.weixin.qq.com/sns/oauth2/access_token → GET userinfo
+// - apple: Verify the JWT identity token with Apple's public keys
+func (s *Service) exchangeOAuthCode(_ context.Context, provider, code, _ string) (oauthID, displayName, avatarURL string, err error) {
+	// Mock: code="test" returns a deterministic test user
+	if code == "test" {
+		switch provider {
+		case "wechat":
+			return "wx_mock_openid_001", "微信测试用户", "https://example.com/avatar/wechat.png", nil
+		case "apple":
+			return "apple_mock_sub_001", "Apple Test User", "", nil
+		}
+	}
+
+	// TODO: Implement real OAuth exchange
+	// For now, treat any code as a mock user with the code as the oauth_id
+	return fmt.Sprintf("%s_%s", provider, code), "OAuth User", "", nil
+}

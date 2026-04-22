@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package familyledger.import.v1;
+
+option go_package = "github.com/familyledger/server/proto/importpb";
+
+service ImportService {
+    rpc ParseCSV(ParseCSVRequest) returns (ParseCSVResponse);
+    rpc ConfirmImport(ConfirmImportRequest) returns (ConfirmImportResponse);
+}
+
+message ParseCSVRequest {
+    bytes csv_data = 1;
+    string encoding = 2; // utf8 / gbk
+}
+
+message ParseCSVResponse {
+    repeated string headers = 1;
+    repeated CSVRow preview_rows = 2; // 前 10 行预览
+    int32 total_rows = 3;
+    string session_id = 4; // 临时存储 ID
+}
+
+message CSVRow {
+    repeated string values = 1;
+}
+
+message FieldMapping {
+    string csv_column = 1;
+    string target_field = 2; // date, amount, type, category, note, account
+}
+
+message ConfirmImportRequest {
+    string session_id = 1;
+    repeated FieldMapping mappings = 2;
+    string default_account_id = 3;
+    string user_id = 4;
+}
+
+message ConfirmImportResponse {
+    int32 imported_count = 1;
+    int32 skipped_count = 2;
+    repeated string errors = 3;
+}
