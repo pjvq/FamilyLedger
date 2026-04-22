@@ -224,10 +224,10 @@ class AppDatabase extends _$AppDatabase {
 
   // ---- Family CRUD ----
 
-  Future<List<Familie>> getAllFamilies() =>
+  Future<List<Family>> getAllFamilies() =>
       select(families).get();
 
-  Future<Familie?> getFamilyById(String id) =>
+  Future<Family?> getFamilyById(String id) =>
       (select(families)..where((f) => f.id.equals(id))).getSingleOrNull();
 
   Future<int> insertFamily(FamiliesCompanion entry) =>

@@ -25,3 +25,8 @@ final currentUserIdProvider = StateProvider<String?>((ref) {
 final isLoggedInProvider = Provider<bool>((ref) {
   return ref.watch(currentUserIdProvider) != null;
 });
+
+/// 当前家庭 ID（null = 个人模式）
+final currentFamilyIdProvider = StateProvider<String?>((ref) {
+  return null; // 默认个人模式
+});
