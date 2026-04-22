@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package familyledger.dashboard.v1;
+
+option go_package = "github.com/familyledger/server/proto/dashboard";
+
+service DashboardService {
+    rpc GetNetWorth(GetNetWorthRequest) returns (NetWorth);
+    rpc GetIncomeExpenseTrend(TrendRequest) returns (TrendResponse);
+    rpc GetCategoryBreakdown(CategoryBreakdownRequest) returns (CategoryBreakdownResponse);
+    rpc GetBudgetSummary(BudgetSummaryRequest) returns (BudgetSummaryResponse);
+    rpc GetNetWorthTrend(TrendRequest) returns (TrendResponse);
+}
+
+message GetNetWorthRequest {
+    string family_id = 1;  // 可选，空=个人
+}
+
+message NetWorth {
+    int64 total = 1;                    // 净资产总额（分）
+    int64 cash_and_bank = 2;            // 现金+银行账户
+    int64 investment_value = 3;         // 投资市值
+    int64 fixed_asset_value = 4;        // 固定资产净值
+    int64 loan_balance = 5;             // 贷款余额（负数）
+    int64 change_from_last_month = 6;   // 较上月变化
+    double change_percent = 7;          // 变化百分比
+    repeated AssetComposition composition = 8; // 资产构成
+}
+
+message AssetComposition {
+    string category = 1;  // cash, investment, fixed_asset, loan
+    string label = 2;     // 显示名称
+    int64 value = 3;
+    double weight = 4;    // 占比 0-1
+}
+
+message TrendRequest {
+    string user_id = 1;
+    string family_id = 2;
+    string period = 3;     // monthly / yearly
+    int32 count = 4;       // 最近几个月/年
+}
+
+message TrendResponse {
+    repeated TrendPoint points = 1;
+}
+
+message TrendPoint {
+    string label = 1;      // "2026-01" / "2026"
+    int64 income = 2;
+    int64 expense = 3;
+    int64 net = 4;
+}
+
+message CategoryBreakdownRequest {
+    string user_id = 1;
+    string family_id = 2;
+    int32 year = 3;
+    int32 month = 4;
+    string type = 5;       // expense / income
+}
+
+message CategoryBreakdownResponse {
+    int64 total = 1;
+    repeated CategoryItem items = 2;
+}
+
+message CategoryItem {
+    string category_id = 1;
+    string category_name = 2;
+    string icon = 3;
+    int64 amount = 4;
+    double weight = 5;
+}
+
+message BudgetSummaryRequest {
+    string family_id = 1;
+    int32 year = 2;
+    int32 month = 3;
+}
+
+message BudgetSummaryResponse {
+    int64 total_budget = 1;
+    int64 total_spent = 2;
+    double execution_rate = 3;
+    repeated CategoryBudgetItem categories = 4;
+}
+
+message CategoryBudgetItem {
+    string category_id = 1;
+    string category_name = 2;
+    int64 budget_amount = 3;
+    int64 spent_amount = 4;
+    double execution_rate = 5;
+}

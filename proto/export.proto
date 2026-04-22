@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package familyledger.export.v1;
+
+option go_package = "github.com/familyledger/server/proto/export";
+
+service ExportService {
+    rpc ExportTransactions(ExportRequest) returns (ExportResponse);
+}
+
+message ExportRequest {
+    string user_id = 1;
+    string family_id = 2;
+    string format = 3;       // csv / excel / pdf
+    string start_date = 4;   // ISO date
+    string end_date = 5;
+    repeated string category_ids = 6;  // 空=全部
+}
+
+message ExportResponse {
+    bytes data = 1;
+    string filename = 2;
+    string content_type = 3;
+}

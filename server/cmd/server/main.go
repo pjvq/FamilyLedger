@@ -18,6 +18,8 @@ import (
 	"github.com/familyledger/server/internal/asset"
 	"github.com/familyledger/server/internal/auth"
 	"github.com/familyledger/server/internal/budget"
+	"github.com/familyledger/server/internal/dashboard"
+	"github.com/familyledger/server/internal/export"
 	"github.com/familyledger/server/internal/family"
 	"github.com/familyledger/server/internal/investment"
 	"github.com/familyledger/server/internal/loan"
@@ -34,6 +36,8 @@ import (
 	assetpb "github.com/familyledger/server/proto/asset"
 	authpb "github.com/familyledger/server/proto/auth"
 	budgetpb "github.com/familyledger/server/proto/budget"
+	dashpb "github.com/familyledger/server/proto/dashboard"
+	exportpb "github.com/familyledger/server/proto/export"
 	familypb "github.com/familyledger/server/proto/family"
 	investpb "github.com/familyledger/server/proto/investment"
 	loanpb "github.com/familyledger/server/proto/loan"
@@ -87,6 +91,8 @@ func main() {
 	assetService := asset.NewService(pool)
 	marketFetcher := market.NewMockFetcher()
 	marketService := market.NewService(pool, marketFetcher)
+	dashboardService := dashboard.NewService(pool)
+	exportService := export.NewService(pool)
 
 	// gRPC Server
 	grpcServer := grpc.NewServer(
@@ -105,6 +111,8 @@ func main() {
 	investpb.RegisterInvestmentServiceServer(grpcServer, investmentService)
 	investpb.RegisterMarketDataServiceServer(grpcServer, marketService)
 	assetpb.RegisterAssetServiceServer(grpcServer, assetService)
+	dashpb.RegisterDashboardServiceServer(grpcServer, dashboardService)
+	exportpb.RegisterExportServiceServer(grpcServer, exportService)
 	reflection.Register(grpcServer)
 
 	// Start gRPC
