@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package familyledger.budget.v1;
+
+option go_package = "github.com/familyledger/server/proto/budget";
+
+import "google/protobuf/timestamp.proto";
+
+service BudgetService {
+  rpc CreateBudget(CreateBudgetRequest) returns (CreateBudgetResponse);
+  rpc GetBudget(GetBudgetRequest) returns (GetBudgetResponse);
+  rpc ListBudgets(ListBudgetsRequest) returns (ListBudgetsResponse);
+  rpc UpdateBudget(UpdateBudgetRequest) returns (UpdateBudgetResponse);
+  rpc DeleteBudget(DeleteBudgetRequest) returns (DeleteBudgetResponse);
+  rpc GetBudgetExecution(GetBudgetExecutionRequest) returns (GetBudgetExecutionResponse);
+}
+
+message Budget {
+  string id = 1;
+  string user_id = 2;
+  string family_id = 3;
+  int32 year = 4;
+  int32 month = 5;
+  int64 total_amount = 6;
+  repeated CategoryBudget category_budgets = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message CategoryBudget {
+  string category_id = 1;
+  int64 amount = 2;
+}
+
+message BudgetExecution {
+  int64 total_budget = 1;
+  int64 total_spent = 2;
+  double execution_rate = 3;
+  repeated CategoryExecution category_executions = 4;
+}
+
+message CategoryExecution {
+  string category_id = 1;
+  string category_name = 2;
+  int64 budget_amount = 3;
+  int64 spent_amount = 4;
+  double execution_rate = 5;
+}
+
+// ── Requests / Responses ────────────────────────────────────────────────────
+
+message CreateBudgetRequest {
+  string family_id = 1;
+  int32 year = 2;
+  int32 month = 3;
+  int64 total_amount = 4;
+  repeated CategoryBudget category_budgets = 5;
+}
+
+message CreateBudgetResponse {
+  Budget budget = 1;
+}
+
+message GetBudgetRequest {
+  string budget_id = 1;
+}
+
+message GetBudgetResponse {
+  Budget budget = 1;
+  BudgetExecution execution = 2;
+}
+
+message ListBudgetsRequest {
+  string family_id = 1;
+  int32 year = 2;
+}
+
+message ListBudgetsResponse {
+  repeated Budget budgets = 1;
+}
+
+message UpdateBudgetRequest {
+  string budget_id = 1;
+  int64 total_amount = 2;
+  repeated CategoryBudget category_budgets = 3;
+}
+
+message UpdateBudgetResponse {
+  Budget budget = 1;
+}
+
+message DeleteBudgetRequest {
+  string budget_id = 1;
+}
+
+message DeleteBudgetResponse {}
+
+message GetBudgetExecutionRequest {
+  string budget_id = 1;
+}
+
+message GetBudgetExecutionResponse {
+  BudgetExecution execution = 1;
+}

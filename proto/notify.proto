@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package familyledger.notify.v1;
+
+option go_package = "github.com/familyledger/server/proto/notify";
+
+import "google/protobuf/timestamp.proto";
+
+service NotifyService {
+  rpc RegisterDevice(RegisterDeviceRequest) returns (RegisterDeviceResponse);
+  rpc UnregisterDevice(UnregisterDeviceRequest) returns (UnregisterDeviceResponse);
+  rpc GetNotificationSettings(GetNotificationSettingsRequest) returns (GetNotificationSettingsResponse);
+  rpc UpdateNotificationSettings(UpdateNotificationSettingsRequest) returns (UpdateNotificationSettingsResponse);
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse);
+  rpc MarkAsRead(MarkAsReadRequest) returns (MarkAsReadResponse);
+}
+
+message NotificationSettings {
+  bool budget_alert = 1;
+  bool budget_warning = 2;
+  bool daily_summary = 3;
+  bool loan_reminder = 4;
+  int32 reminder_days_before = 5;
+}
+
+message Notification {
+  string id = 1;
+  string user_id = 2;
+  string type = 3;
+  string title = 4;
+  string body = 5;
+  string data_json = 6;
+  bool is_read = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+// ── Requests / Responses ────────────────────────────────────────────────────
+
+message RegisterDeviceRequest {
+  string device_token = 1;
+  string platform = 2;
+  string device_name = 3;
+}
+
+message RegisterDeviceResponse {
+  string device_id = 1;
+}
+
+message UnregisterDeviceRequest {
+  string device_id = 1;
+}
+
+message UnregisterDeviceResponse {}
+
+message GetNotificationSettingsRequest {}
+
+message GetNotificationSettingsResponse {
+  NotificationSettings settings = 1;
+}
+
+message UpdateNotificationSettingsRequest {
+  NotificationSettings settings = 1;
+}
+
+message UpdateNotificationSettingsResponse {}
+
+message ListNotificationsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message ListNotificationsResponse {
+  repeated Notification notifications = 1;
+  int32 total_count = 2;
+}
+
+message MarkAsReadRequest {
+  repeated string notification_ids = 1;
+}
+
+message MarkAsReadResponse {}
