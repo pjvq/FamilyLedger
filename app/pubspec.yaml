@@ -1,0 +1,54 @@
+name: familyledger
+description: "FamilyLedger - 家庭资产管理"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  # State management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  # Local database
+  drift: ^2.25.0
+  sqlite3_flutter_libs: ^0.5.30
+  path_provider: ^2.1.5
+  path: ^1.9.1
+  # gRPC
+  grpc: ^4.0.1
+  protobuf: ^3.1.0
+  fixnum: ^1.1.1
+  # Networking
+  web_socket_channel: ^3.0.2
+  connectivity_plus: ^6.1.3
+  # Charts
+  fl_chart: ^0.70.2
+  # Utils
+  uuid: ^4.5.1
+  intl: ^0.20.2
+  shared_preferences: ^2.3.5
+  google_fonts: ^6.2.1
+  # Haptic feedback
+  vibration: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  # Code generation
+  riverpod_generator: ^2.6.3
+  drift_dev: ^2.25.0
+  build_runner: ^2.4.15
+
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: DINRoundPro
+      fonts:
+        - asset: assets/fonts/DINRoundPro.otf
+        - asset: assets/fonts/DINRoundPro-Bold.otf
+          weight: 700
