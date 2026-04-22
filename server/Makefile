@@ -4,7 +4,7 @@ PROTO_DIR := ../proto
 PROTO_OUT := ./proto
 
 proto:
-	mkdir -p $(PROTO_OUT)/auth $(PROTO_OUT)/transaction $(PROTO_OUT)/sync $(PROTO_OUT)/family $(PROTO_OUT)/account $(PROTO_OUT)/budget $(PROTO_OUT)/notify
+	mkdir -p $(PROTO_OUT)/auth $(PROTO_OUT)/transaction $(PROTO_OUT)/sync $(PROTO_OUT)/family $(PROTO_OUT)/account $(PROTO_OUT)/budget $(PROTO_OUT)/notify $(PROTO_OUT)/loan
 	protoc -I$(PROTO_DIR) \
 		--go_out=$(PROTO_OUT)/auth --go_opt=paths=source_relative \
 		--go-grpc_out=$(PROTO_OUT)/auth --go-grpc_opt=paths=source_relative \
@@ -33,6 +33,10 @@ proto:
 		--go_out=$(PROTO_OUT)/notify --go_opt=paths=source_relative \
 		--go-grpc_out=$(PROTO_OUT)/notify --go-grpc_opt=paths=source_relative \
 		$(PROTO_DIR)/notify.proto
+	protoc -I$(PROTO_DIR) \
+		--go_out=$(PROTO_OUT)/loan --go_opt=paths=source_relative \
+		--go-grpc_out=$(PROTO_OUT)/loan --go-grpc_opt=paths=source_relative \
+		$(PROTO_DIR)/loan.proto
 
 sqlc:
 	sqlc generate

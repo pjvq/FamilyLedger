@@ -1,0 +1,141 @@
+syntax = "proto3";
+
+package familyledger.loan.v1;
+
+option go_package = "github.com/familyledger/server/proto/loan";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service LoanService {
+    rpc CreateLoan(CreateLoanRequest) returns (Loan);
+    rpc GetLoan(GetLoanRequest) returns (Loan);
+    rpc ListLoans(ListLoansRequest) returns (ListLoansResponse);
+    rpc UpdateLoan(UpdateLoanRequest) returns (Loan);
+    rpc DeleteLoan(DeleteLoanRequest) returns (google.protobuf.Empty);
+    rpc GetLoanSchedule(GetLoanScheduleRequest) returns (LoanScheduleResponse);
+    rpc SimulatePrepayment(SimulatePrepaymentRequest) returns (PrepaymentSimulation);
+    rpc RecordRateChange(RecordRateChangeRequest) returns (Loan);
+    rpc RecordPayment(RecordPaymentRequest) returns (LoanScheduleItem);
+}
+
+enum LoanType {
+    LOAN_TYPE_UNSPECIFIED = 0;
+    LOAN_TYPE_MORTGAGE = 1;        // 房贷
+    LOAN_TYPE_CAR_LOAN = 2;        // 车贷
+    LOAN_TYPE_CREDIT_CARD = 3;     // 信用卡
+    LOAN_TYPE_CONSUMER = 4;        // 消费贷
+    LOAN_TYPE_BUSINESS = 5;        // 经营贷
+    LOAN_TYPE_OTHER = 6;
+}
+
+enum RepaymentMethod {
+    REPAYMENT_METHOD_UNSPECIFIED = 0;
+    REPAYMENT_METHOD_EQUAL_INSTALLMENT = 1;  // 等额本息
+    REPAYMENT_METHOD_EQUAL_PRINCIPAL = 2;    // 等额本金
+}
+
+enum PrepaymentStrategy {
+    PREPAYMENT_STRATEGY_UNSPECIFIED = 0;
+    PREPAYMENT_STRATEGY_REDUCE_MONTHS = 1;   // 缩短还款期限
+    PREPAYMENT_STRATEGY_REDUCE_PAYMENT = 2;  // 减少月供
+}
+
+message Loan {
+    string id = 1;
+    string user_id = 2;
+    string name = 3;               // 贷款名称
+    LoanType loan_type = 4;
+    int64 principal = 5;           // 贷款本金（分）
+    int64 remaining_principal = 6; // 剩余本金（分）
+    double annual_rate = 7;        // 年利率（如 4.2 表示 4.2%）
+    int32 total_months = 8;        // 总期数
+    int32 paid_months = 9;         // 已还期数
+    RepaymentMethod repayment_method = 10;
+    int32 payment_day = 11;        // 每月还款日 1-28
+    google.protobuf.Timestamp start_date = 12;
+    google.protobuf.Timestamp created_at = 13;
+    google.protobuf.Timestamp updated_at = 14;
+    string account_id = 15;        // 关联还款账户
+}
+
+message LoanScheduleItem {
+    int32 month_number = 1;        // 第几期
+    int64 payment = 2;             // 月还款额（分）
+    int64 principal_part = 3;      // 本金部分（分）
+    int64 interest_part = 4;       // 利息部分（分）
+    int64 remaining_principal = 5; // 剩余本金（分）
+    bool is_paid = 6;             // 是否已还
+    google.protobuf.Timestamp due_date = 7;
+    google.protobuf.Timestamp paid_date = 8;
+}
+
+message PrepaymentSimulation {
+    int64 prepayment_amount = 1;       // 提前还款金额（分）
+    int64 total_interest_before = 2;   // 原总利息
+    int64 total_interest_after = 3;    // 提前还款后总利息
+    int64 interest_saved = 4;          // 节省利息
+    int32 months_reduced = 5;          // 缩短月数
+    int64 new_monthly_payment = 6;     // 新月供（如果选择缩短月供）
+    repeated LoanScheduleItem new_schedule = 7; // 新还款计划
+}
+
+// ── Requests / Responses ────────────────────────────────────────────────────
+
+message CreateLoanRequest {
+    string name = 1;
+    LoanType loan_type = 2;
+    int64 principal = 3;           // 贷款本金（分）
+    double annual_rate = 4;        // 年利率（如 4.2 表示 4.2%）
+    int32 total_months = 5;        // 总期数
+    RepaymentMethod repayment_method = 6;
+    int32 payment_day = 7;         // 每月还款日 1-28
+    google.protobuf.Timestamp start_date = 8;
+    string account_id = 9;         // 关联还款账户（可选）
+}
+
+message GetLoanRequest {
+    string loan_id = 1;
+}
+
+message ListLoansRequest {}
+
+message ListLoansResponse {
+    repeated Loan loans = 1;
+}
+
+message UpdateLoanRequest {
+    string loan_id = 1;
+    string name = 2;               // 可更新
+    int32 payment_day = 3;         // 可更新
+    string account_id = 4;         // 可更新
+}
+
+message DeleteLoanRequest {
+    string loan_id = 1;
+}
+
+message GetLoanScheduleRequest {
+    string loan_id = 1;
+}
+
+message LoanScheduleResponse {
+    repeated LoanScheduleItem items = 1;
+}
+
+message SimulatePrepaymentRequest {
+    string loan_id = 1;
+    int64 prepayment_amount = 2;   // 提前还款金额（分）
+    PrepaymentStrategy strategy = 3;
+}
+
+message RecordRateChangeRequest {
+    string loan_id = 1;
+    double new_rate = 2;           // 新年利率
+    google.protobuf.Timestamp effective_date = 3;
+}
+
+message RecordPaymentRequest {
+    string loan_id = 1;
+    int32 month_number = 2;        // 第几期
+}

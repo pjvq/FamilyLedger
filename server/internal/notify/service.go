@@ -401,3 +401,141 @@ func (s *Service) hasNotification(ctx context.Context, userID, budgetID, nType s
 	}
 	return exists
 }
+
+// hasLoanNotification checks if a loan_reminder notification already exists for a
+// specific loan and due_date (to avoid duplicate reminders).
+func (s *Service) hasLoanNotification(ctx context.Context, userID, loanID, dueDateStr string) bool {
+	var exists bool
+	err := s.pool.QueryRow(ctx,
+		`SELECT EXISTS(
+			SELECT 1 FROM notifications
+			WHERE user_id = $1 AND type = 'loan_reminder'
+			  AND data_json->>'loan_id' = $2
+			  AND data_json->>'due_date' = $3
+		)`,
+		userID, loanID, dueDateStr,
+	).Scan(&exists)
+	if err != nil {
+		log.Printf("notify: hasLoanNotification check error: %v", err)
+		return false
+	}
+	return exists
+}
+
+// CheckLoanReminders checks all upcoming loan payments and creates reminder
+// notifications for users who have loan_reminder enabled.
+func (s *Service) CheckLoanReminders(ctx context.Context) error {
+	log.Println("notify: checking loan reminders...")
+
+	// Get all users' notification settings where loan_reminder is enabled
+	rows, err := s.pool.Query(ctx,
+		`SELECT user_id, reminder_days_before FROM notification_settings WHERE loan_reminder = true`,
+	)
+	if err != nil {
+		return fmt.Errorf("query notification settings: %w", err)
+	}
+
+	type userSetting struct {
+		UserID       string
+		ReminderDays int
+	}
+	var settings []userSetting
+	for rows.Next() {
+		var us userSetting
+		var uid uuid.UUID
+		if err := rows.Scan(&uid, &us.ReminderDays); err != nil {
+			rows.Close()
+			return fmt.Errorf("scan setting: %w", err)
+		}
+		us.UserID = uid.String()
+		settings = append(settings, us)
+	}
+	rows.Close()
+
+	// Find the max reminder window
+	maxDays := 3 // default
+	for _, us := range settings {
+		if us.ReminderDays > maxDays {
+			maxDays = us.ReminderDays
+		}
+	}
+
+	// Query upcoming loan payments directly
+	now := time.Now()
+	cutoff := now.AddDate(0, 0, maxDays)
+
+	paymentRows, err := s.pool.Query(ctx,
+		`SELECT l.id, l.user_id, l.name, ls.month_number, ls.payment, ls.due_date
+		 FROM loan_schedules ls
+		 JOIN loans l ON l.id = ls.loan_id AND l.deleted_at IS NULL
+		 WHERE ls.is_paid = false
+		   AND ls.due_date >= $1::date AND ls.due_date <= $2::date
+		 ORDER BY ls.due_date`,
+		now.Format("2006-01-02"), cutoff.Format("2006-01-02"),
+	)
+	if err != nil {
+		return fmt.Errorf("query upcoming loan payments: %w", err)
+	}
+	defer paymentRows.Close()
+
+	type upcomingPayment struct {
+		LoanID      string
+		UserID      string
+		LoanName    string
+		MonthNumber int32
+		Payment     int64
+		DueDate     time.Time
+	}
+
+	userDays := make(map[string]int)
+	for _, us := range settings {
+		userDays[us.UserID] = us.ReminderDays
+	}
+
+	created := 0
+	for paymentRows.Next() {
+		var p upcomingPayment
+		var loanID, userID uuid.UUID
+		if err := paymentRows.Scan(&loanID, &userID, &p.LoanName, &p.MonthNumber, &p.Payment, &p.DueDate); err != nil {
+			return fmt.Errorf("scan upcoming payment: %w", err)
+		}
+		p.LoanID = loanID.String()
+		p.UserID = userID.String()
+
+		days, ok := userDays[p.UserID]
+		if !ok {
+			days = 3 // default for users without explicit settings
+		}
+
+		daysUntilDue := int(p.DueDate.Sub(now).Hours() / 24)
+		if daysUntilDue > days {
+			continue
+		}
+
+		dueDateStr := p.DueDate.Format("2006-01-02")
+		if s.hasLoanNotification(ctx, p.UserID, p.LoanID, dueDateStr) {
+			continue
+		}
+
+		amountYuan := float64(p.Payment) / 100.0
+		err := s.CreateNotification(ctx, p.UserID, "loan_reminder",
+			"贷款还款提醒",
+			fmt.Sprintf("您的贷款「%s」第%d期还款 ¥%.2f 将于 %s 到期",
+				p.LoanName, p.MonthNumber, amountYuan, dueDateStr),
+			map[string]interface{}{
+				"loan_id":      p.LoanID,
+				"month_number": p.MonthNumber,
+				"payment":      p.Payment,
+				"due_date":     dueDateStr,
+			},
+		)
+		if err != nil {
+			log.Printf("notify: failed to create loan_reminder: %v", err)
+		} else {
+			created++
+		}
+	}
+
+	log.Printf("notify: loan reminder check complete, created %d reminders", created)
+	return nil
+}

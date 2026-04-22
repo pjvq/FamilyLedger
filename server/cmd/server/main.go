@@ -18,6 +18,7 @@ import (
 	"github.com/familyledger/server/internal/auth"
 	"github.com/familyledger/server/internal/budget"
 	"github.com/familyledger/server/internal/family"
+	"github.com/familyledger/server/internal/loan"
 	"github.com/familyledger/server/internal/notify"
 	syncsvc "github.com/familyledger/server/internal/sync"
 	"github.com/familyledger/server/internal/transaction"
@@ -30,6 +31,7 @@ import (
 	authpb "github.com/familyledger/server/proto/auth"
 	budgetpb "github.com/familyledger/server/proto/budget"
 	familypb "github.com/familyledger/server/proto/family"
+	loanpb "github.com/familyledger/server/proto/loan"
 	notifypb "github.com/familyledger/server/proto/notify"
 	syncpb "github.com/familyledger/server/proto/sync"
 	txnpb "github.com/familyledger/server/proto/transaction"
@@ -74,6 +76,7 @@ func main() {
 	familyService := family.NewService(pool)
 	accountService := account.NewService(pool)
 	budgetService := budget.NewService(pool)
+	loanService := loan.NewService(pool)
 	notifyService := notify.NewService(pool)
 
 	// gRPC Server
@@ -88,6 +91,7 @@ func main() {
 	familypb.RegisterFamilyServiceServer(grpcServer, familyService)
 	acctpb.RegisterAccountServiceServer(grpcServer, accountService)
 	budgetpb.RegisterBudgetServiceServer(grpcServer, budgetService)
+	loanpb.RegisterLoanServiceServer(grpcServer, loanService)
 	notifypb.RegisterNotifyServiceServer(grpcServer, notifyService)
 	reflection.Register(grpcServer)
 
@@ -147,7 +151,7 @@ func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 		cst = time.FixedZone("CST", 8*60*60)
 	}
 
-	log.Println("scheduler: started, budget check scheduled daily at 21:00 CST")
+	log.Println("scheduler: started, budget+loan check scheduled daily at 21:00 CST")
 
 	for {
 		now := time.Now().In(cst)
@@ -170,8 +174,16 @@ func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 				log.Printf("scheduler: budget check error: %v", err)
 			}
 			checkCancel()
+
+			log.Println("scheduler: running loan reminder check...")
+			loanCtx, loanCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			if err := notifyService.CheckLoanReminders(loanCtx); err != nil {
+				log.Printf("scheduler: loan reminder check error: %v", err)
+			}
+			loanCancel()
+
 			// TODO: Push notifications via FCM/APNs (placeholder — just logged for now)
-			log.Println("scheduler: budget check complete")
+			log.Println("scheduler: all checks complete")
 		}
 	}
 }
