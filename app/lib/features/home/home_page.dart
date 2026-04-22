@@ -9,6 +9,7 @@ import '../../domain/providers/auth_provider.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/notification_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
+import '../../domain/providers/loan_provider.dart';
 import '../../sync/sync_engine.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/transaction_list_item.dart';
@@ -109,6 +110,7 @@ class _DashboardTab extends ConsumerWidget {
     final familyState = ref.watch(familyProvider);
     final familyId = ref.watch(currentFamilyIdProvider);
     final notifState = ref.watch(notificationProvider);
+    final loanState = ref.watch(loanProvider);
     final theme = Theme.of(context);
 
     final hasFamily = familyState.currentFamily != null;
@@ -155,6 +157,16 @@ class _DashboardTab extends ConsumerWidget {
                       monthExpense: txnState.monthExpense,
                     ),
                   ),
+                  // Loan overview (if any loans)
+                  if (loanState.loans.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: _LoanOverviewCard(
+                        loans: loanState.loans,
+                        notifier: ref.read(loanProvider.notifier),
+                        onTap: () => Navigator.of(context)
+                            .pushNamed(AppRouter.loans),
+                      ),
+                    ),
                   // Section header
                   SliverToBoxAdapter(
                     child: Padding(
@@ -364,6 +376,112 @@ class _NotificationBell extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ────────── Loan Overview Card ──────────
+
+class _LoanOverviewCard extends StatelessWidget {
+  final List<dynamic> loans;
+  final LoanNotifier notifier;
+  final VoidCallback onTap;
+
+  const _LoanOverviewCard({
+    required this.loans,
+    required this.notifier,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Total remaining principal
+    int totalRemaining = 0;
+    for (final loan in loans) {
+      totalRemaining += loan.remainingPrincipal as int;
+    }
+
+    return Semantics(
+      label: '贷款概览，共${loans.length}笔贷款，总负债${_fmtYuan(totalRemaining)}元',
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF2A1A1A), const Color(0xFF1C1010)]
+                  : [const Color(0xFFFFF0F0), const Color(0xFFFFE8E8)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: (isDark ? AppColors.liabilityDark : AppColors.liability)
+                  .withValues(alpha: 0.2),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: (isDark ? AppColors.liabilityDark : AppColors.liability)
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Center(
+                  child: Text('🏦', style: TextStyle(fontSize: 20)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '贷款负债',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.5),
+                      ),
+                    ),
+                    Text(
+                      '¥${_fmtYuan(totalRemaining)}',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        color: isDark
+                            ? AppColors.liabilityDark
+                            : AppColors.liability,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '${loans.length}笔 ›',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _fmtYuan(int cents) {
+    final yuan = cents / 100;
+    if (yuan >= 10000) {
+      final wan = yuan / 10000;
+      return '${wan.toStringAsFixed(2)}万';
+    }
+    return yuan.toStringAsFixed(2);
   }
 }
 
@@ -718,6 +836,13 @@ class _InlineSettingsContent extends ConsumerWidget {
               : '创建或加入家庭',
           onTap: () =>
               Navigator.of(context).pushNamed(AppRouter.settings),
+        ),
+        _SettingListTile(
+          icon: Icons.account_balance_rounded,
+          title: '贷款管理',
+          subtitle: '跟踪还款进度、模拟提前还款',
+          onTap: () =>
+              Navigator.of(context).pushNamed(AppRouter.loans),
         ),
         _SettingListTile(
           icon: Icons.notifications_outlined,

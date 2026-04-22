@@ -75,6 +75,12 @@ class SettingsPage extends ConsumerWidget {
           const SizedBox(height: 24),
           _SectionHeader(title: '其他', theme: theme),
           _SettingsTile(
+            icon: Icons.account_balance_rounded,
+            title: '贷款管理',
+            subtitle: '跟踪还款进度、模拟提前还款',
+            onTap: () => Navigator.of(context).pushNamed(AppRouter.loans),
+          ),
+          _SettingsTile(
             icon: Icons.notifications_outlined,
             title: '通知设置',
             subtitle: '管理预算提醒和日常通知',

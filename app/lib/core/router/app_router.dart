@@ -11,6 +11,10 @@ import '../../features/account/transfer_page.dart';
 import '../../features/budget/budget_page.dart';
 import '../../features/notification/notifications_page.dart';
 import '../../features/notification/notification_settings_page.dart';
+import '../../features/loan/loans_page.dart';
+import '../../features/loan/add_loan_page.dart';
+import '../../features/loan/loan_detail_page.dart';
+import '../../features/loan/prepayment_page.dart';
 
 class AppRouter {
   AppRouter._();
@@ -27,6 +31,10 @@ class AppRouter {
   static const budget = '/budget';
   static const notifications = '/notifications';
   static const notificationSettings = '/notifications/settings';
+  static const loans = '/loans';
+  static const addLoan = '/loans/add';
+  static const loanDetail = '/loans/detail';
+  static const prepayment = '/loans/prepayment';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -54,6 +62,16 @@ class AppRouter {
         return _slide(const NotificationsPage());
       case notificationSettings:
         return _slide(const NotificationSettingsPage());
+      case loans:
+        return _slide(const LoansPage());
+      case addLoan:
+        return _slideUp(const AddLoanPage());
+      case loanDetail:
+        final loanId = settings.arguments as String;
+        return _slide(LoanDetailPage(loanId: loanId));
+      case prepayment:
+        final loanId = settings.arguments as String;
+        return _slideUp(PrepaymentPage(loanId: loanId));
       default:
         return _fade(const HomePage());
     }
