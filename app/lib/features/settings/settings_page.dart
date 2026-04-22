@@ -73,6 +73,15 @@ class SettingsPage extends ConsumerWidget {
           ],
 
           const SizedBox(height: 24),
+          _SectionHeader(title: '其他', theme: theme),
+          _SettingsTile(
+            icon: Icons.notifications_outlined,
+            title: '通知设置',
+            subtitle: '管理预算提醒和日常通知',
+            onTap: () => Navigator.of(context).pushNamed(AppRouter.notificationSettings),
+          ),
+
+          const SizedBox(height: 24),
           _SectionHeader(title: '账号', theme: theme),
           _SettingsTile(
             icon: Icons.logout_rounded,

@@ -8,6 +8,9 @@ import '../../features/settings/family_members_page.dart';
 import '../../features/account/accounts_page.dart';
 import '../../features/account/add_account_page.dart';
 import '../../features/account/transfer_page.dart';
+import '../../features/budget/budget_page.dart';
+import '../../features/notification/notifications_page.dart';
+import '../../features/notification/notification_settings_page.dart';
 
 class AppRouter {
   AppRouter._();
@@ -21,6 +24,9 @@ class AppRouter {
   static const accounts = '/accounts';
   static const addAccount = '/accounts/add';
   static const transfer = '/transfer';
+  static const budget = '/budget';
+  static const notifications = '/notifications';
+  static const notificationSettings = '/notifications/settings';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -42,6 +48,12 @@ class AppRouter {
         return _slideUp(const AddAccountPage());
       case transfer:
         return _slideUp(const TransferPage());
+      case budget:
+        return _slide(const BudgetPage());
+      case notifications:
+        return _slide(const NotificationsPage());
+      case notificationSettings:
+        return _slide(const NotificationSettingsPage());
       default:
         return _fade(const HomePage());
     }

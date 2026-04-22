@@ -7,10 +7,12 @@ import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/auth_provider.dart';
 import '../../domain/providers/family_provider.dart';
+import '../../domain/providers/notification_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../sync/sync_engine.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/transaction_list_item.dart';
+import '../budget/budget_page.dart';
 
 /// Main shell with bottom navigation
 class HomePage extends ConsumerStatefulWidget {
@@ -43,7 +45,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           _DashboardTab(),
           _AccountsTab(),
           SizedBox(), // placeholder for FAB center
-          _StatsTab(),
+          BudgetPage(),
           _SettingsTab(),
         ],
       ),
@@ -81,9 +83,9 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: '记账',
           ),
           const NavigationDestination(
-            icon: Icon(Icons.bar_chart_rounded),
-            selectedIcon: Icon(Icons.bar_chart_rounded),
-            label: '统计',
+            icon: Icon(Icons.savings_outlined),
+            selectedIcon: Icon(Icons.savings_rounded),
+            label: '预算',
           ),
           const NavigationDestination(
             icon: Icon(Icons.settings_outlined),
@@ -106,6 +108,7 @@ class _DashboardTab extends ConsumerWidget {
     final txnState = ref.watch(transactionProvider);
     final familyState = ref.watch(familyProvider);
     final familyId = ref.watch(currentFamilyIdProvider);
+    final notifState = ref.watch(notificationProvider);
     final theme = Theme.of(context);
 
     final hasFamily = familyState.currentFamily != null;
@@ -114,6 +117,13 @@ class _DashboardTab extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('FamilyLedger'),
         centerTitle: false,
+        actions: [
+          _NotificationBell(
+            unreadCount: notifState.unreadCount,
+            onTap: () =>
+                Navigator.of(context).pushNamed(AppRouter.notifications),
+          ),
+        ],
       ),
       body: txnState.isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -314,6 +324,43 @@ class _SwitcherButton extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ────────── Notification Bell ──────────
+
+class _NotificationBell extends StatelessWidget {
+  final int unreadCount;
+  final VoidCallback onTap;
+
+  const _NotificationBell({
+    required this.unreadCount,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      label: unreadCount > 0
+          ? '通知，$unreadCount条未读'
+          : '通知',
+      button: true,
+      child: IconButton(
+        onPressed: onTap,
+        icon: Badge(
+          isLabelVisible: unreadCount > 0,
+          label: Text(
+            unreadCount > 99 ? '99+' : '$unreadCount',
+            style: const TextStyle(fontSize: 10, color: Colors.white),
+          ),
+          child: Icon(
+            Icons.notifications_outlined,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+          ),
         ),
       ),
     );
@@ -575,44 +622,6 @@ class _InlineAccountTile extends StatelessWidget {
   }
 }
 
-class _StatsTab extends StatelessWidget {
-  const _StatsTab();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(title: const Text('统计')),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.bar_chart_rounded,
-              size: 80,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.15),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '统计功能开发中',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '敬请期待',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _SettingsTab extends StatelessWidget {
   const _SettingsTab();
 
@@ -709,6 +718,13 @@ class _InlineSettingsContent extends ConsumerWidget {
               : '创建或加入家庭',
           onTap: () =>
               Navigator.of(context).pushNamed(AppRouter.settings),
+        ),
+        _SettingListTile(
+          icon: Icons.notifications_outlined,
+          title: '通知设置',
+          subtitle: '管理预算提醒和日常通知',
+          onTap: () =>
+              Navigator.of(context).pushNamed(AppRouter.notificationSettings),
         ),
         _SettingListTile(
           icon: Icons.logout_rounded,
