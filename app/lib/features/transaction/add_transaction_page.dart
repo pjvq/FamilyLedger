@@ -164,8 +164,11 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
               setState(() => _amountStr = '0');
             },
             onConfirm: _handleConfirm,
-            confirmEnabled:
-                _selectedCategoryId != null && _amountStr != '0' && !_isSubmitting,
+                        confirmEnabled:
+                _selectedCategoryId != null &&
+                _amountStr != '0' &&
+                (double.tryParse(_amountStr) ?? 0) > 0 &&
+                !_isSubmitting,
           ),
         ],
       ),
