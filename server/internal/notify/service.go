@@ -326,7 +326,7 @@ func (s *Service) CheckBudgets(ctx context.Context) error {
 		// Compute total spent
 		var totalSpent int64
 		err := s.pool.QueryRow(ctx,
-			`SELECT COALESCE(SUM(amount), 0)
+			`SELECT COALESCE(SUM(amount_cny), 0)
 			 FROM transactions
 			 WHERE user_id = $1 AND type = 'expense' AND deleted_at IS NULL
 			   AND txn_date >= $2 AND txn_date < $3`,
