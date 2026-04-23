@@ -79,12 +79,52 @@ class AuthNotifier extends StateNotifier<AuthState> {
             id: resp.userId,
             email: email,
           ));
-      // 服务端注册时已创建默认账户，本地也同步创建一个
-      await _db.insertAccount(AccountsCompanion.insert(
-        id: 'acc_default_${resp.userId}',
-        userId: resp.userId,
-        name: '默认账户',
-      ));
+      // 服务端注册时已创建默认账户+分类，同步到本地
+      try {
+        final accClient = _ref.read(accountClientProvider);
+        final accResp = await accClient.listAccounts(acc_pb.ListAccountsRequest());
+        for (final a in accResp.accounts) {
+          await _db.into(_db.accounts).insertOnConflictUpdate(
+            AccountsCompanion.insert(
+              id: a.id,
+              userId: a.userId,
+              name: a.name,
+              balance: Value(a.balance.toInt()),
+              icon: Value(a.icon),
+              currency: Value(a.currency),
+              accountType: Value(AccountTypeHelper.fromProto(a.type)),
+              isActive: Value(a.isActive),
+            ),
+          );
+        }
+      } catch (_) {
+        // Fallback: create minimal local account
+        await _db.insertAccount(AccountsCompanion.insert(
+          id: 'acc_default_${resp.userId}',
+          userId: resp.userId,
+          name: '默认账户',
+        ));
+      }
+
+      // 同步服务端分类
+      try {
+        final txnClient = _ref.read(transactionClientProvider);
+        final catResp = await txnClient.getCategories(txn_pb.GetCategoriesRequest());
+        await (_db.delete(_db.categories)..where((c) => c.isPreset.equals(true))).go();
+        for (final c in catResp.categories) {
+          final typeStr = c.type == txn_enum.TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense';
+          await _db.into(_db.categories).insertOnConflictUpdate(
+            CategoriesCompanion.insert(
+              id: c.id,
+              name: c.name,
+              icon: c.icon,
+              type: typeStr,
+              isPreset: const Value(true),
+              sortOrder: Value(c.sortOrder),
+            ),
+          );
+        }
+      } catch (_) {}
 
       _ref.read(currentUserIdProvider.notifier).state = resp.userId;
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
