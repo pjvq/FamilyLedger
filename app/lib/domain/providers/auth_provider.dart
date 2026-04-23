@@ -8,6 +8,7 @@ import '../../data/local/database.dart';
 import '../../data/remote/grpc_clients.dart';
 import '../../generated/proto/auth.pbgrpc.dart';
 import '../../generated/proto/account.pb.dart' as acc_pb;
+import 'account_provider.dart' show AccountTypeHelper;
 import '../../generated/proto/transaction.pb.dart' as txn_pb;
 import '../../generated/proto/transaction.pbenum.dart' as txn_enum;
 import 'app_providers.dart';
@@ -153,6 +154,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
               id: a.id,
               userId: a.userId,
               name: a.name,
+              balance: Value(a.balance.toInt()),
+              icon: Value(a.icon),
+              currency: Value(a.currency),
+              accountType: Value(AccountTypeHelper.fromProto(a.type)),
+              isActive: Value(a.isActive),
             ),
           );
         }
