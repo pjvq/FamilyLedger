@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -257,10 +258,25 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 	}
 
 	if req.Tags != nil {
-		// Tags is a comma-separated string in proto, convert to array
+		// Tags can be JSON array string (from Flutter) or comma-separated
 		var tagsArr []string
-		if *req.Tags != "" {
-			for _, t := range strings.Split(*req.Tags, ",") {
+		rawTags := strings.TrimSpace(*req.Tags)
+		if rawTags == "" || rawTags == "[]" {
+			tagsArr = []string{}
+		} else if strings.HasPrefix(rawTags, "[") {
+			// Try JSON array
+			if err := json.Unmarshal([]byte(rawTags), &tagsArr); err != nil {
+				// Fallback: strip brackets and split
+				inner := strings.Trim(rawTags, "[]")
+				for _, t := range strings.Split(inner, ",") {
+					if trimmed := strings.Trim(strings.TrimSpace(t), `"'`); trimmed != "" {
+						tagsArr = append(tagsArr, trimmed)
+					}
+				}
+			}
+		} else {
+			// Comma-separated
+			for _, t := range strings.Split(rawTags, ",") {
 				if trimmed := strings.TrimSpace(t); trimmed != "" {
 					tagsArr = append(tagsArr, trimmed)
 				}
