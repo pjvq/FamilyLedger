@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/router/app_router.dart';
+import '../../core/widgets/micro_interactions.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/investment_provider.dart';
 import '../../domain/providers/market_data_provider.dart';
@@ -101,7 +102,9 @@ class _InvestmentsPageState extends ConsumerState<InvestmentsPage> {
                           final quote = marketState.quotes[key];
                           final sparklineData =
                               marketState.sparklineCache[key];
-                          return _InvestmentListItem(
+                          return SlideInItem(
+                            index: index,
+                            child: _InvestmentListItem(
                             investment: inv,
                             quote: quote,
                             isDark: isDark,
@@ -110,6 +113,7 @@ class _InvestmentsPageState extends ConsumerState<InvestmentsPage> {
                             onTap: () => Navigator.of(context).pushNamed(
                               AppRouter.investmentDetail,
                               arguments: inv.id,
+                            ),
                             ),
                           );
                         },

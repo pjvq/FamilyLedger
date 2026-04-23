@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/micro_interactions.dart';
 
 class BalanceCard extends StatelessWidget {
   final int totalBalance; // 分
@@ -49,8 +50,9 @@ class BalanceCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            '¥ ${_formatAmount(totalBalance)}',
+          AnimatedNumber(
+            value: totalBalance,
+            prefix: '¥ ',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 36,
@@ -77,14 +79,6 @@ class BalanceCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _formatAmount(int cents) {
-    final yuan = cents / 100;
-    if (yuan == yuan.truncateToDouble()) {
-      return yuan.toInt().toString();
-    }
-    return yuan.toStringAsFixed(2);
   }
 }
 

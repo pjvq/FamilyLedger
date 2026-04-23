@@ -33,10 +33,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   /// Expanded state per card
   final Map<DashboardSection, bool> _expanded = {};
 
-  /// Pie chart touch states
-  int? _assetPieTouched;
-  int? _categoryPieTouched;
-
   static const _orderKey = 'dashboard_card_order';
 
   @override
@@ -152,12 +148,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             child: Icon(Icons.drag_handle_rounded, size: 20,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
           ),
-          child: _AssetPieChart(
-            composition: dashState.netWorth.composition,
-            touchedIndex: _assetPieTouched,
-            onTouch: (i) => setState(() => _assetPieTouched = i),
-            isDark: isDark,
-            theme: theme,
+          child: RepaintBoundary(
+            child: _AssetPieChart(
+              composition: dashState.netWorth.composition,
+              isDark: isDark,
+              theme: theme,
+            ),
           ),
         );
       case DashboardSection.incomeExpenseTrend:
@@ -183,10 +179,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ),
             ],
           ),
-          child: _IncomeExpenseChart(
-            points: dashState.incomeExpenseTrend,
-            isDark: isDark,
-            theme: theme,
+          child: RepaintBoundary(
+            child: _IncomeExpenseChart(
+              points: dashState.incomeExpenseTrend,
+              isDark: isDark,
+              theme: theme,
+            ),
           ),
         );
       case DashboardSection.categoryBreakdown:
@@ -201,13 +199,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             child: Icon(Icons.drag_handle_rounded, size: 20,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
           ),
-          child: _CategoryPieChart(
-            items: dashState.categoryBreakdown,
-            total: dashState.categoryBreakdownTotal,
-            touchedIndex: _categoryPieTouched,
-            onTouch: (i) => setState(() => _categoryPieTouched = i),
-            isDark: isDark,
-            theme: theme,
+          child: RepaintBoundary(
+            child: _CategoryPieChart(
+              items: dashState.categoryBreakdown,
+              total: dashState.categoryBreakdownTotal,
+              isDark: isDark,
+              theme: theme,
+            ),
           ),
         );
       case DashboardSection.budgetExecution:
@@ -222,10 +220,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             child: Icon(Icons.drag_handle_rounded, size: 20,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
           ),
-          child: _BudgetMiniCard(
-            data: dashState.budgetSummary,
-            isDark: isDark,
-            theme: theme,
+          child: RepaintBoundary(
+            child: _BudgetMiniCard(
+              data: dashState.budgetSummary,
+              isDark: isDark,
+              theme: theme,
+            ),
           ),
         );
       case DashboardSection.netWorthTrend:
@@ -240,10 +240,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             child: Icon(Icons.drag_handle_rounded, size: 20,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
           ),
-          child: _NetWorthTrendChart(
-            points: dashState.netWorthTrend,
-            isDark: isDark,
-            theme: theme,
+          child: RepaintBoundary(
+            child: _NetWorthTrendChart(
+              points: dashState.netWorthTrend,
+              isDark: isDark,
+              theme: theme,
+            ),
           ),
         );
       case DashboardSection.investmentTrend:
@@ -258,10 +260,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             child: Icon(Icons.drag_handle_rounded, size: 20,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
           ),
-          child: _InvestmentTrendPlaceholder(
-            netWorth: dashState.netWorth,
-            isDark: isDark,
-            theme: theme,
+          child: RepaintBoundary(
+            child: _InvestmentTrendPlaceholder(
+              netWorth: dashState.netWorth,
+              isDark: isDark,
+              theme: theme,
+            ),
           ),
         );
     }
@@ -528,20 +532,23 @@ class _AssetDetailRow extends StatelessWidget {
 // Section 2: Asset Composition Pie Chart
 // ──────────────────────────────────────────────────────────────────────────────
 
-class _AssetPieChart extends StatelessWidget {
+class _AssetPieChart extends StatefulWidget {
   final List<AssetCompositionItem> composition;
-  final int? touchedIndex;
-  final ValueChanged<int?> onTouch;
   final bool isDark;
   final ThemeData theme;
 
   const _AssetPieChart({
     required this.composition,
-    required this.touchedIndex,
-    required this.onTouch,
     required this.isDark,
     required this.theme,
   });
+
+  @override
+  State<_AssetPieChart> createState() => _AssetPieChartState();
+}
+
+class _AssetPieChartState extends State<_AssetPieChart> {
+  int? _touchedIndex;
 
   static const _colors = [
     Color(0xFF007AFF), // cash - blue
@@ -552,6 +559,9 @@ class _AssetPieChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final composition = widget.composition;
+    final theme = widget.theme;
+
     if (composition.isEmpty ||
         composition.every((c) => c.value == 0)) {
       return SizedBox(
@@ -582,16 +592,17 @@ class _AssetPieChart extends StatelessWidget {
                       if (!event.isInterestedForInteractions ||
                           response == null ||
                           response.touchedSection == null) {
-                        onTouch(null);
+                        setState(() => _touchedIndex = null);
                         return;
                       }
-                      onTouch(response.touchedSection!.touchedSectionIndex);
+                      setState(() => _touchedIndex =
+                          response.touchedSection!.touchedSectionIndex);
                     },
                   ),
                   sections: composition.asMap().entries.map((e) {
                     final i = e.key;
                     final c = e.value;
-                    final isTouched = touchedIndex == i;
+                    final isTouched = _touchedIndex == i;
                     return PieChartSectionData(
                       color: _colors[i % _colors.length],
                       value: c.value.abs().toDouble(),
@@ -620,7 +631,7 @@ class _AssetPieChart extends StatelessWidget {
                 children: composition.asMap().entries.map((e) {
                   final i = e.key;
                   final c = e.value;
-                  final isTouched = touchedIndex == i;
+                  final isTouched = _touchedIndex == i;
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
@@ -898,25 +909,31 @@ class _IncomeExpenseChart extends StatelessWidget {
 // Section 4: Category Breakdown Pie Chart
 // ──────────────────────────────────────────────────────────────────────────────
 
-class _CategoryPieChart extends StatelessWidget {
+class _CategoryPieChart extends StatefulWidget {
   final List<CategoryBreakdownItem> items;
   final int total;
-  final int? touchedIndex;
-  final ValueChanged<int?> onTouch;
   final bool isDark;
   final ThemeData theme;
 
   const _CategoryPieChart({
     required this.items,
     required this.total,
-    required this.touchedIndex,
-    required this.onTouch,
     required this.isDark,
     required this.theme,
   });
 
   @override
+  State<_CategoryPieChart> createState() => _CategoryPieChartState();
+}
+
+class _CategoryPieChartState extends State<_CategoryPieChart> {
+  int? _touchedIndex;
+
+  @override
   Widget build(BuildContext context) {
+    final items = widget.items;
+    final theme = widget.theme;
+
     if (items.isEmpty) {
       return SizedBox(
         height: 120,
@@ -946,16 +963,17 @@ class _CategoryPieChart extends StatelessWidget {
                       if (!event.isInterestedForInteractions ||
                           response == null ||
                           response.touchedSection == null) {
-                        onTouch(null);
+                        setState(() => _touchedIndex = null);
                         return;
                       }
-                      onTouch(response.touchedSection!.touchedSectionIndex);
+                      setState(() => _touchedIndex =
+                          response.touchedSection!.touchedSectionIndex);
                     },
                   ),
                   sections: items.asMap().entries.map((e) {
                     final i = e.key;
                     final item = e.value;
-                    final isTouched = touchedIndex == i;
+                    final isTouched = _touchedIndex == i;
                     return PieChartSectionData(
                       color: AppColors.chartPalette[i % AppColors.chartPalette.length],
                       value: item.amount.toDouble(),
@@ -985,7 +1003,7 @@ class _CategoryPieChart extends StatelessWidget {
                   children: items.asMap().entries.take(8).map((e) {
                     final i = e.key;
                     final item = e.value;
-                    final isTouched = touchedIndex == i;
+                    final isTouched = _touchedIndex == i;
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 3),
                       child: Row(
