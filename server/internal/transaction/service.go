@@ -117,10 +117,10 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		return nil, status.Error(codes.Internal, "failed to create transaction")
 	}
 
-	// Update account balance
-	balanceDelta := req.Amount
+	// Update account balance (use amountCny — balance is always in CNY)
+	balanceDelta := amountCny
 	if txnType == "expense" {
-		balanceDelta = -req.Amount
+		balanceDelta = -amountCny
 	}
 	_, err = tx.Exec(ctx,
 		"UPDATE accounts SET balance = balance + $1, updated_at = NOW() WHERE id = $2",
