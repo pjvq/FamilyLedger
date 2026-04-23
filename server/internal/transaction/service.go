@@ -221,6 +221,17 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 		args = append(args, newAmount)
 		setClauses = append(setClauses, fmt.Sprintf("amount = $%d", argIdx))
 		argIdx++
+		// Also update amount_cny: if currency is CNY, amount_cny = amount
+		// For foreign currency, recalculate using existing exchange_rate
+		var newAmountCny int64
+		if currency == "CNY" || currency == "" {
+			newAmountCny = newAmount
+		} else {
+			newAmountCny = int64(float64(newAmount) * exchangeRate)
+		}
+		args = append(args, newAmountCny)
+		setClauses = append(setClauses, fmt.Sprintf("amount_cny = $%d", argIdx))
+		argIdx++
 	}
 
 	if req.CategoryId != nil {
@@ -293,17 +304,25 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 		return nil, status.Error(codes.Internal, "failed to update transaction")
 	}
 
-	// Recalculate account balance: revert old amount, apply new amount
+	// Recalculate account balance: revert old amountCny, apply new amountCny
+	// Balance is always in CNY, so we must use amountCny (not raw amount)
+	var oldAmountCny int64 = amountCny
+	var newAmountCny int64
+	if currency == "CNY" || currency == "" {
+		newAmountCny = newAmount
+	} else {
+		newAmountCny = int64(float64(newAmount) * exchangeRate)
+	}
 	var oldDelta, newDelta int64
 	if oldType == "income" {
-		oldDelta = oldAmount
+		oldDelta = oldAmountCny
 	} else {
-		oldDelta = -oldAmount
+		oldDelta = -oldAmountCny
 	}
 	if newType == "income" {
-		newDelta = newAmount
+		newDelta = newAmountCny
 	} else {
-		newDelta = -newAmount
+		newDelta = -newAmountCny
 	}
 	balanceAdjust := newDelta - oldDelta
 	if balanceAdjust != 0 {
@@ -367,13 +386,13 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 
 	// Fetch existing transaction and verify ownership
 	var ownerID, accountID uuid.UUID
-	var amount int64
+	var amountCny int64
 	var txnType string
 	err = tx.QueryRow(ctx,
-		`SELECT user_id, account_id, amount, type
+		`SELECT user_id, account_id, amount_cny, type
 		 FROM transactions WHERE id = $1 AND deleted_at IS NULL`,
 		txnID,
-	).Scan(&ownerID, &accountID, &amount, &txnType)
+	).Scan(&ownerID, &accountID, &amountCny, &txnType)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "transaction not found")
@@ -394,12 +413,12 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 		return nil, status.Error(codes.Internal, "failed to delete transaction")
 	}
 
-	// Revert account balance
+	// Revert account balance (use amount_cny since balance is CNY)
 	var balanceRevert int64
 	if txnType == "income" {
-		balanceRevert = -amount // undo income: subtract
+		balanceRevert = -amountCny // undo income: subtract
 	} else {
-		balanceRevert = amount // undo expense: add back
+		balanceRevert = amountCny // undo expense: add back
 	}
 	_, err = tx.Exec(ctx,
 		"UPDATE accounts SET balance = balance + $1, updated_at = NOW() WHERE id = $2",
