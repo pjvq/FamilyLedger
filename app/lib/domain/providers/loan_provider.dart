@@ -57,11 +57,37 @@ class PrepaymentSimulationResult {
   });
 }
 
+// ── Loan Group Display Model ──
+
+class LoanGroupDisplayItem {
+  final db.LoanGroup group;
+  final List<db.Loan> subLoans;
+  final int totalMonthlyPayment; // 分
+  final int totalRemainingPrincipal; // 分
+  final double overallProgress; // 0.0 ~ 1.0
+
+  const LoanGroupDisplayItem({
+    required this.group,
+    required this.subLoans,
+    required this.totalMonthlyPayment,
+    required this.totalRemainingPrincipal,
+    required this.overallProgress,
+  });
+
+  db.Loan? get commercialLoan =>
+      subLoans.where((l) => l.subType == 'commercial').firstOrNull;
+
+  db.Loan? get providentLoan =>
+      subLoans.where((l) => l.subType == 'provident').firstOrNull;
+}
+
 // ── State ──
 
 class LoanState {
-  final List<db.Loan> loans;
+  final List<db.Loan> loans; // standalone loans
+  final List<LoanGroupDisplayItem> loanGroups;
   final db.Loan? currentLoan;
+  final LoanGroupDisplayItem? currentGroup;
   final List<LoanScheduleDisplayItem> schedule;
   final PrepaymentSimulationResult? simulation;
   final bool isLoading;
@@ -69,7 +95,9 @@ class LoanState {
 
   const LoanState({
     this.loans = const [],
+    this.loanGroups = const [],
     this.currentLoan,
+    this.currentGroup,
     this.schedule = const [],
     this.simulation,
     this.isLoading = false,
@@ -78,19 +106,25 @@ class LoanState {
 
   LoanState copyWith({
     List<db.Loan>? loans,
+    List<LoanGroupDisplayItem>? loanGroups,
     db.Loan? currentLoan,
+    LoanGroupDisplayItem? currentGroup,
     List<LoanScheduleDisplayItem>? schedule,
     PrepaymentSimulationResult? simulation,
     bool? isLoading,
     String? error,
     bool clearCurrentLoan = false,
+    bool clearCurrentGroup = false,
     bool clearSimulation = false,
     bool clearError = false,
   }) =>
       LoanState(
         loans: loans ?? this.loans,
+        loanGroups: loanGroups ?? this.loanGroups,
         currentLoan:
             clearCurrentLoan ? null : (currentLoan ?? this.currentLoan),
+        currentGroup:
+            clearCurrentGroup ? null : (currentGroup ?? this.currentGroup),
         schedule: schedule ?? this.schedule,
         simulation:
             clearSimulation ? null : (simulation ?? this.simulation),
@@ -228,6 +262,14 @@ class LoanCalculator {
     );
   }
 
+  /// 计算贷款的有效年利率（考虑 LPR 浮动）
+  static double effectiveRate(db.Loan loan) {
+    if (loan.rateType == 'lpr_floating' && loan.lprBase > 0) {
+      return loan.lprBase + loan.lprSpread;
+    }
+    return loan.annualRate;
+  }
+
   /// 提前还款模拟 — 缩短期限
   static PrepaymentSimulationResult simulateReduceMonths({
     required int remainingPrincipal,
@@ -278,20 +320,16 @@ class LoanCalculator {
     int monthlyPayment;
 
     if (repaymentMethod == 'equal_principal') {
-      // 等额本金: 月供递减，保持每月本金不变
       monthlyPayment = (newRemaining / remainingMonths).round();
-      // 重新算能还几期
       var rem = newRemaining;
       newMonths = 0;
       while (rem > 0 && newMonths < remainingMonths) {
         newMonths++;
-        // interest is tracked implicitly in the payment schedule
         final pPart = newMonths == remainingMonths ? rem : monthlyPayment;
         rem -= pPart;
         if (rem < 0) rem = 0;
       }
     } else {
-      // 等额本息: 保持原月供，算新期数
       final origMonthlyPayment = originalSchedule
           .firstWhere((i) => i.monthNumber == paidMonths + 1,
               orElse: () => originalSchedule.last)
@@ -301,10 +339,9 @@ class LoanCalculator {
       if (monthlyRate == 0) {
         newMonths = (newRemaining / monthlyPayment).ceil();
       } else {
-        // n = -log(1 - P*r/M) / log(1+r)
         final prm = newRemaining * monthlyRate / monthlyPayment;
         if (prm >= 1) {
-          newMonths = remainingMonths; // 月供不够覆盖利息
+          newMonths = remainingMonths;
         } else {
           newMonths = (-math.log(1 - prm) / math.log(1 + monthlyRate)).ceil();
         }
@@ -471,6 +508,48 @@ pb_enum.RepaymentMethod _stringToRepaymentMethod(String method) {
   }
 }
 
+String _subTypeToString(pb_enum.LoanSubType type) {
+  switch (type) {
+    case pb_enum.LoanSubType.LOAN_SUB_TYPE_COMMERCIAL:
+      return 'commercial';
+    case pb_enum.LoanSubType.LOAN_SUB_TYPE_PROVIDENT:
+      return 'provident';
+    default:
+      return '';
+  }
+}
+
+pb_enum.LoanSubType _stringToSubType(String type) {
+  switch (type) {
+    case 'commercial':
+      return pb_enum.LoanSubType.LOAN_SUB_TYPE_COMMERCIAL;
+    case 'provident':
+      return pb_enum.LoanSubType.LOAN_SUB_TYPE_PROVIDENT;
+    default:
+      return pb_enum.LoanSubType.LOAN_SUB_TYPE_UNSPECIFIED;
+  }
+}
+
+String _rateTypeToString(pb_enum.RateType type) {
+  switch (type) {
+    case pb_enum.RateType.RATE_TYPE_FIXED:
+      return 'fixed';
+    case pb_enum.RateType.RATE_TYPE_LPR_FLOATING:
+      return 'lpr_floating';
+    default:
+      return 'fixed';
+  }
+}
+
+pb_enum.RateType _stringToRateType(String type) {
+  switch (type) {
+    case 'lpr_floating':
+      return pb_enum.RateType.RATE_TYPE_LPR_FLOATING;
+    default:
+      return pb_enum.RateType.RATE_TYPE_FIXED;
+  }
+}
+
 ts_pb.Timestamp _toTimestamp(DateTime dt) {
   final seconds = dt.millisecondsSinceEpoch ~/ 1000;
   return ts_pb.Timestamp(seconds: Int64(seconds));
@@ -490,8 +569,13 @@ class LoanNotifier extends StateNotifier<LoanState> {
   LoanNotifier(this._db, this._client, this._userId)
       : super(const LoanState()) {
     if (_userId != null) {
-      listLoans();
+      loadAll();
     }
+  }
+
+  /// Load both standalone loans and loan groups
+  Future<void> loadAll() async {
+    await Future.wait([listLoans(), listLoanGroups()]);
   }
 
   Future<void> listLoans() async {
@@ -502,32 +586,105 @@ class LoanNotifier extends StateNotifier<LoanState> {
       // gRPC first
       final resp = await _client.listLoans(pb.ListLoansRequest());
       for (final loan in resp.loans) {
-        await _db.upsertLoan(db.LoansCompanion.insert(
-          id: loan.id,
-          userId: loan.userId,
-          name: loan.name,
-          principal: loan.principal.toInt(),
-          remainingPrincipal: loan.remainingPrincipal.toInt(),
-          annualRate: loan.annualRate,
-          totalMonths: loan.totalMonths,
-          paymentDay: loan.paymentDay,
-          startDate: _fromTimestamp(loan.startDate),
-          loanType: Value(_loanTypeToString(loan.loanType)),
-          paidMonths: Value(loan.paidMonths),
-          repaymentMethod: Value(_repaymentMethodToString(loan.repaymentMethod)),
-          accountId: Value(loan.accountId),
-        ));
+        await _db.upsertLoan(_loanFromProto(loan));
       }
     } catch (_) {
       // Offline fallback — use local DB
     }
 
     try {
-      final loans = await _db.getLoans(_userId);
+      final loans = await _db.getStandaloneLoans(_userId);
       state = state.copyWith(loans: loans, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
+  }
+
+  Future<void> listLoanGroups() async {
+    if (_userId == null) return;
+
+    try {
+      final resp = await _client.listLoanGroups(pb.ListLoanGroupsRequest());
+      for (final group in resp.groups) {
+        await _db.upsertLoanGroup(db.LoanGroupsCompanion.insert(
+          id: group.id,
+          userId: group.userId,
+          name: group.name,
+          groupType: group.groupType,
+          totalPrincipal: group.totalPrincipal.toInt(),
+          paymentDay: group.paymentDay,
+          startDate: _fromTimestamp(group.startDate),
+          accountId: Value(group.accountId),
+        ));
+        for (final loan in group.subLoans) {
+          await _db.upsertLoan(_loanFromProto(loan));
+        }
+      }
+    } catch (_) {
+      // Offline fallback
+    }
+
+    try {
+      final groups = await _db.getLoanGroups(_userId);
+      final displayGroups = <LoanGroupDisplayItem>[];
+      for (final group in groups) {
+        final subLoans = await _db.getLoansByGroupId(group.id);
+        displayGroups.add(_buildGroupDisplay(group, subLoans));
+      }
+      state = state.copyWith(loanGroups: displayGroups);
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  db.LoansCompanion _loanFromProto(pb.Loan loan) {
+    return db.LoansCompanion.insert(
+      id: loan.id,
+      userId: loan.userId,
+      name: loan.name,
+      principal: loan.principal.toInt(),
+      remainingPrincipal: loan.remainingPrincipal.toInt(),
+      annualRate: loan.annualRate,
+      totalMonths: loan.totalMonths,
+      paymentDay: loan.paymentDay,
+      startDate: _fromTimestamp(loan.startDate),
+      loanType: Value(_loanTypeToString(loan.loanType)),
+      paidMonths: Value(loan.paidMonths),
+      repaymentMethod: Value(_repaymentMethodToString(loan.repaymentMethod)),
+      accountId: Value(loan.accountId),
+      groupId: Value(loan.groupId),
+      subType: Value(_subTypeToString(loan.subType)),
+      rateType: Value(_rateTypeToString(loan.rateType)),
+      lprBase: Value(loan.lprBase),
+      lprSpread: Value(loan.lprSpread),
+      rateAdjustMonth: Value(loan.rateAdjustMonth),
+    );
+  }
+
+  LoanGroupDisplayItem _buildGroupDisplay(
+      db.LoanGroup group, List<db.Loan> subLoans) {
+    int totalMonthly = 0;
+    int totalRemaining = 0;
+    double totalProgress = 0;
+    int totalMonthsSum = 0;
+
+    for (final loan in subLoans) {
+      totalMonthly += getMonthlyPayment(loan);
+      totalRemaining += loan.remainingPrincipal;
+      totalProgress += loan.paidMonths;
+      totalMonthsSum += loan.totalMonths;
+    }
+
+    final overallProgress =
+        totalMonthsSum > 0 ? totalProgress / totalMonthsSum : 0.0;
+
+    return LoanGroupDisplayItem(
+      group: group,
+      subLoans: subLoans,
+      totalMonthlyPayment: totalMonthly,
+      totalRemainingPrincipal: totalRemaining,
+      overallProgress: overallProgress,
+    );
   }
 
   Future<void> createLoan({
@@ -540,6 +697,10 @@ class LoanNotifier extends StateNotifier<LoanState> {
     required int paymentDay,
     required DateTime startDate,
     String? accountId,
+    String? rateType,
+    double? lprBase,
+    double? lprSpread,
+    int? rateAdjustMonth,
   }) async {
     if (_userId == null) return;
     state = state.copyWith(isLoading: true, clearError: true);
@@ -558,22 +719,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
         ..startDate = _toTimestamp(startDate)
         ..accountId = accountId ?? '');
       loanId = resp.id;
-
-      await _db.upsertLoan(db.LoansCompanion.insert(
-        id: resp.id,
-        userId: resp.userId,
-        name: resp.name,
-        principal: resp.principal.toInt(),
-        remainingPrincipal: resp.remainingPrincipal.toInt(),
-        annualRate: resp.annualRate,
-        totalMonths: resp.totalMonths,
-        paymentDay: resp.paymentDay,
-        startDate: _fromTimestamp(resp.startDate),
-        loanType: Value(_loanTypeToString(resp.loanType)),
-        paidMonths: Value(resp.paidMonths),
-        repaymentMethod: Value(_repaymentMethodToString(resp.repaymentMethod)),
-        accountId: Value(resp.accountId),
-      ));
+      await _db.upsertLoan(_loanFromProto(resp));
     } catch (_) {
       // Offline: save locally
       await _db.upsertLoan(db.LoansCompanion.insert(
@@ -589,6 +735,10 @@ class LoanNotifier extends StateNotifier<LoanState> {
         loanType: Value(loanType),
         repaymentMethod: Value(repaymentMethod),
         accountId: Value(accountId ?? ''),
+        rateType: Value(rateType ?? 'fixed'),
+        lprBase: Value(lprBase ?? 0.0),
+        lprSpread: Value(lprSpread ?? 0.0),
+        rateAdjustMonth: Value(rateAdjustMonth ?? 1),
       ));
     }
 
@@ -616,7 +766,168 @@ class LoanNotifier extends StateNotifier<LoanState> {
       ));
     }
 
-    await listLoans();
+    await loadAll();
+  }
+
+  /// Create a loan group (combined / commercial_only / provident_only)
+  Future<void> createLoanGroup({
+    required String name,
+    required String groupType,
+    required String loanType,
+    required int paymentDay,
+    required DateTime startDate,
+    required List<SubLoanInput> subLoans,
+    String? accountId,
+  }) async {
+    if (_userId == null) return;
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    final groupId = const Uuid().v4();
+    final totalPrincipal =
+        subLoans.fold<int>(0, (sum, l) => sum + l.principal);
+
+    try {
+      // Try gRPC
+      final req = pb.CreateLoanGroupRequest()
+        ..name = name
+        ..groupType = groupType
+        ..paymentDay = paymentDay
+        ..startDate = _toTimestamp(startDate)
+        ..accountId = accountId ?? ''
+        ..loanType = _stringToLoanType(loanType);
+
+      for (final sub in subLoans) {
+        req.subLoans.add(pb.SubLoanSpec()
+          ..name = sub.name
+          ..subType = _stringToSubType(sub.subType)
+          ..principal = Int64(sub.principal)
+          ..annualRate = sub.annualRate
+          ..totalMonths = sub.totalMonths
+          ..repaymentMethod = _stringToRepaymentMethod(sub.repaymentMethod)
+          ..rateType = _stringToRateType(sub.rateType)
+          ..lprBase = sub.lprBase
+          ..lprSpread = sub.lprSpread
+          ..rateAdjustMonth = sub.rateAdjustMonth);
+      }
+
+      final resp = await _client.createLoanGroup(req);
+      await _db.upsertLoanGroup(db.LoanGroupsCompanion.insert(
+        id: resp.id,
+        userId: resp.userId,
+        name: resp.name,
+        groupType: resp.groupType,
+        totalPrincipal: resp.totalPrincipal.toInt(),
+        paymentDay: resp.paymentDay,
+        startDate: _fromTimestamp(resp.startDate),
+        accountId: Value(resp.accountId),
+      ));
+      for (final loan in resp.subLoans) {
+        await _db.upsertLoan(_loanFromProto(loan));
+        await _generateScheduleForLoan(loan.id, loan.principal.toInt(),
+            loan.annualRate, loan.totalMonths,
+            _repaymentMethodToString(loan.repaymentMethod),
+            _fromTimestamp(loan.startDate), loan.paymentDay);
+      }
+    } catch (_) {
+      // Offline: save locally
+      await _db.upsertLoanGroup(db.LoanGroupsCompanion.insert(
+        id: groupId,
+        userId: _userId,
+        name: name,
+        groupType: groupType,
+        totalPrincipal: totalPrincipal,
+        paymentDay: paymentDay,
+        startDate: startDate,
+        accountId: Value(accountId ?? ''),
+        loanType: Value(loanType),
+      ));
+
+      for (final sub in subLoans) {
+        final loanId = const Uuid().v4();
+        await _db.upsertLoan(db.LoansCompanion.insert(
+          id: loanId,
+          userId: _userId,
+          name: sub.name,
+          principal: sub.principal,
+          remainingPrincipal: sub.principal,
+          annualRate: sub.annualRate,
+          totalMonths: sub.totalMonths,
+          paymentDay: paymentDay,
+          startDate: startDate,
+          loanType: Value(loanType),
+          repaymentMethod: Value(sub.repaymentMethod),
+          accountId: Value(accountId ?? ''),
+          groupId: Value(groupId),
+          subType: Value(sub.subType),
+          rateType: Value(sub.rateType),
+          lprBase: Value(sub.lprBase),
+          lprSpread: Value(sub.lprSpread),
+          rateAdjustMonth: Value(sub.rateAdjustMonth),
+        ));
+
+        await _generateScheduleForLoan(loanId, sub.principal,
+            sub.annualRate, sub.totalMonths, sub.repaymentMethod,
+            startDate, paymentDay);
+      }
+    }
+
+    await loadAll();
+  }
+
+  Future<void> _generateScheduleForLoan(
+    String loanId,
+    int principal,
+    double annualRate,
+    int totalMonths,
+    String repaymentMethod,
+    DateTime startDate,
+    int paymentDay,
+  ) async {
+    final schedule = LoanCalculator.calculate(
+      principal: principal,
+      annualRate: annualRate,
+      totalMonths: totalMonths,
+      repaymentMethod: repaymentMethod,
+      startDate: startDate,
+      paymentDay: paymentDay,
+    );
+
+    await _db.deleteLoanSchedules(loanId);
+    for (final item in schedule) {
+      await _db.insertLoanSchedule(db.LoanSchedulesCompanion.insert(
+        id: const Uuid().v4(),
+        loanId: loanId,
+        monthNumber: item.monthNumber,
+        payment: item.payment,
+        principalPart: item.principalPart,
+        interestPart: item.interestPart,
+        remainingPrincipal: item.remainingPrincipal,
+        dueDate: item.dueDate,
+      ));
+    }
+  }
+
+  /// Load loan group detail with sub-loans
+  Future<void> getLoanGroupDetail(String groupId) async {
+    state = state.copyWith(isLoading: true, clearError: true, clearSimulation: true);
+
+    try {
+      final group = await _db.getLoanGroupById(groupId);
+      if (group == null) {
+        state = state.copyWith(isLoading: false, error: '贷款组不存在');
+        return;
+      }
+
+      final subLoans = await _db.getLoansByGroupId(groupId);
+      final displayGroup = _buildGroupDisplay(group, subLoans);
+
+      state = state.copyWith(
+        currentGroup: displayGroup,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
   }
 
   Future<void> getLoanDetail(String loanId) async {
@@ -647,7 +958,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
           paidDate: item.hasPaidDate() ? _fromTimestamp(item.paidDate) : null,
         )).toList();
       } catch (_) {
-        // Local fallback: calculate or read from DB
+        // Local fallback
         final dbSchedules = await _db.getLoanSchedules(loanId);
         if (dbSchedules.isNotEmpty) {
           schedule = dbSchedules.map((s) => LoanScheduleDisplayItem(
@@ -681,6 +992,36 @@ class LoanNotifier extends StateNotifier<LoanState> {
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
+  }
+
+  /// Get schedule for a specific sub-loan (used in group detail tabs)
+  Future<List<LoanScheduleDisplayItem>> getScheduleForLoan(String loanId) async {
+    final loan = await _db.getLoanById(loanId);
+    if (loan == null) return [];
+
+    final dbSchedules = await _db.getLoanSchedules(loanId);
+    if (dbSchedules.isNotEmpty) {
+      return dbSchedules.map((s) => LoanScheduleDisplayItem(
+        monthNumber: s.monthNumber,
+        payment: s.payment,
+        principalPart: s.principalPart,
+        interestPart: s.interestPart,
+        remainingPrincipal: s.remainingPrincipal,
+        dueDate: s.dueDate,
+        isPaid: s.isPaid,
+        paidDate: s.paidDate,
+      )).toList();
+    }
+
+    return LoanCalculator.calculate(
+      principal: loan.principal,
+      annualRate: loan.annualRate,
+      totalMonths: loan.totalMonths,
+      repaymentMethod: loan.repaymentMethod,
+      startDate: loan.startDate,
+      paymentDay: loan.paymentDay,
+      paidMonths: loan.paidMonths,
+    );
   }
 
   Future<void> simulatePrepayment({
@@ -818,7 +1159,6 @@ class LoanNotifier extends StateNotifier<LoanState> {
       paymentDay: loan.paymentDay,
     );
 
-    // Keep paid schedules, replace unpaid
     final existingSchedules = await _db.getLoanSchedules(loanId);
     final paidSchedules = existingSchedules
         .where((s) => s.isPaid)
@@ -904,7 +1244,16 @@ class LoanNotifier extends StateNotifier<LoanState> {
     }
 
     await _db.softDeleteLoan(loanId);
-    await listLoans();
+    await loadAll();
+  }
+
+  Future<void> deleteLoanGroup(String groupId) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    // TODO: gRPC delete group when backend supports it
+
+    await _db.softDeleteLoanGroup(groupId);
+    await loadAll();
   }
 
   /// 获取某贷款的首期月供（用于列表展示）
@@ -930,6 +1279,34 @@ class LoanNotifier extends StateNotifier<LoanState> {
     return LoanCalculator._dueDate(
         loan.startDate, loan.paidMonths + 1, loan.paymentDay);
   }
+}
+
+// ── Sub Loan Input Model ──
+
+class SubLoanInput {
+  final String name;
+  final String subType; // commercial / provident
+  final int principal; // 分
+  final double annualRate;
+  final int totalMonths;
+  final String repaymentMethod;
+  final String rateType; // fixed / lpr_floating
+  final double lprBase;
+  final double lprSpread;
+  final int rateAdjustMonth;
+
+  const SubLoanInput({
+    required this.name,
+    required this.subType,
+    required this.principal,
+    required this.annualRate,
+    required this.totalMonths,
+    required this.repaymentMethod,
+    this.rateType = 'fixed',
+    this.lprBase = 0.0,
+    this.lprSpread = 0.0,
+    this.rateAdjustMonth = 1,
+  });
 }
 
 // ── Provider ──

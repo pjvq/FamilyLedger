@@ -58,6 +58,22 @@ class LoanServiceClient extends $grpc.Client {
       '/familyledger.loan.v1.LoanService/RecordPayment',
       ($0.RecordPaymentRequest value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $0.LoanScheduleItem.fromBuffer(value));
+  static final _$createLoanGroup = $grpc.ClientMethod<$0.CreateLoanGroupRequest, $0.LoanGroup>(
+      '/familyledger.loan.v1.LoanService/CreateLoanGroup',
+      ($0.CreateLoanGroupRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.LoanGroup.fromBuffer(value));
+  static final _$getLoanGroup = $grpc.ClientMethod<$0.GetLoanGroupRequest, $0.LoanGroup>(
+      '/familyledger.loan.v1.LoanService/GetLoanGroup',
+      ($0.GetLoanGroupRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.LoanGroup.fromBuffer(value));
+  static final _$listLoanGroups = $grpc.ClientMethod<$0.ListLoanGroupsRequest, $0.ListLoanGroupsResponse>(
+      '/familyledger.loan.v1.LoanService/ListLoanGroups',
+      ($0.ListLoanGroupsRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.ListLoanGroupsResponse.fromBuffer(value));
+  static final _$simulateGroupPrepayment = $grpc.ClientMethod<$0.SimulateGroupPrepaymentRequest, $0.GroupPrepaymentSimulation>(
+      '/familyledger.loan.v1.LoanService/SimulateGroupPrepayment',
+      ($0.SimulateGroupPrepaymentRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.GroupPrepaymentSimulation.fromBuffer(value));
 
   LoanServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -99,6 +115,22 @@ class LoanServiceClient extends $grpc.Client {
 
   $grpc.ResponseFuture<$0.LoanScheduleItem> recordPayment($0.RecordPaymentRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$recordPayment, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.LoanGroup> createLoanGroup($0.CreateLoanGroupRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$createLoanGroup, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.LoanGroup> getLoanGroup($0.GetLoanGroupRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$getLoanGroup, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.ListLoanGroupsResponse> listLoanGroups($0.ListLoanGroupsRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$listLoanGroups, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.GroupPrepaymentSimulation> simulateGroupPrepayment($0.SimulateGroupPrepaymentRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$simulateGroupPrepayment, request, options: options);
   }
 }
 
@@ -170,6 +202,34 @@ abstract class LoanServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.RecordPaymentRequest.fromBuffer(value),
         ($0.LoanScheduleItem value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.CreateLoanGroupRequest, $0.LoanGroup>(
+        'CreateLoanGroup',
+        createLoanGroup_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.CreateLoanGroupRequest.fromBuffer(value),
+        ($0.LoanGroup value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetLoanGroupRequest, $0.LoanGroup>(
+        'GetLoanGroup',
+        getLoanGroup_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.GetLoanGroupRequest.fromBuffer(value),
+        ($0.LoanGroup value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ListLoanGroupsRequest, $0.ListLoanGroupsResponse>(
+        'ListLoanGroups',
+        listLoanGroups_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.ListLoanGroupsRequest.fromBuffer(value),
+        ($0.ListLoanGroupsResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SimulateGroupPrepaymentRequest, $0.GroupPrepaymentSimulation>(
+        'SimulateGroupPrepayment',
+        simulateGroupPrepayment_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.SimulateGroupPrepaymentRequest.fromBuffer(value),
+        ($0.GroupPrepaymentSimulation value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.Loan> createLoan_Pre($grpc.ServiceCall call, $async.Future<$0.CreateLoanRequest> request) async {
@@ -208,6 +268,22 @@ abstract class LoanServiceBase extends $grpc.Service {
     return recordPayment(call, await request);
   }
 
+  $async.Future<$0.LoanGroup> createLoanGroup_Pre($grpc.ServiceCall call, $async.Future<$0.CreateLoanGroupRequest> request) async {
+    return createLoanGroup(call, await request);
+  }
+
+  $async.Future<$0.LoanGroup> getLoanGroup_Pre($grpc.ServiceCall call, $async.Future<$0.GetLoanGroupRequest> request) async {
+    return getLoanGroup(call, await request);
+  }
+
+  $async.Future<$0.ListLoanGroupsResponse> listLoanGroups_Pre($grpc.ServiceCall call, $async.Future<$0.ListLoanGroupsRequest> request) async {
+    return listLoanGroups(call, await request);
+  }
+
+  $async.Future<$0.GroupPrepaymentSimulation> simulateGroupPrepayment_Pre($grpc.ServiceCall call, $async.Future<$0.SimulateGroupPrepaymentRequest> request) async {
+    return simulateGroupPrepayment(call, await request);
+  }
+
   $async.Future<$0.Loan> createLoan($grpc.ServiceCall call, $0.CreateLoanRequest request);
   $async.Future<$0.Loan> getLoan($grpc.ServiceCall call, $0.GetLoanRequest request);
   $async.Future<$0.ListLoansResponse> listLoans($grpc.ServiceCall call, $0.ListLoansRequest request);
@@ -217,4 +293,8 @@ abstract class LoanServiceBase extends $grpc.Service {
   $async.Future<$0.PrepaymentSimulation> simulatePrepayment($grpc.ServiceCall call, $0.SimulatePrepaymentRequest request);
   $async.Future<$0.Loan> recordRateChange($grpc.ServiceCall call, $0.RecordRateChangeRequest request);
   $async.Future<$0.LoanScheduleItem> recordPayment($grpc.ServiceCall call, $0.RecordPaymentRequest request);
+  $async.Future<$0.LoanGroup> createLoanGroup($grpc.ServiceCall call, $0.CreateLoanGroupRequest request);
+  $async.Future<$0.LoanGroup> getLoanGroup($grpc.ServiceCall call, $0.GetLoanGroupRequest request);
+  $async.Future<$0.ListLoanGroupsResponse> listLoanGroups($grpc.ServiceCall call, $0.ListLoanGroupsRequest request);
+  $async.Future<$0.GroupPrepaymentSimulation> simulateGroupPrepayment($grpc.ServiceCall call, $0.SimulateGroupPrepaymentRequest request);
 }

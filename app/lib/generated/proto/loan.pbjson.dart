@@ -66,6 +66,36 @@ final $typed_data.Uint8List prepaymentStrategyDescriptor = $convert.base64Decode
     'AAEiUKIVBSRVBBWU1FTlRfU1RSQVRFR1lfUkVEVUNFX01PTlRIUxABEiYKIlBSRVBBWU1FTlRf'
     'U1RSQVRFR1lfUkVEVUNFX1BBWU1FTlQQAg==');
 
+@$core.Deprecated('Use loanSubTypeDescriptor instead')
+const LoanSubType$json = {
+  '1': 'LoanSubType',
+  '2': [
+    {'1': 'LOAN_SUB_TYPE_UNSPECIFIED', '2': 0},
+    {'1': 'LOAN_SUB_TYPE_COMMERCIAL', '2': 1},
+    {'1': 'LOAN_SUB_TYPE_PROVIDENT', '2': 2},
+  ],
+};
+
+/// Descriptor for `LoanSubType`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List loanSubTypeDescriptor = $convert.base64Decode(
+    'CgtMb2FuU3ViVHlwZRIdChlMT0FOX1NVQl9UWVBFX1VOU1BFQ0lGSUVEEAASHAoYTE9BTl9TVU'
+    'JfVFlQRV9DT01NRVJDSUFMEAESGwoXTE9BTl9TVUJfVFlQRV9QUk9WSURFTlQQAg==');
+
+@$core.Deprecated('Use rateTypeDescriptor instead')
+const RateType$json = {
+  '1': 'RateType',
+  '2': [
+    {'1': 'RATE_TYPE_UNSPECIFIED', '2': 0},
+    {'1': 'RATE_TYPE_FIXED', '2': 1},
+    {'1': 'RATE_TYPE_LPR_FLOATING', '2': 2},
+  ],
+};
+
+/// Descriptor for `RateType`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List rateTypeDescriptor = $convert.base64Decode(
+    'CghSYXRlVHlwZRIZChVSQVRFX1RZUEVfVU5TUEVDSUZJRUQQABITCg9SQVRFX1RZUEVfRklYRU'
+    'QQARIaChZSQVRFX1RZUEVfTFBSX0ZMT0FUSU5HEAI=');
+
 @$core.Deprecated('Use loanDescriptor instead')
 const Loan$json = {
   '1': 'Loan',
@@ -85,6 +115,12 @@ const Loan$json = {
     {'1': 'created_at', '3': 13, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
     {'1': 'updated_at', '3': 14, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
     {'1': 'account_id', '3': 15, '4': 1, '5': 9, '10': 'accountId'},
+    {'1': 'group_id', '3': 16, '4': 1, '5': 9, '10': 'groupId'},
+    {'1': 'sub_type', '3': 17, '4': 1, '5': 14, '6': '.familyledger.loan.v1.LoanSubType', '10': 'subType'},
+    {'1': 'rate_type', '3': 18, '4': 1, '5': 14, '6': '.familyledger.loan.v1.RateType', '10': 'rateType'},
+    {'1': 'lpr_base', '3': 19, '4': 1, '5': 1, '10': 'lprBase'},
+    {'1': 'lpr_spread', '3': 20, '4': 1, '5': 1, '10': 'lprSpread'},
+    {'1': 'rate_adjust_month', '3': 21, '4': 1, '5': 5, '10': 'rateAdjustMonth'},
   ],
 };
 
@@ -101,7 +137,11 @@ final $typed_data.Uint8List loanDescriptor = $convert.base64Decode(
     'Gi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUglzdGFydERhdGUSOQoKY3JlYXRlZF9hdBgNIA'
     'EoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCWNyZWF0ZWRBdBI5Cgp1cGRhdGVkX2F0'
     'GA4gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJdXBkYXRlZEF0Eh0KCmFjY291bn'
-    'RfaWQYDyABKAlSCWFjY291bnRJZA==');
+    'RfaWQYDyABKAlSCWFjY291bnRJZBIZCghncm91cF9pZBgQIAEoCVIHZ3JvdXBJZBI8CghzdWJf'
+    'dHlwZRgRIAEoDjIhLmZhbWlseWxlZGdlci5sb2FuLnYxLkxvYW5TdWJUeXBlUgdzdWJUeXBlEj'
+    'sKCXJhdGVfdHlwZRgSIAEoDjIeLmZhbWlseWxlZGdlci5sb2FuLnYxLlJhdGVUeXBlUghyYXRl'
+    'VHlwZRIZCghscHJfYmFzZRgTIAEoAVIHbHByQmFzZRIdCgpscHJfc3ByZWFkGBQgASgBUglscH'
+    'JTcHJlYWQSKgoRcmF0ZV9hZGp1c3RfbW9udGgYFSABKAVSD3JhdGVBZGp1c3RNb250aA==');
 
 @$core.Deprecated('Use loanScheduleItemDescriptor instead')
 const LoanScheduleItem$json = {
@@ -313,4 +353,155 @@ const RecordPaymentRequest$json = {
 final $typed_data.Uint8List recordPaymentRequestDescriptor = $convert.base64Decode(
     'ChRSZWNvcmRQYXltZW50UmVxdWVzdBIXCgdsb2FuX2lkGAEgASgJUgZsb2FuSWQSIQoMbW9udG'
     'hfbnVtYmVyGAIgASgFUgttb250aE51bWJlcg==');
+
+@$core.Deprecated('Use loanGroupDescriptor instead')
+const LoanGroup$json = {
+  '1': 'LoanGroup',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'user_id', '3': 2, '4': 1, '5': 9, '10': 'userId'},
+    {'1': 'name', '3': 3, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'group_type', '3': 4, '4': 1, '5': 9, '10': 'groupType'},
+    {'1': 'total_principal', '3': 5, '4': 1, '5': 3, '10': 'totalPrincipal'},
+    {'1': 'payment_day', '3': 6, '4': 1, '5': 5, '10': 'paymentDay'},
+    {'1': 'start_date', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'startDate'},
+    {'1': 'account_id', '3': 8, '4': 1, '5': 9, '10': 'accountId'},
+    {'1': 'sub_loans', '3': 9, '4': 3, '5': 11, '6': '.familyledger.loan.v1.Loan', '10': 'subLoans'},
+    {'1': 'total_monthly_payment', '3': 10, '4': 1, '5': 3, '10': 'totalMonthlyPayment'},
+    {'1': 'created_at', '3': 11, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
+    {'1': 'updated_at', '3': 12, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+  ],
+};
+
+/// Descriptor for `LoanGroup`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List loanGroupDescriptor = $convert.base64Decode(
+    'CglMb2FuR3JvdXASDgoCaWQYASABKAlSAmlkEhcKB3VzZXJfaWQYAiABKAlSBnVzZXJJZBISCg'
+    'RuYW1lGAMgASgJUgRuYW1lEh0KCmdyb3VwX3R5cGUYBCABKAlSCWdyb3VwVHlwZRInCg90b3Rh'
+    'bF9wcmluY2lwYWwYBSABKANSDnRvdGFsUHJpbmNpcGFsEh8KC3BheW1lbnRfZGF5GAYgASgFUg'
+    'pwYXltZW50RGF5EjkKCnN0YXJ0X2RhdGUYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0'
+    'YW1wUglzdGFydERhdGUSHQoKYWNjb3VudF9pZBgIIAEoCVIJYWNjb3VudElkEjcKCXN1Yl9sb2'
+    'FucxgJIAMoCzIaLmZhbWlseWxlZGdlci5sb2FuLnYxLkxvYW5SCHN1YkxvYW5zEjIKFXRvdGFs'
+    'X21vbnRobHlfcGF5bWVudBgKIAEoA1ITdG90YWxNb250aGx5UGF5bWVudBI5CgpjcmVhdGVkX2'
+    'F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3JlYXRlZEF0EjkKCnVwZGF0'
+    'ZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUgl1cGRhdGVkQXQ=');
+
+@$core.Deprecated('Use subLoanSpecDescriptor instead')
+const SubLoanSpec$json = {
+  '1': 'SubLoanSpec',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'sub_type', '3': 2, '4': 1, '5': 14, '6': '.familyledger.loan.v1.LoanSubType', '10': 'subType'},
+    {'1': 'principal', '3': 3, '4': 1, '5': 3, '10': 'principal'},
+    {'1': 'annual_rate', '3': 4, '4': 1, '5': 1, '10': 'annualRate'},
+    {'1': 'total_months', '3': 5, '4': 1, '5': 5, '10': 'totalMonths'},
+    {'1': 'repayment_method', '3': 6, '4': 1, '5': 14, '6': '.familyledger.loan.v1.RepaymentMethod', '10': 'repaymentMethod'},
+    {'1': 'rate_type', '3': 7, '4': 1, '5': 14, '6': '.familyledger.loan.v1.RateType', '10': 'rateType'},
+    {'1': 'lpr_base', '3': 8, '4': 1, '5': 1, '10': 'lprBase'},
+    {'1': 'lpr_spread', '3': 9, '4': 1, '5': 1, '10': 'lprSpread'},
+    {'1': 'rate_adjust_month', '3': 10, '4': 1, '5': 5, '10': 'rateAdjustMonth'},
+  ],
+};
+
+/// Descriptor for `SubLoanSpec`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List subLoanSpecDescriptor = $convert.base64Decode(
+    'CgtTdWJMb2FuU3BlYxISCgRuYW1lGAEgASgJUgRuYW1lEjwKCHN1Yl90eXBlGAIgASgOMiEuZm'
+    'FtaWx5bGVkZ2VyLmxvYW4udjEuTG9hblN1YlR5cGVSB3N1YlR5cGUSHAoJcHJpbmNpcGFsGAMg'
+    'ASgDUglwcmluY2lwYWwSHwoLYW5udWFsX3JhdGUYBCABKAFSCmFubnVhbFJhdGUSIQoMdG90YW'
+    'xfbW9udGhzGAUgASgFUgt0b3RhbE1vbnRocxJQChByZXBheW1lbnRfbWV0aG9kGAYgASgOMiUu'
+    'ZmFtaWx5bGVkZ2VyLmxvYW4udjEuUmVwYXltZW50TWV0aG9kUg9yZXBheW1lbnRNZXRob2QSOw'
+    'oJcmF0ZV90eXBlGAcgASgOMh4uZmFtaWx5bGVkZ2VyLmxvYW4udjEuUmF0ZVR5cGVSCHJhdGVU'
+    'eXBlEhkKCGxwcl9iYXNlGAggASgBUgdscHJCYXNlEh0KCmxwcl9zcHJlYWQYCSABKAFSCWxwcl'
+    'NwcmVhZBIqChFyYXRlX2FkanVzdF9tb250aBgKIAEoBVIPcmF0ZUFkanVzdE1vbnRo');
+
+@$core.Deprecated('Use createLoanGroupRequestDescriptor instead')
+const CreateLoanGroupRequest$json = {
+  '1': 'CreateLoanGroupRequest',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'group_type', '3': 2, '4': 1, '5': 9, '10': 'groupType'},
+    {'1': 'payment_day', '3': 3, '4': 1, '5': 5, '10': 'paymentDay'},
+    {'1': 'start_date', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'startDate'},
+    {'1': 'account_id', '3': 5, '4': 1, '5': 9, '10': 'accountId'},
+    {'1': 'sub_loans', '3': 6, '4': 3, '5': 11, '6': '.familyledger.loan.v1.SubLoanSpec', '10': 'subLoans'},
+    {'1': 'loan_type', '3': 7, '4': 1, '5': 14, '6': '.familyledger.loan.v1.LoanType', '10': 'loanType'},
+  ],
+};
+
+/// Descriptor for `CreateLoanGroupRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createLoanGroupRequestDescriptor = $convert.base64Decode(
+    'ChZDcmVhdGVMb2FuR3JvdXBSZXF1ZXN0EhIKBG5hbWUYASABKAlSBG5hbWUSHQoKZ3JvdXBfdH'
+    'lwZRgCIAEoCVIJZ3JvdXBUeXBlEh8KC3BheW1lbnRfZGF5GAMgASgFUgpwYXltZW50RGF5EjkK'
+    'CnN0YXJ0X2RhdGUYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUglzdGFydERhdG'
+    'USHQoKYWNjb3VudF9pZBgFIAEoCVIJYWNjb3VudElkEj4KCXN1Yl9sb2FucxgGIAMoCzIhLmZh'
+    'bWlseWxlZGdlci5sb2FuLnYxLlN1YkxvYW5TcGVjUghzdWJMb2FucxI7Cglsb2FuX3R5cGUYBy'
+    'ABKA4yHi5mYW1pbHlsZWRnZXIubG9hbi52MS5Mb2FuVHlwZVIIbG9hblR5cGU=');
+
+@$core.Deprecated('Use getLoanGroupRequestDescriptor instead')
+const GetLoanGroupRequest$json = {
+  '1': 'GetLoanGroupRequest',
+  '2': [
+    {'1': 'group_id', '3': 1, '4': 1, '5': 9, '10': 'groupId'},
+  ],
+};
+
+/// Descriptor for `GetLoanGroupRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getLoanGroupRequestDescriptor = $convert.base64Decode(
+    'ChNHZXRMb2FuR3JvdXBSZXF1ZXN0EhkKCGdyb3VwX2lkGAEgASgJUgdncm91cElk');
+
+@$core.Deprecated('Use listLoanGroupsRequestDescriptor instead')
+const ListLoanGroupsRequest$json = {
+  '1': 'ListLoanGroupsRequest',
+};
+
+/// Descriptor for `ListLoanGroupsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listLoanGroupsRequestDescriptor = $convert.base64Decode(
+    'ChVMaXN0TG9hbkdyb3Vwc1JlcXVlc3Q=');
+
+@$core.Deprecated('Use listLoanGroupsResponseDescriptor instead')
+const ListLoanGroupsResponse$json = {
+  '1': 'ListLoanGroupsResponse',
+  '2': [
+    {'1': 'groups', '3': 1, '4': 3, '5': 11, '6': '.familyledger.loan.v1.LoanGroup', '10': 'groups'},
+  ],
+};
+
+/// Descriptor for `ListLoanGroupsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listLoanGroupsResponseDescriptor = $convert.base64Decode(
+    'ChZMaXN0TG9hbkdyb3Vwc1Jlc3BvbnNlEjcKBmdyb3VwcxgBIAMoCzIfLmZhbWlseWxlZGdlci'
+    '5sb2FuLnYxLkxvYW5Hcm91cFIGZ3JvdXBz');
+
+@$core.Deprecated('Use simulateGroupPrepaymentRequestDescriptor instead')
+const SimulateGroupPrepaymentRequest$json = {
+  '1': 'SimulateGroupPrepaymentRequest',
+  '2': [
+    {'1': 'group_id', '3': 1, '4': 1, '5': 9, '10': 'groupId'},
+    {'1': 'target_loan_id', '3': 2, '4': 1, '5': 9, '10': 'targetLoanId'},
+    {'1': 'prepayment_amount', '3': 3, '4': 1, '5': 3, '10': 'prepaymentAmount'},
+    {'1': 'strategy', '3': 4, '4': 1, '5': 14, '6': '.familyledger.loan.v1.PrepaymentStrategy', '10': 'strategy'},
+  ],
+};
+
+/// Descriptor for `SimulateGroupPrepaymentRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List simulateGroupPrepaymentRequestDescriptor = $convert.base64Decode(
+    'Ch5TaW11bGF0ZUdyb3VwUHJlcGF5bWVudFJlcXVlc3QSGQoIZ3JvdXBfaWQYASABKAlSB2dyb3'
+    'VwSWQSJAoOdGFyZ2V0X2xvYW5faWQYAiABKAlSDHRhcmdldExvYW5JZBIrChFwcmVwYXltZW50'
+    'X2Ftb3VudBgDIAEoA1IQcHJlcGF5bWVudEFtb3VudBJECghzdHJhdGVneRgEIAEoDjIoLmZhbW'
+    'lseWxlZGdlci5sb2FuLnYxLlByZXBheW1lbnRTdHJhdGVneVIIc3RyYXRlZ3k=');
+
+@$core.Deprecated('Use groupPrepaymentSimulationDescriptor instead')
+const GroupPrepaymentSimulation$json = {
+  '1': 'GroupPrepaymentSimulation',
+  '2': [
+    {'1': 'target_loan_id', '3': 1, '4': 1, '5': 9, '10': 'targetLoanId'},
+    {'1': 'target_sim', '3': 2, '4': 1, '5': 11, '6': '.familyledger.loan.v1.PrepaymentSimulation', '10': 'targetSim'},
+    {'1': 'total_interest_saved', '3': 3, '4': 1, '5': 3, '10': 'totalInterestSaved'},
+  ],
+};
+
+/// Descriptor for `GroupPrepaymentSimulation`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List groupPrepaymentSimulationDescriptor = $convert.base64Decode(
+    'ChlHcm91cFByZXBheW1lbnRTaW11bGF0aW9uEiQKDnRhcmdldF9sb2FuX2lkGAEgASgJUgx0YX'
+    'JnZXRMb2FuSWQSSQoKdGFyZ2V0X3NpbRgCIAEoCzIqLmZhbWlseWxlZGdlci5sb2FuLnYxLlBy'
+    'ZXBheW1lbnRTaW11bGF0aW9uUgl0YXJnZXRTaW0SMAoUdG90YWxfaW50ZXJlc3Rfc2F2ZWQYAy'
+    'ABKANSEnRvdGFsSW50ZXJlc3RTYXZlZA==');
 

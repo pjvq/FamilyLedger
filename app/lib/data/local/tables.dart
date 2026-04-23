@@ -171,6 +171,25 @@ class NotificationSettingsTable extends Table {
   Set<Column> get primaryKey => {userId};
 }
 
+/// 贷款组表（组合贷款）
+class LoanGroups extends Table {
+  TextColumn get id => text()();
+  TextColumn get userId => text().references(Users, #id)();
+  TextColumn get name => text().withLength(min: 1, max: 100)();
+  TextColumn get groupType => text()(); // commercial_only / provident_only / combined
+  IntColumn get totalPrincipal => integer()(); // 总贷款本金（分）
+  IntColumn get paymentDay => integer()(); // 1-28
+  DateTimeColumn get startDate => dateTime()();
+  TextColumn get accountId => text().withDefault(const Constant(''))(); // 关联还款账户
+  TextColumn get loanType => text().withDefault(const Constant('mortgage'))(); // 贷款大类
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// 贷款表
 class Loans extends Table {
   TextColumn get id => text()();
@@ -186,6 +205,13 @@ class Loans extends Table {
   IntColumn get paymentDay => integer()(); // 1-28
   DateTimeColumn get startDate => dateTime()();
   TextColumn get accountId => text().withDefault(const Constant(''))(); // 关联还款账户
+  // 组合贷款扩展字段
+  TextColumn get groupId => text().withDefault(const Constant(''))(); // 归属组合贷款（空 = 独立贷款）
+  TextColumn get subType => text().withDefault(const Constant(''))(); // commercial / provident
+  TextColumn get rateType => text().withDefault(const Constant('fixed'))(); // fixed / lpr_floating
+  RealColumn get lprBase => real().withDefault(const Constant(0.0))(); // LPR 基准利率
+  RealColumn get lprSpread => real().withDefault(const Constant(0.0))(); // 基点偏移
+  IntColumn get rateAdjustMonth => integer().withDefault(const Constant(1))(); // 利率调整月 (1=一月, 0=放款月)
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get deletedAt => dateTime().nullable()();

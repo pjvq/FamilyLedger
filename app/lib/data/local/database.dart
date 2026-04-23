@@ -19,6 +19,7 @@ part 'database.g.dart';
   CategoryBudgetsTable,
   Notifications,
   NotificationSettingsTable,
+  LoanGroups,
   Loans,
   LoanSchedules,
   LoanRateChanges,
@@ -37,7 +38,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -86,6 +87,16 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(transactions, transactions.tags);
             await m.addColumn(transactions, transactions.imageUrls);
             await m.createTable(exchangeRates);
+          }
+          if (from < 8) {
+            // v7 → v8: loan groups table + loans new columns for combined loans
+            await m.createTable(loanGroups);
+            await m.addColumn(loans, loans.groupId);
+            await m.addColumn(loans, loans.subType);
+            await m.addColumn(loans, loans.rateType);
+            await m.addColumn(loans, loans.lprBase);
+            await m.addColumn(loans, loans.lprSpread);
+            await m.addColumn(loans, loans.rateAdjustMonth);
           }
         },
       );
@@ -479,6 +490,23 @@ class AppDatabase extends _$AppDatabase {
             ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
           .get();
 
+  /// Get standalone loans (not in any group)
+  Future<List<Loan>> getStandaloneLoans(String userId) =>
+      (select(loans)
+            ..where((l) =>
+                l.userId.equals(userId) &
+                l.deletedAt.isNull() &
+                (l.groupId.equals('') | l.groupId.isNull()))
+            ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
+          .get();
+
+  /// Get loans belonging to a specific group
+  Future<List<Loan>> getLoansByGroupId(String groupId) =>
+      (select(loans)
+            ..where((l) => l.groupId.equals(groupId) & l.deletedAt.isNull())
+            ..orderBy([(l) => OrderingTerm.asc(l.createdAt)]))
+          .get();
+
   Future<Loan?> getLoanById(String id) =>
       (select(loans)..where((l) => l.id.equals(id))).getSingleOrNull();
 
@@ -530,6 +558,39 @@ class AppDatabase extends _$AppDatabase {
             ..where((r) => r.loanId.equals(loanId))
             ..orderBy([(r) => OrderingTerm.desc(r.effectiveDate)]))
           .get();
+
+  // ---- Loan Group CRUD ----
+
+  Future<int> insertLoanGroup(LoanGroupsCompanion entry) =>
+      into(loanGroups).insert(entry);
+
+  Future<void> upsertLoanGroup(LoanGroupsCompanion entry) async {
+    await into(loanGroups).insertOnConflictUpdate(entry);
+  }
+
+  Future<List<LoanGroup>> getLoanGroups(String userId) =>
+      (select(loanGroups)
+            ..where((g) => g.userId.equals(userId) & g.deletedAt.isNull())
+            ..orderBy([(g) => OrderingTerm.desc(g.createdAt)]))
+          .get();
+
+  Future<LoanGroup?> getLoanGroupById(String id) =>
+      (select(loanGroups)..where((g) => g.id.equals(id))).getSingleOrNull();
+
+  Future<void> updateLoanGroupFields(String groupId, LoanGroupsCompanion entry) async {
+    await (update(loanGroups)..where((g) => g.id.equals(groupId))).write(entry);
+  }
+
+  Future<int> softDeleteLoanGroup(String groupId) async {
+    await (update(loanGroups)..where((g) => g.id.equals(groupId))).write(
+      LoanGroupsCompanion(deletedAt: Value(DateTime.now())),
+    );
+    // Also soft-delete all sub-loans
+    await (update(loans)..where((l) => l.groupId.equals(groupId))).write(
+      LoansCompanion(deletedAt: Value(DateTime.now())),
+    );
+    return 1;
+  }
 
   // ---- Investment CRUD ----
 

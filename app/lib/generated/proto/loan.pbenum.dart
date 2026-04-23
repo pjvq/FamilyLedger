@@ -72,5 +72,39 @@ class PrepaymentStrategy extends $pb.ProtobufEnum {
   const PrepaymentStrategy._($core.int v, $core.String n) : super(v, n);
 }
 
+class LoanSubType extends $pb.ProtobufEnum {
+  static const LoanSubType LOAN_SUB_TYPE_UNSPECIFIED = LoanSubType._(0, _omitEnumNames ? '' : 'LOAN_SUB_TYPE_UNSPECIFIED');
+  static const LoanSubType LOAN_SUB_TYPE_COMMERCIAL = LoanSubType._(1, _omitEnumNames ? '' : 'LOAN_SUB_TYPE_COMMERCIAL');
+  static const LoanSubType LOAN_SUB_TYPE_PROVIDENT = LoanSubType._(2, _omitEnumNames ? '' : 'LOAN_SUB_TYPE_PROVIDENT');
+
+  static const $core.List<LoanSubType> values = <LoanSubType> [
+    LOAN_SUB_TYPE_UNSPECIFIED,
+    LOAN_SUB_TYPE_COMMERCIAL,
+    LOAN_SUB_TYPE_PROVIDENT,
+  ];
+
+  static final $core.Map<$core.int, LoanSubType> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static LoanSubType? valueOf($core.int value) => _byValue[value];
+
+  const LoanSubType._($core.int v, $core.String n) : super(v, n);
+}
+
+class RateType extends $pb.ProtobufEnum {
+  static const RateType RATE_TYPE_UNSPECIFIED = RateType._(0, _omitEnumNames ? '' : 'RATE_TYPE_UNSPECIFIED');
+  static const RateType RATE_TYPE_FIXED = RateType._(1, _omitEnumNames ? '' : 'RATE_TYPE_FIXED');
+  static const RateType RATE_TYPE_LPR_FLOATING = RateType._(2, _omitEnumNames ? '' : 'RATE_TYPE_LPR_FLOATING');
+
+  static const $core.List<RateType> values = <RateType> [
+    RATE_TYPE_UNSPECIFIED,
+    RATE_TYPE_FIXED,
+    RATE_TYPE_LPR_FLOATING,
+  ];
+
+  static final $core.Map<$core.int, RateType> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static RateType? valueOf($core.int value) => _byValue[value];
+
+  const RateType._($core.int v, $core.String n) : super(v, n);
+}
+
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

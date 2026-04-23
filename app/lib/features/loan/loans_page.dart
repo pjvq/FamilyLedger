@@ -15,33 +15,49 @@ class LoansPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final hasData =
+        loanState.loans.isNotEmpty || loanState.loanGroups.isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('贷款管理'),
       ),
-      body: loanState.isLoading && loanState.loans.isEmpty
+      body: loanState.isLoading && !hasData
           ? const Center(child: CircularProgressIndicator())
-          : loanState.loans.isEmpty
+          : !hasData
               ? _EmptyState(theme: theme)
               : RefreshIndicator(
-                  onRefresh: () => ref.read(loanProvider.notifier).listLoans(),
-                  child: ListView.builder(
+                  onRefresh: () =>
+                      ref.read(loanProvider.notifier).loadAll(),
+                  child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                    itemCount: loanState.loans.length,
-                    itemBuilder: (context, index) {
-                      final loan = loanState.loans[index];
-                      return _LoanCard(
-                        loan: loan,
-                        notifier: ref.read(loanProvider.notifier),
-                        isDark: isDark,
-                        onTap: () {
-                          Navigator.of(context).pushNamed(
-                            AppRouter.loanDetail,
-                            arguments: loan.id,
-                          );
-                        },
-                      );
-                    },
+                    children: [
+                      // Loan groups (combined loans)
+                      ...loanState.loanGroups.map((group) =>
+                          _LoanGroupCard(
+                            group: group,
+                            notifier: ref.read(loanProvider.notifier),
+                            isDark: isDark,
+                            onTap: () {
+                              Navigator.of(context).pushNamed(
+                                AppRouter.loanGroupDetail,
+                                arguments: group.group.id,
+                              );
+                            },
+                          )),
+                      // Standalone loans
+                      ...loanState.loans.map((loan) => _LoanCard(
+                            loan: loan,
+                            notifier: ref.read(loanProvider.notifier),
+                            isDark: isDark,
+                            onTap: () {
+                              Navigator.of(context).pushNamed(
+                                AppRouter.loanDetail,
+                                arguments: loan.id,
+                              );
+                            },
+                          )),
+                    ],
                   ),
                 ),
       floatingActionButton: FloatingActionButton.extended(
@@ -80,7 +96,247 @@ LoanTypeInfo getLoanTypeInfo(String type) {
   }
 }
 
-// ── Loan Card ──
+// ── Combined Loan Group Card ──
+
+class _LoanGroupCard extends StatelessWidget {
+  final LoanGroupDisplayItem group;
+  final LoanNotifier notifier;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _LoanGroupCard({
+    required this.group,
+    required this.notifier,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final comLoan = group.commercialLoan;
+    final pvdLoan = group.providentLoan;
+    final typeInfo = getLoanTypeInfo(group.group.loanType);
+
+    // Commercial and provident monthly payments
+    final comMonthly = comLoan != null ? notifier.getMonthlyPayment(comLoan) : 0;
+    final pvdMonthly = pvdLoan != null ? notifier.getMonthlyPayment(pvdLoan) : 0;
+
+    // Progress
+    final comProgress = comLoan != null && comLoan.totalMonths > 0
+        ? comLoan.paidMonths / comLoan.totalMonths
+        : 0.0;
+    final pvdProgress = pvdLoan != null && pvdLoan.totalMonths > 0
+        ? pvdLoan.paidMonths / pvdLoan.totalMonths
+        : 0.0;
+
+    final comPrincipalWan = comLoan != null
+        ? (comLoan.principal / 100 / 10000).toStringAsFixed(0)
+        : '0';
+    final pvdPrincipalWan = pvdLoan != null
+        ? (pvdLoan.principal / 100 / 10000).toStringAsFixed(0)
+        : '0';
+
+    return Semantics(
+      label: '${group.group.name}，组合贷，'
+          '商贷$comPrincipalWan万加公积金$pvdPrincipalWan万，'
+          '总月供${_formatCents(group.totalMonthlyPayment)}元',
+      button: true,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top row: name + combined badge
+                Row(
+                  children: [
+                    Text('🏘️', style: const TextStyle(fontSize: 24)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            group.group.name,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: typeInfo.color.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '组合贷',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: typeInfo.color,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '商贷 $comPrincipalWan万 + 公积金 $pvdPrincipalWan万',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.5),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Total remaining
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '剩余本金',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.5),
+                          ),
+                        ),
+                        Text(
+                          '¥${_formatCents(group.totalRemainingPrincipal)}',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                            color: isDark
+                                ? AppColors.liabilityDark
+                                : AppColors.liability,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                // Two-color progress bar
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: SizedBox(
+                    height: 6,
+                    child: Row(
+                      children: [
+                        // Commercial progress (deep blue)
+                        if (comLoan != null)
+                          Expanded(
+                            flex: comLoan.principal,
+                            child: LinearProgressIndicator(
+                              value: comProgress,
+                              minHeight: 6,
+                              backgroundColor: isDark
+                                  ? const Color(0xFF3A3A3C)
+                                  : const Color(0xFFE5E5EA),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                Color(0xFF3D5AFE),
+                              ),
+                            ),
+                          ),
+                        if (comLoan != null && pvdLoan != null)
+                          const SizedBox(width: 2),
+                        // Provident progress (light blue)
+                        if (pvdLoan != null)
+                          Expanded(
+                            flex: pvdLoan.principal,
+                            child: LinearProgressIndicator(
+                              value: pvdProgress,
+                              minHeight: 6,
+                              backgroundColor: isDark
+                                  ? const Color(0xFF3A3A3C)
+                                  : const Color(0xFFE5E5EA),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                Color(0xFF448AFF),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                // Legend
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3D5AFE),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text('商贷',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.4))),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF448AFF),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text('公积金',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.4))),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Bottom: monthly payment breakdown
+                Row(
+                  children: [
+                    _InfoChip(
+                      label: '总月供',
+                      value:
+                          '¥${_formatCents(group.totalMonthlyPayment)}',
+                      theme: theme,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        '(商贷 ¥${_formatCents(comMonthly)} + 公积金 ¥${_formatCents(pvdMonthly)})',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.4),
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Standalone Loan Card ──
 
 class _LoanCard extends StatelessWidget {
   final db.Loan loan;
@@ -294,7 +550,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '添加贷款后可跟踪还款进度、模拟提前还款',
+            '支持商业贷款、公积金贷款、组合贷款',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),

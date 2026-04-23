@@ -5572,6 +5572,713 @@ class NotificationSettingsTableCompanion
   }
 }
 
+class $LoanGroupsTable extends LoanGroups
+    with TableInfo<$LoanGroupsTable, LoanGroup> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LoanGroupsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES users (id)',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 100,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _groupTypeMeta = const VerificationMeta(
+    'groupType',
+  );
+  @override
+  late final GeneratedColumn<String> groupType = GeneratedColumn<String>(
+    'group_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalPrincipalMeta = const VerificationMeta(
+    'totalPrincipal',
+  );
+  @override
+  late final GeneratedColumn<int> totalPrincipal = GeneratedColumn<int>(
+    'total_principal',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _paymentDayMeta = const VerificationMeta(
+    'paymentDay',
+  );
+  @override
+  late final GeneratedColumn<int> paymentDay = GeneratedColumn<int>(
+    'payment_day',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+    'start_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<String> accountId = GeneratedColumn<String>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _loanTypeMeta = const VerificationMeta(
+    'loanType',
+  );
+  @override
+  late final GeneratedColumn<String> loanType = GeneratedColumn<String>(
+    'loan_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('mortgage'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    name,
+    groupType,
+    totalPrincipal,
+    paymentDay,
+    startDate,
+    accountId,
+    loanType,
+    createdAt,
+    updatedAt,
+    deletedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'loan_groups';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LoanGroup> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('group_type')) {
+      context.handle(
+        _groupTypeMeta,
+        groupType.isAcceptableOrUnknown(data['group_type']!, _groupTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_groupTypeMeta);
+    }
+    if (data.containsKey('total_principal')) {
+      context.handle(
+        _totalPrincipalMeta,
+        totalPrincipal.isAcceptableOrUnknown(
+          data['total_principal']!,
+          _totalPrincipalMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_totalPrincipalMeta);
+    }
+    if (data.containsKey('payment_day')) {
+      context.handle(
+        _paymentDayMeta,
+        paymentDay.isAcceptableOrUnknown(data['payment_day']!, _paymentDayMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_paymentDayMeta);
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    }
+    if (data.containsKey('loan_type')) {
+      context.handle(
+        _loanTypeMeta,
+        loanType.isAcceptableOrUnknown(data['loan_type']!, _loanTypeMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LoanGroup map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LoanGroup(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      groupType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}group_type'],
+      )!,
+      totalPrincipal: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_principal'],
+      )!,
+      paymentDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}payment_day'],
+      )!,
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_date'],
+      )!,
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_id'],
+      )!,
+      loanType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}loan_type'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+    );
+  }
+
+  @override
+  $LoanGroupsTable createAlias(String alias) {
+    return $LoanGroupsTable(attachedDatabase, alias);
+  }
+}
+
+class LoanGroup extends DataClass implements Insertable<LoanGroup> {
+  final String id;
+  final String userId;
+  final String name;
+  final String groupType;
+  final int totalPrincipal;
+  final int paymentDay;
+  final DateTime startDate;
+  final String accountId;
+  final String loanType;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  const LoanGroup({
+    required this.id,
+    required this.userId,
+    required this.name,
+    required this.groupType,
+    required this.totalPrincipal,
+    required this.paymentDay,
+    required this.startDate,
+    required this.accountId,
+    required this.loanType,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['name'] = Variable<String>(name);
+    map['group_type'] = Variable<String>(groupType);
+    map['total_principal'] = Variable<int>(totalPrincipal);
+    map['payment_day'] = Variable<int>(paymentDay);
+    map['start_date'] = Variable<DateTime>(startDate);
+    map['account_id'] = Variable<String>(accountId);
+    map['loan_type'] = Variable<String>(loanType);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    return map;
+  }
+
+  LoanGroupsCompanion toCompanion(bool nullToAbsent) {
+    return LoanGroupsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      name: Value(name),
+      groupType: Value(groupType),
+      totalPrincipal: Value(totalPrincipal),
+      paymentDay: Value(paymentDay),
+      startDate: Value(startDate),
+      accountId: Value(accountId),
+      loanType: Value(loanType),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+    );
+  }
+
+  factory LoanGroup.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LoanGroup(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      name: serializer.fromJson<String>(json['name']),
+      groupType: serializer.fromJson<String>(json['groupType']),
+      totalPrincipal: serializer.fromJson<int>(json['totalPrincipal']),
+      paymentDay: serializer.fromJson<int>(json['paymentDay']),
+      startDate: serializer.fromJson<DateTime>(json['startDate']),
+      accountId: serializer.fromJson<String>(json['accountId']),
+      loanType: serializer.fromJson<String>(json['loanType']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'name': serializer.toJson<String>(name),
+      'groupType': serializer.toJson<String>(groupType),
+      'totalPrincipal': serializer.toJson<int>(totalPrincipal),
+      'paymentDay': serializer.toJson<int>(paymentDay),
+      'startDate': serializer.toJson<DateTime>(startDate),
+      'accountId': serializer.toJson<String>(accountId),
+      'loanType': serializer.toJson<String>(loanType),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+    };
+  }
+
+  LoanGroup copyWith({
+    String? id,
+    String? userId,
+    String? name,
+    String? groupType,
+    int? totalPrincipal,
+    int? paymentDay,
+    DateTime? startDate,
+    String? accountId,
+    String? loanType,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+  }) => LoanGroup(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    name: name ?? this.name,
+    groupType: groupType ?? this.groupType,
+    totalPrincipal: totalPrincipal ?? this.totalPrincipal,
+    paymentDay: paymentDay ?? this.paymentDay,
+    startDate: startDate ?? this.startDate,
+    accountId: accountId ?? this.accountId,
+    loanType: loanType ?? this.loanType,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+  );
+  LoanGroup copyWithCompanion(LoanGroupsCompanion data) {
+    return LoanGroup(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      name: data.name.present ? data.name.value : this.name,
+      groupType: data.groupType.present ? data.groupType.value : this.groupType,
+      totalPrincipal: data.totalPrincipal.present
+          ? data.totalPrincipal.value
+          : this.totalPrincipal,
+      paymentDay: data.paymentDay.present
+          ? data.paymentDay.value
+          : this.paymentDay,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      loanType: data.loanType.present ? data.loanType.value : this.loanType,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LoanGroup(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('name: $name, ')
+          ..write('groupType: $groupType, ')
+          ..write('totalPrincipal: $totalPrincipal, ')
+          ..write('paymentDay: $paymentDay, ')
+          ..write('startDate: $startDate, ')
+          ..write('accountId: $accountId, ')
+          ..write('loanType: $loanType, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    name,
+    groupType,
+    totalPrincipal,
+    paymentDay,
+    startDate,
+    accountId,
+    loanType,
+    createdAt,
+    updatedAt,
+    deletedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LoanGroup &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.name == this.name &&
+          other.groupType == this.groupType &&
+          other.totalPrincipal == this.totalPrincipal &&
+          other.paymentDay == this.paymentDay &&
+          other.startDate == this.startDate &&
+          other.accountId == this.accountId &&
+          other.loanType == this.loanType &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt);
+}
+
+class LoanGroupsCompanion extends UpdateCompanion<LoanGroup> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<String> name;
+  final Value<String> groupType;
+  final Value<int> totalPrincipal;
+  final Value<int> paymentDay;
+  final Value<DateTime> startDate;
+  final Value<String> accountId;
+  final Value<String> loanType;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> rowid;
+  const LoanGroupsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.groupType = const Value.absent(),
+    this.totalPrincipal = const Value.absent(),
+    this.paymentDay = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.loanType = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LoanGroupsCompanion.insert({
+    required String id,
+    required String userId,
+    required String name,
+    required String groupType,
+    required int totalPrincipal,
+    required int paymentDay,
+    required DateTime startDate,
+    this.accountId = const Value.absent(),
+    this.loanType = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       name = Value(name),
+       groupType = Value(groupType),
+       totalPrincipal = Value(totalPrincipal),
+       paymentDay = Value(paymentDay),
+       startDate = Value(startDate);
+  static Insertable<LoanGroup> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<String>? name,
+    Expression<String>? groupType,
+    Expression<int>? totalPrincipal,
+    Expression<int>? paymentDay,
+    Expression<DateTime>? startDate,
+    Expression<String>? accountId,
+    Expression<String>? loanType,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (name != null) 'name': name,
+      if (groupType != null) 'group_type': groupType,
+      if (totalPrincipal != null) 'total_principal': totalPrincipal,
+      if (paymentDay != null) 'payment_day': paymentDay,
+      if (startDate != null) 'start_date': startDate,
+      if (accountId != null) 'account_id': accountId,
+      if (loanType != null) 'loan_type': loanType,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LoanGroupsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<String>? name,
+    Value<String>? groupType,
+    Value<int>? totalPrincipal,
+    Value<int>? paymentDay,
+    Value<DateTime>? startDate,
+    Value<String>? accountId,
+    Value<String>? loanType,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<int>? rowid,
+  }) {
+    return LoanGroupsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      groupType: groupType ?? this.groupType,
+      totalPrincipal: totalPrincipal ?? this.totalPrincipal,
+      paymentDay: paymentDay ?? this.paymentDay,
+      startDate: startDate ?? this.startDate,
+      accountId: accountId ?? this.accountId,
+      loanType: loanType ?? this.loanType,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (groupType.present) {
+      map['group_type'] = Variable<String>(groupType.value);
+    }
+    if (totalPrincipal.present) {
+      map['total_principal'] = Variable<int>(totalPrincipal.value);
+    }
+    if (paymentDay.present) {
+      map['payment_day'] = Variable<int>(paymentDay.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<String>(accountId.value);
+    }
+    if (loanType.present) {
+      map['loan_type'] = Variable<String>(loanType.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LoanGroupsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('name: $name, ')
+          ..write('groupType: $groupType, ')
+          ..write('totalPrincipal: $totalPrincipal, ')
+          ..write('paymentDay: $paymentDay, ')
+          ..write('startDate: $startDate, ')
+          ..write('accountId: $accountId, ')
+          ..write('loanType: $loanType, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $LoansTable extends Loans with TableInfo<$LoansTable, Loan> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -5724,6 +6431,78 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, Loan> {
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _groupIdMeta = const VerificationMeta(
+    'groupId',
+  );
+  @override
+  late final GeneratedColumn<String> groupId = GeneratedColumn<String>(
+    'group_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _subTypeMeta = const VerificationMeta(
+    'subType',
+  );
+  @override
+  late final GeneratedColumn<String> subType = GeneratedColumn<String>(
+    'sub_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _rateTypeMeta = const VerificationMeta(
+    'rateType',
+  );
+  @override
+  late final GeneratedColumn<String> rateType = GeneratedColumn<String>(
+    'rate_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('fixed'),
+  );
+  static const VerificationMeta _lprBaseMeta = const VerificationMeta(
+    'lprBase',
+  );
+  @override
+  late final GeneratedColumn<double> lprBase = GeneratedColumn<double>(
+    'lpr_base',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _lprSpreadMeta = const VerificationMeta(
+    'lprSpread',
+  );
+  @override
+  late final GeneratedColumn<double> lprSpread = GeneratedColumn<double>(
+    'lpr_spread',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _rateAdjustMonthMeta = const VerificationMeta(
+    'rateAdjustMonth',
+  );
+  @override
+  late final GeneratedColumn<int> rateAdjustMonth = GeneratedColumn<int>(
+    'rate_adjust_month',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -5774,6 +6553,12 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, Loan> {
     paymentDay,
     startDate,
     accountId,
+    groupId,
+    subType,
+    rateType,
+    lprBase,
+    lprSpread,
+    rateAdjustMonth,
     createdAt,
     updatedAt,
     deletedAt,
@@ -5892,6 +6677,45 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, Loan> {
         accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
       );
     }
+    if (data.containsKey('group_id')) {
+      context.handle(
+        _groupIdMeta,
+        groupId.isAcceptableOrUnknown(data['group_id']!, _groupIdMeta),
+      );
+    }
+    if (data.containsKey('sub_type')) {
+      context.handle(
+        _subTypeMeta,
+        subType.isAcceptableOrUnknown(data['sub_type']!, _subTypeMeta),
+      );
+    }
+    if (data.containsKey('rate_type')) {
+      context.handle(
+        _rateTypeMeta,
+        rateType.isAcceptableOrUnknown(data['rate_type']!, _rateTypeMeta),
+      );
+    }
+    if (data.containsKey('lpr_base')) {
+      context.handle(
+        _lprBaseMeta,
+        lprBase.isAcceptableOrUnknown(data['lpr_base']!, _lprBaseMeta),
+      );
+    }
+    if (data.containsKey('lpr_spread')) {
+      context.handle(
+        _lprSpreadMeta,
+        lprSpread.isAcceptableOrUnknown(data['lpr_spread']!, _lprSpreadMeta),
+      );
+    }
+    if (data.containsKey('rate_adjust_month')) {
+      context.handle(
+        _rateAdjustMonthMeta,
+        rateAdjustMonth.isAcceptableOrUnknown(
+          data['rate_adjust_month']!,
+          _rateAdjustMonthMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -5971,6 +6795,30 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, Loan> {
         DriftSqlType.string,
         data['${effectivePrefix}account_id'],
       )!,
+      groupId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}group_id'],
+      )!,
+      subType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sub_type'],
+      )!,
+      rateType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rate_type'],
+      )!,
+      lprBase: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}lpr_base'],
+      )!,
+      lprSpread: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}lpr_spread'],
+      )!,
+      rateAdjustMonth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rate_adjust_month'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -6006,6 +6854,12 @@ class Loan extends DataClass implements Insertable<Loan> {
   final int paymentDay;
   final DateTime startDate;
   final String accountId;
+  final String groupId;
+  final String subType;
+  final String rateType;
+  final double lprBase;
+  final double lprSpread;
+  final int rateAdjustMonth;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -6023,6 +6877,12 @@ class Loan extends DataClass implements Insertable<Loan> {
     required this.paymentDay,
     required this.startDate,
     required this.accountId,
+    required this.groupId,
+    required this.subType,
+    required this.rateType,
+    required this.lprBase,
+    required this.lprSpread,
+    required this.rateAdjustMonth,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -6043,6 +6903,12 @@ class Loan extends DataClass implements Insertable<Loan> {
     map['payment_day'] = Variable<int>(paymentDay);
     map['start_date'] = Variable<DateTime>(startDate);
     map['account_id'] = Variable<String>(accountId);
+    map['group_id'] = Variable<String>(groupId);
+    map['sub_type'] = Variable<String>(subType);
+    map['rate_type'] = Variable<String>(rateType);
+    map['lpr_base'] = Variable<double>(lprBase);
+    map['lpr_spread'] = Variable<double>(lprSpread);
+    map['rate_adjust_month'] = Variable<int>(rateAdjustMonth);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
@@ -6066,6 +6932,12 @@ class Loan extends DataClass implements Insertable<Loan> {
       paymentDay: Value(paymentDay),
       startDate: Value(startDate),
       accountId: Value(accountId),
+      groupId: Value(groupId),
+      subType: Value(subType),
+      rateType: Value(rateType),
+      lprBase: Value(lprBase),
+      lprSpread: Value(lprSpread),
+      rateAdjustMonth: Value(rateAdjustMonth),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
@@ -6093,6 +6965,12 @@ class Loan extends DataClass implements Insertable<Loan> {
       paymentDay: serializer.fromJson<int>(json['paymentDay']),
       startDate: serializer.fromJson<DateTime>(json['startDate']),
       accountId: serializer.fromJson<String>(json['accountId']),
+      groupId: serializer.fromJson<String>(json['groupId']),
+      subType: serializer.fromJson<String>(json['subType']),
+      rateType: serializer.fromJson<String>(json['rateType']),
+      lprBase: serializer.fromJson<double>(json['lprBase']),
+      lprSpread: serializer.fromJson<double>(json['lprSpread']),
+      rateAdjustMonth: serializer.fromJson<int>(json['rateAdjustMonth']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -6115,6 +6993,12 @@ class Loan extends DataClass implements Insertable<Loan> {
       'paymentDay': serializer.toJson<int>(paymentDay),
       'startDate': serializer.toJson<DateTime>(startDate),
       'accountId': serializer.toJson<String>(accountId),
+      'groupId': serializer.toJson<String>(groupId),
+      'subType': serializer.toJson<String>(subType),
+      'rateType': serializer.toJson<String>(rateType),
+      'lprBase': serializer.toJson<double>(lprBase),
+      'lprSpread': serializer.toJson<double>(lprSpread),
+      'rateAdjustMonth': serializer.toJson<int>(rateAdjustMonth),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -6135,6 +7019,12 @@ class Loan extends DataClass implements Insertable<Loan> {
     int? paymentDay,
     DateTime? startDate,
     String? accountId,
+    String? groupId,
+    String? subType,
+    String? rateType,
+    double? lprBase,
+    double? lprSpread,
+    int? rateAdjustMonth,
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
@@ -6152,6 +7042,12 @@ class Loan extends DataClass implements Insertable<Loan> {
     paymentDay: paymentDay ?? this.paymentDay,
     startDate: startDate ?? this.startDate,
     accountId: accountId ?? this.accountId,
+    groupId: groupId ?? this.groupId,
+    subType: subType ?? this.subType,
+    rateType: rateType ?? this.rateType,
+    lprBase: lprBase ?? this.lprBase,
+    lprSpread: lprSpread ?? this.lprSpread,
+    rateAdjustMonth: rateAdjustMonth ?? this.rateAdjustMonth,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -6183,6 +7079,14 @@ class Loan extends DataClass implements Insertable<Loan> {
           : this.paymentDay,
       startDate: data.startDate.present ? data.startDate.value : this.startDate,
       accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      groupId: data.groupId.present ? data.groupId.value : this.groupId,
+      subType: data.subType.present ? data.subType.value : this.subType,
+      rateType: data.rateType.present ? data.rateType.value : this.rateType,
+      lprBase: data.lprBase.present ? data.lprBase.value : this.lprBase,
+      lprSpread: data.lprSpread.present ? data.lprSpread.value : this.lprSpread,
+      rateAdjustMonth: data.rateAdjustMonth.present
+          ? data.rateAdjustMonth.value
+          : this.rateAdjustMonth,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
@@ -6205,6 +7109,12 @@ class Loan extends DataClass implements Insertable<Loan> {
           ..write('paymentDay: $paymentDay, ')
           ..write('startDate: $startDate, ')
           ..write('accountId: $accountId, ')
+          ..write('groupId: $groupId, ')
+          ..write('subType: $subType, ')
+          ..write('rateType: $rateType, ')
+          ..write('lprBase: $lprBase, ')
+          ..write('lprSpread: $lprSpread, ')
+          ..write('rateAdjustMonth: $rateAdjustMonth, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt')
@@ -6213,7 +7123,7 @@ class Loan extends DataClass implements Insertable<Loan> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     userId,
     name,
@@ -6227,10 +7137,16 @@ class Loan extends DataClass implements Insertable<Loan> {
     paymentDay,
     startDate,
     accountId,
+    groupId,
+    subType,
+    rateType,
+    lprBase,
+    lprSpread,
+    rateAdjustMonth,
     createdAt,
     updatedAt,
     deletedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6248,6 +7164,12 @@ class Loan extends DataClass implements Insertable<Loan> {
           other.paymentDay == this.paymentDay &&
           other.startDate == this.startDate &&
           other.accountId == this.accountId &&
+          other.groupId == this.groupId &&
+          other.subType == this.subType &&
+          other.rateType == this.rateType &&
+          other.lprBase == this.lprBase &&
+          other.lprSpread == this.lprSpread &&
+          other.rateAdjustMonth == this.rateAdjustMonth &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt);
@@ -6267,6 +7189,12 @@ class LoansCompanion extends UpdateCompanion<Loan> {
   final Value<int> paymentDay;
   final Value<DateTime> startDate;
   final Value<String> accountId;
+  final Value<String> groupId;
+  final Value<String> subType;
+  final Value<String> rateType;
+  final Value<double> lprBase;
+  final Value<double> lprSpread;
+  final Value<int> rateAdjustMonth;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
@@ -6285,6 +7213,12 @@ class LoansCompanion extends UpdateCompanion<Loan> {
     this.paymentDay = const Value.absent(),
     this.startDate = const Value.absent(),
     this.accountId = const Value.absent(),
+    this.groupId = const Value.absent(),
+    this.subType = const Value.absent(),
+    this.rateType = const Value.absent(),
+    this.lprBase = const Value.absent(),
+    this.lprSpread = const Value.absent(),
+    this.rateAdjustMonth = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -6304,6 +7238,12 @@ class LoansCompanion extends UpdateCompanion<Loan> {
     required int paymentDay,
     required DateTime startDate,
     this.accountId = const Value.absent(),
+    this.groupId = const Value.absent(),
+    this.subType = const Value.absent(),
+    this.rateType = const Value.absent(),
+    this.lprBase = const Value.absent(),
+    this.lprSpread = const Value.absent(),
+    this.rateAdjustMonth = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -6331,6 +7271,12 @@ class LoansCompanion extends UpdateCompanion<Loan> {
     Expression<int>? paymentDay,
     Expression<DateTime>? startDate,
     Expression<String>? accountId,
+    Expression<String>? groupId,
+    Expression<String>? subType,
+    Expression<String>? rateType,
+    Expression<double>? lprBase,
+    Expression<double>? lprSpread,
+    Expression<int>? rateAdjustMonth,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -6350,6 +7296,12 @@ class LoansCompanion extends UpdateCompanion<Loan> {
       if (paymentDay != null) 'payment_day': paymentDay,
       if (startDate != null) 'start_date': startDate,
       if (accountId != null) 'account_id': accountId,
+      if (groupId != null) 'group_id': groupId,
+      if (subType != null) 'sub_type': subType,
+      if (rateType != null) 'rate_type': rateType,
+      if (lprBase != null) 'lpr_base': lprBase,
+      if (lprSpread != null) 'lpr_spread': lprSpread,
+      if (rateAdjustMonth != null) 'rate_adjust_month': rateAdjustMonth,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -6371,6 +7323,12 @@ class LoansCompanion extends UpdateCompanion<Loan> {
     Value<int>? paymentDay,
     Value<DateTime>? startDate,
     Value<String>? accountId,
+    Value<String>? groupId,
+    Value<String>? subType,
+    Value<String>? rateType,
+    Value<double>? lprBase,
+    Value<double>? lprSpread,
+    Value<int>? rateAdjustMonth,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
@@ -6390,6 +7348,12 @@ class LoansCompanion extends UpdateCompanion<Loan> {
       paymentDay: paymentDay ?? this.paymentDay,
       startDate: startDate ?? this.startDate,
       accountId: accountId ?? this.accountId,
+      groupId: groupId ?? this.groupId,
+      subType: subType ?? this.subType,
+      rateType: rateType ?? this.rateType,
+      lprBase: lprBase ?? this.lprBase,
+      lprSpread: lprSpread ?? this.lprSpread,
+      rateAdjustMonth: rateAdjustMonth ?? this.rateAdjustMonth,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -6439,6 +7403,24 @@ class LoansCompanion extends UpdateCompanion<Loan> {
     if (accountId.present) {
       map['account_id'] = Variable<String>(accountId.value);
     }
+    if (groupId.present) {
+      map['group_id'] = Variable<String>(groupId.value);
+    }
+    if (subType.present) {
+      map['sub_type'] = Variable<String>(subType.value);
+    }
+    if (rateType.present) {
+      map['rate_type'] = Variable<String>(rateType.value);
+    }
+    if (lprBase.present) {
+      map['lpr_base'] = Variable<double>(lprBase.value);
+    }
+    if (lprSpread.present) {
+      map['lpr_spread'] = Variable<double>(lprSpread.value);
+    }
+    if (rateAdjustMonth.present) {
+      map['rate_adjust_month'] = Variable<int>(rateAdjustMonth.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -6470,6 +7452,12 @@ class LoansCompanion extends UpdateCompanion<Loan> {
           ..write('paymentDay: $paymentDay, ')
           ..write('startDate: $startDate, ')
           ..write('accountId: $accountId, ')
+          ..write('groupId: $groupId, ')
+          ..write('subType: $subType, ')
+          ..write('rateType: $rateType, ')
+          ..write('lprBase: $lprBase, ')
+          ..write('lprSpread: $lprSpread, ')
+          ..write('rateAdjustMonth: $rateAdjustMonth, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -11455,6 +12443,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $NotificationsTable notifications = $NotificationsTable(this);
   late final $NotificationSettingsTableTable notificationSettingsTable =
       $NotificationSettingsTableTable(this);
+  late final $LoanGroupsTable loanGroups = $LoanGroupsTable(this);
   late final $LoansTable loans = $LoansTable(this);
   late final $LoanSchedulesTable loanSchedules = $LoanSchedulesTable(this);
   late final $LoanRateChangesTable loanRateChanges = $LoanRateChangesTable(
@@ -11489,6 +12478,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     categoryBudgetsTable,
     notifications,
     notificationSettingsTable,
+    loanGroups,
     loans,
     loanSchedules,
     loanRateChanges,
@@ -11556,6 +12546,24 @@ final class $$UsersTableReferences
     ).filter((f) => f.userId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_transactionsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$LoanGroupsTable, List<LoanGroup>>
+  _loanGroupsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.loanGroups,
+    aliasName: $_aliasNameGenerator(db.users.id, db.loanGroups.userId),
+  );
+
+  $$LoanGroupsTableProcessedTableManager get loanGroupsRefs {
+    final manager = $$LoanGroupsTableTableManager(
+      $_db,
+      $_db.loanGroups,
+    ).filter((f) => f.userId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_loanGroupsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -11686,6 +12694,31 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
           }) => $$TransactionsTableFilterComposer(
             $db: $db,
             $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> loanGroupsRefs(
+    Expression<bool> Function($$LoanGroupsTableFilterComposer f) f,
+  ) {
+    final $$LoanGroupsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.loanGroups,
+      getReferencedColumn: (t) => t.userId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LoanGroupsTableFilterComposer(
+            $db: $db,
+            $table: $db.loanGroups,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -11874,6 +12907,31 @@ class $$UsersTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> loanGroupsRefs<T extends Object>(
+    Expression<T> Function($$LoanGroupsTableAnnotationComposer a) f,
+  ) {
+    final $$LoanGroupsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.loanGroups,
+      getReferencedColumn: (t) => t.userId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LoanGroupsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.loanGroups,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> loansRefs<T extends Object>(
     Expression<T> Function($$LoansTableAnnotationComposer a) f,
   ) {
@@ -11966,6 +13024,7 @@ class $$UsersTableTableManager
           PrefetchHooks Function({
             bool accountsRefs,
             bool transactionsRefs,
+            bool loanGroupsRefs,
             bool loansRefs,
             bool investmentsRefs,
             bool fixedAssetsRefs,
@@ -12020,6 +13079,7 @@ class $$UsersTableTableManager
               ({
                 accountsRefs = false,
                 transactionsRefs = false,
+                loanGroupsRefs = false,
                 loansRefs = false,
                 investmentsRefs = false,
                 fixedAssetsRefs = false,
@@ -12029,6 +13089,7 @@ class $$UsersTableTableManager
                   explicitlyWatchedTables: [
                     if (accountsRefs) db.accounts,
                     if (transactionsRefs) db.transactions,
+                    if (loanGroupsRefs) db.loanGroups,
                     if (loansRefs) db.loans,
                     if (investmentsRefs) db.investments,
                     if (fixedAssetsRefs) db.fixedAssets,
@@ -12068,6 +13129,23 @@ class $$UsersTableTableManager
                                 table,
                                 p0,
                               ).transactionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.userId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (loanGroupsRefs)
+                        await $_getPrefetchedData<User, $UsersTable, LoanGroup>(
+                          currentTable: table,
+                          referencedTable: $$UsersTableReferences
+                              ._loanGroupsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$UsersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).loanGroupsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.userId == item.id,
@@ -12152,6 +13230,7 @@ typedef $$UsersTableProcessedTableManager =
       PrefetchHooks Function({
         bool accountsRefs,
         bool transactionsRefs,
+        bool loanGroupsRefs,
         bool loansRefs,
         bool investmentsRefs,
         bool fixedAssetsRefs,
@@ -16121,6 +17200,461 @@ typedef $$NotificationSettingsTableTableProcessedTableManager =
       NotificationSettingsTableData,
       PrefetchHooks Function()
     >;
+typedef $$LoanGroupsTableCreateCompanionBuilder =
+    LoanGroupsCompanion Function({
+      required String id,
+      required String userId,
+      required String name,
+      required String groupType,
+      required int totalPrincipal,
+      required int paymentDay,
+      required DateTime startDate,
+      Value<String> accountId,
+      Value<String> loanType,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> rowid,
+    });
+typedef $$LoanGroupsTableUpdateCompanionBuilder =
+    LoanGroupsCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<String> name,
+      Value<String> groupType,
+      Value<int> totalPrincipal,
+      Value<int> paymentDay,
+      Value<DateTime> startDate,
+      Value<String> accountId,
+      Value<String> loanType,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> rowid,
+    });
+
+final class $$LoanGroupsTableReferences
+    extends BaseReferences<_$AppDatabase, $LoanGroupsTable, LoanGroup> {
+  $$LoanGroupsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $UsersTable _userIdTable(_$AppDatabase db) => db.users.createAlias(
+    $_aliasNameGenerator(db.loanGroups.userId, db.users.id),
+  );
+
+  $$UsersTableProcessedTableManager get userId {
+    final $_column = $_itemColumn<String>('user_id')!;
+
+    final manager = $$UsersTableTableManager(
+      $_db,
+      $_db.users,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_userIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$LoanGroupsTableFilterComposer
+    extends Composer<_$AppDatabase, $LoanGroupsTable> {
+  $$LoanGroupsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get groupType => $composableBuilder(
+    column: $table.groupType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalPrincipal => $composableBuilder(
+    column: $table.totalPrincipal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get paymentDay => $composableBuilder(
+    column: $table.paymentDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get loanType => $composableBuilder(
+    column: $table.loanType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$UsersTableFilterComposer get userId {
+    final $$UsersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableFilterComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LoanGroupsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LoanGroupsTable> {
+  $$LoanGroupsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get groupType => $composableBuilder(
+    column: $table.groupType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalPrincipal => $composableBuilder(
+    column: $table.totalPrincipal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get paymentDay => $composableBuilder(
+    column: $table.paymentDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get loanType => $composableBuilder(
+    column: $table.loanType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$UsersTableOrderingComposer get userId {
+    final $$UsersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableOrderingComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LoanGroupsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LoanGroupsTable> {
+  $$LoanGroupsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get groupType =>
+      $composableBuilder(column: $table.groupType, builder: (column) => column);
+
+  GeneratedColumn<int> get totalPrincipal => $composableBuilder(
+    column: $table.totalPrincipal,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get paymentDay => $composableBuilder(
+    column: $table.paymentDay,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<String> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<String> get loanType =>
+      $composableBuilder(column: $table.loanType, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  $$UsersTableAnnotationComposer get userId {
+    final $$UsersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.userId,
+      referencedTable: $db.users,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UsersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.users,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LoanGroupsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LoanGroupsTable,
+          LoanGroup,
+          $$LoanGroupsTableFilterComposer,
+          $$LoanGroupsTableOrderingComposer,
+          $$LoanGroupsTableAnnotationComposer,
+          $$LoanGroupsTableCreateCompanionBuilder,
+          $$LoanGroupsTableUpdateCompanionBuilder,
+          (LoanGroup, $$LoanGroupsTableReferences),
+          LoanGroup,
+          PrefetchHooks Function({bool userId})
+        > {
+  $$LoanGroupsTableTableManager(_$AppDatabase db, $LoanGroupsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LoanGroupsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LoanGroupsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LoanGroupsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> groupType = const Value.absent(),
+                Value<int> totalPrincipal = const Value.absent(),
+                Value<int> paymentDay = const Value.absent(),
+                Value<DateTime> startDate = const Value.absent(),
+                Value<String> accountId = const Value.absent(),
+                Value<String> loanType = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LoanGroupsCompanion(
+                id: id,
+                userId: userId,
+                name: name,
+                groupType: groupType,
+                totalPrincipal: totalPrincipal,
+                paymentDay: paymentDay,
+                startDate: startDate,
+                accountId: accountId,
+                loanType: loanType,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required String name,
+                required String groupType,
+                required int totalPrincipal,
+                required int paymentDay,
+                required DateTime startDate,
+                Value<String> accountId = const Value.absent(),
+                Value<String> loanType = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LoanGroupsCompanion.insert(
+                id: id,
+                userId: userId,
+                name: name,
+                groupType: groupType,
+                totalPrincipal: totalPrincipal,
+                paymentDay: paymentDay,
+                startDate: startDate,
+                accountId: accountId,
+                loanType: loanType,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$LoanGroupsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({userId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (userId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.userId,
+                                referencedTable: $$LoanGroupsTableReferences
+                                    ._userIdTable(db),
+                                referencedColumn: $$LoanGroupsTableReferences
+                                    ._userIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$LoanGroupsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LoanGroupsTable,
+      LoanGroup,
+      $$LoanGroupsTableFilterComposer,
+      $$LoanGroupsTableOrderingComposer,
+      $$LoanGroupsTableAnnotationComposer,
+      $$LoanGroupsTableCreateCompanionBuilder,
+      $$LoanGroupsTableUpdateCompanionBuilder,
+      (LoanGroup, $$LoanGroupsTableReferences),
+      LoanGroup,
+      PrefetchHooks Function({bool userId})
+    >;
 typedef $$LoansTableCreateCompanionBuilder =
     LoansCompanion Function({
       required String id,
@@ -16136,6 +17670,12 @@ typedef $$LoansTableCreateCompanionBuilder =
       required int paymentDay,
       required DateTime startDate,
       Value<String> accountId,
+      Value<String> groupId,
+      Value<String> subType,
+      Value<String> rateType,
+      Value<double> lprBase,
+      Value<double> lprSpread,
+      Value<int> rateAdjustMonth,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
@@ -16156,6 +17696,12 @@ typedef $$LoansTableUpdateCompanionBuilder =
       Value<int> paymentDay,
       Value<DateTime> startDate,
       Value<String> accountId,
+      Value<String> groupId,
+      Value<String> subType,
+      Value<String> rateType,
+      Value<double> lprBase,
+      Value<double> lprSpread,
+      Value<int> rateAdjustMonth,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
@@ -16287,6 +17833,36 @@ class $$LoansTableFilterComposer extends Composer<_$AppDatabase, $LoansTable> {
 
   ColumnFilters<String> get accountId => $composableBuilder(
     column: $table.accountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get groupId => $composableBuilder(
+    column: $table.groupId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get subType => $composableBuilder(
+    column: $table.subType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rateType => $composableBuilder(
+    column: $table.rateType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get lprBase => $composableBuilder(
+    column: $table.lprBase,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get lprSpread => $composableBuilder(
+    column: $table.lprSpread,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rateAdjustMonth => $composableBuilder(
+    column: $table.rateAdjustMonth,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16448,6 +18024,36 @@ class $$LoansTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get groupId => $composableBuilder(
+    column: $table.groupId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get subType => $composableBuilder(
+    column: $table.subType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rateType => $composableBuilder(
+    column: $table.rateType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get lprBase => $composableBuilder(
+    column: $table.lprBase,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get lprSpread => $composableBuilder(
+    column: $table.lprSpread,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rateAdjustMonth => $composableBuilder(
+    column: $table.rateAdjustMonth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -16543,6 +18149,26 @@ class $$LoansTableAnnotationComposer
 
   GeneratedColumn<String> get accountId =>
       $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<String> get groupId =>
+      $composableBuilder(column: $table.groupId, builder: (column) => column);
+
+  GeneratedColumn<String> get subType =>
+      $composableBuilder(column: $table.subType, builder: (column) => column);
+
+  GeneratedColumn<String> get rateType =>
+      $composableBuilder(column: $table.rateType, builder: (column) => column);
+
+  GeneratedColumn<double> get lprBase =>
+      $composableBuilder(column: $table.lprBase, builder: (column) => column);
+
+  GeneratedColumn<double> get lprSpread =>
+      $composableBuilder(column: $table.lprSpread, builder: (column) => column);
+
+  GeneratedColumn<int> get rateAdjustMonth => $composableBuilder(
+    column: $table.rateAdjustMonth,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -16672,6 +18298,12 @@ class $$LoansTableTableManager
                 Value<int> paymentDay = const Value.absent(),
                 Value<DateTime> startDate = const Value.absent(),
                 Value<String> accountId = const Value.absent(),
+                Value<String> groupId = const Value.absent(),
+                Value<String> subType = const Value.absent(),
+                Value<String> rateType = const Value.absent(),
+                Value<double> lprBase = const Value.absent(),
+                Value<double> lprSpread = const Value.absent(),
+                Value<int> rateAdjustMonth = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -16690,6 +18322,12 @@ class $$LoansTableTableManager
                 paymentDay: paymentDay,
                 startDate: startDate,
                 accountId: accountId,
+                groupId: groupId,
+                subType: subType,
+                rateType: rateType,
+                lprBase: lprBase,
+                lprSpread: lprSpread,
+                rateAdjustMonth: rateAdjustMonth,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -16710,6 +18348,12 @@ class $$LoansTableTableManager
                 required int paymentDay,
                 required DateTime startDate,
                 Value<String> accountId = const Value.absent(),
+                Value<String> groupId = const Value.absent(),
+                Value<String> subType = const Value.absent(),
+                Value<String> rateType = const Value.absent(),
+                Value<double> lprBase = const Value.absent(),
+                Value<double> lprSpread = const Value.absent(),
+                Value<int> rateAdjustMonth = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -16728,6 +18372,12 @@ class $$LoansTableTableManager
                 paymentDay: paymentDay,
                 startDate: startDate,
                 accountId: accountId,
+                groupId: groupId,
+                subType: subType,
+                rateType: rateType,
+                lprBase: lprBase,
+                lprSpread: lprSpread,
+                rateAdjustMonth: rateAdjustMonth,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -20604,6 +22254,8 @@ class $AppDatabaseManager {
         _db,
         _db.notificationSettingsTable,
       );
+  $$LoanGroupsTableTableManager get loanGroups =>
+      $$LoanGroupsTableTableManager(_db, _db.loanGroups);
   $$LoansTableTableManager get loans =>
       $$LoansTableTableManager(_db, _db.loans);
   $$LoanSchedulesTableTableManager get loanSchedules =>
