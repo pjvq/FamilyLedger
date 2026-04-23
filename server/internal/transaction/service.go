@@ -308,7 +308,10 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 	// Balance is always in CNY, so we must use amountCny (not raw amount)
 	var oldAmountCny int64 = amountCny
 	var newAmountCny int64
-	if currency == "CNY" || currency == "" {
+	if newAmount == oldAmount && newType == oldType {
+		// Nothing changed that affects balance — skip recalc entirely
+		newAmountCny = oldAmountCny
+	} else if currency == "CNY" || currency == "" {
 		newAmountCny = newAmount
 	} else {
 		newAmountCny = int64(float64(newAmount) * exchangeRate)
