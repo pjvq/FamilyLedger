@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/exchange_rate_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
+import '../../domain/providers/dashboard_provider.dart';
+import '../../domain/providers/account_provider.dart';
 import 'widgets/number_pad.dart';
 import 'widgets/category_grid.dart';
 
@@ -527,6 +529,10 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
         );
 
     HapticFeedback.mediumImpact();
+
+    // 记账成功后刷新 Dashboard 和 Account
+    ref.read(dashboardProvider.notifier).loadAll();
+    ref.read(accountProvider.notifier).refresh();
 
     if (mounted) {
       Navigator.of(context).pop();

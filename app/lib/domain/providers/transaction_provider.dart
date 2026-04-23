@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as dev;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
@@ -146,8 +147,9 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           ..txnDate = _toTimestamp(txnDate0);
         await _txnClient.createTransaction(req);
       }
-    } catch (_) {
+    } catch (e) {
       // 服务端推送失败，加入同步队列
+      dev.log('TransactionNotifier: createTransaction failed: $e', name: 'txn');
       await _db.insertSyncOp(SyncQueueCompanion.insert(
         id: _uuid.v4(),
         entityType: 'transaction',

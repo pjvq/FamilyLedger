@@ -2,10 +2,14 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:drift/drift.dart' show Value;
 import '../../core/constants/app_constants.dart';
 import '../../data/local/database.dart';
 import '../../data/remote/grpc_clients.dart';
 import '../../generated/proto/auth.pbgrpc.dart';
+import '../../generated/proto/account.pb.dart' as acc_pb;
+import '../../generated/proto/transaction.pb.dart' as txn_pb;
+import '../../generated/proto/transaction.pbenum.dart' as txn_enum;
 import 'app_providers.dart';
 
 /// 认证状态
@@ -136,6 +140,45 @@ class AuthNotifier extends StateNotifier<AuthState> {
             email: email,
           ));
 
+      // 先同步账户和分类，再设置 userId 触发 provider rebuild
+      // 这样 TransactionNotifier rebuild 时分类已是服务端的
+
+      // 登录成功后同步服务端账户到本地
+      try {
+        final accClient = _ref.read(accountClientProvider);
+        final accResp = await accClient.listAccounts(acc_pb.ListAccountsRequest());
+        for (final a in accResp.accounts) {
+          await _db.into(_db.accounts).insertOnConflictUpdate(
+            AccountsCompanion.insert(
+              id: a.id,
+              userId: a.userId,
+              name: a.name,
+            ),
+          );
+        }
+      } catch (_) {}
+
+      // 同步服务端分类到本地（替换本地预设分类）
+      try {
+        final txnClient = _ref.read(transactionClientProvider);
+        final catResp = await txnClient.getCategories(txn_pb.GetCategoriesRequest());
+        await (_db.delete(_db.categories)..where((c) => c.isPreset.equals(true))).go();
+        for (final c in catResp.categories) {
+          final typeStr = c.type == txn_enum.TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense';
+          await _db.into(_db.categories).insertOnConflictUpdate(
+            CategoriesCompanion.insert(
+              id: c.id,
+              name: c.name,
+              icon: c.icon,
+              type: typeStr,
+              isPreset: const Value(true),
+              sortOrder: Value(c.sortOrder),
+            ),
+          );
+        }
+      } catch (_) {}
+
+      // 最后设置 userId 触发 UI rebuild
       _ref.read(currentUserIdProvider.notifier).state = resp.userId;
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
     } on GrpcError {
