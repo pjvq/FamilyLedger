@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../data/local/database.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/auth/register_page.dart';
 import '../../features/home/home_page.dart';
@@ -71,7 +72,8 @@ class AppRouter {
       case home:
         return _fade(const HomePage());
       case addTransaction:
-        return _slideUp(const AddTransactionPage());
+        final txn = settings.arguments as Transaction?;
+        return _slideUp(AddTransactionPage(existingTransaction: txn));
       case AppRouter.settings:
         return _slide(const SettingsPage());
       case familyMembers:

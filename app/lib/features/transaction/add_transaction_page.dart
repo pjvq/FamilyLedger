@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/local/database.dart';
 import '../../domain/providers/exchange_rate_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
@@ -13,7 +14,10 @@ import 'widgets/number_pad.dart';
 import 'widgets/category_grid.dart';
 
 class AddTransactionPage extends ConsumerStatefulWidget {
-  const AddTransactionPage({super.key});
+  /// 传入已有 transaction 时进入编辑模式
+  final Transaction? existingTransaction;
+
+  const AddTransactionPage({super.key, this.existingTransaction});
 
   @override
   ConsumerState<AddTransactionPage> createState() =>
@@ -44,6 +48,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   // Show detail panel
   bool _showDetails = false;
 
+  bool get _isEditMode => widget.existingTransaction != null;
+
   @override
   void initState() {
     super.initState();
@@ -51,6 +57,39 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     _tabController.addListener(() => setState(() {
           _selectedCategoryId = null;
         }));
+
+    // 编辑模式：预填已有数据
+    final txn = widget.existingTransaction;
+    if (txn != null) {
+      // 金额：分→元
+      final yuan = txn.amount / 100;
+      _amountStr = yuan == yuan.truncateToDouble()
+          ? '${yuan.toInt()}'
+          : yuan.toStringAsFixed(2);
+      _selectedCategoryId = txn.categoryId;
+      _selectedCurrency = txn.currency;
+      _noteController.text = txn.note;
+      if (txn.tags.isNotEmpty) {
+        try {
+          _tags.addAll(List<String>.from(jsonDecode(txn.tags)));
+        } catch (_) {
+          // tags 不是 JSON，当作单个标签
+          _tags.add(txn.tags);
+        }
+      }
+      if (txn.imageUrls.isNotEmpty) {
+        try {
+          _imagePaths.addAll(List<String>.from(jsonDecode(txn.imageUrls)));
+        } catch (_) {}
+      }
+      _showDetails = _noteController.text.isNotEmpty ||
+          _tags.isNotEmpty ||
+          _imagePaths.isNotEmpty;
+      // 设置 tab（收入 or 支出）
+      if (txn.type == 'income') {
+        _tabController.index = 1;
+      }
+    }
   }
 
   @override
@@ -78,7 +117,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
           tooltip: '关闭',
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('记一笔'),
+        title: Text(_isEditMode ? '编辑交易' : '记一笔'),
         bottom: TabBar(
           controller: _tabController,
           indicatorSize: TabBarIndicatorSize.label,
@@ -517,25 +556,41 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     final rateNotifier = ref.read(exchangeRateProvider.notifier);
     final amountCny = rateNotifier.toCny(cents, _selectedCurrency);
 
-    await ref.read(transactionProvider.notifier).addTransaction(
-          categoryId: _selectedCategoryId!,
-          amount: cents,
-          type: _type,
-          note: _noteController.text.trim(),
-          currency: _selectedCurrency,
-          amountCny: amountCny,
-          tags: _tags.isNotEmpty ? jsonEncode(_tags) : '',
-          imageUrls: _imagePaths.isNotEmpty ? jsonEncode(_imagePaths) : '',
-        );
+    if (_isEditMode) {
+      // 编辑模式：更新已有交易
+      await ref.read(transactionProvider.notifier).updateTransaction(
+            id: widget.existingTransaction!.id,
+            categoryId: _selectedCategoryId!,
+            amount: cents,
+            type: _type,
+            note: _noteController.text.trim(),
+            currency: _selectedCurrency,
+            amountCny: amountCny,
+            tags: _tags.isNotEmpty ? jsonEncode(_tags) : '',
+            imageUrls: _imagePaths.isNotEmpty ? jsonEncode(_imagePaths) : '',
+          );
+    } else {
+      // 新建模式：创建交易
+      await ref.read(transactionProvider.notifier).addTransaction(
+            categoryId: _selectedCategoryId!,
+            amount: cents,
+            type: _type,
+            note: _noteController.text.trim(),
+            currency: _selectedCurrency,
+            amountCny: amountCny,
+            tags: _tags.isNotEmpty ? jsonEncode(_tags) : '',
+            imageUrls: _imagePaths.isNotEmpty ? jsonEncode(_imagePaths) : '',
+          );
+    }
 
     HapticFeedback.mediumImpact();
 
-    // 记账成功后刷新 Dashboard 和 Account
+    // 记账/编辑成功后刷新 Dashboard 和 Account
     ref.read(dashboardProvider.notifier).loadAll();
     ref.read(accountProvider.notifier).refresh();
 
     if (mounted) {
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(_isEditMode ? true : null);
     }
   }
 }

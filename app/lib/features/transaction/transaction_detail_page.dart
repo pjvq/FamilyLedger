@@ -53,10 +53,12 @@ class TransactionDetailPage extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: '编辑',
-            onPressed: () {
-              // TODO: AddTransactionPage 编辑模式，暂时只导航
-              Navigator.of(context)
+            onPressed: () async {
+              final edited = await Navigator.of(context)
                   .pushNamed(AppRouter.addTransaction, arguments: txn);
+              if (edited == true && context.mounted) {
+                Navigator.of(context).pop(); // 编辑成功，返回列表（stream 会自动刷新）
+              }
             },
           ),
         ],
