@@ -413,7 +413,8 @@ class TransactionDetailPage extends ConsumerWidget {
       final decoded = jsonDecode(tags);
       if (decoded is List) return decoded.cast<String>();
     } catch (_) {}
-    return [];
+    // Fallback: comma-separated or single tag
+    return tags.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
   }
 
   List<String> _parseImageUrls(String urls) {
