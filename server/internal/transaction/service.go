@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -156,6 +157,263 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 			ImageUrls:    imageURLs,
 		},
 	}, nil
+}
+
+func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransactionRequest) (*pb.UpdateTransactionResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "invalid user id")
+	}
+
+	txnID, err := uuid.Parse(req.TransactionId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid transaction_id")
+	}
+
+	// Begin DB transaction
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to begin transaction")
+	}
+	defer tx.Rollback(ctx)
+
+	// Fetch existing transaction and verify ownership
+	var ownerID, accountID, categoryID uuid.UUID
+	var oldAmount int64
+	var oldType, currency, note string
+	var oldTags []string
+	var exchangeRate float64
+	var amountCny int64
+	err = tx.QueryRow(ctx,
+		`SELECT user_id, account_id, category_id, amount, type, currency, note, tags, exchange_rate, amount_cny
+		 FROM transactions WHERE id = $1 AND deleted_at IS NULL`,
+		txnID,
+	).Scan(&ownerID, &accountID, &categoryID, &oldAmount, &oldType, &currency, &note, &oldTags, &exchangeRate, &amountCny)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "transaction not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to query transaction")
+	}
+
+	if ownerID != uid {
+		return nil, status.Error(codes.PermissionDenied, "transaction does not belong to user")
+	}
+
+	// Build dynamic UPDATE
+	setClauses := []string{"updated_at = NOW()"}
+	args := []interface{}{}
+	argIdx := 1
+
+	newAmount := oldAmount
+	newType := oldType
+
+	if req.Amount != nil {
+		if *req.Amount <= 0 {
+			return nil, status.Error(codes.InvalidArgument, "amount must be positive")
+		}
+		newAmount = *req.Amount
+		args = append(args, newAmount)
+		setClauses = append(setClauses, fmt.Sprintf("amount = $%d", argIdx))
+		argIdx++
+	}
+
+	if req.CategoryId != nil {
+		newCatID, err := uuid.Parse(*req.CategoryId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid category_id")
+		}
+		// Verify category exists
+		var exists bool
+		err = tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1)", newCatID).Scan(&exists)
+		if err != nil || !exists {
+			return nil, status.Error(codes.InvalidArgument, "category not found")
+		}
+		args = append(args, newCatID)
+		setClauses = append(setClauses, fmt.Sprintf("category_id = $%d", argIdx))
+		argIdx++
+	}
+
+	if req.Note != nil {
+		args = append(args, *req.Note)
+		setClauses = append(setClauses, fmt.Sprintf("note = $%d", argIdx))
+		argIdx++
+	}
+
+	if req.Tags != nil {
+		// Tags is a comma-separated string in proto, convert to array
+		var tagsArr []string
+		if *req.Tags != "" {
+			for _, t := range strings.Split(*req.Tags, ",") {
+				if trimmed := strings.TrimSpace(t); trimmed != "" {
+					tagsArr = append(tagsArr, trimmed)
+				}
+			}
+		}
+		if tagsArr == nil {
+			tagsArr = []string{}
+		}
+		args = append(args, tagsArr)
+		setClauses = append(setClauses, fmt.Sprintf("tags = $%d", argIdx))
+		argIdx++
+	}
+
+	if req.Type != nil {
+		switch *req.Type {
+		case pb.TransactionType_TRANSACTION_TYPE_INCOME:
+			newType = "income"
+		case pb.TransactionType_TRANSACTION_TYPE_EXPENSE:
+			newType = "expense"
+		default:
+			return nil, status.Error(codes.InvalidArgument, "invalid transaction type")
+		}
+		args = append(args, newType)
+		setClauses = append(setClauses, fmt.Sprintf("type = $%d::transaction_type", argIdx))
+		argIdx++
+	}
+
+	if req.Currency != nil {
+		args = append(args, *req.Currency)
+		setClauses = append(setClauses, fmt.Sprintf("currency = $%d", argIdx))
+		argIdx++
+	}
+
+	// Execute UPDATE
+	args = append(args, txnID)
+	query := fmt.Sprintf("UPDATE transactions SET %s WHERE id = $%d AND deleted_at IS NULL",
+		strings.Join(setClauses, ", "), argIdx)
+	_, err = tx.Exec(ctx, query, args...)
+	if err != nil {
+		log.Printf("transaction: update error: %v", err)
+		return nil, status.Error(codes.Internal, "failed to update transaction")
+	}
+
+	// Recalculate account balance: revert old amount, apply new amount
+	var oldDelta, newDelta int64
+	if oldType == "income" {
+		oldDelta = oldAmount
+	} else {
+		oldDelta = -oldAmount
+	}
+	if newType == "income" {
+		newDelta = newAmount
+	} else {
+		newDelta = -newAmount
+	}
+	balanceAdjust := newDelta - oldDelta
+	if balanceAdjust != 0 {
+		_, err = tx.Exec(ctx,
+			"UPDATE accounts SET balance = balance + $1, updated_at = NOW() WHERE id = $2",
+			balanceAdjust, accountID,
+		)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to update account balance")
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, status.Error(codes.Internal, "failed to commit transaction")
+	}
+
+	// Fetch the updated transaction to return
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, created_at, updated_at, tags, image_urls
+		 FROM transactions WHERE id = $1`,
+		txnID,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to fetch updated transaction")
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, status.Error(codes.Internal, "updated transaction not found")
+	}
+	txn, err := scanTransaction(rows)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to scan updated transaction")
+	}
+
+	return &pb.UpdateTransactionResponse{Transaction: txn}, nil
+}
+
+func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransactionRequest) (*pb.DeleteTransactionResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "invalid user id")
+	}
+
+	txnID, err := uuid.Parse(req.TransactionId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid transaction_id")
+	}
+
+	// Begin DB transaction
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to begin transaction")
+	}
+	defer tx.Rollback(ctx)
+
+	// Fetch existing transaction and verify ownership
+	var ownerID, accountID uuid.UUID
+	var amount int64
+	var txnType string
+	err = tx.QueryRow(ctx,
+		`SELECT user_id, account_id, amount, type
+		 FROM transactions WHERE id = $1 AND deleted_at IS NULL`,
+		txnID,
+	).Scan(&ownerID, &accountID, &amount, &txnType)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "transaction not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to query transaction")
+	}
+
+	if ownerID != uid {
+		return nil, status.Error(codes.PermissionDenied, "transaction does not belong to user")
+	}
+
+	// Soft delete
+	_, err = tx.Exec(ctx,
+		"UPDATE transactions SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1",
+		txnID,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to delete transaction")
+	}
+
+	// Revert account balance
+	var balanceRevert int64
+	if txnType == "income" {
+		balanceRevert = -amount // undo income: subtract
+	} else {
+		balanceRevert = amount // undo expense: add back
+	}
+	_, err = tx.Exec(ctx,
+		"UPDATE accounts SET balance = balance + $1, updated_at = NOW() WHERE id = $2",
+		balanceRevert, accountID,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to update account balance")
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, status.Error(codes.Internal, "failed to commit transaction")
+	}
+
+	return &pb.DeleteTransactionResponse{}, nil
 }
 
 func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactionsRequest) (*pb.ListTransactionsResponse, error) {

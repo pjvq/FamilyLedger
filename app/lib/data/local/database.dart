@@ -221,6 +221,17 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteTransaction(String id) =>
       (delete(transactions)..where((t) => t.id.equals(id))).go();
 
+  /// 根据 ID 查找单条交易
+  Future<Transaction?> getTransactionById(String id) =>
+      (select(transactions)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  /// 更新交易的指定字段
+  Future<void> updateTransactionFields(
+      String id, TransactionsCompanion entry) async {
+    await (update(transactions)..where((t) => t.id.equals(id)))
+        .write(entry);
+  }
+
   Stream<List<Transaction>> watchTransactions(String userId) =>
       (select(transactions)
             ..where((t) => t.userId.equals(userId))

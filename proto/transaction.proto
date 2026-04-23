@@ -8,6 +8,8 @@ import "google/protobuf/timestamp.proto";
 
 service TransactionService {
   rpc CreateTransaction(CreateTransactionRequest) returns (CreateTransactionResponse);
+  rpc UpdateTransaction(UpdateTransactionRequest) returns (UpdateTransactionResponse);
+  rpc DeleteTransaction(DeleteTransactionRequest) returns (DeleteTransactionResponse);
   rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
   rpc GetCategories(GetCategoriesRequest) returns (GetCategoriesResponse);
 }
@@ -76,6 +78,26 @@ message ListTransactionsResponse {
   string next_page_token = 2;
   int32 total_count = 3;
 }
+
+message UpdateTransactionRequest {
+  string transaction_id = 1;
+  optional int64 amount = 2;          // 金额(分)
+  optional string category_id = 3;
+  optional string note = 4;
+  optional string tags = 5;
+  optional TransactionType type = 6;
+  optional string currency = 7;
+}
+
+message UpdateTransactionResponse {
+  Transaction transaction = 1;
+}
+
+message DeleteTransactionRequest {
+  string transaction_id = 1;
+}
+
+message DeleteTransactionResponse {}
 
 message GetCategoriesRequest {
   TransactionType type = 1;  // 可选，按类型过滤

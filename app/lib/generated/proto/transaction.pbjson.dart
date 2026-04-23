@@ -162,6 +162,73 @@ final $typed_data.Uint8List listTransactionsResponseDescriptor = $convert.base64
     'dF9wYWdlX3Rva2VuGAIgASgJUg1uZXh0UGFnZVRva2VuEh8KC3RvdGFsX2NvdW50GAMgASgFUg'
     'p0b3RhbENvdW50');
 
+@$core.Deprecated('Use updateTransactionRequestDescriptor instead')
+const UpdateTransactionRequest$json = {
+  '1': 'UpdateTransactionRequest',
+  '2': [
+    {'1': 'transaction_id', '3': 1, '4': 1, '5': 9, '10': 'transactionId'},
+    {'1': 'amount', '3': 2, '4': 1, '5': 3, '9': 0, '10': 'amount', '17': true},
+    {'1': 'category_id', '3': 3, '4': 1, '5': 9, '9': 1, '10': 'categoryId', '17': true},
+    {'1': 'note', '3': 4, '4': 1, '5': 9, '9': 2, '10': 'note', '17': true},
+    {'1': 'tags', '3': 5, '4': 1, '5': 9, '9': 3, '10': 'tags', '17': true},
+    {'1': 'type', '3': 6, '4': 1, '5': 14, '6': '.familyledger.transaction.v1.TransactionType', '9': 4, '10': 'type', '17': true},
+    {'1': 'currency', '3': 7, '4': 1, '5': 9, '9': 5, '10': 'currency', '17': true},
+  ],
+  '8': [
+    {'1': '_amount'},
+    {'1': '_category_id'},
+    {'1': '_note'},
+    {'1': '_tags'},
+    {'1': '_type'},
+    {'1': '_currency'},
+  ],
+};
+
+/// Descriptor for `UpdateTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List updateTransactionRequestDescriptor = $convert.base64Decode(
+    'ChhVcGRhdGVUcmFuc2FjdGlvblJlcXVlc3QSJQoOdHJhbnNhY3Rpb25faWQYASABKAlSDXRyYW'
+    '5zYWN0aW9uSWQSGwoGYW1vdW50GAIgASgDSABSBmFtb3VudIgBARIkCgtjYXRlZ29yeV9pZBgD'
+    'IAEoCUgBUgpjYXRlZ29yeUlkiAEBEhcKBG5vdGUYBCABKAlIAlIEbm90ZYgBARIXCgR0YWdzGA'
+    'UgASgJSANSBHRhZ3OIAQESRQoEdHlwZRgGIAEoDjIsLmZhbWlseWxlZGdlci50cmFuc2FjdGlv'
+    'bi52MS5UcmFuc2FjdGlvblR5cGVIBFIEdHlwZYgBARIfCghjdXJyZW5jeRgHIAEoCUgFUghjdX'
+    'JyZW5jeYgBAUIJCgdfYW1vdW50Qg4KDF9jYXRlZ29yeV9pZEIHCgVfbm90ZUIHCgVfdGFnc0IH'
+    'CgVfdHlwZUILCglfY3VycmVuY3k=');
+
+@$core.Deprecated('Use updateTransactionResponseDescriptor instead')
+const UpdateTransactionResponse$json = {
+  '1': 'UpdateTransactionResponse',
+  '2': [
+    {'1': 'transaction', '3': 1, '4': 1, '5': 11, '6': '.familyledger.transaction.v1.Transaction', '10': 'transaction'},
+  ],
+};
+
+/// Descriptor for `UpdateTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List updateTransactionResponseDescriptor = $convert.base64Decode(
+    'ChlVcGRhdGVUcmFuc2FjdGlvblJlc3BvbnNlEkoKC3RyYW5zYWN0aW9uGAEgASgLMiguZmFtaW'
+    'x5bGVkZ2VyLnRyYW5zYWN0aW9uLnYxLlRyYW5zYWN0aW9uUgt0cmFuc2FjdGlvbg==');
+
+@$core.Deprecated('Use deleteTransactionRequestDescriptor instead')
+const DeleteTransactionRequest$json = {
+  '1': 'DeleteTransactionRequest',
+  '2': [
+    {'1': 'transaction_id', '3': 1, '4': 1, '5': 9, '10': 'transactionId'},
+  ],
+};
+
+/// Descriptor for `DeleteTransactionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteTransactionRequestDescriptor = $convert.base64Decode(
+    'ChhEZWxldGVUcmFuc2FjdGlvblJlcXVlc3QSJQoOdHJhbnNhY3Rpb25faWQYASABKAlSDXRyYW'
+    '5zYWN0aW9uSWQ=');
+
+@$core.Deprecated('Use deleteTransactionResponseDescriptor instead')
+const DeleteTransactionResponse$json = {
+  '1': 'DeleteTransactionResponse',
+};
+
+/// Descriptor for `DeleteTransactionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteTransactionResponseDescriptor = $convert.base64Decode(
+    'ChlEZWxldGVUcmFuc2FjdGlvblJlc3BvbnNl');
+
 @$core.Deprecated('Use getCategoriesRequestDescriptor instead')
 const GetCategoriesRequest$json = {
   '1': 'GetCategoriesRequest',

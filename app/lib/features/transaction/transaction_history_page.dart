@@ -6,6 +6,9 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/transaction_provider.dart';
+import '../../domain/providers/dashboard_provider.dart';
+import '../../domain/providers/account_provider.dart';
+import 'transaction_detail_page.dart';
 
 /// 交易历史页面 — 高性能分组列表，支持下拉刷新 / 上拉加载 / 滑动删除
 class TransactionHistoryPage extends ConsumerStatefulWidget {
@@ -148,11 +151,27 @@ class _TransactionHistoryPageState
             return _DateHeader(date: item.date, isDark: isDark);
           }
           final txnItem = item as _TransactionItem;
+          final txnCategory = categoryMap[txnItem.transaction.categoryId];
           return _TransactionRow(
             transaction: txnItem.transaction,
-            category: categoryMap[txnItem.transaction.categoryId],
+            category: txnCategory,
             isDark: isDark,
-            onDismissed: () => _deleteTransaction(txnItem.transaction),
+            onTap: () {
+              Navigator.of(context).pushNamed(
+                AppRouter.transactionDetail,
+                arguments: TransactionDetailArgs(
+                  transaction: txnItem.transaction,
+                  category: txnCategory,
+                ),
+              );
+            },
+            onDelete: () => _deleteTransaction(txnItem.transaction),
+            onEdit: () {
+              Navigator.of(context).pushNamed(
+                AppRouter.addTransaction,
+                arguments: txnItem.transaction,
+              );
+            },
           );
         },
       ),
@@ -160,15 +179,15 @@ class _TransactionHistoryPageState
   }
 
   Future<void> _deleteTransaction(Transaction txn) async {
-    // The stream watcher on transactionProvider will auto-update the UI
-    // when a transaction is deleted from DB.
+    if (!mounted) return;
+    await ref.read(transactionProvider.notifier).deleteTransaction(txn.id);
+    // 刷新 Dashboard 和 Account
+    ref.read(dashboardProvider.notifier).loadAll();
+    ref.read(accountProvider.notifier).refresh();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('已删除 "${txn.note.isNotEmpty ? txn.note : '交易'}"'),
-        action: SnackBarAction(label: '撤销', onPressed: () {
-          // TODO: implement undo
-        }),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -238,13 +257,17 @@ class _TransactionRow extends StatelessWidget {
   final Transaction transaction;
   final Category? category;
   final bool isDark;
-  final VoidCallback onDismissed;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+  final VoidCallback onEdit;
 
   const _TransactionRow({
     required this.transaction,
     required this.category,
     required this.isDark,
-    required this.onDismissed,
+    required this.onTap,
+    required this.onDelete,
+    required this.onEdit,
   });
 
   @override
@@ -265,15 +288,51 @@ class _TransactionRow extends StatelessWidget {
     return Dismissible(
       key: ValueKey(transaction.id),
       direction: DismissDirection.endToStart,
-      onDismissed: (_) => onDismissed(),
+      confirmDismiss: (direction) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (ctx) {
+            final yuan = transaction.amountCny / 100;
+            final amt = yuan == yuan.truncateToDouble()
+                ? '${yuan.toInt()}'
+                : yuan.toStringAsFixed(2);
+            return AlertDialog(
+              title: const Text('确定删除这笔交易？'),
+              content: Text(
+                  '${transaction.type == 'income' ? '收入' : '支出'} ¥$amt'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('取消'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('删除'),
+                ),
+              ],
+            );
+          },
+        ) ?? false;
+      },
+      onDismissed: (_) => onDelete(),
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
         color: isDark ? const Color(0xFFB22222) : Colors.red,
-        child: const Icon(Icons.delete_outline_rounded,
-            color: Colors.white, size: 24),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Icon(Icons.delete_outline_rounded, color: Colors.white, size: 24),
+            SizedBox(width: 8),
+            Text('删除', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            SizedBox(width: 24),
+          ],
+        ),
       ),
-      child: SizedBox(
+      child: GestureDetector(
+        onTap: onTap,
+        child: SizedBox(
         height: 72,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -342,6 +401,7 @@ class _TransactionRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }
