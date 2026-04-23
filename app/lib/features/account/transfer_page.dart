@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/account_provider.dart';
+import '../../domain/providers/dashboard_provider.dart';
 import '../transaction/widgets/number_pad.dart';
 
 class TransferPage extends ConsumerStatefulWidget {
@@ -204,6 +205,9 @@ class _TransferPageState extends ConsumerState<TransferPage> {
             amount: amount,
             note: _noteController.text.trim(),
           );
+      // 刷新账户和仪表盘
+      ref.read(accountProvider.notifier).refresh();
+      ref.read(dashboardProvider.notifier).loadAll();
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(

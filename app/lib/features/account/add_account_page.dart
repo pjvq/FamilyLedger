@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/account_provider.dart';
+import '../../domain/providers/dashboard_provider.dart';
 import '../transaction/widgets/number_pad.dart';
 
 class AddAccountPage extends ConsumerStatefulWidget {
@@ -186,6 +187,8 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
             accountType: _selectedType,
             initialBalance: amount.round(),
           );
+      // 刷新账户和仪表盘
+      ref.read(dashboardProvider.notifier).loadAll();
       if (mounted) {
         Navigator.of(context).pop();
       }
