@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+		"github.com/familyledger/server/pkg/middleware"
 	pb "github.com/familyledger/server/proto/importpb"
 )
 
@@ -84,14 +85,17 @@ func (s *Service) ParseCSV(ctx context.Context, req *pb.ParseCSVRequest) (*pb.Pa
 		previewRows[i] = &pb.CSVRow{Values: allRows[i]}
 	}
 
-	// Store session (we need the user_id from the context, but ParseCSV doesn't require auth in the proto)
-	// For now, use a placeholder user_id; the real user_id is provided in ConfirmImport
+	// Store session
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "authentication required for CSV import")
+	}
 	sessionID := uuid.New()
 	_, err = s.pool.Exec(ctx,
 		`INSERT INTO import_sessions (id, user_id, csv_data, headers, total_rows)
 		 VALUES ($1, $2, $3, $4, $5)`,
 		sessionID,
-		uuid.Nil, // placeholder — ConfirmImport will validate ownership
+		userID,
 		req.CsvData,
 		headers,
 		int32(totalRows),

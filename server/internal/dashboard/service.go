@@ -47,13 +47,13 @@ func (s *Service) GetNetWorth(ctx context.Context, req *pb.GetNetWorthRequest) (
 	}
 
 	// 2. 投资市值 = SUM(investments.quantity × market_quotes.current_price)
-	//    如果没有行情数据，回退到 investments.current_value
+	//    如果没有行情数据，回退到 investments.cost_basis
 	var investmentValue int64
 	err = s.pool.QueryRow(ctx,
 		`SELECT COALESCE(SUM(
 			CASE
 				WHEN mq.current_price > 0 THEN CAST(i.quantity * mq.current_price AS BIGINT)
-				ELSE i.current_value
+				ELSE i.cost_basis
 			END
 		), 0)
 		 FROM investments i
@@ -185,7 +185,7 @@ func (s *Service) estimateLastMonthNetWorth(ctx context.Context, userID string) 
 		`SELECT COALESCE(SUM(
 			CASE
 				WHEN ph.price > 0 THEN CAST(i.quantity * ph.price AS BIGINT)
-				ELSE i.current_value
+				ELSE i.cost_basis
 			END
 		), 0)
 		 FROM investments i
