@@ -63,6 +63,9 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	if currency == "CNY" {
 		amountCny = req.Amount
 		exchangeRate = 1.0
+	} else if amountCny <= 0 {
+		// Foreign currency must provide amountCny
+		return nil, status.Error(codes.InvalidArgument, "amount_cny is required for non-CNY currency")
 	}
 
 	txnDate := time.Now()
