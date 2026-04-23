@@ -159,6 +159,10 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
           NumberPad(
             onKey: _handleKey,
             onDelete: _handleDelete,
+            onClear: () {
+              HapticFeedback.mediumImpact();
+              setState(() => _amountStr = '0');
+            },
             onConfirm: _handleConfirm,
             confirmEnabled:
                 _selectedCategoryId != null && _amountStr != '0' && !_isSubmitting,

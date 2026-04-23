@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 class NumberPad extends StatelessWidget {
   final ValueChanged<String> onKey;
   final VoidCallback onDelete;
+  final VoidCallback? onClear; // long-press backspace = clear all
   final VoidCallback onConfirm;
   final bool confirmEnabled;
 
@@ -12,6 +13,7 @@ class NumberPad extends StatelessWidget {
     super.key,
     required this.onKey,
     required this.onDelete,
+    this.onClear,
     required this.onConfirm,
     this.confirmEnabled = true,
   });
@@ -94,8 +96,8 @@ class NumberPad extends StatelessWidget {
         height: 52,
         child: ElevatedButton(
           onPressed: onDelete,
-          onLongPress: () {
-            // Long press to clear
+          onLongPress: onClear ?? () {
+            // Default: trigger onDelete once (caller can override with onClear)
             onDelete();
           },
           style: ElevatedButton.styleFrom(
