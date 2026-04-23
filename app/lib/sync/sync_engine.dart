@@ -24,9 +24,9 @@ import '../generated/proto/sync.pbenum.dart' as sync_enum;
 /// 2. 通过 WebSocket 监听服务端推送的变更通知
 /// 3. 收到通知后通过 gRPC PullChanges 拉取增量变更并写入本地
 class SyncEngine {
-  final AppDatabase _db;
-  final SyncServiceClient _syncClient;
-  final SharedPreferences _prefs;
+  final AppDatabase? _db;
+  final SyncServiceClient? _syncClient;
+  final SharedPreferences? _prefs;
   final Connectivity _connectivity = Connectivity();
 
   Timer? _syncTimer;
@@ -39,7 +39,16 @@ class SyncEngine {
   /// 最后一次成功拉取的服务端时间戳（毫秒）
   static const _lastSyncTsKey = 'sync_last_pull_ts';
 
-  SyncEngine(this._db, this._syncClient, this._prefs);
+  SyncEngine(AppDatabase db, SyncServiceClient syncClient, SharedPreferences prefs)
+      : _db = db,
+        _syncClient = syncClient,
+        _prefs = prefs;
+
+  /// @visibleForTesting — stub constructor, all methods become no-ops
+  SyncEngine.forTesting()
+      : _db = null,
+        _syncClient = null,
+        _prefs = null;
 
   void start() {
     if (_disposed) return;
@@ -75,7 +84,7 @@ class SyncEngine {
       if (results.every((r) => r == ConnectivityResult.none)) return;
 
       final pendingOps =
-          await _db.getPendingSyncOps(AppConstants.syncBatchSize);
+          await _db!.getPendingSyncOps(AppConstants.syncBatchSize);
       if (pendingOps.isEmpty) return;
 
       // 转换为 proto SyncOperation
@@ -83,7 +92,7 @@ class SyncEngine {
       final request = sync_pb.PushOperationsRequest()
         ..operations.addAll(protoOps);
 
-      final response = await _syncClient.pushOperations(request);
+      final response = await _syncClient!.pushOperations(request);
 
       // 标记成功上传的（排除 failedIds）
       final failedSet = response.failedIds.toSet();
@@ -93,7 +102,7 @@ class SyncEngine {
           .toList();
 
       if (succeededIds.isNotEmpty) {
-        await _db.markSyncOpsUploaded(succeededIds);
+        await _db!.markSyncOpsUploaded(succeededIds);
       }
 
       dev.log(
@@ -141,8 +150,8 @@ class SyncEngine {
   Future<void> _pullChanges() async {
     if (_disposed) return;
     try {
-      final lastTsMs = _prefs.getInt(_lastSyncTsKey) ?? 0;
-      final userId = _prefs.getString(AppConstants.userIdKey);
+      final lastTsMs = _prefs!.getInt(_lastSyncTsKey) ?? 0;
+      final userId = _prefs!.getString(AppConstants.userIdKey);
       if (userId == null) return;
 
       final since = proto_ts.Timestamp(
@@ -155,7 +164,7 @@ class SyncEngine {
         clientId: 'client_$userId',
       );
 
-      final response = await _syncClient.pullChanges(request);
+      final response = await _syncClient!.pullChanges(request);
 
       for (final op in response.operations) {
         await _applyRemoteOp(op);
@@ -166,7 +175,7 @@ class SyncEngine {
         final serverMs =
             response.serverTime.seconds.toInt() * 1000 +
             response.serverTime.nanos ~/ 1000000;
-        await _prefs.setInt(_lastSyncTsKey, serverMs);
+        await _prefs!.setInt(_lastSyncTsKey, serverMs);
       }
 
       dev.log(
@@ -209,7 +218,7 @@ class SyncEngine {
         // Upsert transaction
         final txnDate = DateTime.tryParse(payload['txn_date'] ?? '') ??
             DateTime.now();
-        await _db.insertOrUpdateTransaction(
+        await _db!.insertOrUpdateTransaction(
           id: entityId,
           userId: payload['user_id'] ?? '',
           accountId: payload['account_id'] ?? '',
@@ -222,7 +231,7 @@ class SyncEngine {
         );
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
-        await _db.deleteTransaction(entityId);
+        await _db!.deleteTransaction(entityId);
         break;
       default:
         break;
@@ -231,11 +240,11 @@ class SyncEngine {
 
   // ─────────── WebSocket: 实时通知 ───────────
 
-  void _connectWebSocket() {
+  Future<void> _connectWebSocket() async {
     if (_disposed) return;
     _disconnectWebSocket();
 
-    final token = _prefs.getString(AppConstants.accessTokenKey);
+    final token = _prefs?.getString(AppConstants.accessTokenKey);
     if (token == null) return;
 
     try {
@@ -243,6 +252,17 @@ class SyncEngine {
         'ws://${AppConstants.serverHost}:${AppConstants.wsPort}/ws?token=$token',
       );
       _wsChannel = WebSocketChannel.connect(uri);
+
+      // Await the ready future to catch connection failures early
+      try {
+        await _wsChannel!.ready;
+      } catch (e) {
+        dev.log('SyncEngine: ws handshake failed: $e', name: 'sync');
+        _scheduleReconnect();
+        return;
+      }
+
+      if (_disposed) return;
 
       _wsSub = _wsChannel!.stream.listen(
         (message) {
