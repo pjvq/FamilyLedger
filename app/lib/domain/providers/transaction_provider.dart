@@ -242,7 +242,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         id: _uuid.v4(),
         entityType: 'transaction',
         entityId: id,
-        opType: 'update_transaction',
+        opType: 'update',
         payload: jsonEncode({
           'id': id,
           if (categoryId != null) 'category_id': categoryId,
@@ -288,7 +288,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         id: _uuid.v4(),
         entityType: 'transaction',
         entityId: id,
-        opType: 'delete_transaction',
+        opType: 'delete',
         payload: jsonEncode({'id': id}),
         clientId: 'client_$_userId',
         timestamp: DateTime.now(),
