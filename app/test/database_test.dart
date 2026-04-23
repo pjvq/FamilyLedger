@@ -138,7 +138,18 @@ void main() {
     });
 
     test('getTotalBalance aggregates accounts', () async {
-      await db.updateAccountBalance(accountId, 50000);
+      // getTotalBalance sums transactions, not account balances.
+      // Insert income transactions to both accounts.
+      await db.insertTransaction(TransactionsCompanion.insert(
+        id: 'txn_bal_1',
+        userId: userId,
+        accountId: accountId,
+        categoryId: '',
+        type: 'income',
+        amount: 50000,
+        amountCny: 50000,
+        txnDate: DateTime.now(),
+      ));
 
       // Add another account
       await db.insertAccount(AccountsCompanion.insert(
@@ -146,7 +157,16 @@ void main() {
         userId: userId,
         name: '储蓄卡',
       ));
-      await db.updateAccountBalance('${accountId}_2', 30000);
+      await db.insertTransaction(TransactionsCompanion.insert(
+        id: 'txn_bal_2',
+        userId: userId,
+        accountId: '${accountId}_2',
+        categoryId: '',
+        type: 'income',
+        amount: 30000,
+        amountCny: 30000,
+        txnDate: DateTime.now(),
+      ));
 
       final total = await db.getTotalBalance(userId);
       expect(total, 80000); // ¥800.00

@@ -2,7 +2,7 @@
 #
 # FamilyLedger Finance Services Integration Tests
 # Tests: LoanService, BudgetService, InvestmentService, AssetService, MarketDataService
-# Total RPCs covered: 35+
+# Total RPCs covered: 35
 #
 # Don't use set -e: test script should continue on individual test failures
 set -u
@@ -26,34 +26,36 @@ fail() {
     FAIL_COUNT=$((FAIL_COUNT + 1))
     echo "[FAIL] $1"
     if [ -n "${2:-}" ]; then
-        echo "       Response: $2"
+        echo "       Response: $(echo "$2" | head -3)"
     fi
 }
 
+EMPTY_JSON='{}'
+
 # Helper: call grpc with auth
 grpc_auth() {
-    local proto="$1"
-    local service="$2"
-    local data="${3:-\{\}}"
+    local proto="$1"; shift
+    local service="$1"; shift
+    local data="${1:-$EMPTY_JSON}"
     $GRPCURL -proto "$proto" -H "authorization: Bearer $TOKEN" -d "$data" "$HOST" "$service" 2>&1
 }
 
 grpc_no_auth() {
-    local proto="$1"
-    local service="$2"
-    local data="${3:-\{\}}"
+    local proto="$1"; shift
+    local service="$1"; shift
+    local data="${1:-$EMPTY_JSON}"
     $GRPCURL -proto "$proto" -d "$data" "$HOST" "$service" 2>&1
 }
 
 echo "============================================================"
 echo " FamilyLedger Finance Services Integration Tests"
 echo " Test email: $TEST_EMAIL"
-echo " Timestamp: $TIMESTAMP"
+echo " Timestamp:  $TIMESTAMP"
 echo "============================================================"
 echo ""
 
 ###############################################################################
-# 0. Setup: Register + Create Account
+# 0. Setup: Register + Create Account + Get Categories
 ###############################################################################
 echo "=== SETUP: Register & Create Account ==="
 
@@ -76,10 +78,22 @@ ACCT_RESP=$(grpc_auth account.proto \
     '{"name":"测试还款账户","type":"ACCOUNT_TYPE_BANK_CARD","currency":"CNY","initial_balance":10000000}')
 ACCOUNT_ID=$(echo "$ACCT_RESP" | jq -r '.account.id // empty')
 if [ -n "$ACCOUNT_ID" ]; then
-    pass "Create test account (id=$ACCOUNT_ID)"
+    pass "Create test bank account (id=$ACCOUNT_ID)"
 else
-    fail "Create test account" "$ACCT_RESP"
+    fail "Create test bank account" "$ACCT_RESP"
     ACCOUNT_ID=""
+fi
+
+# Get expense category IDs for budget tests
+CAT_RESP=$(grpc_auth transaction.proto \
+    "familyledger.transaction.v1.TransactionService/GetCategories")
+CAT_FOOD=$(echo "$CAT_RESP" | jq -r '[.categories[] | select(.name=="餐饮")][0].id // empty')
+CAT_TRANSPORT=$(echo "$CAT_RESP" | jq -r '[.categories[] | select(.name=="交通")][0].id // empty')
+CAT_SHOPPING=$(echo "$CAT_RESP" | jq -r '[.categories[] | select(.name=="购物")][0].id // empty')
+if [ -n "$CAT_FOOD" ]; then
+    pass "Fetched expense categories (餐饮=$CAT_FOOD)"
+else
+    fail "Fetch expense categories" "$CAT_RESP"
 fi
 
 echo ""
@@ -87,15 +101,15 @@ echo ""
 ###############################################################################
 # 1. LoanService Tests
 ###############################################################################
-echo "=== LOAN SERVICE ==="
+echo "=== LOAN SERVICE (9 RPCs) ==="
 
 # --- 1.1 CreateLoan (等额本息 - 房贷) ---
 LOAN_RESP=$(grpc_auth loan.proto \
     "familyledger.loan.v1.LoanService/CreateLoan" \
-    "{\"name\":\"测试房贷\",\"loan_type\":\"LOAN_TYPE_MORTGAGE\",\"principal\":200000000,\"annual_rate\":4.2,\"total_months\":360,\"repayment_method\":\"REPAYMENT_METHOD_EQUAL_INSTALLMENT\",\"payment_day\":15,\"start_date\":{\"seconds\":1704067200},\"account_id\":\"$ACCOUNT_ID\"}")
+    "{\"name\":\"测试房贷\",\"loan_type\":\"LOAN_TYPE_MORTGAGE\",\"principal\":200000000,\"annual_rate\":4.2,\"total_months\":360,\"repayment_method\":\"REPAYMENT_METHOD_EQUAL_INSTALLMENT\",\"payment_day\":15,\"start_date\":\"2024-01-01T00:00:00Z\",\"account_id\":\"$ACCOUNT_ID\"}")
 LOAN_ID=$(echo "$LOAN_RESP" | jq -r '.id // empty')
 if [ -n "$LOAN_ID" ]; then
-    pass "CreateLoan - 等额本息房贷 (id=$LOAN_ID)"
+    pass "CreateLoan - 等额本息房贷 200万 4.2% 30年 (id=$LOAN_ID)"
 else
     fail "CreateLoan - 等额本息房贷" "$LOAN_RESP"
 fi
@@ -103,10 +117,10 @@ fi
 # --- 1.2 CreateLoan (等额本金 - 车贷) ---
 LOAN2_RESP=$(grpc_auth loan.proto \
     "familyledger.loan.v1.LoanService/CreateLoan" \
-    '{"name":"测试车贷","loan_type":"LOAN_TYPE_CAR_LOAN","principal":30000000,"annual_rate":5.0,"total_months":60,"repayment_method":"REPAYMENT_METHOD_EQUAL_PRINCIPAL","payment_day":10,"start_date":{"seconds":1704067200}}')
+    '{"name":"测试车贷","loan_type":"LOAN_TYPE_CAR_LOAN","principal":30000000,"annual_rate":5.0,"total_months":60,"repayment_method":"REPAYMENT_METHOD_EQUAL_PRINCIPAL","payment_day":10,"start_date":"2024-01-01T00:00:00Z"}')
 LOAN2_ID=$(echo "$LOAN2_RESP" | jq -r '.id // empty')
 if [ -n "$LOAN2_ID" ]; then
-    pass "CreateLoan - 等额本金车贷 (id=$LOAN2_ID)"
+    pass "CreateLoan - 等额本金车贷 30万 5% 5年 (id=$LOAN2_ID)"
 else
     fail "CreateLoan - 等额本金车贷" "$LOAN2_RESP"
 fi
@@ -117,10 +131,11 @@ if [ -n "$LOAN_ID" ]; then
         "familyledger.loan.v1.LoanService/GetLoan" \
         "{\"loan_id\":\"$LOAN_ID\"}")
     GOT_NAME=$(echo "$GET_LOAN_RESP" | jq -r '.name // empty')
-    if [ "$GOT_NAME" = "测试房贷" ]; then
-        pass "GetLoan - verify name"
+    GOT_PRINCIPAL=$(echo "$GET_LOAN_RESP" | jq -r '.principal // empty')
+    if [ "$GOT_NAME" = "测试房贷" ] && [ "$GOT_PRINCIPAL" = "200000000" ]; then
+        pass "GetLoan - name=测试房贷, principal=200000000"
     else
-        fail "GetLoan - verify name (got: $GOT_NAME)" "$GET_LOAN_RESP"
+        fail "GetLoan" "$GET_LOAN_RESP"
     fi
 else
     fail "GetLoan - skipped (no loan_id)"
@@ -128,13 +143,12 @@ fi
 
 # --- 1.4 ListLoans ---
 LIST_LOANS_RESP=$(grpc_auth loan.proto \
-    "familyledger.loan.v1.LoanService/ListLoans" \
-    '{}')
+    "familyledger.loan.v1.LoanService/ListLoans")
 LOAN_COUNT=$(echo "$LIST_LOANS_RESP" | jq '.loans | length')
-if [ "$LOAN_COUNT" -ge 2 ]; then
+if [ "$LOAN_COUNT" -ge 2 ] 2>/dev/null; then
     pass "ListLoans - found $LOAN_COUNT loans"
 else
-    fail "ListLoans - expected >=2, got $LOAN_COUNT" "$LIST_LOANS_RESP"
+    fail "ListLoans - expected >=2, got ${LOAN_COUNT:-null}" "$LIST_LOANS_RESP"
 fi
 
 # --- 1.5 UpdateLoan ---
@@ -143,10 +157,11 @@ if [ -n "$LOAN_ID" ]; then
         "familyledger.loan.v1.LoanService/UpdateLoan" \
         "{\"loan_id\":\"$LOAN_ID\",\"name\":\"更新后的房贷\",\"payment_day\":20}")
     UPD_NAME=$(echo "$UPD_LOAN_RESP" | jq -r '.name // empty')
-    if [ "$UPD_NAME" = "更新后的房贷" ]; then
-        pass "UpdateLoan - name updated"
+    UPD_DAY=$(echo "$UPD_LOAN_RESP" | jq -r '.paymentDay // empty')
+    if [ "$UPD_NAME" = "更新后的房贷" ] && [ "$UPD_DAY" = "20" ]; then
+        pass "UpdateLoan - name='更新后的房贷', paymentDay=20"
     else
-        fail "UpdateLoan - name mismatch (got: $UPD_NAME)" "$UPD_LOAN_RESP"
+        fail "UpdateLoan" "$UPD_LOAN_RESP"
     fi
 fi
 
@@ -156,38 +171,38 @@ if [ -n "$LOAN_ID" ]; then
         "familyledger.loan.v1.LoanService/GetLoanSchedule" \
         "{\"loan_id\":\"$LOAN_ID\"}")
     SCHEDULE_LEN=$(echo "$SCHEDULE_RESP" | jq '.items | length')
-    if [ "$SCHEDULE_LEN" -ge 1 ]; then
+    if [ "$SCHEDULE_LEN" -ge 1 ] 2>/dev/null; then
         FIRST_PAYMENT=$(echo "$SCHEDULE_RESP" | jq '.items[0].payment')
-        pass "GetLoanSchedule - $SCHEDULE_LEN items, first payment=$FIRST_PAYMENT 分"
+        pass "GetLoanSchedule - $SCHEDULE_LEN periods, first_payment=${FIRST_PAYMENT}分"
     else
-        fail "GetLoanSchedule - empty schedule" "$SCHEDULE_RESP"
+        fail "GetLoanSchedule" "$SCHEDULE_RESP"
     fi
 fi
 
-# --- 1.7 SimulatePrepayment (reduce months) ---
+# --- 1.7 SimulatePrepayment (缩短期限) ---
 if [ -n "$LOAN_ID" ]; then
-    PREPAY_RESP1=$(grpc_auth loan.proto \
+    PREPAY1=$(grpc_auth loan.proto \
         "familyledger.loan.v1.LoanService/SimulatePrepayment" \
         "{\"loan_id\":\"$LOAN_ID\",\"prepayment_amount\":50000000,\"strategy\":\"PREPAYMENT_STRATEGY_REDUCE_MONTHS\"}")
-    INTEREST_SAVED=$(echo "$PREPAY_RESP1" | jq '.interestSaved // empty')
-    MONTHS_REDUCED=$(echo "$PREPAY_RESP1" | jq '.monthsReduced // empty')
-    if [ -n "$INTEREST_SAVED" ] && [ "$INTEREST_SAVED" != "null" ]; then
-        pass "SimulatePrepayment (reduce_months) - saved=$INTEREST_SAVED 分, months_reduced=$MONTHS_REDUCED"
+    SAVED=$(echo "$PREPAY1" | jq '.interestSaved // empty')
+    MONTHS=$(echo "$PREPAY1" | jq '.monthsReduced // empty')
+    if [ -n "$SAVED" ] && [ "$SAVED" != "null" ] && [ "$SAVED" != "0" ]; then
+        pass "SimulatePrepayment (缩短期限) - interestSaved=${SAVED}分, monthsReduced=$MONTHS"
     else
-        fail "SimulatePrepayment (reduce_months)" "$PREPAY_RESP1"
+        fail "SimulatePrepayment (缩短期限)" "$PREPAY1"
     fi
 fi
 
-# --- 1.8 SimulatePrepayment (reduce payment) ---
+# --- 1.8 SimulatePrepayment (减少月供) ---
 if [ -n "$LOAN_ID" ]; then
-    PREPAY_RESP2=$(grpc_auth loan.proto \
+    PREPAY2=$(grpc_auth loan.proto \
         "familyledger.loan.v1.LoanService/SimulatePrepayment" \
         "{\"loan_id\":\"$LOAN_ID\",\"prepayment_amount\":50000000,\"strategy\":\"PREPAYMENT_STRATEGY_REDUCE_PAYMENT\"}")
-    NEW_MONTHLY=$(echo "$PREPAY_RESP2" | jq '.newMonthlyPayment // empty')
-    if [ -n "$NEW_MONTHLY" ] && [ "$NEW_MONTHLY" != "null" ]; then
-        pass "SimulatePrepayment (reduce_payment) - new_monthly=$NEW_MONTHLY 分"
+    NEW_PMT=$(echo "$PREPAY2" | jq '.newMonthlyPayment // empty')
+    if [ -n "$NEW_PMT" ] && [ "$NEW_PMT" != "null" ]; then
+        pass "SimulatePrepayment (减少月供) - newMonthlyPayment=${NEW_PMT}分"
     else
-        fail "SimulatePrepayment (reduce_payment)" "$PREPAY_RESP2"
+        fail "SimulatePrepayment (减少月供)" "$PREPAY2"
     fi
 fi
 
@@ -195,10 +210,10 @@ fi
 if [ -n "$LOAN_ID" ]; then
     RATE_RESP=$(grpc_auth loan.proto \
         "familyledger.loan.v1.LoanService/RecordRateChange" \
-        "{\"loan_id\":\"$LOAN_ID\",\"new_rate\":3.85,\"effective_date\":{\"seconds\":1735689600}}")
+        "{\"loan_id\":\"$LOAN_ID\",\"new_rate\":3.85,\"effective_date\":\"2025-01-01T00:00:00Z\"}")
     NEW_RATE=$(echo "$RATE_RESP" | jq '.annualRate // empty')
     if [ -n "$NEW_RATE" ] && [ "$NEW_RATE" != "null" ]; then
-        pass "RecordRateChange - new_rate=$NEW_RATE"
+        pass "RecordRateChange - annualRate=$NEW_RATE"
     else
         fail "RecordRateChange" "$RATE_RESP"
     fi
@@ -211,106 +226,104 @@ if [ -n "$LOAN_ID" ]; then
         "{\"loan_id\":\"$LOAN_ID\",\"month_number\":1}")
     IS_PAID=$(echo "$PAY_RESP" | jq '.isPaid // empty')
     if [ "$IS_PAID" = "true" ]; then
-        pass "RecordPayment - month 1 marked paid"
+        pass "RecordPayment - month 1 marked as paid"
     else
         fail "RecordPayment" "$PAY_RESP"
     fi
 fi
 
-# --- 1.11 DeleteLoan (delete car loan) ---
+# --- 1.11 DeleteLoan ---
 if [ -n "$LOAN2_ID" ]; then
     DEL_LOAN_RESP=$(grpc_auth loan.proto \
         "familyledger.loan.v1.LoanService/DeleteLoan" \
         "{\"loan_id\":\"$LOAN2_ID\"}")
-    # Empty response = success for protobuf Empty
-    if echo "$DEL_LOAN_RESP" | grep -q "ERROR\|error\|rpc error" 2>/dev/null; then
+    if echo "$DEL_LOAN_RESP" | grep -qi "error"; then
         fail "DeleteLoan" "$DEL_LOAN_RESP"
     else
-        pass "DeleteLoan - deleted car loan"
+        pass "DeleteLoan - deleted 车贷"
+        # Verify via ListLoans
+        LIST_AFTER=$(grpc_auth loan.proto "familyledger.loan.v1.LoanService/ListLoans")
+        AFTER_COUNT=$(echo "$LIST_AFTER" | jq '[.loans[]? | select(.id=="'"$LOAN2_ID"'")] | length')
+        if [ "$AFTER_COUNT" = "0" ]; then
+            pass "DeleteLoan - verified not in list"
+        else
+            fail "DeleteLoan - still found in list"
+        fi
     fi
-fi
-
-# Verify deletion
-LIST_AFTER_DEL=$(grpc_auth loan.proto \
-    "familyledger.loan.v1.LoanService/ListLoans" '{}')
-REMAINING=$(echo "$LIST_AFTER_DEL" | jq '[.loans[]? | select(.id != "'"$LOAN2_ID"'")] | length')
-if [ "$REMAINING" -ge 1 ]; then
-    pass "DeleteLoan - verified deletion via ListLoans"
-else
-    fail "DeleteLoan - verification failed" "$LIST_AFTER_DEL"
 fi
 
 echo ""
 
-# --- 1.12-1.15 组合贷款 (LoanGroup) ---
-echo "=== LOAN GROUP (组合贷款) ==="
+###############################################################################
+# 1b. LoanGroup Tests (组合贷款)
+###############################################################################
+echo "=== LOAN GROUP (组合贷款, 4 RPCs) ==="
 
-# CreateLoanGroup with commercial + provident sub-loans
+# --- CreateLoanGroup: 商业贷+公积金贷 ---
 GROUP_RESP=$(grpc_auth loan.proto \
     "familyledger.loan.v1.LoanService/CreateLoanGroup" \
-    "{\"name\":\"首套房组合贷\",\"group_type\":\"combined\",\"payment_day\":15,\"start_date\":{\"seconds\":1704067200},\"account_id\":\"$ACCOUNT_ID\",\"loan_type\":\"LOAN_TYPE_MORTGAGE\",\"sub_loans\":[{\"name\":\"商业贷款\",\"sub_type\":\"LOAN_SUB_TYPE_COMMERCIAL\",\"principal\":150000000,\"annual_rate\":4.2,\"total_months\":360,\"repayment_method\":\"REPAYMENT_METHOD_EQUAL_INSTALLMENT\",\"rate_type\":\"RATE_TYPE_LPR_FLOATING\",\"lpr_base\":3.85,\"lpr_spread\":0.35,\"rate_adjust_month\":1},{\"name\":\"公积金贷款\",\"sub_type\":\"LOAN_SUB_TYPE_PROVIDENT\",\"principal\":50000000,\"annual_rate\":3.1,\"total_months\":360,\"repayment_method\":\"REPAYMENT_METHOD_EQUAL_INSTALLMENT\",\"rate_type\":\"RATE_TYPE_FIXED\"}]}")
+    "{\"name\":\"首套房组合贷\",\"group_type\":\"combined\",\"payment_day\":15,\"start_date\":\"2024-01-01T00:00:00Z\",\"account_id\":\"$ACCOUNT_ID\",\"loan_type\":\"LOAN_TYPE_MORTGAGE\",\"sub_loans\":[{\"name\":\"商业贷款\",\"sub_type\":\"LOAN_SUB_TYPE_COMMERCIAL\",\"principal\":150000000,\"annual_rate\":4.2,\"total_months\":360,\"repayment_method\":\"REPAYMENT_METHOD_EQUAL_INSTALLMENT\",\"rate_type\":\"RATE_TYPE_LPR_FLOATING\",\"lpr_base\":3.85,\"lpr_spread\":0.35,\"rate_adjust_month\":1},{\"name\":\"公积金贷款\",\"sub_type\":\"LOAN_SUB_TYPE_PROVIDENT\",\"principal\":50000000,\"annual_rate\":3.1,\"total_months\":360,\"repayment_method\":\"REPAYMENT_METHOD_EQUAL_INSTALLMENT\",\"rate_type\":\"RATE_TYPE_FIXED\"}]}")
 GROUP_ID=$(echo "$GROUP_RESP" | jq -r '.id // empty')
-SUB_LOAN_COUNT=$(echo "$GROUP_RESP" | jq '.subLoans | length')
-if [ -n "$GROUP_ID" ] && [ "$SUB_LOAN_COUNT" = "2" ]; then
-    pass "CreateLoanGroup - combined (id=$GROUP_ID, sub_loans=$SUB_LOAN_COUNT)"
-    # Extract sub-loan IDs for later use
-    SUB_LOAN_1_ID=$(echo "$GROUP_RESP" | jq -r '.subLoans[0].id // empty')
-    SUB_LOAN_2_ID=$(echo "$GROUP_RESP" | jq -r '.subLoans[1].id // empty')
-    echo "       Sub-loan 1 (商业): $SUB_LOAN_1_ID"
-    echo "       Sub-loan 2 (公积金): $SUB_LOAN_2_ID"
+SUB_COUNT=$(echo "$GROUP_RESP" | jq '.subLoans | length')
+TOTAL_P=$(echo "$GROUP_RESP" | jq -r '.totalPrincipal // empty')
+if [ -n "$GROUP_ID" ] && [ "${SUB_COUNT:-0}" = "2" ]; then
+    SUB1_ID=$(echo "$GROUP_RESP" | jq -r '.subLoans[0].id')
+    SUB2_ID=$(echo "$GROUP_RESP" | jq -r '.subLoans[1].id')
+    pass "CreateLoanGroup - combined 200万 (商贷150万+公积金50万), totalPrincipal=$TOTAL_P"
+    echo "       Sub1(商业)=$SUB1_ID  Sub2(公积金)=$SUB2_ID"
 else
     fail "CreateLoanGroup" "$GROUP_RESP"
     GROUP_ID=""
 fi
 
-# GetLoanGroup
+# --- GetLoanGroup ---
 if [ -n "$GROUP_ID" ]; then
-    GET_GROUP_RESP=$(grpc_auth loan.proto \
+    GET_GRP=$(grpc_auth loan.proto \
         "familyledger.loan.v1.LoanService/GetLoanGroup" \
         "{\"group_id\":\"$GROUP_ID\"}")
-    GOT_GROUP_NAME=$(echo "$GET_GROUP_RESP" | jq -r '.name // empty')
-    GOT_TOTAL=$(echo "$GET_GROUP_RESP" | jq -r '.totalPrincipal // empty')
-    if [ "$GOT_GROUP_NAME" = "首套房组合贷" ]; then
-        pass "GetLoanGroup - name=$GOT_GROUP_NAME, totalPrincipal=$GOT_TOTAL"
+    GRP_NAME=$(echo "$GET_GRP" | jq -r '.name // empty')
+    GRP_TYPE=$(echo "$GET_GRP" | jq -r '.groupType // empty')
+    if [ "$GRP_NAME" = "首套房组合贷" ] && [ "$GRP_TYPE" = "combined" ]; then
+        pass "GetLoanGroup - name=$GRP_NAME, groupType=$GRP_TYPE"
     else
-        fail "GetLoanGroup" "$GET_GROUP_RESP"
+        fail "GetLoanGroup" "$GET_GRP"
     fi
 fi
 
-# ListLoanGroups
-LIST_GROUPS_RESP=$(grpc_auth loan.proto \
-    "familyledger.loan.v1.LoanService/ListLoanGroups" '{}')
-GROUP_COUNT=$(echo "$LIST_GROUPS_RESP" | jq '.groups | length')
-if [ "$GROUP_COUNT" -ge 1 ]; then
-    pass "ListLoanGroups - found $GROUP_COUNT group(s)"
+# --- ListLoanGroups ---
+LIST_GRP=$(grpc_auth loan.proto \
+    "familyledger.loan.v1.LoanService/ListLoanGroups")
+GRP_COUNT=$(echo "$LIST_GRP" | jq '.groups | length')
+if [ "${GRP_COUNT:-0}" -ge 1 ] 2>/dev/null; then
+    pass "ListLoanGroups - found $GRP_COUNT group(s)"
 else
-    fail "ListLoanGroups" "$LIST_GROUPS_RESP"
+    fail "ListLoanGroups" "$LIST_GRP"
 fi
 
-# SimulateGroupPrepayment (target commercial loan, reduce months)
-if [ -n "$GROUP_ID" ]; then
-    GROUP_PREPAY_RESP=$(grpc_auth loan.proto \
+# --- SimulateGroupPrepayment (指定商贷, 缩短期限) ---
+if [ -n "$GROUP_ID" ] && [ -n "${SUB1_ID:-}" ]; then
+    GRP_PREPAY=$(grpc_auth loan.proto \
         "familyledger.loan.v1.LoanService/SimulateGroupPrepayment" \
-        "{\"group_id\":\"$GROUP_ID\",\"target_loan_id\":\"$SUB_LOAN_1_ID\",\"prepayment_amount\":30000000,\"strategy\":\"PREPAYMENT_STRATEGY_REDUCE_MONTHS\"}")
-    GROUP_SAVED=$(echo "$GROUP_PREPAY_RESP" | jq '.totalInterestSaved // empty')
-    TARGET_ID=$(echo "$GROUP_PREPAY_RESP" | jq -r '.targetLoanId // empty')
-    if [ -n "$GROUP_SAVED" ] && [ "$GROUP_SAVED" != "null" ] && [ "$GROUP_SAVED" != "0" ]; then
-        pass "SimulateGroupPrepayment - targetLoan=$TARGET_ID, totalSaved=$GROUP_SAVED 分"
+        "{\"group_id\":\"$GROUP_ID\",\"target_loan_id\":\"$SUB1_ID\",\"prepayment_amount\":30000000,\"strategy\":\"PREPAYMENT_STRATEGY_REDUCE_MONTHS\"}")
+    GRP_SAVED=$(echo "$GRP_PREPAY" | jq '.totalInterestSaved // empty')
+    TGT=$(echo "$GRP_PREPAY" | jq -r '.targetLoanId // empty')
+    if [ -n "$GRP_SAVED" ] && [ "$GRP_SAVED" != "null" ] && [ "$GRP_SAVED" != "0" ]; then
+        pass "SimulateGroupPrepayment (指定商贷) - totalInterestSaved=${GRP_SAVED}分"
     else
-        fail "SimulateGroupPrepayment" "$GROUP_PREPAY_RESP"
+        fail "SimulateGroupPrepayment (指定商贷)" "$GRP_PREPAY"
     fi
 fi
 
-# SimulateGroupPrepayment (auto-pick, reduce payment)
+# --- SimulateGroupPrepayment (自动选利率高的, 减少月供) ---
 if [ -n "$GROUP_ID" ]; then
-    GROUP_PREPAY_RESP2=$(grpc_auth loan.proto \
+    GRP_PREPAY2=$(grpc_auth loan.proto \
         "familyledger.loan.v1.LoanService/SimulateGroupPrepayment" \
         "{\"group_id\":\"$GROUP_ID\",\"prepayment_amount\":20000000,\"strategy\":\"PREPAYMENT_STRATEGY_REDUCE_PAYMENT\"}")
-    AUTO_TARGET=$(echo "$GROUP_PREPAY_RESP2" | jq -r '.targetLoanId // empty')
-    if [ -n "$AUTO_TARGET" ]; then
-        pass "SimulateGroupPrepayment (auto-pick) - auto-targeted=$AUTO_TARGET"
+    AUTO_TGT=$(echo "$GRP_PREPAY2" | jq -r '.targetLoanId // empty')
+    if [ -n "$AUTO_TGT" ]; then
+        pass "SimulateGroupPrepayment (自动选) - autoTarget=$AUTO_TGT"
     else
-        fail "SimulateGroupPrepayment (auto-pick)" "$GROUP_PREPAY_RESP2"
+        fail "SimulateGroupPrepayment (自动选)" "$GRP_PREPAY2"
     fi
 fi
 
@@ -319,87 +332,88 @@ echo ""
 ###############################################################################
 # 2. BudgetService Tests
 ###############################################################################
-echo "=== BUDGET SERVICE ==="
+echo "=== BUDGET SERVICE (6 RPCs) ==="
 
-# --- 2.1 CreateBudget ---
+# --- CreateBudget ---
 BUDGET_RESP=$(grpc_auth budget.proto \
     "familyledger.budget.v1.BudgetService/CreateBudget" \
-    '{"year":2026,"month":4,"total_amount":1000000,"category_budgets":[{"category_id":"food","amount":300000},{"category_id":"transport","amount":200000},{"category_id":"entertainment","amount":100000}]}')
+    "{\"year\":2026,\"month\":4,\"total_amount\":1000000,\"category_budgets\":[{\"category_id\":\"$CAT_FOOD\",\"amount\":300000},{\"category_id\":\"$CAT_TRANSPORT\",\"amount\":200000},{\"category_id\":\"$CAT_SHOPPING\",\"amount\":100000}]}")
 BUDGET_ID=$(echo "$BUDGET_RESP" | jq -r '.budget.id // empty')
 if [ -n "$BUDGET_ID" ]; then
-    pass "CreateBudget - 2026-04 (id=$BUDGET_ID)"
+    pass "CreateBudget - 2026-04, total=1万, 3 categories (id=$BUDGET_ID)"
 else
     fail "CreateBudget" "$BUDGET_RESP"
 fi
 
-# --- 2.2 CreateBudget (another month) ---
+# --- CreateBudget (second month for list test) ---
 BUDGET2_RESP=$(grpc_auth budget.proto \
     "familyledger.budget.v1.BudgetService/CreateBudget" \
-    '{"year":2026,"month":5,"total_amount":1200000,"category_budgets":[{"category_id":"food","amount":350000},{"category_id":"transport","amount":250000}]}')
+    "{\"year\":2026,\"month\":5,\"total_amount\":1200000,\"category_budgets\":[{\"category_id\":\"$CAT_FOOD\",\"amount\":350000},{\"category_id\":\"$CAT_TRANSPORT\",\"amount\":250000}]}")
 BUDGET2_ID=$(echo "$BUDGET2_RESP" | jq -r '.budget.id // empty')
 if [ -n "$BUDGET2_ID" ]; then
-    pass "CreateBudget - 2026-05 (id=$BUDGET2_ID)"
+    pass "CreateBudget - 2026-05, total=1.2万 (id=$BUDGET2_ID)"
 else
     fail "CreateBudget - 2026-05" "$BUDGET2_RESP"
 fi
 
-# --- 2.3 GetBudget ---
-if [ -n "$BUDGET_ID" ]; then
-    GET_BUDGET_RESP=$(grpc_auth budget.proto \
+# --- GetBudget ---
+if [ -n "${BUDGET_ID:-}" ]; then
+    GET_BUD=$(grpc_auth budget.proto \
         "familyledger.budget.v1.BudgetService/GetBudget" \
         "{\"budget_id\":\"$BUDGET_ID\"}")
-    GOT_TOTAL=$(echo "$GET_BUDGET_RESP" | jq -r '.budget.totalAmount // empty')
-    if [ "$GOT_TOTAL" = "1000000" ]; then
-        pass "GetBudget - totalAmount=$GOT_TOTAL"
+    BUD_TOTAL=$(echo "$GET_BUD" | jq -r '.budget.totalAmount // empty')
+    BUD_CATS=$(echo "$GET_BUD" | jq '.budget.categoryBudgets | length')
+    if [ "$BUD_TOTAL" = "1000000" ]; then
+        pass "GetBudget - totalAmount=$BUD_TOTAL, categories=$BUD_CATS"
     else
-        fail "GetBudget - expected 1000000, got $GOT_TOTAL" "$GET_BUDGET_RESP"
+        fail "GetBudget" "$GET_BUD"
     fi
 fi
 
-# --- 2.4 ListBudgets ---
-LIST_BUDGETS_RESP=$(grpc_auth budget.proto \
+# --- ListBudgets ---
+LIST_BUD=$(grpc_auth budget.proto \
     "familyledger.budget.v1.BudgetService/ListBudgets" \
     '{"year":2026}')
-BUDGET_LIST_COUNT=$(echo "$LIST_BUDGETS_RESP" | jq '.budgets | length')
-if [ "$BUDGET_LIST_COUNT" -ge 2 ]; then
-    pass "ListBudgets (2026) - found $BUDGET_LIST_COUNT budgets"
+BUD_COUNT=$(echo "$LIST_BUD" | jq '.budgets | length')
+if [ "${BUD_COUNT:-0}" -ge 2 ] 2>/dev/null; then
+    pass "ListBudgets (2026) - found $BUD_COUNT budgets"
 else
-    fail "ListBudgets" "$LIST_BUDGETS_RESP"
+    fail "ListBudgets" "$LIST_BUD"
 fi
 
-# --- 2.5 UpdateBudget ---
-if [ -n "$BUDGET_ID" ]; then
-    UPD_BUDGET_RESP=$(grpc_auth budget.proto \
+# --- UpdateBudget ---
+if [ -n "${BUDGET_ID:-}" ]; then
+    UPD_BUD=$(grpc_auth budget.proto \
         "familyledger.budget.v1.BudgetService/UpdateBudget" \
-        "{\"budget_id\":\"$BUDGET_ID\",\"total_amount\":1500000,\"category_budgets\":[{\"category_id\":\"food\",\"amount\":400000},{\"category_id\":\"transport\",\"amount\":300000},{\"category_id\":\"entertainment\",\"amount\":200000}]}")
-    UPD_TOTAL=$(echo "$UPD_BUDGET_RESP" | jq -r '.budget.totalAmount // empty')
+        "{\"budget_id\":\"$BUDGET_ID\",\"total_amount\":1500000,\"category_budgets\":[{\"category_id\":\"$CAT_FOOD\",\"amount\":400000},{\"category_id\":\"$CAT_TRANSPORT\",\"amount\":300000},{\"category_id\":\"$CAT_SHOPPING\",\"amount\":200000}]}")
+    UPD_TOTAL=$(echo "$UPD_BUD" | jq -r '.budget.totalAmount // empty')
     if [ "$UPD_TOTAL" = "1500000" ]; then
         pass "UpdateBudget - totalAmount updated to $UPD_TOTAL"
     else
-        fail "UpdateBudget" "$UPD_BUDGET_RESP"
+        fail "UpdateBudget" "$UPD_BUD"
     fi
 fi
 
-# --- 2.6 GetBudgetExecution ---
-if [ -n "$BUDGET_ID" ]; then
+# --- GetBudgetExecution ---
+if [ -n "${BUDGET_ID:-}" ]; then
     EXEC_RESP=$(grpc_auth budget.proto \
         "familyledger.budget.v1.BudgetService/GetBudgetExecution" \
         "{\"budget_id\":\"$BUDGET_ID\"}")
-    EXEC_RATE=$(echo "$EXEC_RESP" | jq '.execution.executionRate // 0')
     if echo "$EXEC_RESP" | jq -e '.execution' > /dev/null 2>&1; then
+        EXEC_RATE=$(echo "$EXEC_RESP" | jq '.execution.executionRate // 0')
         pass "GetBudgetExecution - executionRate=$EXEC_RATE"
     else
         fail "GetBudgetExecution" "$EXEC_RESP"
     fi
 fi
 
-# --- 2.7 DeleteBudget ---
-if [ -n "$BUDGET2_ID" ]; then
-    DEL_BUDGET_RESP=$(grpc_auth budget.proto \
+# --- DeleteBudget ---
+if [ -n "${BUDGET2_ID:-}" ]; then
+    DEL_BUD=$(grpc_auth budget.proto \
         "familyledger.budget.v1.BudgetService/DeleteBudget" \
         "{\"budget_id\":\"$BUDGET2_ID\"}")
-    if echo "$DEL_BUDGET_RESP" | grep -q "ERROR\|error\|rpc error" 2>/dev/null; then
-        fail "DeleteBudget" "$DEL_BUDGET_RESP"
+    if echo "$DEL_BUD" | grep -qi "error"; then
+        fail "DeleteBudget" "$DEL_BUD"
     else
         pass "DeleteBudget - deleted 2026-05 budget"
     fi
@@ -410,9 +424,9 @@ echo ""
 ###############################################################################
 # 3. InvestmentService Tests
 ###############################################################################
-echo "=== INVESTMENT SERVICE ==="
+echo "=== INVESTMENT SERVICE (8 RPCs) ==="
 
-# --- 3.1 CreateInvestment (A股) ---
+# --- CreateInvestment (A股) ---
 INV_RESP=$(grpc_auth investment.proto \
     "familyledger.investment.v1.InvestmentService/CreateInvestment" \
     '{"symbol":"600519","name":"贵州茅台","market_type":"MARKET_TYPE_A_SHARE"}')
@@ -423,7 +437,7 @@ else
     fail "CreateInvestment - A股" "$INV_RESP"
 fi
 
-# --- 3.2 CreateInvestment (基金) ---
+# --- CreateInvestment (基金) ---
 INV2_RESP=$(grpc_auth investment.proto \
     "familyledger.investment.v1.InvestmentService/CreateInvestment" \
     '{"symbol":"110011","name":"易方达中小盘","market_type":"MARKET_TYPE_FUND"}')
@@ -434,114 +448,113 @@ else
     fail "CreateInvestment - 基金" "$INV2_RESP"
 fi
 
-# --- 3.3 GetInvestment ---
+# --- GetInvestment ---
 if [ -n "$INV_ID" ]; then
-    GET_INV_RESP=$(grpc_auth investment.proto \
+    GET_INV=$(grpc_auth investment.proto \
         "familyledger.investment.v1.InvestmentService/GetInvestment" \
         "{\"investment_id\":\"$INV_ID\"}")
-    GOT_SYMBOL=$(echo "$GET_INV_RESP" | jq -r '.symbol // empty')
-    if [ "$GOT_SYMBOL" = "600519" ]; then
-        pass "GetInvestment - symbol=$GOT_SYMBOL"
+    GOT_SYM=$(echo "$GET_INV" | jq -r '.symbol // empty')
+    if [ "$GOT_SYM" = "600519" ]; then
+        pass "GetInvestment - symbol=$GOT_SYM"
     else
-        fail "GetInvestment" "$GET_INV_RESP"
+        fail "GetInvestment" "$GET_INV"
     fi
 fi
 
-# --- 3.4 ListInvestments ---
-LIST_INV_RESP=$(grpc_auth investment.proto \
-    "familyledger.investment.v1.InvestmentService/ListInvestments" \
-    '{}')
-INV_COUNT=$(echo "$LIST_INV_RESP" | jq '.investments | length')
-if [ "$INV_COUNT" -ge 2 ]; then
-    pass "ListInvestments - found $INV_COUNT investments"
+# --- ListInvestments ---
+LIST_INV=$(grpc_auth investment.proto \
+    "familyledger.investment.v1.InvestmentService/ListInvestments")
+INV_CNT=$(echo "$LIST_INV" | jq '.investments | length')
+if [ "${INV_CNT:-0}" -ge 2 ] 2>/dev/null; then
+    pass "ListInvestments - found $INV_CNT investments"
 else
-    fail "ListInvestments" "$LIST_INV_RESP"
+    fail "ListInvestments" "$LIST_INV"
 fi
 
-# --- 3.5 ListInvestments with filter ---
-LIST_INV_FILTER=$(grpc_auth investment.proto \
+# --- ListInvestments with filter ---
+LIST_INV_F=$(grpc_auth investment.proto \
     "familyledger.investment.v1.InvestmentService/ListInvestments" \
     '{"market_type":"MARKET_TYPE_A_SHARE"}')
-FILTERED_COUNT=$(echo "$LIST_INV_FILTER" | jq '.investments | length')
-if [ "$FILTERED_COUNT" -ge 1 ]; then
-    pass "ListInvestments (filter A_SHARE) - found $FILTERED_COUNT"
+FILT_CNT=$(echo "$LIST_INV_F" | jq '.investments | length')
+if [ "${FILT_CNT:-0}" -ge 1 ] 2>/dev/null; then
+    pass "ListInvestments (filter A_SHARE) - found $FILT_CNT"
 else
-    fail "ListInvestments (filter)" "$LIST_INV_FILTER"
+    fail "ListInvestments (filter)" "$LIST_INV_F"
 fi
 
-# --- 3.6 UpdateInvestment ---
+# --- UpdateInvestment ---
 if [ -n "$INV_ID" ]; then
-    UPD_INV_RESP=$(grpc_auth investment.proto \
+    UPD_INV=$(grpc_auth investment.proto \
         "familyledger.investment.v1.InvestmentService/UpdateInvestment" \
         "{\"investment_id\":\"$INV_ID\",\"name\":\"贵州茅台-更新\"}")
-    UPD_INV_NAME=$(echo "$UPD_INV_RESP" | jq -r '.name // empty')
-    if [ "$UPD_INV_NAME" = "贵州茅台-更新" ]; then
-        pass "UpdateInvestment - name updated"
+    UPD_NM=$(echo "$UPD_INV" | jq -r '.name // empty')
+    if [ "$UPD_NM" = "贵州茅台-更新" ]; then
+        pass "UpdateInvestment - name=$UPD_NM"
     else
-        fail "UpdateInvestment" "$UPD_INV_RESP"
+        fail "UpdateInvestment" "$UPD_INV"
     fi
 fi
 
-# --- 3.7 RecordTrade (买入) ---
+# --- RecordTrade (BUY 100 shares) ---
 if [ -n "$INV_ID" ]; then
     BUY_RESP=$(grpc_auth investment.proto \
         "familyledger.investment.v1.InvestmentService/RecordTrade" \
-        "{\"investment_id\":\"$INV_ID\",\"trade_type\":\"TRADE_TYPE_BUY\",\"quantity\":100,\"price\":180000,\"fee\":5000,\"trade_date\":{\"seconds\":1708300800}}")
-    TRADE_ID=$(echo "$BUY_RESP" | jq -r '.id // empty')
-    if [ -n "$TRADE_ID" ]; then
-        pass "RecordTrade (BUY) - 100 shares @ 180000分 (id=$TRADE_ID)"
+        "{\"investment_id\":\"$INV_ID\",\"trade_type\":\"TRADE_TYPE_BUY\",\"quantity\":100,\"price\":180000,\"fee\":5000,\"trade_date\":\"2024-02-19T00:00:00Z\"}")
+    BUY_ID=$(echo "$BUY_RESP" | jq -r '.id // empty')
+    BUY_TOTAL=$(echo "$BUY_RESP" | jq -r '.totalAmount // empty')
+    if [ -n "$BUY_ID" ]; then
+        pass "RecordTrade (BUY) - 100 shares @1800元, total=${BUY_TOTAL}分 (id=$BUY_ID)"
     else
         fail "RecordTrade (BUY)" "$BUY_RESP"
     fi
 fi
 
-# --- 3.8 RecordTrade (卖出) ---
+# --- RecordTrade (SELL 50 shares) ---
 if [ -n "$INV_ID" ]; then
     SELL_RESP=$(grpc_auth investment.proto \
         "familyledger.investment.v1.InvestmentService/RecordTrade" \
-        "{\"investment_id\":\"$INV_ID\",\"trade_type\":\"TRADE_TYPE_SELL\",\"quantity\":50,\"price\":195000,\"fee\":5000,\"trade_date\":{\"seconds\":1711065600}}")
-    SELL_TRADE_ID=$(echo "$SELL_RESP" | jq -r '.id // empty')
-    if [ -n "$SELL_TRADE_ID" ]; then
-        pass "RecordTrade (SELL) - 50 shares @ 195000分"
+        "{\"investment_id\":\"$INV_ID\",\"trade_type\":\"TRADE_TYPE_SELL\",\"quantity\":50,\"price\":195000,\"fee\":5000,\"trade_date\":\"2024-03-22T00:00:00Z\"}")
+    SELL_ID=$(echo "$SELL_RESP" | jq -r '.id // empty')
+    if [ -n "$SELL_ID" ]; then
+        pass "RecordTrade (SELL) - 50 shares @1950元"
     else
         fail "RecordTrade (SELL)" "$SELL_RESP"
     fi
 fi
 
-# --- 3.9 ListTrades ---
+# --- ListTrades ---
 if [ -n "$INV_ID" ]; then
-    LIST_TRADES_RESP=$(grpc_auth investment.proto \
+    LIST_TR=$(grpc_auth investment.proto \
         "familyledger.investment.v1.InvestmentService/ListTrades" \
         "{\"investment_id\":\"$INV_ID\"}")
-    TRADE_COUNT=$(echo "$LIST_TRADES_RESP" | jq '.trades | length')
-    if [ "$TRADE_COUNT" -ge 2 ]; then
-        pass "ListTrades - found $TRADE_COUNT trades"
+    TR_CNT=$(echo "$LIST_TR" | jq '.trades | length')
+    if [ "${TR_CNT:-0}" -ge 2 ] 2>/dev/null; then
+        pass "ListTrades - found $TR_CNT trades"
     else
-        fail "ListTrades" "$LIST_TRADES_RESP"
+        fail "ListTrades" "$LIST_TR"
     fi
 fi
 
-# --- 3.10 GetPortfolioSummary ---
-PORTFOLIO_RESP=$(grpc_auth investment.proto \
-    "familyledger.investment.v1.InvestmentService/GetPortfolioSummary" \
-    '{}')
-TOTAL_COST=$(echo "$PORTFOLIO_RESP" | jq '.totalCost // 0')
-HOLDINGS_COUNT=$(echo "$PORTFOLIO_RESP" | jq '.holdings | length')
-if [ "$HOLDINGS_COUNT" -ge 1 ]; then
-    pass "GetPortfolioSummary - $HOLDINGS_COUNT holdings, totalCost=$TOTAL_COST"
+# --- GetPortfolioSummary ---
+PORTFOLIO=$(grpc_auth investment.proto \
+    "familyledger.investment.v1.InvestmentService/GetPortfolioSummary")
+HOLD_CNT=$(echo "$PORTFOLIO" | jq '.holdings | length')
+P_COST=$(echo "$PORTFOLIO" | jq -r '.totalCost // "0"')
+if [ "${HOLD_CNT:-0}" -ge 1 ] 2>/dev/null; then
+    pass "GetPortfolioSummary - $HOLD_CNT holdings, totalCost=${P_COST}分"
 else
-    fail "GetPortfolioSummary" "$PORTFOLIO_RESP"
+    fail "GetPortfolioSummary" "$PORTFOLIO"
 fi
 
-# --- 3.11 DeleteInvestment (delete fund) ---
+# --- DeleteInvestment ---
 if [ -n "$INV2_ID" ]; then
-    DEL_INV_RESP=$(grpc_auth investment.proto \
+    DEL_INV=$(grpc_auth investment.proto \
         "familyledger.investment.v1.InvestmentService/DeleteInvestment" \
         "{\"investment_id\":\"$INV2_ID\"}")
-    if echo "$DEL_INV_RESP" | grep -q "ERROR\|error\|rpc error" 2>/dev/null; then
-        fail "DeleteInvestment" "$DEL_INV_RESP"
+    if echo "$DEL_INV" | grep -qi "error"; then
+        fail "DeleteInvestment" "$DEL_INV"
     else
-        pass "DeleteInvestment - deleted fund investment"
+        pass "DeleteInvestment - deleted 基金"
     fi
 fi
 
@@ -550,52 +563,52 @@ echo ""
 ###############################################################################
 # 4. MarketDataService Tests
 ###############################################################################
-echo "=== MARKET DATA SERVICE ==="
+echo "=== MARKET DATA SERVICE (4 RPCs) ==="
 
-# --- 4.1 GetQuote ---
-QUOTE_RESP=$(grpc_auth investment.proto \
+# --- GetQuote ---
+QUOTE=$(grpc_auth investment.proto \
     "familyledger.investment.v1.MarketDataService/GetQuote" \
     '{"symbol":"600519","market_type":"MARKET_TYPE_A_SHARE"}')
-QUOTE_PRICE=$(echo "$QUOTE_RESP" | jq -r '.currentPrice // empty')
-if [ -n "$QUOTE_PRICE" ] && [ "$QUOTE_PRICE" != "null" ] && [ "$QUOTE_PRICE" != "0" ]; then
-    pass "GetQuote - 600519 price=$QUOTE_PRICE 分"
+Q_PRICE=$(echo "$QUOTE" | jq -r '.currentPrice // empty')
+Q_NAME=$(echo "$QUOTE" | jq -r '.name // empty')
+if [ -n "$Q_PRICE" ] && [ "$Q_PRICE" != "null" ] && [ "$Q_PRICE" != "0" ]; then
+    pass "GetQuote - 600519 ($Q_NAME) price=${Q_PRICE}分"
 else
-    fail "GetQuote" "$QUOTE_RESP"
+    fail "GetQuote" "$QUOTE"
 fi
 
-# --- 4.2 BatchGetQuotes ---
-BATCH_RESP=$(grpc_auth investment.proto \
+# --- BatchGetQuotes ---
+BATCH=$(grpc_auth investment.proto \
     "familyledger.investment.v1.MarketDataService/BatchGetQuotes" \
     '{"requests":[{"symbol":"600519","market_type":"MARKET_TYPE_A_SHARE"},{"symbol":"000858","market_type":"MARKET_TYPE_A_SHARE"}]}')
-BATCH_COUNT=$(echo "$BATCH_RESP" | jq '.quotes | length')
-if [ "$BATCH_COUNT" -ge 2 ]; then
-    pass "BatchGetQuotes - got $BATCH_COUNT quotes"
+B_CNT=$(echo "$BATCH" | jq '.quotes | length')
+if [ "${B_CNT:-0}" -ge 2 ] 2>/dev/null; then
+    pass "BatchGetQuotes - got $B_CNT quotes"
 else
-    fail "BatchGetQuotes" "$BATCH_RESP"
+    fail "BatchGetQuotes" "$BATCH"
 fi
 
-# --- 4.3 SearchSymbol ---
-SEARCH_RESP=$(grpc_auth investment.proto \
+# --- SearchSymbol ---
+SEARCH=$(grpc_auth investment.proto \
     "familyledger.investment.v1.MarketDataService/SearchSymbol" \
     '{"query":"茅台","market_type":"MARKET_TYPE_A_SHARE"}')
-SEARCH_COUNT=$(echo "$SEARCH_RESP" | jq '.symbols | length')
-if [ "$SEARCH_COUNT" -ge 1 ]; then
-    FIRST_MATCH=$(echo "$SEARCH_RESP" | jq -r '.symbols[0].symbol // empty')
-    pass "SearchSymbol - '茅台' found $SEARCH_COUNT results, first=$FIRST_MATCH"
+S_CNT=$(echo "$SEARCH" | jq '.symbols | length')
+if [ "${S_CNT:-0}" -ge 1 ] 2>/dev/null; then
+    FIRST_SYM=$(echo "$SEARCH" | jq -r '.symbols[0].symbol // empty')
+    pass "SearchSymbol '茅台' - $S_CNT results, first=$FIRST_SYM"
 else
-    # Search may have partial results, try broader
-    fail "SearchSymbol" "$SEARCH_RESP"
+    fail "SearchSymbol" "$SEARCH"
 fi
 
-# --- 4.4 GetPriceHistory ---
-HISTORY_RESP=$(grpc_auth investment.proto \
+# --- GetPriceHistory ---
+HIST=$(grpc_auth investment.proto \
     "familyledger.investment.v1.MarketDataService/GetPriceHistory" \
-    '{"symbol":"600519","market_type":"MARKET_TYPE_A_SHARE","start_date":{"seconds":1704067200},"end_date":{"seconds":1735689600}}')
-POINTS_COUNT=$(echo "$HISTORY_RESP" | jq '.points | length')
-if [ "$POINTS_COUNT" -ge 0 ]; then
-    pass "GetPriceHistory - 600519 got $POINTS_COUNT price points"
+    '{"symbol":"600519","market_type":"MARKET_TYPE_A_SHARE","start_date":"2024-01-01T00:00:00Z","end_date":"2025-01-01T00:00:00Z"}')
+H_PTS=$(echo "$HIST" | jq '.points | length')
+if echo "$HIST" | jq -e '.symbol' > /dev/null 2>&1; then
+    pass "GetPriceHistory - 600519, $H_PTS price points"
 else
-    fail "GetPriceHistory" "$HISTORY_RESP"
+    fail "GetPriceHistory" "$HIST"
 fi
 
 echo ""
@@ -603,175 +616,171 @@ echo ""
 ###############################################################################
 # 5. AssetService Tests
 ###############################################################################
-echo "=== ASSET SERVICE ==="
+echo "=== ASSET SERVICE (8 RPCs) ==="
 
-# --- 5.1 CreateAsset (房产) ---
-ASSET_RESP=$(grpc_auth asset.proto \
+# --- CreateAsset (房产) ---
+A1_RESP=$(grpc_auth asset.proto \
     "familyledger.asset.v1.AssetService/CreateAsset" \
-    '{"name":"城西公寓","asset_type":"ASSET_TYPE_REAL_ESTATE","purchase_price":350000000,"purchase_date":{"seconds":1609459200},"description":"三室两厅 120平"}')
-ASSET_ID=$(echo "$ASSET_RESP" | jq -r '.id // empty')
-if [ -n "$ASSET_ID" ]; then
-    pass "CreateAsset - 房产 (id=$ASSET_ID)"
+    '{"name":"城西公寓","asset_type":"ASSET_TYPE_REAL_ESTATE","purchase_price":350000000,"purchase_date":"2021-01-01T00:00:00Z","description":"三室两厅 120平"}')
+A1_ID=$(echo "$A1_RESP" | jq -r '.id // empty')
+if [ -n "$A1_ID" ]; then
+    pass "CreateAsset - 房产 350万 (id=$A1_ID)"
 else
-    fail "CreateAsset - 房产" "$ASSET_RESP"
+    fail "CreateAsset - 房产" "$A1_RESP"
 fi
 
-# --- 5.2 CreateAsset (车辆) ---
-ASSET2_RESP=$(grpc_auth asset.proto \
+# --- CreateAsset (车辆) ---
+A2_RESP=$(grpc_auth asset.proto \
     "familyledger.asset.v1.AssetService/CreateAsset" \
-    '{"name":"Model 3","asset_type":"ASSET_TYPE_VEHICLE","purchase_price":25000000,"purchase_date":{"seconds":1672531200},"description":"2023款 长续航版"}')
-ASSET2_ID=$(echo "$ASSET2_RESP" | jq -r '.id // empty')
-if [ -n "$ASSET2_ID" ]; then
-    pass "CreateAsset - 车辆 (id=$ASSET2_ID)"
+    '{"name":"Model 3","asset_type":"ASSET_TYPE_VEHICLE","purchase_price":25000000,"purchase_date":"2023-01-01T00:00:00Z","description":"2023款 长续航版"}')
+A2_ID=$(echo "$A2_RESP" | jq -r '.id // empty')
+if [ -n "$A2_ID" ]; then
+    pass "CreateAsset - 车辆 25万 (id=$A2_ID)"
 else
-    fail "CreateAsset - 车辆" "$ASSET2_RESP"
+    fail "CreateAsset - 车辆" "$A2_RESP"
 fi
 
-# --- 5.3 CreateAsset (电子设备) ---
-ASSET3_RESP=$(grpc_auth asset.proto \
+# --- CreateAsset (电子设备) ---
+A3_RESP=$(grpc_auth asset.proto \
     "familyledger.asset.v1.AssetService/CreateAsset" \
-    '{"name":"MacBook Pro M3","asset_type":"ASSET_TYPE_ELECTRONICS","purchase_price":2499900,"purchase_date":{"seconds":1698796800},"description":"16寸 36GB内存"}')
-ASSET3_ID=$(echo "$ASSET3_RESP" | jq -r '.id // empty')
-if [ -n "$ASSET3_ID" ]; then
-    pass "CreateAsset - 电子设备 (id=$ASSET3_ID)"
+    '{"name":"MacBook Pro M3","asset_type":"ASSET_TYPE_ELECTRONICS","purchase_price":2499900,"purchase_date":"2023-11-01T00:00:00Z","description":"16寸 36GB"}')
+A3_ID=$(echo "$A3_RESP" | jq -r '.id // empty')
+if [ -n "$A3_ID" ]; then
+    pass "CreateAsset - 电子设备 24999元 (id=$A3_ID)"
 else
-    fail "CreateAsset - 电子设备" "$ASSET3_RESP"
+    fail "CreateAsset - 电子设备" "$A3_RESP"
 fi
 
-# --- 5.4 GetAsset ---
-if [ -n "$ASSET_ID" ]; then
-    GET_ASSET_RESP=$(grpc_auth asset.proto \
+# --- GetAsset ---
+if [ -n "$A1_ID" ]; then
+    GET_A=$(grpc_auth asset.proto \
         "familyledger.asset.v1.AssetService/GetAsset" \
-        "{\"asset_id\":\"$ASSET_ID\"}")
-    GOT_ASSET_NAME=$(echo "$GET_ASSET_RESP" | jq -r '.name // empty')
-    if [ "$GOT_ASSET_NAME" = "城西公寓" ]; then
-        pass "GetAsset - name=$GOT_ASSET_NAME"
+        "{\"asset_id\":\"$A1_ID\"}")
+    GA_NAME=$(echo "$GET_A" | jq -r '.name // empty')
+    GA_PP=$(echo "$GET_A" | jq -r '.purchasePrice // empty')
+    if [ "$GA_NAME" = "城西公寓" ] && [ "$GA_PP" = "350000000" ]; then
+        pass "GetAsset - name=$GA_NAME, purchasePrice=$GA_PP"
     else
-        fail "GetAsset" "$GET_ASSET_RESP"
+        fail "GetAsset" "$GET_A"
     fi
 fi
 
-# --- 5.5 ListAssets ---
-LIST_ASSETS_RESP=$(grpc_auth asset.proto \
-    "familyledger.asset.v1.AssetService/ListAssets" \
-    '{}')
-ASSET_COUNT=$(echo "$LIST_ASSETS_RESP" | jq '.assets | length')
-if [ "$ASSET_COUNT" -ge 3 ]; then
-    pass "ListAssets - found $ASSET_COUNT assets"
+# --- ListAssets ---
+LIST_A=$(grpc_auth asset.proto "familyledger.asset.v1.AssetService/ListAssets")
+A_CNT=$(echo "$LIST_A" | jq '.assets | length')
+if [ "${A_CNT:-0}" -ge 3 ] 2>/dev/null; then
+    pass "ListAssets - found $A_CNT assets"
 else
-    fail "ListAssets" "$LIST_ASSETS_RESP"
+    fail "ListAssets" "$LIST_A"
 fi
 
-# --- 5.6 ListAssets with filter ---
-LIST_ASSETS_FILTER=$(grpc_auth asset.proto \
+# --- ListAssets with filter ---
+LIST_AF=$(grpc_auth asset.proto \
     "familyledger.asset.v1.AssetService/ListAssets" \
     '{"asset_type":"ASSET_TYPE_VEHICLE"}')
-VEHICLE_COUNT=$(echo "$LIST_ASSETS_FILTER" | jq '.assets | length')
-if [ "$VEHICLE_COUNT" -ge 1 ]; then
-    pass "ListAssets (filter VEHICLE) - found $VEHICLE_COUNT"
+AF_CNT=$(echo "$LIST_AF" | jq '.assets | length')
+if [ "${AF_CNT:-0}" -ge 1 ] 2>/dev/null; then
+    pass "ListAssets (filter VEHICLE) - found $AF_CNT"
 else
-    fail "ListAssets (filter)" "$LIST_ASSETS_FILTER"
+    fail "ListAssets (filter)" "$LIST_AF"
 fi
 
-# --- 5.7 UpdateAsset ---
-if [ -n "$ASSET_ID" ]; then
-    UPD_ASSET_RESP=$(grpc_auth asset.proto \
+# --- UpdateAsset ---
+if [ -n "$A1_ID" ]; then
+    UPD_A=$(grpc_auth asset.proto \
         "familyledger.asset.v1.AssetService/UpdateAsset" \
-        "{\"asset_id\":\"$ASSET_ID\",\"name\":\"城西公寓-精装修\",\"description\":\"三室两厅 120平 精装\"}")
-    UPD_ASSET_NAME=$(echo "$UPD_ASSET_RESP" | jq -r '.name // empty')
-    if [ "$UPD_ASSET_NAME" = "城西公寓-精装修" ]; then
-        pass "UpdateAsset - name updated"
+        "{\"asset_id\":\"$A1_ID\",\"name\":\"城西公寓-精装修\",\"description\":\"三室两厅 120平 精装\"}")
+    UA_NAME=$(echo "$UPD_A" | jq -r '.name // empty')
+    if [ "$UA_NAME" = "城西公寓-精装修" ]; then
+        pass "UpdateAsset - name=$UA_NAME"
     else
-        fail "UpdateAsset" "$UPD_ASSET_RESP"
+        fail "UpdateAsset" "$UPD_A"
     fi
 fi
 
-# --- 5.8 SetDepreciationRule (车辆 - 直线法) ---
-if [ -n "$ASSET2_ID" ]; then
-    DEPR_RESP=$(grpc_auth asset.proto \
+# --- SetDepreciationRule (车辆 - 直线法 6年) ---
+if [ -n "$A2_ID" ]; then
+    DEPR=$(grpc_auth asset.proto \
         "familyledger.asset.v1.AssetService/SetDepreciationRule" \
-        "{\"asset_id\":\"$ASSET2_ID\",\"method\":\"DEPRECIATION_METHOD_STRAIGHT_LINE\",\"useful_life_years\":6,\"salvage_rate\":0.05}")
-    DEPR_ID=$(echo "$DEPR_RESP" | jq -r '.id // empty')
+        "{\"asset_id\":\"$A2_ID\",\"method\":\"DEPRECIATION_METHOD_STRAIGHT_LINE\",\"useful_life_years\":6,\"salvage_rate\":0.05}")
+    DEPR_ID=$(echo "$DEPR" | jq -r '.id // empty')
     if [ -n "$DEPR_ID" ]; then
-        pass "SetDepreciationRule - 车辆直线法 6年 残值率5% (id=$DEPR_ID)"
+        pass "SetDepreciationRule - 车辆 直线法 6年 残值5% (id=$DEPR_ID)"
     else
-        fail "SetDepreciationRule (车辆)" "$DEPR_RESP"
+        fail "SetDepreciationRule (车辆)" "$DEPR"
     fi
 fi
 
-# --- 5.9 SetDepreciationRule (电子设备 - 双倍余额递减) ---
-if [ -n "$ASSET3_ID" ]; then
-    DEPR2_RESP=$(grpc_auth asset.proto \
+# --- SetDepreciationRule (电子设备 - 双倍余额递减 5年) ---
+if [ -n "$A3_ID" ]; then
+    DEPR2=$(grpc_auth asset.proto \
         "familyledger.asset.v1.AssetService/SetDepreciationRule" \
-        "{\"asset_id\":\"$ASSET3_ID\",\"method\":\"DEPRECIATION_METHOD_DOUBLE_DECLINING\",\"useful_life_years\":5,\"salvage_rate\":0.1}")
-    DEPR2_ID=$(echo "$DEPR2_RESP" | jq -r '.id // empty')
+        "{\"asset_id\":\"$A3_ID\",\"method\":\"DEPRECIATION_METHOD_DOUBLE_DECLINING\",\"useful_life_years\":5,\"salvage_rate\":0.1}")
+    DEPR2_ID=$(echo "$DEPR2" | jq -r '.id // empty')
     if [ -n "$DEPR2_ID" ]; then
-        pass "SetDepreciationRule - 电子设备双倍递减 5年 残值率10%"
+        pass "SetDepreciationRule - 电子设备 双倍递减 5年 残值10%"
     else
-        fail "SetDepreciationRule (电子设备)" "$DEPR2_RESP"
+        fail "SetDepreciationRule (电子设备)" "$DEPR2"
     fi
 fi
 
-# --- 5.10 UpdateValuation (房产升值) ---
-if [ -n "$ASSET_ID" ]; then
-    VAL_RESP=$(grpc_auth asset.proto \
+# --- UpdateValuation (房产升值 380万) ---
+if [ -n "$A1_ID" ]; then
+    VAL1=$(grpc_auth asset.proto \
         "familyledger.asset.v1.AssetService/UpdateValuation" \
-        "{\"asset_id\":\"$ASSET_ID\",\"value\":380000000,\"source\":\"market\"}")
-    VAL_ID=$(echo "$VAL_RESP" | jq -r '.id // empty')
-    if [ -n "$VAL_ID" ]; then
-        pass "UpdateValuation - 房产市值 380万 (id=$VAL_ID)"
+        "{\"asset_id\":\"$A1_ID\",\"value\":380000000,\"source\":\"market\"}")
+    V1_ID=$(echo "$VAL1" | jq -r '.id // empty')
+    if [ -n "$V1_ID" ]; then
+        pass "UpdateValuation - 房产 market估值 380万"
     else
-        fail "UpdateValuation (1st)" "$VAL_RESP"
+        fail "UpdateValuation (1st)" "$VAL1"
     fi
 fi
 
-# --- 5.11 UpdateValuation (second valuation) ---
-if [ -n "$ASSET_ID" ]; then
-    VAL2_RESP=$(grpc_auth asset.proto \
+# --- UpdateValuation (房产手动估值 390万) ---
+if [ -n "$A1_ID" ]; then
+    VAL2=$(grpc_auth asset.proto \
         "familyledger.asset.v1.AssetService/UpdateValuation" \
-        "{\"asset_id\":\"$ASSET_ID\",\"value\":390000000,\"source\":\"manual\"}")
-    VAL2_ID=$(echo "$VAL2_RESP" | jq -r '.id // empty')
-    if [ -n "$VAL2_ID" ]; then
-        pass "UpdateValuation - 房产手动估值 390万"
+        "{\"asset_id\":\"$A1_ID\",\"value\":390000000,\"source\":\"manual\"}")
+    V2_ID=$(echo "$VAL2" | jq -r '.id // empty')
+    if [ -n "$V2_ID" ]; then
+        pass "UpdateValuation - 房产 手动估值 390万"
     else
-        fail "UpdateValuation (2nd)" "$VAL2_RESP"
+        fail "UpdateValuation (2nd)" "$VAL2"
     fi
 fi
 
-# --- 5.12 ListValuations ---
-if [ -n "$ASSET_ID" ]; then
-    LIST_VAL_RESP=$(grpc_auth asset.proto \
+# --- ListValuations ---
+if [ -n "$A1_ID" ]; then
+    LIST_V=$(grpc_auth asset.proto \
         "familyledger.asset.v1.AssetService/ListValuations" \
-        "{\"asset_id\":\"$ASSET_ID\"}")
-    VAL_COUNT=$(echo "$LIST_VAL_RESP" | jq '.valuations | length')
-    if [ "$VAL_COUNT" -ge 2 ]; then
-        pass "ListValuations - found $VAL_COUNT valuations"
+        "{\"asset_id\":\"$A1_ID\"}")
+    V_CNT=$(echo "$LIST_V" | jq '.valuations | length')
+    if [ "${V_CNT:-0}" -ge 2 ] 2>/dev/null; then
+        pass "ListValuations - found $V_CNT valuations"
     else
-        fail "ListValuations" "$LIST_VAL_RESP"
+        fail "ListValuations" "$LIST_V"
     fi
 fi
 
-# --- 5.13 DeleteAsset (delete electronics) ---
-if [ -n "$ASSET3_ID" ]; then
-    DEL_ASSET_RESP=$(grpc_auth asset.proto \
+# --- DeleteAsset ---
+if [ -n "$A3_ID" ]; then
+    DEL_A=$(grpc_auth asset.proto \
         "familyledger.asset.v1.AssetService/DeleteAsset" \
-        "{\"asset_id\":\"$ASSET3_ID\"}")
-    if echo "$DEL_ASSET_RESP" | grep -q "ERROR\|error\|rpc error" 2>/dev/null; then
-        fail "DeleteAsset" "$DEL_ASSET_RESP"
+        "{\"asset_id\":\"$A3_ID\"}")
+    if echo "$DEL_A" | grep -qi "error"; then
+        fail "DeleteAsset" "$DEL_A"
     else
-        pass "DeleteAsset - deleted electronics"
+        pass "DeleteAsset - deleted 电子设备"
+        # Verify
+        LIST_POST=$(grpc_auth asset.proto "familyledger.asset.v1.AssetService/ListAssets")
+        POST_CNT=$(echo "$LIST_POST" | jq '.assets | length')
+        if [ "${POST_CNT:-0}" -lt "${A_CNT:-0}" ] 2>/dev/null; then
+            pass "DeleteAsset - verified (${POST_CNT} remaining)"
+        else
+            pass "DeleteAsset - post count=$POST_CNT"
+        fi
     fi
-fi
-
-# Verify deletion
-LIST_AFTER_DEL=$(grpc_auth asset.proto \
-    "familyledger.asset.v1.AssetService/ListAssets" '{}')
-REMAINING_ASSETS=$(echo "$LIST_AFTER_DEL" | jq '.assets | length')
-if [ "$REMAINING_ASSETS" -ge 2 ] && [ "$REMAINING_ASSETS" -lt "$ASSET_COUNT" ]; then
-    pass "DeleteAsset - verified deletion ($REMAINING_ASSETS remaining)"
-else
-    # Might still pass if count is correct
-    pass "DeleteAsset - post-delete count=$REMAINING_ASSETS"
 fi
 
 echo ""
