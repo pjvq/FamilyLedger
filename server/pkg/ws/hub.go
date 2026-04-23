@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
+
+	jwtpkg "github.com/familyledger/server/pkg/jwt"
 )
 
 var upgrader = websocket.Upgrader{
@@ -18,8 +20,9 @@ var upgrader = websocket.Upgrader{
 
 // Hub manages all WebSocket connections.
 type Hub struct {
-	mu      sync.RWMutex
-	clients map[string]map[*Client]bool // userID -> clients
+	mu         sync.RWMutex
+	clients    map[string]map[*Client]bool // userID -> clients
+	jwtManager *jwtpkg.Manager
 }
 
 type Client struct {
@@ -35,18 +38,37 @@ type ChangeNotification struct {
 	UserID     string `json:"user_id"`
 }
 
-func NewHub() *Hub {
+func NewHub(jwtManager *jwtpkg.Manager) *Hub {
 	return &Hub{
-		clients: make(map[string]map[*Client]bool),
+		clients:    make(map[string]map[*Client]bool),
+		jwtManager: jwtManager,
 	}
 }
 
 func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	userID := r.URL.Query().Get("user_id")
-	if userID == "" {
-		http.Error(w, "missing user_id", http.StatusBadRequest)
+	// Authenticate via JWT token query param
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		// Fallback: also accept user_id for backward compat (dev only)
+		userID := r.URL.Query().Get("user_id")
+		if userID == "" {
+			http.Error(w, "missing token", http.StatusUnauthorized)
+			return
+		}
+		h.upgradeAndRegister(w, r, userID)
 		return
 	}
+
+	claims, err := h.jwtManager.Verify(token)
+	if err != nil {
+		http.Error(w, "invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	h.upgradeAndRegister(w, r, claims.UserID)
+}
+
+func (h *Hub) upgradeAndRegister(w http.ResponseWriter, r *http.Request, userID string) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -65,7 +87,6 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	go client.writePump()
 	go client.readPump(h)
 }
-
 func (h *Hub) register(client *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()

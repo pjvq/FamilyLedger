@@ -78,7 +78,7 @@ func main() {
 	jwtManager := jwtpkg.NewManager(jwtSecret)
 
 	// WebSocket Hub
-	hub := ws.NewHub()
+	hub := ws.NewHub(jwtManager)
 
 	// Services
 	authService := auth.NewService(pool, jwtManager)
