@@ -141,6 +141,24 @@ NF2=$(grpc "transaction.proto" "familyledger.transaction.v1.TransactionService/D
 check "Delete NOT_FOUND for fake ID" "$NF2" "NotFound"
 
 echo ""
+echo "💱 Phase 6: Foreign Currency (USD)"
+echo "═══════════════════════════════════════"
+# Create a USD expense: 100 USD = 72500 分 CNY
+FC=$(grpc "transaction.proto" "familyledger.transaction.v1.TransactionService/CreateTransaction" \
+  "{\"account_id\":\"$ACCT_ID\",\"category_id\":\"$EXP_CAT\",\"amount\":10000,\"currency\":\"USD\",\"amount_cny\":72500,\"exchange_rate\":7.25,\"type\":\"TRANSACTION_TYPE_EXPENSE\",\"note\":\"foreign test\"}")
+FC_ID=$(echo "$FC" | jq -r '.transaction.id')
+check "CreateTransaction USD" "$FC" "id"
+
+BAL5=$(get_balance)
+check_eq "Balance uses amountCny for USD" "$BAL5" "-72500"
+
+# Delete and verify balance returns to 0
+grpc "transaction.proto" "familyledger.transaction.v1.TransactionService/DeleteTransaction" \
+  "{\"transaction_id\":\"$FC_ID\"}" > /dev/null
+BAL6=$(get_balance)
+check_eq "Balance = 0 after deleting USD txn" "$BAL6" "0"
+
+echo ""
 echo "═══════════════════════════════════════"
 echo "📊 Results: $PASS passed, $FAIL failed"
 [[ $FAIL -gt 0 ]] && { printf "❌ Failures:\n"; for e in "${ERRORS[@]}"; do echo "   - $e"; done; exit 1; }
