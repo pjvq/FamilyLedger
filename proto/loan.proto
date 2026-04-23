@@ -17,6 +17,12 @@ service LoanService {
     rpc SimulatePrepayment(SimulatePrepaymentRequest) returns (PrepaymentSimulation);
     rpc RecordRateChange(RecordRateChangeRequest) returns (Loan);
     rpc RecordPayment(RecordPaymentRequest) returns (LoanScheduleItem);
+
+    // ── Loan Group (组合贷款) ────────────────────────────────────────────
+    rpc CreateLoanGroup(CreateLoanGroupRequest) returns (LoanGroup);
+    rpc GetLoanGroup(GetLoanGroupRequest) returns (LoanGroup);
+    rpc ListLoanGroups(ListLoanGroupsRequest) returns (ListLoanGroupsResponse);
+    rpc SimulateGroupPrepayment(SimulateGroupPrepaymentRequest) returns (GroupPrepaymentSimulation);
 }
 
 enum LoanType {
@@ -41,6 +47,18 @@ enum PrepaymentStrategy {
     PREPAYMENT_STRATEGY_REDUCE_PAYMENT = 2;  // 减少月供
 }
 
+enum LoanSubType {
+    LOAN_SUB_TYPE_UNSPECIFIED = 0;
+    LOAN_SUB_TYPE_COMMERCIAL = 1;   // 商业贷款
+    LOAN_SUB_TYPE_PROVIDENT = 2;    // 公积金贷款
+}
+
+enum RateType {
+    RATE_TYPE_UNSPECIFIED = 0;
+    RATE_TYPE_FIXED = 1;           // 固定利率
+    RATE_TYPE_LPR_FLOATING = 2;    // LPR浮动
+}
+
 message Loan {
     string id = 1;
     string user_id = 2;
@@ -57,6 +75,12 @@ message Loan {
     google.protobuf.Timestamp created_at = 13;
     google.protobuf.Timestamp updated_at = 14;
     string account_id = 15;        // 关联还款账户
+    string group_id = 16;          // 归属组合贷款（空 = 独立贷款）
+    LoanSubType sub_type = 17;     // 子贷款类型
+    RateType rate_type = 18;       // 利率类型
+    double lpr_base = 19;          // LPR 基准利率
+    double lpr_spread = 20;        // 基点偏移
+    int32 rate_adjust_month = 21;  // 利率调整月 (1=一月, 0=放款月)
 }
 
 message LoanScheduleItem {
@@ -138,4 +162,67 @@ message RecordRateChangeRequest {
 message RecordPaymentRequest {
     string loan_id = 1;
     int32 month_number = 2;        // 第几期
+}
+
+// ── Loan Group Messages ─────────────────────────────────────────────────────
+
+message LoanGroup {
+    string id = 1;
+    string user_id = 2;
+    string name = 3;
+    string group_type = 4;         // commercial_only / provident_only / combined
+    int64 total_principal = 5;     // 总贷款本金（分）
+    int32 payment_day = 6;
+    google.protobuf.Timestamp start_date = 7;
+    string account_id = 8;
+    repeated Loan sub_loans = 9;   // 1-2 笔子贷款
+    int64 total_monthly_payment = 10; // 总月供（计算字段）
+    google.protobuf.Timestamp created_at = 11;
+    google.protobuf.Timestamp updated_at = 12;
+}
+
+message SubLoanSpec {
+    string name = 1;
+    LoanSubType sub_type = 2;
+    int64 principal = 3;           // 本金（分）
+    double annual_rate = 4;        // 年利率
+    int32 total_months = 5;
+    RepaymentMethod repayment_method = 6;
+    RateType rate_type = 7;
+    double lpr_base = 8;
+    double lpr_spread = 9;
+    int32 rate_adjust_month = 10;
+}
+
+message CreateLoanGroupRequest {
+    string name = 1;
+    string group_type = 2;         // commercial_only / provident_only / combined
+    int32 payment_day = 3;
+    google.protobuf.Timestamp start_date = 4;
+    string account_id = 5;
+    repeated SubLoanSpec sub_loans = 6;
+    LoanType loan_type = 7;        // 贷款大类（如房贷）
+}
+
+message GetLoanGroupRequest {
+    string group_id = 1;
+}
+
+message ListLoanGroupsRequest {}
+
+message ListLoanGroupsResponse {
+    repeated LoanGroup groups = 1;
+}
+
+message SimulateGroupPrepaymentRequest {
+    string group_id = 1;
+    string target_loan_id = 2;     // 指定先还哪笔（为空则自动选利率高的）
+    int64 prepayment_amount = 3;
+    PrepaymentStrategy strategy = 4;
+}
+
+message GroupPrepaymentSimulation {
+    string target_loan_id = 1;
+    PrepaymentSimulation target_sim = 2;  // 被提前还款的子贷款模拟结果
+    int64 total_interest_saved = 3;
 }

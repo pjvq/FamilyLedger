@@ -117,7 +117,8 @@ func (s *Service) ListLoans(ctx context.Context, req *pb.ListLoansRequest) (*pb.
 	rows, err := s.pool.Query(ctx,
 		`SELECT id, user_id, name, loan_type, principal, remaining_principal,
 		        annual_rate, total_months, paid_months, repayment_method, payment_day,
-		        start_date, created_at, updated_at, account_id
+		        start_date, created_at, updated_at, account_id,
+		        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month
 		 FROM loans WHERE user_id = $1 AND deleted_at IS NULL
 		 ORDER BY created_at DESC`,
 		userID,
@@ -761,16 +762,22 @@ func (s *Service) loadLoan(ctx context.Context, loanID, userID string) (*pb.Loan
 	var totalMonths, paidMonths, paymentDay int32
 	var startDate, createdAt, updatedAt time.Time
 	var accountID *uuid.UUID
+	var groupID *uuid.UUID
+	var subType, rateType *string
+	var lprBase, lprSpread *float64
+	var rateAdjustMonth *int32
 
 	err := s.pool.QueryRow(ctx,
 		`SELECT id, user_id, name, loan_type, principal, remaining_principal,
 		        annual_rate, total_months, paid_months, repayment_method, payment_day,
-		        start_date, created_at, updated_at, account_id
+		        start_date, created_at, updated_at, account_id,
+		        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month
 		 FROM loans WHERE id=$1 AND deleted_at IS NULL`,
 		loanID,
 	).Scan(&id, &uid, &name, &loanType, &principal, &remainingPrincipal,
 		&annualRate, &totalMonths, &paidMonths, &method, &paymentDay,
-		&startDate, &createdAt, &updatedAt, &accountID)
+		&startDate, &createdAt, &updatedAt, &accountID,
+		&groupID, &subType, &rateType, &lprBase, &lprSpread, &rateAdjustMonth)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "loan not found")
@@ -781,15 +788,36 @@ func (s *Service) loadLoan(ctx context.Context, loanID, userID string) (*pb.Loan
 		return nil, status.Error(codes.PermissionDenied, "not your loan")
 	}
 
-	acctStr := ""
-	if accountID != nil {
-		acctStr = accountID.String()
+	f := loanFields{
+		id: id.String(), userID: uid.String(), name: name,
+		loanType: stringToLoanType(loanType), principal: principal,
+		remainingPrinc: remainingPrincipal, annualRate: annualRate,
+		totalMonths: totalMonths, paidMonths: paidMonths,
+		method: stringToRepaymentMethod(method), paymentDay: paymentDay,
+		startDate: startDate, createdAt: createdAt, updatedAt: updatedAt,
 	}
-	return buildLoanProto(id.String(), uid.String(), name,
-		stringToLoanType(loanType), principal, remainingPrincipal,
-		annualRate, totalMonths, paidMonths,
-		stringToRepaymentMethod(method), paymentDay,
-		startDate, createdAt, updatedAt, acctStr), nil
+	if accountID != nil {
+		f.accountID = accountID.String()
+	}
+	if groupID != nil {
+		f.groupID = groupID.String()
+	}
+	if subType != nil {
+		f.subType = stringToLoanSubType(*subType)
+	}
+	if rateType != nil {
+		f.rateType = stringToRateType(*rateType)
+	}
+	if lprBase != nil {
+		f.lprBase = *lprBase
+	}
+	if lprSpread != nil {
+		f.lprSpread = *lprSpread
+	}
+	if rateAdjustMonth != nil {
+		f.rateAdjustMonth = *rateAdjustMonth
+	}
+	return buildLoanProtoFull(f), nil
 }
 
 func (s *Service) loadSchedule(ctx context.Context, loanID string) ([]*pb.LoanScheduleItem, error) {
@@ -840,22 +868,70 @@ func scanLoan(rows pgx.Rows) (*pb.Loan, error) {
 	var totalMonths, paidMonths, paymentDay int32
 	var startDate, createdAt, updatedAt time.Time
 	var accountID *uuid.UUID
+	var groupID *uuid.UUID
+	var subType, rateType *string
+	var lprBase, lprSpread *float64
+	var rateAdjustMonth *int32
 
 	if err := rows.Scan(&id, &uid, &name, &loanType, &principal, &remainingPrincipal,
 		&annualRate, &totalMonths, &paidMonths, &method, &paymentDay,
-		&startDate, &createdAt, &updatedAt, &accountID); err != nil {
+		&startDate, &createdAt, &updatedAt, &accountID,
+		&groupID, &subType, &rateType, &lprBase, &lprSpread, &rateAdjustMonth); err != nil {
 		return nil, status.Error(codes.Internal, "failed to scan loan")
 	}
 
-	acctStr := ""
-	if accountID != nil {
-		acctStr = accountID.String()
+	f := loanFields{
+		id: id.String(), userID: uid.String(), name: name,
+		loanType: stringToLoanType(loanType), principal: principal,
+		remainingPrinc: remainingPrincipal, annualRate: annualRate,
+		totalMonths: totalMonths, paidMonths: paidMonths,
+		method: stringToRepaymentMethod(method), paymentDay: paymentDay,
+		startDate: startDate, createdAt: createdAt, updatedAt: updatedAt,
 	}
-	return buildLoanProto(id.String(), uid.String(), name,
-		stringToLoanType(loanType), principal, remainingPrincipal,
-		annualRate, totalMonths, paidMonths,
-		stringToRepaymentMethod(method), paymentDay,
-		startDate, createdAt, updatedAt, acctStr), nil
+	if accountID != nil {
+		f.accountID = accountID.String()
+	}
+	if groupID != nil {
+		f.groupID = groupID.String()
+	}
+	if subType != nil {
+		f.subType = stringToLoanSubType(*subType)
+	}
+	if rateType != nil {
+		f.rateType = stringToRateType(*rateType)
+	}
+	if lprBase != nil {
+		f.lprBase = *lprBase
+	}
+	if lprSpread != nil {
+		f.lprSpread = *lprSpread
+	}
+	if rateAdjustMonth != nil {
+		f.rateAdjustMonth = *rateAdjustMonth
+	}
+	return buildLoanProtoFull(f), nil
+}
+
+type loanFields struct {
+	id, userID, name string
+	loanType         pb.LoanType
+	principal        int64
+	remainingPrinc   int64
+	annualRate       float64
+	totalMonths      int32
+	paidMonths       int32
+	method           pb.RepaymentMethod
+	paymentDay       int32
+	startDate        time.Time
+	createdAt        time.Time
+	updatedAt        time.Time
+	accountID        string
+	groupID          string
+	subType          pb.LoanSubType
+	rateType         pb.RateType
+	lprBase          float64
+	lprSpread        float64
+	rateAdjustMonth  int32
 }
 
 func buildLoanProto(id, userID, name string, loanType pb.LoanType,
@@ -879,6 +955,20 @@ func buildLoanProto(id, userID, name string, loanType pb.LoanType,
 		UpdatedAt:          timestamppb.New(updatedAt),
 		AccountId:          accountID,
 	}
+}
+
+func buildLoanProtoFull(f loanFields) *pb.Loan {
+	loan := buildLoanProto(f.id, f.userID, f.name, f.loanType,
+		f.principal, f.remainingPrinc, f.annualRate,
+		f.totalMonths, f.paidMonths, f.method, f.paymentDay,
+		f.startDate, f.createdAt, f.updatedAt, f.accountID)
+	loan.GroupId = f.groupID
+	loan.SubType = f.subType
+	loan.RateType = f.rateType
+	loan.LprBase = f.lprBase
+	loan.LprSpread = f.lprSpread
+	loan.RateAdjustMonth = f.rateAdjustMonth
+	return loan
 }
 
 // ── Type conversions ────────────────────────────────────────────────────────
@@ -939,6 +1029,482 @@ func stringToRepaymentMethod(s string) pb.RepaymentMethod {
 	default:
 		return pb.RepaymentMethod_REPAYMENT_METHOD_UNSPECIFIED
 	}
+}
+
+func loanSubTypeToString(st pb.LoanSubType) string {
+	switch st {
+	case pb.LoanSubType_LOAN_SUB_TYPE_COMMERCIAL:
+		return "commercial"
+	case pb.LoanSubType_LOAN_SUB_TYPE_PROVIDENT:
+		return "provident"
+	default:
+		return "commercial"
+	}
+}
+
+func stringToLoanSubType(s string) pb.LoanSubType {
+	switch s {
+	case "commercial":
+		return pb.LoanSubType_LOAN_SUB_TYPE_COMMERCIAL
+	case "provident":
+		return pb.LoanSubType_LOAN_SUB_TYPE_PROVIDENT
+	default:
+		return pb.LoanSubType_LOAN_SUB_TYPE_UNSPECIFIED
+	}
+}
+
+func rateTypeToString(rt pb.RateType) string {
+	switch rt {
+	case pb.RateType_RATE_TYPE_FIXED:
+		return "fixed"
+	case pb.RateType_RATE_TYPE_LPR_FLOATING:
+		return "lpr_floating"
+	default:
+		return "fixed"
+	}
+}
+
+func stringToRateType(s string) pb.RateType {
+	switch s {
+	case "fixed":
+		return pb.RateType_RATE_TYPE_FIXED
+	case "lpr_floating":
+		return pb.RateType_RATE_TYPE_LPR_FLOATING
+	default:
+		return pb.RateType_RATE_TYPE_UNSPECIFIED
+	}
+}
+
+// calculateLPRRate returns the effective rate from LPR base + spread.
+func calculateLPRRate(base, spread float64) float64 {
+	return base + spread
+}
+
+// ── Loan Group RPCs ─────────────────────────────────────────────────────────
+
+func (s *Service) CreateLoanGroup(ctx context.Context, req *pb.CreateLoanGroupRequest) (*pb.LoanGroup, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate
+	if req.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "name is required")
+	}
+	if req.GroupType == "" {
+		return nil, status.Error(codes.InvalidArgument, "group_type is required")
+	}
+	if req.PaymentDay < 1 || req.PaymentDay > 28 {
+		return nil, status.Error(codes.InvalidArgument, "payment_day must be 1-28")
+	}
+	if req.StartDate == nil {
+		return nil, status.Error(codes.InvalidArgument, "start_date is required")
+	}
+	if len(req.SubLoans) == 0 || len(req.SubLoans) > 2 {
+		return nil, status.Error(codes.InvalidArgument, "sub_loans must have 1-2 items")
+	}
+	for i, sl := range req.SubLoans {
+		if sl.Principal <= 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "sub_loan[%d].principal must be positive", i)
+		}
+		if sl.AnnualRate < 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "sub_loan[%d].annual_rate must be non-negative", i)
+		}
+		if sl.TotalMonths <= 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "sub_loan[%d].total_months must be positive", i)
+		}
+		if sl.RepaymentMethod == pb.RepaymentMethod_REPAYMENT_METHOD_UNSPECIFIED {
+			return nil, status.Errorf(codes.InvalidArgument, "sub_loan[%d].repayment_method is required", i)
+		}
+	}
+
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "invalid user id")
+	}
+
+	startDate := req.StartDate.AsTime()
+
+	var accountID *uuid.UUID
+	if req.AccountId != "" {
+		aid, err := uuid.Parse(req.AccountId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid account_id")
+		}
+		accountID = &aid
+	}
+
+	// Compute total principal
+	var totalPrincipal int64
+	for _, sl := range req.SubLoans {
+		totalPrincipal += sl.Principal
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to begin transaction")
+	}
+	defer tx.Rollback(ctx)
+
+	// Create loan_group
+	var groupID uuid.UUID
+	var createdAt, updatedAt time.Time
+	err = tx.QueryRow(ctx,
+		`INSERT INTO loan_groups (user_id, name, group_type, total_principal, payment_day, start_date, account_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		 RETURNING id, created_at, updated_at`,
+		uid, req.Name, req.GroupType, totalPrincipal, req.PaymentDay, startDate, accountID,
+	).Scan(&groupID, &createdAt, &updatedAt)
+	if err != nil {
+		log.Printf("loan: create group error: %v", err)
+		return nil, status.Error(codes.Internal, "failed to create loan group")
+	}
+
+	// Create sub-loans
+	var subLoanProtos []*pb.Loan
+	var totalMonthlyPayment int64
+	loanTypeStr := loanTypeToString(req.LoanType)
+
+	for _, sl := range req.SubLoans {
+		subTypeStr := loanSubTypeToString(sl.SubType)
+		rateTypeStr := rateTypeToString(sl.RateType)
+		methodStr := repaymentMethodToString(sl.RepaymentMethod)
+
+		// Determine effective annual rate
+		annualRate := sl.AnnualRate
+		if sl.RateType == pb.RateType_RATE_TYPE_LPR_FLOATING {
+			annualRate = calculateLPRRate(sl.LprBase, sl.LprSpread)
+		}
+
+		// Use sub-loan name or derive from group name
+		subName := sl.Name
+		if subName == "" {
+			if sl.SubType == pb.LoanSubType_LOAN_SUB_TYPE_PROVIDENT {
+				subName = req.Name + "-公积金"
+			} else {
+				subName = req.Name + "-商贷"
+			}
+		}
+
+		schedule := generateSchedule(sl.Principal, annualRate, int(sl.TotalMonths), methodStr, int(req.PaymentDay), startDate)
+
+		var loanID uuid.UUID
+		var lCreatedAt, lUpdatedAt time.Time
+		var lprBasePtr, lprSpreadPtr *float64
+		var rateAdjustMonthPtr *int32
+		if sl.RateType == pb.RateType_RATE_TYPE_LPR_FLOATING {
+			lprBasePtr = &sl.LprBase
+			lprSpreadPtr = &sl.LprSpread
+			ram := sl.RateAdjustMonth
+			rateAdjustMonthPtr = &ram
+		}
+
+		err = tx.QueryRow(ctx,
+			`INSERT INTO loans (user_id, name, loan_type, principal, remaining_principal,
+			 annual_rate, total_months, paid_months, repayment_method, payment_day,
+			 start_date, account_id, group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month)
+			 VALUES ($1,$2,$3,$4,$5,$6,$7,0,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+			 RETURNING id, created_at, updated_at`,
+			uid, subName, loanTypeStr, sl.Principal, sl.Principal,
+			annualRate, sl.TotalMonths, methodStr, req.PaymentDay,
+			startDate, accountID, groupID, subTypeStr, rateTypeStr,
+			lprBasePtr, lprSpreadPtr, rateAdjustMonthPtr,
+		).Scan(&loanID, &lCreatedAt, &lUpdatedAt)
+		if err != nil {
+			log.Printf("loan: create sub-loan error: %v", err)
+			return nil, status.Error(codes.Internal, "failed to create sub-loan")
+		}
+
+		if err := batchInsertSchedule(ctx, tx, loanID, schedule); err != nil {
+			return nil, err
+		}
+
+		// Calculate first month payment for total
+		if len(schedule) > 0 {
+			totalMonthlyPayment += schedule[0].payment
+		}
+
+		acctStr := ""
+		if accountID != nil {
+			acctStr = accountID.String()
+		}
+
+		f := loanFields{
+			id: loanID.String(), userID: userID, name: subName,
+			loanType: req.LoanType, principal: sl.Principal,
+			remainingPrinc: sl.Principal, annualRate: annualRate,
+			totalMonths: sl.TotalMonths, paidMonths: 0,
+			method: sl.RepaymentMethod, paymentDay: req.PaymentDay,
+			startDate: startDate, createdAt: lCreatedAt, updatedAt: lUpdatedAt,
+			accountID: acctStr, groupID: groupID.String(),
+			subType: sl.SubType, rateType: sl.RateType,
+			lprBase: sl.LprBase, lprSpread: sl.LprSpread,
+			rateAdjustMonth: sl.RateAdjustMonth,
+		}
+		subLoanProtos = append(subLoanProtos, buildLoanProtoFull(f))
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, status.Error(codes.Internal, "failed to commit")
+	}
+
+	acctStr := ""
+	if accountID != nil {
+		acctStr = accountID.String()
+	}
+
+	log.Printf("loan: created group %s (%s) with %d sub-loans for user %s", groupID, req.Name, len(subLoanProtos), userID)
+	return &pb.LoanGroup{
+		Id:                 groupID.String(),
+		UserId:             userID,
+		Name:               req.Name,
+		GroupType:          req.GroupType,
+		TotalPrincipal:     totalPrincipal,
+		PaymentDay:         req.PaymentDay,
+		StartDate:          timestamppb.New(startDate),
+		AccountId:          acctStr,
+		SubLoans:           subLoanProtos,
+		TotalMonthlyPayment: totalMonthlyPayment,
+		CreatedAt:          timestamppb.New(createdAt),
+		UpdatedAt:          timestamppb.New(updatedAt),
+	}, nil
+}
+
+func (s *Service) GetLoanGroup(ctx context.Context, req *pb.GetLoanGroupRequest) (*pb.LoanGroup, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if req.GroupId == "" {
+		return nil, status.Error(codes.InvalidArgument, "group_id is required")
+	}
+	return s.loadLoanGroup(ctx, req.GroupId, userID)
+}
+
+func (s *Service) ListLoanGroups(ctx context.Context, req *pb.ListLoanGroupsRequest) (*pb.ListLoanGroupsResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, name, group_type, total_principal, payment_day, start_date,
+		        account_id, created_at, updated_at
+		 FROM loan_groups WHERE user_id = $1 AND deleted_at IS NULL
+		 ORDER BY created_at DESC`,
+		userID,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to query loan groups")
+	}
+	defer rows.Close()
+
+	var groups []*pb.LoanGroup
+	for rows.Next() {
+		var gID uuid.UUID
+		var name, groupType string
+		var totalPrincipal int64
+		var paymentDay int32
+		var startDate, createdAt, updatedAt time.Time
+		var accountID *uuid.UUID
+
+		if err := rows.Scan(&gID, &name, &groupType, &totalPrincipal, &paymentDay,
+			&startDate, &accountID, &createdAt, &updatedAt); err != nil {
+			return nil, status.Error(codes.Internal, "failed to scan loan group")
+		}
+
+		// Load sub-loans
+		subLoans, err := s.loadSubLoans(ctx, gID.String(), userID)
+		if err != nil {
+			return nil, err
+		}
+
+		var totalMonthly int64
+		for _, sl := range subLoans {
+			// Use first unpaid schedule item or compute from params
+			items, schedErr := s.loadSchedule(ctx, sl.Id)
+			if schedErr == nil {
+				for _, it := range items {
+					if !it.IsPaid {
+						totalMonthly += it.Payment
+						break
+					}
+				}
+			}
+		}
+
+		acctStr := ""
+		if accountID != nil {
+			acctStr = accountID.String()
+		}
+
+		groups = append(groups, &pb.LoanGroup{
+			Id:                 gID.String(),
+			UserId:             userID,
+			Name:               name,
+			GroupType:          groupType,
+			TotalPrincipal:     totalPrincipal,
+			PaymentDay:         paymentDay,
+			StartDate:          timestamppb.New(startDate),
+			AccountId:          acctStr,
+			SubLoans:           subLoans,
+			TotalMonthlyPayment: totalMonthly,
+			CreatedAt:          timestamppb.New(createdAt),
+			UpdatedAt:          timestamppb.New(updatedAt),
+		})
+	}
+	if groups == nil {
+		groups = []*pb.LoanGroup{}
+	}
+	return &pb.ListLoanGroupsResponse{Groups: groups}, nil
+}
+
+func (s *Service) SimulateGroupPrepayment(ctx context.Context, req *pb.SimulateGroupPrepaymentRequest) (*pb.GroupPrepaymentSimulation, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if req.GroupId == "" {
+		return nil, status.Error(codes.InvalidArgument, "group_id is required")
+	}
+	if req.PrepaymentAmount <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "prepayment_amount must be positive")
+	}
+	if req.Strategy == pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_UNSPECIFIED {
+		return nil, status.Error(codes.InvalidArgument, "strategy is required")
+	}
+
+	group, err := s.loadLoanGroup(ctx, req.GroupId, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Determine target loan
+	targetLoanID := req.TargetLoanId
+	if targetLoanID == "" {
+		// Auto-select: pick the sub-loan with the highest annual_rate
+		var maxRate float64
+		for _, sl := range group.SubLoans {
+			if sl.AnnualRate > maxRate {
+				maxRate = sl.AnnualRate
+				targetLoanID = sl.Id
+			}
+		}
+	}
+
+	if targetLoanID == "" {
+		return nil, status.Error(codes.InvalidArgument, "no sub-loans found in group")
+	}
+
+	// Use existing SimulatePrepayment on the target loan
+	sim, err := s.SimulatePrepayment(ctx, &pb.SimulatePrepaymentRequest{
+		LoanId:           targetLoanID,
+		PrepaymentAmount: req.PrepaymentAmount,
+		Strategy:         req.Strategy,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.GroupPrepaymentSimulation{
+		TargetLoanId:       targetLoanID,
+		TargetSim:          sim,
+		TotalInterestSaved: sim.InterestSaved,
+	}, nil
+}
+
+// loadLoanGroup loads a loan group with its sub-loans.
+func (s *Service) loadLoanGroup(ctx context.Context, groupID, userID string) (*pb.LoanGroup, error) {
+	var gID uuid.UUID
+	var uid uuid.UUID
+	var name, groupType string
+	var totalPrincipal int64
+	var paymentDay int32
+	var startDate, createdAt, updatedAt time.Time
+	var accountID *uuid.UUID
+
+	err := s.pool.QueryRow(ctx,
+		`SELECT id, user_id, name, group_type, total_principal, payment_day,
+		        start_date, account_id, created_at, updated_at
+		 FROM loan_groups WHERE id=$1 AND deleted_at IS NULL`,
+		groupID,
+	).Scan(&gID, &uid, &name, &groupType, &totalPrincipal, &paymentDay,
+		&startDate, &accountID, &createdAt, &updatedAt)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "loan group not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to query loan group")
+	}
+	if uid.String() != userID {
+		return nil, status.Error(codes.PermissionDenied, "not your loan group")
+	}
+
+	subLoans, err := s.loadSubLoans(ctx, gID.String(), userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var totalMonthly int64
+	for _, sl := range subLoans {
+		items, schedErr := s.loadSchedule(ctx, sl.Id)
+		if schedErr == nil {
+			for _, it := range items {
+				if !it.IsPaid {
+					totalMonthly += it.Payment
+					break
+				}
+			}
+		}
+	}
+
+	acctStr := ""
+	if accountID != nil {
+		acctStr = accountID.String()
+	}
+
+	return &pb.LoanGroup{
+		Id:                 gID.String(),
+		UserId:             userID,
+		Name:               name,
+		GroupType:          groupType,
+		TotalPrincipal:     totalPrincipal,
+		PaymentDay:         paymentDay,
+		StartDate:          timestamppb.New(startDate),
+		AccountId:          acctStr,
+		SubLoans:           subLoans,
+		TotalMonthlyPayment: totalMonthly,
+		CreatedAt:          timestamppb.New(createdAt),
+		UpdatedAt:          timestamppb.New(updatedAt),
+	}, nil
+}
+
+// loadSubLoans loads all sub-loans belonging to a group.
+func (s *Service) loadSubLoans(ctx context.Context, groupID, userID string) ([]*pb.Loan, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, user_id, name, loan_type, principal, remaining_principal,
+		        annual_rate, total_months, paid_months, repayment_method, payment_day,
+		        start_date, created_at, updated_at, account_id,
+		        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month
+		 FROM loans WHERE group_id = $1 AND user_id = $2 AND deleted_at IS NULL
+		 ORDER BY sub_type`,
+		groupID, userID,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to query sub-loans")
+	}
+	defer rows.Close()
+
+	var loans []*pb.Loan
+	for rows.Next() {
+		loan, err := scanLoan(rows)
+		if err != nil {
+			return nil, err
+		}
+		loans = append(loans, loan)
+	}
+	return loans, nil
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────
