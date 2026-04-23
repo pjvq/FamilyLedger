@@ -8,6 +8,7 @@ import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/notification_provider.dart';
 import '../../sync/sync_engine.dart';
+import '../../core/widgets/sync_status_indicator.dart';
 import '../budget/budget_page.dart';
 import '../dashboard/dashboard_page.dart';
 import '../more/more_page.dart';
@@ -126,6 +127,7 @@ class _DashboardShell extends ConsumerWidget {
         title: const Text('FamilyLedger'),
         centerTitle: false,
         actions: [
+          const SyncStatusIndicator(),
           _NotificationBell(
             unreadCount: unreadCount,
             onTap: () =>

@@ -5,6 +5,8 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/auth_provider.dart';
 import '../../domain/providers/family_provider.dart';
+import '../../domain/providers/theme_provider.dart';
+import '../../domain/providers/sync_status_provider.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -71,6 +73,14 @@ class SettingsPage extends ConsumerWidget {
               onTap: () => _showJoinFamilyDialog(context, ref),
             ),
           ],
+
+          const SizedBox(height: 24),
+          _SectionHeader(title: '外观', theme: theme),
+          _ThemeModeTile(ref: ref, theme: theme),
+
+          const SizedBox(height: 24),
+          _SectionHeader(title: '同步', theme: theme),
+          const _SyncStatusTile(),
 
           const SizedBox(height: 24),
           _SectionHeader(title: '其他', theme: theme),
@@ -491,6 +501,118 @@ class _SettingsTile extends StatelessWidget {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           onTap: onTap,
         ),
+      ),
+    );
+  }
+}
+
+// ────────── Theme mode tile ──────────
+
+class _ThemeModeTile extends StatelessWidget {
+  final WidgetRef ref;
+  final ThemeData theme;
+
+  const _ThemeModeTile({required this.ref, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+    final (icon, label) = switch (themeMode) {
+      ThemeMode.system => (Icons.brightness_auto_rounded, '跟随系统'),
+      ThemeMode.light => (Icons.light_mode_rounded, '浅色模式'),
+      ThemeMode.dark => (Icons.dark_mode_rounded, '深色模式'),
+    };
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+      child: ListTile(
+        leading: Icon(icon, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+        title: const Text('外观模式', style: TextStyle(fontWeight: FontWeight.w500)),
+        subtitle: Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+          ),
+        ),
+        trailing: SegmentedButton<ThemeMode>(
+          segments: const [
+            ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto_rounded, size: 18)),
+            ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode_rounded, size: 18)),
+            ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_rounded, size: 18)),
+          ],
+          selected: {themeMode},
+          onSelectionChanged: (s) {
+            ref.read(themeModeProvider.notifier).setThemeMode(s.first);
+            HapticFeedback.selectionClick();
+          },
+          showSelectedIcon: false,
+          style: ButtonStyle(
+            visualDensity: VisualDensity.compact,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    );
+  }
+}
+
+// ────────── Sync status tile ──────────
+
+class _SyncStatusTile extends ConsumerWidget {
+  const _SyncStatusTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final syncState = ref.watch(syncStatusProvider);
+    final theme = Theme.of(context);
+
+    final (icon, label, subtitle, color) = switch (syncState.status) {
+      SyncStatus.synced => (
+          Icons.cloud_done_rounded,
+          '已同步',
+          '所有数据均已同步到服务器',
+          Colors.green,
+        ),
+      SyncStatus.syncing => (
+          Icons.sync_rounded,
+          '同步中...',
+          '正在上传本地变更',
+          theme.colorScheme.primary,
+        ),
+      SyncStatus.pending => (
+          Icons.cloud_upload_outlined,
+          '待同步',
+          '${syncState.pendingCount} 条操作等待上传',
+          Colors.orange,
+        ),
+      SyncStatus.offline => (
+          Icons.cloud_off_rounded,
+          '离线模式',
+          '断网时可正常记账，联网后自动同步',
+          Colors.grey,
+        ),
+    };
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+      child: ListTile(
+        leading: Icon(icon, color: color),
+        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+        subtitle: Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+          ),
+        ),
+        trailing: syncState.status == SyncStatus.syncing
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : null,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
