@@ -26,6 +26,7 @@ import '../../features/asset/asset_detail_page.dart';
 import '../../features/report/report_page.dart';
 import '../../features/report/export_page.dart';
 import '../../features/import/csv_import_page.dart';
+import '../../features/transaction/transaction_history_page.dart';
 
 class AppRouter {
   AppRouter._();
@@ -57,6 +58,7 @@ class AppRouter {
   static const report = '/report';
   static const export = '/export';
   static const csvImport = '/import/csv';
+  static const transactionHistory = '/transactions';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -120,6 +122,8 @@ class AppRouter {
         return _slide(const ExportPage());
       case csvImport:
         return _slide(const CsvImportPage());
+      case transactionHistory:
+        return _slide(const TransactionHistoryPage());
       default:
         return _fade(const HomePage());
     }

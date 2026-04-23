@@ -25,7 +25,10 @@ class _InvestmentsPageState extends ConsumerState<InvestmentsPage> {
       const Duration(seconds: 30),
       (_) => _refreshQuotes(),
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshQuotes());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshQuotes();
+      _loadSparklines();
+    });
   }
 
   @override
@@ -41,6 +44,16 @@ class _InvestmentsPageState extends ConsumerState<InvestmentsPage> {
         .map((inv) => (symbol: inv.symbol, marketType: inv.marketType))
         .toList();
     ref.read(marketDataProvider.notifier).batchGetQuotes(requests);
+    ref.read(marketDataProvider.notifier).batchLoadSparklines(requests);
+  }
+
+  void _loadSparklines() {
+    final investments = ref.read(investmentProvider).investments;
+    if (investments.isEmpty) return;
+    final requests = investments
+        .map((inv) => (symbol: inv.symbol, marketType: inv.marketType))
+        .toList();
+    ref.read(marketDataProvider.notifier).batchLoadSparklines(requests);
   }
 
   @override
@@ -86,12 +99,14 @@ class _InvestmentsPageState extends ConsumerState<InvestmentsPage> {
                           final key = MarketDataState.quoteKey(
                               inv.symbol, inv.marketType);
                           final quote = marketState.quotes[key];
+                          final sparklineData =
+                              marketState.sparklineCache[key];
                           return _InvestmentListItem(
                             investment: inv,
                             quote: quote,
                             isDark: isDark,
                             theme: theme,
-                            priceHistory: marketState.priceHistory,
+                            sparklineData: sparklineData,
                             onTap: () => Navigator.of(context).pushNamed(
                               AppRouter.investmentDetail,
                               arguments: inv.id,
@@ -229,7 +244,7 @@ class _InvestmentListItem extends StatelessWidget {
   final QuoteDisplay? quote;
   final bool isDark;
   final ThemeData theme;
-  final List<PricePoint> priceHistory;
+  final List<PricePoint>? sparklineData;
   final VoidCallback onTap;
 
   const _InvestmentListItem({
@@ -237,7 +252,7 @@ class _InvestmentListItem extends StatelessWidget {
     required this.quote,
     required this.isDark,
     required this.theme,
-    required this.priceHistory,
+    this.sparklineData,
     required this.onTap,
   });
 
@@ -326,12 +341,16 @@ class _InvestmentListItem extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // Mini sparkline (placeholder — static for now)
+                    // Mini sparkline
                     SizedBox(
                       width: 60,
                       height: 24,
                       child: CustomPaint(
                         painter: _MiniSparklinePainter(
+                          prices: sparklineData
+                                  ?.map((p) => p.price)
+                                  .toList() ??
+                              const [],
                           color: changeColor,
                         ),
                       ),
@@ -394,31 +413,38 @@ class _InvestmentListItem extends StatelessWidget {
 // ── Mini Sparkline Painter ──
 
 class _MiniSparklinePainter extends CustomPainter {
+  final List<int> prices;
   final Color color;
 
-  _MiniSparklinePainter({required this.color});
+  _MiniSparklinePainter({required this.prices, required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Generate a placeholder sine-wave sparkline
-    // In production, this would use real price history data
+    if (prices.length < 2) return;
+
     final paint = Paint()
       ..color = color
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final minP = prices.reduce((a, b) => a < b ? a : b);
+    final maxP = prices.reduce((a, b) => a > b ? a : b);
+    final range = (maxP - minP).toDouble();
+
+    // 10% vertical padding
+    final padY = size.height * 0.1;
+    final drawH = size.height - padY * 2;
+
+    final dx = size.width / (prices.length - 1);
 
     final path = Path();
-    const points = 20;
-    final dx = size.width / (points - 1);
-    // Simple ascending/descending pattern
-    final isUp = color == AppColors.income || color == AppColors.incomeDark;
-    for (int i = 0; i < points; i++) {
-      final t = i / (points - 1);
-      // Mix some noise with trend
-      final noise = ((i * 7 + 3) % 5) / 10.0;
-      final trend = isUp ? (1 - t) : t;
-      final y = size.height * (0.15 + trend * 0.7 + noise * 0.15);
+    for (int i = 0; i < prices.length; i++) {
+      final normalised =
+          range == 0 ? 0.5 : (prices[i] - minP) / range;
+      // y=0 is top, so invert
+      final y = padY + drawH * (1 - normalised);
       if (i == 0) {
         path.moveTo(0, y);
       } else {
@@ -431,7 +457,7 @@ class _MiniSparklinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _MiniSparklinePainter old) =>
-      old.color != color;
+      !identical(old.prices, prices) || old.color != color;
 }
 
 // ── Empty State ──

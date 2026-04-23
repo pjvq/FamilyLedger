@@ -128,6 +128,12 @@ class _DashboardShell extends ConsumerWidget {
         centerTitle: false,
         actions: [
           const SyncStatusIndicator(),
+          IconButton(
+            onPressed: () => Navigator.of(context)
+                .pushNamed(AppRouter.transactionHistory),
+            tooltip: '交易记录',
+            icon: const Icon(Icons.receipt_long_outlined),
+          ),
           _NotificationBell(
             unreadCount: unreadCount,
             onTap: () =>

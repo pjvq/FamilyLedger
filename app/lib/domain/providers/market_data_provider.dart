@@ -92,6 +92,7 @@ class MarketDataState {
   final Map<String, QuoteDisplay> quotes; // key: "$symbol:$marketType"
   final List<SymbolSearchResult> searchResults;
   final List<PricePoint> priceHistory;
+  final Map<String, List<PricePoint>> sparklineCache; // key: "$symbol:$marketType"
   final bool isLoading;
   final String? error;
 
@@ -99,6 +100,7 @@ class MarketDataState {
     this.quotes = const {},
     this.searchResults = const [],
     this.priceHistory = const [],
+    this.sparklineCache = const {},
     this.isLoading = false,
     this.error,
   });
@@ -107,6 +109,7 @@ class MarketDataState {
     Map<String, QuoteDisplay>? quotes,
     List<SymbolSearchResult>? searchResults,
     List<PricePoint>? priceHistory,
+    Map<String, List<PricePoint>>? sparklineCache,
     bool? isLoading,
     String? error,
     bool clearError = false,
@@ -117,6 +120,7 @@ class MarketDataState {
         quotes: quotes ?? this.quotes,
         searchResults: clearSearch ? const [] : (searchResults ?? this.searchResults),
         priceHistory: clearHistory ? const [] : (priceHistory ?? this.priceHistory),
+        sparklineCache: sparklineCache ?? this.sparklineCache,
         isLoading: isLoading ?? this.isLoading,
         error: clearError ? null : (error ?? this.error),
       );
@@ -326,6 +330,49 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
     } catch (e) {
       state = state.copyWith(isLoading: false, error: '获取历史行情失败');
     }
+  }
+
+  /// Batch load sparkline data for multiple symbols (30-day history).
+  /// Skips symbols already in cache. Failures are per-symbol.
+  Future<void> batchLoadSparklines(
+      List<({String symbol, String marketType})> requests) async {
+    if (requests.isEmpty) return;
+
+    final uncached = requests.where((r) {
+      final key = MarketDataState.quoteKey(r.symbol, r.marketType);
+      return !state.sparklineCache.containsKey(key);
+    }).toList();
+
+    if (uncached.isEmpty) return;
+
+    final now = DateTime.now();
+    final start = now.subtract(const Duration(days: 30));
+
+    final newCache =
+        Map<String, List<PricePoint>>.from(state.sparklineCache);
+
+    for (final r in uncached) {
+      final key = MarketDataState.quoteKey(r.symbol, r.marketType);
+      try {
+        final resp =
+            await _client.getPriceHistory(pb.GetPriceHistoryRequest()
+              ..symbol = r.symbol
+              ..marketType = _toProtoMarketType(r.marketType)
+              ..startDate = _toTimestamp(start)
+              ..endDate = _toTimestamp(now));
+
+        newCache[key] = resp.points
+            .map((p) => PricePoint(
+                  timestamp: _fromTimestamp(p.timestamp),
+                  price: p.price.toInt(),
+                ))
+            .toList();
+      } catch (_) {
+        // Skip this symbol; don't break the batch
+      }
+    }
+
+    state = state.copyWith(sparklineCache: newCache);
   }
 
   ts_pb.Timestamp _toTimestamp(DateTime dt) {
