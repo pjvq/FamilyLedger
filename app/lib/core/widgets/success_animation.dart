@@ -57,7 +57,7 @@ class _TransactionSuccessOverlayState extends State<TransactionSuccessOverlay>
       TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.0), weight: 40),
     ]).animate(CurvedAnimation(
       parent: _controller,
-      curve: Curves.easeOutBack,
+      curve: Curves.easeOut,
     ));
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
