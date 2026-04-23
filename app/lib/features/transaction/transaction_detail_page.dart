@@ -36,6 +36,12 @@ class TransactionDetailPage extends ConsumerWidget {
     final category = args.category;
     final isIncome = txn.type == 'income';
 
+    // 获取账户名称
+        // 获取账户名称
+    final accountState = ref.watch(accountProvider);
+    final account = accountState.accounts.where((a) => a.id == txn.accountId).firstOrNull;
+    final accountName = account?.name ?? txn.accountId;
+
     final amountColor = isIncome
         ? (isDark ? AppColors.incomeDark : AppColors.income)
         : (isDark ? AppColors.expenseDark : AppColors.expense);
@@ -167,7 +173,7 @@ class TransactionDetailPage extends ConsumerWidget {
                           isDark: isDark,
                           icon: Icons.account_balance_wallet_outlined,
                           label: '账户',
-                          value: txn.accountId,
+                          value: accountName,
                         ),
                         if (txn.note.isNotEmpty) ...[
                           _divider(isDark),
