@@ -89,7 +89,7 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(exchangeRates);
           }
           if (from < 8) {
-            // v7 → v8: loan groups table + loans new columns for combined loans
+            // v7 → v8: loan groups table + loans new columns + sync queue
             await m.createTable(loanGroups);
             await m.addColumn(loans, loans.groupId);
             await m.addColumn(loans, loans.subType);
@@ -97,6 +97,7 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(loans, loans.lprBase);
             await m.addColumn(loans, loans.lprSpread);
             await m.addColumn(loans, loans.rateAdjustMonth);
+            await m.createTable(syncQueue);
           }
         },
       );
