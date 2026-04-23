@@ -296,6 +296,19 @@ func (s *Service) ConfirmImport(ctx context.Context, req *pb.ConfirmImportReques
 		}
 
 		importedCount++
+
+		// Update account balance
+		balanceDelta := amount
+		if txnType == "expense" {
+			balanceDelta = -amount
+		}
+		_, err = tx.Exec(ctx,
+			"UPDATE accounts SET balance = balance + $1, updated_at = NOW() WHERE id = $2",
+			balanceDelta, defaultAccountID,
+		)
+		if err != nil {
+			log.Printf("import: row %d: failed to update balance: %v", rowNum, err)
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
