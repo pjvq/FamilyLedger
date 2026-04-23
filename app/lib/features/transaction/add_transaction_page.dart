@@ -379,6 +379,11 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                                 width: 56,
                                 height: 56,
                                 fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  width: 56, height: 56,
+                                  color: Colors.grey.shade200,
+                                  child: const Icon(Icons.broken_image, size: 24, color: Colors.grey),
+                                ),
                               ),
                             ),
                             Positioned(
