@@ -180,6 +180,144 @@ void main() {
       expect(resp.transactions.any((t) => t.id == txnId), isTrue);
     });
 
+    // ════════════════════════════════════════════════════
+    //  Phase 1b: UpdateTransaction + DeleteTransaction
+    // ════════════════════════════════════════════════════
+    test('1.7 UpdateTransaction — change amount + note', () async {
+      final client = TransactionServiceClient(channel);
+      final resp = await client.updateTransaction(
+        UpdateTransactionRequest()
+          ..transactionId = txnId
+          ..amount = Int64(25000)
+          ..note = 'e2e修改后-晚餐',
+        options: authOpts,
+      );
+      expect(resp.transaction.amount, equals(Int64(25000)));
+      expect(resp.transaction.note, equals('e2e修改后-晚餐'));
+      // amountCny should sync when currency is CNY
+      expect(resp.transaction.amountCny, equals(Int64(25000)));
+    });
+
+    test('1.7b UpdateTransaction — verify balance recalc', () async {
+      final client = AccountServiceClient(channel);
+      final resp = await client.listAccounts(
+        ListAccountsRequest(),
+        options: authOpts,
+      );
+      final acc = resp.accounts.firstWhere((a) => a.id == accountId);
+      // Created with 500,000.00 initial (50000000), then -25000 expense
+      expect(acc.balance, equals(Int64(50000000 - 25000)));
+    });
+
+    test('1.7c UpdateTransaction — change type to income', () async {
+      final client = TransactionServiceClient(channel);
+      final resp = await client.updateTransaction(
+        UpdateTransactionRequest()
+          ..transactionId = txnId
+          ..type = TransactionType.TRANSACTION_TYPE_INCOME,
+        options: authOpts,
+      );
+      expect(resp.transaction.type, equals(TransactionType.TRANSACTION_TYPE_INCOME));
+    });
+
+    test('1.7d UpdateTransaction — balance after type change', () async {
+      final client = AccountServiceClient(channel);
+      final resp = await client.listAccounts(
+        ListAccountsRequest(),
+        options: authOpts,
+      );
+      final acc = resp.accounts.firstWhere((a) => a.id == accountId);
+      // Was 50000000, expense -25000 reverted (+25000), income +25000 applied
+      expect(acc.balance, equals(Int64(50000000 + 25000)));
+    });
+
+    test('1.8 UpdateTransaction — permission denied for other user', () async {
+      // Register another user
+      final authClient = AuthServiceClient(channel);
+      final otherResp = await authClient.register(RegisterRequest()
+        ..email = 'e2e-other-perm-$suffix@test.com'
+        ..password = testPassword);
+      final otherOpts = CallOptions(metadata: {'authorization': 'Bearer ${otherResp.accessToken}'});
+
+      final client = TransactionServiceClient(channel);
+      try {
+        await client.updateTransaction(
+          UpdateTransactionRequest()
+            ..transactionId = txnId
+            ..note = 'hacked',
+          options: otherOpts,
+        );
+        fail('Should throw PERMISSION_DENIED');
+      } on GrpcError catch (e) {
+        expect(e.code, equals(StatusCode.permissionDenied));
+      }
+    });
+
+    test('1.9 DeleteTransaction — soft delete', () async {
+      // First revert type back to expense for clean balance check
+      final client = TransactionServiceClient(channel);
+      await client.updateTransaction(
+        UpdateTransactionRequest()
+          ..transactionId = txnId
+          ..type = TransactionType.TRANSACTION_TYPE_EXPENSE,
+        options: authOpts,
+      );
+      // Now delete
+      await client.deleteTransaction(
+        DeleteTransactionRequest()..transactionId = txnId,
+        options: authOpts,
+      );
+    });
+
+    test('1.9b DeleteTransaction — not in list after delete', () async {
+      final client = TransactionServiceClient(channel);
+      final resp = await client.listTransactions(
+        ListTransactionsRequest()..accountId = accountId,
+        options: authOpts,
+      );
+      expect(resp.transactions.any((t) => t.id == txnId), isFalse);
+    });
+
+    test('1.9c DeleteTransaction — balance reverted', () async {
+      final client = AccountServiceClient(channel);
+      final resp = await client.listAccounts(
+        ListAccountsRequest(),
+        options: authOpts,
+      );
+      final acc = resp.accounts.firstWhere((a) => a.id == accountId);
+      // Should be back to initial 50000000
+      expect(acc.balance, equals(Int64(50000000)));
+    });
+
+    test('1.9d DeleteTransaction — NOT_FOUND for deleted txn', () async {
+      final client = TransactionServiceClient(channel);
+      try {
+        await client.deleteTransaction(
+          DeleteTransactionRequest()..transactionId = txnId,
+          options: authOpts,
+        );
+        fail('Should throw NOT_FOUND for already deleted');
+      } on GrpcError catch (e) {
+        expect(e.code, equals(StatusCode.notFound));
+      }
+    });
+
+    // Re-create a transaction for subsequent tests (loan etc)
+    test('1.9e Re-create transaction for later tests', () async {
+      final client = TransactionServiceClient(channel);
+      final resp = await client.createTransaction(
+        CreateTransactionRequest()
+          ..accountId = accountId
+          ..categoryId = expenseCategoryId
+          ..amount = Int64(150000)
+          ..type = TransactionType.TRANSACTION_TYPE_EXPENSE
+          ..note = 'e2e重建-午餐',
+        options: authOpts,
+      );
+      expect(resp.transaction.id, isNotEmpty);
+      txnId = resp.transaction.id;
+    });
+
     late String loanId;
 
     test('1.7 CreateLoan', () async {
@@ -909,11 +1047,16 @@ void main() {
 
     test('13.5 MarkAsRead', () async {
       final client = NotifyServiceClient(channel);
-      // With no real notifications, just ensure the call doesn't throw
-      await client.markAsRead(
-        MarkAsReadRequest()..notificationIds.add('nonexistent-id'),
-        options: authOpts,
-      );
+      // With no real notifications, passing a nonexistent ID should return
+      // INVALID_ARGUMENT (server validates UUID format)
+      try {
+        await client.markAsRead(
+          MarkAsReadRequest()..notificationIds.add('nonexistent-id'),
+          options: authOpts,
+        );
+      } on GrpcError catch (e) {
+        expect(e.code, equals(StatusCode.invalidArgument));
+      }
     });
 
     test('13.6 UnregisterDevice', () async {
