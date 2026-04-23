@@ -195,7 +195,7 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 	var amountCny int64
 	err = tx.QueryRow(ctx,
 		`SELECT user_id, account_id, category_id, amount, type, currency, note, tags, exchange_rate, amount_cny
-		 FROM transactions WHERE id = $1 AND deleted_at IS NULL`,
+		 FROM transactions WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
 		txnID,
 	).Scan(&ownerID, &accountID, &categoryID, &oldAmount, &oldType, &currency, &note, &oldTags, &exchangeRate, &amountCny)
 	if err != nil {
@@ -412,7 +412,7 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 	var txnType string
 	err = tx.QueryRow(ctx,
 		`SELECT user_id, account_id, amount_cny, type
-		 FROM transactions WHERE id = $1 AND deleted_at IS NULL`,
+		 FROM transactions WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
 		txnID,
 	).Scan(&ownerID, &accountID, &amountCny, &txnType)
 	if err != nil {
