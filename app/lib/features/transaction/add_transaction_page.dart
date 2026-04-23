@@ -54,9 +54,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() => setState(() {
-          _selectedCategoryId = null;
-        }));
 
     // 编辑模式：预填已有数据
     final txn = widget.existingTransaction;
@@ -85,11 +82,16 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       _showDetails = _noteController.text.isNotEmpty ||
           _tags.isNotEmpty ||
           _imagePaths.isNotEmpty;
-      // 设置 tab（收入 or 支出）
+      // 设置 tab（收入 or 支出）— 必须在 addListener 前设置
       if (txn.type == 'income') {
         _tabController.index = 1;
       }
     }
+
+    // Tab 切换时清空分类（只在用户手动切换时清，不在 initState 预填时清）
+    _tabController.addListener(() => setState(() {
+          _selectedCategoryId = null;
+        }));
   }
 
   @override
@@ -548,49 +550,65 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     if (_selectedCategoryId == null || _amountStr == '0') return;
     setState(() => _isSubmitting = true);
 
-    // Yuan → fen
-    final yuan = double.tryParse(_amountStr) ?? 0;
-    final cents = (yuan * 100).round();
+    try {
+      // Yuan → fen
+      final yuan = double.tryParse(_amountStr) ?? 0;
+      final cents = (yuan * 100).round();
 
-    // CNY equivalent
-    final rateNotifier = ref.read(exchangeRateProvider.notifier);
-    final amountCny = rateNotifier.toCny(cents, _selectedCurrency);
+      // CNY equivalent
+      final rateNotifier = ref.read(exchangeRateProvider.notifier);
+      final amountCny = rateNotifier.toCny(cents, _selectedCurrency);
 
-    if (_isEditMode) {
-      // 编辑模式：更新已有交易
-      await ref.read(transactionProvider.notifier).updateTransaction(
-            id: widget.existingTransaction!.id,
-            categoryId: _selectedCategoryId!,
-            amount: cents,
-            type: _type,
-            note: _noteController.text.trim(),
-            currency: _selectedCurrency,
-            amountCny: amountCny,
-            tags: _tags.isNotEmpty ? jsonEncode(_tags) : '',
-            imageUrls: _imagePaths.isNotEmpty ? jsonEncode(_imagePaths) : '',
-          );
-    } else {
-      // 新建模式：创建交易
-      await ref.read(transactionProvider.notifier).addTransaction(
-            categoryId: _selectedCategoryId!,
-            amount: cents,
-            type: _type,
-            note: _noteController.text.trim(),
-            currency: _selectedCurrency,
-            amountCny: amountCny,
-            tags: _tags.isNotEmpty ? jsonEncode(_tags) : '',
-            imageUrls: _imagePaths.isNotEmpty ? jsonEncode(_imagePaths) : '',
-          );
-    }
+      if (_isEditMode) {
+        // 编辑模式：更新已有交易
+        await ref.read(transactionProvider.notifier).updateTransaction(
+              id: widget.existingTransaction!.id,
+              categoryId: _selectedCategoryId!,
+              amount: cents,
+              type: _type,
+              note: _noteController.text.trim(),
+              currency: _selectedCurrency,
+              amountCny: amountCny,
+              tags: _tags.isNotEmpty ? jsonEncode(_tags) : '',
+              imageUrls: _imagePaths.isNotEmpty ? jsonEncode(_imagePaths) : '',
+            );
+      } else {
+        // 新建模式：创建交易
+        await ref.read(transactionProvider.notifier).addTransaction(
+              categoryId: _selectedCategoryId!,
+              amount: cents,
+              type: _type,
+              note: _noteController.text.trim(),
+              currency: _selectedCurrency,
+              amountCny: amountCny,
+              tags: _tags.isNotEmpty ? jsonEncode(_tags) : '',
+              imageUrls: _imagePaths.isNotEmpty ? jsonEncode(_imagePaths) : '',
+            );
+      }
 
-    HapticFeedback.mediumImpact();
+      HapticFeedback.mediumImpact();
 
-    // 记账/编辑成功后刷新 Dashboard 和 Account
-    ref.read(dashboardProvider.notifier).loadAll();
-    ref.read(accountProvider.notifier).refresh();
+      // 记账/编辑成功后刷新 Dashboard 和 Account
+      ref.read(dashboardProvider.notifier).loadAll();
+      ref.read(accountProvider.notifier).refresh();
 
-    if (mounted) {
-      Navigator.of(context).pop(_isEditMode ? true : null);
+      if (mounted) {
+        Navigator.of(context).pop(_isEditMode ? true : null);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('操作失败: $e'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 }
