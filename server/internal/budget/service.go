@@ -413,7 +413,7 @@ func (s *Service) computeExecution(ctx context.Context, budgetID uuid.UUID, budg
 	// Query total expense for user in this month
 	var totalSpent int64
 	err := s.pool.QueryRow(ctx,
-		`SELECT COALESCE(SUM(amount), 0)
+		`SELECT COALESCE(SUM(amount_cny), 0)
 		 FROM transactions
 		 WHERE user_id = $1 AND type = 'expense' AND deleted_at IS NULL
 		   AND txn_date >= $2 AND txn_date < $3`,
@@ -434,7 +434,7 @@ func (s *Service) computeExecution(ctx context.Context, budgetID uuid.UUID, budg
 	// Per-category execution
 	if len(budget.CategoryBudgets) > 0 {
 		rows, err := s.pool.Query(ctx,
-			`SELECT t.category_id, c.name, COALESCE(SUM(t.amount), 0) AS spent
+			`SELECT t.category_id, c.name, COALESCE(SUM(t.amount_cny), 0) AS spent
 			 FROM transactions t
 			 JOIN categories c ON c.id = t.category_id
 			 WHERE t.user_id = $1 AND t.type = 'expense' AND t.deleted_at IS NULL
