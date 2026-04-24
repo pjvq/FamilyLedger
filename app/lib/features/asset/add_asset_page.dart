@@ -83,7 +83,9 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
     final isDark = theme.brightness == Brightness.dark;
     final assetState = ref.watch(assetProvider);
 
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('添加资产'),
       ),
@@ -302,6 +304,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
           ],
         ),
       ),
+    ),
     );
   }
 }

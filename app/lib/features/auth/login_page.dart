@@ -43,7 +43,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
     });
 
-    return Semantics(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Semantics(
       label: '登录页面',
       child: Scaffold(
         body: SafeArea(
@@ -219,6 +221,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         ),
         ),
       ),
+    ),
     );
   }
 

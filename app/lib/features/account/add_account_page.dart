@@ -29,7 +29,9 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('添加账户'),
       ),
@@ -140,6 +142,7 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
           ),
         ],
       ),
+    ),
     );
   }
 

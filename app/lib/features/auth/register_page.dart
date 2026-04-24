@@ -48,7 +48,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       }
     });
 
-    return Semantics(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Semantics(
       label: '注册页面',
       child: Scaffold(
         appBar: AppBar(
@@ -152,6 +154,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         ),
         ),
       ),
+    ),
     );
   }
 

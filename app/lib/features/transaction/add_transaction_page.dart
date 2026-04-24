@@ -116,7 +116,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     final categories =
         _isExpense ? txnState.expenseCategories : txnState.incomeCategories;
 
-    return Semantics(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Semantics(
       label: _isEditMode ? '编辑交易页面' : '记一笔页面',
       child: Scaffold(
         appBar: AppBar(
@@ -183,6 +185,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
         ],
         ),
       ),
+    ),
     );
   }
 

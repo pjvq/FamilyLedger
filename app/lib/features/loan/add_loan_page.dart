@@ -97,7 +97,9 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
     final theme = Theme.of(context);
     final accountState = ref.watch(accountProvider);
 
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       appBar: AppBar(title: const Text('添加贷款')),
       body: Column(
         children: [
@@ -227,6 +229,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
             ),
         ],
       ),
+    ),
     );
   }
 
