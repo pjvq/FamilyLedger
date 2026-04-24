@@ -97,30 +97,36 @@ class AppRouter {
       case addLoan:
         return _slideUp(const AddLoanPage());
       case loanDetail:
-        final loanId = settings.arguments as String;
+        final loanId = settings.arguments as String?;
+        if (loanId == null) return _fade(const HomePage());
         return _slide(LoanDetailPage(loanId: loanId));
       case loanGroupDetail:
-        final groupId = settings.arguments as String;
+        final groupId = settings.arguments as String?;
+        if (groupId == null) return _fade(const HomePage());
         return _slide(LoanGroupDetailPage(groupId: groupId));
       case prepayment:
-        final loanId = settings.arguments as String;
+        final loanId = settings.arguments as String?;
+        if (loanId == null) return _fade(const HomePage());
         return _slideUp(PrepaymentPage(loanId: loanId));
       case investments:
         return _slide(const InvestmentsPage());
       case addInvestment:
         return _slideUp(const AddInvestmentPage());
       case investmentDetail:
-        final investmentId = settings.arguments as String;
+        final investmentId = settings.arguments as String?;
+        if (investmentId == null) return _fade(const HomePage());
         return _slide(InvestmentDetailPage(investmentId: investmentId));
       case investmentTrade:
-        final investmentId = settings.arguments as String;
+        final investmentId = settings.arguments as String?;
+        if (investmentId == null) return _fade(const HomePage());
         return _slideUp(TradePage(investmentId: investmentId));
       case assets:
         return _slide(const AssetsPage());
       case addAsset:
         return _slideUp(const AddAssetPage());
       case assetDetail:
-        final assetId = settings.arguments as String;
+        final assetId = settings.arguments as String?;
+        if (assetId == null) return _fade(const HomePage());
         return _slide(AssetDetailPage(assetId: assetId));
       case report:
         return _slide(const ReportPage());
@@ -131,7 +137,8 @@ class AppRouter {
       case transactionHistory:
         return _slide(const TransactionHistoryPage());
       case transactionDetail:
-        final args = settings.arguments as TransactionDetailArgs;
+        final args = settings.arguments as TransactionDetailArgs?;
+        if (args == null) return _fade(const HomePage());
         return _slide(TransactionDetailPage(args: args));
       case categoryManage:
         return _slide(const CategoryManagePage());

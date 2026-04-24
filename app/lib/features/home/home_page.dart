@@ -62,6 +62,12 @@ class _HomePageState extends ConsumerState<HomePage> {
         selectedIndex: _currentIndex == 2 ? 0 : _currentIndex,
         onDestinationSelected: (index) {
           if (index == 2) {
+            if (!ref.read(canCreateProvider)) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('当前角色无记账权限')),
+              );
+              return;
+            }
             Navigator.of(context).pushNamed(AppRouter.addTransaction);
             return;
           }

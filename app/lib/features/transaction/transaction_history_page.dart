@@ -92,7 +92,7 @@ class _TransactionHistoryPageState
         body: state.isLoading
             ? const SkeletonList(count: 6, itemHeight: 72)
             : state.transactions.isEmpty
-                ? _EmptyState(isDark: isDark)
+                ? _EmptyState(isDark: isDark, canCreate: ref.watch(canCreateProvider))
                 : _buildList(state, categoryMap, theme, isDark),
       ),
     );
@@ -377,8 +377,9 @@ class _TransactionRow extends StatelessWidget {
 
 class _EmptyState extends StatelessWidget {
   final bool isDark;
+  final bool canCreate;
 
-  const _EmptyState({required this.isDark});
+  const _EmptyState({required this.isDark, this.canCreate = true});
 
   @override
   Widget build(BuildContext context) {
@@ -417,12 +418,13 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 28),
-            FilledButton.icon(
-              onPressed: () =>
-                  Navigator.of(context).pushNamed(AppRouter.addTransaction),
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('记一笔'),
-            ),
+            if (canCreate)
+              FilledButton.icon(
+                onPressed: () =>
+                    Navigator.of(context).pushNamed(AppRouter.addTransaction),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('记一笔'),
+              ),
           ],
         ),
       ),
