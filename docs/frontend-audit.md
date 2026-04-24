@@ -400,29 +400,29 @@ canManageAccountsProvider → Provider<bool>
 
 ### P0 — 立即修复
 
-1. **Token 自动刷新** — 在 `AuthInterceptor` 中检测 401，自动调用 RefreshToken gRPC 并重试
-2. **路由参数 null safety** — 所有 `settings.arguments as T` 改为 `as T?`，null 时 pop 或显示错误
-3. **TransactionState 增加 error** — 添加 error 字段，addTransaction 失败时 setState + SnackBar
+1. ✅ **Token 自动刷新** — `AuthInterceptor` JWT auto-refresh (`6dc67a5`)
+2. ✅ **路由参数 null safety** — route null-safety (`454d2ad`)
+3. ✅ **TransactionState 增加 error** — error field + reload + UI error state (`845e6f6`)
 
 ### P1 — 短期修复（1-2 周）
 
-4. **canCreateProvider 接入** — AddTransactionPage / AddAccountPage 等页面增加权限检查
-5. **Auth 同步代码去重** — 提取 `_syncServerDataToLocal()` 公共方法
-6. **Dashboard 趋势性能** — 改为单次查询 + 内存分组，避免 N+1
-7. **表单错误提示** — 所有 Add 页面增加 SnackBar / error state
+4. ✅ **canCreateProvider 接入** — 权限检查 + UI 门控 (`454d2ad`, `c4b819f`)
+5. **Auth 同步代码去重** — 提取 `_syncServerDataToLocal()` 公共方法（未做）
+6. **Dashboard 趋势性能** — 改为单次查询 + 内存分组（未做，local-first 缓解了体感）
+7. **表单错误提示** — 部分页面已有（未全覆盖）
 
 ### P2 — 中期改进（1 个月）
 
-8. **database.dart 拆分 DAO** — 按实体拆分为 TransactionDao, AccountDao, LoanDao 等
-9. **Budget familyId 支持** — 读取 currentFamilyIdProvider
-10. **SyncEngine 扩展实体** — 支持 loan / investment / asset 同步
-11. **环境配置** — serverHost / port 从 .env / flavor 配置读取
+8. **database.dart 拆分 DAO** — 按实体拆分（未做）
+9. ✅ **Budget familyId 支持** — 家庭权限已扩展 (`f0ecf36`)
+10. **SyncEngine 扩展实体** — 支持 loan / investment / asset 同步（未做）
+11. **环境配置** — serverHost / port 从 .env / flavor 配置读取（未做）
 
 ### P3 — 长期架构优化
 
 12. **引入 Repository 层** — 将 DB + gRPC 操作从 Notifier 中抽离
-13. **路由升级** — 迁移到 go_router 或 auto_route，支持深度链接 + auth guard
-14. **国际化** — 引入 intl / slang 等 i18n 方案
+13. **路由升级** — 迁移到 go_router 或 auto_route
+14. **国际化** — 引入 intl / slang
 15. **字体本地化** — Google Fonts 打包到 assets
 16. **Accessibility 全面审查** — 所有图表/对话框/表单添加完整 Semantics
 
