@@ -57,7 +57,7 @@ func (s *Service) PushOperations(ctx context.Context, req *pb.PushOperationsRequ
 	var failedIDs []string
 	accepted := int32(0)
 
-	for _, op := range req.Operations {
+	for i, op := range req.Operations {
 		entityID, err := uuid.Parse(op.EntityId)
 		if err != nil {
 			failedIDs = append(failedIDs, op.Id)
@@ -77,6 +77,17 @@ func (s *Service) PushOperations(ctx context.Context, req *pb.PushOperationsRequ
 			ts = op.Timestamp.AsTime()
 		}
 
+		// Use savepoint so one failed op doesn't abort the entire transaction
+		spName := fmt.Sprintf("sp_%d", i)
+		_, err = tx.Exec(ctx, "SAVEPOINT "+spName)
+		if err != nil {
+			log.Printf("sync: savepoint error for %s: %v", op.Id, err)
+			failedIDs = append(failedIDs, op.Id)
+			continue
+		}
+
+		opFailed := false
+
 		_, err = tx.Exec(ctx,
 			`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
 			 VALUES ($1, $2, $3, $4::sync_op_type, $5, $6, $7)`,
@@ -84,17 +95,24 @@ func (s *Service) PushOperations(ctx context.Context, req *pb.PushOperationsRequ
 		)
 		if err != nil {
 			log.Printf("sync: push op error for %s: %v", op.Id, err)
-			failedIDs = append(failedIDs, op.Id)
-			continue
+			opFailed = true
 		}
 
 		// Apply the operation to business tables
-		if err := s.applyOperation(ctx, tx, uid, op.EntityType, entityID, opType, op.Payload); err != nil {
-			log.Printf("sync: apply op error for %s/%s %s: %v", op.EntityType, opType, op.Id, err)
-			failedIDs = append(failedIDs, op.Id)
-			continue
+		if !opFailed {
+			if err := s.applyOperation(ctx, tx, uid, op.EntityType, entityID, opType, op.Payload); err != nil {
+				log.Printf("sync: apply op error for %s/%s %s: %v", op.EntityType, opType, op.Id, err)
+				opFailed = true
+			}
 		}
-		accepted++
+
+		if opFailed {
+			tx.Exec(ctx, "ROLLBACK TO SAVEPOINT "+spName)
+			failedIDs = append(failedIDs, op.Id)
+		} else {
+			tx.Exec(ctx, "RELEASE SAVEPOINT "+spName)
+			accepted++
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {

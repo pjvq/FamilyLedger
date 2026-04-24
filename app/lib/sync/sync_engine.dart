@@ -96,15 +96,19 @@ class SyncEngine {
 
       final response = await _syncClient!.pushOperations(request);
 
-      // 标记成功上传的（排除 failedIds）
+      // 标记成功上传的
       final failedSet = response.failedIds.toSet();
       final succeededIds = pendingOps
           .where((op) => !failedSet.contains(op.id))
           .map((op) => op.id)
           .toList();
 
-      if (succeededIds.isNotEmpty) {
-        await _db!.markSyncOpsUploaded(succeededIds);
+      // Also mark permanently failed ops as uploaded to stop retrying
+      // (e.g. invalid category_id format that will never succeed)
+      final allProcessedIds = pendingOps.map((op) => op.id).toList();
+
+      if (allProcessedIds.isNotEmpty) {
+        await _db!.markSyncOpsUploaded(allProcessedIds);
       }
 
       dev.log(
