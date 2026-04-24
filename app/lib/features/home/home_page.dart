@@ -9,6 +9,7 @@ import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/notification_provider.dart';
 import '../../sync/sync_engine.dart';
 import '../../core/widgets/sync_status_indicator.dart';
+import '../../core/widgets/widgets.dart';
 import '../budget/budget_page.dart';
 import '../dashboard/dashboard_page.dart';
 import '../more/more_page.dart';
@@ -340,8 +341,13 @@ class _AccountsTab extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('账户')),
       body: accountState.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : accountState.accounts.isEmpty
+          ? const SkeletonList(count: 5, itemHeight: 72)
+          : accountState.error != null
+              ? ErrorState(
+                  message: accountState.error!,
+                  onRetry: () => ref.read(accountProvider.notifier).refresh(),
+                )
+              : accountState.accounts.isEmpty
               ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,

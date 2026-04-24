@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart' as db;
+import '../../core/widgets/widgets.dart';
 import '../../domain/providers/loan_provider.dart';
 
 class LoansPage extends ConsumerWidget {
@@ -23,8 +24,13 @@ class LoansPage extends ConsumerWidget {
         title: const Text('贷款管理'),
       ),
       body: loanState.isLoading && !hasData
-          ? const Center(child: CircularProgressIndicator())
-          : !hasData
+          ? const SkeletonList(count: 5, itemHeight: 80)
+          : loanState.error != null && !hasData
+              ? ErrorState(
+                  message: loanState.error!,
+                  onRetry: () => ref.read(loanProvider.notifier).loadAll(),
+                )
+              : !hasData
               ? _EmptyState(theme: theme)
               : RefreshIndicator(
                   onRefresh: () =>

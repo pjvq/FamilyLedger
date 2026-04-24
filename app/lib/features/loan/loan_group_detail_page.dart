@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart' as db;
+import '../../core/widgets/widgets.dart';
 import '../../domain/providers/loan_provider.dart';
 
 class LoanGroupDetailPage extends ConsumerStatefulWidget {
@@ -73,20 +74,16 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
     if (loanState.isLoading && group == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('贷款详情')),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const SkeletonList(count: 5, itemHeight: 72),
       );
     }
 
     if (group == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('贷款详情')),
-        body: Center(
-          child: Text(
-            loanState.error ?? '贷款组不存在',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
-          ),
+        body: ErrorState(
+          message: loanState.error ?? '贷款组不存在',
+          onRetry: () => ref.read(loanProvider.notifier).getLoanGroupDetail(widget.groupId),
         ),
       );
     }
@@ -475,10 +472,10 @@ class _OverviewTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!loaded) {
-      return const Center(child: CircularProgressIndicator());
+      return const SingleChildScrollView(
+        child: SkeletonList(count: 3, itemHeight: 64),
+      );
     }
-
-    // Merge schedules by month
     final maxMonths =
         math.max(comSchedule.length, pvdSchedule.length);
     if (maxMonths == 0) {
@@ -653,7 +650,9 @@ class _SubLoanTab extends StatelessWidget {
     }
 
     if (!loaded) {
-      return const Center(child: CircularProgressIndicator());
+      return const SingleChildScrollView(
+        child: SkeletonList(count: 3, itemHeight: 64),
+      );
     }
 
     final progress = loan!.totalMonths > 0

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
+import 'dart:math';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:fixnum/fixnum.dart';
@@ -35,6 +36,7 @@ class SyncEngine {
   StreamSubscription? _wsSub;
   bool _isSyncing = false;
   bool _disposed = false;
+  int _reconnectAttempts = 0;
 
   /// 最后一次成功拉取的服务端时间戳（毫秒）
   static const _lastSyncTsKey = 'sync_last_pull_ts';
@@ -280,6 +282,7 @@ class SyncEngine {
       );
 
       dev.log('SyncEngine: ws connected', name: 'sync');
+      _reconnectAttempts = 0;
     } catch (e) {
       dev.log('SyncEngine: ws connect failed: $e', name: 'sync');
       _scheduleReconnect();
@@ -310,8 +313,21 @@ class SyncEngine {
 
   void _scheduleReconnect() {
     if (_disposed) return;
-    // 5 秒后重连
-    Future.delayed(const Duration(seconds: 5), () {
+
+    final baseDelay = 1; // seconds
+    final maxDelay = 60; // seconds
+    final exponentialDelay = baseDelay * (1 << _reconnectAttempts.clamp(0, 6));
+    final delay = exponentialDelay.clamp(baseDelay, maxDelay);
+    final jitter = Random().nextInt((delay * 0.5).ceil() + 1);
+    final totalDelay = (delay + jitter).clamp(0, 90);
+
+    dev.log(
+      'SyncEngine: reconnecting in ${totalDelay}s (attempt ${_reconnectAttempts + 1})',
+      name: 'sync',
+    );
+    _reconnectAttempts++;
+
+    Future.delayed(Duration(seconds: totalDelay), () {
       if (!_disposed) _connectWebSocket();
     });
   }
@@ -324,6 +340,7 @@ class SyncEngine {
 
   void dispose() {
     _disposed = true;
+    _reconnectAttempts = 0;
     _syncTimer?.cancel();
     _connectivitySub?.cancel();
     _disconnectWebSocket();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:familyledger/core/widgets/skeleton_loading.dart';
 import 'package:familyledger/features/transaction/add_transaction_page.dart';
 import 'package:familyledger/features/transaction/transaction_history_page.dart';
 import 'package:familyledger/features/home/home_page.dart';
@@ -175,7 +176,7 @@ void main() {
       // Don't pumpAndSettle — CircularProgressIndicator is an animation
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('shows empty state when transactions are empty',

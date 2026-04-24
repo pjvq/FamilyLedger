@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/router/app_router.dart';
+import '../../core/widgets/widgets.dart';
 import '../../domain/providers/asset_provider.dart';
 
 class AssetsPage extends ConsumerStatefulWidget {
@@ -31,8 +32,13 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
         title: const Text('固定资产'),
       ),
       body: assetState.isLoading && assetState.assets.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : assetState.assets.isEmpty
+          ? const SkeletonList(count: 4, itemHeight: 80)
+          : assetState.error != null && assetState.assets.isEmpty
+              ? ErrorState(
+                  message: assetState.error!,
+                  onRetry: () => ref.read(assetProvider.notifier).listAssets(),
+                )
+              : assetState.assets.isEmpty
               ? _EmptyState(theme: theme)
               : RefreshIndicator(
                   onRefresh: () =>

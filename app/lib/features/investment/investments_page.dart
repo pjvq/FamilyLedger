@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/micro_interactions.dart';
+import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/investment_provider.dart';
 import '../../domain/providers/market_data_provider.dart';
@@ -70,8 +71,13 @@ class _InvestmentsPageState extends ConsumerState<InvestmentsPage> {
         centerTitle: false,
       ),
       body: invState.isLoading && invState.investments.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
+          ? const SkeletonList(count: 5, itemHeight: 80)
+          : invState.error != null && invState.investments.isEmpty
+              ? ErrorState(
+                  message: invState.error!,
+                  onRetry: () => ref.read(investmentProvider.notifier).listInvestments(),
+                )
+              : RefreshIndicator(
               onRefresh: () async {
                 await ref.read(investmentProvider.notifier).listInvestments();
                 _refreshQuotes();

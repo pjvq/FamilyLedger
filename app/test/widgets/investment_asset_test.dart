@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:familyledger/data/local/database.dart' as db;
+import 'package:familyledger/core/widgets/skeleton_loading.dart';
 import 'package:familyledger/domain/providers/investment_provider.dart';
 import 'package:familyledger/domain/providers/market_data_provider.dart';
 import 'package:familyledger/domain/providers/asset_provider.dart';
@@ -163,14 +164,14 @@ void main() {
   // 1. InvestmentsPage
   // ─────────────────────────────────────────────────────────────
   group('InvestmentsPage', () {
-    testWidgets('loading state shows CircularProgressIndicator',
+    testWidgets('loading state shows SkeletonList',
         (tester) async {
       await tester.pumpWidget(wrapWithProviders(
         const InvestmentsPage(),
         investment: const InvestmentState(isLoading: true),
       ));
       await tester.pump();
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('empty state shows hint text', (tester) async {
@@ -750,7 +751,7 @@ void main() {
         asset: const AssetState(isLoading: true),
       ));
       await tester.pump();
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('empty state', (tester) async {
@@ -972,7 +973,7 @@ void main() {
         asset: const AssetState(isLoading: true),
       ));
       await tester.pump();
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('shows "资产不存在" when null', (tester) async {

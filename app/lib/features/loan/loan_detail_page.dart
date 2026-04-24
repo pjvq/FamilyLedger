@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart' as db;
+import '../../core/widgets/widgets.dart';
 import '../../domain/providers/loan_provider.dart';
 import 'loans_page.dart';
 import 'rate_change_dialog.dart';
@@ -36,20 +37,16 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
     if (loanState.isLoading && loan == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('贷款详情')),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const SkeletonList(count: 5, itemHeight: 72),
       );
     }
 
     if (loan == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('贷款详情')),
-        body: Center(
-          child: Text(
-            loanState.error ?? '贷款不存在',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
-          ),
+        body: ErrorState(
+          message: loanState.error ?? '贷款不存在',
+          onRetry: () => ref.read(loanProvider.notifier).getLoanDetail(widget.loanId),
         ),
       );
     }
@@ -150,7 +147,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
             const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.all(32),
-                child: Center(child: CircularProgressIndicator()),
+                child: SkeletonList(count: 3, itemHeight: 64),
               ),
             )
           else

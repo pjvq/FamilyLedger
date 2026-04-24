@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/widgets.dart';
 import '../../domain/providers/asset_provider.dart';
 import 'update_valuation_dialog.dart';
 
@@ -34,7 +35,7 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
       return Scaffold(
         appBar: AppBar(),
         body: assetState.isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const SkeletonList(count: 4, itemHeight: 72)
             : const Center(child: Text('资产不存在')),
       );
     }

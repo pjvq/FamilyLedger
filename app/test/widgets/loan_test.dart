@@ -10,6 +10,7 @@ import 'package:familyledger/features/loan/loans_page.dart';
 import 'package:familyledger/features/loan/prepayment_page.dart';
 import 'package:familyledger/features/loan/add_loan_page.dart';
 import 'package:familyledger/features/loan/loan_detail_page.dart';
+import 'package:familyledger/core/widgets/skeleton_loading.dart';
 import 'package:familyledger/features/loan/loan_group_detail_page.dart';
 
 import 'test_helpers.dart';
@@ -266,7 +267,7 @@ void main() {
       ));
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('shows FAB for adding loan', (tester) async {
@@ -510,7 +511,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('贷款详情'), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('shows error when loan is null', (tester) async {
@@ -582,7 +583,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300)); // past _loadSchedules delay
 
       expect(find.text('贷款详情'), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('shows error when group is null', (tester) async {

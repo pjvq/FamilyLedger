@@ -8,6 +8,7 @@ import '../../data/local/database.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
 import '../../domain/providers/account_provider.dart';
+import '../../core/widgets/widgets.dart';
 import 'transaction_detail_page.dart';
 
 /// 交易历史页面 — 高性能分组列表，支持下拉刷新 / 上拉加载 / 滑动删除
@@ -104,7 +105,7 @@ class _TransactionHistoryPageState
         centerTitle: false,
       ),
       body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonList(count: 6, itemHeight: 72)
           : state.transactions.isEmpty
               ? _EmptyState(isDark: isDark)
               : _buildList(state, categoryMap, theme, isDark),

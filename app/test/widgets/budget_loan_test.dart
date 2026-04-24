@@ -8,6 +8,7 @@ import 'package:familyledger/domain/providers/budget_provider.dart';
 import 'package:familyledger/domain/providers/loan_provider.dart';
 import 'package:familyledger/domain/providers/transaction_provider.dart';
 import 'package:familyledger/domain/providers/account_provider.dart';
+import 'package:familyledger/core/widgets/skeleton_loading.dart';
 import 'package:familyledger/core/theme/app_colors.dart';
 
 import 'package:familyledger/features/budget/budget_execution_card.dart';
@@ -704,7 +705,7 @@ void main() {
         routes: {'/loans/add': (_) => const Scaffold()},
       ));
       await tester.pump();
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('standalone loans', (tester) async {
@@ -877,7 +878,7 @@ void main() {
       ));
       await tester.pump();
       expect(find.text('贷款详情'), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('null loan: shows error', (tester) async {
@@ -1022,7 +1023,7 @@ void main() {
       ));
       await tester.pump();
       expect(find.text('贷款详情'), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsWidgets);
+      expect(find.byType(SkeletonList), findsOneWidget);
       // Flush the 200ms timer from _loadSchedules to avoid pending timer error
       await tester.pump(const Duration(milliseconds: 300));
     });
@@ -1053,7 +1054,8 @@ void main() {
           '/loans/detail': (_) => const Scaffold(),
         },
       ));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('首套房贷'), findsOneWidget);
       expect(find.text('总览'), findsOneWidget);
       // '商贷' appears in tab and summary chip
@@ -1076,7 +1078,8 @@ void main() {
           '/loans/detail': (_) => const Scaffold(),
         },
       ));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.textContaining('4.20%'), findsWidgets);
       expect(find.textContaining('2.85%'), findsWidgets);
     });
@@ -1095,15 +1098,19 @@ void main() {
           '/loans/detail': (_) => const Scaffold(),
         },
       ));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // Use Tab finder to avoid ambiguity with summary chip text
       await tester.tap(find.widgetWithText(Tab, '商贷'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.widgetWithText(Tab, '公积金'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.widgetWithText(Tab, '总览'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byType(LoanGroupDetailPage), findsOneWidget);
     });
@@ -1122,7 +1129,8 @@ void main() {
           '/loans/detail': (_) => const Scaffold(),
         },
       ));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('提前还款'), findsOneWidget);
       expect(find.text('商贷利率'), findsOneWidget);
     });
