@@ -29,6 +29,7 @@ import '../../features/report/export_page.dart';
 import '../../features/import/csv_import_page.dart';
 import '../../features/transaction/transaction_history_page.dart';
 import '../../features/transaction/transaction_detail_page.dart';
+import '../../features/settings/category_manage_page.dart';
 
 class AppRouter {
   AppRouter._();
@@ -62,6 +63,7 @@ class AppRouter {
   static const csvImport = '/import/csv';
   static const transactionHistory = '/transactions';
   static const transactionDetail = '/transaction-detail';
+  static const categoryManage = '/settings/categories';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -131,6 +133,8 @@ class AppRouter {
       case transactionDetail:
         final args = settings.arguments as TransactionDetailArgs;
         return _slide(TransactionDetailPage(args: args));
+      case categoryManage:
+        return _slide(const CategoryManagePage());
       default:
         return _fade(const HomePage());
     }
