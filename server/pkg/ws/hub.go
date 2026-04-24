@@ -49,13 +49,7 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// Authenticate via JWT token query param
 	token := r.URL.Query().Get("token")
 	if token == "" {
-		// Fallback: also accept user_id for backward compat (dev only)
-		userID := r.URL.Query().Get("user_id")
-		if userID == "" {
-			http.Error(w, "missing token", http.StatusUnauthorized)
-			return
-		}
-		h.upgradeAndRegister(w, r, userID)
+		http.Error(w, "missing token", http.StatusUnauthorized)
 		return
 	}
 
