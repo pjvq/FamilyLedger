@@ -235,6 +235,32 @@ const DeleteTransactionResponse$json = {
 final $typed_data.Uint8List deleteTransactionResponseDescriptor = $convert.base64Decode(
     'ChlEZWxldGVUcmFuc2FjdGlvblJlc3BvbnNl');
 
+@$core.Deprecated('Use batchDeleteTransactionsRequestDescriptor instead')
+const BatchDeleteTransactionsRequest$json = {
+  '1': 'BatchDeleteTransactionsRequest',
+  '2': [
+    {'1': 'transaction_ids', '3': 1, '4': 3, '5': 9, '10': 'transactionIds'},
+  ],
+};
+
+/// Descriptor for `BatchDeleteTransactionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List batchDeleteTransactionsRequestDescriptor = $convert.base64Decode(
+    'Ch5CYXRjaERlbGV0ZVRyYW5zYWN0aW9uc1JlcXVlc3QSJwoPdHJhbnNhY3Rpb25faWRzGAEgAy'
+    'gJUg50cmFuc2FjdGlvbklkcw==');
+
+@$core.Deprecated('Use batchDeleteTransactionsResponseDescriptor instead')
+const BatchDeleteTransactionsResponse$json = {
+  '1': 'BatchDeleteTransactionsResponse',
+  '2': [
+    {'1': 'deleted_count', '3': 1, '4': 1, '5': 5, '10': 'deletedCount'},
+  ],
+};
+
+/// Descriptor for `BatchDeleteTransactionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List batchDeleteTransactionsResponseDescriptor = $convert.base64Decode(
+    'Ch9CYXRjaERlbGV0ZVRyYW5zYWN0aW9uc1Jlc3BvbnNlEiMKDWRlbGV0ZWRfY291bnQYASABKA'
+    'VSDGRlbGV0ZWRDb3VudA==');
+
 @$core.Deprecated('Use getCategoriesRequestDescriptor instead')
 const GetCategoriesRequest$json = {
   '1': 'GetCategoriesRequest',

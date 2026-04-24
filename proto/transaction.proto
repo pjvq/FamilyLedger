@@ -10,6 +10,7 @@ service TransactionService {
   rpc CreateTransaction(CreateTransactionRequest) returns (CreateTransactionResponse);
   rpc UpdateTransaction(UpdateTransactionRequest) returns (UpdateTransactionResponse);
   rpc DeleteTransaction(DeleteTransactionRequest) returns (DeleteTransactionResponse);
+  rpc BatchDeleteTransactions(BatchDeleteTransactionsRequest) returns (BatchDeleteTransactionsResponse);
   rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
   rpc GetCategories(GetCategoriesRequest) returns (GetCategoriesResponse);
   // Category management
@@ -107,6 +108,14 @@ message DeleteTransactionRequest {
 }
 
 message DeleteTransactionResponse {}
+
+message BatchDeleteTransactionsRequest {
+  repeated string transaction_ids = 1;  // 最多 100 条
+}
+
+message BatchDeleteTransactionsResponse {
+  int32 deleted_count = 1;
+}
 
 message GetCategoriesRequest {
   TransactionType type = 1;  // 可选，按类型过滤

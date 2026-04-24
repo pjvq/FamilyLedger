@@ -324,6 +324,47 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     await _refreshSummary();
   }
 
+  /// 批量删除交易
+  Future<int> batchDeleteTransactions(List<String> ids) async {
+    if (ids.isEmpty) return 0;
+
+    // 1. 本地批量软删除 + 余额回退
+    for (final id in ids) {
+      final txn = await _db.getTransactionById(id);
+      if (txn == null) continue;
+      await _db.softDeleteTransaction(id);
+      final delta = txn.type == 'income' ? -txn.amountCny : txn.amountCny;
+      await _db.updateAccountBalance(txn.accountId, delta);
+    }
+
+    // 2. 尝试 gRPC 批量删除
+    try {
+      if (_txnClient != null) {
+        final req = pb.BatchDeleteTransactionsRequest(
+          transactionIds: ids,
+        );
+        await _txnClient.batchDeleteTransactions(req);
+      }
+    } catch (e) {
+      dev.log('TransactionNotifier: batchDelete gRPC failed: $e', name: 'txn');
+      for (final id in ids) {
+        await _db.insertSyncOp(SyncQueueCompanion.insert(
+          id: _uuid.v4(),
+          entityType: 'transaction',
+          entityId: id,
+          opType: 'delete',
+          payload: jsonEncode({'id': id}),
+          clientId: 'client_$_userId',
+          timestamp: DateTime.now(),
+        ));
+      }
+    }
+
+    // 3. 刷新摘要
+    await _refreshSummary();
+    return ids.length;
+  }
+
   @override
   void dispose() {
     _sub?.cancel();

@@ -27,6 +27,8 @@ class _TransactionHistoryPageState
 
   int _displayCount = _pageSize;
   late final ScrollController _scrollController;
+  bool _selectionMode = false;
+  final Set<String> _selectedIds = {};
 
   @override
   void initState() {
@@ -40,6 +42,64 @@ class _TransactionHistoryPageState
       ..removeListener(_onScroll)
       ..dispose();
     super.dispose();
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  Future<void> _batchDelete() async {
+    final count = _selectedIds.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('确认删除'),
+        content: Text('确定删除选中的 $count 笔交易吗？\n删除后不可恢复。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final ids = _selectedIds.toList();
+    _exitSelectionMode();
+
+    final deleted = await ref
+        .read(transactionProvider.notifier)
+        .batchDeleteTransactions(ids);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('已删除 $deleted 笔交易'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    // 刷新 Dashboard + Account
+    ref.invalidate(dashboardProvider);
+    ref.invalidate(accountProvider);
+  }
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
   }
 
   void _onScroll() {
@@ -86,8 +146,29 @@ class _TransactionHistoryPageState
       label: '交易记录页面',
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('交易记录'),
+          leading: _selectionMode
+              ? IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: _exitSelectionMode,
+                )
+              : null,
+          title: _selectionMode
+              ? Text('已选择 ${_selectedIds.length} 笔')
+              : const Text('交易记录'),
           centerTitle: false,
+          actions: [
+            if (_selectionMode && _selectedIds.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                onPressed: _batchDelete,
+              ),
+            if (!_selectionMode && state.transactions.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.checklist),
+                tooltip: '批量管理',
+                onPressed: () => setState(() => _selectionMode = true),
+              ),
+          ],
         ),
         body: state.isLoading
             ? const SkeletonList(count: 6, itemHeight: 72)
@@ -146,15 +227,25 @@ class _TransactionHistoryPageState
                   transaction: txn,
                   category: txnCategory,
                   isDark: isDark,
-                  onTap: () {
-                    Navigator.of(context).pushNamed(
-                      AppRouter.transactionDetail,
-                      arguments: TransactionDetailArgs(
-                        transaction: txn,
-                        category: txnCategory,
-                      ),
-                    );
-                  },
+                  selectionMode: _selectionMode,
+                  selected: _selectedIds.contains(txn.id),
+                  onTap: _selectionMode
+                      ? () => _toggleSelection(txn.id)
+                      : () {
+                          Navigator.of(context).pushNamed(
+                            AppRouter.transactionDetail,
+                            arguments: TransactionDetailArgs(
+                              transaction: txn,
+                              category: txnCategory,
+                            ),
+                          );
+                        },
+                  onLongPress: !_selectionMode
+                      ? () {
+                          setState(() => _selectionMode = true);
+                          _toggleSelection(txn.id);
+                        }
+                      : null,
                   onDelete: ref.watch(canDeleteProvider)
                       ? () => _deleteTransaction(txn)
                       : null,
@@ -258,6 +349,9 @@ class _TransactionRow extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onDelete;
   final VoidCallback? onEdit;
+  final VoidCallback? onLongPress;
+  final bool selectionMode;
+  final bool selected;
 
   const _TransactionRow({
     required this.transaction,
@@ -266,6 +360,9 @@ class _TransactionRow extends StatelessWidget {
     required this.onTap,
     this.onDelete,
     this.onEdit,
+    this.onLongPress,
+    this.selectionMode = false,
+    this.selected = false,
   });
 
   @override
@@ -285,20 +382,24 @@ class _TransactionRow extends StatelessWidget {
 
     final typeLabel = isIncome ? '收入' : '支出';
 
-    return Semantics(
-      label: '$typeLabel $categoryName $amountText元 $timeText',
-      child: SwipeToDelete(
-      dismissKey: ValueKey(transaction.id),
-      confirmMessage: '${transaction.type == 'income' ? '收入' : '支出'} ¥$amountText',
-      onDelete: onDelete,
-      child: GestureDetector(
+    final rowContent = GestureDetector(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: SizedBox(
         height: 72,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
+              if (selectionMode)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Icon(
+                    selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                    color: selected ? Theme.of(context).colorScheme.primary : Colors.grey,
+                    size: 24,
+                  ),
+                ),
               // Category icon
               Semantics(
                 label: '$categoryName 图标',
@@ -372,7 +473,21 @@ class _TransactionRow extends StatelessWidget {
           ),
         ),
       ),
-      ),
+    );
+
+    if (selectionMode) {
+      return Semantics(
+        label: '$typeLabel $categoryName $amountText元 $timeText',
+        child: rowContent,
+      );
+    }
+    return Semantics(
+      label: '$typeLabel $categoryName $amountText元 $timeText',
+      child: SwipeToDelete(
+        dismissKey: ValueKey(transaction.id),
+        confirmMessage: '${transaction.type == 'income' ? '收入' : '支出'} ¥$amountText',
+        onDelete: onDelete,
+        child: rowContent,
       ),
     );
   }

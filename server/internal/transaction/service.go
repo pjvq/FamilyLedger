@@ -505,6 +505,129 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 	return &pb.DeleteTransactionResponse{}, nil
 }
 
+// ── BatchDeleteTransactions ─────────────────────────────────────────────────
+
+func (s *Service) BatchDeleteTransactions(ctx context.Context, req *pb.BatchDeleteTransactionsRequest) (*pb.BatchDeleteTransactionsResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(req.TransactionIds) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "transaction_ids is required")
+	}
+	if len(req.TransactionIds) > 100 {
+		return nil, status.Error(codes.InvalidArgument, "max 100 transactions per batch")
+	}
+
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "invalid user id")
+	}
+
+	// Parse all IDs upfront
+	txnIDs := make([]uuid.UUID, 0, len(req.TransactionIds))
+	for _, idStr := range req.TransactionIds {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid transaction_id: %s", idStr)
+		}
+		txnIDs = append(txnIDs, id)
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to begin transaction")
+	}
+	defer tx.Rollback(ctx)
+
+	// Fetch all transactions in one query, lock for update
+	rows, err := tx.Query(ctx,
+		`SELECT id, user_id, account_id, amount_cny, type
+		 FROM transactions
+		 WHERE id = ANY($1) AND deleted_at IS NULL
+		 FOR UPDATE`,
+		txnIDs,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to query transactions")
+	}
+	defer rows.Close()
+
+	type txnInfo struct {
+		id        uuid.UUID
+		accountID uuid.UUID
+		amountCny int64
+		txnType   string
+	}
+	var toDelete []txnInfo
+
+	for rows.Next() {
+		var info txnInfo
+		var ownerID uuid.UUID
+		if err := rows.Scan(&info.id, &ownerID, &info.accountID, &info.amountCny, &info.txnType); err != nil {
+			return nil, status.Error(codes.Internal, "failed to scan transaction")
+		}
+		if ownerID != uid {
+			// Check family permission
+			familyID, err := s.getAccountFamilyID(ctx, info.accountID)
+			if err != nil {
+				return nil, status.Error(codes.Internal, "failed to check account family")
+			}
+			if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanDelete); err != nil {
+				return nil, status.Errorf(codes.PermissionDenied, "no delete permission for transaction %s", info.id)
+			}
+		}
+		toDelete = append(toDelete, info)
+	}
+	if rows.Err() != nil {
+		return nil, status.Error(codes.Internal, "failed to iterate transactions")
+	}
+
+	if len(toDelete) == 0 {
+		return &pb.BatchDeleteTransactionsResponse{DeletedCount: 0}, nil
+	}
+
+	// Soft delete all
+	deleteIDs := make([]uuid.UUID, len(toDelete))
+	for i, info := range toDelete {
+		deleteIDs[i] = info.id
+	}
+	_, err = tx.Exec(ctx,
+		"UPDATE transactions SET deleted_at = NOW(), updated_at = NOW() WHERE id = ANY($1)",
+		deleteIDs,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to batch delete transactions")
+	}
+
+	// Revert balances per account
+	balanceReverts := make(map[uuid.UUID]int64)
+	for _, info := range toDelete {
+		if info.txnType == "income" {
+			balanceReverts[info.accountID] -= info.amountCny
+		} else {
+			balanceReverts[info.accountID] += info.amountCny
+		}
+	}
+	for accountID, revert := range balanceReverts {
+		_, err = tx.Exec(ctx,
+			"UPDATE accounts SET balance = balance + $1, updated_at = NOW() WHERE id = $2",
+			revert, accountID,
+		)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to revert balance for account %s", accountID)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, status.Error(codes.Internal, "failed to commit")
+	}
+
+	log.Printf("transaction: batch-deleted %d transactions by user %s", len(toDelete), userID)
+	return &pb.BatchDeleteTransactionsResponse{DeletedCount: int32(len(toDelete))}, nil
+}
+
 func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactionsRequest) (*pb.ListTransactionsResponse, error) {
 	userID, err := middleware.GetUserID(ctx)
 	if err != nil {

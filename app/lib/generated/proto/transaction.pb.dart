@@ -1111,6 +1111,100 @@ class DeleteTransactionResponse extends $pb.GeneratedMessage {
   static DeleteTransactionResponse? _defaultInstance;
 }
 
+class BatchDeleteTransactionsRequest extends $pb.GeneratedMessage {
+  factory BatchDeleteTransactionsRequest({
+    $core.Iterable<$core.String>? transactionIds,
+  }) {
+    final $result = create();
+    if (transactionIds != null) {
+      $result.transactionIds.addAll(transactionIds);
+    }
+    return $result;
+  }
+  BatchDeleteTransactionsRequest._() : super();
+  factory BatchDeleteTransactionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BatchDeleteTransactionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BatchDeleteTransactionsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'transactionIds')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BatchDeleteTransactionsRequest clone() => BatchDeleteTransactionsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BatchDeleteTransactionsRequest copyWith(void Function(BatchDeleteTransactionsRequest) updates) => super.copyWith((message) => updates(message as BatchDeleteTransactionsRequest)) as BatchDeleteTransactionsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BatchDeleteTransactionsRequest create() => BatchDeleteTransactionsRequest._();
+  BatchDeleteTransactionsRequest createEmptyInstance() => create();
+  static $pb.PbList<BatchDeleteTransactionsRequest> createRepeated() => $pb.PbList<BatchDeleteTransactionsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static BatchDeleteTransactionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BatchDeleteTransactionsRequest>(create);
+  static BatchDeleteTransactionsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<$core.String> get transactionIds => $_getList(0);
+}
+
+class BatchDeleteTransactionsResponse extends $pb.GeneratedMessage {
+  factory BatchDeleteTransactionsResponse({
+    $core.int? deletedCount,
+  }) {
+    final $result = create();
+    if (deletedCount != null) {
+      $result.deletedCount = deletedCount;
+    }
+    return $result;
+  }
+  BatchDeleteTransactionsResponse._() : super();
+  factory BatchDeleteTransactionsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BatchDeleteTransactionsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BatchDeleteTransactionsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'deletedCount', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BatchDeleteTransactionsResponse clone() => BatchDeleteTransactionsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BatchDeleteTransactionsResponse copyWith(void Function(BatchDeleteTransactionsResponse) updates) => super.copyWith((message) => updates(message as BatchDeleteTransactionsResponse)) as BatchDeleteTransactionsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BatchDeleteTransactionsResponse create() => BatchDeleteTransactionsResponse._();
+  BatchDeleteTransactionsResponse createEmptyInstance() => create();
+  static $pb.PbList<BatchDeleteTransactionsResponse> createRepeated() => $pb.PbList<BatchDeleteTransactionsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static BatchDeleteTransactionsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BatchDeleteTransactionsResponse>(create);
+  static BatchDeleteTransactionsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get deletedCount => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set deletedCount($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDeletedCount() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDeletedCount() => clearField(1);
+}
+
 class GetCategoriesRequest extends $pb.GeneratedMessage {
   factory GetCategoriesRequest({
     TransactionType? type,
