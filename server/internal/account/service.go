@@ -217,8 +217,8 @@ func (s *Service) GetAccount(ctx context.Context, req *pb.GetAccountRequest) (*p
 		return nil, status.Error(codes.Internal, "failed to get account")
 	}
 
-	// Check access: owner or family member
-	if err := s.checkAccountAccess(ctx, ownerUID.String(), familyIDStr, userID); err != nil {
+	// Check access: owner or family member (view only needs can_view)
+	if err := s.checkAccountAccess(ctx, ownerUID.String(), familyIDStr, userID, "can_view"); err != nil {
 		return nil, err
 	}
 
@@ -269,7 +269,7 @@ func (s *Service) UpdateAccount(ctx context.Context, req *pb.UpdateAccountReques
 		return nil, status.Error(codes.Internal, "failed to get account")
 	}
 
-	if err := s.checkAccountAccess(ctx, ownerID, familyIDStr, userID); err != nil {
+	if err := s.checkAccountAccess(ctx, ownerID, familyIDStr, userID, "can_manage_accounts"); err != nil {
 		return nil, err
 	}
 
@@ -341,7 +341,7 @@ func (s *Service) DeleteAccount(ctx context.Context, req *pb.DeleteAccountReques
 		return nil, status.Error(codes.Internal, "failed to get account")
 	}
 
-	if err := s.checkAccountAccess(ctx, ownerID, familyIDStr, userID); err != nil {
+	if err := s.checkAccountAccess(ctx, ownerID, familyIDStr, userID, "can_manage_accounts"); err != nil {
 		return nil, err
 	}
 
@@ -485,7 +485,7 @@ func (s *Service) TransferBetween(ctx context.Context, req *pb.TransferBetweenRe
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-func (s *Service) checkAccountAccess(ctx context.Context, ownerID, familyIDStr, callerID string) error {
+func (s *Service) checkAccountAccess(ctx context.Context, ownerID, familyIDStr, callerID string, permKeys ...string) error {
 	// Direct owner
 	if ownerID == callerID {
 		return nil
@@ -500,19 +500,41 @@ func (s *Service) checkAccountAccess(ctx context.Context, ownerID, familyIDStr, 
 		if err != nil {
 			return status.Error(codes.Internal, "invalid family id")
 		}
-		var exists bool
+		var role string
+		var permsJSON []byte
 		err = s.pool.QueryRow(ctx,
-			`SELECT EXISTS(SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2)`,
+			`SELECT role, permissions FROM family_members WHERE family_id = $1 AND user_id = $2`,
 			fid, uid,
-		).Scan(&exists)
-		if err == nil && exists {
+		).Scan(&role, &permsJSON)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return status.Error(codes.PermissionDenied, "not a member of this family")
+			}
+			return status.Error(codes.Internal, "failed to check membership")
+		}
+		// Owner/admin always allowed
+		if role == "owner" || role == "admin" {
 			return nil
 		}
+		// Check specific permissions if required
+		if len(permKeys) > 0 {
+			var permsMap map[string]bool
+			if err := json.Unmarshal(permsJSON, &permsMap); err != nil {
+				return status.Error(codes.Internal, "failed to parse permissions")
+			}
+			for _, key := range permKeys {
+				if allowed, ok := permsMap[key]; ok && allowed {
+					return nil
+				}
+			}
+			return status.Error(codes.PermissionDenied, "insufficient permissions")
+		}
+		return nil // member with no specific permission required
 	}
 	return status.Error(codes.PermissionDenied, "no access to this account")
 }
 
-func (s *Service) checkAccountAccessTx(ctx context.Context, tx pgx.Tx, ownerID, familyIDStr, callerID string) error {
+func (s *Service) checkAccountAccessTx(ctx context.Context, tx pgx.Tx, ownerID, familyIDStr, callerID string, permKeys ...string) error {
 	if ownerID == callerID {
 		return nil
 	}
@@ -525,14 +547,34 @@ func (s *Service) checkAccountAccessTx(ctx context.Context, tx pgx.Tx, ownerID, 
 		if err != nil {
 			return status.Error(codes.Internal, "invalid family id")
 		}
-		var exists bool
+		var role string
+		var permsJSON []byte
 		err = tx.QueryRow(ctx,
-			`SELECT EXISTS(SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2)`,
+			`SELECT role, permissions FROM family_members WHERE family_id = $1 AND user_id = $2`,
 			fid, uid,
-		).Scan(&exists)
-		if err == nil && exists {
+		).Scan(&role, &permsJSON)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return status.Error(codes.PermissionDenied, "not a member of this family")
+			}
+			return status.Error(codes.Internal, "failed to check membership")
+		}
+		if role == "owner" || role == "admin" {
 			return nil
 		}
+		if len(permKeys) > 0 {
+			var permsMap map[string]bool
+			if err := json.Unmarshal(permsJSON, &permsMap); err != nil {
+				return status.Error(codes.Internal, "failed to parse permissions")
+			}
+			for _, key := range permKeys {
+				if allowed, ok := permsMap[key]; ok && allowed {
+					return nil
+				}
+			}
+			return status.Error(codes.PermissionDenied, "insufficient permissions")
+		}
+		return nil
 	}
 	return status.Error(codes.PermissionDenied, "no access to this account")
 }

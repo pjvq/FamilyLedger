@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/budget_provider.dart';
+import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import 'budget_execution_card.dart';
 import 'set_budget_sheet.dart';
@@ -22,17 +23,21 @@ class BudgetPage extends ConsumerWidget {
         title: Text('${now.month}月预算'),
         centerTitle: false,
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: ref.watch(canEditProvider)
+          ? FloatingActionButton.extended(
         onPressed: () => _showSetBudgetSheet(context),
         icon: const Icon(Icons.edit_rounded),
         label: Text(budgetState.currentBudget != null ? '编辑预算' : '设置预算'),
-      ),
+      )
+          : null,
       body: budgetState.isLoading
           ? const Center(child: CircularProgressIndicator())
           : budgetState.currentBudget == null
               ? _EmptyBudgetState(
                   theme: theme,
-                  onSetBudget: () => _showSetBudgetSheet(context),
+                  onSetBudget: ref.watch(canEditProvider)
+                      ? () => _showSetBudgetSheet(context)
+                      : null,
                 )
               : RefreshIndicator(
                   onRefresh: () =>
@@ -106,9 +111,9 @@ class BudgetPage extends ConsumerWidget {
 
 class _EmptyBudgetState extends StatelessWidget {
   final ThemeData theme;
-  final VoidCallback onSetBudget;
+  final VoidCallback? onSetBudget;
 
-  const _EmptyBudgetState({required this.theme, required this.onSetBudget});
+  const _EmptyBudgetState({required this.theme, this.onSetBudget});
 
   @override
   Widget build(BuildContext context) {
@@ -136,6 +141,7 @@ class _EmptyBudgetState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
+          if (onSetBudget != null)
           FilledButton.icon(
             onPressed: onSetBudget,
             icon: const Icon(Icons.add_rounded),

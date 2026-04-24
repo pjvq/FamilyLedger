@@ -8,6 +8,7 @@ import '../../data/local/database.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
 import '../../domain/providers/account_provider.dart';
+import '../../domain/providers/family_provider.dart';
 import '../../core/widgets/widgets.dart';
 import 'transaction_detail_page.dart';
 
@@ -149,13 +150,17 @@ class _TransactionHistoryPageState
                       ),
                     );
                   },
-                  onDelete: () => _deleteTransaction(txn),
-                  onEdit: () {
+                  onDelete: ref.watch(canDeleteProvider)
+                      ? () => _deleteTransaction(txn)
+                      : null,
+                  onEdit: ref.watch(canEditProvider)
+                      ? () {
                     Navigator.of(context).pushNamed(
                       AppRouter.addTransaction,
                       arguments: txn,
                     );
-                  },
+                  }
+                      : null,
                 );
               },
             ),
@@ -246,16 +251,16 @@ class _TransactionRow extends StatelessWidget {
   final Category? category;
   final bool isDark;
   final VoidCallback onTap;
-  final VoidCallback onDelete;
-  final VoidCallback onEdit;
+  final VoidCallback? onDelete;
+  final VoidCallback? onEdit;
 
   const _TransactionRow({
     required this.transaction,
     required this.category,
     required this.isDark,
     required this.onTap,
-    required this.onDelete,
-    required this.onEdit,
+    this.onDelete,
+    this.onEdit,
   });
 
   @override

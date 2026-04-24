@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/permission"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -27,6 +28,25 @@ type Service struct {
 
 func NewService(pool db.Pool) *Service {
 	return &Service{pool: pool}
+}
+
+// getAccountFamilyID returns the family_id for an account (empty string if personal).
+func (s *Service) getAccountFamilyID(ctx context.Context, accountID uuid.UUID) (string, error) {
+	var familyID *string
+	err := s.pool.QueryRow(ctx,
+		"SELECT family_id::text FROM accounts WHERE id = $1 AND deleted_at IS NULL",
+		accountID,
+	).Scan(&familyID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return "", nil
+		}
+		return "", err
+	}
+	if familyID == nil {
+		return "", nil
+	}
+	return *familyID, nil
 }
 
 func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransactionRequest) (*pb.CreateTransactionResponse, error) {
@@ -48,6 +68,15 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	categoryID, err := uuid.Parse(req.CategoryId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid category_id")
+	}
+
+	// Permission check: verify user can create transactions in this account's family
+	familyID, err := s.getAccountFamilyID(ctx, accountID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to check account family")
+	}
+	if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanCreate); err != nil {
+		return nil, err
 	}
 
 	if req.Amount <= 0 {
@@ -208,6 +237,15 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 
 	if ownerID != uid {
 		return nil, status.Error(codes.PermissionDenied, "transaction does not belong to user")
+	}
+
+	// Permission check: verify user can edit transactions in this account's family
+	familyID, err := s.getAccountFamilyID(ctx, accountID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to check account family")
+	}
+	if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanEdit); err != nil {
+		return nil, err
 	}
 
 	// Build dynamic UPDATE
@@ -425,6 +463,15 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 
 	if ownerID != uid {
 		return nil, status.Error(codes.PermissionDenied, "transaction does not belong to user")
+	}
+
+	// Permission check: verify user can delete transactions in this account's family
+	familyID, err := s.getAccountFamilyID(ctx, accountID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to check account family")
+	}
+	if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanDelete); err != nil {
+		return nil, err
 	}
 
 	// Soft delete

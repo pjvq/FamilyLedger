@@ -12,6 +12,7 @@ import '../../data/local/database.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
 import '../../domain/providers/account_provider.dart';
+import '../../domain/providers/family_provider.dart';
 
 /// 交易详情页面参数
 class TransactionDetailArgs {
@@ -59,6 +60,7 @@ class TransactionDetailPage extends ConsumerWidget {
           title: const Text('交易详情'),
           centerTitle: false,
           actions: [
+            if (ref.watch(canEditProvider))
             Semantics(
               button: true,
               label: '编辑交易',
@@ -326,7 +328,8 @@ class TransactionDetailPage extends ConsumerWidget {
             ),
           ),
 
-          // ── 底部删除按钮 ──
+          // ── 底部删除按钮 (权限控制) ──
+          if (ref.watch(canDeleteProvider))
           SafeArea(
             top: false,
             child: Padding(

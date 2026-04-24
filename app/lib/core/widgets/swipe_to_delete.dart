@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 /// 触发二次确认对话框，确认后执行删除回调。
 class SwipeToDelete extends StatefulWidget {
   final Widget child;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
   final String confirmMessage;
   final String confirmTitle;
   final Key dismissKey;
@@ -19,7 +19,7 @@ class SwipeToDelete extends StatefulWidget {
   const SwipeToDelete({
     super.key,
     required this.child,
-    required this.onDelete,
+    this.onDelete,
     required this.dismissKey,
     this.confirmMessage = '确定要删除这条记录吗？',
     this.confirmTitle = '删除确认',
@@ -76,10 +76,12 @@ class _SwipeToDeleteState extends State<SwipeToDelete>
       borderRadius: radius,
       child: Dismissible(
         key: widget.dismissKey,
-        direction: DismissDirection.endToStart,
+        direction: widget.onDelete != null
+            ? DismissDirection.endToStart
+            : DismissDirection.none,
         movementDuration: widget.movementDuration,
         confirmDismiss: (direction) => _showConfirmDialog(context),
-        onDismissed: (_) => widget.onDelete(),
+        onDismissed: (_) => widget.onDelete?.call(),
         onUpdate: _onDismissUpdate,
         background: AnimatedBuilder(
           animation: _controller,

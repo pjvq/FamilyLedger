@@ -14,6 +14,7 @@ class FamilyState {
   final Family? currentFamily;
   final List<Family> families;
   final List<FamilyMember> members;
+  final pb_model.MemberPermissions? myPermissions;
   final bool isLoading;
   final String? error;
 
@@ -21,6 +22,7 @@ class FamilyState {
     this.currentFamily,
     this.families = const [],
     this.members = const [],
+    this.myPermissions,
     this.isLoading = false,
     this.error,
   });
@@ -30,6 +32,7 @@ class FamilyState {
     bool clearCurrentFamily = false,
     List<Family>? families,
     List<FamilyMember>? members,
+    pb_model.MemberPermissions? myPermissions,
     bool? isLoading,
     String? error,
     bool clearError = false,
@@ -39,6 +42,7 @@ class FamilyState {
             clearCurrentFamily ? null : (currentFamily ?? this.currentFamily),
         families: families ?? this.families,
         members: members ?? this.members,
+        myPermissions: myPermissions ?? this.myPermissions,
         isLoading: isLoading ?? this.isLoading,
         error: clearError ? null : (error ?? this.error),
       );
@@ -69,11 +73,36 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
         members = await _db.getFamilyMembers(current.id);
       }
 
+      // Derive permissions from role
+      pb_model.MemberPermissions? myPerms;
+      if (current != null && members.isNotEmpty) {
+        final me = members.where((m) => m.userId == _userId).firstOrNull;
+        if (me != null) {
+          final role = me.role;
+          if (role == 'owner' || role == 'admin') {
+            myPerms = pb_model.MemberPermissions()
+              ..canView = true
+              ..canCreate = true
+              ..canEdit = true
+              ..canDelete = true
+              ..canManageAccounts = true;
+          } else {
+            myPerms = pb_model.MemberPermissions()
+              ..canView = true
+              ..canCreate = true
+              ..canEdit = false
+              ..canDelete = false
+              ..canManageAccounts = false;
+          }
+        }
+      }
+
       state = state.copyWith(
         currentFamily: current,
         clearCurrentFamily: current == null,
         families: allFamilies,
         members: members,
+        myPermissions: myPerms,
         isLoading: false,
       );
     } catch (e) {
@@ -409,4 +438,37 @@ final familyProvider =
     familyClient = ref.watch(familyClientProvider);
   } catch (_) {}
   return FamilyNotifier(db, userId ?? '', familyClient);
+});
+
+/// Whether the current user can delete in family mode.
+/// In personal mode, always true.
+final canDeleteProvider = Provider<bool>((ref) {
+  final familyId = ref.watch(currentFamilyIdProvider);
+  if (familyId == null) return true; // personal mode
+  final perms = ref.watch(familyProvider).myPermissions;
+  return perms?.canDelete ?? false;
+});
+
+/// Whether the current user can edit in family mode.
+final canEditProvider = Provider<bool>((ref) {
+  final familyId = ref.watch(currentFamilyIdProvider);
+  if (familyId == null) return true;
+  final perms = ref.watch(familyProvider).myPermissions;
+  return perms?.canEdit ?? false;
+});
+
+/// Whether the current user can manage accounts in family mode.
+final canManageAccountsProvider = Provider<bool>((ref) {
+  final familyId = ref.watch(currentFamilyIdProvider);
+  if (familyId == null) return true;
+  final perms = ref.watch(familyProvider).myPermissions;
+  return perms?.canManageAccounts ?? false;
+});
+
+/// Whether the current user can create in family mode.
+final canCreateProvider = Provider<bool>((ref) {
+  final familyId = ref.watch(currentFamilyIdProvider);
+  if (familyId == null) return true;
+  final perms = ref.watch(familyProvider).myPermissions;
+  return perms?.canCreate ?? false;
 });

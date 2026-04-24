@@ -43,6 +43,10 @@ func TestCreateTransaction_Success(t *testing.T) {
 	txnID := uuid.New()
 	now := time.Now()
 
+	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+
 	mock.ExpectBegin()
 
 	// Verify account ownership
@@ -140,7 +144,10 @@ func TestCreateTransaction_MissingFields(t *testing.T) {
 	st, _ = status.FromError(err)
 	assert.Equal(t, codes.InvalidArgument, st.Code())
 
-	// Zero amount
+	// Zero amount — needs family_id mock since parse succeeds
+	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
 	resp, err = svc.CreateTransaction(authedCtx(), &pb.CreateTransactionRequest{
 		AccountId:  uuid.New().String(),
 		CategoryId: uuid.New().String(),
@@ -314,6 +321,11 @@ func TestUpdateTransaction_Success(t *testing.T) {
 			"CNY", "old note", []string{}, float64(1.0), int64(5000),
 		))
 
+	// Permission check: getAccountFamilyID
+	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+
 	// Dynamic UPDATE
 	mock.ExpectExec(`UPDATE transactions SET`).
 		WithArgs(pgxmock.AnyArg(), txnID).
@@ -396,6 +408,11 @@ func TestDeleteTransaction_Success(t *testing.T) {
 		WithArgs(txnID).
 		WillReturnRows(pgxmock.NewRows([]string{"user_id", "account_id", "amount_cny", "type"}).
 			AddRow(userUUID, accountID, int64(5000), "expense"))
+
+	// Permission check: getAccountFamilyID
+	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
 
 	// Soft delete
 	mock.ExpectExec(`UPDATE transactions SET deleted_at = NOW\(\), updated_at = NOW\(\) WHERE id = \$1`).

@@ -4,6 +4,7 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/account_provider.dart';
+import '../../domain/providers/family_provider.dart';
 
 class AccountsPage extends ConsumerWidget {
   const AccountsPage({super.key});
@@ -46,7 +47,8 @@ class AccountsPage extends ConsumerWidget {
                     ],
                   ),
                 ),
-      floatingActionButton: Column(
+      floatingActionButton: ref.watch(canManageAccountsProvider)
+          ? Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           FloatingActionButton.small(
@@ -74,7 +76,8 @@ class AccountsPage extends ConsumerWidget {
             foregroundColor: Colors.white,
           ),
         ],
-      ),
+      )
+          : null,
     );
   }
 }

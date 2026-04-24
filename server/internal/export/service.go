@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/permission"
 	"github.com/jung-kurt/gofpdf"
 	"github.com/xuri/excelize/v2"
 	"google.golang.org/grpc/codes"
@@ -48,6 +49,13 @@ func (s *Service) ExportTransactions(ctx context.Context, req *pb.ExportRequest)
 	}
 	if req.Format != "csv" && req.Format != "excel" && req.Format != "pdf" {
 		return nil, status.Error(codes.InvalidArgument, "format must be csv, excel, or pdf")
+	}
+
+	// Permission check: exporting family data requires can_view
+	if req.FamilyId != "" {
+		if err := permission.Check(ctx, s.pool, userID, req.FamilyId, permission.CanView); err != nil {
+			return nil, err
+		}
 	}
 
 	// 查询交易记录
