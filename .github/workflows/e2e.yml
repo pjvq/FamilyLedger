@@ -1,0 +1,113 @@
+name: E2E Integration
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:  # 手动触发
+
+env:
+  DB_HOST: localhost
+  DB_PORT: '5432'
+  DB_USER: familyledger
+  DB_PASSWORD: familyledger
+  DB_NAME: familyledger
+  DB_SSLMODE: disable
+  JWT_SECRET: ci-test-secret-do-not-use-in-production
+  GRPC_PORT: '50051'
+  WS_PORT: '8080'
+
+jobs:
+  e2e-grpc:
+    name: gRPC E2E Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: familyledger
+          POSTGRES_PASSWORD: familyledger
+          POSTGRES_DB: familyledger
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U familyledger"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: server/go.sum
+
+      # Install grpcurl
+      - name: Install grpcurl
+        run: |
+          GRPCURL_VERSION="1.9.1"
+          curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v${GRPCURL_VERSION}/grpcurl_${GRPCURL_VERSION}_linux_amd64.tar.gz" | tar xz
+          sudo mv grpcurl /usr/local/bin/
+          grpcurl --version
+
+      # Install golang-migrate for DB migrations
+      - name: Install migrate
+        run: |
+          curl -sSL "https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz" | tar xz
+          sudo mv migrate /usr/local/bin/
+
+      # Run DB migrations
+      - name: Run migrations
+        run: |
+          migrate -path server/migrations \
+            -database "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${DB_SSLMODE}" up
+
+      # Build and start server
+      - name: Build server
+        working-directory: server
+        run: go build -o bin/server ./cmd/server
+
+      - name: Start server
+        run: |
+          server/bin/server &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          # Wait for gRPC to be ready
+          for i in $(seq 1 30); do
+            if grpcurl -plaintext localhost:50051 list 2>/dev/null; then
+              echo "Server ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+      # Run shell E2E tests
+      - name: E2E gRPC test (scripts/)
+        run: bash scripts/e2e-grpc-test.sh
+
+      # Run integration test scripts
+      - name: Integration - Basic Services
+        run: bash tests/integration/test_basic_services.sh
+
+      - name: Integration - Finance Services
+        run: bash tests/integration/test_finance_services.sh
+
+      - name: Integration - Finance Services v2
+        run: bash tests/integration/test_finance_services_v2.sh
+
+      - name: Integration - Analytics Services
+        run: bash tests/integration/test_analytics_services.sh
+
+      - name: Integration - Multi-device Sync
+        run: bash tests/integration/test_multi_device_sync.sh
+
+      - name: Integration - 1000 Transactions Perf
+        run: bash tests/integration/test_perf_1000_transactions.sh
+
+      # Cleanup
+      - name: Stop server
+        if: always()
+        run: kill $SERVER_PID 2>/dev/null || true
