@@ -37,6 +37,10 @@ class Categories extends Table {
   TextColumn get type => text()(); // 'income' | 'expense'
   BoolColumn get isPreset => boolean().withDefault(const Constant(true))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  TextColumn get parentId => text().nullable().references(Categories, #id)();
+  TextColumn get userId => text().nullable()();
+  TextColumn get iconKey => text().withDefault(const Constant(''))();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -108,6 +108,15 @@ class AppDatabase extends _$AppDatabase {
             // v9 → v10: migrate category IDs from cat_xxx strings to UUID v5
             await _migrateCategoryUUIDs();
           }
+          if (from < 11) {
+            // v10 → v11: add subcategory support to categories
+            await m.addColumn(categories, categories.parentId);
+            await m.addColumn(categories, categories.userId);
+            await m.addColumn(categories, categories.iconKey);
+            await m.addColumn(categories, categories.deletedAt);
+            // Seed subcategories
+            await _seedSubcategories();
+          }
         },
       );
 
@@ -152,6 +161,96 @@ class AppDatabase extends _$AppDatabase {
         isPreset: Value(isPreset),
         sortOrder: Value(sort),
       );
+
+  CategoriesCompanion _subcat(
+          String parentType, String parentName, String childName, String iconKey, int sort) {
+    final id = CategoryUUID.generate(parentType, '$parentName/$childName');
+    final parentId = CategoryUUID.generate(parentType, parentName);
+    return CategoriesCompanion.insert(
+      id: id,
+      name: childName,
+      icon: '',
+      type: parentType,
+      isPreset: const Value(true),
+      sortOrder: Value(sort),
+      parentId: Value(parentId),
+      iconKey: Value(iconKey),
+    );
+  }
+
+  Future<void> _seedSubcategories() async {
+    final subs = [
+      // 餐饮
+      _subcat('expense', '餐饮', '早餐', 'food_breakfast', 1),
+      _subcat('expense', '餐饮', '午餐', 'food_lunch', 2),
+      _subcat('expense', '餐饮', '晚餐', 'food_dinner', 3),
+      _subcat('expense', '餐饮', '夜孜', 'food_midnight', 4),
+      _subcat('expense', '餐饮', '饮品', 'food_drink', 5),
+      _subcat('expense', '餐饮', '水果零食', 'food_snack', 6),
+      // 交通
+      _subcat('expense', '交通', '地铁公交', 'transport_metro', 1),
+      _subcat('expense', '交通', '打车', 'transport_taxi', 2),
+      _subcat('expense', '交通', '加油', 'transport_fuel', 3),
+      _subcat('expense', '交通', '停车', 'transport_parking', 4),
+      // 购物
+      _subcat('expense', '购物', '电器数码', 'shopping_digital', 1),
+      _subcat('expense', '购物', '日用百货', 'shopping_daily', 2),
+      _subcat('expense', '购物', '美妆护肤', 'shopping_beauty', 3),
+      // 居住
+      _subcat('expense', '居住', '房租', 'housing_rent', 1),
+      _subcat('expense', '居住', '物业', 'housing_property', 2),
+      _subcat('expense', '居住', '水电燃气', 'housing_utility', 3),
+      _subcat('expense', '居住', '家政服务', 'housing_cleaning', 4),
+      // 娱乐
+      _subcat('expense', '娱乐', '电影演出', 'entertainment_movie', 1),
+      _subcat('expense', '娱乐', '游戏', 'entertainment_game', 2),
+      _subcat('expense', '娱乐', '运动健身', 'entertainment_sport', 3),
+      _subcat('expense', '娱乐', '书籍', 'entertainment_book', 4),
+      // 医疗
+      _subcat('expense', '医疗', '门诊', 'medical_clinic', 1),
+      _subcat('expense', '医疗', '住院', 'medical_hospital', 2),
+      _subcat('expense', '医疗', '买药', 'medical_pharmacy', 3),
+      _subcat('expense', '医疗', '保健', 'medical_health', 4),
+      // 教育
+      _subcat('expense', '教育', '培训课程', 'education_course', 1),
+      _subcat('expense', '教育', '书籍资料', 'education_book', 2),
+      _subcat('expense', '教育', '学费', 'education_tuition', 3),
+      // 通讯
+      _subcat('expense', '通讯', '话费', 'communication_phone', 1),
+      _subcat('expense', '通讯', '宽带', 'communication_broadband', 2),
+      _subcat('expense', '通讯', '会员订阅', 'communication_subscription', 3),
+      // 人情
+      _subcat('expense', '人情', '红包礼金', 'gift_red_packet', 1),
+      _subcat('expense', '人情', '请客', 'gift_treat', 2),
+      _subcat('expense', '人情', '份子钱', 'gift_wedding', 3),
+      // 服饰
+      _subcat('expense', '服饰', '衣服', 'clothing_clothes', 1),
+      _subcat('expense', '服饰', '鞋包', 'clothing_shoes', 2),
+      _subcat('expense', '服饰', '配饰', 'clothing_accessory', 3),
+      // 日用
+      _subcat('expense', '日用', '清洁用品', 'daily_cleaning', 1),
+      _subcat('expense', '日用', '个人护理', 'daily_personal', 2),
+      // 旅行
+      _subcat('expense', '旅行', '住宿', 'travel_hotel', 1),
+      _subcat('expense', '旅行', '机票火车', 'travel_ticket', 2),
+      _subcat('expense', '旅行', '门票景点', 'travel_attraction', 3),
+      // 宠物
+      _subcat('expense', '宠物', '口粮用品', 'pet_food', 1),
+      _subcat('expense', '宠物', '宠物医疗', 'pet_medical', 2),
+      // 收入
+      _subcat('income', '工资', '基本工资', 'salary_base', 1),
+      _subcat('income', '工资', '绩效', 'salary_performance', 2),
+      _subcat('income', '工资', '加班费', 'salary_overtime', 3),
+      _subcat('income', '奖金', '年终奖', 'bonus_annual', 1),
+      _subcat('income', '奖金', '项目奖', 'bonus_project', 2),
+      _subcat('income', '投资收益', '股票', 'investment_stock', 1),
+      _subcat('income', '投资收益', '基金', 'investment_fund', 2),
+      _subcat('income', '投资收益', '利息', 'investment_interest', 3),
+    ];
+    await batch((b) {
+      b.insertAll(categories, subs);
+    });
+  }
 
   Future<void> _migrateCategoryUUIDs() async {
     // Map of old string IDs to (type, name) for UUID generation

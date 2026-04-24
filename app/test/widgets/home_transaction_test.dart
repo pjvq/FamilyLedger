@@ -92,6 +92,7 @@ Category _makeCategory({
     type: type,
     isPreset: isPreset,
     sortOrder: sortOrder,
+    iconKey: '',
   );
 }
 

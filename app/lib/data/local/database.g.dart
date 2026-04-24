@@ -1035,6 +1035,52 @@ class $CategoriesTable extends Categories
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _parentIdMeta = const VerificationMeta(
+    'parentId',
+  );
+  @override
+  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
+    'parent_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES categories (id)',
+    ),
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _iconKeyMeta = const VerificationMeta(
+    'iconKey',
+  );
+  @override
+  late final GeneratedColumn<String> iconKey = GeneratedColumn<String>(
+    'icon_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1043,6 +1089,10 @@ class $CategoriesTable extends Categories
     type,
     isPreset,
     sortOrder,
+    parentId,
+    userId,
+    iconKey,
+    deletedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1097,6 +1147,30 @@ class $CategoriesTable extends Categories
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('parent_id')) {
+      context.handle(
+        _parentIdMeta,
+        parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
+      );
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    }
+    if (data.containsKey('icon_key')) {
+      context.handle(
+        _iconKeyMeta,
+        iconKey.isAcceptableOrUnknown(data['icon_key']!, _iconKeyMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -1130,6 +1204,22 @@ class $CategoriesTable extends Categories
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      parentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_id'],
+      ),
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      ),
+      iconKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon_key'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
     );
   }
 
@@ -1146,6 +1236,10 @@ class Category extends DataClass implements Insertable<Category> {
   final String type;
   final bool isPreset;
   final int sortOrder;
+  final String? parentId;
+  final String? userId;
+  final String iconKey;
+  final DateTime? deletedAt;
   const Category({
     required this.id,
     required this.name,
@@ -1153,6 +1247,10 @@ class Category extends DataClass implements Insertable<Category> {
     required this.type,
     required this.isPreset,
     required this.sortOrder,
+    this.parentId,
+    this.userId,
+    required this.iconKey,
+    this.deletedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1163,6 +1261,16 @@ class Category extends DataClass implements Insertable<Category> {
     map['type'] = Variable<String>(type);
     map['is_preset'] = Variable<bool>(isPreset);
     map['sort_order'] = Variable<int>(sortOrder);
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<String>(parentId);
+    }
+    if (!nullToAbsent || userId != null) {
+      map['user_id'] = Variable<String>(userId);
+    }
+    map['icon_key'] = Variable<String>(iconKey);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     return map;
   }
 
@@ -1174,6 +1282,16 @@ class Category extends DataClass implements Insertable<Category> {
       type: Value(type),
       isPreset: Value(isPreset),
       sortOrder: Value(sortOrder),
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
+      userId: userId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userId),
+      iconKey: Value(iconKey),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
     );
   }
 
@@ -1189,6 +1307,10 @@ class Category extends DataClass implements Insertable<Category> {
       type: serializer.fromJson<String>(json['type']),
       isPreset: serializer.fromJson<bool>(json['isPreset']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      parentId: serializer.fromJson<String?>(json['parentId']),
+      userId: serializer.fromJson<String?>(json['userId']),
+      iconKey: serializer.fromJson<String>(json['iconKey']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
   }
   @override
@@ -1201,6 +1323,10 @@ class Category extends DataClass implements Insertable<Category> {
       'type': serializer.toJson<String>(type),
       'isPreset': serializer.toJson<bool>(isPreset),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'parentId': serializer.toJson<String?>(parentId),
+      'userId': serializer.toJson<String?>(userId),
+      'iconKey': serializer.toJson<String>(iconKey),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
   }
 
@@ -1211,6 +1337,10 @@ class Category extends DataClass implements Insertable<Category> {
     String? type,
     bool? isPreset,
     int? sortOrder,
+    Value<String?> parentId = const Value.absent(),
+    Value<String?> userId = const Value.absent(),
+    String? iconKey,
+    Value<DateTime?> deletedAt = const Value.absent(),
   }) => Category(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -1218,6 +1348,10 @@ class Category extends DataClass implements Insertable<Category> {
     type: type ?? this.type,
     isPreset: isPreset ?? this.isPreset,
     sortOrder: sortOrder ?? this.sortOrder,
+    parentId: parentId.present ? parentId.value : this.parentId,
+    userId: userId.present ? userId.value : this.userId,
+    iconKey: iconKey ?? this.iconKey,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
   );
   Category copyWithCompanion(CategoriesCompanion data) {
     return Category(
@@ -1227,6 +1361,10 @@ class Category extends DataClass implements Insertable<Category> {
       type: data.type.present ? data.type.value : this.type,
       isPreset: data.isPreset.present ? data.isPreset.value : this.isPreset,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      iconKey: data.iconKey.present ? data.iconKey.value : this.iconKey,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
 
@@ -1238,13 +1376,28 @@ class Category extends DataClass implements Insertable<Category> {
           ..write('icon: $icon, ')
           ..write('type: $type, ')
           ..write('isPreset: $isPreset, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('parentId: $parentId, ')
+          ..write('userId: $userId, ')
+          ..write('iconKey: $iconKey, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, icon, type, isPreset, sortOrder);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    icon,
+    type,
+    isPreset,
+    sortOrder,
+    parentId,
+    userId,
+    iconKey,
+    deletedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1254,7 +1407,11 @@ class Category extends DataClass implements Insertable<Category> {
           other.icon == this.icon &&
           other.type == this.type &&
           other.isPreset == this.isPreset &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.parentId == this.parentId &&
+          other.userId == this.userId &&
+          other.iconKey == this.iconKey &&
+          other.deletedAt == this.deletedAt);
 }
 
 class CategoriesCompanion extends UpdateCompanion<Category> {
@@ -1264,6 +1421,10 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   final Value<String> type;
   final Value<bool> isPreset;
   final Value<int> sortOrder;
+  final Value<String?> parentId;
+  final Value<String?> userId;
+  final Value<String> iconKey;
+  final Value<DateTime?> deletedAt;
   final Value<int> rowid;
   const CategoriesCompanion({
     this.id = const Value.absent(),
@@ -1272,6 +1433,10 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     this.type = const Value.absent(),
     this.isPreset = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.parentId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.iconKey = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CategoriesCompanion.insert({
@@ -1281,6 +1446,10 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     required String type,
     this.isPreset = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.parentId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.iconKey = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -1293,6 +1462,10 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Expression<String>? type,
     Expression<bool>? isPreset,
     Expression<int>? sortOrder,
+    Expression<String>? parentId,
+    Expression<String>? userId,
+    Expression<String>? iconKey,
+    Expression<DateTime>? deletedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1302,6 +1475,10 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
       if (type != null) 'type': type,
       if (isPreset != null) 'is_preset': isPreset,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (parentId != null) 'parent_id': parentId,
+      if (userId != null) 'user_id': userId,
+      if (iconKey != null) 'icon_key': iconKey,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1313,6 +1490,10 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Value<String>? type,
     Value<bool>? isPreset,
     Value<int>? sortOrder,
+    Value<String?>? parentId,
+    Value<String?>? userId,
+    Value<String>? iconKey,
+    Value<DateTime?>? deletedAt,
     Value<int>? rowid,
   }) {
     return CategoriesCompanion(
@@ -1322,6 +1503,10 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
       type: type ?? this.type,
       isPreset: isPreset ?? this.isPreset,
       sortOrder: sortOrder ?? this.sortOrder,
+      parentId: parentId ?? this.parentId,
+      userId: userId ?? this.userId,
+      iconKey: iconKey ?? this.iconKey,
+      deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1347,6 +1532,18 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (parentId.present) {
+      map['parent_id'] = Variable<String>(parentId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (iconKey.present) {
+      map['icon_key'] = Variable<String>(iconKey.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1362,6 +1559,10 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
           ..write('type: $type, ')
           ..write('isPreset: $isPreset, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('parentId: $parentId, ')
+          ..write('userId: $userId, ')
+          ..write('iconKey: $iconKey, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -13814,6 +14015,10 @@ typedef $$CategoriesTableCreateCompanionBuilder =
       required String type,
       Value<bool> isPreset,
       Value<int> sortOrder,
+      Value<String?> parentId,
+      Value<String?> userId,
+      Value<String> iconKey,
+      Value<DateTime?> deletedAt,
       Value<int> rowid,
     });
 typedef $$CategoriesTableUpdateCompanionBuilder =
@@ -13824,12 +14029,35 @@ typedef $$CategoriesTableUpdateCompanionBuilder =
       Value<String> type,
       Value<bool> isPreset,
       Value<int> sortOrder,
+      Value<String?> parentId,
+      Value<String?> userId,
+      Value<String> iconKey,
+      Value<DateTime?> deletedAt,
       Value<int> rowid,
     });
 
 final class $$CategoriesTableReferences
     extends BaseReferences<_$AppDatabase, $CategoriesTable, Category> {
   $$CategoriesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $CategoriesTable _parentIdTable(_$AppDatabase db) =>
+      db.categories.createAlias(
+        $_aliasNameGenerator(db.categories.parentId, db.categories.id),
+      );
+
+  $$CategoriesTableProcessedTableManager? get parentId {
+    final $_column = $_itemColumn<String>('parent_id');
+    if ($_column == null) return null;
+    final manager = $$CategoriesTableTableManager(
+      $_db,
+      $_db.categories,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_parentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static MultiTypedResultKey<$TransactionsTable, List<Transaction>>
   _transactionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
@@ -13891,6 +14119,44 @@ class $$CategoriesTableFilterComposer
     column: $table.sortOrder,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get iconKey => $composableBuilder(
+    column: $table.iconKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CategoriesTableFilterComposer get parentId {
+    final $$CategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.parentId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<bool> transactionsRefs(
     Expression<bool> Function($$TransactionsTableFilterComposer f) f,
@@ -13956,6 +14222,44 @@ class $$CategoriesTableOrderingComposer
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get iconKey => $composableBuilder(
+    column: $table.iconKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CategoriesTableOrderingComposer get parentId {
+    final $$CategoriesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.parentId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableOrderingComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$CategoriesTableAnnotationComposer
@@ -13984,6 +14288,38 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get iconKey =>
+      $composableBuilder(column: $table.iconKey, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  $$CategoriesTableAnnotationComposer get parentId {
+    final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.parentId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<T> transactionsRefs<T extends Object>(
     Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
@@ -14024,7 +14360,7 @@ class $$CategoriesTableTableManager
           $$CategoriesTableUpdateCompanionBuilder,
           (Category, $$CategoriesTableReferences),
           Category,
-          PrefetchHooks Function({bool transactionsRefs})
+          PrefetchHooks Function({bool parentId, bool transactionsRefs})
         > {
   $$CategoriesTableTableManager(_$AppDatabase db, $CategoriesTable table)
     : super(
@@ -14045,6 +14381,10 @@ class $$CategoriesTableTableManager
                 Value<String> type = const Value.absent(),
                 Value<bool> isPreset = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<String?> parentId = const Value.absent(),
+                Value<String?> userId = const Value.absent(),
+                Value<String> iconKey = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CategoriesCompanion(
                 id: id,
@@ -14053,6 +14393,10 @@ class $$CategoriesTableTableManager
                 type: type,
                 isPreset: isPreset,
                 sortOrder: sortOrder,
+                parentId: parentId,
+                userId: userId,
+                iconKey: iconKey,
+                deletedAt: deletedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -14063,6 +14407,10 @@ class $$CategoriesTableTableManager
                 required String type,
                 Value<bool> isPreset = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<String?> parentId = const Value.absent(),
+                Value<String?> userId = const Value.absent(),
+                Value<String> iconKey = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CategoriesCompanion.insert(
                 id: id,
@@ -14071,6 +14419,10 @@ class $$CategoriesTableTableManager
                 type: type,
                 isPreset: isPreset,
                 sortOrder: sortOrder,
+                parentId: parentId,
+                userId: userId,
+                iconKey: iconKey,
+                deletedAt: deletedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -14081,36 +14433,73 @@ class $$CategoriesTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({transactionsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (transactionsRefs) db.transactions],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (transactionsRefs)
-                    await $_getPrefetchedData<
-                      Category,
-                      $CategoriesTable,
-                      Transaction
-                    >(
-                      currentTable: table,
-                      referencedTable: $$CategoriesTableReferences
-                          ._transactionsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$CategoriesTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).transactionsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.categoryId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({parentId = false, transactionsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (transactionsRefs) db.transactions,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (parentId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.parentId,
+                                    referencedTable: $$CategoriesTableReferences
+                                        ._parentIdTable(db),
+                                    referencedColumn:
+                                        $$CategoriesTableReferences
+                                            ._parentIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (transactionsRefs)
+                        await $_getPrefetchedData<
+                          Category,
+                          $CategoriesTable,
+                          Transaction
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CategoriesTableReferences
+                              ._transactionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CategoriesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).transactionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.categoryId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -14127,7 +14516,7 @@ typedef $$CategoriesTableProcessedTableManager =
       $$CategoriesTableUpdateCompanionBuilder,
       (Category, $$CategoriesTableReferences),
       Category,
-      PrefetchHooks Function({bool transactionsRefs})
+      PrefetchHooks Function({bool parentId, bool transactionsRefs})
     >;
 typedef $$TransactionsTableCreateCompanionBuilder =
     TransactionsCompanion Function({
