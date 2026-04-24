@@ -365,6 +365,19 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     return ids.length;
   }
 
+  /// 上传图片到服务端，返回服务端 URL，失败返回 null
+  Future<String?> uploadImage(pb.UploadTransactionImageRequest req) async {
+    try {
+      if (_txnClient != null) {
+        final resp = await _txnClient.uploadTransactionImage(req);
+        return resp.imageUrl;
+      }
+    } catch (e) {
+      dev.log('TransactionNotifier: uploadImage failed: $e', name: 'txn');
+    }
+    return null;
+  }
+
   @override
   void dispose() {
     _sub?.cancel();

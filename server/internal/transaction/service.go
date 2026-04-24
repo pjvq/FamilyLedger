@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -23,11 +25,31 @@ import (
 
 type Service struct {
 	pb.UnimplementedTransactionServiceServer
-	pool db.Pool
+	pool      db.Pool
+	uploadDir string // 图片上传目录
+	baseURL   string // 图片访问基础 URL
 }
 
-func NewService(pool db.Pool) *Service {
-	return &Service{pool: pool}
+func NewService(pool db.Pool, opts ...ServiceOption) *Service {
+	s := &Service{
+		pool:      pool,
+		uploadDir: "./uploads/images",
+		baseURL:   "/uploads/images",
+	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
+}
+
+type ServiceOption func(*Service)
+
+func WithUploadDir(dir string) ServiceOption {
+	return func(s *Service) { s.uploadDir = dir }
+}
+
+func WithBaseURL(url string) ServiceOption {
+	return func(s *Service) { s.baseURL = url }
 }
 
 // getAccountFamilyID returns the family_id for an account (empty string if personal).
@@ -626,6 +648,77 @@ func (s *Service) BatchDeleteTransactions(ctx context.Context, req *pb.BatchDele
 
 	log.Printf("transaction: batch-deleted %d transactions by user %s", len(toDelete), userID)
 	return &pb.BatchDeleteTransactionsResponse{DeletedCount: int32(len(toDelete))}, nil
+}
+
+// ── UploadTransactionImage ─────────────────────────────────────────────
+
+const maxImageSize = 5 * 1024 * 1024 // 5MB
+
+func (s *Service) UploadTransactionImage(ctx context.Context, req *pb.UploadTransactionImageRequest) (*pb.UploadTransactionImageResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(req.Data) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "image data is required")
+	}
+	if len(req.Data) > maxImageSize {
+		return nil, status.Error(codes.InvalidArgument, "image exceeds 5MB limit")
+	}
+
+	// Validate content type
+	contentType := req.ContentType
+	if contentType == "" {
+		contentType = "image/jpeg"
+	}
+	allowed := map[string]string{
+		"image/jpeg": ".jpg",
+		"image/png":  ".png",
+		"image/webp": ".webp",
+		"image/heic": ".heic",
+	}
+	ext, ok := allowed[contentType]
+	if !ok {
+		return nil, status.Errorf(codes.InvalidArgument, "unsupported content type: %s", contentType)
+	}
+
+	// Create upload directory
+	userDir := filepath.Join(s.uploadDir, userID)
+	if err := os.MkdirAll(userDir, 0o755); err != nil {
+		return nil, status.Errorf(codes.Internal, "create upload dir: %v", err)
+	}
+
+	// Generate unique filename
+	fileName := fmt.Sprintf("%d_%s%s", time.Now().UnixMilli(), uuid.New().String()[:8], ext)
+	filePath := filepath.Join(userDir, fileName)
+
+	if err := os.WriteFile(filePath, req.Data, 0o644); err != nil {
+		return nil, status.Errorf(codes.Internal, "write image: %v", err)
+	}
+
+	// Build URL
+	imageURL := fmt.Sprintf("%s/%s/%s", s.baseURL, userID, fileName)
+
+	// If transaction_id is provided, append to transaction's image_urls
+	if req.TransactionId != "" {
+		_, err := s.pool.Exec(ctx,
+			`UPDATE transactions
+			 SET image_urls = CASE
+			   WHEN image_urls = '' OR image_urls IS NULL THEN $1
+			   ELSE image_urls || ',' || $1
+			 END,
+			 updated_at = NOW()
+			 WHERE id = $2 AND user_id = $3 AND deleted_at IS NULL`,
+			imageURL, req.TransactionId, userID,
+		)
+		if err != nil {
+			log.Printf("upload: saved image but failed to update transaction: %v", err)
+		}
+	}
+
+	log.Printf("upload: user %s uploaded image %s (%d bytes)", userID, fileName, len(req.Data))
+	return &pb.UploadTransactionImageResponse{ImageUrl: imageURL}, nil
 }
 
 func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactionsRequest) (*pb.ListTransactionsResponse, error) {

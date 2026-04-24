@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+import '../../generated/proto/transaction.pb.dart' as pb;
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/exchange_rate_provider.dart';
@@ -531,7 +534,14 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       imageQuality: 80,
     );
     if (picked != null) {
-      setState(() => _imagePaths.add(picked.path));
+      // 复制到 app 持久目录
+      final appDir = await getApplicationDocumentsDirectory();
+      final imgDir = Directory('${appDir.path}/transaction_images');
+      if (!imgDir.existsSync()) imgDir.createSync(recursive: true);
+      final ext = p.extension(picked.path).isNotEmpty ? p.extension(picked.path) : '.jpg';
+      final destPath = '${imgDir.path}/${DateTime.now().millisecondsSinceEpoch}$ext';
+      await File(picked.path).copy(destPath);
+      setState(() => _imagePaths.add(destPath));
     }
   }
 
@@ -582,6 +592,42 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       final rateNotifier = ref.read(exchangeRateProvider.notifier);
       final amountCny = rateNotifier.toCny(cents, _selectedCurrency);
 
+      // 上传图片到服务端，拿到 server URL
+      final List<String> imageUrls = [];
+      for (final path in _imagePaths) {
+        if (path.startsWith('http')) {
+          // 已是服务端 URL（编辑模式下已有图片）
+          imageUrls.add(path);
+        } else {
+          // 本地文件，尝试上传
+          try {
+            final file = File(path);
+            if (await file.exists()) {
+              final bytes = await file.readAsBytes();
+              final ext = p.extension(path).toLowerCase();
+              final contentType = {
+                '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+                '.png': 'image/png', '.webp': 'image/webp',
+                '.heic': 'image/heic',
+              }[ext] ?? 'image/jpeg';
+              final uploadReq = pb.UploadTransactionImageRequest(
+                filename: p.basename(path),
+                data: bytes,
+                contentType: contentType,
+              );
+              final resp = await ref.read(transactionProvider.notifier).uploadImage(uploadReq);
+              if (resp != null) {
+                imageUrls.add(resp);
+                continue;
+              }
+            }
+          } catch (_) {}
+          // 上传失败时保留本地路径（offline-first）
+          imageUrls.add(path);
+        }
+      }
+      final imageUrlsStr = imageUrls.isNotEmpty ? jsonEncode(imageUrls) : '';
+
       if (_isEditMode) {
         // 编辑模式：更新已有交易
         await ref.read(transactionProvider.notifier).updateTransaction(
@@ -593,7 +639,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
               currency: _selectedCurrency,
               amountCny: amountCny,
               tags: _tags.isNotEmpty ? jsonEncode(_tags) : '',
-              imageUrls: _imagePaths.isNotEmpty ? jsonEncode(_imagePaths) : '',
+              imageUrls: imageUrlsStr,
             );
       } else {
         // 新建模式：创建交易
@@ -605,7 +651,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
               currency: _selectedCurrency,
               amountCny: amountCny,
               tags: _tags.isNotEmpty ? jsonEncode(_tags) : '',
-              imageUrls: _imagePaths.isNotEmpty ? jsonEncode(_imagePaths) : '',
+              imageUrls: imageUrlsStr,
             );
       }
 

@@ -1205,6 +1205,148 @@ class BatchDeleteTransactionsResponse extends $pb.GeneratedMessage {
   void clearDeletedCount() => clearField(1);
 }
 
+class UploadTransactionImageRequest extends $pb.GeneratedMessage {
+  factory UploadTransactionImageRequest({
+    $core.String? transactionId,
+    $core.String? filename,
+    $core.List<$core.int>? data,
+    $core.String? contentType,
+  }) {
+    final $result = create();
+    if (transactionId != null) {
+      $result.transactionId = transactionId;
+    }
+    if (filename != null) {
+      $result.filename = filename;
+    }
+    if (data != null) {
+      $result.data = data;
+    }
+    if (contentType != null) {
+      $result.contentType = contentType;
+    }
+    return $result;
+  }
+  UploadTransactionImageRequest._() : super();
+  factory UploadTransactionImageRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory UploadTransactionImageRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UploadTransactionImageRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'transactionId')
+    ..aOS(2, _omitFieldNames ? '' : 'filename')
+    ..a<$core.List<$core.int>>(3, _omitFieldNames ? '' : 'data', $pb.PbFieldType.OY)
+    ..aOS(4, _omitFieldNames ? '' : 'contentType')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  UploadTransactionImageRequest clone() => UploadTransactionImageRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  UploadTransactionImageRequest copyWith(void Function(UploadTransactionImageRequest) updates) => super.copyWith((message) => updates(message as UploadTransactionImageRequest)) as UploadTransactionImageRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UploadTransactionImageRequest create() => UploadTransactionImageRequest._();
+  UploadTransactionImageRequest createEmptyInstance() => create();
+  static $pb.PbList<UploadTransactionImageRequest> createRepeated() => $pb.PbList<UploadTransactionImageRequest>();
+  @$core.pragma('dart2js:noInline')
+  static UploadTransactionImageRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UploadTransactionImageRequest>(create);
+  static UploadTransactionImageRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get transactionId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set transactionId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTransactionId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTransactionId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get filename => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set filename($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFilename() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFilename() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.List<$core.int> get data => $_getN(2);
+  @$pb.TagNumber(3)
+  set data($core.List<$core.int> v) { $_setBytes(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasData() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearData() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get contentType => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set contentType($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasContentType() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearContentType() => clearField(4);
+}
+
+class UploadTransactionImageResponse extends $pb.GeneratedMessage {
+  factory UploadTransactionImageResponse({
+    $core.String? imageUrl,
+  }) {
+    final $result = create();
+    if (imageUrl != null) {
+      $result.imageUrl = imageUrl;
+    }
+    return $result;
+  }
+  UploadTransactionImageResponse._() : super();
+  factory UploadTransactionImageResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory UploadTransactionImageResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UploadTransactionImageResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'imageUrl')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  UploadTransactionImageResponse clone() => UploadTransactionImageResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  UploadTransactionImageResponse copyWith(void Function(UploadTransactionImageResponse) updates) => super.copyWith((message) => updates(message as UploadTransactionImageResponse)) as UploadTransactionImageResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UploadTransactionImageResponse create() => UploadTransactionImageResponse._();
+  UploadTransactionImageResponse createEmptyInstance() => create();
+  static $pb.PbList<UploadTransactionImageResponse> createRepeated() => $pb.PbList<UploadTransactionImageResponse>();
+  @$core.pragma('dart2js:noInline')
+  static UploadTransactionImageResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UploadTransactionImageResponse>(create);
+  static UploadTransactionImageResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get imageUrl => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set imageUrl($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasImageUrl() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearImageUrl() => clearField(1);
+}
+
 class GetCategoriesRequest extends $pb.GeneratedMessage {
   factory GetCategoriesRequest({
     TransactionType? type,

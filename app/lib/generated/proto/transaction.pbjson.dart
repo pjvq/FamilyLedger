@@ -261,6 +261,36 @@ final $typed_data.Uint8List batchDeleteTransactionsResponseDescriptor = $convert
     'Ch9CYXRjaERlbGV0ZVRyYW5zYWN0aW9uc1Jlc3BvbnNlEiMKDWRlbGV0ZWRfY291bnQYASABKA'
     'VSDGRlbGV0ZWRDb3VudA==');
 
+@$core.Deprecated('Use uploadTransactionImageRequestDescriptor instead')
+const UploadTransactionImageRequest$json = {
+  '1': 'UploadTransactionImageRequest',
+  '2': [
+    {'1': 'transaction_id', '3': 1, '4': 1, '5': 9, '10': 'transactionId'},
+    {'1': 'filename', '3': 2, '4': 1, '5': 9, '10': 'filename'},
+    {'1': 'data', '3': 3, '4': 1, '5': 12, '10': 'data'},
+    {'1': 'content_type', '3': 4, '4': 1, '5': 9, '10': 'contentType'},
+  ],
+};
+
+/// Descriptor for `UploadTransactionImageRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List uploadTransactionImageRequestDescriptor = $convert.base64Decode(
+    'Ch1VcGxvYWRUcmFuc2FjdGlvbkltYWdlUmVxdWVzdBIlCg50cmFuc2FjdGlvbl9pZBgBIAEoCV'
+    'INdHJhbnNhY3Rpb25JZBIaCghmaWxlbmFtZRgCIAEoCVIIZmlsZW5hbWUSEgoEZGF0YRgDIAEo'
+    'DFIEZGF0YRIhCgxjb250ZW50X3R5cGUYBCABKAlSC2NvbnRlbnRUeXBl');
+
+@$core.Deprecated('Use uploadTransactionImageResponseDescriptor instead')
+const UploadTransactionImageResponse$json = {
+  '1': 'UploadTransactionImageResponse',
+  '2': [
+    {'1': 'image_url', '3': 1, '4': 1, '5': 9, '10': 'imageUrl'},
+  ],
+};
+
+/// Descriptor for `UploadTransactionImageResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List uploadTransactionImageResponseDescriptor = $convert.base64Decode(
+    'Ch5VcGxvYWRUcmFuc2FjdGlvbkltYWdlUmVzcG9uc2USGwoJaW1hZ2VfdXJsGAEgASgJUghpbW'
+    'FnZVVybA==');
+
 @$core.Deprecated('Use getCategoriesRequestDescriptor instead')
 const GetCategoriesRequest$json = {
   '1': 'GetCategoriesRequest',

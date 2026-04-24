@@ -288,28 +288,28 @@ class TransactionDetailPage extends ConsumerWidget {
                               scrollDirection: Axis.horizontal,
                               children: _parseImageUrls(txn.imageUrls)
                                   .map(
-                                    (path) => Padding(
+                                    (url) => Padding(
                                       padding: const EdgeInsets.only(right: 8),
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
-                                        child: Image.file(
-                                          File(path),
+                                        child: url.startsWith('http')
+                                            ? Image.network(
+                                                url,
+                                                width: 80,
+                                                height: 80,
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (context, error, stackTrace) =>
+                                                        _brokenImagePlaceholder(isDark),
+                                              )
+                                            : Image.file(
+                                          File(url),
                                           width: 80,
                                           height: 80,
                                           fit: BoxFit.cover,
                                           errorBuilder:
                                               (context, error, stackTrace) =>
-                                                  Container(
-                                            width: 80,
-                                            height: 80,
-                                            color: isDark
-                                                ? const Color(0xFF3A3A3C)
-                                                : const Color(0xFFF2F2F7),
-                                            alignment: Alignment.center,
-                                            child: const Icon(
-                                                Icons.broken_image_outlined,
-                                                size: 28),
-                                          ),
+                                                  _brokenImagePlaceholder(isDark),
                                         ),
                                       ),
                                     ),
@@ -448,6 +448,17 @@ class TransactionDetailPage extends ConsumerWidget {
       if (decoded is List) return decoded.cast<String>();
     } catch (_) {}
     return [];
+  }
+
+  Widget _brokenImagePlaceholder(bool isDark) {
+    return Container(
+      width: 80,
+      height: 80,
+      color: isDark ? const Color(0xFF3A3A3C) : const Color(0xFFF2F2F7),
+      alignment: Alignment.center,
+      child: Icon(Icons.broken_image_outlined,
+          color: isDark ? Colors.white54 : Colors.black38),
+    );
   }
 
   void _showDeleteConfirm(

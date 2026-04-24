@@ -11,6 +11,7 @@ service TransactionService {
   rpc UpdateTransaction(UpdateTransactionRequest) returns (UpdateTransactionResponse);
   rpc DeleteTransaction(DeleteTransactionRequest) returns (DeleteTransactionResponse);
   rpc BatchDeleteTransactions(BatchDeleteTransactionsRequest) returns (BatchDeleteTransactionsResponse);
+  rpc UploadTransactionImage(UploadTransactionImageRequest) returns (UploadTransactionImageResponse);
   rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
   rpc GetCategories(GetCategoriesRequest) returns (GetCategoriesResponse);
   // Category management
@@ -115,6 +116,17 @@ message BatchDeleteTransactionsRequest {
 
 message BatchDeleteTransactionsResponse {
   int32 deleted_count = 1;
+}
+
+message UploadTransactionImageRequest {
+  string transaction_id = 1;  // 可选，可先上传后关联
+  string filename = 2;
+  bytes data = 3;             // 图片二进制数据，最大 5MB
+  string content_type = 4;    // e.g. image/jpeg
+}
+
+message UploadTransactionImageResponse {
+  string image_url = 1;       // 服务端返回的图片 URL
 }
 
 message GetCategoriesRequest {
