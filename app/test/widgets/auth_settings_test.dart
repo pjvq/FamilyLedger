@@ -268,6 +268,7 @@ class _FakeAccountNotifier extends StateNotifier<AccountState>
     String? name,
     String? icon,
     bool? isActive,
+    int? balance,
   }) async {}
   @override
   Future<void> deleteAccount(String accountId) async {}

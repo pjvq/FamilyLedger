@@ -20,6 +20,8 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
   String _selectedType = 'cash';
   String _amountStr = '0';
   bool _isSaving = false;
+  /// 0 = 设为, 1 = 增加, 2 = 减少
+  int _balanceMode = 0;
 
   bool get _isEditMode => widget.existingAccount != null;
 
@@ -30,8 +32,8 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
       final acct = widget.existingAccount!;
       _nameController.text = acct.name;
       _selectedType = acct.accountType;
-      final yuan = (acct.balance / 100).abs();
-      _amountStr = yuan == yuan.toInt() ? yuan.toInt().toString() : yuan.toStringAsFixed(2);
+      // 编辑模式下余额默认显示 0，让用户输入新值
+      _amountStr = '0';
     }
   }
 
@@ -106,13 +108,38 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Initial balance display
+                  // Balance section
                   Text(
-                    '初始余额',
+                    _isEditMode ? '修改余额' : '初始余额',
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                  if (_isEditMode) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '当前余额：¥ ${_fmtCents(widget.existingAccount!.balance)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SegmentedButton<int>(
+                      segments: const [
+                        ButtonSegment(value: 0, label: Text('设为')),
+                        ButtonSegment(value: 1, label: Text('增加')),
+                        ButtonSegment(value: 2, label: Text('减少')),
+                      ],
+                      selected: {_balanceMode},
+                      onSelectionChanged: (s) => setState(() {
+                        _balanceMode = s.first;
+                        _amountStr = '0';
+                      }),
+                      style: SegmentedButton.styleFrom(
+                        textStyle: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Container(
                     width: double.infinity,
@@ -127,6 +154,10 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        if (_isEditMode && _balanceMode == 1)
+                          Text('+', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: AppColors.income)),
+                        if (_isEditMode && _balanceMode == 2)
+                          Text('-', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: AppColors.expense)),
                         Text(
                           '¥',
                           style: theme.textTheme.headlineMedium?.copyWith(
@@ -204,9 +235,20 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
       final amount = (double.tryParse(_amountStr) ?? 0) * 100;
 
       if (_isEditMode) {
+        final inputCents = amount.round();
+        int? newBalance;
+        switch (_balanceMode) {
+          case 0: // 设为
+            newBalance = inputCents;
+          case 1: // 增加
+            newBalance = widget.existingAccount!.balance + inputCents;
+          case 2: // 减少
+            newBalance = widget.existingAccount!.balance - inputCents;
+        }
         await ref.read(accountProvider.notifier).updateAccount(
               accountId: widget.existingAccount!.id,
               name: name,
+              balance: newBalance,
             );
       } else {
         await ref.read(accountProvider.notifier).createAccount(
@@ -223,6 +265,11 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+  String _fmtCents(int cents) {
+    final yuan = cents / 100;
+    if (yuan == yuan.truncateToDouble()) return yuan.toInt().toString();
+    return yuan.toStringAsFixed(2);
   }
 }
 

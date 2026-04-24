@@ -561,12 +561,6 @@ class _AccountTile extends StatelessWidget {
                     : (isDark ? AppColors.expenseDark : AppColors.expense),
               ),
             ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.chevron_right,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-              size: 20,
-            ),
           ],
         ),
       ),

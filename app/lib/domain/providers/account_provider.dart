@@ -206,6 +206,7 @@ class AccountNotifier extends StateNotifier<AccountState> {
     String? name,
     String? icon,
     bool? isActive,
+    int? balance,
   }) async {
     try {
       if (_accountClient != null) {
@@ -225,6 +226,7 @@ class AccountNotifier extends StateNotifier<AccountState> {
         name: name != null ? Value(name) : const Value.absent(),
         icon: icon != null ? Value(icon) : const Value.absent(),
         isActive: isActive != null ? Value(isActive) : const Value.absent(),
+        balance: balance != null ? Value(balance) : const Value.absent(),
         updatedAt: Value(DateTime.now()),
       );
       await _db.updateAccountFields(accountId, companion);
