@@ -578,31 +578,44 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 }
 
 func (s *Service) GetCategories(ctx context.Context, req *pb.GetCategoriesRequest) (*pb.GetCategoriesResponse, error) {
-	var rows pgx.Rows
-	var err error
+	// Query all categories (including subcategories), excluding soft-deleted
+	query := `SELECT id, name, icon, type, is_preset, sort_order,
+	          COALESCE(parent_id::text, '') as parent_id,
+	          COALESCE(icon_key, '') as icon_key
+	          FROM categories WHERE deleted_at IS NULL`
+	var args []interface{}
 
-	if req.Type == pb.TransactionType_TRANSACTION_TYPE_UNSPECIFIED {
-		rows, err = s.pool.Query(ctx, "SELECT id, name, icon, type, is_preset, sort_order FROM categories ORDER BY type, sort_order ASC")
-	} else {
+	if req.Type != pb.TransactionType_TRANSACTION_TYPE_UNSPECIFIED {
 		catType := "expense"
 		if req.Type == pb.TransactionType_TRANSACTION_TYPE_INCOME {
 			catType = "income"
 		}
-		rows, err = s.pool.Query(ctx, "SELECT id, name, icon, type, is_preset, sort_order FROM categories WHERE type = $1::category_type ORDER BY sort_order ASC", catType)
+		query += " AND type = $1::category_type"
+		args = append(args, catType)
 	}
+	query += " ORDER BY type, sort_order ASC"
+
+	rows, err := s.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to query categories")
 	}
 	defer rows.Close()
 
-	var categories []*pb.Category
+	// Collect all categories into a flat map
+	type catEntry struct {
+		pb       *pb.Category
+		parentID string
+	}
+	all := make([]catEntry, 0, 80)
+	byID := make(map[string]*pb.Category, 80)
+
 	for rows.Next() {
 		var id uuid.UUID
-		var name, icon, catType string
+		var name, icon, catType, parentID, iconKey string
 		var isPreset bool
 		var sortOrder int32
 
-		if err := rows.Scan(&id, &name, &icon, &catType, &isPreset, &sortOrder); err != nil {
+		if err := rows.Scan(&id, &name, &icon, &catType, &isPreset, &sortOrder, &parentID, &iconKey); err != nil {
 			return nil, status.Error(codes.Internal, "failed to scan category")
 		}
 
@@ -611,23 +624,251 @@ func (s *Service) GetCategories(ctx context.Context, req *pb.GetCategoriesReques
 			pbType = pb.TransactionType_TRANSACTION_TYPE_INCOME
 		}
 
-		categories = append(categories, &pb.Category{
+		cat := &pb.Category{
 			Id:        id.String(),
 			Name:      name,
 			Icon:      icon,
 			Type:      pbType,
 			IsPreset:  isPreset,
 			SortOrder: sortOrder,
-		})
+			ParentId:  parentID,
+			IconKey:   iconKey,
+			Children:  []*pb.Category{},
+		}
+		all = append(all, catEntry{pb: cat, parentID: parentID})
+		byID[id.String()] = cat
 	}
 
-	if categories == nil {
-		categories = []*pb.Category{}
+	// Build tree: attach children to parents
+	var roots []*pb.Category
+	for _, entry := range all {
+		if entry.parentID == "" {
+			roots = append(roots, entry.pb)
+		} else if parent, ok := byID[entry.parentID]; ok {
+			parent.Children = append(parent.Children, entry.pb)
+		} else {
+			// Orphan subcategory (parent deleted?), treat as root
+			roots = append(roots, entry.pb)
+		}
+	}
+
+	if roots == nil {
+		roots = []*pb.Category{}
 	}
 
 	return &pb.GetCategoriesResponse{
-		Categories: categories,
+		Categories: roots,
 	}, nil
+}
+
+// ── CreateCategory ──────────────────────────────────────────────────────────────
+
+func (s *Service) CreateCategory(ctx context.Context, req *pb.CreateCategoryRequest) (*pb.CreateCategoryResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "name is required")
+	}
+	if req.IconKey == "" {
+		return nil, status.Error(codes.InvalidArgument, "icon_key is required")
+	}
+	if req.Type == pb.TransactionType_TRANSACTION_TYPE_UNSPECIFIED {
+		return nil, status.Error(codes.InvalidArgument, "type is required")
+	}
+
+	catType := "expense"
+	if req.Type == pb.TransactionType_TRANSACTION_TYPE_INCOME {
+		catType = "income"
+	}
+
+	var parentID *uuid.UUID
+	if req.ParentId != "" {
+		pid, err := uuid.Parse(req.ParentId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid parent_id")
+		}
+		// Verify parent exists and is a main category
+		var parentParent *uuid.UUID
+		err = s.pool.QueryRow(ctx, "SELECT parent_id FROM categories WHERE id = $1 AND deleted_at IS NULL", pid).Scan(&parentParent)
+		if err != nil {
+			return nil, status.Error(codes.NotFound, "parent category not found")
+		}
+		if parentParent != nil {
+			return nil, status.Error(codes.InvalidArgument, "cannot create sub-subcategory, only two levels allowed")
+		}
+		parentID = &pid
+	}
+
+	// Get next sort_order
+	var maxSort int32
+	if parentID != nil {
+		_ = s.pool.QueryRow(ctx, "SELECT COALESCE(MAX(sort_order), 0) FROM categories WHERE parent_id = $1 AND deleted_at IS NULL", *parentID).Scan(&maxSort)
+	} else {
+		_ = s.pool.QueryRow(ctx, "SELECT COALESCE(MAX(sort_order), 0) FROM categories WHERE parent_id IS NULL AND type = $1::category_type AND deleted_at IS NULL", catType).Scan(&maxSort)
+	}
+
+	newID := uuid.New()
+	_, err = s.pool.Exec(ctx,
+		`INSERT INTO categories (id, name, icon, icon_key, type, is_preset, sort_order, parent_id, user_id)
+		 VALUES ($1, $2, '', $3, $4::category_type, false, $5, $6, $7)`,
+		newID, req.Name, req.IconKey, catType, maxSort+1, parentID, userID,
+	)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to create category: %v", err)
+	}
+
+	cat := &pb.Category{
+		Id:        newID.String(),
+		Name:      req.Name,
+		IconKey:   req.IconKey,
+		Type:      req.Type,
+		IsPreset:  false,
+		SortOrder: maxSort + 1,
+		Children:  []*pb.Category{},
+	}
+	if parentID != nil {
+		cat.ParentId = parentID.String()
+	}
+
+	return &pb.CreateCategoryResponse{Category: cat}, nil
+}
+
+// ── UpdateCategory ──────────────────────────────────────────────────────────────
+
+func (s *Service) UpdateCategory(ctx context.Context, req *pb.UpdateCategoryRequest) (*pb.UpdateCategoryResponse, error) {
+	_, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	catID, err := uuid.Parse(req.CategoryId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid category_id")
+	}
+
+	// Build dynamic UPDATE
+	sets := []string{}
+	args := []interface{}{}
+	argIdx := 1
+
+	if req.Name != nil {
+		sets = append(sets, fmt.Sprintf("name = $%d", argIdx))
+		args = append(args, *req.Name)
+		argIdx++
+	}
+	if req.IconKey != nil {
+		sets = append(sets, fmt.Sprintf("icon_key = $%d", argIdx))
+		args = append(args, *req.IconKey)
+		argIdx++
+	}
+
+	if len(sets) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "nothing to update")
+	}
+
+	query := fmt.Sprintf("UPDATE categories SET %s WHERE id = $%d AND deleted_at IS NULL RETURNING id, name, icon, icon_key, type, is_preset, sort_order, COALESCE(parent_id::text, '')",
+		strings.Join(sets, ", "), argIdx)
+	args = append(args, catID)
+
+	var id uuid.UUID
+	var name, icon, iconKey, catType, parentIDStr string
+	var isPreset bool
+	var sortOrder int32
+
+	err = s.pool.QueryRow(ctx, query, args...).Scan(&id, &name, &icon, &iconKey, &catType, &isPreset, &sortOrder, &parentIDStr)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "category not found")
+	}
+
+	pbType := pb.TransactionType_TRANSACTION_TYPE_EXPENSE
+	if catType == "income" {
+		pbType = pb.TransactionType_TRANSACTION_TYPE_INCOME
+	}
+
+	cat := &pb.Category{
+		Id:        id.String(),
+		Name:      name,
+		Icon:      icon,
+		IconKey:   iconKey,
+		Type:      pbType,
+		IsPreset:  isPreset,
+		SortOrder: sortOrder,
+		ParentId:  parentIDStr,
+		Children:  []*pb.Category{},
+	}
+
+	return &pb.UpdateCategoryResponse{Category: cat}, nil
+}
+
+// ── DeleteCategory ──────────────────────────────────────────────────────────────
+
+func (s *Service) DeleteCategory(ctx context.Context, req *pb.DeleteCategoryRequest) (*pb.DeleteCategoryResponse, error) {
+	_, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	catID, err := uuid.Parse(req.CategoryId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid category_id")
+	}
+
+	// Check category exists and is not preset
+	var isPreset bool
+	err = s.pool.QueryRow(ctx, "SELECT is_preset FROM categories WHERE id = $1 AND deleted_at IS NULL", catID).Scan(&isPreset)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "category not found")
+	}
+	if isPreset {
+		return nil, status.Error(codes.PermissionDenied, "cannot delete preset category")
+	}
+
+	// Soft delete: category + its children
+	_, err = s.pool.Exec(ctx, "UPDATE categories SET deleted_at = NOW() WHERE (id = $1 OR parent_id = $1) AND deleted_at IS NULL", catID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to delete category: %v", err)
+	}
+
+	return &pb.DeleteCategoryResponse{}, nil
+}
+
+// ── ReorderCategories ───────────────────────────────────────────────────────────
+
+func (s *Service) ReorderCategories(ctx context.Context, req *pb.ReorderCategoriesRequest) (*pb.ReorderCategoriesResponse, error) {
+	_, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(req.Orders) == 0 {
+		return &pb.ReorderCategoriesResponse{}, nil
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to begin transaction")
+	}
+	defer tx.Rollback(ctx)
+
+	for _, order := range req.Orders {
+		catID, err := uuid.Parse(order.CategoryId)
+		if err != nil {
+			continue
+		}
+		_, err = tx.Exec(ctx, "UPDATE categories SET sort_order = $1 WHERE id = $2 AND deleted_at IS NULL", order.SortOrder, catID)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to reorder: %v", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, status.Error(codes.Internal, "failed to commit reorder")
+	}
+
+	return &pb.ReorderCategoriesResponse{}, nil
 }
 
 func scanTransaction(rows pgx.Rows) (*pb.Transaction, error) {

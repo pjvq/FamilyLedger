@@ -41,6 +41,22 @@ class TransactionServiceClient extends $grpc.Client {
       '/familyledger.transaction.v1.TransactionService/GetCategories',
       ($0.GetCategoriesRequest value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $0.GetCategoriesResponse.fromBuffer(value));
+  static final _$createCategory = $grpc.ClientMethod<$0.CreateCategoryRequest, $0.CreateCategoryResponse>(
+      '/familyledger.transaction.v1.TransactionService/CreateCategory',
+      ($0.CreateCategoryRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.CreateCategoryResponse.fromBuffer(value));
+  static final _$updateCategory = $grpc.ClientMethod<$0.UpdateCategoryRequest, $0.UpdateCategoryResponse>(
+      '/familyledger.transaction.v1.TransactionService/UpdateCategory',
+      ($0.UpdateCategoryRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.UpdateCategoryResponse.fromBuffer(value));
+  static final _$deleteCategory = $grpc.ClientMethod<$0.DeleteCategoryRequest, $0.DeleteCategoryResponse>(
+      '/familyledger.transaction.v1.TransactionService/DeleteCategory',
+      ($0.DeleteCategoryRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.DeleteCategoryResponse.fromBuffer(value));
+  static final _$reorderCategories = $grpc.ClientMethod<$0.ReorderCategoriesRequest, $0.ReorderCategoriesResponse>(
+      '/familyledger.transaction.v1.TransactionService/ReorderCategories',
+      ($0.ReorderCategoriesRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.ReorderCategoriesResponse.fromBuffer(value));
 
   TransactionServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -66,6 +82,22 @@ class TransactionServiceClient extends $grpc.Client {
 
   $grpc.ResponseFuture<$0.GetCategoriesResponse> getCategories($0.GetCategoriesRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$getCategories, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.CreateCategoryResponse> createCategory($0.CreateCategoryRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$createCategory, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.UpdateCategoryResponse> updateCategory($0.UpdateCategoryRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$updateCategory, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.DeleteCategoryResponse> deleteCategory($0.DeleteCategoryRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$deleteCategory, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.ReorderCategoriesResponse> reorderCategories($0.ReorderCategoriesRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$reorderCategories, request, options: options);
   }
 }
 
@@ -109,6 +141,34 @@ abstract class TransactionServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.GetCategoriesRequest.fromBuffer(value),
         ($0.GetCategoriesResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.CreateCategoryRequest, $0.CreateCategoryResponse>(
+        'CreateCategory',
+        createCategory_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.CreateCategoryRequest.fromBuffer(value),
+        ($0.CreateCategoryResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.UpdateCategoryRequest, $0.UpdateCategoryResponse>(
+        'UpdateCategory',
+        updateCategory_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.UpdateCategoryRequest.fromBuffer(value),
+        ($0.UpdateCategoryResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.DeleteCategoryRequest, $0.DeleteCategoryResponse>(
+        'DeleteCategory',
+        deleteCategory_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.DeleteCategoryRequest.fromBuffer(value),
+        ($0.DeleteCategoryResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ReorderCategoriesRequest, $0.ReorderCategoriesResponse>(
+        'ReorderCategories',
+        reorderCategories_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.ReorderCategoriesRequest.fromBuffer(value),
+        ($0.ReorderCategoriesResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.CreateTransactionResponse> createTransaction_Pre($grpc.ServiceCall call, $async.Future<$0.CreateTransactionRequest> request) async {
@@ -131,9 +191,29 @@ abstract class TransactionServiceBase extends $grpc.Service {
     return getCategories(call, await request);
   }
 
+  $async.Future<$0.CreateCategoryResponse> createCategory_Pre($grpc.ServiceCall call, $async.Future<$0.CreateCategoryRequest> request) async {
+    return createCategory(call, await request);
+  }
+
+  $async.Future<$0.UpdateCategoryResponse> updateCategory_Pre($grpc.ServiceCall call, $async.Future<$0.UpdateCategoryRequest> request) async {
+    return updateCategory(call, await request);
+  }
+
+  $async.Future<$0.DeleteCategoryResponse> deleteCategory_Pre($grpc.ServiceCall call, $async.Future<$0.DeleteCategoryRequest> request) async {
+    return deleteCategory(call, await request);
+  }
+
+  $async.Future<$0.ReorderCategoriesResponse> reorderCategories_Pre($grpc.ServiceCall call, $async.Future<$0.ReorderCategoriesRequest> request) async {
+    return reorderCategories(call, await request);
+  }
+
   $async.Future<$0.CreateTransactionResponse> createTransaction($grpc.ServiceCall call, $0.CreateTransactionRequest request);
   $async.Future<$0.UpdateTransactionResponse> updateTransaction($grpc.ServiceCall call, $0.UpdateTransactionRequest request);
   $async.Future<$0.DeleteTransactionResponse> deleteTransaction($grpc.ServiceCall call, $0.DeleteTransactionRequest request);
   $async.Future<$0.ListTransactionsResponse> listTransactions($grpc.ServiceCall call, $0.ListTransactionsRequest request);
   $async.Future<$0.GetCategoriesResponse> getCategories($grpc.ServiceCall call, $0.GetCategoriesRequest request);
+  $async.Future<$0.CreateCategoryResponse> createCategory($grpc.ServiceCall call, $0.CreateCategoryRequest request);
+  $async.Future<$0.UpdateCategoryResponse> updateCategory($grpc.ServiceCall call, $0.UpdateCategoryRequest request);
+  $async.Future<$0.DeleteCategoryResponse> deleteCategory($grpc.ServiceCall call, $0.DeleteCategoryRequest request);
+  $async.Future<$0.ReorderCategoriesResponse> reorderCategories($grpc.ServiceCall call, $0.ReorderCategoriesRequest request);
 }

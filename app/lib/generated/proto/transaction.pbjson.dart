@@ -73,6 +73,9 @@ const Category$json = {
     {'1': 'type', '3': 4, '4': 1, '5': 14, '6': '.familyledger.transaction.v1.TransactionType', '10': 'type'},
     {'1': 'is_preset', '3': 5, '4': 1, '5': 8, '10': 'isPreset'},
     {'1': 'sort_order', '3': 6, '4': 1, '5': 5, '10': 'sortOrder'},
+    {'1': 'parent_id', '3': 7, '4': 1, '5': 9, '10': 'parentId'},
+    {'1': 'icon_key', '3': 8, '4': 1, '5': 9, '10': 'iconKey'},
+    {'1': 'children', '3': 9, '4': 3, '5': 11, '6': '.familyledger.transaction.v1.Category', '10': 'children'},
   ],
 };
 
@@ -81,7 +84,9 @@ final $typed_data.Uint8List categoryDescriptor = $convert.base64Decode(
     'CghDYXRlZ29yeRIOCgJpZBgBIAEoCVICaWQSEgoEbmFtZRgCIAEoCVIEbmFtZRISCgRpY29uGA'
     'MgASgJUgRpY29uEkAKBHR5cGUYBCABKA4yLC5mYW1pbHlsZWRnZXIudHJhbnNhY3Rpb24udjEu'
     'VHJhbnNhY3Rpb25UeXBlUgR0eXBlEhsKCWlzX3ByZXNldBgFIAEoCFIIaXNQcmVzZXQSHQoKc2'
-    '9ydF9vcmRlchgGIAEoBVIJc29ydE9yZGVy');
+    '9ydF9vcmRlchgGIAEoBVIJc29ydE9yZGVyEhsKCXBhcmVudF9pZBgHIAEoCVIIcGFyZW50SWQS'
+    'GQoIaWNvbl9rZXkYCCABKAlSB2ljb25LZXkSQQoIY2hpbGRyZW4YCSADKAsyJS5mYW1pbHlsZW'
+    'RnZXIudHJhbnNhY3Rpb24udjEuQ2F0ZWdvcnlSCGNoaWxkcmVu');
 
 @$core.Deprecated('Use createTransactionRequestDescriptor instead')
 const CreateTransactionRequest$json = {
@@ -254,4 +259,125 @@ const GetCategoriesResponse$json = {
 final $typed_data.Uint8List getCategoriesResponseDescriptor = $convert.base64Decode(
     'ChVHZXRDYXRlZ29yaWVzUmVzcG9uc2USRQoKY2F0ZWdvcmllcxgBIAMoCzIlLmZhbWlseWxlZG'
     'dlci50cmFuc2FjdGlvbi52MS5DYXRlZ29yeVIKY2F0ZWdvcmllcw==');
+
+@$core.Deprecated('Use createCategoryRequestDescriptor instead')
+const CreateCategoryRequest$json = {
+  '1': 'CreateCategoryRequest',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'icon_key', '3': 2, '4': 1, '5': 9, '10': 'iconKey'},
+    {'1': 'type', '3': 3, '4': 1, '5': 14, '6': '.familyledger.transaction.v1.TransactionType', '10': 'type'},
+    {'1': 'parent_id', '3': 4, '4': 1, '5': 9, '10': 'parentId'},
+  ],
+};
+
+/// Descriptor for `CreateCategoryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createCategoryRequestDescriptor = $convert.base64Decode(
+    'ChVDcmVhdGVDYXRlZ29yeVJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRIZCghpY29uX2tleR'
+    'gCIAEoCVIHaWNvbktleRJACgR0eXBlGAMgASgOMiwuZmFtaWx5bGVkZ2VyLnRyYW5zYWN0aW9u'
+    'LnYxLlRyYW5zYWN0aW9uVHlwZVIEdHlwZRIbCglwYXJlbnRfaWQYBCABKAlSCHBhcmVudElk');
+
+@$core.Deprecated('Use createCategoryResponseDescriptor instead')
+const CreateCategoryResponse$json = {
+  '1': 'CreateCategoryResponse',
+  '2': [
+    {'1': 'category', '3': 1, '4': 1, '5': 11, '6': '.familyledger.transaction.v1.Category', '10': 'category'},
+  ],
+};
+
+/// Descriptor for `CreateCategoryResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List createCategoryResponseDescriptor = $convert.base64Decode(
+    'ChZDcmVhdGVDYXRlZ29yeVJlc3BvbnNlEkEKCGNhdGVnb3J5GAEgASgLMiUuZmFtaWx5bGVkZ2'
+    'VyLnRyYW5zYWN0aW9uLnYxLkNhdGVnb3J5UghjYXRlZ29yeQ==');
+
+@$core.Deprecated('Use updateCategoryRequestDescriptor instead')
+const UpdateCategoryRequest$json = {
+  '1': 'UpdateCategoryRequest',
+  '2': [
+    {'1': 'category_id', '3': 1, '4': 1, '5': 9, '10': 'categoryId'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '9': 0, '10': 'name', '17': true},
+    {'1': 'icon_key', '3': 3, '4': 1, '5': 9, '9': 1, '10': 'iconKey', '17': true},
+  ],
+  '8': [
+    {'1': '_name'},
+    {'1': '_icon_key'},
+  ],
+};
+
+/// Descriptor for `UpdateCategoryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List updateCategoryRequestDescriptor = $convert.base64Decode(
+    'ChVVcGRhdGVDYXRlZ29yeVJlcXVlc3QSHwoLY2F0ZWdvcnlfaWQYASABKAlSCmNhdGVnb3J5SW'
+    'QSFwoEbmFtZRgCIAEoCUgAUgRuYW1liAEBEh4KCGljb25fa2V5GAMgASgJSAFSB2ljb25LZXmI'
+    'AQFCBwoFX25hbWVCCwoJX2ljb25fa2V5');
+
+@$core.Deprecated('Use updateCategoryResponseDescriptor instead')
+const UpdateCategoryResponse$json = {
+  '1': 'UpdateCategoryResponse',
+  '2': [
+    {'1': 'category', '3': 1, '4': 1, '5': 11, '6': '.familyledger.transaction.v1.Category', '10': 'category'},
+  ],
+};
+
+/// Descriptor for `UpdateCategoryResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List updateCategoryResponseDescriptor = $convert.base64Decode(
+    'ChZVcGRhdGVDYXRlZ29yeVJlc3BvbnNlEkEKCGNhdGVnb3J5GAEgASgLMiUuZmFtaWx5bGVkZ2'
+    'VyLnRyYW5zYWN0aW9uLnYxLkNhdGVnb3J5UghjYXRlZ29yeQ==');
+
+@$core.Deprecated('Use deleteCategoryRequestDescriptor instead')
+const DeleteCategoryRequest$json = {
+  '1': 'DeleteCategoryRequest',
+  '2': [
+    {'1': 'category_id', '3': 1, '4': 1, '5': 9, '10': 'categoryId'},
+  ],
+};
+
+/// Descriptor for `DeleteCategoryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteCategoryRequestDescriptor = $convert.base64Decode(
+    'ChVEZWxldGVDYXRlZ29yeVJlcXVlc3QSHwoLY2F0ZWdvcnlfaWQYASABKAlSCmNhdGVnb3J5SW'
+    'Q=');
+
+@$core.Deprecated('Use deleteCategoryResponseDescriptor instead')
+const DeleteCategoryResponse$json = {
+  '1': 'DeleteCategoryResponse',
+};
+
+/// Descriptor for `DeleteCategoryResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteCategoryResponseDescriptor = $convert.base64Decode(
+    'ChZEZWxldGVDYXRlZ29yeVJlc3BvbnNl');
+
+@$core.Deprecated('Use reorderCategoriesRequestDescriptor instead')
+const ReorderCategoriesRequest$json = {
+  '1': 'ReorderCategoriesRequest',
+  '2': [
+    {'1': 'orders', '3': 1, '4': 3, '5': 11, '6': '.familyledger.transaction.v1.CategoryOrder', '10': 'orders'},
+  ],
+};
+
+/// Descriptor for `ReorderCategoriesRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List reorderCategoriesRequestDescriptor = $convert.base64Decode(
+    'ChhSZW9yZGVyQ2F0ZWdvcmllc1JlcXVlc3QSQgoGb3JkZXJzGAEgAygLMiouZmFtaWx5bGVkZ2'
+    'VyLnRyYW5zYWN0aW9uLnYxLkNhdGVnb3J5T3JkZXJSBm9yZGVycw==');
+
+@$core.Deprecated('Use categoryOrderDescriptor instead')
+const CategoryOrder$json = {
+  '1': 'CategoryOrder',
+  '2': [
+    {'1': 'category_id', '3': 1, '4': 1, '5': 9, '10': 'categoryId'},
+    {'1': 'sort_order', '3': 2, '4': 1, '5': 5, '10': 'sortOrder'},
+  ],
+};
+
+/// Descriptor for `CategoryOrder`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List categoryOrderDescriptor = $convert.base64Decode(
+    'Cg1DYXRlZ29yeU9yZGVyEh8KC2NhdGVnb3J5X2lkGAEgASgJUgpjYXRlZ29yeUlkEh0KCnNvcn'
+    'Rfb3JkZXIYAiABKAVSCXNvcnRPcmRlcg==');
+
+@$core.Deprecated('Use reorderCategoriesResponseDescriptor instead')
+const ReorderCategoriesResponse$json = {
+  '1': 'ReorderCategoriesResponse',
+};
+
+/// Descriptor for `ReorderCategoriesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List reorderCategoriesResponseDescriptor = $convert.base64Decode(
+    'ChlSZW9yZGVyQ2F0ZWdvcmllc1Jlc3BvbnNl');
 

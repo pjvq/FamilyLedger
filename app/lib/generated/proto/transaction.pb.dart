@@ -267,6 +267,9 @@ class Category extends $pb.GeneratedMessage {
     TransactionType? type,
     $core.bool? isPreset,
     $core.int? sortOrder,
+    $core.String? parentId,
+    $core.String? iconKey,
+    $core.Iterable<Category>? children,
   }) {
     final $result = create();
     if (id != null) {
@@ -287,6 +290,15 @@ class Category extends $pb.GeneratedMessage {
     if (sortOrder != null) {
       $result.sortOrder = sortOrder;
     }
+    if (parentId != null) {
+      $result.parentId = parentId;
+    }
+    if (iconKey != null) {
+      $result.iconKey = iconKey;
+    }
+    if (children != null) {
+      $result.children.addAll(children);
+    }
     return $result;
   }
   Category._() : super();
@@ -300,6 +312,9 @@ class Category extends $pb.GeneratedMessage {
     ..e<TransactionType>(4, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: TransactionType.TRANSACTION_TYPE_UNSPECIFIED, valueOf: TransactionType.valueOf, enumValues: TransactionType.values)
     ..aOB(5, _omitFieldNames ? '' : 'isPreset')
     ..a<$core.int>(6, _omitFieldNames ? '' : 'sortOrder', $pb.PbFieldType.O3)
+    ..aOS(7, _omitFieldNames ? '' : 'parentId')
+    ..aOS(8, _omitFieldNames ? '' : 'iconKey')
+    ..pc<Category>(9, _omitFieldNames ? '' : 'children', $pb.PbFieldType.PM, subBuilder: Category.create)
     ..hasRequiredFields = false
   ;
 
@@ -377,6 +392,27 @@ class Category extends $pb.GeneratedMessage {
   $core.bool hasSortOrder() => $_has(5);
   @$pb.TagNumber(6)
   void clearSortOrder() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get parentId => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set parentId($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasParentId() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearParentId() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get iconKey => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set iconKey($core.String v) { $_setString(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasIconKey() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearIconKey() => clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.List<Category> get children => $_getList(8);
 }
 
 class CreateTransactionRequest extends $pb.GeneratedMessage {
@@ -1153,6 +1189,502 @@ class GetCategoriesResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $core.List<Category> get categories => $_getList(0);
+}
+
+class CreateCategoryRequest extends $pb.GeneratedMessage {
+  factory CreateCategoryRequest({
+    $core.String? name,
+    $core.String? iconKey,
+    TransactionType? type,
+    $core.String? parentId,
+  }) {
+    final $result = create();
+    if (name != null) {
+      $result.name = name;
+    }
+    if (iconKey != null) {
+      $result.iconKey = iconKey;
+    }
+    if (type != null) {
+      $result.type = type;
+    }
+    if (parentId != null) {
+      $result.parentId = parentId;
+    }
+    return $result;
+  }
+  CreateCategoryRequest._() : super();
+  factory CreateCategoryRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateCategoryRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateCategoryRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOS(2, _omitFieldNames ? '' : 'iconKey')
+    ..e<TransactionType>(3, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: TransactionType.TRANSACTION_TYPE_UNSPECIFIED, valueOf: TransactionType.valueOf, enumValues: TransactionType.values)
+    ..aOS(4, _omitFieldNames ? '' : 'parentId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateCategoryRequest clone() => CreateCategoryRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateCategoryRequest copyWith(void Function(CreateCategoryRequest) updates) => super.copyWith((message) => updates(message as CreateCategoryRequest)) as CreateCategoryRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateCategoryRequest create() => CreateCategoryRequest._();
+  CreateCategoryRequest createEmptyInstance() => create();
+  static $pb.PbList<CreateCategoryRequest> createRepeated() => $pb.PbList<CreateCategoryRequest>();
+  @$core.pragma('dart2js:noInline')
+  static CreateCategoryRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateCategoryRequest>(create);
+  static CreateCategoryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get iconKey => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set iconKey($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasIconKey() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearIconKey() => clearField(2);
+
+  @$pb.TagNumber(3)
+  TransactionType get type => $_getN(2);
+  @$pb.TagNumber(3)
+  set type(TransactionType v) { setField(3, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasType() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearType() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get parentId => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set parentId($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasParentId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearParentId() => clearField(4);
+}
+
+class CreateCategoryResponse extends $pb.GeneratedMessage {
+  factory CreateCategoryResponse({
+    Category? category,
+  }) {
+    final $result = create();
+    if (category != null) {
+      $result.category = category;
+    }
+    return $result;
+  }
+  CreateCategoryResponse._() : super();
+  factory CreateCategoryResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CreateCategoryResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateCategoryResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..aOM<Category>(1, _omitFieldNames ? '' : 'category', subBuilder: Category.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CreateCategoryResponse clone() => CreateCategoryResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CreateCategoryResponse copyWith(void Function(CreateCategoryResponse) updates) => super.copyWith((message) => updates(message as CreateCategoryResponse)) as CreateCategoryResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CreateCategoryResponse create() => CreateCategoryResponse._();
+  CreateCategoryResponse createEmptyInstance() => create();
+  static $pb.PbList<CreateCategoryResponse> createRepeated() => $pb.PbList<CreateCategoryResponse>();
+  @$core.pragma('dart2js:noInline')
+  static CreateCategoryResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateCategoryResponse>(create);
+  static CreateCategoryResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  Category get category => $_getN(0);
+  @$pb.TagNumber(1)
+  set category(Category v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasCategory() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCategory() => clearField(1);
+  @$pb.TagNumber(1)
+  Category ensureCategory() => $_ensure(0);
+}
+
+class UpdateCategoryRequest extends $pb.GeneratedMessage {
+  factory UpdateCategoryRequest({
+    $core.String? categoryId,
+    $core.String? name,
+    $core.String? iconKey,
+  }) {
+    final $result = create();
+    if (categoryId != null) {
+      $result.categoryId = categoryId;
+    }
+    if (name != null) {
+      $result.name = name;
+    }
+    if (iconKey != null) {
+      $result.iconKey = iconKey;
+    }
+    return $result;
+  }
+  UpdateCategoryRequest._() : super();
+  factory UpdateCategoryRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory UpdateCategoryRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UpdateCategoryRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'categoryId')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..aOS(3, _omitFieldNames ? '' : 'iconKey')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  UpdateCategoryRequest clone() => UpdateCategoryRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  UpdateCategoryRequest copyWith(void Function(UpdateCategoryRequest) updates) => super.copyWith((message) => updates(message as UpdateCategoryRequest)) as UpdateCategoryRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UpdateCategoryRequest create() => UpdateCategoryRequest._();
+  UpdateCategoryRequest createEmptyInstance() => create();
+  static $pb.PbList<UpdateCategoryRequest> createRepeated() => $pb.PbList<UpdateCategoryRequest>();
+  @$core.pragma('dart2js:noInline')
+  static UpdateCategoryRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UpdateCategoryRequest>(create);
+  static UpdateCategoryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get categoryId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set categoryId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasCategoryId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCategoryId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get iconKey => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set iconKey($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasIconKey() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearIconKey() => clearField(3);
+}
+
+class UpdateCategoryResponse extends $pb.GeneratedMessage {
+  factory UpdateCategoryResponse({
+    Category? category,
+  }) {
+    final $result = create();
+    if (category != null) {
+      $result.category = category;
+    }
+    return $result;
+  }
+  UpdateCategoryResponse._() : super();
+  factory UpdateCategoryResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory UpdateCategoryResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UpdateCategoryResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..aOM<Category>(1, _omitFieldNames ? '' : 'category', subBuilder: Category.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  UpdateCategoryResponse clone() => UpdateCategoryResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  UpdateCategoryResponse copyWith(void Function(UpdateCategoryResponse) updates) => super.copyWith((message) => updates(message as UpdateCategoryResponse)) as UpdateCategoryResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UpdateCategoryResponse create() => UpdateCategoryResponse._();
+  UpdateCategoryResponse createEmptyInstance() => create();
+  static $pb.PbList<UpdateCategoryResponse> createRepeated() => $pb.PbList<UpdateCategoryResponse>();
+  @$core.pragma('dart2js:noInline')
+  static UpdateCategoryResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UpdateCategoryResponse>(create);
+  static UpdateCategoryResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  Category get category => $_getN(0);
+  @$pb.TagNumber(1)
+  set category(Category v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasCategory() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCategory() => clearField(1);
+  @$pb.TagNumber(1)
+  Category ensureCategory() => $_ensure(0);
+}
+
+class DeleteCategoryRequest extends $pb.GeneratedMessage {
+  factory DeleteCategoryRequest({
+    $core.String? categoryId,
+  }) {
+    final $result = create();
+    if (categoryId != null) {
+      $result.categoryId = categoryId;
+    }
+    return $result;
+  }
+  DeleteCategoryRequest._() : super();
+  factory DeleteCategoryRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DeleteCategoryRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeleteCategoryRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'categoryId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  DeleteCategoryRequest clone() => DeleteCategoryRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  DeleteCategoryRequest copyWith(void Function(DeleteCategoryRequest) updates) => super.copyWith((message) => updates(message as DeleteCategoryRequest)) as DeleteCategoryRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DeleteCategoryRequest create() => DeleteCategoryRequest._();
+  DeleteCategoryRequest createEmptyInstance() => create();
+  static $pb.PbList<DeleteCategoryRequest> createRepeated() => $pb.PbList<DeleteCategoryRequest>();
+  @$core.pragma('dart2js:noInline')
+  static DeleteCategoryRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteCategoryRequest>(create);
+  static DeleteCategoryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get categoryId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set categoryId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasCategoryId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCategoryId() => clearField(1);
+}
+
+class DeleteCategoryResponse extends $pb.GeneratedMessage {
+  factory DeleteCategoryResponse() => create();
+  DeleteCategoryResponse._() : super();
+  factory DeleteCategoryResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory DeleteCategoryResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeleteCategoryResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  DeleteCategoryResponse clone() => DeleteCategoryResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  DeleteCategoryResponse copyWith(void Function(DeleteCategoryResponse) updates) => super.copyWith((message) => updates(message as DeleteCategoryResponse)) as DeleteCategoryResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DeleteCategoryResponse create() => DeleteCategoryResponse._();
+  DeleteCategoryResponse createEmptyInstance() => create();
+  static $pb.PbList<DeleteCategoryResponse> createRepeated() => $pb.PbList<DeleteCategoryResponse>();
+  @$core.pragma('dart2js:noInline')
+  static DeleteCategoryResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteCategoryResponse>(create);
+  static DeleteCategoryResponse? _defaultInstance;
+}
+
+class ReorderCategoriesRequest extends $pb.GeneratedMessage {
+  factory ReorderCategoriesRequest({
+    $core.Iterable<CategoryOrder>? orders,
+  }) {
+    final $result = create();
+    if (orders != null) {
+      $result.orders.addAll(orders);
+    }
+    return $result;
+  }
+  ReorderCategoriesRequest._() : super();
+  factory ReorderCategoriesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ReorderCategoriesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ReorderCategoriesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..pc<CategoryOrder>(1, _omitFieldNames ? '' : 'orders', $pb.PbFieldType.PM, subBuilder: CategoryOrder.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ReorderCategoriesRequest clone() => ReorderCategoriesRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ReorderCategoriesRequest copyWith(void Function(ReorderCategoriesRequest) updates) => super.copyWith((message) => updates(message as ReorderCategoriesRequest)) as ReorderCategoriesRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReorderCategoriesRequest create() => ReorderCategoriesRequest._();
+  ReorderCategoriesRequest createEmptyInstance() => create();
+  static $pb.PbList<ReorderCategoriesRequest> createRepeated() => $pb.PbList<ReorderCategoriesRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ReorderCategoriesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ReorderCategoriesRequest>(create);
+  static ReorderCategoriesRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<CategoryOrder> get orders => $_getList(0);
+}
+
+class CategoryOrder extends $pb.GeneratedMessage {
+  factory CategoryOrder({
+    $core.String? categoryId,
+    $core.int? sortOrder,
+  }) {
+    final $result = create();
+    if (categoryId != null) {
+      $result.categoryId = categoryId;
+    }
+    if (sortOrder != null) {
+      $result.sortOrder = sortOrder;
+    }
+    return $result;
+  }
+  CategoryOrder._() : super();
+  factory CategoryOrder.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CategoryOrder.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CategoryOrder', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'categoryId')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'sortOrder', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CategoryOrder clone() => CategoryOrder()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CategoryOrder copyWith(void Function(CategoryOrder) updates) => super.copyWith((message) => updates(message as CategoryOrder)) as CategoryOrder;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CategoryOrder create() => CategoryOrder._();
+  CategoryOrder createEmptyInstance() => create();
+  static $pb.PbList<CategoryOrder> createRepeated() => $pb.PbList<CategoryOrder>();
+  @$core.pragma('dart2js:noInline')
+  static CategoryOrder getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CategoryOrder>(create);
+  static CategoryOrder? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get categoryId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set categoryId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasCategoryId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCategoryId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get sortOrder => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set sortOrder($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSortOrder() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSortOrder() => clearField(2);
+}
+
+class ReorderCategoriesResponse extends $pb.GeneratedMessage {
+  factory ReorderCategoriesResponse() => create();
+  ReorderCategoriesResponse._() : super();
+  factory ReorderCategoriesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ReorderCategoriesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ReorderCategoriesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ReorderCategoriesResponse clone() => ReorderCategoriesResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ReorderCategoriesResponse copyWith(void Function(ReorderCategoriesResponse) updates) => super.copyWith((message) => updates(message as ReorderCategoriesResponse)) as ReorderCategoriesResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReorderCategoriesResponse create() => ReorderCategoriesResponse._();
+  ReorderCategoriesResponse createEmptyInstance() => create();
+  static $pb.PbList<ReorderCategoriesResponse> createRepeated() => $pb.PbList<ReorderCategoriesResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ReorderCategoriesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ReorderCategoriesResponse>(create);
+  static ReorderCategoriesResponse? _defaultInstance;
 }
 
 
