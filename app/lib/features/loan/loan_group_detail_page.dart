@@ -151,7 +151,6 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
                       icon: Icons.account_balance_rounded,
                       label: '商贷详情',
                       semanticLabel: '查看商业贷款详情',
-                      sublabel: '利率 ${comLoan.annualRate}%',
                       onTap: () => Navigator.of(context).pushNamed(
                         AppRouter.loanDetail,
                         arguments: comLoan.id,
@@ -165,7 +164,6 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
                       icon: Icons.home_rounded,
                       label: '公积金详情',
                       semanticLabel: '查看公积金贷款详情',
-                      sublabel: '利率 ${pvdLoan.annualRate}%',
                       onTap: () => Navigator.of(context).pushNamed(
                         AppRouter.loanDetail,
                         arguments: pvdLoan.id,
