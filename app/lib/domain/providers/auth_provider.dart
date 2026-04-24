@@ -107,25 +107,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         ));
       }
 
-      // 同步服务端分类
-      try {
-        final txnClient = _ref.read(transactionClientProvider);
-        final catResp = await txnClient.getCategories(txn_pb.GetCategoriesRequest());
-        await (_db.delete(_db.categories)..where((c) => c.isPreset.equals(true))).go();
-        for (final c in catResp.categories) {
-          final typeStr = c.type == txn_enum.TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense';
-          await _db.into(_db.categories).insertOnConflictUpdate(
-            CategoriesCompanion.insert(
-              id: c.id,
-              name: c.name,
-              icon: c.icon,
-              type: typeStr,
-              isPreset: const Value(true),
-              sortOrder: Value(c.sortOrder),
-            ),
-          );
-        }
-      } catch (_) {}
+      // 同步服务端分类（含子分类）
+      await _syncCategoriesToLocal();
 
       _ref.read(currentUserIdProvider.notifier).state = resp.userId;
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
@@ -205,25 +188,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         }
       } catch (_) {}
 
-      // 同步服务端分类到本地（替换本地预设分类）
-      try {
-        final txnClient = _ref.read(transactionClientProvider);
-        final catResp = await txnClient.getCategories(txn_pb.GetCategoriesRequest());
-        await (_db.delete(_db.categories)..where((c) => c.isPreset.equals(true))).go();
-        for (final c in catResp.categories) {
-          final typeStr = c.type == txn_enum.TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense';
-          await _db.into(_db.categories).insertOnConflictUpdate(
-            CategoriesCompanion.insert(
-              id: c.id,
-              name: c.name,
-              icon: c.icon,
-              type: typeStr,
-              isPreset: const Value(true),
-              sortOrder: Value(c.sortOrder),
-            ),
-          );
-        }
-      } catch (_) {}
+      // 同步服务端分类到本地（含子分类）
+      await _syncCategoriesToLocal();
 
       // 最后设置 userId 触发 UI rebuild
       _ref.read(currentUserIdProvider.notifier).state = resp.userId;
@@ -322,25 +288,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         }
       }
 
-      // 同步服务端分类到本地
-      try {
-        final txnClient = _ref.read(transactionClientProvider);
-        final catResp = await txnClient.getCategories(txn_pb.GetCategoriesRequest());
-        await (_db.delete(_db.categories)..where((c) => c.isPreset.equals(true))).go();
-        for (final c in catResp.categories) {
-          final typeStr = c.type == txn_enum.TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense';
-          await _db.into(_db.categories).insertOnConflictUpdate(
-            CategoriesCompanion.insert(
-              id: c.id,
-              name: c.name,
-              icon: c.icon,
-              type: typeStr,
-              isPreset: const Value(true),
-              sortOrder: Value(c.sortOrder),
-            ),
-          );
-        }
-      } catch (_) {}
+      // 同步服务端分类到本地（含子分类）
+      await _syncCategoriesToLocal();
 
       // 最后设置 userId 触发 UI rebuild
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
@@ -354,6 +303,38 @@ class AuthNotifier extends StateNotifier<AuthState> {
         status: AuthStatus.error,
         errorMessage: '第三方登录失败: $e',
       );
+    }
+  }
+
+  /// Sync categories from server to local DB, including children (subcategories)
+  Future<void> _syncCategoriesToLocal() async {
+    try {
+      final txnClient = _ref.read(transactionClientProvider);
+      final catResp = await txnClient.getCategories(txn_pb.GetCategoriesRequest());
+      await (_db.delete(_db.categories)..where((c) => c.isPreset.equals(true))).go();
+      for (final c in catResp.categories) {
+        await _insertCategoryRecursive(c, null);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _insertCategoryRecursive(txn_pb.Category c, String? parentId) async {
+    final typeStr = c.type == txn_enum.TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense';
+    await _db.into(_db.categories).insertOnConflictUpdate(
+      CategoriesCompanion.insert(
+        id: c.id,
+        name: c.name,
+        icon: c.icon,
+        type: typeStr,
+        isPreset: const Value(true),
+        sortOrder: Value(c.sortOrder),
+        parentId: Value(parentId ?? (c.parentId.isNotEmpty ? c.parentId : null)),
+        iconKey: Value(c.iconKey),
+      ),
+    );
+    // Recursively insert children
+    for (final child in c.children) {
+      await _insertCategoryRecursive(child, c.id);
     }
   }
 }
