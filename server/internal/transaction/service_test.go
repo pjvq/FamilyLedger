@@ -168,8 +168,8 @@ func TestListTransactions_Success(t *testing.T) {
 	categoryID := uuid.New()
 	now := time.Now()
 
-	// Count query (first page, no cursor)
-	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM transactions`).
+	// Count query (first page, no cursor) — personal mode (family_id IS NULL)
+	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM transactions t`).  // now JOINs accounts
 		WithArgs(
 			userUUID,
 			pgxmock.AnyArg(), // account_id
@@ -178,8 +178,8 @@ func TestListTransactions_Success(t *testing.T) {
 		).
 		WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(int32(1)))
 
-	// List query (7 args: uid, account, start, end, cursor_date, cursor_id, limit)
-	mock.ExpectQuery(`SELECT id, user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, created_at, updated_at, tags, image_urls`).
+	// List query — personal mode (family_id IS NULL)
+	mock.ExpectQuery(`SELECT t.id, t.user_id, t.account_id, t.category_id, t.amount, t.currency, t.amount_cny, t.exchange_rate, t.type, t.note, t.txn_date, t.created_at, t.updated_at, t.tags, t.image_urls`).  // now JOINs accounts
 		WithArgs(
 			userUUID,
 			pgxmock.AnyArg(), // account_id
@@ -220,11 +220,11 @@ func TestListTransactions_Empty(t *testing.T) {
 	svc := NewService(mock)
 	userUUID := uuid.MustParse(testUserID)
 
-	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM transactions`).
+	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM transactions t`).
 		WithArgs(userUUID, pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(int32(0)))
 
-	mock.ExpectQuery(`SELECT id, user_id, account_id`).
+	mock.ExpectQuery(`SELECT t.id, t.user_id, t.account_id`).
 		WithArgs(userUUID, pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnRows(pgxmock.NewRows([]string{
 			"id", "user_id", "account_id", "category_id", "amount",
@@ -251,7 +251,7 @@ func TestListTransactions_WithPagination(t *testing.T) {
 	now := time.Now()
 
 	// First page: count query runs (no cursor)
-	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM transactions`).
+	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM transactions t`).
 		WithArgs(userUUID, pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(int32(30)))
 
@@ -269,7 +269,7 @@ func TestListTransactions_WithPagination(t *testing.T) {
 		)
 	}
 
-	mock.ExpectQuery(`SELECT id, user_id, account_id`).
+	mock.ExpectQuery(`SELECT t.id, t.user_id, t.account_id`).
 		WithArgs(userUUID, pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnRows(rows)
 

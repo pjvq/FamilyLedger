@@ -139,6 +139,7 @@ const ListTransactionsRequest$json = {
     {'1': 'end_date', '3': 3, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'endDate'},
     {'1': 'page_size', '3': 4, '4': 1, '5': 5, '10': 'pageSize'},
     {'1': 'page_token', '3': 5, '4': 1, '5': 9, '10': 'pageToken'},
+    {'1': 'family_id', '3': 6, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
 
@@ -148,7 +149,7 @@ final $typed_data.Uint8List listTransactionsRequestDescriptor = $convert.base64D
     'QSOQoKc3RhcnRfZGF0ZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCXN0YXJ0'
     'RGF0ZRI1CghlbmRfZGF0ZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSB2VuZE'
     'RhdGUSGwoJcGFnZV9zaXplGAQgASgFUghwYWdlU2l6ZRIdCgpwYWdlX3Rva2VuGAUgASgJUglw'
-    'YWdlVG9rZW4=');
+    'YWdlVG9rZW4SGwoJZmFtaWx5X2lkGAYgASgJUghmYW1pbHlJZA==');
 
 @$core.Deprecated('Use listTransactionsResponseDescriptor instead')
 const ListTransactionsResponse$json = {

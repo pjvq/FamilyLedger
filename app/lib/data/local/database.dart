@@ -391,11 +391,32 @@ class AppDatabase extends _$AppDatabase {
         .write(entry);
   }
 
-  Stream<List<Transaction>> watchTransactions(String userId) =>
-      (select(transactions)
-            ..where((t) => t.userId.equals(userId) & t.deletedAt.isNull())
-            ..orderBy([(t) => OrderingTerm.desc(t.txnDate)]))
-          .watch();
+  Stream<List<Transaction>> watchTransactions(String userId, {String? familyId}) {
+    if (familyId != null && familyId.isNotEmpty) {
+      // Family mode: only transactions from family accounts
+      return customSelect(
+        'SELECT t.* FROM transactions t '
+        'JOIN accounts a ON a.id = t.account_id '
+        'WHERE t.user_id = ? AND t.deleted_at IS NULL AND a.family_id = ? '
+        'ORDER BY t.txn_date DESC',
+        variables: [Variable.withString(userId), Variable.withString(familyId)],
+        readsFrom: {transactions, accounts},
+      ).watch().map((rows) => rows.map((row) {
+        return transactions.map(row.data);
+      }).toList());
+    }
+    // Personal mode: only transactions from personal accounts (no family)
+    return customSelect(
+      'SELECT t.* FROM transactions t '
+      'JOIN accounts a ON a.id = t.account_id '
+      'WHERE t.user_id = ? AND t.deleted_at IS NULL AND (a.family_id IS NULL OR a.family_id = \'\') '
+      'ORDER BY t.txn_date DESC',
+      variables: [Variable.withString(userId)],
+      readsFrom: {transactions, accounts},
+    ).watch().map((rows) => rows.map((row) {
+      return transactions.map(row.data);
+    }).toList());
+  }
 
   // Sync queue
   Future<List<SyncQueueData>> getPendingSyncOps(int limit) =>

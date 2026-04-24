@@ -654,6 +654,7 @@ class ListTransactionsRequest extends $pb.GeneratedMessage {
     $1.Timestamp? endDate,
     $core.int? pageSize,
     $core.String? pageToken,
+    $core.String? familyId,
   }) {
     final $result = create();
     if (accountId != null) {
@@ -671,6 +672,9 @@ class ListTransactionsRequest extends $pb.GeneratedMessage {
     if (pageToken != null) {
       $result.pageToken = pageToken;
     }
+    if (familyId != null) {
+      $result.familyId = familyId;
+    }
     return $result;
   }
   ListTransactionsRequest._() : super();
@@ -683,6 +687,7 @@ class ListTransactionsRequest extends $pb.GeneratedMessage {
     ..aOM<$1.Timestamp>(3, _omitFieldNames ? '' : 'endDate', subBuilder: $1.Timestamp.create)
     ..a<$core.int>(4, _omitFieldNames ? '' : 'pageSize', $pb.PbFieldType.O3)
     ..aOS(5, _omitFieldNames ? '' : 'pageToken')
+    ..aOS(6, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -755,6 +760,15 @@ class ListTransactionsRequest extends $pb.GeneratedMessage {
   $core.bool hasPageToken() => $_has(4);
   @$pb.TagNumber(5)
   void clearPageToken() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get familyId => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set familyId($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasFamilyId() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearFamilyId() => clearField(6);
 }
 
 class ListTransactionsResponse extends $pb.GeneratedMessage {

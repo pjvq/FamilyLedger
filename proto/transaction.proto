@@ -79,6 +79,7 @@ message ListTransactionsRequest {
   google.protobuf.Timestamp end_date = 3;    // 可选，结束时间
   int32 page_size = 4;
   string page_token = 5;               // 上一页最后一条的 id
+  string family_id = 6;                // 可选，空=个人账户交易，有值=家庭账户交易
 }
 
 message ListTransactionsResponse {

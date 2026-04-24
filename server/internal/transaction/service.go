@@ -509,17 +509,42 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 		endDate = &t
 	}
 
+	// Family filter: empty = personal accounts only, non-empty = family accounts
+	var familyID *uuid.UUID
+	if req.FamilyId != "" {
+		fid, err := uuid.Parse(req.FamilyId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid family_id")
+		}
+		familyID = &fid
+	}
+
 	// Count total (only on first page — cursor present means not first page)
 	var totalCount int32
 	if cursorDate == nil {
-		err = s.pool.QueryRow(ctx,
-			`SELECT COUNT(*) FROM transactions
-			 WHERE user_id = $1 AND deleted_at IS NULL
-			 AND ($2::uuid IS NULL OR account_id = $2)
-			 AND ($3::timestamptz IS NULL OR txn_date >= $3)
-			 AND ($4::timestamptz IS NULL OR txn_date <= $4)`,
-			uid, accountID, startDate, endDate,
-		).Scan(&totalCount)
+		if familyID != nil {
+			err = s.pool.QueryRow(ctx,
+				`SELECT COUNT(*) FROM transactions t
+				 JOIN accounts a ON a.id = t.account_id
+				 WHERE t.user_id = $1 AND t.deleted_at IS NULL
+				 AND a.family_id = $5
+				 AND ($2::uuid IS NULL OR t.account_id = $2)
+				 AND ($3::timestamptz IS NULL OR t.txn_date >= $3)
+				 AND ($4::timestamptz IS NULL OR t.txn_date <= $4)`,
+				uid, accountID, startDate, endDate, familyID,
+			).Scan(&totalCount)
+		} else {
+			err = s.pool.QueryRow(ctx,
+				`SELECT COUNT(*) FROM transactions t
+				 JOIN accounts a ON a.id = t.account_id
+				 WHERE t.user_id = $1 AND t.deleted_at IS NULL
+				 AND a.family_id IS NULL
+				 AND ($2::uuid IS NULL OR t.account_id = $2)
+				 AND ($3::timestamptz IS NULL OR t.txn_date >= $3)
+				 AND ($4::timestamptz IS NULL OR t.txn_date <= $4)`,
+				uid, accountID, startDate, endDate,
+			).Scan(&totalCount)
+		}
 		if err != nil {
 			return nil, status.Error(codes.Internal, "failed to count transactions")
 		}
@@ -527,21 +552,44 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 
 	// Query transactions with cursor-based pagination
 	// Sort: txn_date DESC, id DESC — cursor seeks to (txn_date, id) < (cursor_date, cursor_id)
-	rows, err := s.pool.Query(ctx,
-		`SELECT id, user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, created_at, updated_at, tags, image_urls
-		 FROM transactions
-		 WHERE user_id = $1 AND deleted_at IS NULL
-		 AND ($2::uuid IS NULL OR account_id = $2)
-		 AND ($3::timestamptz IS NULL OR txn_date >= $3)
-		 AND ($4::timestamptz IS NULL OR txn_date <= $4)
-		 AND (
-		   $5::timestamptz IS NULL
-		   OR (txn_date, id) < ($5, $6)
-		 )
-		 ORDER BY txn_date DESC, id DESC
-		 LIMIT $7`,
-		uid, accountID, startDate, endDate, cursorDate, cursorID, pageSize+1,
-	)
+	var rows pgx.Rows
+	if familyID != nil {
+		rows, err = s.pool.Query(ctx,
+			`SELECT t.id, t.user_id, t.account_id, t.category_id, t.amount, t.currency, t.amount_cny, t.exchange_rate, t.type, t.note, t.txn_date, t.created_at, t.updated_at, t.tags, t.image_urls
+			 FROM transactions t
+			 JOIN accounts a ON a.id = t.account_id
+			 WHERE t.user_id = $1 AND t.deleted_at IS NULL
+			 AND a.family_id = $8
+			 AND ($2::uuid IS NULL OR t.account_id = $2)
+			 AND ($3::timestamptz IS NULL OR t.txn_date >= $3)
+			 AND ($4::timestamptz IS NULL OR t.txn_date <= $4)
+			 AND (
+			   $5::timestamptz IS NULL
+			   OR (t.txn_date, t.id) < ($5, $6)
+			 )
+			 ORDER BY t.txn_date DESC, t.id DESC
+			 LIMIT $7`,
+			uid, accountID, startDate, endDate, cursorDate, cursorID, pageSize+1, familyID,
+		)
+	} else {
+		rows, err = s.pool.Query(ctx,
+			`SELECT t.id, t.user_id, t.account_id, t.category_id, t.amount, t.currency, t.amount_cny, t.exchange_rate, t.type, t.note, t.txn_date, t.created_at, t.updated_at, t.tags, t.image_urls
+			 FROM transactions t
+			 JOIN accounts a ON a.id = t.account_id
+			 WHERE t.user_id = $1 AND t.deleted_at IS NULL
+			 AND a.family_id IS NULL
+			 AND ($2::uuid IS NULL OR t.account_id = $2)
+			 AND ($3::timestamptz IS NULL OR t.txn_date >= $3)
+			 AND ($4::timestamptz IS NULL OR t.txn_date <= $4)
+			 AND (
+			   $5::timestamptz IS NULL
+			   OR (t.txn_date, t.id) < ($5, $6)
+			 )
+			 ORDER BY t.txn_date DESC, t.id DESC
+			 LIMIT $7`,
+			uid, accountID, startDate, endDate, cursorDate, cursorID, pageSize+1,
+		)
+	}
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to query transactions")
 	}

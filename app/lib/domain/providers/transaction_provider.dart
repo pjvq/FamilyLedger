@@ -55,14 +55,15 @@ class TransactionState {
 class TransactionNotifier extends StateNotifier<TransactionState> {
   final AppDatabase _db;
   final String _userId;
+  final String? _familyId;
   final pb.TransactionServiceClient? _txnClient;
   final _uuid = const Uuid();
   StreamSubscription? _sub;
 
-  TransactionNotifier(this._db, this._userId, this._txnClient)
+  TransactionNotifier(this._db, this._userId, this._familyId, this._txnClient)
       : super(const TransactionState()) {
     _load();
-    _sub = _db.watchTransactions(_userId).listen((txns) {
+    _sub = _db.watchTransactions(_userId, familyId: _familyId).listen((txns) {
       state = state.copyWith(transactions: txns);
       _refreshSummary();
     });
@@ -320,6 +321,7 @@ final transactionProvider =
     StateNotifierProvider<TransactionNotifier, TransactionState>((ref) {
   final db = ref.watch(databaseProvider);
   final userId = ref.watch(currentUserIdProvider);
+  final familyId = ref.watch(currentFamilyIdProvider);
   pb.TransactionServiceClient? txnClient;
   try {
     txnClient = ref.watch(transactionClientProvider);
@@ -327,7 +329,7 @@ final transactionProvider =
     // gRPC 未初始化时忽略
   }
   if (userId == null) {
-    return TransactionNotifier(db, '', null);
+    return TransactionNotifier(db, '', null, null);
   }
-  return TransactionNotifier(db, userId, txnClient);
+  return TransactionNotifier(db, userId, familyId, txnClient);
 });
