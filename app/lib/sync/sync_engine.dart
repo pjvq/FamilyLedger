@@ -198,10 +198,10 @@ class SyncEngine {
           await _applyTransactionOp(op.opType, op.entityId, payload);
           break;
         case 'account':
-          // Phase 2: account sync
+          await _applyAccountOp(op.opType, op.entityId, payload);
           break;
         case 'category':
-          // Phase 2: category sync
+          await _applyCategoryOp(op.opType, op.entityId, payload);
           break;
       }
     } catch (e) {
@@ -240,7 +240,55 @@ class SyncEngine {
     }
   }
 
-  // ─────────── WebSocket: 实时通知 ───────────
+  Future<void> _applyAccountOp(
+    sync_enum.OperationType opType,
+    String entityId,
+    Map<String, dynamic> payload,
+  ) async {
+    switch (opType) {
+      case sync_enum.OperationType.OPERATION_TYPE_CREATE:
+      case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
+        await _db!.upsertAccount(
+          id: entityId,
+          userId: payload['user_id'] ?? '',
+          name: payload['name'] ?? 'Unknown',
+          accountType: payload['type'] ?? 'other',
+          icon: payload['icon'] ?? '💳',
+          balance: (payload['balance'] as num?)?.toInt() ?? 0,
+          currency: payload['currency'] ?? 'CNY',
+          isActive: payload['is_active'] ?? true,
+        );
+        break;
+      case sync_enum.OperationType.OPERATION_TYPE_DELETE:
+        await _db!.softDeleteAccount(entityId);
+        break;
+      default:
+        break;
+    }
+  }
+
+  Future<void> _applyCategoryOp(
+    sync_enum.OperationType opType,
+    String entityId,
+    Map<String, dynamic> payload,
+  ) async {
+    switch (opType) {
+      case sync_enum.OperationType.OPERATION_TYPE_CREATE:
+      case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
+        await _db!.upsertCategory(
+          id: entityId,
+          name: payload['name'] ?? 'Unknown',
+          icon: payload['icon'] ?? '📦',
+          type: payload['type'] ?? 'expense',
+          isPreset: payload['is_preset'] ?? false,
+          sortOrder: (payload['sort_order'] as num?)?.toInt() ?? 0,
+        );
+        break;
+      default:
+        // Categories typically aren't deleted, just updated
+        break;
+    }
+  }
 
   Future<void> _connectWebSocket() async {
     if (_disposed) return;

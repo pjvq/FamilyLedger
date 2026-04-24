@@ -430,6 +430,75 @@ class AppDatabase extends _$AppDatabase {
     await (update(accounts)..where((a) => a.id.equals(accountId))).write(entry);
   }
 
+  /// Upsert account from remote sync payload.
+  Future<void> upsertAccount({
+    required String id,
+    required String userId,
+    required String name,
+    String accountType = 'other',
+    String icon = '💳',
+    int balance = 0,
+    String currency = 'CNY',
+    bool isActive = true,
+  }) async {
+    final existing = await getAccountById(id);
+    if (existing != null) {
+      await (update(accounts)..where((a) => a.id.equals(id))).write(
+        AccountsCompanion(
+          name: Value(name),
+          accountType: Value(accountType),
+          icon: Value(icon),
+          balance: Value(balance),
+          currency: Value(currency),
+          isActive: Value(isActive),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    } else {
+      await into(accounts).insert(AccountsCompanion.insert(
+        id: id,
+        userId: userId,
+        name: name,
+        accountType: Value(accountType),
+        icon: Value(icon),
+        balance: Value(balance),
+        currency: Value(currency),
+        isActive: Value(isActive),
+      ));
+    }
+  }
+
+  /// Upsert category from remote sync payload.
+  Future<void> upsertCategory({
+    required String id,
+    required String name,
+    required String icon,
+    required String type,
+    bool isPreset = false,
+    int sortOrder = 0,
+  }) async {
+    final existing = await (select(categories)..where((c) => c.id.equals(id))).getSingleOrNull();
+    if (existing != null) {
+      await (update(categories)..where((c) => c.id.equals(id))).write(
+        CategoriesCompanion(
+          name: Value(name),
+          icon: Value(icon),
+          type: Value(type),
+          sortOrder: Value(sortOrder),
+        ),
+      );
+    } else {
+      await into(categories).insert(CategoriesCompanion.insert(
+        id: id,
+        name: name,
+        icon: icon,
+        type: type,
+        isPreset: Value(isPreset),
+        sortOrder: Value(sortOrder),
+      ));
+    }
+  }
+
   Future<int> softDeleteAccount(String accountId) async {
     await (update(accounts)..where((a) => a.id.equals(accountId)))
         .write(const AccountsCompanion(isActive: Value(false)));
