@@ -30,7 +30,7 @@
 - [x] 只能编辑/删除自己的交易记录（权限校验 + FOR UPDATE lock）
 - [ ] **批量删除** — ❌ PRD 未明确但 proto 无此 RPC
 
-## Phase 1c: 分类管理 — 主分类 + 子分类 + 内置图标 (95%) ✅
+## Phase 1c: 分类管理 — 主分类 + 子分类 + 内置图标 (100%) ✅
 
 ### 后端
 - [x] DB migration 033: categories 表加 `parent_id`, `user_id`, `icon_key`, `deleted_at` (`f258102`)
@@ -38,9 +38,9 @@
 - [x] Proto: `CreateCategory` + `UpdateCategory` + `DeleteCategory` + `ReorderCategories` RPCs (`0ee83f9`)
 - [x] Proto: Category message 加 `parent_id`, `icon_key`, `children` (`0ee83f9`)
 - [x] Proto: GetCategories 返回树形结构 (`0ee83f9`)
-- [ ] Proto: CreateTransaction 支持可选 `subcategory_id` — 暂不需要,记账直接选子分类 ID 即可
-- [ ] DashboardService: 按子分类聚合统计 — 待后续迭代
-- [ ] SyncService: 支持 create/update/delete category 操作类型 — 待后续迭代
+- [x] Proto: CreateTransaction 支持可选 `subcategory_id` — 不需要,记账直接选子分类 ID
+- [x] DashboardService: 按子分类聚合统计 (`98f7038`)
+- [x] SyncService: 支持 create/update/delete category 操作类型 (`0a586a6`)
 
 ### 客户端
 - [x] Drift DB 升级: schema v11, Categories 表加 `parentId`, `userId`, `iconKey`, `deletedAt` (`f799c21`)
@@ -51,7 +51,7 @@
 - [x] CategoryGrid 升级: 两级选择（主分类网格 + 子分类横向 chips）(`f799c21`)
 - [x] CategoryModel 升级: +parentId, +iconKey, +children (`f799c21`)
 - [x] 路由 + 设置入口: `/settings/categories` (`02fa9e3`)
-- [ ] 报表/预算: 支持按子分类统计 — 待后续迭代
+- [x] 报表/预算: 支持按子分类统计 (`98f7038`)
 
 ## Phase 2: 家庭协作 + 多账户 + 权限 (60%)
 
@@ -183,8 +183,8 @@
 | 2 | **OAuth 真实对接** (微信+Apple) | P2 | 2-3 天 |
 | 3 | **家庭细粒度权限** | P2 | 1-2 天 |
 | 4 | **个人/家庭双账本** | P2 | 2-3 天 |
-| 5 | **子分类聚合统计** (报表/预算) | P2 | 1 天 |
-| 6 | **SyncService 分类操作同步** | P2 | 0.5 天 |
+| 5 | ~~**子分类聚合统计**~~ | ~~P2~~ | ✅ `98f7038` |
+| 6 | ~~**SyncService 分类操作同步**~~ | ~~P2~~ | ✅ `0a586a6` |
 | 7 | **批量删除交易** | P3 | 0.5 天 |
 | 8 | **交易图片附件验证** | P3 | 0.5 天 |
 | 9 | **60fps 实机验证** | P3 | 0.5 天 |
