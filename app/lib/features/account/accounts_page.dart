@@ -212,17 +212,18 @@ class _AccountCard extends StatelessWidget {
 
     return Semantics(
       label: '${account.name}，$typeName，余额 ${_formatAmount(account.balance)} 元',
-      child: GestureDetector(
-        onTap: () {
-          Navigator.of(context).push(
-            CupertinoPageRoute(
-              builder: (_) => AddAccountPage(existingAccount: account),
-            ),
-          );
-        },
-        child: Card(
+      child: Card(
         margin: const EdgeInsets.only(bottom: 8),
-        child: Padding(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () {
+            Navigator.of(context).push(
+              CupertinoPageRoute(
+                builder: (_) => AddAccountPage(existingAccount: account),
+              ),
+            );
+          },
+          child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
