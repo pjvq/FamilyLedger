@@ -279,13 +279,19 @@ class SyncEngine {
           id: entityId,
           name: payload['name'] ?? 'Unknown',
           icon: payload['icon'] ?? '📦',
+          iconKey: (payload['icon_key'] as String?) ?? '',
           type: payload['type'] ?? 'expense',
           isPreset: payload['is_preset'] ?? false,
           sortOrder: (payload['sort_order'] as num?)?.toInt() ?? 0,
+          parentId: payload['parent_id'] as String?,
+          userId: payload['user_id'] as String?,
         );
         break;
+      case sync_enum.OperationType.OPERATION_TYPE_DELETE:
+        // Soft delete: set deleted_at
+        await _db!.softDeleteCategory(entityId);
+        break;
       default:
-        // Categories typically aren't deleted, just updated
         break;
     }
   }

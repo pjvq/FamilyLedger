@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
 import '../../core/constants/category_icons.dart';
 import '../../data/remote/grpc_clients.dart';
+import '../../domain/providers/app_providers.dart';
 import '../../generated/proto/transaction.pb.dart';
 import '../../generated/proto/transaction.pbgrpc.dart';
 import '../transaction/widgets/icon_picker_sheet.dart';
@@ -48,6 +49,8 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         _incomeCategories = incResp.categories;
         _loading = false;
       });
+      // Sync to local DB for offline access
+      _syncCategoriesToLocal([...expResp.categories, ...incResp.categories]);
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
@@ -107,6 +110,35 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('更新失败: $e')),
+        );
+      }
+    }
+  }
+
+  void _syncCategoriesToLocal(List<Category> cats) {
+    final db = ref.read(databaseProvider);
+    for (final cat in cats) {
+      db.upsertCategory(
+        id: cat.id,
+        name: cat.name,
+        icon: cat.icon,
+        iconKey: cat.iconKey,
+        type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
+        isPreset: cat.isPreset,
+        sortOrder: cat.sortOrder,
+        parentId: cat.parentId.isEmpty ? null : cat.parentId,
+      );
+      // Also sync children
+      for (final child in cat.children) {
+        db.upsertCategory(
+          id: child.id,
+          name: child.name,
+          icon: child.icon,
+          iconKey: child.iconKey,
+          type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
+          isPreset: child.isPreset,
+          sortOrder: child.sortOrder,
+          parentId: cat.id,
         );
       }
     }

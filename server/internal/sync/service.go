@@ -123,6 +123,8 @@ func (s *Service) applyOperation(ctx context.Context, tx pgx.Tx, userID uuid.UUI
 		return s.applyTransactionOp(ctx, tx, userID, entityID, opType, payload)
 	case "account":
 		return s.applyAccountOp(ctx, tx, userID, entityID, opType, payload)
+	case "category":
+		return s.applyCategoryOp(ctx, tx, userID, entityID, opType, payload)
 	default:
 		log.Printf("sync: unknown entity_type %q, skipping apply", entityType)
 		return nil
@@ -613,4 +615,173 @@ func (s *Service) PullChanges(ctx context.Context, req *pb.PullChangesRequest) (
 		Operations: operations,
 		ServerTime: timestamppb.Now(),
 	}, nil
+}
+
+// ── Category sync operations ────────────────────────────────────────────────
+
+type categoryPayload struct {
+	Name      string  `json:"name"`
+	Icon      string  `json:"icon"`
+	IconKey   string  `json:"icon_key"`
+	Type      string  `json:"type"` // expense or income
+	SortOrder int     `json:"sort_order"`
+	ParentID  *string `json:"parent_id,omitempty"`
+}
+
+func (s *Service) applyCategoryOp(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, opType string, payload string) error {
+	switch opType {
+	case "create":
+		return s.applyCategoryCreate(ctx, tx, userID, entityID, payload)
+	case "update":
+		return s.applyCategoryUpdate(ctx, tx, userID, entityID, payload)
+	case "delete":
+		return s.applyCategoryDelete(ctx, tx, userID, entityID)
+	default:
+		log.Printf("sync: unknown op_type %q for category, skipping", opType)
+		return nil
+	}
+}
+
+func (s *Service) applyCategoryCreate(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, payload string) error {
+	var p categoryPayload
+	if err := json.Unmarshal([]byte(payload), &p); err != nil {
+		return fmt.Errorf("invalid category create payload: %w", err)
+	}
+
+	if p.Name == "" {
+		return fmt.Errorf("category name is required")
+	}
+	if p.Type == "" {
+		p.Type = "expense"
+	}
+
+	var parentID *uuid.UUID
+	if p.ParentID != nil && *p.ParentID != "" {
+		pid, err := uuid.Parse(*p.ParentID)
+		if err != nil {
+			return fmt.Errorf("invalid parent_id: %w", err)
+		}
+		parentID = &pid
+	}
+
+	_, err := tx.Exec(ctx,
+		`INSERT INTO categories (id, name, icon, icon_key, type, is_preset, sort_order, user_id, parent_id)
+		 VALUES ($1, $2, $3, $4, $5, false, $6, $7, $8)
+		 ON CONFLICT (id) DO UPDATE SET
+		   name = EXCLUDED.name, icon = EXCLUDED.icon, icon_key = EXCLUDED.icon_key,
+		   sort_order = EXCLUDED.sort_order, parent_id = EXCLUDED.parent_id`,
+		entityID, p.Name, p.Icon, p.IconKey, p.Type, p.SortOrder, userID, parentID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert category: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) applyCategoryUpdate(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, payload string) error {
+	var p categoryPayload
+	if err := json.Unmarshal([]byte(payload), &p); err != nil {
+		return fmt.Errorf("invalid category update payload: %w", err)
+	}
+
+	// Verify ownership: user-created categories have user_id set;
+	// preset categories (user_id IS NULL) cannot be edited via sync.
+	var catUserID *uuid.UUID
+	var isPreset bool
+	err := tx.QueryRow(ctx,
+		"SELECT user_id, is_preset FROM categories WHERE id = $1 AND deleted_at IS NULL",
+		entityID,
+	).Scan(&catUserID, &isPreset)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			log.Printf("sync: category %s not found, skipping update", entityID)
+			return nil
+		}
+		return fmt.Errorf("failed to fetch category for update: %w", err)
+	}
+	if isPreset {
+		log.Printf("sync: cannot update preset category %s, skipping", entityID)
+		return nil
+	}
+	if catUserID != nil && *catUserID != userID {
+		return fmt.Errorf("category %s does not belong to user", entityID)
+	}
+
+	// Build dynamic UPDATE
+	setClauses := []string{}
+	args := []interface{}{}
+	argIdx := 1
+
+	if p.Name != "" {
+		setClauses = append(setClauses, fmt.Sprintf("name = $%d", argIdx))
+		args = append(args, p.Name)
+		argIdx++
+	}
+	if p.Icon != "" {
+		setClauses = append(setClauses, fmt.Sprintf("icon = $%d", argIdx))
+		args = append(args, p.Icon)
+		argIdx++
+	}
+	if p.IconKey != "" {
+		setClauses = append(setClauses, fmt.Sprintf("icon_key = $%d", argIdx))
+		args = append(args, p.IconKey)
+		argIdx++
+	}
+	if p.SortOrder > 0 {
+		setClauses = append(setClauses, fmt.Sprintf("sort_order = $%d", argIdx))
+		args = append(args, p.SortOrder)
+		argIdx++
+	}
+
+	if len(setClauses) == 0 {
+		return nil // nothing to update
+	}
+
+	query := fmt.Sprintf(
+		"UPDATE categories SET %s WHERE id = $%d AND deleted_at IS NULL",
+		strings.Join(setClauses, ", "), argIdx,
+	)
+	args = append(args, entityID)
+
+	_, err = tx.Exec(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("failed to update category: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) applyCategoryDelete(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID) error {
+	// Soft delete: only user-created categories can be deleted
+	var isPreset bool
+	var catUserID *uuid.UUID
+	err := tx.QueryRow(ctx,
+		"SELECT user_id, is_preset FROM categories WHERE id = $1 AND deleted_at IS NULL",
+		entityID,
+	).Scan(&catUserID, &isPreset)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil // already deleted
+		}
+		return fmt.Errorf("failed to fetch category for delete: %w", err)
+	}
+	if isPreset {
+		log.Printf("sync: cannot delete preset category %s, skipping", entityID)
+		return nil
+	}
+	if catUserID != nil && *catUserID != userID {
+		return fmt.Errorf("category %s does not belong to user", entityID)
+	}
+
+	// Soft delete category and its children
+	_, err = tx.Exec(ctx,
+		"UPDATE categories SET deleted_at = NOW() WHERE id = $1 OR parent_id = $1",
+		entityID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to soft-delete category: %w", err)
+	}
+
+	return nil
 }

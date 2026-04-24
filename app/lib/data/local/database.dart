@@ -575,6 +575,9 @@ class AppDatabase extends _$AppDatabase {
     required String type,
     bool isPreset = false,
     int sortOrder = 0,
+    String? parentId,
+    String? userId,
+    String iconKey = '',
   }) async {
     final existing = await (select(categories)..where((c) => c.id.equals(id))).getSingleOrNull();
     if (existing != null) {
@@ -582,8 +585,11 @@ class AppDatabase extends _$AppDatabase {
         CategoriesCompanion(
           name: Value(name),
           icon: Value(icon),
+          iconKey: Value(iconKey),
           type: Value(type),
           sortOrder: Value(sortOrder),
+          parentId: Value(parentId),
+          deletedAt: const Value(null), // un-delete if re-synced
         ),
       );
     } else {
@@ -591,9 +597,12 @@ class AppDatabase extends _$AppDatabase {
         id: id,
         name: name,
         icon: icon,
+        iconKey: Value(iconKey),
         type: type,
         isPreset: Value(isPreset),
         sortOrder: Value(sortOrder),
+        parentId: Value(parentId),
+        userId: Value(userId),
       ));
     }
   }
@@ -602,6 +611,15 @@ class AppDatabase extends _$AppDatabase {
     await (update(accounts)..where((a) => a.id.equals(accountId)))
         .write(const AccountsCompanion(isActive: Value(false)));
     return 1;
+  }
+
+  Future<void> softDeleteCategory(String categoryId) async {
+    final now = DateTime.now();
+    // Soft delete the category and its children
+    await (update(categories)..where((c) => c.id.equals(categoryId)))
+        .write(CategoriesCompanion(deletedAt: Value(now)));
+    await (update(categories)..where((c) => c.parentId.equals(categoryId)))
+        .write(CategoriesCompanion(deletedAt: Value(now)));
   }
 
   // ---- Transfer CRUD ----
