@@ -48,15 +48,17 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          tooltip: '返回',
-          onPressed: () => Navigator.of(context).pop(),
+    return Semantics(
+      label: '注册页面',
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+            tooltip: '返回',
+            onPressed: () => Navigator.of(context).pop(),
+          ),
         ),
-      ),
-      body: SafeArea(
+        body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -120,29 +122,34 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     },
                   ),
                   const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: authState.status == AuthStatus.loading
-                        ? null
-                        : _handleRegister,
-                    child: authState.status == AuthStatus.loading
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Theme.of(context)
-                                  .elevatedButtonTheme
-                                  .style
-                                  ?.foregroundColor
-                                  ?.resolve({}) ?? Colors.white,
-                            ),
-                          )
-                        : const Text('注册'),
+                  Semantics(
+                    button: true,
+                    label: '注册',
+                    child: ElevatedButton(
+                      onPressed: authState.status == AuthStatus.loading
+                          ? null
+                          : _handleRegister,
+                      child: authState.status == AuthStatus.loading
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Theme.of(context)
+                                    .elevatedButtonTheme
+                                    .style
+                                    ?.foregroundColor
+                                    ?.resolve({}) ?? Colors.white,
+                              ),
+                            )
+                          : const Text('注册'),
+                    ),
                   ),
                 ],
               ),
             ),
           ),
+        ),
         ),
       ),
     );

@@ -81,16 +81,19 @@ class _TransactionHistoryPageState
       categoryMap[c.id] = c;
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('交易记录'),
-        centerTitle: false,
+    return Semantics(
+      label: '交易记录页面',
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('交易记录'),
+          centerTitle: false,
+        ),
+        body: state.isLoading
+            ? const SkeletonList(count: 6, itemHeight: 72)
+            : state.transactions.isEmpty
+                ? _EmptyState(isDark: isDark)
+                : _buildList(state, categoryMap, theme, isDark),
       ),
-      body: state.isLoading
-          ? const SkeletonList(count: 6, itemHeight: 72)
-          : state.transactions.isEmpty
-              ? _EmptyState(isDark: isDark)
-              : _buildList(state, categoryMap, theme, isDark),
     );
   }
 
@@ -215,17 +218,21 @@ class _DateHeader extends StatelessWidget {
       label = '${date.year}年${date.month}月${date.day}日 $weekday';
     }
 
-    return Container(
-      height: 40,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+    return Semantics(
+      header: true,
+      label: label,
+      child: Container(
+        height: 40,
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+          ),
         ),
       ),
     );
@@ -266,51 +273,14 @@ class _TransactionRow extends StatelessWidget {
     final icon = category?.icon ?? '📦';
     final categoryName = category?.name ?? '未分类';
 
-    return Dismissible(
-      key: ValueKey(transaction.id),
-      direction: DismissDirection.endToStart,
-      confirmDismiss: (direction) async {
-        return await showDialog<bool>(
-          context: context,
-          builder: (ctx) {
-            final yuan = transaction.amountCny / 100;
-            final amt = yuan == yuan.truncateToDouble()
-                ? '${yuan.toInt()}'
-                : yuan.toStringAsFixed(2);
-            return AlertDialog(
-              title: const Text('确定删除这笔交易？'),
-              content: Text(
-                  '${transaction.type == 'income' ? '收入' : '支出'} ¥$amt'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(false),
-                  child: const Text('取消'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(true),
-                  style: TextButton.styleFrom(foregroundColor: Colors.red),
-                  child: const Text('删除'),
-                ),
-              ],
-            );
-          },
-        ) ?? false;
-      },
-      onDismissed: (_) => onDelete(),
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 24),
-        color: isDark ? const Color(0xFFB22222) : Colors.red,
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Icon(Icons.delete_outline_rounded, color: Colors.white, size: 24),
-            SizedBox(width: 8),
-            Text('删除', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-            SizedBox(width: 24),
-          ],
-        ),
-      ),
+    final typeLabel = isIncome ? '收入' : '支出';
+
+    return Semantics(
+      label: '$typeLabel $categoryName $amountText元 $timeText',
+      child: SwipeToDelete(
+      dismissKey: ValueKey(transaction.id),
+      confirmMessage: '${transaction.type == 'income' ? '收入' : '支出'} ¥$amountText',
+      onDelete: onDelete,
       child: GestureDetector(
         onTap: onTap,
         child: SizedBox(
@@ -320,7 +290,9 @@ class _TransactionRow extends StatelessWidget {
           child: Row(
             children: [
               // Category icon
-              Container(
+              Semantics(
+                label: '$categoryName 图标',
+                child: Container(
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
@@ -331,6 +303,7 @@ class _TransactionRow extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: Text(icon, style: const TextStyle(fontSize: 20)),
+              ),
               ),
               const SizedBox(width: 12),
               // Name + note + time
@@ -370,7 +343,9 @@ class _TransactionRow extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               // Amount
-              SharedElement(
+              Semantics(
+                label: '金额 $amountText元',
+                child: SharedElement(
                 tag: HeroTags.transaction(transaction.id),
                 child: Text(
                   '$prefix¥$amountText',
@@ -382,9 +357,11 @@ class _TransactionRow extends StatelessWidget {
                   ),
                 ),
               ),
+              ),
             ],
           ),
         ),
+      ),
       ),
       ),
     );

@@ -43,8 +43,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
     });
 
-    return Scaffold(
-      body: SafeArea(
+    return Semantics(
+      label: '登录页面',
+      child: Scaffold(
+        body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -113,34 +115,42 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                   const SizedBox(height: 32),
                   // Login button
-                  ElevatedButton(
-                    onPressed: authState.status == AuthStatus.loading
-                        ? null
-                        : _handleLogin,
-                    child: authState.status == AuthStatus.loading
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Theme.of(context)
-                                  .elevatedButtonTheme
-                                  .style
-                                  ?.foregroundColor
-                                  ?.resolve({}) ?? Colors.white,
-                            ),
-                          )
-                        : const Text('登录'),
+                  Semantics(
+                    button: true,
+                    label: '登录',
+                    child: ElevatedButton(
+                      onPressed: authState.status == AuthStatus.loading
+                          ? null
+                          : _handleLogin,
+                      child: authState.status == AuthStatus.loading
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Theme.of(context)
+                                    .elevatedButtonTheme
+                                    .style
+                                    ?.foregroundColor
+                                    ?.resolve({}) ?? Colors.white,
+                              ),
+                            )
+                          : const Text('登录'),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   // Register link
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pushNamed(AppRouter.register);
-                    },
-                    child: Text(
-                      '没有账号？注册',
-                      style: TextStyle(color: theme.colorScheme.primary),
+                  Semantics(
+                    button: true,
+                    label: '没有账号？去注册',
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pushNamed(AppRouter.register);
+                      },
+                      child: Text(
+                        '没有账号？注册',
+                        style: TextStyle(color: theme.colorScheme.primary),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -175,21 +185,29 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // WeChat login
-                      _OAuthButton(
-                        icon: Icons.chat_rounded,
-                        label: '微信',
-                        color: const Color(0xFF07C160),
-                        onTap: () => _handleOAuthLogin('wechat'),
+                      Semantics(
+                        button: true,
+                        label: '微信登录',
+                        child: _OAuthButton(
+                          icon: Icons.chat_rounded,
+                          label: '微信',
+                          color: const Color(0xFF07C160),
+                          onTap: () => _handleOAuthLogin('wechat'),
+                        ),
                       ),
                       const SizedBox(width: 32),
                       // Apple login
-                      _OAuthButton(
-                        icon: Icons.apple_rounded,
-                        label: 'Apple',
-                        color: theme.brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black,
-                        onTap: () => _handleOAuthLogin('apple'),
+                      Semantics(
+                        button: true,
+                        label: 'Apple登录',
+                        child: _OAuthButton(
+                          icon: Icons.apple_rounded,
+                          label: 'Apple',
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
+                          onTap: () => _handleOAuthLogin('apple'),
+                        ),
                       ),
                     ],
                   ),
@@ -198,6 +216,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
             ),
           ),
+        ),
         ),
       ),
     );

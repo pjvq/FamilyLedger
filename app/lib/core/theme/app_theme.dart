@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
@@ -10,7 +11,7 @@ class AppTheme {
         brightness: Brightness.light,
         colorSchemeSeed: AppColors.primary,
         scaffoldBackgroundColor: AppColors.surfaceLight,
-        // fontFamily: 'DINRoundPro', // TODO: add font files
+        fontFamily: GoogleFonts.dmSans().fontFamily,
         cardTheme: const CardThemeData(
           color: AppColors.cardLight,
           elevation: 0,
@@ -19,13 +20,13 @@ class AppTheme {
           ),
           margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         ),
-        appBarTheme: const AppBarTheme(
+        appBarTheme: AppBarTheme(
           backgroundColor: AppColors.surfaceLight,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
           titleTextStyle: TextStyle(
-            // fontFamily: 'DINRoundPro', // TODO: add font files
+            fontFamily: GoogleFonts.dmSans().fontFamily,
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
@@ -60,8 +61,8 @@ class AppTheme {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
-            textStyle: const TextStyle(
-              // fontFamily: 'DINRoundPro', // TODO: add font files
+            textStyle: TextStyle(
+              fontFamily: GoogleFonts.dmSans().fontFamily,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -75,7 +76,7 @@ class AppTheme {
         brightness: Brightness.dark,
         colorSchemeSeed: AppColors.primaryDark,
         scaffoldBackgroundColor: AppColors.surfaceDark,
-        // fontFamily: 'DINRoundPro', // TODO: add font files
+        fontFamily: GoogleFonts.dmSans().fontFamily,
         cardTheme: const CardThemeData(
           color: AppColors.cardDark,
           elevation: 0,
@@ -84,13 +85,13 @@ class AppTheme {
           ),
           margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         ),
-        appBarTheme: const AppBarTheme(
+        appBarTheme: AppBarTheme(
           backgroundColor: AppColors.surfaceDark,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
           titleTextStyle: TextStyle(
-            // fontFamily: 'DINRoundPro', // TODO: add font files
+            fontFamily: GoogleFonts.dmSans().fontFamily,
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimaryDark,
@@ -125,8 +126,8 @@ class AppTheme {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
-            textStyle: const TextStyle(
-              // fontFamily: 'DINRoundPro', // TODO: add font files
+            textStyle: TextStyle(
+              fontFamily: GoogleFonts.dmSans().fontFamily,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),

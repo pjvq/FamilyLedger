@@ -16,7 +16,9 @@ class MorePage extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final familyState = ref.watch(familyProvider);
 
-    return Scaffold(
+    return Semantics(
+      label: '更多页面',
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('更多'),
         centerTitle: false,
@@ -170,6 +172,7 @@ class MorePage extends ConsumerWidget {
           const SizedBox(height: 80),
         ],
       ),
+    ),
     );
   }
 }
@@ -217,7 +220,9 @@ class _MoreTile extends StatelessWidget {
     final color =
         isDestructive ? AppColors.expense : theme.colorScheme.onSurface;
 
-    return Card(
+    return Semantics(
+      label: '$title${subtitle != null ? "，$subtitle" : ""}',
+      child: Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
       child: ListTile(
         leading: Icon(icon, color: color.withValues(alpha: 0.7)),
@@ -237,6 +242,7 @@ class _MoreTile extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         onTap: onTap,
       ),
+    ),
     );
   }
 }

@@ -68,7 +68,9 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
+    return Semantics(
+      label: 'CSV导入页面',
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('CSV 导入'),
       ),
@@ -138,6 +140,7 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -177,10 +180,14 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        OutlinedButton.icon(
+        Semantics(
+          button: true,
+          label: '选择CSV文件',
+          child: OutlinedButton.icon(
           onPressed: _pickFile,
           icon: const Icon(Icons.upload_file_rounded),
           label: const Text('选择 CSV 文件'),
+        ),
         ),
         if (_pickedFile != null) ...[
           const SizedBox(height: 12),

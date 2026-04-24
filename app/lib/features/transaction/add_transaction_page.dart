@@ -113,28 +113,34 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     final categories =
         _isExpense ? txnState.expenseCategories : txnState.incomeCategories;
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded, size: 24),
-          tooltip: '关闭',
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(_isEditMode ? '编辑交易' : '记一笔'),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorSize: TabBarIndicatorSize.label,
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
+    return Semantics(
+      label: _isEditMode ? '编辑交易页面' : '记一笔页面',
+      child: Scaffold(
+        appBar: AppBar(
+          leading: Semantics(
+            button: true,
+            label: '关闭',
+            child: IconButton(
+              icon: const Icon(Icons.close_rounded, size: 24),
+              tooltip: '关闭',
+              onPressed: () => Navigator.of(context).pop(),
+            ),
           ),
-          tabs: const [
-            Tab(text: '支出'),
-            Tab(text: '收入'),
-          ],
+          title: Text(_isEditMode ? '编辑交易' : '记一笔'),
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorSize: TabBarIndicatorSize.label,
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+            tabs: const [
+              Tab(text: '支出'),
+              Tab(text: '收入'),
+            ],
+          ),
         ),
-      ),
-      body: Column(
+        body: Column(
         children: [
           // Amount display + currency selector
           _buildAmountRow(context),
@@ -172,6 +178,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                 !_isSubmitting,
           ),
         ],
+        ),
       ),
     );
   }
@@ -183,10 +190,12 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
         : (isDark ? AppColors.incomeDark : AppColors.income);
     final symbol = currencySymbols[_selectedCurrency] ?? _selectedCurrency;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Row(
+    return Semantics(
+      label: '金额 $_amountStr元',
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Currency selector button
@@ -236,6 +245,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
             ),
           ),
         ],
+      ),
       ),
     );
   }

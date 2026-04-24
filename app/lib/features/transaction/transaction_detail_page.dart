@@ -52,25 +52,31 @@ class TransactionDetailPage extends ConsumerWidget {
         ? '${yuan.toInt()}'
         : yuan.toStringAsFixed(2);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('交易详情'),
-        centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: '编辑',
-            onPressed: () async {
-              final edited = await Navigator.of(context)
-                  .pushNamed(AppRouter.addTransaction, arguments: txn);
-              if (edited == true && context.mounted) {
-                Navigator.of(context).pop(); // 编辑成功，返回列表（stream 会自动刷新）
-              }
-            },
-          ),
-        ],
-      ),
-      body: Column(
+    return Semantics(
+      label: '交易详情页面',
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('交易详情'),
+          centerTitle: false,
+          actions: [
+            Semantics(
+              button: true,
+              label: '编辑交易',
+              child: IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: '编辑',
+                onPressed: () async {
+                  final edited = await Navigator.of(context)
+                      .pushNamed(AppRouter.addTransaction, arguments: txn);
+                  if (edited == true && context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+        body: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
@@ -79,16 +85,19 @@ class TransactionDetailPage extends ConsumerWidget {
                 children: [
                   const SizedBox(height: 24),
                   // ── 大金额显示 ──
-                  SharedElement(
-                    tag: HeroTags.transaction(txn.id),
-                    child: Text(
-                      '$prefix¥$amountText',
-                      style: TextStyle(
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        color: amountColor,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        letterSpacing: -1,
+                  Semantics(
+                    label: '金额 $amountText元',
+                    child: SharedElement(
+                      tag: HeroTags.transaction(txn.id),
+                      child: Text(
+                        '$prefix¥$amountText',
+                        style: TextStyle(
+                          fontSize: 42,
+                          fontWeight: FontWeight.bold,
+                          color: amountColor,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                          letterSpacing: -1,
+                        ),
                       ),
                     ),
                   ),
@@ -107,54 +116,57 @@ class TransactionDetailPage extends ConsumerWidget {
                   const SizedBox(height: 24),
 
                   // ── 分类卡片 ──
-                  _buildCard(
-                    isDark: isDark,
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF3A3A3C)
-                                : const Color(0xFFF2F2F7),
-                            borderRadius: BorderRadius.circular(14),
+                  Semantics(
+                    label: '分类：${category?.name ?? "未分类"}，${isIncome ? "收入" : "支出"}',
+                    child: _buildCard(
+                      isDark: isDark,
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF3A3A3C)
+                                  : const Color(0xFFF2F2F7),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              category?.icon ?? '📦',
+                              style: const TextStyle(fontSize: 24),
+                            ),
                           ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            category?.icon ?? '📦',
-                            style: const TextStyle(fontSize: 24),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                category?.name ?? '未分类',
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark
-                                      ? AppColors.textPrimaryDark
-                                      : AppColors.textPrimary,
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  category?.name ?? '未分类',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? AppColors.textPrimaryDark
+                                        : AppColors.textPrimary,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                isIncome ? '收入' : '支出',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textSecondary,
+                                const SizedBox(height: 2),
+                                Text(
+                                  isIncome ? '收入' : '支出',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isDark
+                                        ? AppColors.textSecondaryDark
+                                        : AppColors.textSecondary,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
 
@@ -319,22 +331,26 @@ class TransactionDetailPage extends ConsumerWidget {
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: OutlinedButton.icon(
-                  onPressed: () => _showDeleteConfirm(context, ref, txn),
-                  icon: const Icon(Icons.delete_outline_rounded, size: 20),
-                  label: const Text('删除交易'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor:
-                        isDark ? AppColors.expenseDark : AppColors.expense,
-                    side: BorderSide(
-                      color: (isDark ? AppColors.expenseDark : AppColors.expense)
-                          .withValues(alpha: 0.4),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+              child: Semantics(
+                button: true,
+                label: '删除交易',
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showDeleteConfirm(context, ref, txn),
+                    icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                    label: const Text('删除交易'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor:
+                          isDark ? AppColors.expenseDark : AppColors.expense,
+                      side: BorderSide(
+                        color: (isDark ? AppColors.expenseDark : AppColors.expense)
+                            .withValues(alpha: 0.4),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                   ),
                 ),
@@ -342,6 +358,7 @@ class TransactionDetailPage extends ConsumerWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }
