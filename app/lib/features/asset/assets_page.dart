@@ -40,7 +40,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 )
               : assetState.assets.isEmpty
               ? _EmptyState(theme: theme)
-              : RefreshIndicator(
+              : CustomRefreshIndicator(
                   onRefresh: () =>
                       ref.read(assetProvider.notifier).listAssets(),
                   child: ListView(

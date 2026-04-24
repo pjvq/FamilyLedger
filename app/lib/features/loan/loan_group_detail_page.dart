@@ -20,6 +20,7 @@ class LoanGroupDetailPage extends ConsumerStatefulWidget {
 class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
     with TickerProviderStateMixin {
   late TabController _tabController;
+  int _selectedTabIndex = 0;
 
   // Sub-loan schedules loaded async
   List<LoanScheduleDisplayItem> _comSchedule = [];
@@ -30,6 +31,11 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() => _selectedTabIndex = _tabController.index);
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(loanProvider.notifier).getLoanGroupDetail(widget.groupId);
       _loadSchedules();
@@ -155,13 +161,13 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
             ),
           ),
           // Tab bar
-          TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: '总览'),
-              Tab(text: '商贷'),
-              Tab(text: '公积金'),
-            ],
+          AnimatedTabBar(
+            tabs: const ['总览', '商贷', '公积金'],
+            selectedIndex: _selectedTabIndex,
+            onTap: (index) {
+              setState(() => _selectedTabIndex = index);
+              _tabController.animateTo(index);
+            },
           ),
           // Tab content
           Expanded(

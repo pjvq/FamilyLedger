@@ -384,7 +384,7 @@ class _AccountsTab extends ConsumerWidget {
                     ],
                   ),
                 )
-              : RefreshIndicator(
+              : CustomRefreshIndicator(
                   onRefresh: () =>
                       ref.read(accountProvider.notifier).refresh(),
                   child: ListView(

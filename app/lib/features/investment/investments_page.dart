@@ -77,7 +77,7 @@ class _InvestmentsPageState extends ConsumerState<InvestmentsPage> {
                   message: invState.error!,
                   onRetry: () => ref.read(investmentProvider.notifier).listInvestments(),
                 )
-              : RefreshIndicator(
+              : CustomRefreshIndicator(
               onRefresh: () async {
                 await ref.read(investmentProvider.notifier).listInvestments();
                 _refreshQuotes();
@@ -185,8 +185,10 @@ class _PortfolioSummaryCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              '¥${_fmtYuan(portfolio.totalValue)}',
+            AnimatedCounter(
+              value: portfolio.totalValue,
+              prefix: '¥',
+              useWanUnit: true,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 30,
@@ -298,12 +300,15 @@ class _InvestmentListItem extends StatelessWidget {
                       Row(
                         children: [
                           Flexible(
-                            child: Text(
-                              investment.name,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
+                            child: SharedElement(
+                              tag: HeroTags.investment(investment.id),
+                              child: Text(
+                                investment.name,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 6),

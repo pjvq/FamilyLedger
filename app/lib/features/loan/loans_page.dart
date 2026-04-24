@@ -32,7 +32,7 @@ class LoansPage extends ConsumerWidget {
                 )
               : !hasData
               ? _EmptyState(theme: theme)
-              : RefreshIndicator(
+              : CustomRefreshIndicator(
                   onRefresh: () =>
                       ref.read(loanProvider.notifier).loadAll(),
                   child: ListView(

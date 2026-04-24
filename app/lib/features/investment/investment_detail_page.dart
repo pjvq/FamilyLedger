@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/router/app_router.dart';
+import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/investment_provider.dart';
 import '../../domain/providers/market_data_provider.dart';
@@ -108,7 +109,13 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(investment.name),
+        title: SharedElement(
+          tag: HeroTags.investment(investment.id),
+          child: Text(
+            investment.name,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+        ),
         actions: [
           PopupMenuButton<String>(
             onSelected: (action) async {

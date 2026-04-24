@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/micro_interactions.dart';
+import '../../../core/widgets/animated_counter.dart';
 
 class BalanceCard extends StatelessWidget {
   final int totalBalance; // 分
@@ -50,9 +50,10 @@ class BalanceCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          AnimatedNumber(
+          AnimatedCounter(
             value: totalBalance,
             prefix: '¥ ',
+            useWanUnit: true,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 36,

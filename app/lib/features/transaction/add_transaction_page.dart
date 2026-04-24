@@ -10,6 +10,7 @@ import '../../domain/providers/exchange_rate_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
 import '../../domain/providers/account_provider.dart';
+import '../../core/widgets/success_animation.dart';
 import 'widgets/number_pad.dart';
 import 'widgets/category_grid.dart';
 
@@ -605,7 +606,11 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       ref.read(accountProvider.notifier).refresh();
 
       if (mounted) {
-        Navigator.of(context).pop(_isEditMode ? true : null);
+        final formattedAmount = '¥${(cents / 100).toStringAsFixed(2)}';
+        await TransactionSuccessOverlay.show(context, formattedAmount);
+        if (mounted) {
+          Navigator.of(context).pop(_isEditMode ? true : null);
+        }
       }
     } catch (e) {
       if (mounted) {

@@ -9,6 +9,7 @@ import 'package:familyledger/domain/providers/loan_provider.dart';
 import 'package:familyledger/domain/providers/transaction_provider.dart';
 import 'package:familyledger/domain/providers/account_provider.dart';
 import 'package:familyledger/core/widgets/skeleton_loading.dart';
+import 'package:familyledger/core/widgets/animated_tab_bar.dart';
 import 'package:familyledger/core/theme/app_colors.dart';
 
 import 'package:familyledger/features/budget/budget_execution_card.dart';
@@ -1101,14 +1102,27 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      // Use Tab finder to avoid ambiguity with summary chip text
-      await tester.tap(find.widgetWithText(Tab, '商贷'));
+      // AnimatedTabBar uses GestureDetector + Semantics instead of Tab widgets.
+      // Tap the text directly within AnimatedTabBar area.
+      final tabBarFinder = find.byType(AnimatedTabBar);
+      expect(tabBarFinder, findsOneWidget);
+
+      await tester.tap(find.descendant(
+        of: tabBarFinder,
+        matching: find.text('商贷'),
+      ));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      await tester.tap(find.widgetWithText(Tab, '公积金'));
+      await tester.tap(find.descendant(
+        of: tabBarFinder,
+        matching: find.text('公积金'),
+      ));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      await tester.tap(find.widgetWithText(Tab, '总览'));
+      await tester.tap(find.descendant(
+        of: tabBarFinder,
+        matching: find.text('总览'),
+      ));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 

@@ -64,25 +64,7 @@ class _TransactionHistoryPageState
     setState(() => _displayCount = _pageSize);
   }
 
-  // ── Build grouped items (date headers + transaction rows) ──
-
-  List<_ListItem> _buildItems(List<Transaction> transactions) {
-    final visible = transactions.take(_displayCount).toList();
-    if (visible.isEmpty) return [];
-
-    final items = <_ListItem>[];
-    DateTime? lastDate;
-
-    for (final txn in visible) {
-      final date = DateTime(txn.txnDate.year, txn.txnDate.month, txn.txnDate.day);
-      if (lastDate == null || date != lastDate) {
-        items.add(_DateHeaderItem(date));
-        lastDate = date;
-      }
-      items.add(_TransactionItem(txn));
-    }
-    return items;
-  }
+  // _buildItems is no longer used — VirtualList handles grouping via separatorBuilder
 
   @override
   Widget build(BuildContext context) {
@@ -118,24 +100,65 @@ class _TransactionHistoryPageState
     ThemeData theme,
     bool isDark,
   ) {
-    final items = _buildItems(state.transactions);
+    final visible = state.transactions.take(_displayCount).toList();
     final hasMore = _displayCount < state.transactions.length;
 
-    return RefreshIndicator(
+    return CustomRefreshIndicator(
       onRefresh: _onRefresh,
-      child: ListView.builder(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 80),
-        // We can't use a single itemExtent because date headers differ in
-        // height from transaction rows. Instead we rely on
-        // ListView.builder's efficient creation and the constant-height
-        // rows for excellent scroll performance.
-        itemCount: items.length + (hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index >= items.length) {
-            // Loading indicator at bottom
-            return const Padding(
+      child: Column(
+        children: [
+          Expanded(
+            child: VirtualList<Transaction>(
+              items: visible,
+              itemExtent: 72,
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              bottomPadding: 80,
+              separatorBuilder: (context, index) {
+                // Show date header before first item, or when date changes
+                if (index >= visible.length) return const SizedBox.shrink();
+                final txn = visible[index];
+                final date = DateTime(txn.txnDate.year, txn.txnDate.month, txn.txnDate.day);
+                final bool showHeader;
+                if (index == 0) {
+                  showHeader = true;
+                } else {
+                  final prev = visible[index - 1];
+                  final prevDate = DateTime(prev.txnDate.year, prev.txnDate.month, prev.txnDate.day);
+                  showHeader = date != prevDate;
+                }
+                return showHeader
+                    ? _DateHeader(date: date, isDark: isDark)
+                    : const SizedBox.shrink();
+              },
+              itemBuilder: (context, txn, index) {
+                final txnCategory = categoryMap[txn.categoryId];
+                return _TransactionRow(
+                  transaction: txn,
+                  category: txnCategory,
+                  isDark: isDark,
+                  onTap: () {
+                    Navigator.of(context).pushNamed(
+                      AppRouter.transactionDetail,
+                      arguments: TransactionDetailArgs(
+                        transaction: txn,
+                        category: txnCategory,
+                      ),
+                    );
+                  },
+                  onDelete: () => _deleteTransaction(txn),
+                  onEdit: () {
+                    Navigator.of(context).pushNamed(
+                      AppRouter.addTransaction,
+                      arguments: txn,
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          if (hasMore)
+            const Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
               child: Center(
                 child: SizedBox(
@@ -144,37 +167,8 @@ class _TransactionHistoryPageState
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
               ),
-            );
-          }
-
-          final item = items[index];
-          if (item is _DateHeaderItem) {
-            return _DateHeader(date: item.date, isDark: isDark);
-          }
-          final txnItem = item as _TransactionItem;
-          final txnCategory = categoryMap[txnItem.transaction.categoryId];
-          return _TransactionRow(
-            transaction: txnItem.transaction,
-            category: txnCategory,
-            isDark: isDark,
-            onTap: () {
-              Navigator.of(context).pushNamed(
-                AppRouter.transactionDetail,
-                arguments: TransactionDetailArgs(
-                  transaction: txnItem.transaction,
-                  category: txnCategory,
-                ),
-              );
-            },
-            onDelete: () => _deleteTransaction(txnItem.transaction),
-            onEdit: () {
-              Navigator.of(context).pushNamed(
-                AppRouter.addTransaction,
-                arguments: txnItem.transaction,
-              );
-            },
-          );
-        },
+            ),
+        ],
       ),
     );
   }
@@ -193,20 +187,6 @@ class _TransactionHistoryPageState
       ),
     );
   }
-}
-
-// ── List item sealed types ──
-
-sealed class _ListItem {}
-
-class _DateHeaderItem extends _ListItem {
-  final DateTime date;
-  _DateHeaderItem(this.date);
-}
-
-class _TransactionItem extends _ListItem {
-  final Transaction transaction;
-  _TransactionItem(this.transaction);
 }
 
 // ── Date header widget ──
@@ -390,13 +370,16 @@ class _TransactionRow extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               // Amount
-              Text(
-                '$prefix¥$amountText',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: amountColor,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+              SharedElement(
+                tag: HeroTags.transaction(transaction.id),
+                child: Text(
+                  '$prefix¥$amountText',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: amountColor,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ),
             ],

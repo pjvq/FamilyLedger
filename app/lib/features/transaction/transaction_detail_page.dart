@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
@@ -78,14 +79,17 @@ class TransactionDetailPage extends ConsumerWidget {
                 children: [
                   const SizedBox(height: 24),
                   // ── 大金额显示 ──
-                  Text(
-                    '$prefix¥$amountText',
-                    style: TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                      color: amountColor,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                      letterSpacing: -1,
+                  SharedElement(
+                    tag: HeroTags.transaction(txn.id),
+                    child: Text(
+                      '$prefix¥$amountText',
+                      style: TextStyle(
+                        fontSize: 42,
+                        fontWeight: FontWeight.bold,
+                        color: amountColor,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        letterSpacing: -1,
+                      ),
                     ),
                   ),
                   if (txn.currency != 'CNY') ...[
