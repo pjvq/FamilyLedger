@@ -21,6 +21,7 @@ class TransactionState {
   final int todayExpense; // 分
   final int monthExpense; // 分
   final bool isLoading;
+  final String? error;
 
   const TransactionState({
     this.transactions = const [],
@@ -30,6 +31,7 @@ class TransactionState {
     this.todayExpense = 0,
     this.monthExpense = 0,
     this.isLoading = true,
+    this.error,
   });
 
   TransactionState copyWith({
@@ -40,6 +42,8 @@ class TransactionState {
     int? todayExpense,
     int? monthExpense,
     bool? isLoading,
+    String? error,
+    bool clearError = false,
   }) =>
       TransactionState(
         transactions: transactions ?? this.transactions,
@@ -49,6 +53,7 @@ class TransactionState {
         todayExpense: todayExpense ?? this.todayExpense,
         monthExpense: monthExpense ?? this.monthExpense,
         isLoading: isLoading ?? this.isLoading,
+        error: clearError ? null : (error ?? this.error),
       );
 }
 
@@ -70,14 +75,29 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   }
 
   Future<void> _load() async {
-    final expCats = await _db.getCategoriesByType('expense');
-    final incCats = await _db.getCategoriesByType('income');
-    state = state.copyWith(
-      expenseCategories: expCats,
-      incomeCategories: incCats,
-    );
-    await _refreshSummary();
-    state = state.copyWith(isLoading: false);
+    try {
+      final expCats = await _db.getCategoriesByType('expense');
+      final incCats = await _db.getCategoriesByType('income');
+      state = state.copyWith(
+        expenseCategories: expCats,
+        incomeCategories: incCats,
+        clearError: true,
+      );
+      await _refreshSummary();
+      state = state.copyWith(isLoading: false);
+    } catch (e) {
+      dev.log('TransactionNotifier: _load failed: $e', name: 'txn');
+      state = state.copyWith(
+        isLoading: false,
+        error: '加载交易数据失败',
+      );
+    }
+  }
+
+  /// Public reload — for retry on error or pull-to-refresh
+  Future<void> reload() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    await _load();
   }
 
   Future<void> _refreshSummary() async {
@@ -106,7 +126,9 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     final now = DateTime.now();
     final id = _uuid.v4();
     final account = await _db.getDefaultAccount(_userId);
-    if (account == null) return;
+    if (account == null) {
+      throw StateError('无默认账户，请先创建账户');
+    }
 
     final effectiveAmountCny = amountCny ?? amount;
 

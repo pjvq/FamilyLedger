@@ -91,9 +91,14 @@ class _TransactionHistoryPageState
         ),
         body: state.isLoading
             ? const SkeletonList(count: 6, itemHeight: 72)
-            : state.transactions.isEmpty
-                ? _EmptyState(isDark: isDark, canCreate: ref.watch(canCreateProvider))
-                : _buildList(state, categoryMap, theme, isDark),
+            : state.error != null
+                ? ErrorState(
+                    message: state.error!,
+                    onRetry: () => ref.read(transactionProvider.notifier).reload(),
+                  )
+                : state.transactions.isEmpty
+                    ? _EmptyState(isDark: isDark, canCreate: ref.watch(canCreateProvider))
+                    : _buildList(state, categoryMap, theme, isDark),
       ),
     );
   }
