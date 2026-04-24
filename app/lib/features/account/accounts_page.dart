@@ -1,8 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart';
+import 'add_account_page.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/family_provider.dart';
 
@@ -210,7 +212,15 @@ class _AccountCard extends StatelessWidget {
 
     return Semantics(
       label: '${account.name}，$typeName，余额 ${_formatAmount(account.balance)} 元',
-      child: Card(
+      child: GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(
+            CupertinoPageRoute(
+              builder: (_) => AddAccountPage(existingAccount: account),
+            ),
+          );
+        },
+        child: Card(
         margin: const EdgeInsets.only(bottom: 8),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -266,6 +276,7 @@ class _AccountCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

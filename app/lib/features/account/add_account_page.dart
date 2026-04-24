@@ -5,8 +5,11 @@ import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
 import '../transaction/widgets/number_pad.dart';
 
+import '../../data/local/database.dart' as db;
+
 class AddAccountPage extends ConsumerStatefulWidget {
-  const AddAccountPage({super.key});
+  final db.Account? existingAccount;
+  const AddAccountPage({super.key, this.existingAccount});
 
   @override
   ConsumerState<AddAccountPage> createState() => _AddAccountPageState();
@@ -17,6 +20,20 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
   String _selectedType = 'cash';
   String _amountStr = '0';
   bool _isSaving = false;
+
+  bool get _isEditMode => widget.existingAccount != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditMode) {
+      final acct = widget.existingAccount!;
+      _nameController.text = acct.name;
+      _selectedType = acct.accountType;
+      final yuan = (acct.balance / 100).abs();
+      _amountStr = yuan == yuan.toInt() ? yuan.toInt().toString() : yuan.toStringAsFixed(2);
+    }
+  }
 
   @override
   void dispose() {
@@ -33,7 +50,7 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
       appBar: AppBar(
-        title: const Text('添加账户'),
+        title: Text(_isEditMode ? '编辑账户' : '添加账户'),
       ),
       body: Column(
         children: [
@@ -185,11 +202,19 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
 
     try {
       final amount = (double.tryParse(_amountStr) ?? 0) * 100;
-      await ref.read(accountProvider.notifier).createAccount(
-            name: name,
-            accountType: _selectedType,
-            initialBalance: amount.round(),
-          );
+
+      if (_isEditMode) {
+        await ref.read(accountProvider.notifier).updateAccount(
+              accountId: widget.existingAccount!.id,
+              name: name,
+            );
+      } else {
+        await ref.read(accountProvider.notifier).createAccount(
+              name: name,
+              accountType: _selectedType,
+              initialBalance: amount.round(),
+            );
+      }
       // 刷新账户和仪表盘
       ref.read(dashboardProvider.notifier).loadAll();
       if (mounted) {
