@@ -195,11 +195,15 @@ class _LoanGroupCard extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              Text(
-                                '商贷 $comPrincipalWan万 + 公积金 $pvdPrincipalWan万',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface
-                                      .withValues(alpha: 0.5),
+                              Flexible(
+                                child: Text(
+                                  '商贷 $comPrincipalWan万 + 公积金 $pvdPrincipalWan万',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.5),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -220,7 +224,7 @@ class _LoanGroupCard extends StatelessWidget {
                         ),
                         Text(
                           '¥${_formatCents(group.totalRemainingPrincipal)}',
-                          style: theme.textTheme.titleLarge?.copyWith(
+                          style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontFeatures: const [FontFeature.tabularFigures()],
                             color: isDark
