@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/familyledger/server/pkg/db"
 )
 
 // ExchangeRate represents a currency exchange rate.
@@ -22,11 +22,11 @@ type ExchangeRate struct {
 // ExchangeService provides currency exchange rate operations.
 // It extends the market data capabilities with FX rate lookups.
 type ExchangeService struct {
-	pool *pgxpool.Pool
+	pool db.Pool
 }
 
 // NewExchangeService creates a new ExchangeService.
-func NewExchangeService(pool *pgxpool.Pool) *ExchangeService {
+func NewExchangeService(pool db.Pool) *ExchangeService {
 	return &ExchangeService{pool: pool}
 }
 

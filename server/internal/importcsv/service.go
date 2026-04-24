@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/familyledger/server/pkg/db"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 	"google.golang.org/grpc/codes"
@@ -27,11 +27,11 @@ const maxPreviewRows = 10
 // Service implements the ImportService gRPC service.
 type Service struct {
 	pb.UnimplementedImportServiceServer
-	pool *pgxpool.Pool
+	pool db.Pool
 }
 
 // NewService creates a new ImportService.
-func NewService(pool *pgxpool.Pool) *Service {
+func NewService(pool db.Pool) *Service {
 	return &Service{pool: pool}
 }
 

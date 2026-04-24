@@ -8,7 +8,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/familyledger/server/pkg/db"
 	"github.com/jung-kurt/gofpdf"
 	"github.com/xuri/excelize/v2"
 	"google.golang.org/grpc/codes"
@@ -20,10 +20,10 @@ import (
 
 type Service struct {
 	pb.UnimplementedExportServiceServer
-	pool *pgxpool.Pool
+	pool db.Pool
 }
 
-func NewService(pool *pgxpool.Pool) *Service {
+func NewService(pool db.Pool) *Service {
 	return &Service{pool: pool}
 }
 

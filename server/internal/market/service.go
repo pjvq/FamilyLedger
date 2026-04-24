@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/familyledger/server/pkg/db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -18,11 +18,11 @@ const quoteCacheTTL = 15 * time.Minute
 
 type Service struct {
 	pb.UnimplementedMarketDataServiceServer
-	pool    *pgxpool.Pool
+	pool db.Pool
 	fetcher MarketDataFetcher
 }
 
-func NewService(pool *pgxpool.Pool, fetcher MarketDataFetcher) *Service {
+func NewService(pool db.Pool, fetcher MarketDataFetcher) *Service {
 	return &Service{pool: pool, fetcher: fetcher}
 }
 

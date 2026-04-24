@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/familyledger/server/pkg/db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -57,10 +57,10 @@ func ownerPermissions() permissions {
 
 type Service struct {
 	pb.UnimplementedFamilyServiceServer
-	pool *pgxpool.Pool
+	pool db.Pool
 }
 
-func NewService(pool *pgxpool.Pool) *Service {
+func NewService(pool db.Pool) *Service {
 	return &Service{pool: pool}
 }
 

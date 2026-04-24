@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/familyledger/server/pkg/db"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -18,11 +18,11 @@ import (
 
 type Service struct {
 	pb.UnimplementedAuthServiceServer
-	pool       *pgxpool.Pool
+	pool db.Pool
 	jwtManager *jwt.Manager
 }
 
-func NewService(pool *pgxpool.Pool, jwtManager *jwt.Manager) *Service {
+func NewService(pool db.Pool, jwtManager *jwt.Manager) *Service {
 	return &Service{
 		pool:       pool,
 		jwtManager: jwtManager,
