@@ -169,6 +169,84 @@ familyledger/
 
 ---
 
+## Phase 1c: 分类管理 — 主分类 + 子分类 + 内置图标 (NEW — 2026-04-24)
+
+> 🏷️ **User Stories**: 分类管理 #1~#9
+> 分类从“只能用预设”升级为“主分类 + 子分类 + 自定义 + 图标库”的完整体系。
+
+### What to build
+
+#### 后端
+
+- **DB migration 033**: categories 表新增字段
+  - `parent_id UUID REFERENCES categories(id)` — NULL 表示主分类
+  - `user_id UUID REFERENCES users(id)` — NULL 表示系统预设
+  - `icon_key VARCHAR(50)` — 内置图标 key（替代现有 emoji `icon` 字段）
+  - `deleted_at TIMESTAMPTZ` — 软删除
+- **DB migration 034**: seed 子分类数据（餐饮→早餐/午餐/晚餐/夜孜/饮品/零食，交通→地铁/打车/加油/停车…）
+- **Proto**: transaction.proto 新增 RPCs
+  - `CreateCategory(CreateCategoryRequest) returns (Category)` — 创建主分类或子分类
+  - `UpdateCategory(UpdateCategoryRequest) returns (Category)` — 修改名称/图标/排序
+  - `DeleteCategory(DeleteCategoryRequest) returns (Empty)` — 软删除（预设分类不可删）
+  - `ReorderCategories(ReorderCategoriesRequest) returns (Empty)` — 批量更新排序
+  - 修改 `Category` message: 增加 `parent_id`, `icon_key`, `children` 字段
+  - 修改 `GetCategories` 返回树形结构（主分类带 children 子数组）
+- **TransactionService**: 修改 `CreateTransaction` 支持可选 `subcategory_id`
+- **DashboardService**: 分类统计支持按子分类聚合
+- **SyncService**: 支持 `create_category`, `update_category`, `delete_category` 操作类型
+
+#### 客户端
+
+- **Drift DB 升级**: Categories 表增加 `parentId`, `userId`, `iconKey`, `deletedAt`
+- **内置图标库**: `lib/core/constants/category_icons.dart`
+  - ~60 个 Material Icons / Cupertino Icons（不用 emoji）
+  - 分组：餐饮(8)、交通(6)、购物(6)、居住(6)、娱乐(6)、健康(4)、教育(4)、工作(4)、金融(4)、其他(12)
+  - Map<String, IconData> 映射，如 `'food_breakfast': Icons.free_breakfast`
+- **图标选择器组件**: `IconPickerSheet`
+  - BottomSheet 或全屏 Dialog
+  - 网格布局，分组 Tab（餐饮/交通/购物...）
+  - 点击选中，回传 icon_key
+- **分类管理页**: `CategoryManagePage`
+  - 路径：设置 → 分类管理
+  - 支出/收入 Tab 切换
+  - ReorderableListView 拖拽排序
+  - 每个主分类可展开看子分类
+  - 右上角“+”添加主分类
+  - 主分类内“+”添加子分类
+  - 左滑编辑/删除（预设不可删，可改名/改图标）
+- **记账页分类选择器升级**: `CategoryGrid` → 两级选择
+  - 点击主分类：如果有子分类，展开子分类面板（动画滑入）；无子分类则直接选中
+  - 子分类可选：不选则归入主分类
+  - 子分类面板左上角返回按钮
+- **CategoryModel 升级**: 增加 `parentId`, `iconKey`, `children` 字段
+- **报表/预算**: 支持按子分类聚合统计
+
+### 内置图标设计规范
+
+```
+图标存储: String icon_key（如 "food_breakfast"）
+渲染:      category_icons[icon_key] → IconData
+开销:      Map lookup, ~60 entries, O(1)
+后端:      存 icon_key 字符串，无需关心图标渲染
+兼容:      现有 emoji 字段保留为 fallback，优先用 icon_key
+```
+
+### Acceptance criteria
+
+- [ ] 预设分类带有子分类（餐饮→早餐/午餐/晚餐/夜孜）
+- [ ] 可创建自定义主分类（名称 + 选图标）
+- [ ] 可在任何主分类下添加自定义子分类
+- [ ] 可编辑分类名称和图标（主分类 + 子分类均可）
+- [ ] 可删除自定义分类，预设不可删
+- [ ] 可拖拽调整排序
+- [ ] 图标全部从内置图标库选择，不支持上传
+- [ ] 记账时点击有子分类的主分类，展开子分类选择面板
+- [ ] 子分类可选，不选则归入主分类
+- [ ] 报表/预算能按子分类统计
+- [ ] 分类变更离线排队，联网后同步
+
+---
+
 ## Phase 2: 家庭协作 + 多账户 + 权限
 
 > 🎁 **User Stories**: #3, #4, #5, #6, #7, #10, #11

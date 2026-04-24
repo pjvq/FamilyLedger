@@ -11,7 +11,7 @@
 - [x] 邮箱注册 → 登录 → 获得 JWT
 - [x] 首次登录自动创建默认账户
 - [x] 预设分类已存在（餐饮、交通、工资等）— UUID v5 两端一致 (`ac6e55a`)
-- [ ] **创建自定义分类** — ❌ PRD 要求但 proto 无 CreateCategory/UpdateCategory/DeleteCategory RPC
+- [ ] **创建自定义分类** — ❗ 见 Phase 1c
 - [x] 记一笔支出 ≤ 3 步完成（金额 → 分类 → 确认）
 - [x] 断网时可记账，联网后自动同步
 - [x] 另一台设备登录可看到已同步的交易 — 多设备同步 E2E 测试 (`68eb4eb`)
@@ -29,6 +29,28 @@
 - [x] 离线编辑/删除，联网后自动同步（软删除）
 - [x] 只能编辑/删除自己的交易记录（权限校验 + FOR UPDATE lock）
 - [ ] **批量删除** — ❌ PRD 未明确但 proto 无此 RPC
+
+## Phase 1c: 分类管理 — 主分类 + 子分类 + 内置图标 (NEW — 2026-04-24) (0%)
+
+### 后端
+- [ ] DB migration 033: categories 表加 `parent_id`, `user_id`, `icon_key`, `deleted_at`
+- [ ] DB migration 034: seed 子分类数据（餐饮→早餐/午餐/晚餐/夜孜/饮品/零食，交通→地铁/打车/加油/停车…）
+- [ ] Proto: `CreateCategory` + `UpdateCategory` + `DeleteCategory` + `ReorderCategories` RPCs
+- [ ] Proto: Category message 加 `parent_id`, `icon_key`, `children`
+- [ ] Proto: GetCategories 返回树形结构
+- [ ] Proto: CreateTransaction 支持可选 `subcategory_id`
+- [ ] TransactionService: 支持子分类关联
+- [ ] DashboardService: 按子分类聚合统计
+- [ ] SyncService: 支持 create/update/delete category 操作类型
+
+### 客户端
+- [ ] Drift DB 升级: Categories 表加 `parentId`, `userId`, `iconKey`, `deletedAt`
+- [ ] 内置图标库: `category_icons.dart` ~60 个 Material/Cupertino Icons
+- [ ] 图标选择器组件: `IconPickerSheet`
+- [ ] 分类管理页: `CategoryManagePage`（设置→分类管理，支出/收入 Tab，拖拽排序，展开子分类）
+- [ ] CategoryGrid 升级: 两级选择（点主分类展开子分类面板，子分类可选）
+- [ ] CategoryModel 升级: 加 parentId, iconKey, children
+- [ ] 报表/预算: 支持按子分类统计
 
 ## Phase 2: 家庭协作 + 多账户 + 权限 (60%)
 
