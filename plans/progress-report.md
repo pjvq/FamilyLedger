@@ -1,192 +1,186 @@
 # FamilyLedger 工作进展报告
 
-> 截止 2026-04-24 11:00 | 111 commits | 12,500 行 Go + 28,211 行 Dart（不含生成代码）
+> 截止 2026-04-24 12:45 | 115 commits | 30,047 行 Go + 28,253 行 Dart（不含生成代码）
+> ⚠️ 本版基于代码深度审计，修正了之前多处虚高评估
 
 ---
 
 ## 总体进度
 
-| Phase | 后端 | 客户端 | 整体 | 变化 |
+| Phase | 后端 | 客户端 | 整体 | 说明 |
 |-------|------|--------|------|------|
-| Phase 1: 注册登录 + 记账 + 同步 | ✅ 完成 | ✅ 完成 | **97%** | ↑ account/category sync done |
-| Phase 1b: 交易编辑与删除 | ✅ 完成 | ✅ 完成 | **95%** | — |
-| Phase 2: 家庭协作 + 多账户 | ✅ 完成 | ✅ 完成 | **88%** | ↑ multi-device test |
-| Phase 3: 预算 + 通知 | ✅ 完成 | ✅ 完成 | **90%** | — FCM 仍为 placeholder |
-| Phase 4: 贷款跟踪 | ✅ 完成 | ✅ 完成 | **95%** | — |
-| Phase 4b: 组合贷款增强 | ✅ 完成 | ✅ 完成 | **90%** | — |
-| Phase 5: 投资 + 行情 | ✅ 完成 | ✅ 完成 | **95%** | ↑↑ RealFetcher (东方财富/Yahoo/CoinGecko) |
-| Phase 6: 固定资产 + 折旧 | ✅ 完成 | ✅ 完成 | **95%** | — |
-| Phase 7: Dashboard + 报表导出 | ✅ 完成 | ✅ 完成 | **95%** | ↑ local-first + 3s timeout |
-| Phase 8: 多币种 + CSV导入 + OAuth | ✅ 完成 | ✅ 完成 | **80%** | — OAuth mock |
-| Phase 9: UI 打磨 | — | ✅ 完成 | **97%** | ↑↑ 字体+SwipeToDelete+无障碍 |
+| Phase 1: 注册登录 + 记账 + 同步 | ✅ | ✅ | **90%** | 自定义分类 CRUD 缺失 |
+| Phase 1b: 交易编辑与删除 | ✅ | ✅ | **93%** | 批量删除缺失 |
+| Phase 2: 家庭协作 + 多账户 | ⚠️ | ⚠️ | **60%** | 细粒度权限空、个人/家庭双账本缺 |
+| Phase 3: 预算 + 通知 | ⚠️ | ⚠️ | **65%** | FCM 不发推送、缺信用卡账单提醒 |
+| Phase 4: 贷款跟踪 | ✅ | ✅ | **95%** | 最完整的模块 |
+| Phase 4b: 组合贷款增强 | ✅ | ✅ | **90%** | |
+| Phase 5: 投资 + 行情 | ⚠️ | ✅ | **70%** | 后端无真实行情数据源 |
+| Phase 6: 固定资产 + 折旧 | ✅ | ✅ | **90%** | |
+| Phase 7: Dashboard + 报表导出 | ✅ | ✅ | **88%** | Dashboard 数据依赖行情/汇率的准确性 |
+| Phase 8: 多币种 + CSV导入 + OAuth | ⚠️ | ⚠️ | **55%** | OAuth mock、汇率假数据 |
+| Phase 9: UI 打磨 | — | ✅ | **97%** | 11/11 完成 |
 
-**加权整体完成度: ~94%**
-
----
-
-## 今日修复 (2026-04-24, +15 commits)
-
-| Commit | 内容 | 影响 |
-|--------|------|------|
-| `1e43bbf` | SyncEngine replay ops to business tables + frontend soft-delete | P0: 离线同步真正生效 |
-| `9e34e76` | 删除 WebSocket user_id 后门 | 安全: 强制 JWT 认证 |
-| `f61bd9c` | 骨架屏 + ErrorState + WS 指数退避 | UX: 8 页面骨架屏 |
-| `e18b281` | Phase 9: 6 个微交互组件集成到页面 | Phase 9: 9/11 微交互 Done |
-| `ac6e55a` | Category ID 统一为 UUID v5 | P0: 客户端+服务端分类一致 |
-| `0831459` | Go 依赖安全更新 (pgx/grpc/jwt) | 安全: 4 CVE 修复 |
-| `2d63109` | Dashboard local-first + 3s gRPC 超时 | 性能: 断网瞬间显示 |
-| `c629ec7` | SyncEngine account + category 同步实现 | P1: 三种实体双向同步 |
-| `d4126c5` | RealFetcher 替换 MockFetcher | P1: 5 市场真实行情 |
-| `68eb4eb` | 多设备同步 E2E + 1000 条压测 + VirtualList stress test | P2: 验证核心体验 |
-| `3b61a4b` | 68 个 Go 单元测试 + db.Pool 接口抽象 | P1: 后端测试从 0→68 |
-| `b11ebe4` | ListTransactions offset → cursor 分页 | 性能: O(n)→O(1) 翻页 |
-| `2f43cf4` | DM Sans 字体 + SwipeToDelete 升级 + 7 页面无障碍 | Phase 9: 11/11 Done |
-
----
-
-## 后端 (Go gRPC Server)
-
-### 已完成 ✅
-
-| 模块 | Service | 行数 | RPC 数 | 测试 | 备注 |
-|------|---------|------|--------|------|------|
-| 认证 | AuthService | 274 | 4 | 14 | JWT + OAuth mock |
-| 交易 | TransactionService | 663 | 5 | 11 | CRUD + FOR UPDATE 锁 |
-| 同步 | SyncService | 616 | 2 | 6 | ✅ replay + account/category |
-| 家庭 | FamilyService | 665 | 8 | — | 邀请码+权限 |
-| 账户 | AccountService | 645 | 6 | 10 | 7 种类型+转账 |
-| 预算 | BudgetService | 479 | 6 | 13 | 月度+分类子预算 |
-| 通知 | NotifyService | 541 | 6 | — | 设备注册 (FCM placeholder) |
-| 贷款 | LoanService | 1,583 | 13 | — | 等额本息/本金+组合贷 |
-| 投资 | InvestmentService | 645 | 8 | — | 持仓+交易记录 |
-| 行情 | MarketDataService | 683+112 | 4 | — | ✅ RealFetcher (3 API源) |
-| 资产 | AssetService | 805 | 9 | — | 直线法+双倍余额递减 |
-| 仪表盘 | DashboardService | 609 | 5 | 14 | 净资产+趋势+分类 |
-| 导出 | ExportService | 322 | 1 | — | CSV/Excel/PDF |
-| 导入 | ImportService | 445 | 2 | — | GBK+9种日期格式 |
-| 公共包 | pkg/ | ~800 | — | — | db/jwt/middleware/ws/category |
-| **合计** | **15 Services + 5 pkg** | **~12,415** | **79 RPCs** | **68** | |
-
-### 行情数据源 (RealFetcher)
-
-| 市场 | API 源 | 方法 |
-|------|--------|------|
-| A股 | 东方财富 push2 | SH/SZ 自动识别 |
-| 港股 | 东方财富 push2 | secid 116. |
-| 基金 | 天天基金 JSONP | NAV 净值 |
-| 美股 | Yahoo Finance v8 | User-Agent 必须 |
-| 加密货币 | CoinGecko | USD→分 |
-
-- 全部降级到 MockFetcher（API 失败不崩）
-- 零外部依赖（stdlib net/http + encoding/json）
-- Service 层 15 分钟 DB 缓存不变
-
-### 数据库
-- **32 个 migration** 文件 (001-032)
-- **软删除**: accounts, transactions, loans, loan_groups, investments, fixed_assets
-- **定时任务**: 5 个 goroutine (预算/行情/折旧/汇率/清理)
-- **Category UUID v5**: 服务端 seed 和迁移都用确定性 UUID
-
-### 安全
-- ✅ JWT 拦截器 (gRPC + WebSocket)
-- ✅ FOR UPDATE 并发锁
-- ✅ WebSocket user_id 后门已删除
-- ✅ Go 依赖已更新 (pgx 5.9.2, grpc 1.80.0, jwt 5.3.1)
-- ✅ db.Pool 接口抽象 + pgxmock 测试
-
-### 测试
-- **68 个单元测试** (6 个 service: auth/account/transaction/sync/dashboard/budget)
-- pgxmock/v4 + testify
-- 覆盖 happy path + error path + auth check
-
----
-
-## 客户端 (Flutter iOS)
-
-### 数据层
-- **Drift** 本地数据库 schema v10 (✅ category UUID v5 迁移)
-- **23 张 Drift 表** (与服务端 32 张表映射)
-- **gRPC clients**: 14 个 service 全覆盖, 带 3s timeout
-- **SyncEngine**: ✅ transaction + account + category 三种实体全支持
-- **Dashboard**: local-first 架构
-
-### UI 组件库
-
-| 组件 | 状态 | 说明 |
-|------|------|------|
-| EmptyState 空状态 | ✅ 13 个页面 | 插图+引导文案 |
-| SkeletonLoading 骨架屏 | ✅ 8 个页面 | 替代 Loading 圈 |
-| ErrorState 错误状态 | ✅ | 友好文案+重试 |
-| SuccessAnimation 记账成功 | ✅ | 震动+飞入动画 |
-| CustomRefreshIndicator | ✅ 5 个列表页 | 自定义动画 |
-| AnimatedCounter 数字滚动 | ✅ | balance+investments |
-| SwipeToDelete | ✅ | 渐变背景+缩放动画+ClipRRect |
-| AnimatedTabBar | ✅ | 下划线滑动跟随 |
-| SharedElementRoute | ✅ | Hero 转场动画 |
-| VirtualList 虚拟列表 | ✅ | 1100 条 build 21ms |
-| AmountStyle 等宽数字 | ✅ 18 页面 | DM Sans + tabularFigures |
-| Accessibility 无障碍 | ✅ 99 处 | 31/31 页面全覆盖 |
-
-### 测试
-- **566 widget tests** ✅ 全绿 (含 6 个 VirtualList perf tests)
-- **6 个 shell E2E 脚本** (含多设备同步 + 1000 条压测)
-- **VirtualList 性能**: 1100 条 build 21ms, 只构建可见 item
-
----
-
-## 与实施计划逐条对照 — 未完成项
-
-### 🔴 代码功能缺失（Mock/Placeholder）
-
-| # | 缺失项 | Phase | 说明 | 预估工作量 |
-|---|--------|-------|------|-----------|
-| 1 | **微信/Apple OAuth** | 8 | `code="test"` 直接通过 → 需接真实 SDK | 2-3 天 |
-| 2 | **FCM/APNs 推送** | 3 | 后端只写 DB，不发真实推送；客户端未集成 firebase_messaging | 1-2 天 |
-
-### 🟡 前端修正
-
-| # | 问题 | 说明 | 预估 |
-|---|------|------|------|
-| 3 | `oauthLogin()` 拼假 account ID | `acc_default_${resp.userId}` 与服务端 UUID 不匹配 | 0.5 天 |
-
-### 🔵 UI 细节
-
-（已全部完成 ✅）
-
-### 🟠 测试补充
-
-| # | 项目 | 说明 | 预估 |
-|---|------|------|------|
-| 7 | Go 后端剩余 8 个 service 测试 | family/notify/loan/investment/asset/export/import/market | 2-3 天 |
-| 8 | 60fps 微交互验证 | DevTools Performance overlay 实机验证 | 0.5 天 |
+**加权真实完成度: ~78%**
 
 ---
 
 ## 代码统计
 
-| 指标 | 值 | vs 上次 |
-|------|------|---------|
-| Git commits | 111 | +8 |
-| Go 代码 (不含 proto gen) | ~12,500 行 | +2,369 |
-| Dart 代码 (不含 generated) | 28,211 行 | +233 |
-| Proto 定义 | 13 文件 / 79 RPCs | — |
-| DB migrations | 32 对 | — |
-| 后端 Services | 15 个 | — |
-| Flutter 页面 | 31 个 | — |
-| UI 组件 | 12 个 | — |
-| Go unit tests | 68 | **+68** |
-| Widget tests | 566 | +6 |
-| Shell E2E scripts | 6 | +2 |
-| Semantics 节点 | 99 | **+19** |
+| 指标 | 值 |
+|------|------|
+| Git commits | 115 |
+| Go 代码 | 30,047 行 |
+| Dart 代码（不含 generated） | 28,253 行 |
+| Proto 定义 | 1,354 行 / 13 文件 / 79 RPCs |
+| DB migrations | 32 对 |
+| 后端 Services | 15 个 |
+| Flutter 页面 | 31 个 |
+| Flutter providers | 16 个 |
+| Go unit tests | 68 |
+| Widget tests | 566 |
+| Shell E2E scripts | 7 |
+| Semantics 节点 | 99 |
 
 ---
 
-## 下一步优先级建议
+## 后端 (Go gRPC Server)
+
+### Service 清单
+
+| Service | 行数 | 方法数 | 测试 | 问题 |
+|---------|------|--------|------|------|
+| AuthService | 274 | 5 | 14 | ❌ OAuth `code="test"` mock |
+| TransactionService | 677 | 5 | 11 | 无自定义分类 CRUD |
+| SyncService | 616 | 10 | 6 | ✅ replay ops 实装 |
+| FamilyService | 665 | 11 | 0 | 细粒度权限仅角色级 |
+| AccountService | 645 | 9 | 10 | ✅ |
+| BudgetService | 479 | 9 | 13 | ✅ |
+| NotifyService | 541 | 11 | 0 | ❌ 只写 DB 不发推送 |
+| LoanService | 1,583 | 18 | 0 | ✅ 最大最完整 |
+| InvestmentService | 645 | 9 | 0 | ✅ CRUD |
+| MarketDataService | 424 | 6 | 0 | ❌ GetQuote 只读 DB，无数据灌入 |
+| ExchangeService | 112 | — | 0 | ❌ rand 随机波动假数据 |
+| AssetService | 805 | 13 | 0 | ✅ |
+| DashboardService | 609 | 6 | 14 | ✅ |
+| ExportService | 322 | 5 | 0 | ✅ CSV/Excel/PDF |
+| ImportService | 445 | 3 | 0 | ✅ GBK+9种日期 |
+
+### 关键问题标记
+
+| 问题 | 严重程度 | 说明 |
+|------|---------|------|
+| **行情数据无来源** | 🔴 高 | Go 后端 MarketDataService 的 `GetQuote` 只从 DB 读取，但没有 cron/worker 写入数据。Flutter 端的 RealFetcher（东方财富/Yahoo/CoinGecko）已实现但**未被使用**——实际走的是 gRPC→后端空 DB |
+| **汇率假数据** | 🔴 高 | exchange_service 用 `math/rand` 给固定汇率加随机波动，不调任何外部 API |
+| **FCM 推送空壳** | 🟡 中 | notify service 有 device 注册+通知 CRUD，但 `Send` 方法不存在——通知只存 DB 不发设备 |
+| **OAuth mock** | 🟡 中 | `code=="test"` 直接过，微信/Apple SDK 完全未接 |
+| **自定义分类 0%** | 🟡 中 | PRD 明确要求，proto 无 CreateCategory/UpdateCategory/DeleteCategory RPC |
+
+---
+
+## 客户端 (Flutter)
+
+### 已完成
+- 31 页面全部 UI 实现
+- 16 个 Riverpod provider
+- Drift 本地数据库 + 14 个 gRPC client
+- SyncEngine (transaction + account + category)
+- Dashboard local-first (本地瞬显 + 3s gRPC 超时静默刷新)
+- Phase 9 全部 11/11 微交互（骨架屏/空状态/SwipeToDelete/无障碍/VirtualList...）
+- 566 widget tests 全绿
+
+### 客户端关键问题
+
+| 问题 | 说明 |
+|------|------|
+| 汇率 refreshRates() | TODO 注释：`call backend API`，实际只 reload 本地 DB |
+| 行情数据源断路 | RealFetcher 代码存在但客户端实际走 gRPC→后端空 DB |
+| 自定义分类 UI 无 | 只有预设分类选择，无新增/编辑入口 |
+
+---
+
+## 严重被高估的部分（详细说明）
+
+### 1. 投资+行情 — 报告 95% → 实际 ~70%
+
+**看起来有但不工作的链路：**
+- Flutter 端有完整的投资 UI（5 种市场、买卖、持仓、走势图）
+- Flutter 端有 RealFetcher 代码（东方财富/天天基金/Yahoo/CoinGecko）
+- Go 后端有 MarketDataService（GetQuote/BatchGetQuotes/SearchStock）
+
+**断裂点：**
+- RealFetcher 写了但**没有被任何代码调用**（是之前的 commit `d4126c5` 产物，但行情请求实际走的是 gRPC 到后端）
+- Go 后端 `GetQuote` 从 `market_data` 表 SELECT，但**没有任何 cron/worker/定时任务往这张表写数据**
+- 结果：用户看到的行情永远是空的或初始 seed 数据
+
+### 2. 多币种/汇率 — 报告 80% → 实际 ~65%
+
+- 记账选币种 ✅、`amount_cny` 归一 ✅
+- Go 端 `ExchangeService.RefreshRates()` 源码：给已有汇率加 ±0.5% 随机波动 → `source = 'mock'`
+- Flutter 端 `exchange_rate_provider.dart` 的 `refreshRates()` 方法：TODO 注释，只调 `_loadFromDb()`
+- 硬编码默认值：USD/CNY=7.25, EUR/CNY=7.90...
+
+### 3. 通知 — 报告 90% → 实际 ~55%
+
+- 后端 NotifyService 有 11 个方法（RegisterDevice/GetNotifications/MarkAsRead 等）
+- **没有 SendNotification/PushNotification 方法**——通知只能 DB 里写，设备收不到
+- 缺信用卡账单日提醒逻辑
+- 前端 NotificationSettingsPage 设置了开关但无实际效果
+
+---
+
+## 完全缺失的 PRD 功能
+
+| # | PRD 要求 | 现状 | 预估 |
+|---|---------|------|------|
+| 1 | 创建自定义分类 | Proto 无此 RPC，前后端均无 | 1 天 |
+| 2 | 个人/家庭账本切换 | "同时拥有个人账本和家庭账本" — 只有一个维度 | 2-3 天 |
+| 3 | 细粒度权限控制 | "普通成员只能记账，不能删除/导出" — 只有 admin/member 角色 | 1-2 天 |
+| 4 | 系统自动获取汇率 | 硬编码+随机波动 | 0.5 天 |
+| 5 | 实时行情（15分钟内） | 后端无数据源 | 1 天 |
+| 6 | FCM/APNs 推送 | 设备注册了但推不出去 | 1-2 天 |
+| 7 | 微信/Apple OAuth | mock 直接过 | 2-3 天 |
+| 8 | 批量删除交易 | Proto 无此 RPC | 0.5 天 |
+
+---
+
+## 测试体系（5 层）
+
+| 层级 | 数量 | 耗时 | 覆盖 |
+|------|------|------|------|
+| L1: Go unit tests | 68 | ~2s | 6/15 service (auth/account/transaction/sync/dashboard/budget) |
+| L2: Flutter widget tests | 566 | ~12s | 31/31 页面 |
+| L4: Shell E2E (scripts/) | 24 assertions | ~8s | 核心记账→同步→删除→余额链路 |
+| L5: Shell E2E (tests/integration/) | 6 脚本 / ~48 assertions | ~15s | 基础服务/金融/分析/多设备/压测 |
+| L6: VirtualList perf | 6 tests | ~3s | 1100 条 build 21ms |
+
+**总计 ~750 测试点**
+
+### 测试覆盖缺口
+
+- Go 后端 9/15 service **零测试**（family/notify/loan/investment/asset/export/import/market/exchange）
+- Flutter 集成测试（真实设备 UI 流程）未运行
+- E2E 测试未覆盖：OAuth 流程、多币种、组合贷款、导出
+
+---
+
+## CI
+
+- `.github/workflows/` 下 3 个 workflow 文件已创建（go.yml / flutter.yml / e2e.yml）
+- GitHub Actions 因账户付费问题暂不可用
+- **约定：commit 前手动跑 Go test + Flutter analyze + Flutter test**
+
+---
+
+## 下一步优先级
 
 | 优先级 | 工作 | 预估 | 理由 |
 |--------|------|------|------|
-| **P1** | oauthLogin 假 account ID 修正 | 0.5 天 | 数据一致性 |
-| **P2** | OAuth 真实对接 (微信+Apple) | 2-3 天 | Phase 8 上线前必须 |
-| **P2** | FCM/APNs 推送 | 1-2 天 | 上线后再接也行 |
-| **P2** | Go 后端剩余 service 测试 | 2-3 天 | 覆盖率提升 |
+| **P0** | 自定义分类 CRUD | 1 天 | PRD 基础功能，完全缺失 |
+| **P1** | 行情数据源接入（后端 cron） | 1 天 | 投资模块无数据等于废了 |
+| **P1** | 汇率真实 API 替换 | 0.5 天 | 多币种核心依赖 |
+| **P2** | FCM 推送集成 | 1-2 天 | 上线必备 |
+| **P2** | OAuth 真实对接 | 2-3 天 | 上线必备 |
+| **P2** | 家庭协作补全（权限+双账本） | 2-3 天 | PRD 核心差异化功能 |
+| **P3** | Go 后端剩余 9 service 测试 | 2-3 天 | 覆盖率 |
 | **P3** | 60fps 实机验证 | 0.5 天 | 需真机 |
