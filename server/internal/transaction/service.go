@@ -653,6 +653,37 @@ func (s *Service) BatchDeleteTransactions(ctx context.Context, req *pb.BatchDele
 // ── UploadTransactionImage ─────────────────────────────────────────────
 
 const maxImageSize = 5 * 1024 * 1024 // 5MB
+const maxImagesPerUser = 500         // 每用户最多图片数
+
+// imageSignatures 验证文件头 magic bytes
+var imageSignatures = map[string][][]byte{
+	"image/jpeg": {{0xFF, 0xD8, 0xFF}},
+	"image/png":  {{0x89, 0x50, 0x4E, 0x47}},
+	"image/webp": {{0x52, 0x49, 0x46, 0x46}}, // RIFF
+	"image/heic": {{0x00, 0x00, 0x00}},       // ftyp box (offset 4 = 'ftyp')
+}
+
+func validateImageMagic(data []byte, contentType string) bool {
+	sigs, ok := imageSignatures[contentType]
+	if !ok {
+		return false
+	}
+	for _, sig := range sigs {
+		if len(data) >= len(sig) {
+			match := true
+			for i, b := range sig {
+				if data[i] != b {
+					match = false
+					break
+				}
+			}
+			if match {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 func (s *Service) UploadTransactionImage(ctx context.Context, req *pb.UploadTransactionImageRequest) (*pb.UploadTransactionImageResponse, error) {
 	userID, err := middleware.GetUserID(ctx)
@@ -667,7 +698,7 @@ func (s *Service) UploadTransactionImage(ctx context.Context, req *pb.UploadTran
 		return nil, status.Error(codes.InvalidArgument, "image exceeds 5MB limit")
 	}
 
-	// Validate content type
+	// Validate content type (whitelist)
 	contentType := req.ContentType
 	if contentType == "" {
 		contentType = "image/jpeg"
@@ -683,13 +714,26 @@ func (s *Service) UploadTransactionImage(ctx context.Context, req *pb.UploadTran
 		return nil, status.Errorf(codes.InvalidArgument, "unsupported content type: %s", contentType)
 	}
 
-	// Create upload directory
+	// Validate file magic bytes — prevent disguised executables
+	if !validateImageMagic(req.Data, contentType) {
+		return nil, status.Error(codes.InvalidArgument, "file content does not match declared content type")
+	}
+
+	// Per-user quota check
 	userDir := filepath.Join(s.uploadDir, userID)
+	if entries, err := os.ReadDir(userDir); err == nil {
+		if len(entries) >= maxImagesPerUser {
+			return nil, status.Error(codes.ResourceExhausted, "image upload quota exceeded (max 500)")
+		}
+	}
+
+	// Create upload directory (clean path to prevent traversal)
+	userDir = filepath.Clean(userDir)
 	if err := os.MkdirAll(userDir, 0o755); err != nil {
 		return nil, status.Errorf(codes.Internal, "create upload dir: %v", err)
 	}
 
-	// Generate unique filename
+	// Generate unique filename (server-controlled, ignores client filename)
 	fileName := fmt.Sprintf("%d_%s%s", time.Now().UnixMilli(), uuid.New().String()[:8], ext)
 	filePath := filepath.Join(userDir, fileName)
 
@@ -700,20 +744,32 @@ func (s *Service) UploadTransactionImage(ctx context.Context, req *pb.UploadTran
 	// Build URL
 	imageURL := fmt.Sprintf("%s/%s/%s", s.baseURL, userID, fileName)
 
-	// If transaction_id is provided, append to transaction's image_urls
+	// If transaction_id is provided, verify ownership then append
 	if req.TransactionId != "" {
-		_, err := s.pool.Exec(ctx,
-			`UPDATE transactions
-			 SET image_urls = CASE
-			   WHEN image_urls = '' OR image_urls IS NULL THEN $1
-			   ELSE image_urls || ',' || $1
-			 END,
-			 updated_at = NOW()
-			 WHERE id = $2 AND user_id = $3 AND deleted_at IS NULL`,
-			imageURL, req.TransactionId, userID,
-		)
+		var ownerID string
+		err := s.pool.QueryRow(ctx,
+			"SELECT user_id FROM transactions WHERE id = $1 AND deleted_at IS NULL",
+			req.TransactionId,
+		).Scan(&ownerID)
 		if err != nil {
-			log.Printf("upload: saved image but failed to update transaction: %v", err)
+			log.Printf("upload: transaction %s not found, skipping association", req.TransactionId)
+		} else if ownerID != userID {
+			// 不是自己的交易，不允许关联
+			log.Printf("upload: user %s tried to attach image to transaction owned by %s", userID, ownerID)
+		} else {
+			_, err := s.pool.Exec(ctx,
+				`UPDATE transactions
+				 SET image_urls = CASE
+				   WHEN image_urls = '' OR image_urls IS NULL THEN $1
+				   ELSE image_urls || ',' || $1
+				 END,
+				 updated_at = NOW()
+				 WHERE id = $2 AND deleted_at IS NULL`,
+				imageURL, req.TransactionId,
+			)
+			if err != nil {
+				log.Printf("upload: saved image but failed to update transaction: %v", err)
+			}
 		}
 	}
 
