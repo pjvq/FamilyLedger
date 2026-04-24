@@ -16,7 +16,7 @@
 | Phase 3: 预算 + 通知 | ⚠️ | ⚠️ | **65%** | FCM 不发推送、缺信用卡账单提醒 |
 | Phase 4: 贷款跟踪 | ✅ | ✅ | **95%** | 最完整的模块 |
 | Phase 4b: 组合贷款增强 | ✅ | ✅ | **90%** | |
-| Phase 5: 投资 + 行情 | ⚠️ | ✅ | **70%** | 后端无真实行情数据源 |
+| Phase 5: 投资 + 行情 | ✅ | ✅ | **85%** | 行情+汇率已接真实 API |
 | Phase 6: 固定资产 + 折旧 | ✅ | ✅ | **90%** | |
 | Phase 7: Dashboard + 报表导出 | ✅ | ✅ | **88%** | Dashboard 数据依赖行情/汇率的准确性 |
 | Phase 8: 多币种 + CSV导入 + OAuth | ⚠️ | ⚠️ | **55%** | OAuth mock、汇率假数据 |
@@ -72,7 +72,7 @@
 | 问题 | 严重程度 | 说明 |
 |------|---------|------|
 | **行情数据无来源** | 🔴 高 | Go 后端 MarketDataService 的 `GetQuote` 只从 DB 读取,但没有 cron/worker 写入数据。Flutter 端的 RealFetcher(东方财富/Yahoo/CoinGecko)已实现但**未被使用**--实际走的是 gRPC→后端空 DB |
-| **汇率假数据** | 🔴 高 | exchange_service 用 `math/rand` 给固定汇率加随机波动,不调任何外部 API |
+| ~~汇率假数据~~ ✅ | ~~🔴 高~~ | exchange_service 已改用 open.er-api.com 真实汇率,mock 仅作 fallback |
 | **FCM 推送空壳** | 🟡 中 | notify service 有 device 注册+通知 CRUD,但 `Send` 方法不存在--通知只存 DB 不发设备 |
 | **OAuth mock** | 🟡 中 | `code=="test"` 直接过,微信/Apple SDK 完全未接 |
 | **分类管理 0%** | 🔴 高 | PRD 要求主分类+子分类+内置图标+CRUD。当前: proto 无 Create/Update/Delete RPC, DB 无 parent_id, 前端无管理页。已规划为 Phase 1c |
@@ -178,8 +178,8 @@
 | 优先级 | 工作 | 预估 | 理由 |
 |--------|------|------|------|
 | **P0** | Phase 1c: 分类管理（主/子分类 + 图标库 + CRUD） | 2-3 天 | PRD 核心功能，涉及 DB/Proto/后端/前端全链路 |
-| **P1** | 行情数据源接入（后端 cron） | 1 天 | 投资模块无数据等于废了 |
-| **P1** | 汇率真实 API 替换 | 0.5 天 | 多币种核心依赖 |
+| ~~P1~~ ✅ | ~~行情数据源接入~~ | ✅ | RealFetcher + scheduler 已在跑 |
+| ~~P1~~ ✅ | ~~汇率真实 API 替换~~ | ✅ | open.er-api.com,每小时刷新 |
 | **P2** | FCM 推送集成 | 1-2 天 | 上线必备 |
 | **P2** | OAuth 真实对接 | 2-3 天 | 上线必备 |
 | **P2** | 家庭协作补全（权限+双账本） | 2-3 天 | PRD 核心差异化功能 |
