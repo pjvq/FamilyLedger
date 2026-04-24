@@ -148,15 +148,29 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
                 if (comLoan != null)
                   Expanded(
                     child: _ActionButton(
-                      icon: Icons.trending_up_rounded,
-                      label: '商贷利率',
-                      semanticLabel: '商贷利率变动',
+                      icon: Icons.account_balance_rounded,
+                      label: '商贷详情',
+                      semanticLabel: '查看商业贷款详情',
                       onTap: () => Navigator.of(context).pushNamed(
                         AppRouter.loanDetail,
                         arguments: comLoan.id,
                       ),
                     ),
                   ),
+                if (pvdLoan != null) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _ActionButton(
+                      icon: Icons.home_rounded,
+                      label: '公积金详情',
+                      semanticLabel: '查看公积金贷款详情',
+                      onTap: () => Navigator.of(context).pushNamed(
+                        AppRouter.loanDetail,
+                        arguments: pvdLoan.id,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

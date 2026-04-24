@@ -1147,7 +1147,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('提前还款'), findsOneWidget);
-      expect(find.text('商贷利率'), findsOneWidget);
+      expect(find.text('商贷详情'), findsOneWidget);
     });
   });
 
