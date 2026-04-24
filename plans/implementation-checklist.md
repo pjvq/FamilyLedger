@@ -1,7 +1,7 @@
 # FamilyLedger Implementation Checklist
 
 > Synced with [实施计划](https://my.feishu.cn/docx/BQMsdOBDnoLvXfxQEPtc5sKlnic)
-> Last updated: 2026-04-24 10:30 (108 commits)
+> Last updated: 2026-04-24 11:00 (111 commits)
 
 ---
 
@@ -26,7 +26,7 @@
 - [x] 删除后账户余额、Dashboard 自动更新
 - [x] 离线编辑/删除，联网后自动同步
 - [x] 只能编辑/删除自己的交易记录（权限校验 + FOR UPDATE lock）
-- [ ] **删除动画**: 用 Dismissible 基础动画，未做自定义红色区域 slideOut
+- [ ] **删除动画**: ✅ SwipeToDelete 升级（渐变背景+缩放动画+ClipRRect）(`2f43cf4`)
 
 ## Phase 2: 家庭协作 + 多账户 + 权限
 
@@ -124,14 +124,14 @@
 | 记账成功动画 | 震动+金额飞入卡片 | ✅ Done |
 | 自定义下拉刷新 | 自定义刷新动画 | ✅ 5 列表页 |
 | 投资涨跌数字滚动 | 滚动计数器效果 | ✅ Done |
-| 左滑删除 | 红色区域+二次确认 | 🟡 用 Dismissible |
+| 左滑删除 | 红色区域+二次确认 | ✅ 渐变+缩放动画 |
 | Tab 下划线滑动 | 下划线跟随 | ✅ Done |
 | 共享元素动画 | 列表→详情 Hero | ✅ Done |
 | 错误状态 | 友好文案+重试 | ✅ Done |
 | 虚拟列表 | 1000+条无掉帧 | ✅ 1100条 21ms |
-| 无障碍 | Semantics 标签 | 🟡 80 处，部分缺失 |
+| 无障碍 | Semantics 标签 | ✅ 99处，31/31页面 |
 
-**Phase 9: 9/11 Done, 2/11 Partial = ~86%**
+**Phase 9: 11/11 Done = 100%**
 
 ---
 
@@ -147,5 +147,5 @@
 | 6 | **oauthLogin 拼假 account ID** | ❌ 未修 | P2 | 0.5 天 |
 | ~~7~~ | ~~多设备同步未实测~~ | ✅ E2E test (`68eb4eb`) | ~~P2~~ | Done |
 | ~~8~~ | ~~1000+ 条压测~~ | ✅ perf test (`68eb4eb`) | ~~P2~~ | Done |
-| 9 | **ListTransactions offset 分页** | ❌ 未修 | P3 | 0.5 天 |
-| 10 | **DINRoundPro 自定义字体** | ❌ 6 处 TODO | P3 | 1h |
+| 9 | **ListTransactions offset 分页** | ✅ cursor 分页 (`b11ebe4`) | ~~P3~~ | Done |
+| 10 | **DINRoundPro 自定义字体** | ✅ DM Sans (`2f43cf4`) | ~~P3~~ | Done |

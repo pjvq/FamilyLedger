@@ -1,6 +1,6 @@
 # FamilyLedger 工作进展报告
 
-> 截止 2026-04-24 10:30 | 108 commits | 12,415 行 Go + 28,095 行 Dart（不含生成代码）
+> 截止 2026-04-24 11:00 | 111 commits | 12,500 行 Go + 28,211 行 Dart（不含生成代码）
 
 ---
 
@@ -18,13 +18,13 @@
 | Phase 6: 固定资产 + 折旧 | ✅ 完成 | ✅ 完成 | **95%** | — |
 | Phase 7: Dashboard + 报表导出 | ✅ 完成 | ✅ 完成 | **95%** | ↑ local-first + 3s timeout |
 | Phase 8: 多币种 + CSV导入 + OAuth | ✅ 完成 | ✅ 完成 | **80%** | — OAuth mock |
-| Phase 9: UI 打磨 | — | ✅ 大部分完成 | **90%** | ↑ 1000条压测通过 |
+| Phase 9: UI 打磨 | — | ✅ 完成 | **97%** | ↑↑ 字体+SwipeToDelete+无障碍 |
 
-**加权整体完成度: ~92%**
+**加权整体完成度: ~94%**
 
 ---
 
-## 今日修复 (2026-04-24, +12 commits)
+## 今日修复 (2026-04-24, +15 commits)
 
 | Commit | 内容 | 影响 |
 |--------|------|------|
@@ -39,6 +39,8 @@
 | `d4126c5` | RealFetcher 替换 MockFetcher | P1: 5 市场真实行情 |
 | `68eb4eb` | 多设备同步 E2E + 1000 条压测 + VirtualList stress test | P2: 验证核心体验 |
 | `3b61a4b` | 68 个 Go 单元测试 + db.Pool 接口抽象 | P1: 后端测试从 0→68 |
+| `b11ebe4` | ListTransactions offset → cursor 分页 | 性能: O(n)→O(1) 翻页 |
+| `2f43cf4` | DM Sans 字体 + SwipeToDelete 升级 + 7 页面无障碍 | Phase 9: 11/11 Done |
 
 ---
 
@@ -118,12 +120,12 @@
 | SuccessAnimation 记账成功 | ✅ | 震动+飞入动画 |
 | CustomRefreshIndicator | ✅ 5 个列表页 | 自定义动画 |
 | AnimatedCounter 数字滚动 | ✅ | balance+investments |
-| SwipeToDelete | 🟡 | Dismissible 替代，未用自定义组件 |
+| SwipeToDelete | ✅ | 渐变背景+缩放动画+ClipRRect |
 | AnimatedTabBar | ✅ | 下划线滑动跟随 |
 | SharedElementRoute | ✅ | Hero 转场动画 |
 | VirtualList 虚拟列表 | ✅ | 1100 条 build 21ms |
-| AmountStyle 等宽数字 | ✅ 18 页面 | DINRoundPro TODO |
-| Accessibility 无障碍 | 🟡 80 处 | 部分页面仍缺 |
+| AmountStyle 等宽数字 | ✅ 18 页面 | DM Sans + tabularFigures |
+| Accessibility 无障碍 | ✅ 99 处 | 31/31 页面全覆盖 |
 
 ### 测试
 - **566 widget tests** ✅ 全绿 (含 6 个 VirtualList perf tests)
@@ -149,11 +151,7 @@
 
 ### 🔵 UI 细节
 
-| # | 项目 | 说明 | 预估 |
-|---|------|------|------|
-| 4 | 自定义 SwipeToDelete | 当前用 Dismissible，未用红色区域组件 | 1h |
-| 5 | 无障碍覆盖不完整 | 80 处 Semantics，部分页面缺失 | 2h |
-| 6 | 自定义字体 DINRoundPro | 6 处 TODO 标记 | 1h |
+（已全部完成 ✅）
 
 ### 🟠 测试补充
 
@@ -168,9 +166,9 @@
 
 | 指标 | 值 | vs 上次 |
 |------|------|---------|
-| Git commits | 108 | +5 |
-| Go 代码 (不含 proto gen) | 12,415 行 | +2,284 |
-| Dart 代码 (不含 generated) | 28,095 行 | +117 |
+| Git commits | 111 | +8 |
+| Go 代码 (不含 proto gen) | ~12,500 行 | +2,369 |
+| Dart 代码 (不含 generated) | 28,211 行 | +233 |
 | Proto 定义 | 13 文件 / 79 RPCs | — |
 | DB migrations | 32 对 | — |
 | 后端 Services | 15 个 | — |
@@ -179,6 +177,7 @@
 | Go unit tests | 68 | **+68** |
 | Widget tests | 566 | +6 |
 | Shell E2E scripts | 6 | +2 |
+| Semantics 节点 | 99 | **+19** |
 
 ---
 
@@ -190,5 +189,4 @@
 | **P2** | OAuth 真实对接 (微信+Apple) | 2-3 天 | Phase 8 上线前必须 |
 | **P2** | FCM/APNs 推送 | 1-2 天 | 上线后再接也行 |
 | **P2** | Go 后端剩余 service 测试 | 2-3 天 | 覆盖率提升 |
-| **P3** | UI 细节（SwipeToDelete/无障碍/字体） | 0.5 天 | 打磨 |
 | **P3** | 60fps 实机验证 | 0.5 天 | 需真机 |
