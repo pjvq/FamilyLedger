@@ -1,6 +1,21 @@
-# FamilyLedger — 前后端联调测试方法
+# FamilyLedger — 测试体系文档
 
-> 可复现、可反复运行、可 CI 集成
+> 截止 2026-04-24 | 112 commits | 覆盖 5 层测试
+
+---
+
+## 测试概览
+
+| 层级 | 类型 | 数量 | 耗时 | 覆盖范围 |
+|------|------|------|------|---------|
+| **L1** | Go 单元测试 (pgxmock) | 68 | ~3s | 6 核心 service |
+| **L2** | Flutter Widget 测试 | 566 | ~18s | 31 页面 + 组件 |
+| **L3** | Flutter VirtualList 性能测试 | 6 | ~2s | 1000+ 条渲染 |
+| **L4** | gRPC Shell E2E | 24 assertions | ~10s | 纯后端 RPC |
+| **L5** | Flutter Integration E2E | 79 | ~60s | 模拟器 + gRPC |
+| **L6** | Shell 集成测试 (tests/) | 6 脚本 | ~30s | 多设备同步 + 压测 |
+
+**总计**: 68 Go + 566 Widget + 6 Perf + 24 Shell + 79 Integration + 6 脚本 = **~750 测试点**
 
 ---
 
@@ -30,90 +45,224 @@ grpcurl -plaintext -import-path proto -proto auth.proto \
   localhost:50051 familyledger.auth.v1.AuthService/Register
 ```
 
-### 3. 启动 iOS 模拟器
+---
+
+## L1: Go 单元测试
+
+使用 `pgxmock/v4` mock 数据库 + `testify` 断言。所有 15 个 service 已重构为 `db.Pool` 接口（`server/pkg/db/pool.go`），支持 mock 注入。
 
 ```bash
-xcrun simctl boot "iPhone 17"  # 或其他设备
-open -a Simulator
+cd server && go test ./... -count=1 -v
 ```
+
+| Package | Tests | 覆盖方法 |
+|---------|-------|---------|
+| auth | 14 | Register, Login, RefreshToken, OAuthLogin (happy + error + auth check) |
+| account | 10 | Create, List, Get, Update, Delete |
+| transaction | 11 | Create, List (cursor pagination), Update, Delete + 边界 |
+| sync | 6 | PushOperations (replay), PullChanges |
+| dashboard | 14 | NetWorth, Trend, CategoryBreakdown, BudgetExecution, Recent |
+| budget | 13 | Create, List, Get, Update, Delete + 子预算 |
+
+**待补充**: family, notify, loan, investment, asset, export, import, market（8 个 service）
+
+### 关键设计
+
+- `db.Pool` 接口定义 4 个方法: `Query`, `QueryRow`, `Exec`, `BeginTx`
+- `*pgxpool.Pool` 自动满足接口（零适配代码）
+- 每个 test 创建独立 mock pool，无共享状态
+- 覆盖 happy path + error path + 权限校验
 
 ---
 
-## 测试层次
+## L2: Flutter Widget 测试
 
-### Layer 1: gRPC Shell 测试（最快，纯后端）
+```bash
+cd app
+http_proxy="" https_proxy="" no_proxy="*" \
+  PUB_HOSTED_URL=https://pub.flutter-io.cn \
+  FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn \
+  flutter test --reporter compact
+```
+
+**566 tests**, 覆盖全部 31 个页面 + 核心组件：
+
+| 测试文件 | 覆盖范围 |
+|---------|---------|
+| `transaction_home_test.dart` | 交易列表、历史页、详情页 |
+| `home_transaction_test.dart` | 首页 + 交易创建 |
+| `auth_settings_test.dart` | 登录、注册、设置页 |
+| `budget_loan_test.dart` | 预算 + 贷款页面 |
+| `investment_asset_test.dart` | 投资 + 固定资产 |
+| `dashboard_report_test.dart` | Dashboard + 导出 + CSV导入 |
+| `account_more_test.dart` | 账户 + 更多页面 |
+| `loan_test.dart` | 贷款详情 + 组合贷 |
+| `core_widgets_test.dart` | 空状态、骨架屏、SwipeToDelete 等组件 |
+| `settings_notification_test.dart` | 设置 + 通知 |
+
+---
+
+## L3: VirtualList 性能测试
+
+```bash
+cd app && flutter test test/perf_virtual_list_test.dart
+```
+
+**6 项测试**, 验证大数据量渲染性能：
+
+| 测试 | 验证点 |
+|------|--------|
+| builds 1000+ items without error | 构建不报错 |
+| scrolls to bottom successfully | 滚动到底不崩 |
+| only visible items are built | 虚拟化生效（不全量构建） |
+| measures build time for 1000+ items | build time < 50ms |
+| scroll to middle then to bottom | 跳跃滚动 |
+| handles rapid scrolling without crash | 快速滚动稳定性 |
+
+**实测结果**: 1100 条 build time 21ms
+
+---
+
+## L4: gRPC Shell E2E
 
 ```bash
 bash scripts/e2e-grpc-test.sh
 ```
 
-**特点**: 不需要模拟器，纯 grpcurl 调用，18 个断言，10 秒内完成。
-**覆盖**: 注册、账户、分类、交易 CRUD、余额重算、权限校验、边界情况。
+**24 个断言**, 纯 `grpcurl` 调用，不需要模拟器。覆盖：
 
-### Layer 2: Flutter Integration Test（模拟器 + gRPC）
-
-```bash
-cd app
-flutter test integration_test/e2e_grpc_test.dart \
-  -d <simulator-id> --reporter=compact
-```
-
-**特点**: 在模拟器上运行，80 个测试用例，含 gRPC 直调 + UI 交互。
-**覆盖**: 全 13 个模块（Auth, Account, Transaction, Loan, Budget, Investment, Asset, Dashboard, Export, Import, Family, Notify）+ UI 注册→首页流程。
-
-### Layer 3: 手动 + 脚本混合测试
-
-当自动测试无法覆盖的交互场景：
-
-```bash
-# 1. 在模拟器中安装 app
-cd app && flutter run -d <simulator-id>
-
-# 2. 通过 grpcurl 在后端插入测试数据
-TOKEN=$(grpcurl ... AuthService/Login | grep accessToken | ...)
-grpcurl ... TransactionService/CreateTransaction ...
-
-# 3. 在 app 中验证数据是否正确显示
-# 4. 在 app 中操作，通过 grpcurl 验证后端数据
-```
+- 注册 + 登录 + JWT token
+- 默认账户 + 分类创建
+- 交易 CRUD（创建、更新、删除）
+- 余额重算（amount_cny）
+- 权限校验（不能改/删别人的交易）
+- 外币交易余额计算
+- 软删除验证
 
 ---
 
-## 关键测试场景
+## L5: Flutter Integration E2E
 
-### 交易编辑与删除（Phase 1b）
+```bash
+cd app
+flutter test integration_test/e2e_grpc_test.dart -d <simulator-id> --reporter=compact
+```
 
-| # | 场景 | 验证点 | 方法 |
-|---|------|--------|------|
-| 1 | 创建交易 | 本地 + 服务端都有 | Integration Test 1.5 |
-| 2 | 编辑金额 | amount + amountCny 同步更新 | Shell Test + IT 1.7 |
-| 3 | 编辑后余额 | 账户余额正确重算 | Shell Test + IT 1.7b |
-| 4 | 改类型 | expense↔income，余额翻转 | IT 1.7c + 1.7d |
-| 5 | 权限校验 | 不能改/删别人的交易 | Shell Test + IT 1.8 |
-| 6 | 软删除 | 设 deleted_at，不物理删 | Shell Test + IT 1.9 |
-| 7 | 删后不可见 | ListTransactions 不返回 | IT 1.9b |
-| 8 | 删后余额 | 金额回退，用 amountCny | Shell Test + IT 1.9c |
-| 9 | 重复删除 | NOT_FOUND | IT 1.9d |
-| 10 | 外币余额 | 余额用 amountCny 计算 | 手动（USD 记账→编辑→验证余额） |
+**79 个测试**, 在模拟器上运行，覆盖全 13 个 gRPC service：
+
+| 模块 | 测试数 | 覆盖 RPC |
+|------|--------|---------|
+| Auth | 6 | Register, Login, RefreshToken, OAuthLogin |
+| Account | 8 | CRUD + 转账 + 类型 |
+| Transaction | 12 | CRUD + 编辑余额 + 软删除 + 分页 |
+| Family | 8 | 创建 + 邀请 + 权限 |
+| Budget | 6 | CRUD + 子预算 |
+| Loan | 10 | 等额本息/本金 + 组合贷 + 提前还款 |
+| Investment | 6 | 持仓 + 交易记录 |
+| Asset | 6 | 折旧 + 估值 |
+| Dashboard | 5 | 净资产 + 趋势 + 分类 |
+| Export | 2 | CSV + Excel |
+| Import | 3 | GBK + 映射 + 导入 |
+| Notify | 4 | 设备注册 + 通知 |
+| Sync | 3 | Push + Pull + 冲突 |
+
+---
+
+## L6: Shell 集成测试
+
+位于 `tests/integration/`，需要后端运行。
+
+```bash
+# 运行全部
+for f in tests/integration/test_*.sh; do bash "$f"; done
+```
+
+| 脚本 | 覆盖 | 断言数 |
+|------|------|--------|
+| `test_basic_services.sh` | Auth + Account + Transaction + Family + Sync + Notify (30 RPCs) | ~10 |
+| `test_finance_services.sh` | Loan + Budget + Investment + Asset + Market (35 RPCs) | ~9 |
+| `test_finance_services_v2.sh` | 金融服务回归 | ~5 |
+| `test_analytics_services.sh` | Dashboard + Export + Import (8 RPCs) | ~8 |
+| `test_multi_device_sync.sh` | 双设备同步 E2E (11 cases) | ~9 |
+| `test_perf_1000_transactions.sh` | 1000 条批量创建 + 分页 + Dashboard 性能 | ~7 |
+
+### 多设备同步测试场景
+
+1. Device A 创建交易 → Device B pull 可见
+2. Device A 编辑交易 → Device B pull 更新
+3. Device A 删除交易 → Device B pull 不可见
+4. Device A 创建账户 → Device B pull 可见
+5. 双设备并发写入 → LWW 冲突解决
+6. 离线写入 → 上线后 push → 对端 pull 可见
+
+### 1000 条压测验证点
+
+- 批量创建 1000 条 < 30s
+- ListTransactions cursor 分页 < 100ms/page
+- Dashboard 聚合查询 < 500ms
+- 内存占用无异常增长
+
+---
+
+## 关键测试场景矩阵
+
+### 交易生命周期
+
+| 场景 | Go 单元 | Shell E2E | Integration | Widget |
+|------|---------|-----------|-------------|--------|
+| 创建交易 | ✅ | ✅ | ✅ | ✅ |
+| 编辑金额 | ✅ | ✅ | ✅ | ✅ |
+| 编辑后余额重算 | ✅ | ✅ | ✅ | — |
+| 软删除 | ✅ | ✅ | ✅ | ✅ |
+| 删后余额回退 | ✅ | ✅ | ✅ | — |
+| 外币 amount_cny | — | ✅ | ✅ | — |
+| 权限校验 | ✅ | ✅ | ✅ | — |
+| cursor 分页 | ✅ | — | ✅ | — |
 
 ### 数据同步
 
-| # | 场景 | 验证点 |
-|---|------|--------|
-| 1 | 登录后同步 | accounts + categories 从服务端拉到本地 |
-| 2 | 记账同步 | 本地写入 → gRPC push → 服务端有记录 |
-| 3 | 离线记账 | gRPC 失败 → SyncQueue 有记录 → 联网后自动推 |
-| 4 | Dashboard 刷新 | 记账/编辑/删除后自动调 loadAll() |
+| 场景 | 测试位置 | 状态 |
+|------|---------|------|
+| 登录后同步 accounts + categories | Integration + Widget | ✅ |
+| 记账 → gRPC push | Integration | ✅ |
+| 离线记账 → SyncQueue → 联网推送 | Shell (multi_device_sync) | ✅ |
+| SyncEngine replay (transaction/account/category) | Go 单元 | ✅ |
+| 多设备冲突 (LWW) | Shell (multi_device_sync) | ✅ |
+| WebSocket 通知触发 pull | 手动验证 | ⚠️ 无自动化 |
+
+### OAuth 登录
+
+| 场景 | 测试位置 | 状态 |
+|------|---------|------|
+| 邮箱注册 → 同步 accounts/categories | Integration + Widget | ✅ |
+| 邮箱登录 → 同步 accounts/categories | Integration + Widget | ✅ |
+| OAuth 登录 → 同步 accounts/categories | — | ⚠️ Mock 实现，无自动化 |
+| OAuth 登录 → 不创建假 account ID | — | ✅ (code fix `583f878`) |
 
 ---
 
 ## 运行顺序（推荐）
 
+```bash
+# 1. Go 单元测试（不需要数据库）
+cd server && go test ./... -count=1          # 68 tests, ~3s
+
+# 2. Flutter Widget 测试（不需要后端）
+cd app && flutter test --reporter compact    # 566 tests, ~18s
+
+# 3. VirtualList 性能测试
+cd app && flutter test test/perf_virtual_list_test.dart  # 6 tests, ~2s
+
+# 4. 需要后端运行的测试
+docker-compose up -d  # 或手动启动 server
+bash scripts/e2e-grpc-test.sh              # 24 assertions, ~10s
+for f in tests/integration/test_*.sh; do bash "$f"; done  # 6 scripts, ~30s
+
+# 5. 需要模拟器的测试
+cd app && flutter test integration_test/e2e_grpc_test.dart -d <sim>  # 79 tests, ~60s
 ```
-1. bash scripts/e2e-grpc-test.sh                    # 18 tests, ~10s
-2. cd app && flutter test --reporter=compact         # 560 widget tests, ~15s
-3. flutter test integration_test/ -d <sim>           # 80 e2e tests, ~60s
-```
+
+---
 
 ## 清理测试数据
 
@@ -123,33 +272,80 @@ psql -h localhost -U familyledger -d familyledger
 
 -- 清理 e2e 测试用户（保留真实用户）
 DELETE FROM users WHERE email LIKE 'e2e-%@test.com';
+DELETE FROM users WHERE email LIKE 'test%@test.com';
+
+-- 清理 1000 条压测数据
+DELETE FROM transactions WHERE note LIKE 'perf_test_%';
 ```
 
 ---
 
-## 已知问题 & 待修
+## 已修复的历史问题
 
-| # | 问题 | 严重度 | 状态 |
-|---|------|--------|------|
-| 1 | 前端 deleteTransaction 是硬删除，后端是软删除 | P2 | 需加 Drift migration |
-| 2 | Dashboard loadAll() 错误静默忽略 | P3 | 需要 error state 通知 UI |
-| 3 | Docker image 未自动重建 | P3 | 开发时用本地编译的 server |
-| 4 | MarkAsRead 传无效 UUID 返回 INVALID_ARGUMENT | P4 | 已修 test 预期 |
+| # | 问题 | 修复 commit | 状态 |
+|---|------|------------|------|
+| 1 | 前端硬删除 vs 后端软删除 | `1e43bbf` Drift v9 softDeleteTransaction | ✅ |
+| 2 | Dashboard loadAll() 错误静默忽略 | `2d63109` local-first + error state | ✅ |
+| 3 | MarkAsRead 传无效 UUID 预期 | `9f35d58` 修 test 预期 | ✅ |
+| 4 | ListTransactions offset 分页性能差 | `b11ebe4` cursor 分页 | ✅ |
+| 5 | oauthLogin 创建假 account ID | `583f878` 改为同步服务端账户 | ✅ |
+| 6 | SyncEngine account/category 不同步 | `c629ec7` 实现 upsert/delete | ✅ |
+
+## 当前已知限制
+
+| # | 问题 | 影响 | 备注 |
+|---|------|------|------|
+| 1 | OAuth 登录为 Mock 实现 | 无法真机测试微信/Apple 登录 | 需接真实 SDK |
+| 2 | FCM/APNs 推送为 Placeholder | 通知只写 DB 不发推送 | 需接 Firebase |
+| 3 | WebSocket 通知无自动化测试 | 手动验证 | 需 ws 客户端工具 |
+| 4 | Docker image 未自动重建 | 开发用本地编译的 server | docker-compose build |
+| 5 | Go 单元测试覆盖 6/15 service | 9 个 service 无测试 | P2 |
 
 ---
 
 ## CI 集成建议
 
 ```yaml
-# .github/workflows/e2e.yml
+# .github/workflows/test.yml
+name: Tests
+on: [push, pull_request]
+
 jobs:
+  go-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.22' }
+      - run: cd server && go test ./... -count=1
+
+  flutter-widget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+      - run: cd app && flutter test --reporter compact
+
   e2e:
+    runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:16-alpine
-        env: { POSTGRES_USER: familyledger, ... }
+        env:
+          POSTGRES_USER: familyledger
+          POSTGRES_PASSWORD: familyledger
+          POSTGRES_DB: familyledger
+        ports: ['5432:5432']
     steps:
-      - run: cd server && go build && ./bin/server &
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.22' }
+      - run: |
+          cd server && go build -o bin/server ./cmd/server
+          DB_HOST=localhost JWT_SECRET=test GRPC_PORT=50051 WS_PORT=8080 \
+            ./bin/server &
+          sleep 3
       - run: bash scripts/e2e-grpc-test.sh
-      - run: cd app && flutter test integration_test/
+      - run: |
+          for f in tests/integration/test_*.sh; do bash "$f"; done
 ```
