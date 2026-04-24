@@ -2,9 +2,16 @@ package market
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"hash/fnv"
+	"io"
+	"log"
 	"math"
 	"math/rand"
+	"net/http"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -37,9 +44,574 @@ type MarketDataFetcher interface {
 	SearchSymbol(ctx context.Context, query string, marketType string) ([]SymbolInfo, error)
 }
 
+// ── RealFetcher ─────────────────────────────────────────────────────────────
+
+// RealFetcher fetches real market data from external APIs:
+//   - A股/港股/基金 → 东方财富 (East Money)
+//   - 美股 → Yahoo Finance
+//   - 加密货币 → CoinGecko
+//
+// On error, it falls back to MockFetcher to avoid crashing.
+type RealFetcher struct {
+	client *http.Client
+	mock   *MockFetcher // fallback
+}
+
+func NewRealFetcher() *RealFetcher {
+	return &RealFetcher{
+		client: &http.Client{Timeout: 10 * time.Second},
+		mock:   NewMockFetcher(),
+	}
+}
+
+func (r *RealFetcher) FetchQuote(ctx context.Context, symbol string, marketType string) (*MarketQuote, error) {
+	var quote *MarketQuote
+	var err error
+
+	switch marketType {
+	case "a_share":
+		quote, err = r.fetchEastMoneyAShare(ctx, symbol)
+	case "hk_stock":
+		quote, err = r.fetchEastMoneyHKStock(ctx, symbol)
+	case "fund":
+		quote, err = r.fetchEastMoneyFund(ctx, symbol)
+	case "us_stock":
+		quote, err = r.fetchYahooQuote(ctx, symbol)
+	case "crypto":
+		quote, err = r.fetchCoinGeckoQuote(ctx, symbol)
+	default:
+		log.Printf("market: unknown market type %q, falling back to mock", marketType)
+		return r.mock.FetchQuote(ctx, symbol, marketType)
+	}
+
+	if err != nil {
+		log.Printf("market: FetchQuote(%s, %s) error: %v, falling back to mock", symbol, marketType, err)
+		return r.mock.FetchQuote(ctx, symbol, marketType)
+	}
+	return quote, nil
+}
+
+func (r *RealFetcher) SearchSymbol(ctx context.Context, query string, marketType string) ([]SymbolInfo, error) {
+	var results []SymbolInfo
+	var err error
+
+	switch marketType {
+	case "a_share", "hk_stock", "fund":
+		results, err = r.searchEastMoney(ctx, query, marketType)
+	case "us_stock":
+		results, err = r.searchYahoo(ctx, query)
+	case "crypto":
+		results, err = r.searchCoinGecko(ctx, query)
+	default:
+		log.Printf("market: unknown market type %q for search, falling back to mock", marketType)
+		return r.mock.SearchSymbol(ctx, query, marketType)
+	}
+
+	if err != nil {
+		log.Printf("market: SearchSymbol(%s, %s) error: %v, falling back to mock", query, marketType, err)
+		return r.mock.SearchSymbol(ctx, query, marketType)
+	}
+	return results, nil
+}
+
+// ── 东方财富 A股 ────────────────────────────────────────────────────────────
+
+// eastMoneySecID returns the secid prefix for an A-share symbol.
+// SH (prefix "1."): codes starting with 6, 9, 5
+// SZ (prefix "0."): codes starting with 0, 1, 2, 3
+func eastMoneySecID(symbol string) string {
+	if len(symbol) == 0 {
+		return "1." + symbol
+	}
+	switch symbol[0] {
+	case '6', '9', '5':
+		return "1." + symbol
+	default:
+		return "0." + symbol
+	}
+}
+
+func (r *RealFetcher) fetchEastMoneyStock(ctx context.Context, secid string, symbol string, marketType string) (*MarketQuote, error) {
+	url := fmt.Sprintf(
+		"https://push2.eastmoney.com/api/qt/stock/get?secid=%s&fields=f43,f44,f45,f46,f57,f58,f60,f169,f170&fltt=2",
+		secid,
+	)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Referer", "https://www.eastmoney.com/")
+
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http get: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("eastmoney returned status %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Data struct {
+			F43  json.Number `json:"f43"`  // current price (元)
+			F44  json.Number `json:"f44"`  // high (元)
+			F45  json.Number `json:"f45"`  // low (元)
+			F46  json.Number `json:"f46"`  // open (元)
+			F57  string      `json:"f57"`  // symbol code
+			F58  string      `json:"f58"`  // name
+			F60  json.Number `json:"f60"`  // prev close (元)
+			F169 json.Number `json:"f169"` // change amount (元)
+			F170 json.Number `json:"f170"` // change percent (%)
+		} `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decode json: %w", err)
+	}
+
+	// Parse and convert 元 → 分 (×100)
+	currentPrice := yuanToCents(result.Data.F43)
+	highPrice := yuanToCents(result.Data.F44)
+	lowPrice := yuanToCents(result.Data.F45)
+	openPrice := yuanToCents(result.Data.F46)
+	prevClose := yuanToCents(result.Data.F60)
+	changeAmount := yuanToCents(result.Data.F169)
+	changePercent, _ := result.Data.F170.Float64()
+
+	name := result.Data.F58
+	if name == "" {
+		name = symbol
+	}
+
+	return &MarketQuote{
+		Symbol:        symbol,
+		Name:          name,
+		MarketType:    marketType,
+		CurrentPrice:  currentPrice,
+		ChangeAmount:  changeAmount,
+		ChangePercent: math.Round(changePercent*100) / 100,
+		Open:          openPrice,
+		High:          highPrice,
+		Low:           lowPrice,
+		PrevClose:     prevClose,
+	}, nil
+}
+
+func (r *RealFetcher) fetchEastMoneyAShare(ctx context.Context, symbol string) (*MarketQuote, error) {
+	secid := eastMoneySecID(symbol)
+	return r.fetchEastMoneyStock(ctx, secid, symbol, "a_share")
+}
+
+func (r *RealFetcher) fetchEastMoneyHKStock(ctx context.Context, symbol string) (*MarketQuote, error) {
+	secid := "116." + symbol
+	return r.fetchEastMoneyStock(ctx, secid, symbol, "hk_stock")
+}
+
+// ── 东方财富 基金 ────────────────────────────────────────────────────────────
+
+func (r *RealFetcher) fetchEastMoneyFund(ctx context.Context, symbol string) (*MarketQuote, error) {
+	url := fmt.Sprintf("https://fundgz.1234567.com.cn/js/%s.js", symbol)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Referer", "https://www.eastmoney.com/")
+
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http get: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("fund api returned status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read body: %w", err)
+	}
+
+	// Response is JSONP: jsonpgz({...});
+	raw := string(body)
+	start := strings.Index(raw, "(")
+	end := strings.LastIndex(raw, ")")
+	if start < 0 || end < 0 || end <= start {
+		return nil, fmt.Errorf("invalid JSONP response: %s", raw)
+	}
+	jsonStr := raw[start+1 : end]
+
+	var fund struct {
+		Name string `json:"name"` // 基金名称
+		Dwjz string `json:"dwjz"` // 上一日净值 (元)
+		Gsz  string `json:"gsz"`  // 估算净值 (元)
+	}
+	if err := json.Unmarshal([]byte(jsonStr), &fund); err != nil {
+		return nil, fmt.Errorf("decode fund json: %w", err)
+	}
+
+	// Parse NAV values: string → float64 → int64 (分)
+	gsz, _ := strconv.ParseFloat(fund.Gsz, 64)
+	dwjz, _ := strconv.ParseFloat(fund.Dwjz, 64)
+
+	currentPrice := int64(math.Round(gsz * 100))
+	prevClose := int64(math.Round(dwjz * 100))
+	changeAmount := currentPrice - prevClose
+	var changePercent float64
+	if prevClose > 0 {
+		changePercent = float64(changeAmount) / float64(prevClose) * 100.0
+	}
+
+	name := fund.Name
+	if name == "" {
+		name = symbol
+	}
+
+	return &MarketQuote{
+		Symbol:        symbol,
+		Name:          name,
+		MarketType:    "fund",
+		CurrentPrice:  currentPrice,
+		ChangeAmount:  changeAmount,
+		ChangePercent: math.Round(changePercent*100) / 100,
+		Open:          prevClose, // 基金无盘中数据, 用昨日净值
+		High:          currentPrice,
+		Low:           currentPrice,
+		PrevClose:     prevClose,
+	}, nil
+}
+
+// ── Yahoo Finance 美股 ──────────────────────────────────────────────────────
+
+func (r *RealFetcher) fetchYahooQuote(ctx context.Context, symbol string) (*MarketQuote, error) {
+	url := fmt.Sprintf(
+		"https://query1.finance.yahoo.com/v8/finance/chart/%s?interval=1d&range=1d",
+		symbol,
+	)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; FamilyLedger/1.0)")
+
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http get: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("yahoo returned status %d", resp.StatusCode)
+	}
+
+	var chart struct {
+		Chart struct {
+			Result []struct {
+				Meta struct {
+					Symbol             string  `json:"symbol"`
+					RegularMarketPrice float64 `json:"regularMarketPrice"`
+					PreviousClose      float64 `json:"previousClose"`
+					ShortName          string  `json:"shortName"`
+				} `json:"meta"`
+				Indicators struct {
+					Quote []struct {
+						Open  []float64 `json:"open"`
+						High  []float64 `json:"high"`
+						Low   []float64 `json:"low"`
+						Close []float64 `json:"close"`
+					} `json:"quote"`
+				} `json:"indicators"`
+			} `json:"result"`
+		} `json:"chart"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&chart); err != nil {
+		return nil, fmt.Errorf("decode json: %w", err)
+	}
+
+	if len(chart.Chart.Result) == 0 {
+		return nil, fmt.Errorf("yahoo returned empty result for %s", symbol)
+	}
+
+	meta := chart.Chart.Result[0].Meta
+	currentPrice := int64(math.Round(meta.RegularMarketPrice * 100))
+	prevClose := int64(math.Round(meta.PreviousClose * 100))
+
+	var openPrice, highPrice, lowPrice int64
+	if quotes := chart.Chart.Result[0].Indicators.Quote; len(quotes) > 0 && len(quotes[0].Open) > 0 {
+		q := quotes[0]
+		openPrice = int64(math.Round(q.Open[0] * 100))
+		if len(q.High) > 0 {
+			highPrice = int64(math.Round(q.High[0] * 100))
+		}
+		if len(q.Low) > 0 {
+			lowPrice = int64(math.Round(q.Low[0] * 100))
+		}
+	}
+
+	changeAmount := currentPrice - prevClose
+	var changePercent float64
+	if prevClose > 0 {
+		changePercent = float64(changeAmount) / float64(prevClose) * 100.0
+	}
+
+	name := meta.ShortName
+	if name == "" {
+		name = symbol
+	}
+
+	return &MarketQuote{
+		Symbol:        symbol,
+		Name:          name,
+		MarketType:    "us_stock",
+		CurrentPrice:  currentPrice,
+		ChangeAmount:  changeAmount,
+		ChangePercent: math.Round(changePercent*100) / 100,
+		Open:          openPrice,
+		High:          highPrice,
+		Low:           lowPrice,
+		PrevClose:     prevClose,
+	}, nil
+}
+
+// ── CoinGecko 加密货币 ──────────────────────────────────────────────────────
+
+func (r *RealFetcher) fetchCoinGeckoQuote(ctx context.Context, symbol string) (*MarketQuote, error) {
+	url := fmt.Sprintf(
+		"https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=usd&include_24hr_change=true",
+		symbol,
+	)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http get: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("coingecko returned status %d", resp.StatusCode)
+	}
+
+	// CoinGecko returns: {"bitcoin": {"usd": 12345.67, "usd_24h_change": -2.5}}
+	var data map[string]struct {
+		USD         float64 `json:"usd"`
+		USD24hChange float64 `json:"usd_24h_change"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, fmt.Errorf("decode json: %w", err)
+	}
+
+	coinData, ok := data[symbol]
+	if !ok {
+		return nil, fmt.Errorf("coingecko: no data for %q", symbol)
+	}
+
+	currentPrice := int64(math.Round(coinData.USD * 100))
+	changePercent := math.Round(coinData.USD24hChange*100) / 100
+
+	// Estimate prevClose from current price and 24h change
+	var prevClose int64
+	if changePercent != 0 {
+		prevClose = int64(math.Round(coinData.USD / (1 + coinData.USD24hChange/100) * 100))
+	} else {
+		prevClose = currentPrice
+	}
+	changeAmount := currentPrice - prevClose
+
+	return &MarketQuote{
+		Symbol:        symbol,
+		Name:          symbol + "/USD",
+		MarketType:    "crypto",
+		CurrentPrice:  currentPrice,
+		ChangeAmount:  changeAmount,
+		ChangePercent: changePercent,
+		Open:          prevClose, // CoinGecko simple API has no OHLC
+		High:          currentPrice,
+		Low:           currentPrice,
+		PrevClose:     prevClose,
+	}, nil
+}
+
+// ── Search implementations ──────────────────────────────────────────────────
+
+func (r *RealFetcher) searchEastMoney(ctx context.Context, query string, marketType string) ([]SymbolInfo, error) {
+	url := fmt.Sprintf(
+		"https://searchapi.eastmoney.com/api/suggest/get?input=%s&type=14&count=10",
+		query,
+	)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Referer", "https://www.eastmoney.com/")
+
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http get: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("eastmoney search returned status %d", resp.StatusCode)
+	}
+
+	var result struct {
+		QuotationCodeTable struct {
+			Data []struct {
+				Code   string `json:"Code"`
+				Name   string `json:"Name"`
+				MktNum string `json:"MktNum"`
+			} `json:"Data"`
+		} `json:"QuotationCodeTable"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decode json: %w", err)
+	}
+
+	var results []SymbolInfo
+	for _, item := range result.QuotationCodeTable.Data {
+		// Filter by market type based on MktNum
+		itemMarket := eastMoneyMktNumToMarketType(item.MktNum)
+		if marketType != "" && itemMarket != marketType {
+			continue
+		}
+		results = append(results, SymbolInfo{
+			Symbol:     item.Code,
+			Name:       item.Name,
+			MarketType: itemMarket,
+		})
+	}
+	return results, nil
+}
+
+// eastMoneyMktNumToMarketType maps 东方财富 MktNum to our market type.
+func eastMoneyMktNumToMarketType(mktNum string) string {
+	switch mktNum {
+	case "0", "1": // SZ, SH
+		return "a_share"
+	case "116": // HK
+		return "hk_stock"
+	default:
+		return "a_share" // default
+	}
+}
+
+func (r *RealFetcher) searchYahoo(ctx context.Context, query string) ([]SymbolInfo, error) {
+	url := fmt.Sprintf(
+		"https://query2.finance.yahoo.com/v1/finance/search?q=%s&quotesCount=10&newsCount=0",
+		query,
+	)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; FamilyLedger/1.0)")
+
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http get: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("yahoo search returned status %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Quotes []struct {
+			Symbol    string `json:"symbol"`
+			ShortName string `json:"shortname"`
+			Exchange  string `json:"exchange"`
+		} `json:"quotes"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decode json: %w", err)
+	}
+
+	var results []SymbolInfo
+	for _, q := range result.Quotes {
+		results = append(results, SymbolInfo{
+			Symbol:     q.Symbol,
+			Name:       q.ShortName,
+			MarketType: "us_stock",
+		})
+	}
+	return results, nil
+}
+
+func (r *RealFetcher) searchCoinGecko(ctx context.Context, query string) ([]SymbolInfo, error) {
+	url := fmt.Sprintf(
+		"https://api.coingecko.com/api/v3/search?query=%s",
+		query,
+	)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("http get: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("coingecko search returned status %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Coins []struct {
+			ID     string `json:"id"`
+			Name   string `json:"name"`
+			Symbol string `json:"symbol"`
+		} `json:"coins"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decode json: %w", err)
+	}
+
+	var results []SymbolInfo
+	for _, c := range result.Coins {
+		results = append(results, SymbolInfo{
+			Symbol:     c.ID,
+			Name:       fmt.Sprintf("%s (%s)", c.Name, strings.ToUpper(c.Symbol)),
+			MarketType: "crypto",
+		})
+	}
+	return results, nil
+}
+
+// ── Utility functions ───────────────────────────────────────────────────────
+
+// yuanToCents converts a json.Number in 元 to int64 in 分.
+func yuanToCents(n json.Number) int64 {
+	f, err := n.Float64()
+	if err != nil {
+		return 0
+	}
+	return int64(math.Round(f * 100))
+}
+
 // ── MockFetcher ─────────────────────────────────────────────────────────────
 
-// MockFetcher returns deterministic-but-varying mock prices based on symbol hash.
+// Deprecated: MockFetcher returns deterministic-but-varying mock prices based on symbol hash.
+// Kept as fallback for RealFetcher and for tests.
 type MockFetcher struct{}
 
 func NewMockFetcher() *MockFetcher {

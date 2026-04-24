@@ -91,7 +91,7 @@ func main() {
 	notifyService := notify.NewService(pool)
 	investmentService := investment.NewService(pool)
 	assetService := asset.NewService(pool)
-	marketFetcher := market.NewMockFetcher()
+	marketFetcher := market.NewRealFetcher()
 	marketService := market.NewService(pool, marketFetcher)
 	exchangeService := market.NewExchangeService(pool)
 	dashboardService := dashboard.NewService(pool)
