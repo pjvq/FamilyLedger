@@ -1,7 +1,7 @@
 # FamilyLedger Implementation Checklist
 
 > Synced with [实施计划](https://my.feishu.cn/docx/BQMsdOBDnoLvXfxQEPtc5sKlnic)
-> Last updated: 2026-04-24 (98 commits)
+> Last updated: 2026-04-24 09:46 (103 commits)
 
 ---
 
@@ -9,7 +9,7 @@
 
 - [x] 邮箱注册 → 登录 → 获得 JWT
 - [x] 首次登录自动创建默认账户
-- [x] 预设分类已存在（餐饮、交通、工资等）
+- [x] 预设分类已存在（餐饮、交通、工资等）— ✅ UUID v5 两端一致 (commit `ac6e55a`)
 - [x] 记一笔支出 ≤ 3 步完成（金额 → 分类 → 确认）
 - [x] 断网时可记账，联网后自动同步
 - [ ] **另一台设备登录可看到已同步的交易** — 缺多设备实测
@@ -17,11 +17,7 @@
 - [x] 深色/亮色主题均可用
 - [x] Docker Compose 一键启动后端
 
-**Phase 1 Today's fixes:**
-- ✅ SyncEngine PushOperations now replays ops to business tables (commit `1e43bbf`)
-- ✅ Frontend soft-delete (Drift v9, commit `1e43bbf`)
-
-## Phase 1b: 交易编辑与删除 (NEW)
+## Phase 1b: 交易编辑与删除
 
 - [x] 点击交易记录可进入详情页
 - [x] 详情页可进入编辑模式，修改金额/分类/备注/标签
@@ -50,7 +46,7 @@
 - [x] 进度条颜色随执行率变化
 - [x] 超支时推送通知 + 脉冲动画
 - [x] 可自定义通知开关和提醒时间
-- [ ] **FCM/APNs 真实推送** — 后端只写 DB 不发 push
+- [ ] **FCM/APNs 真实推送** — 后端只写 DB 不发 push，客户端未集成 firebase_messaging
 
 ## Phase 4: 贷款跟踪
 
@@ -75,7 +71,7 @@
 ## Phase 5: 投资跟踪 + 实时行情
 
 - [x] 支持 A 股、港股、美股、加密货币
-- [ ] **行情 15 分钟内刷新** — MockFetcher 假数据，未接真实 API
+- [ ] **行情 15 分钟内刷新** — MockFetcher 假数据，未接真实 API（东方财富/Yahoo/CoinGecko）
 - [x] 迷你走势图嵌入列表
 - [x] 三种收益率计算正确（table-driven 测试）
 - [x] 图表触摸交互流畅
@@ -96,9 +92,10 @@
 - [x] 一屏展示关键指标
 - [x] 收支趋势: 月/年切换，触摸数据点
 - [x] 分类饼图: 点击扇区显示明细
-- [x] 卡片可拖拽排列、展开/折叠
+- [x] 卡片可拖拽排列、展开/折叠 (ReorderableListView)
 - [x] 导出 CSV / Excel / PDF 格式正确
 - [x] 支持按时间、分类筛选和全量导出
+- [x] Dashboard local-first: 本地数据瞬间显示，gRPC 后台刷新 (commit `2d63109`)
 
 ## Phase 8: 多币种 + CSV 导入 + OAuth 登录
 
@@ -112,41 +109,43 @@
 ## Phase 9: 精打细磨 — UI 打磨 + 空状态 + 错误处理
 
 - [x] 所有页面有空状态插图 — 13 个 EmptyState 预设
-- [x] 所有列表加载使用骨架屏 — ✅ 今天全部替换完成 (commit `f61bd9c`)
-- [ ] **8 项微交互全部实现且 60fps** — 见下方详细对照
-- [x] 错误状态有友好页面 + 重试 — ✅ ErrorState 组件已集成 (commit `f61bd9c`)
-- [ ] **1000+ 条交易列表滚动流畅** — VirtualList 组件存在但未集成到 transaction_history_page
+- [x] 所有列表加载使用骨架屏 — 8 个页面 (commit `f61bd9c`)
+- [x] 错误状态有友好页面 + 重试 — ErrorState 组件 (commit `f61bd9c`)
 - [x] 深色/亮色模式视觉均正确
 - [x] 数字等宽字体，金额对齐美观 — tabularFigures 用于 18 个页面
+- [ ] **1000+ 条交易列表滚动流畅** — VirtualList 已集成但未做压测验证
 
 ### Phase 9 微交互详细对照
 
-| 项目 | 组件存在 | 实际集成使用 | 状态 |
-|------|---------|-------------|------|
-| 空状态插图 | ✅ empty_state.dart | ✅ 13 个页面 | ✅ Done |
-| 骨架屏 | ✅ skeleton_loading.dart | ✅ 8 个页面 | ✅ Done |
-| 记账成功动画+震动 | ✅ success_animation.dart | ❌ **未在 add_transaction_page 中调用** | 🔴 Gap |
-| 自定义下拉刷新 | ✅ custom_refresh.dart | ❌ **所有页面仍用默认 RefreshIndicator** | 🔴 Gap |
-| 投资涨跌数字滚动 | ✅ animated_counter.dart | ❌ **未在 investments_page 中使用** | 🔴 Gap |
-| 左滑删除 | ✅ swipe_to_delete.dart | ⚠️ transaction_history 用 Dismissible，未用自定义组件 | 🟡 Partial |
-| Tab 下划线滑动 | ✅ animated_tab_bar.dart | ❌ **未在任何页面使用** | 🔴 Gap |
-| 共享元素动画 | ✅ shared_element_route.dart | ❌ **未在列表→详情转场使用** | 🔴 Gap |
-| 错误状态 | ✅ error_state.dart | ✅ 已集成 | ✅ Done |
-| VirtualList 高性能列表 | ✅ virtual_list.dart | ❌ **未在 transaction_history 使用** | 🔴 Gap |
-| 无障碍 | ✅ accessibility.dart | ✅ 部分页面有语义标签 | 🟡 Partial |
+| 项目 | 实施计划要求 | 组件 | 页面集成 | 状态 |
+|------|------------|------|---------|------|
+| 空状态插图 | 精心设计的插图+引导文案 | empty_state.dart | ✅ 13 个页面 | ✅ Done |
+| 骨架屏 | 所有列表加载使用 Skeleton | skeleton_loading.dart | ✅ 8 个页面 | ✅ Done |
+| 记账成功动画 | 轻微震动+金额数字飞入卡片 | success_animation.dart | ✅ add_transaction_page | ✅ Done |
+| 自定义下拉刷新 | 自定义刷新动画 | custom_refresh.dart | ✅ 5 个列表页 | ✅ Done |
+| 投资涨跌数字滚动 | 数字滚动计数器效果 | animated_counter.dart | ✅ balance_card + investments | ✅ Done |
+| 左滑删除 | 红色区域+二次确认 | swipe_to_delete.dart | ⚠️ 用 Dismissible 基础组件 | 🟡 Partial |
+| Tab 下划线滑动 | 下划线滑动跟随 | animated_tab_bar.dart | ✅ loan_group_detail_page | ✅ Done |
+| 共享元素动画 | 列表→详情共享元素 | shared_element_route.dart | ✅ 列表→详情转场 | ✅ Done |
+| 错误状态 | 友好文案+一键重试 | error_state.dart | ✅ 已集成 | ✅ Done |
+| 虚拟列表 | 1000+条滚动无掉帧 | virtual_list.dart | ✅ transaction_history | ✅ Done (未压测) |
+| 无障碍 | 语义标签、对比度达标 | accessibility.dart | ⚠️ 部分页面 | 🟡 Partial |
+
+**Phase 9 完成率: 9/11 Done, 2/11 Partial = ~85%**
 
 ---
 
 ## Cross-cutting Gaps（跨 Phase 问题）
 
-| # | 问题 | 影响 | 优先级 |
-|---|------|------|--------|
-| 1 | **Go 后端零单元测试** — 无 `_test.go` 文件 | 代码质量 | P1 |
-| 2 | **MockFetcher** — 行情数据全假 | Phase 5 不可用 | P1 |
-| 3 | **OAuth Mock** — code="test" 直接通过 | Phase 8 不可用 | P1 |
-| 4 | **FCM/APNs Placeholder** — 通知不发推送 | Phase 3 不完整 | P2 |
-| 5 | **category_id 不同步** — 本地 cat_food vs 服务端 UUID | Phase 1 数据一致性 | P1 |
-| 6 | **Dashboard 纯依赖服务端** — 应优先本地聚合 | Phase 1 离线体验 | P1 |
-| 7 | **多设备同步未实测** | Phase 1/2 | P2 |
-| 8 | **Phase 9 组件集成** — 6 个组件写好了没用上 | UI 打磨 | P2 |
-| 9 | **ListTransactions 用 offset 分页** — 大数据量性能差 | 性能 | P3 |
+| # | 问题 | 影响 | 优先级 | 预估 |
+|---|------|------|--------|------|
+| 1 | **Go 后端零单元测试** — 无 `_test.go` 文件 | 代码质量 | P1 | 2-3 天 |
+| 2 | **MockFetcher** — 行情数据全假 | Phase 5 不可用 | P1 | 2-3 天 |
+| 3 | **OAuth Mock** — code="test" 直接通过 | Phase 8 不可用 | P2 | 2-3 天 |
+| 4 | **FCM/APNs Placeholder** — 通知不发推送 | Phase 3 不完整 | P2 | 1-2 天 |
+| 5 | **SyncEngine account/category 分支空** | 数据同步不完整 | P1 | 0.5 天 |
+| 6 | **oauthLogin 拼假 account ID** | 登录后数据不匹配 | P2 | 0.5 天 |
+| 7 | **多设备同步未实测** | Phase 1/2 | P2 | 0.5 天 |
+| 8 | **1000+ 条压测 + 60fps 验证** | Phase 9 | P2 | 0.5 天 |
+| 9 | **ListTransactions 用 offset 分页** — 大数据量性能差 | 性能 | P3 | 0.5 天 |
+| 10 | **自定义字体 DINRoundPro** — 6 处 TODO | UI 细节 | P3 | 1h |
