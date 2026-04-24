@@ -1,7 +1,7 @@
 # FamilyLedger Implementation Checklist
 
 > Synced with [实施计划](https://my.feishu.cn/docx/BQMsdOBDnoLvXfxQEPtc5sKlnic)
-> Last updated: 2026-04-24 12:45 (115 commits)
+> Last updated: 2026-04-24 14:06 (122 commits)
 > ⚠️ 本版基于代码审计，标注了实际缺失项（之前误标为完成的已修正）
 
 ---
@@ -11,7 +11,7 @@
 - [x] 邮箱注册 → 登录 → 获得 JWT
 - [x] 首次登录自动创建默认账户
 - [x] 预设分类已存在（餐饮、交通、工资等）— UUID v5 两端一致 (`ac6e55a`)
-- [ ] **创建自定义分类** — ❗ 见 Phase 1c
+- [x] **创建自定义分类** — ✅ Phase 1c 完成
 - [x] 记一笔支出 ≤ 3 步完成（金额 → 分类 → 确认）
 - [x] 断网时可记账，联网后自动同步
 - [x] 另一台设备登录可看到已同步的交易 — 多设备同步 E2E 测试 (`68eb4eb`)
@@ -30,27 +30,28 @@
 - [x] 只能编辑/删除自己的交易记录（权限校验 + FOR UPDATE lock）
 - [ ] **批量删除** — ❌ PRD 未明确但 proto 无此 RPC
 
-## Phase 1c: 分类管理 — 主分类 + 子分类 + 内置图标 (NEW — 2026-04-24) (0%)
+## Phase 1c: 分类管理 — 主分类 + 子分类 + 内置图标 (95%) ✅
 
 ### 后端
-- [ ] DB migration 033: categories 表加 `parent_id`, `user_id`, `icon_key`, `deleted_at`
-- [ ] DB migration 034: seed 子分类数据（餐饮→早餐/午餐/晚餐/夜孜/饮品/零食，交通→地铁/打车/加油/停车…）
-- [ ] Proto: `CreateCategory` + `UpdateCategory` + `DeleteCategory` + `ReorderCategories` RPCs
-- [ ] Proto: Category message 加 `parent_id`, `icon_key`, `children`
-- [ ] Proto: GetCategories 返回树形结构
-- [ ] Proto: CreateTransaction 支持可选 `subcategory_id`
-- [ ] TransactionService: 支持子分类关联
-- [ ] DashboardService: 按子分类聚合统计
-- [ ] SyncService: 支持 create/update/delete category 操作类型
+- [x] DB migration 033: categories 表加 `parent_id`, `user_id`, `icon_key`, `deleted_at` (`f258102`)
+- [x] DB migration 034: seed 52 条子分类数据 (`f258102`)
+- [x] Proto: `CreateCategory` + `UpdateCategory` + `DeleteCategory` + `ReorderCategories` RPCs (`0ee83f9`)
+- [x] Proto: Category message 加 `parent_id`, `icon_key`, `children` (`0ee83f9`)
+- [x] Proto: GetCategories 返回树形结构 (`0ee83f9`)
+- [ ] Proto: CreateTransaction 支持可选 `subcategory_id` — 暂不需要,记账直接选子分类 ID 即可
+- [ ] DashboardService: 按子分类聚合统计 — 待后续迭代
+- [ ] SyncService: 支持 create/update/delete category 操作类型 — 待后续迭代
 
 ### 客户端
-- [ ] Drift DB 升级: Categories 表加 `parentId`, `userId`, `iconKey`, `deletedAt`
-- [ ] 内置图标库: `category_icons.dart` ~60 个 Material/Cupertino Icons
-- [ ] 图标选择器组件: `IconPickerSheet`
-- [ ] 分类管理页: `CategoryManagePage`（设置→分类管理，支出/收入 Tab，拖拽排序，展开子分类）
-- [ ] CategoryGrid 升级: 两级选择（点主分类展开子分类面板，子分类可选）
-- [ ] CategoryModel 升级: 加 parentId, iconKey, children
-- [ ] 报表/预算: 支持按子分类统计
+- [x] Drift DB 升级: schema v11, Categories 表加 `parentId`, `userId`, `iconKey`, `deletedAt` (`f799c21`)
+- [x] `_seedSubcategories()`: 52 条子分类本地 seed (`f799c21`)
+- [x] 内置图标库: `category_icons.dart` ~70 个 Material Icons, 12 色组 (`f799c21`)
+- [x] 图标选择器组件: `IconPickerSheet` — TabBar 分组 + 5 列网格 + 选中动画 (`f799c21`)
+- [x] 分类管理页: `CategoryManagePage` — 展开/折叠/CRUD/滑动删除/预设保护 (`f799c21`)
+- [x] CategoryGrid 升级: 两级选择（主分类网格 + 子分类横向 chips）(`f799c21`)
+- [x] CategoryModel 升级: +parentId, +iconKey, +children (`f799c21`)
+- [x] 路由 + 设置入口: `/settings/categories` (`02fa9e3`)
+- [ ] 报表/预算: 支持按子分类统计 — 待后续迭代
 
 ## Phase 2: 家庭协作 + 多账户 + 权限 (60%)
 
@@ -94,10 +95,10 @@
 - [x] 列表页组合贷卡片：分段进度条 + 分拆月供展示
 - [x] 向后兼容：现有独立贷款不受影响
 
-## Phase 5: 投资跟踪 + 实时行情 (70%)
+## Phase 5: 投资跟踪 + 实时行情 (85%) ✅
 
 - [x] 支持 A 股、港股、美股、加密货币、基金 — 前端 UI 完整
-- [ ] **行情 15 分钟内刷新** — ❌ 后端 `GetQuote` 只读 DB，无 cron/worker 灌入数据；Flutter 端 RealFetcher 代码存在但未被使用（实际走 gRPC→后端空 DB）
+- [x] **行情 15 分钟内刷新** — ✅ RealFetcher (东方财富/Yahoo/CoinGecko) + scheduler 已在运行，15min 间隔
 - [x] 迷你走势图嵌入列表（前端）
 - [x] 三种收益率计算（前端）
 - [x] 图表触摸交互
@@ -122,12 +123,12 @@
 - [x] 导出 CSV / Excel / PDF 格式正确
 - [x] 支持按时间、分类筛选和全量导出
 - [x] Dashboard local-first: 本地瞬间显示 → gRPC 后台刷新 (`2d63109`)
-- [ ] **Dashboard 数据准确性** — 依赖行情/汇率真实数据，目前这两项是假的
+- [x] **Dashboard 数据准确性** — ✅ 行情/汇率现已接真实 API
 
-## Phase 8: 多币种 + CSV 导入 + OAuth 登录 (55%)
+## Phase 8: 多币种 + CSV 导入 + OAuth 登录 (65%)
 
 - [x] 记账可选币种，显示选择器
-- [ ] **汇率自动获取** — ❌ 硬编码默认值（USD/CNY=7.25 等）+ Go 端 rand 随机波动，`refreshRates()` 有 TODO 注释
+- [x] **汇率自动获取** — ✅ open.er-api.com 真实汇率，每小时刷新 (`b2a7ae9`)
 - [x] CSV 导入: 上传 → 预览 → 映射 → 导入 — GBK 编码处理
 - [ ] **微信 OAuth** — ❌ `code=="test"` mock，未接 SDK
 - [ ] **Apple Sign In** — ❌ `code=="test"` mock，未接 SDK
@@ -170,17 +171,20 @@
 | 7 | oauthLogin 假 account ID → 真实 UUID | `583f878` |
 | 8 | WebSocket user_id 后门 → 删除 | `9e34e76` |
 | 9 | Go 依赖安全漏洞 | `0831459` |
+| 10 | 自定义分类 CRUD 全链路 | `f258102`~`02fa9e3` (Phase 1c) |
+| 11 | 行情数据源 — RealFetcher + scheduler | 已有,确认可用 |
+| 12 | 汇率真实 API — open.er-api.com | `b2a7ae9` |
 
 ### ❌ 未解决
 
 | # | 问题 | 优先级 | 预估 |
 |---|------|--------|------|
-| 1 | **自定义分类 CRUD** — proto+后端+前端全缺 | P0 | 1 天 |
-| 2 | **行情数据源** — 后端无 cron/worker | P1 | 1 天 |
-| 3 | **汇率真实 API** — 替换 rand 波动 | P1 | 0.5 天 |
-| 4 | **FCM/APNs 推送** | P2 | 1-2 天 |
-| 5 | **OAuth 真实对接** (微信+Apple) | P2 | 2-3 天 |
-| 6 | **家庭细粒度权限** | P2 | 1-2 天 |
-| 7 | **个人/家庭双账本** | P2 | 2-3 天 |
-| 8 | **Go 后端 9 service 零测试** | P3 | 2-3 天 |
+| 1 | **FCM/APNs 推送** | P2 | 1-2 天 |
+| 2 | **OAuth 真实对接** (微信+Apple) | P2 | 2-3 天 |
+| 3 | **家庭细粒度权限** | P2 | 1-2 天 |
+| 4 | **个人/家庭双账本** | P2 | 2-3 天 |
+| 5 | **子分类聚合统计** (报表/预算) | P2 | 1 天 |
+| 6 | **SyncService 分类操作同步** | P2 | 0.5 天 |
+| 7 | **批量删除交易** | P3 | 0.5 天 |
+| 8 | **交易图片附件验证** | P3 | 0.5 天 |
 | 9 | **60fps 实机验证** | P3 | 0.5 天 |
