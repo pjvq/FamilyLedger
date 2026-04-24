@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../data/local/database.dart';
 import '../../features/auth/login_page.dart';
@@ -154,17 +155,8 @@ class AppRouter {
         transitionDuration: const Duration(milliseconds: 250),
       );
 
-  static PageRouteBuilder _slide(Widget page) => PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => page,
-        transitionsBuilder: (context, a, secondaryAnimation, child) =>
-            SlideTransition(
-          position: Tween(
-            begin: const Offset(1, 0),
-            end: Offset.zero,
-          ).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
-          child: child,
-        ),
-        transitionDuration: const Duration(milliseconds: 300),
+  static Route<dynamic> _slide(Widget page) => CupertinoPageRoute(
+        builder: (context) => page,
       );
 
   static PageRouteBuilder _slideUp(Widget page) => PageRouteBuilder(
