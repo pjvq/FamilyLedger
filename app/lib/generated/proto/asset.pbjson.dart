@@ -66,6 +66,7 @@ const Asset$json = {
     {'1': 'description', '3': 8, '4': 1, '5': 9, '10': 'description'},
     {'1': 'created_at', '3': 9, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
     {'1': 'updated_at', '3': 10, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+    {'1': 'family_id', '3': 11, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
 
@@ -78,7 +79,8 @@ final $typed_data.Uint8List assetDescriptor = $convert.base64Decode(
     'ZGF0ZRgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSDHB1cmNoYXNlRGF0ZRIgCg'
     'tkZXNjcmlwdGlvbhgIIAEoCVILZGVzY3JpcHRpb24SOQoKY3JlYXRlZF9hdBgJIAEoCzIaLmdv'
     'b2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCWNyZWF0ZWRBdBI5Cgp1cGRhdGVkX2F0GAogASgLMh'
-    'ouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJdXBkYXRlZEF0');
+    'ouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJdXBkYXRlZEF0EhsKCWZhbWlseV9pZBgLIAEo'
+    'CVIIZmFtaWx5SWQ=');
 
 @$core.Deprecated('Use assetValuationDescriptor instead')
 const AssetValuation$json = {
@@ -129,6 +131,7 @@ const CreateAssetRequest$json = {
     {'1': 'purchase_price', '3': 3, '4': 1, '5': 3, '10': 'purchasePrice'},
     {'1': 'purchase_date', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'purchaseDate'},
     {'1': 'description', '3': 5, '4': 1, '5': 9, '10': 'description'},
+    {'1': 'family_id', '3': 6, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
 
@@ -138,7 +141,7 @@ final $typed_data.Uint8List createAssetRequestDescriptor = $convert.base64Decode
     'IgASgOMiAuZmFtaWx5bGVkZ2VyLmFzc2V0LnYxLkFzc2V0VHlwZVIJYXNzZXRUeXBlEiUKDnB1'
     'cmNoYXNlX3ByaWNlGAMgASgDUg1wdXJjaGFzZVByaWNlEj8KDXB1cmNoYXNlX2RhdGUYBCABKA'
     'syGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUgxwdXJjaGFzZURhdGUSIAoLZGVzY3JpcHRp'
-    'b24YBSABKAlSC2Rlc2NyaXB0aW9u');
+    'b24YBSABKAlSC2Rlc2NyaXB0aW9uEhsKCWZhbWlseV9pZBgGIAEoCVIIZmFtaWx5SWQ=');
 
 @$core.Deprecated('Use getAssetRequestDescriptor instead')
 const GetAssetRequest$json = {

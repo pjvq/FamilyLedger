@@ -63,6 +63,7 @@ const Investment$json = {
     {'1': 'annualized_return', '3': 10, '4': 1, '5': 1, '10': 'annualizedReturn'},
     {'1': 'created_at', '3': 11, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
     {'1': 'updated_at', '3': 12, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+    {'1': 'family_id', '3': 13, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
 
@@ -76,7 +77,7 @@ final $typed_data.Uint8List investmentDescriptor = $convert.base64Decode(
     'V0dXJuGAkgASgBUgt0b3RhbFJldHVybhIrChFhbm51YWxpemVkX3JldHVybhgKIAEoAVIQYW5u'
     'dWFsaXplZFJldHVybhI5CgpjcmVhdGVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbW'
     'VzdGFtcFIJY3JlYXRlZEF0EjkKCnVwZGF0ZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYu'
-    'VGltZXN0YW1wUgl1cGRhdGVkQXQ=');
+    'VGltZXN0YW1wUgl1cGRhdGVkQXQSGwoJZmFtaWx5X2lkGA0gASgJUghmYW1pbHlJZA==');
 
 @$core.Deprecated('Use investmentTradeDescriptor instead')
 const InvestmentTrade$json = {
@@ -207,6 +208,7 @@ const CreateInvestmentRequest$json = {
     {'1': 'symbol', '3': 1, '4': 1, '5': 9, '10': 'symbol'},
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
     {'1': 'market_type', '3': 3, '4': 1, '5': 14, '6': '.familyledger.investment.v1.MarketType', '10': 'marketType'},
+    {'1': 'family_id', '3': 4, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
 
@@ -214,7 +216,8 @@ const CreateInvestmentRequest$json = {
 final $typed_data.Uint8List createInvestmentRequestDescriptor = $convert.base64Decode(
     'ChdDcmVhdGVJbnZlc3RtZW50UmVxdWVzdBIWCgZzeW1ib2wYASABKAlSBnN5bWJvbBISCgRuYW'
     '1lGAIgASgJUgRuYW1lEkcKC21hcmtldF90eXBlGAMgASgOMiYuZmFtaWx5bGVkZ2VyLmludmVz'
-    'dG1lbnQudjEuTWFya2V0VHlwZVIKbWFya2V0VHlwZQ==');
+    'dG1lbnQudjEuTWFya2V0VHlwZVIKbWFya2V0VHlwZRIbCglmYW1pbHlfaWQYBCABKAlSCGZhbW'
+    'lseUlk');
 
 @$core.Deprecated('Use getInvestmentRequestDescriptor instead')
 const GetInvestmentRequest$json = {

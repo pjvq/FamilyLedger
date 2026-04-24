@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/permission"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -46,13 +47,26 @@ func (s *Service) CreateInvestment(ctx context.Context, req *pb.CreateInvestment
 
 	mt := marketTypeToString(req.MarketType)
 
+	// Family permission check
+	var familyID *uuid.UUID
+	if req.FamilyId != "" {
+		fid, err := uuid.Parse(req.FamilyId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid family_id")
+		}
+		familyID = &fid
+		if err := permission.Check(ctx, s.pool, userID, req.FamilyId, permission.CanEdit); err != nil {
+			return nil, err
+		}
+	}
+
 	var id uuid.UUID
 	var createdAt, updatedAt time.Time
 	err = s.pool.QueryRow(ctx,
-		`INSERT INTO investments (user_id, symbol, name, market_type)
-		 VALUES ($1, $2, $3, $4)
+		`INSERT INTO investments (user_id, symbol, name, market_type, family_id)
+		 VALUES ($1, $2, $3, $4, $5)
 		 RETURNING id, created_at, updated_at`,
-		userID, req.Symbol, req.Name, mt,
+		userID, req.Symbol, req.Name, mt, familyID,
 	).Scan(&id, &createdAt, &updatedAt)
 	if err != nil {
 		// Check for unique constraint violation

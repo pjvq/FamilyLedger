@@ -47,6 +47,7 @@ message Asset {
     string description = 8;
     google.protobuf.Timestamp created_at = 9;
     google.protobuf.Timestamp updated_at = 10;
+    string family_id = 11;          // 家庭 ID（空 = 个人资产）
 }
 
 message AssetValuation {
@@ -74,6 +75,7 @@ message CreateAssetRequest {
     int64 purchase_price = 3;
     google.protobuf.Timestamp purchase_date = 4;
     string description = 5;
+    string family_id = 6;           // 家庭 ID（可选）
 }
 
 message GetAssetRequest {

@@ -216,9 +216,9 @@ func TestUpdateBudget_Success(t *testing.T) {
 	now := time.Now()
 
 	// Verify ownership
-	mock.ExpectQuery("SELECT user_id FROM budgets WHERE id").
+	mock.ExpectQuery("SELECT user_id, family_id FROM budgets WHERE id").
 		WithArgs(budgetID).
-		WillReturnRows(pgxmock.NewRows([]string{"user_id"}).AddRow(testUserID))
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(testUserID, (*string)(nil)))
 
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE budgets SET total_amount").
@@ -255,7 +255,7 @@ func TestUpdateBudget_NotFound(t *testing.T) {
 
 	budgetID := uuid.New()
 
-	mock.ExpectQuery("SELECT user_id FROM budgets WHERE id").
+	mock.ExpectQuery("SELECT user_id, family_id FROM budgets WHERE id").
 		WithArgs(budgetID).
 		WillReturnError(pgx.ErrNoRows)
 
@@ -279,8 +279,12 @@ func TestDeleteBudget_Success(t *testing.T) {
 
 	budgetID := uuid.New()
 
+	mock.ExpectQuery("SELECT user_id, family_id FROM budgets WHERE id").
+		WithArgs(budgetID).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(testUserID, (*string)(nil)))
+
 	mock.ExpectExec("DELETE FROM budgets WHERE id").
-		WithArgs(budgetID, testUserID).
+		WithArgs(budgetID).
 		WillReturnResult(pgxmock.NewResult("DELETE", 1))
 
 	_, err = svc.DeleteBudget(authedCtx(), &pb.DeleteBudgetRequest{BudgetId: budgetID.String()})
@@ -297,9 +301,9 @@ func TestDeleteBudget_NotFound(t *testing.T) {
 
 	budgetID := uuid.New()
 
-	mock.ExpectExec("DELETE FROM budgets WHERE id").
-		WithArgs(budgetID, testUserID).
-		WillReturnResult(pgxmock.NewResult("DELETE", 0))
+	mock.ExpectQuery("SELECT user_id, family_id FROM budgets WHERE id").
+		WithArgs(budgetID).
+		WillReturnError(pgx.ErrNoRows)
 
 	_, err = svc.DeleteBudget(authedCtx(), &pb.DeleteBudgetRequest{BudgetId: budgetID.String()})
 	require.Error(t, err)

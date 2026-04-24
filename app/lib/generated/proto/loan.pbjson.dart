@@ -121,6 +121,7 @@ const Loan$json = {
     {'1': 'lpr_base', '3': 19, '4': 1, '5': 1, '10': 'lprBase'},
     {'1': 'lpr_spread', '3': 20, '4': 1, '5': 1, '10': 'lprSpread'},
     {'1': 'rate_adjust_month', '3': 21, '4': 1, '5': 5, '10': 'rateAdjustMonth'},
+    {'1': 'family_id', '3': 22, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
 
@@ -141,7 +142,8 @@ final $typed_data.Uint8List loanDescriptor = $convert.base64Decode(
     'dHlwZRgRIAEoDjIhLmZhbWlseWxlZGdlci5sb2FuLnYxLkxvYW5TdWJUeXBlUgdzdWJUeXBlEj'
     'sKCXJhdGVfdHlwZRgSIAEoDjIeLmZhbWlseWxlZGdlci5sb2FuLnYxLlJhdGVUeXBlUghyYXRl'
     'VHlwZRIZCghscHJfYmFzZRgTIAEoAVIHbHByQmFzZRIdCgpscHJfc3ByZWFkGBQgASgBUglscH'
-    'JTcHJlYWQSKgoRcmF0ZV9hZGp1c3RfbW9udGgYFSABKAVSD3JhdGVBZGp1c3RNb250aA==');
+    'JTcHJlYWQSKgoRcmF0ZV9hZGp1c3RfbW9udGgYFSABKAVSD3JhdGVBZGp1c3RNb250aBIbCglm'
+    'YW1pbHlfaWQYFiABKAlSCGZhbWlseUlk');
 
 @$core.Deprecated('Use loanScheduleItemDescriptor instead')
 const LoanScheduleItem$json = {
@@ -205,6 +207,7 @@ const CreateLoanRequest$json = {
     {'1': 'payment_day', '3': 7, '4': 1, '5': 5, '10': 'paymentDay'},
     {'1': 'start_date', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'startDate'},
     {'1': 'account_id', '3': 9, '4': 1, '5': 9, '10': 'accountId'},
+    {'1': 'family_id', '3': 10, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
 
@@ -217,7 +220,7 @@ final $typed_data.Uint8List createLoanRequestDescriptor = $convert.base64Decode(
     'KA4yJS5mYW1pbHlsZWRnZXIubG9hbi52MS5SZXBheW1lbnRNZXRob2RSD3JlcGF5bWVudE1ldG'
     'hvZBIfCgtwYXltZW50X2RheRgHIAEoBVIKcGF5bWVudERheRI5CgpzdGFydF9kYXRlGAggASgL'
     'MhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJc3RhcnREYXRlEh0KCmFjY291bnRfaWQYCS'
-    'ABKAlSCWFjY291bnRJZA==');
+    'ABKAlSCWFjY291bnRJZBIbCglmYW1pbHlfaWQYCiABKAlSCGZhbWlseUlk');
 
 @$core.Deprecated('Use getLoanRequestDescriptor instead')
 const GetLoanRequest$json = {

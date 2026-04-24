@@ -15,49 +15,49 @@ import 'dart:core' as $core;
 import 'package:grpc/service_api.dart' as $grpc;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'asset.pb.dart' as $0;
+import 'asset.pb.dart' as $3;
 import 'google/protobuf/empty.pb.dart' as $1;
 
 export 'asset.pb.dart';
 
 @$pb.GrpcServiceName('familyledger.asset.v1.AssetService')
 class AssetServiceClient extends $grpc.Client {
-  static final _$createAsset = $grpc.ClientMethod<$0.CreateAssetRequest, $0.Asset>(
+  static final _$createAsset = $grpc.ClientMethod<$3.CreateAssetRequest, $3.Asset>(
       '/familyledger.asset.v1.AssetService/CreateAsset',
-      ($0.CreateAssetRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.Asset.fromBuffer(value));
-  static final _$getAsset = $grpc.ClientMethod<$0.GetAssetRequest, $0.Asset>(
+      ($3.CreateAssetRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $3.Asset.fromBuffer(value));
+  static final _$getAsset = $grpc.ClientMethod<$3.GetAssetRequest, $3.Asset>(
       '/familyledger.asset.v1.AssetService/GetAsset',
-      ($0.GetAssetRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.Asset.fromBuffer(value));
-  static final _$listAssets = $grpc.ClientMethod<$0.ListAssetsRequest, $0.ListAssetsResponse>(
+      ($3.GetAssetRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $3.Asset.fromBuffer(value));
+  static final _$listAssets = $grpc.ClientMethod<$3.ListAssetsRequest, $3.ListAssetsResponse>(
       '/familyledger.asset.v1.AssetService/ListAssets',
-      ($0.ListAssetsRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.ListAssetsResponse.fromBuffer(value));
-  static final _$updateAsset = $grpc.ClientMethod<$0.UpdateAssetRequest, $0.Asset>(
+      ($3.ListAssetsRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $3.ListAssetsResponse.fromBuffer(value));
+  static final _$updateAsset = $grpc.ClientMethod<$3.UpdateAssetRequest, $3.Asset>(
       '/familyledger.asset.v1.AssetService/UpdateAsset',
-      ($0.UpdateAssetRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.Asset.fromBuffer(value));
-  static final _$deleteAsset = $grpc.ClientMethod<$0.DeleteAssetRequest, $1.Empty>(
+      ($3.UpdateAssetRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $3.Asset.fromBuffer(value));
+  static final _$deleteAsset = $grpc.ClientMethod<$3.DeleteAssetRequest, $1.Empty>(
       '/familyledger.asset.v1.AssetService/DeleteAsset',
-      ($0.DeleteAssetRequest value) => value.writeToBuffer(),
+      ($3.DeleteAssetRequest value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $1.Empty.fromBuffer(value));
-  static final _$updateValuation = $grpc.ClientMethod<$0.UpdateValuationRequest, $0.AssetValuation>(
+  static final _$updateValuation = $grpc.ClientMethod<$3.UpdateValuationRequest, $3.AssetValuation>(
       '/familyledger.asset.v1.AssetService/UpdateValuation',
-      ($0.UpdateValuationRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.AssetValuation.fromBuffer(value));
-  static final _$listValuations = $grpc.ClientMethod<$0.ListValuationsRequest, $0.ListValuationsResponse>(
+      ($3.UpdateValuationRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $3.AssetValuation.fromBuffer(value));
+  static final _$listValuations = $grpc.ClientMethod<$3.ListValuationsRequest, $3.ListValuationsResponse>(
       '/familyledger.asset.v1.AssetService/ListValuations',
-      ($0.ListValuationsRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.ListValuationsResponse.fromBuffer(value));
-  static final _$setDepreciationRule = $grpc.ClientMethod<$0.SetDepreciationRuleRequest, $0.DepreciationRule>(
+      ($3.ListValuationsRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $3.ListValuationsResponse.fromBuffer(value));
+  static final _$setDepreciationRule = $grpc.ClientMethod<$3.SetDepreciationRuleRequest, $3.DepreciationRule>(
       '/familyledger.asset.v1.AssetService/SetDepreciationRule',
-      ($0.SetDepreciationRuleRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.DepreciationRule.fromBuffer(value));
-  static final _$runDepreciation = $grpc.ClientMethod<$0.RunDepreciationRequest, $0.Asset>(
+      ($3.SetDepreciationRuleRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $3.DepreciationRule.fromBuffer(value));
+  static final _$runDepreciation = $grpc.ClientMethod<$3.RunDepreciationRequest, $3.Asset>(
       '/familyledger.asset.v1.AssetService/RunDepreciation',
-      ($0.RunDepreciationRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $0.Asset.fromBuffer(value));
+      ($3.RunDepreciationRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $3.Asset.fromBuffer(value));
 
   AssetServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -65,39 +65,39 @@ class AssetServiceClient extends $grpc.Client {
       : super(channel, options: options,
         interceptors: interceptors);
 
-  $grpc.ResponseFuture<$0.Asset> createAsset($0.CreateAssetRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$3.Asset> createAsset($3.CreateAssetRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$createAsset, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.Asset> getAsset($0.GetAssetRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$3.Asset> getAsset($3.GetAssetRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$getAsset, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.ListAssetsResponse> listAssets($0.ListAssetsRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$3.ListAssetsResponse> listAssets($3.ListAssetsRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$listAssets, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.Asset> updateAsset($0.UpdateAssetRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$3.Asset> updateAsset($3.UpdateAssetRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$updateAsset, request, options: options);
   }
 
-  $grpc.ResponseFuture<$1.Empty> deleteAsset($0.DeleteAssetRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$1.Empty> deleteAsset($3.DeleteAssetRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$deleteAsset, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.AssetValuation> updateValuation($0.UpdateValuationRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$3.AssetValuation> updateValuation($3.UpdateValuationRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$updateValuation, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.ListValuationsResponse> listValuations($0.ListValuationsRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$3.ListValuationsResponse> listValuations($3.ListValuationsRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$listValuations, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.DepreciationRule> setDepreciationRule($0.SetDepreciationRuleRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$3.DepreciationRule> setDepreciationRule($3.SetDepreciationRuleRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$setDepreciationRule, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.Asset> runDepreciation($0.RunDepreciationRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$3.Asset> runDepreciation($3.RunDepreciationRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$runDepreciation, request, options: options);
   }
 }
@@ -107,114 +107,114 @@ abstract class AssetServiceBase extends $grpc.Service {
   $core.String get $name => 'familyledger.asset.v1.AssetService';
 
   AssetServiceBase() {
-    $addMethod($grpc.ServiceMethod<$0.CreateAssetRequest, $0.Asset>(
+    $addMethod($grpc.ServiceMethod<$3.CreateAssetRequest, $3.Asset>(
         'CreateAsset',
         createAsset_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $0.CreateAssetRequest.fromBuffer(value),
-        ($0.Asset value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.GetAssetRequest, $0.Asset>(
+        ($core.List<$core.int> value) => $3.CreateAssetRequest.fromBuffer(value),
+        ($3.Asset value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$3.GetAssetRequest, $3.Asset>(
         'GetAsset',
         getAsset_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $0.GetAssetRequest.fromBuffer(value),
-        ($0.Asset value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.ListAssetsRequest, $0.ListAssetsResponse>(
+        ($core.List<$core.int> value) => $3.GetAssetRequest.fromBuffer(value),
+        ($3.Asset value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$3.ListAssetsRequest, $3.ListAssetsResponse>(
         'ListAssets',
         listAssets_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $0.ListAssetsRequest.fromBuffer(value),
-        ($0.ListAssetsResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.UpdateAssetRequest, $0.Asset>(
+        ($core.List<$core.int> value) => $3.ListAssetsRequest.fromBuffer(value),
+        ($3.ListAssetsResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$3.UpdateAssetRequest, $3.Asset>(
         'UpdateAsset',
         updateAsset_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $0.UpdateAssetRequest.fromBuffer(value),
-        ($0.Asset value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.DeleteAssetRequest, $1.Empty>(
+        ($core.List<$core.int> value) => $3.UpdateAssetRequest.fromBuffer(value),
+        ($3.Asset value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$3.DeleteAssetRequest, $1.Empty>(
         'DeleteAsset',
         deleteAsset_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $0.DeleteAssetRequest.fromBuffer(value),
+        ($core.List<$core.int> value) => $3.DeleteAssetRequest.fromBuffer(value),
         ($1.Empty value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.UpdateValuationRequest, $0.AssetValuation>(
+    $addMethod($grpc.ServiceMethod<$3.UpdateValuationRequest, $3.AssetValuation>(
         'UpdateValuation',
         updateValuation_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $0.UpdateValuationRequest.fromBuffer(value),
-        ($0.AssetValuation value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.ListValuationsRequest, $0.ListValuationsResponse>(
+        ($core.List<$core.int> value) => $3.UpdateValuationRequest.fromBuffer(value),
+        ($3.AssetValuation value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$3.ListValuationsRequest, $3.ListValuationsResponse>(
         'ListValuations',
         listValuations_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $0.ListValuationsRequest.fromBuffer(value),
-        ($0.ListValuationsResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.SetDepreciationRuleRequest, $0.DepreciationRule>(
+        ($core.List<$core.int> value) => $3.ListValuationsRequest.fromBuffer(value),
+        ($3.ListValuationsResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$3.SetDepreciationRuleRequest, $3.DepreciationRule>(
         'SetDepreciationRule',
         setDepreciationRule_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $0.SetDepreciationRuleRequest.fromBuffer(value),
-        ($0.DepreciationRule value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.RunDepreciationRequest, $0.Asset>(
+        ($core.List<$core.int> value) => $3.SetDepreciationRuleRequest.fromBuffer(value),
+        ($3.DepreciationRule value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$3.RunDepreciationRequest, $3.Asset>(
         'RunDepreciation',
         runDepreciation_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $0.RunDepreciationRequest.fromBuffer(value),
-        ($0.Asset value) => value.writeToBuffer()));
+        ($core.List<$core.int> value) => $3.RunDepreciationRequest.fromBuffer(value),
+        ($3.Asset value) => value.writeToBuffer()));
   }
 
-  $async.Future<$0.Asset> createAsset_Pre($grpc.ServiceCall call, $async.Future<$0.CreateAssetRequest> request) async {
+  $async.Future<$3.Asset> createAsset_Pre($grpc.ServiceCall call, $async.Future<$3.CreateAssetRequest> request) async {
     return createAsset(call, await request);
   }
 
-  $async.Future<$0.Asset> getAsset_Pre($grpc.ServiceCall call, $async.Future<$0.GetAssetRequest> request) async {
+  $async.Future<$3.Asset> getAsset_Pre($grpc.ServiceCall call, $async.Future<$3.GetAssetRequest> request) async {
     return getAsset(call, await request);
   }
 
-  $async.Future<$0.ListAssetsResponse> listAssets_Pre($grpc.ServiceCall call, $async.Future<$0.ListAssetsRequest> request) async {
+  $async.Future<$3.ListAssetsResponse> listAssets_Pre($grpc.ServiceCall call, $async.Future<$3.ListAssetsRequest> request) async {
     return listAssets(call, await request);
   }
 
-  $async.Future<$0.Asset> updateAsset_Pre($grpc.ServiceCall call, $async.Future<$0.UpdateAssetRequest> request) async {
+  $async.Future<$3.Asset> updateAsset_Pre($grpc.ServiceCall call, $async.Future<$3.UpdateAssetRequest> request) async {
     return updateAsset(call, await request);
   }
 
-  $async.Future<$1.Empty> deleteAsset_Pre($grpc.ServiceCall call, $async.Future<$0.DeleteAssetRequest> request) async {
+  $async.Future<$1.Empty> deleteAsset_Pre($grpc.ServiceCall call, $async.Future<$3.DeleteAssetRequest> request) async {
     return deleteAsset(call, await request);
   }
 
-  $async.Future<$0.AssetValuation> updateValuation_Pre($grpc.ServiceCall call, $async.Future<$0.UpdateValuationRequest> request) async {
+  $async.Future<$3.AssetValuation> updateValuation_Pre($grpc.ServiceCall call, $async.Future<$3.UpdateValuationRequest> request) async {
     return updateValuation(call, await request);
   }
 
-  $async.Future<$0.ListValuationsResponse> listValuations_Pre($grpc.ServiceCall call, $async.Future<$0.ListValuationsRequest> request) async {
+  $async.Future<$3.ListValuationsResponse> listValuations_Pre($grpc.ServiceCall call, $async.Future<$3.ListValuationsRequest> request) async {
     return listValuations(call, await request);
   }
 
-  $async.Future<$0.DepreciationRule> setDepreciationRule_Pre($grpc.ServiceCall call, $async.Future<$0.SetDepreciationRuleRequest> request) async {
+  $async.Future<$3.DepreciationRule> setDepreciationRule_Pre($grpc.ServiceCall call, $async.Future<$3.SetDepreciationRuleRequest> request) async {
     return setDepreciationRule(call, await request);
   }
 
-  $async.Future<$0.Asset> runDepreciation_Pre($grpc.ServiceCall call, $async.Future<$0.RunDepreciationRequest> request) async {
+  $async.Future<$3.Asset> runDepreciation_Pre($grpc.ServiceCall call, $async.Future<$3.RunDepreciationRequest> request) async {
     return runDepreciation(call, await request);
   }
 
-  $async.Future<$0.Asset> createAsset($grpc.ServiceCall call, $0.CreateAssetRequest request);
-  $async.Future<$0.Asset> getAsset($grpc.ServiceCall call, $0.GetAssetRequest request);
-  $async.Future<$0.ListAssetsResponse> listAssets($grpc.ServiceCall call, $0.ListAssetsRequest request);
-  $async.Future<$0.Asset> updateAsset($grpc.ServiceCall call, $0.UpdateAssetRequest request);
-  $async.Future<$1.Empty> deleteAsset($grpc.ServiceCall call, $0.DeleteAssetRequest request);
-  $async.Future<$0.AssetValuation> updateValuation($grpc.ServiceCall call, $0.UpdateValuationRequest request);
-  $async.Future<$0.ListValuationsResponse> listValuations($grpc.ServiceCall call, $0.ListValuationsRequest request);
-  $async.Future<$0.DepreciationRule> setDepreciationRule($grpc.ServiceCall call, $0.SetDepreciationRuleRequest request);
-  $async.Future<$0.Asset> runDepreciation($grpc.ServiceCall call, $0.RunDepreciationRequest request);
+  $async.Future<$3.Asset> createAsset($grpc.ServiceCall call, $3.CreateAssetRequest request);
+  $async.Future<$3.Asset> getAsset($grpc.ServiceCall call, $3.GetAssetRequest request);
+  $async.Future<$3.ListAssetsResponse> listAssets($grpc.ServiceCall call, $3.ListAssetsRequest request);
+  $async.Future<$3.Asset> updateAsset($grpc.ServiceCall call, $3.UpdateAssetRequest request);
+  $async.Future<$1.Empty> deleteAsset($grpc.ServiceCall call, $3.DeleteAssetRequest request);
+  $async.Future<$3.AssetValuation> updateValuation($grpc.ServiceCall call, $3.UpdateValuationRequest request);
+  $async.Future<$3.ListValuationsResponse> listValuations($grpc.ServiceCall call, $3.ListValuationsRequest request);
+  $async.Future<$3.DepreciationRule> setDepreciationRule($grpc.ServiceCall call, $3.SetDepreciationRuleRequest request);
+  $async.Future<$3.Asset> runDepreciation($grpc.ServiceCall call, $3.RunDepreciationRequest request);
 }

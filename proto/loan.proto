@@ -81,6 +81,7 @@ message Loan {
     double lpr_base = 19;          // LPR 基准利率
     double lpr_spread = 20;        // 基点偏移
     int32 rate_adjust_month = 21;  // 利率调整月 (1=一月, 0=放款月)
+    string family_id = 22;         // 家庭 ID（空 = 个人贷款）
 }
 
 message LoanScheduleItem {
@@ -116,6 +117,7 @@ message CreateLoanRequest {
     int32 payment_day = 7;         // 每月还款日 1-28
     google.protobuf.Timestamp start_date = 8;
     string account_id = 9;         // 关联还款账户（可选）
+    string family_id = 10;         // 家庭 ID（可选）
 }
 
 message GetLoanRequest {

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/permission"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -54,6 +55,11 @@ func (s *Service) CreateBudget(ctx context.Context, req *pb.CreateBudgetRequest)
 			return nil, status.Error(codes.InvalidArgument, "invalid family_id")
 		}
 		familyID = &fid
+	}
+
+	// Permission check: editing budget in family mode requires canEdit
+	if err := permission.Check(ctx, s.pool, userID, req.FamilyId, permission.CanEdit); err != nil {
+		return nil, err
 	}
 
 	tx, err := s.pool.Begin(ctx)
@@ -223,9 +229,10 @@ func (s *Service) UpdateBudget(ctx context.Context, req *pb.UpdateBudgetRequest)
 		return nil, status.Error(codes.InvalidArgument, "invalid budget_id")
 	}
 
-	// Verify ownership
+	// Verify ownership or family permission
 	var ownerID string
-	err = s.pool.QueryRow(ctx, "SELECT user_id FROM budgets WHERE id = $1", budgetID).Scan(&ownerID)
+	var budgetFamilyID *string
+	err = s.pool.QueryRow(ctx, "SELECT user_id, family_id FROM budgets WHERE id = $1", budgetID).Scan(&ownerID, &budgetFamilyID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "budget not found")
@@ -233,7 +240,13 @@ func (s *Service) UpdateBudget(ctx context.Context, req *pb.UpdateBudgetRequest)
 		return nil, status.Error(codes.Internal, "failed to query budget")
 	}
 	if ownerID != userID {
-		return nil, status.Error(codes.PermissionDenied, "not your budget")
+		if budgetFamilyID != nil {
+			if err := permission.Check(ctx, s.pool, userID, *budgetFamilyID, permission.CanEdit); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, status.Error(codes.PermissionDenied, "not your budget")
+		}
 	}
 
 	tx, err := s.pool.Begin(ctx)
@@ -298,12 +311,32 @@ func (s *Service) DeleteBudget(ctx context.Context, req *pb.DeleteBudgetRequest)
 		return nil, status.Error(codes.InvalidArgument, "invalid budget_id")
 	}
 
-	tag, err := s.pool.Exec(ctx, "DELETE FROM budgets WHERE id = $1 AND user_id = $2", budgetID, userID)
+	// Check ownership or family permission
+	var ownerID string
+	var budgetFamilyID *string
+	err = s.pool.QueryRow(ctx, "SELECT user_id, family_id FROM budgets WHERE id = $1", budgetID).Scan(&ownerID, &budgetFamilyID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "budget not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to query budget")
+	}
+	if ownerID != userID {
+		if budgetFamilyID != nil {
+			if err := permission.Check(ctx, s.pool, userID, *budgetFamilyID, permission.CanDelete); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, status.Error(codes.PermissionDenied, "not your budget")
+		}
+	}
+
+	tag, err := s.pool.Exec(ctx, "DELETE FROM budgets WHERE id = $1", budgetID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to delete budget")
 	}
 	if tag.RowsAffected() == 0 {
-		return nil, status.Error(codes.NotFound, "budget not found or not owned by you")
+		return nil, status.Error(codes.NotFound, "budget not found")
 	}
 
 	log.Printf("budget: deleted budget %s", budgetID)
@@ -354,7 +387,14 @@ func (s *Service) loadBudget(ctx context.Context, budgetID uuid.UUID, userID str
 		return nil, status.Error(codes.Internal, "failed to query budget")
 	}
 	if bUserID.String() != userID {
-		return nil, status.Error(codes.PermissionDenied, "not your budget")
+		// If this is a family budget, check family membership
+		if bFamilyID != nil {
+			if err := permission.Check(ctx, s.pool, userID, bFamilyID.String(), permission.CanView); err != nil {
+				return nil, status.Error(codes.PermissionDenied, "not your budget")
+			}
+		} else {
+			return nil, status.Error(codes.PermissionDenied, "not your budget")
+		}
 	}
 
 	budget := &pb.Budget{

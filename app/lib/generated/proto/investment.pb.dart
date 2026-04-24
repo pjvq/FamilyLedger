@@ -14,7 +14,7 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'google/protobuf/timestamp.pb.dart' as $2;
+import 'google/protobuf/timestamp.pb.dart' as $4;
 import 'investment.pbenum.dart';
 
 export 'investment.pbenum.dart';
@@ -31,8 +31,9 @@ class Investment extends $pb.GeneratedMessage {
     $fixnum.Int64? currentValue,
     $core.double? totalReturn,
     $core.double? annualizedReturn,
-    $2.Timestamp? createdAt,
-    $2.Timestamp? updatedAt,
+    $4.Timestamp? createdAt,
+    $4.Timestamp? updatedAt,
+    $core.String? familyId,
   }) {
     final $result = create();
     if (id != null) {
@@ -71,6 +72,9 @@ class Investment extends $pb.GeneratedMessage {
     if (updatedAt != null) {
       $result.updatedAt = updatedAt;
     }
+    if (familyId != null) {
+      $result.familyId = familyId;
+    }
     return $result;
   }
   Investment._() : super();
@@ -88,8 +92,9 @@ class Investment extends $pb.GeneratedMessage {
     ..aInt64(8, _omitFieldNames ? '' : 'currentValue')
     ..a<$core.double>(9, _omitFieldNames ? '' : 'totalReturn', $pb.PbFieldType.OD)
     ..a<$core.double>(10, _omitFieldNames ? '' : 'annualizedReturn', $pb.PbFieldType.OD)
-    ..aOM<$2.Timestamp>(11, _omitFieldNames ? '' : 'createdAt', subBuilder: $2.Timestamp.create)
-    ..aOM<$2.Timestamp>(12, _omitFieldNames ? '' : 'updatedAt', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(11, _omitFieldNames ? '' : 'createdAt', subBuilder: $4.Timestamp.create)
+    ..aOM<$4.Timestamp>(12, _omitFieldNames ? '' : 'updatedAt', subBuilder: $4.Timestamp.create)
+    ..aOS(13, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -205,26 +210,35 @@ class Investment extends $pb.GeneratedMessage {
   void clearAnnualizedReturn() => clearField(10);
 
   @$pb.TagNumber(11)
-  $2.Timestamp get createdAt => $_getN(10);
+  $4.Timestamp get createdAt => $_getN(10);
   @$pb.TagNumber(11)
-  set createdAt($2.Timestamp v) { setField(11, v); }
+  set createdAt($4.Timestamp v) { setField(11, v); }
   @$pb.TagNumber(11)
   $core.bool hasCreatedAt() => $_has(10);
   @$pb.TagNumber(11)
   void clearCreatedAt() => clearField(11);
   @$pb.TagNumber(11)
-  $2.Timestamp ensureCreatedAt() => $_ensure(10);
+  $4.Timestamp ensureCreatedAt() => $_ensure(10);
 
   @$pb.TagNumber(12)
-  $2.Timestamp get updatedAt => $_getN(11);
+  $4.Timestamp get updatedAt => $_getN(11);
   @$pb.TagNumber(12)
-  set updatedAt($2.Timestamp v) { setField(12, v); }
+  set updatedAt($4.Timestamp v) { setField(12, v); }
   @$pb.TagNumber(12)
   $core.bool hasUpdatedAt() => $_has(11);
   @$pb.TagNumber(12)
   void clearUpdatedAt() => clearField(12);
   @$pb.TagNumber(12)
-  $2.Timestamp ensureUpdatedAt() => $_ensure(11);
+  $4.Timestamp ensureUpdatedAt() => $_ensure(11);
+
+  @$pb.TagNumber(13)
+  $core.String get familyId => $_getSZ(12);
+  @$pb.TagNumber(13)
+  set familyId($core.String v) { $_setString(12, v); }
+  @$pb.TagNumber(13)
+  $core.bool hasFamilyId() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearFamilyId() => clearField(13);
 }
 
 class InvestmentTrade extends $pb.GeneratedMessage {
@@ -236,7 +250,7 @@ class InvestmentTrade extends $pb.GeneratedMessage {
     $fixnum.Int64? price,
     $fixnum.Int64? totalAmount,
     $fixnum.Int64? fee,
-    $2.Timestamp? tradeDate,
+    $4.Timestamp? tradeDate,
   }) {
     final $result = create();
     if (id != null) {
@@ -277,7 +291,7 @@ class InvestmentTrade extends $pb.GeneratedMessage {
     ..aInt64(5, _omitFieldNames ? '' : 'price')
     ..aInt64(6, _omitFieldNames ? '' : 'totalAmount')
     ..aInt64(7, _omitFieldNames ? '' : 'fee')
-    ..aOM<$2.Timestamp>(8, _omitFieldNames ? '' : 'tradeDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(8, _omitFieldNames ? '' : 'tradeDate', subBuilder: $4.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -366,15 +380,15 @@ class InvestmentTrade extends $pb.GeneratedMessage {
   void clearFee() => clearField(7);
 
   @$pb.TagNumber(8)
-  $2.Timestamp get tradeDate => $_getN(7);
+  $4.Timestamp get tradeDate => $_getN(7);
   @$pb.TagNumber(8)
-  set tradeDate($2.Timestamp v) { setField(8, v); }
+  set tradeDate($4.Timestamp v) { setField(8, v); }
   @$pb.TagNumber(8)
   $core.bool hasTradeDate() => $_has(7);
   @$pb.TagNumber(8)
   void clearTradeDate() => clearField(8);
   @$pb.TagNumber(8)
-  $2.Timestamp ensureTradeDate() => $_ensure(7);
+  $4.Timestamp ensureTradeDate() => $_ensure(7);
 }
 
 class MarketQuote extends $pb.GeneratedMessage {
@@ -389,7 +403,7 @@ class MarketQuote extends $pb.GeneratedMessage {
     $fixnum.Int64? high,
     $fixnum.Int64? low,
     $fixnum.Int64? prevClose,
-    $2.Timestamp? updatedAt,
+    $4.Timestamp? updatedAt,
   }) {
     final $result = create();
     if (symbol != null) {
@@ -442,7 +456,7 @@ class MarketQuote extends $pb.GeneratedMessage {
     ..aInt64(8, _omitFieldNames ? '' : 'high')
     ..aInt64(9, _omitFieldNames ? '' : 'low')
     ..aInt64(10, _omitFieldNames ? '' : 'prevClose')
-    ..aOM<$2.Timestamp>(11, _omitFieldNames ? '' : 'updatedAt', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(11, _omitFieldNames ? '' : 'updatedAt', subBuilder: $4.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -558,15 +572,15 @@ class MarketQuote extends $pb.GeneratedMessage {
   void clearPrevClose() => clearField(10);
 
   @$pb.TagNumber(11)
-  $2.Timestamp get updatedAt => $_getN(10);
+  $4.Timestamp get updatedAt => $_getN(10);
   @$pb.TagNumber(11)
-  set updatedAt($2.Timestamp v) { setField(11, v); }
+  set updatedAt($4.Timestamp v) { setField(11, v); }
   @$pb.TagNumber(11)
   $core.bool hasUpdatedAt() => $_has(10);
   @$pb.TagNumber(11)
   void clearUpdatedAt() => clearField(11);
   @$pb.TagNumber(11)
-  $2.Timestamp ensureUpdatedAt() => $_ensure(10);
+  $4.Timestamp ensureUpdatedAt() => $_ensure(10);
 }
 
 class PortfolioSummary extends $pb.GeneratedMessage {
@@ -805,7 +819,7 @@ class HoldingItem extends $pb.GeneratedMessage {
 
 class PricePoint extends $pb.GeneratedMessage {
   factory PricePoint({
-    $2.Timestamp? timestamp,
+    $4.Timestamp? timestamp,
     $fixnum.Int64? price,
   }) {
     final $result = create();
@@ -822,7 +836,7 @@ class PricePoint extends $pb.GeneratedMessage {
   factory PricePoint.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PricePoint', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.investment.v1'), createEmptyInstance: create)
-    ..aOM<$2.Timestamp>(1, _omitFieldNames ? '' : 'timestamp', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(1, _omitFieldNames ? '' : 'timestamp', subBuilder: $4.Timestamp.create)
     ..aInt64(2, _omitFieldNames ? '' : 'price')
     ..hasRequiredFields = false
   ;
@@ -849,15 +863,15 @@ class PricePoint extends $pb.GeneratedMessage {
   static PricePoint? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $2.Timestamp get timestamp => $_getN(0);
+  $4.Timestamp get timestamp => $_getN(0);
   @$pb.TagNumber(1)
-  set timestamp($2.Timestamp v) { setField(1, v); }
+  set timestamp($4.Timestamp v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTimestamp() => $_has(0);
   @$pb.TagNumber(1)
   void clearTimestamp() => clearField(1);
   @$pb.TagNumber(1)
-  $2.Timestamp ensureTimestamp() => $_ensure(0);
+  $4.Timestamp ensureTimestamp() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $fixnum.Int64 get price => $_getI64(1);
@@ -953,6 +967,7 @@ class CreateInvestmentRequest extends $pb.GeneratedMessage {
     $core.String? symbol,
     $core.String? name,
     MarketType? marketType,
+    $core.String? familyId,
   }) {
     final $result = create();
     if (symbol != null) {
@@ -964,6 +979,9 @@ class CreateInvestmentRequest extends $pb.GeneratedMessage {
     if (marketType != null) {
       $result.marketType = marketType;
     }
+    if (familyId != null) {
+      $result.familyId = familyId;
+    }
     return $result;
   }
   CreateInvestmentRequest._() : super();
@@ -974,6 +992,7 @@ class CreateInvestmentRequest extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'symbol')
     ..aOS(2, _omitFieldNames ? '' : 'name')
     ..e<MarketType>(3, _omitFieldNames ? '' : 'marketType', $pb.PbFieldType.OE, defaultOrMaker: MarketType.MARKET_TYPE_UNSPECIFIED, valueOf: MarketType.valueOf, enumValues: MarketType.values)
+    ..aOS(4, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -1024,6 +1043,15 @@ class CreateInvestmentRequest extends $pb.GeneratedMessage {
   $core.bool hasMarketType() => $_has(2);
   @$pb.TagNumber(3)
   void clearMarketType() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get familyId => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set familyId($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasFamilyId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearFamilyId() => clearField(4);
 }
 
 class GetInvestmentRequest extends $pb.GeneratedMessage {
@@ -1291,7 +1319,7 @@ class RecordTradeRequest extends $pb.GeneratedMessage {
     $core.double? quantity,
     $fixnum.Int64? price,
     $fixnum.Int64? fee,
-    $2.Timestamp? tradeDate,
+    $4.Timestamp? tradeDate,
   }) {
     final $result = create();
     if (investmentId != null) {
@@ -1324,7 +1352,7 @@ class RecordTradeRequest extends $pb.GeneratedMessage {
     ..a<$core.double>(3, _omitFieldNames ? '' : 'quantity', $pb.PbFieldType.OD)
     ..aInt64(4, _omitFieldNames ? '' : 'price')
     ..aInt64(5, _omitFieldNames ? '' : 'fee')
-    ..aOM<$2.Timestamp>(6, _omitFieldNames ? '' : 'tradeDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(6, _omitFieldNames ? '' : 'tradeDate', subBuilder: $4.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -1395,15 +1423,15 @@ class RecordTradeRequest extends $pb.GeneratedMessage {
   void clearFee() => clearField(5);
 
   @$pb.TagNumber(6)
-  $2.Timestamp get tradeDate => $_getN(5);
+  $4.Timestamp get tradeDate => $_getN(5);
   @$pb.TagNumber(6)
-  set tradeDate($2.Timestamp v) { setField(6, v); }
+  set tradeDate($4.Timestamp v) { setField(6, v); }
   @$pb.TagNumber(6)
   $core.bool hasTradeDate() => $_has(5);
   @$pb.TagNumber(6)
   void clearTradeDate() => clearField(6);
   @$pb.TagNumber(6)
-  $2.Timestamp ensureTradeDate() => $_ensure(5);
+  $4.Timestamp ensureTradeDate() => $_ensure(5);
 }
 
 class ListTradesRequest extends $pb.GeneratedMessage {
@@ -1797,8 +1825,8 @@ class GetPriceHistoryRequest extends $pb.GeneratedMessage {
   factory GetPriceHistoryRequest({
     $core.String? symbol,
     MarketType? marketType,
-    $2.Timestamp? startDate,
-    $2.Timestamp? endDate,
+    $4.Timestamp? startDate,
+    $4.Timestamp? endDate,
   }) {
     final $result = create();
     if (symbol != null) {
@@ -1822,8 +1850,8 @@ class GetPriceHistoryRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPriceHistoryRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.investment.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'symbol')
     ..e<MarketType>(2, _omitFieldNames ? '' : 'marketType', $pb.PbFieldType.OE, defaultOrMaker: MarketType.MARKET_TYPE_UNSPECIFIED, valueOf: MarketType.valueOf, enumValues: MarketType.values)
-    ..aOM<$2.Timestamp>(3, _omitFieldNames ? '' : 'startDate', subBuilder: $2.Timestamp.create)
-    ..aOM<$2.Timestamp>(4, _omitFieldNames ? '' : 'endDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(3, _omitFieldNames ? '' : 'startDate', subBuilder: $4.Timestamp.create)
+    ..aOM<$4.Timestamp>(4, _omitFieldNames ? '' : 'endDate', subBuilder: $4.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -1867,26 +1895,26 @@ class GetPriceHistoryRequest extends $pb.GeneratedMessage {
   void clearMarketType() => clearField(2);
 
   @$pb.TagNumber(3)
-  $2.Timestamp get startDate => $_getN(2);
+  $4.Timestamp get startDate => $_getN(2);
   @$pb.TagNumber(3)
-  set startDate($2.Timestamp v) { setField(3, v); }
+  set startDate($4.Timestamp v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasStartDate() => $_has(2);
   @$pb.TagNumber(3)
   void clearStartDate() => clearField(3);
   @$pb.TagNumber(3)
-  $2.Timestamp ensureStartDate() => $_ensure(2);
+  $4.Timestamp ensureStartDate() => $_ensure(2);
 
   @$pb.TagNumber(4)
-  $2.Timestamp get endDate => $_getN(3);
+  $4.Timestamp get endDate => $_getN(3);
   @$pb.TagNumber(4)
-  set endDate($2.Timestamp v) { setField(4, v); }
+  set endDate($4.Timestamp v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasEndDate() => $_has(3);
   @$pb.TagNumber(4)
   void clearEndDate() => clearField(4);
   @$pb.TagNumber(4)
-  $2.Timestamp ensureEndDate() => $_ensure(3);
+  $4.Timestamp ensureEndDate() => $_ensure(3);
 }
 
 class PriceHistoryResponse extends $pb.GeneratedMessage {

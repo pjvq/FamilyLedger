@@ -55,6 +55,7 @@ message Investment {
     double annualized_return = 10; // 年化收益率
     google.protobuf.Timestamp created_at = 11;
     google.protobuf.Timestamp updated_at = 12;
+    string family_id = 13;         // 家庭 ID（空 = 个人投资）
 }
 
 message InvestmentTrade {
@@ -118,6 +119,7 @@ message CreateInvestmentRequest {
     string symbol = 1;
     string name = 2;
     MarketType market_type = 3;
+    string family_id = 4;          // 家庭 ID（可选）
 }
 
 message GetInvestmentRequest {

@@ -14,7 +14,7 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'google/protobuf/timestamp.pb.dart' as $2;
+import 'google/protobuf/timestamp.pb.dart' as $4;
 import 'loan.pbenum.dart';
 
 export 'loan.pbenum.dart';
@@ -32,9 +32,9 @@ class Loan extends $pb.GeneratedMessage {
     $core.int? paidMonths,
     RepaymentMethod? repaymentMethod,
     $core.int? paymentDay,
-    $2.Timestamp? startDate,
-    $2.Timestamp? createdAt,
-    $2.Timestamp? updatedAt,
+    $4.Timestamp? startDate,
+    $4.Timestamp? createdAt,
+    $4.Timestamp? updatedAt,
     $core.String? accountId,
     $core.String? groupId,
     LoanSubType? subType,
@@ -42,6 +42,7 @@ class Loan extends $pb.GeneratedMessage {
     $core.double? lprBase,
     $core.double? lprSpread,
     $core.int? rateAdjustMonth,
+    $core.String? familyId,
   }) {
     final $result = create();
     if (id != null) {
@@ -107,6 +108,9 @@ class Loan extends $pb.GeneratedMessage {
     if (rateAdjustMonth != null) {
       $result.rateAdjustMonth = rateAdjustMonth;
     }
+    if (familyId != null) {
+      $result.familyId = familyId;
+    }
     return $result;
   }
   Loan._() : super();
@@ -125,9 +129,9 @@ class Loan extends $pb.GeneratedMessage {
     ..a<$core.int>(9, _omitFieldNames ? '' : 'paidMonths', $pb.PbFieldType.O3)
     ..e<RepaymentMethod>(10, _omitFieldNames ? '' : 'repaymentMethod', $pb.PbFieldType.OE, defaultOrMaker: RepaymentMethod.REPAYMENT_METHOD_UNSPECIFIED, valueOf: RepaymentMethod.valueOf, enumValues: RepaymentMethod.values)
     ..a<$core.int>(11, _omitFieldNames ? '' : 'paymentDay', $pb.PbFieldType.O3)
-    ..aOM<$2.Timestamp>(12, _omitFieldNames ? '' : 'startDate', subBuilder: $2.Timestamp.create)
-    ..aOM<$2.Timestamp>(13, _omitFieldNames ? '' : 'createdAt', subBuilder: $2.Timestamp.create)
-    ..aOM<$2.Timestamp>(14, _omitFieldNames ? '' : 'updatedAt', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(12, _omitFieldNames ? '' : 'startDate', subBuilder: $4.Timestamp.create)
+    ..aOM<$4.Timestamp>(13, _omitFieldNames ? '' : 'createdAt', subBuilder: $4.Timestamp.create)
+    ..aOM<$4.Timestamp>(14, _omitFieldNames ? '' : 'updatedAt', subBuilder: $4.Timestamp.create)
     ..aOS(15, _omitFieldNames ? '' : 'accountId')
     ..aOS(16, _omitFieldNames ? '' : 'groupId')
     ..e<LoanSubType>(17, _omitFieldNames ? '' : 'subType', $pb.PbFieldType.OE, defaultOrMaker: LoanSubType.LOAN_SUB_TYPE_UNSPECIFIED, valueOf: LoanSubType.valueOf, enumValues: LoanSubType.values)
@@ -135,6 +139,7 @@ class Loan extends $pb.GeneratedMessage {
     ..a<$core.double>(19, _omitFieldNames ? '' : 'lprBase', $pb.PbFieldType.OD)
     ..a<$core.double>(20, _omitFieldNames ? '' : 'lprSpread', $pb.PbFieldType.OD)
     ..a<$core.int>(21, _omitFieldNames ? '' : 'rateAdjustMonth', $pb.PbFieldType.O3)
+    ..aOS(22, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -259,37 +264,37 @@ class Loan extends $pb.GeneratedMessage {
   void clearPaymentDay() => clearField(11);
 
   @$pb.TagNumber(12)
-  $2.Timestamp get startDate => $_getN(11);
+  $4.Timestamp get startDate => $_getN(11);
   @$pb.TagNumber(12)
-  set startDate($2.Timestamp v) { setField(12, v); }
+  set startDate($4.Timestamp v) { setField(12, v); }
   @$pb.TagNumber(12)
   $core.bool hasStartDate() => $_has(11);
   @$pb.TagNumber(12)
   void clearStartDate() => clearField(12);
   @$pb.TagNumber(12)
-  $2.Timestamp ensureStartDate() => $_ensure(11);
+  $4.Timestamp ensureStartDate() => $_ensure(11);
 
   @$pb.TagNumber(13)
-  $2.Timestamp get createdAt => $_getN(12);
+  $4.Timestamp get createdAt => $_getN(12);
   @$pb.TagNumber(13)
-  set createdAt($2.Timestamp v) { setField(13, v); }
+  set createdAt($4.Timestamp v) { setField(13, v); }
   @$pb.TagNumber(13)
   $core.bool hasCreatedAt() => $_has(12);
   @$pb.TagNumber(13)
   void clearCreatedAt() => clearField(13);
   @$pb.TagNumber(13)
-  $2.Timestamp ensureCreatedAt() => $_ensure(12);
+  $4.Timestamp ensureCreatedAt() => $_ensure(12);
 
   @$pb.TagNumber(14)
-  $2.Timestamp get updatedAt => $_getN(13);
+  $4.Timestamp get updatedAt => $_getN(13);
   @$pb.TagNumber(14)
-  set updatedAt($2.Timestamp v) { setField(14, v); }
+  set updatedAt($4.Timestamp v) { setField(14, v); }
   @$pb.TagNumber(14)
   $core.bool hasUpdatedAt() => $_has(13);
   @$pb.TagNumber(14)
   void clearUpdatedAt() => clearField(14);
   @$pb.TagNumber(14)
-  $2.Timestamp ensureUpdatedAt() => $_ensure(13);
+  $4.Timestamp ensureUpdatedAt() => $_ensure(13);
 
   @$pb.TagNumber(15)
   $core.String get accountId => $_getSZ(14);
@@ -353,6 +358,15 @@ class Loan extends $pb.GeneratedMessage {
   $core.bool hasRateAdjustMonth() => $_has(20);
   @$pb.TagNumber(21)
   void clearRateAdjustMonth() => clearField(21);
+
+  @$pb.TagNumber(22)
+  $core.String get familyId => $_getSZ(21);
+  @$pb.TagNumber(22)
+  set familyId($core.String v) { $_setString(21, v); }
+  @$pb.TagNumber(22)
+  $core.bool hasFamilyId() => $_has(21);
+  @$pb.TagNumber(22)
+  void clearFamilyId() => clearField(22);
 }
 
 class LoanScheduleItem extends $pb.GeneratedMessage {
@@ -363,8 +377,8 @@ class LoanScheduleItem extends $pb.GeneratedMessage {
     $fixnum.Int64? interestPart,
     $fixnum.Int64? remainingPrincipal,
     $core.bool? isPaid,
-    $2.Timestamp? dueDate,
-    $2.Timestamp? paidDate,
+    $4.Timestamp? dueDate,
+    $4.Timestamp? paidDate,
   }) {
     final $result = create();
     if (monthNumber != null) {
@@ -404,8 +418,8 @@ class LoanScheduleItem extends $pb.GeneratedMessage {
     ..aInt64(4, _omitFieldNames ? '' : 'interestPart')
     ..aInt64(5, _omitFieldNames ? '' : 'remainingPrincipal')
     ..aOB(6, _omitFieldNames ? '' : 'isPaid')
-    ..aOM<$2.Timestamp>(7, _omitFieldNames ? '' : 'dueDate', subBuilder: $2.Timestamp.create)
-    ..aOM<$2.Timestamp>(8, _omitFieldNames ? '' : 'paidDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(7, _omitFieldNames ? '' : 'dueDate', subBuilder: $4.Timestamp.create)
+    ..aOM<$4.Timestamp>(8, _omitFieldNames ? '' : 'paidDate', subBuilder: $4.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -485,26 +499,26 @@ class LoanScheduleItem extends $pb.GeneratedMessage {
   void clearIsPaid() => clearField(6);
 
   @$pb.TagNumber(7)
-  $2.Timestamp get dueDate => $_getN(6);
+  $4.Timestamp get dueDate => $_getN(6);
   @$pb.TagNumber(7)
-  set dueDate($2.Timestamp v) { setField(7, v); }
+  set dueDate($4.Timestamp v) { setField(7, v); }
   @$pb.TagNumber(7)
   $core.bool hasDueDate() => $_has(6);
   @$pb.TagNumber(7)
   void clearDueDate() => clearField(7);
   @$pb.TagNumber(7)
-  $2.Timestamp ensureDueDate() => $_ensure(6);
+  $4.Timestamp ensureDueDate() => $_ensure(6);
 
   @$pb.TagNumber(8)
-  $2.Timestamp get paidDate => $_getN(7);
+  $4.Timestamp get paidDate => $_getN(7);
   @$pb.TagNumber(8)
-  set paidDate($2.Timestamp v) { setField(8, v); }
+  set paidDate($4.Timestamp v) { setField(8, v); }
   @$pb.TagNumber(8)
   $core.bool hasPaidDate() => $_has(7);
   @$pb.TagNumber(8)
   void clearPaidDate() => clearField(8);
   @$pb.TagNumber(8)
-  $2.Timestamp ensurePaidDate() => $_ensure(7);
+  $4.Timestamp ensurePaidDate() => $_ensure(7);
 }
 
 class PrepaymentSimulation extends $pb.GeneratedMessage {
@@ -644,8 +658,9 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
     $core.int? totalMonths,
     RepaymentMethod? repaymentMethod,
     $core.int? paymentDay,
-    $2.Timestamp? startDate,
+    $4.Timestamp? startDate,
     $core.String? accountId,
+    $core.String? familyId,
   }) {
     final $result = create();
     if (name != null) {
@@ -675,6 +690,9 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
     if (accountId != null) {
       $result.accountId = accountId;
     }
+    if (familyId != null) {
+      $result.familyId = familyId;
+    }
     return $result;
   }
   CreateLoanRequest._() : super();
@@ -689,8 +707,9 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
     ..a<$core.int>(5, _omitFieldNames ? '' : 'totalMonths', $pb.PbFieldType.O3)
     ..e<RepaymentMethod>(6, _omitFieldNames ? '' : 'repaymentMethod', $pb.PbFieldType.OE, defaultOrMaker: RepaymentMethod.REPAYMENT_METHOD_UNSPECIFIED, valueOf: RepaymentMethod.valueOf, enumValues: RepaymentMethod.values)
     ..a<$core.int>(7, _omitFieldNames ? '' : 'paymentDay', $pb.PbFieldType.O3)
-    ..aOM<$2.Timestamp>(8, _omitFieldNames ? '' : 'startDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(8, _omitFieldNames ? '' : 'startDate', subBuilder: $4.Timestamp.create)
     ..aOS(9, _omitFieldNames ? '' : 'accountId')
+    ..aOS(10, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -779,15 +798,15 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
   void clearPaymentDay() => clearField(7);
 
   @$pb.TagNumber(8)
-  $2.Timestamp get startDate => $_getN(7);
+  $4.Timestamp get startDate => $_getN(7);
   @$pb.TagNumber(8)
-  set startDate($2.Timestamp v) { setField(8, v); }
+  set startDate($4.Timestamp v) { setField(8, v); }
   @$pb.TagNumber(8)
   $core.bool hasStartDate() => $_has(7);
   @$pb.TagNumber(8)
   void clearStartDate() => clearField(8);
   @$pb.TagNumber(8)
-  $2.Timestamp ensureStartDate() => $_ensure(7);
+  $4.Timestamp ensureStartDate() => $_ensure(7);
 
   @$pb.TagNumber(9)
   $core.String get accountId => $_getSZ(8);
@@ -797,6 +816,15 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
   $core.bool hasAccountId() => $_has(8);
   @$pb.TagNumber(9)
   void clearAccountId() => clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get familyId => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set familyId($core.String v) { $_setString(9, v); }
+  @$pb.TagNumber(10)
+  $core.bool hasFamilyId() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearFamilyId() => clearField(10);
 }
 
 class GetLoanRequest extends $pb.GeneratedMessage {
@@ -1243,7 +1271,7 @@ class RecordRateChangeRequest extends $pb.GeneratedMessage {
   factory RecordRateChangeRequest({
     $core.String? loanId,
     $core.double? newRate,
-    $2.Timestamp? effectiveDate,
+    $4.Timestamp? effectiveDate,
   }) {
     final $result = create();
     if (loanId != null) {
@@ -1264,7 +1292,7 @@ class RecordRateChangeRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RecordRateChangeRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'loanId')
     ..a<$core.double>(2, _omitFieldNames ? '' : 'newRate', $pb.PbFieldType.OD)
-    ..aOM<$2.Timestamp>(3, _omitFieldNames ? '' : 'effectiveDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(3, _omitFieldNames ? '' : 'effectiveDate', subBuilder: $4.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -1308,15 +1336,15 @@ class RecordRateChangeRequest extends $pb.GeneratedMessage {
   void clearNewRate() => clearField(2);
 
   @$pb.TagNumber(3)
-  $2.Timestamp get effectiveDate => $_getN(2);
+  $4.Timestamp get effectiveDate => $_getN(2);
   @$pb.TagNumber(3)
-  set effectiveDate($2.Timestamp v) { setField(3, v); }
+  set effectiveDate($4.Timestamp v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasEffectiveDate() => $_has(2);
   @$pb.TagNumber(3)
   void clearEffectiveDate() => clearField(3);
   @$pb.TagNumber(3)
-  $2.Timestamp ensureEffectiveDate() => $_ensure(2);
+  $4.Timestamp ensureEffectiveDate() => $_ensure(2);
 }
 
 class RecordPaymentRequest extends $pb.GeneratedMessage {
@@ -1391,12 +1419,12 @@ class LoanGroup extends $pb.GeneratedMessage {
     $core.String? groupType,
     $fixnum.Int64? totalPrincipal,
     $core.int? paymentDay,
-    $2.Timestamp? startDate,
+    $4.Timestamp? startDate,
     $core.String? accountId,
     $core.Iterable<Loan>? subLoans,
     $fixnum.Int64? totalMonthlyPayment,
-    $2.Timestamp? createdAt,
-    $2.Timestamp? updatedAt,
+    $4.Timestamp? createdAt,
+    $4.Timestamp? updatedAt,
   }) {
     final $result = create();
     if (id != null) {
@@ -1448,12 +1476,12 @@ class LoanGroup extends $pb.GeneratedMessage {
     ..aOS(4, _omitFieldNames ? '' : 'groupType')
     ..aInt64(5, _omitFieldNames ? '' : 'totalPrincipal')
     ..a<$core.int>(6, _omitFieldNames ? '' : 'paymentDay', $pb.PbFieldType.O3)
-    ..aOM<$2.Timestamp>(7, _omitFieldNames ? '' : 'startDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(7, _omitFieldNames ? '' : 'startDate', subBuilder: $4.Timestamp.create)
     ..aOS(8, _omitFieldNames ? '' : 'accountId')
     ..pc<Loan>(9, _omitFieldNames ? '' : 'subLoans', $pb.PbFieldType.PM, subBuilder: Loan.create)
     ..aInt64(10, _omitFieldNames ? '' : 'totalMonthlyPayment')
-    ..aOM<$2.Timestamp>(11, _omitFieldNames ? '' : 'createdAt', subBuilder: $2.Timestamp.create)
-    ..aOM<$2.Timestamp>(12, _omitFieldNames ? '' : 'updatedAt', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(11, _omitFieldNames ? '' : 'createdAt', subBuilder: $4.Timestamp.create)
+    ..aOM<$4.Timestamp>(12, _omitFieldNames ? '' : 'updatedAt', subBuilder: $4.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -1533,15 +1561,15 @@ class LoanGroup extends $pb.GeneratedMessage {
   void clearPaymentDay() => clearField(6);
 
   @$pb.TagNumber(7)
-  $2.Timestamp get startDate => $_getN(6);
+  $4.Timestamp get startDate => $_getN(6);
   @$pb.TagNumber(7)
-  set startDate($2.Timestamp v) { setField(7, v); }
+  set startDate($4.Timestamp v) { setField(7, v); }
   @$pb.TagNumber(7)
   $core.bool hasStartDate() => $_has(6);
   @$pb.TagNumber(7)
   void clearStartDate() => clearField(7);
   @$pb.TagNumber(7)
-  $2.Timestamp ensureStartDate() => $_ensure(6);
+  $4.Timestamp ensureStartDate() => $_ensure(6);
 
   @$pb.TagNumber(8)
   $core.String get accountId => $_getSZ(7);
@@ -1565,26 +1593,26 @@ class LoanGroup extends $pb.GeneratedMessage {
   void clearTotalMonthlyPayment() => clearField(10);
 
   @$pb.TagNumber(11)
-  $2.Timestamp get createdAt => $_getN(10);
+  $4.Timestamp get createdAt => $_getN(10);
   @$pb.TagNumber(11)
-  set createdAt($2.Timestamp v) { setField(11, v); }
+  set createdAt($4.Timestamp v) { setField(11, v); }
   @$pb.TagNumber(11)
   $core.bool hasCreatedAt() => $_has(10);
   @$pb.TagNumber(11)
   void clearCreatedAt() => clearField(11);
   @$pb.TagNumber(11)
-  $2.Timestamp ensureCreatedAt() => $_ensure(10);
+  $4.Timestamp ensureCreatedAt() => $_ensure(10);
 
   @$pb.TagNumber(12)
-  $2.Timestamp get updatedAt => $_getN(11);
+  $4.Timestamp get updatedAt => $_getN(11);
   @$pb.TagNumber(12)
-  set updatedAt($2.Timestamp v) { setField(12, v); }
+  set updatedAt($4.Timestamp v) { setField(12, v); }
   @$pb.TagNumber(12)
   $core.bool hasUpdatedAt() => $_has(11);
   @$pb.TagNumber(12)
   void clearUpdatedAt() => clearField(12);
   @$pb.TagNumber(12)
-  $2.Timestamp ensureUpdatedAt() => $_ensure(11);
+  $4.Timestamp ensureUpdatedAt() => $_ensure(11);
 }
 
 class SubLoanSpec extends $pb.GeneratedMessage {
@@ -1768,7 +1796,7 @@ class CreateLoanGroupRequest extends $pb.GeneratedMessage {
     $core.String? name,
     $core.String? groupType,
     $core.int? paymentDay,
-    $2.Timestamp? startDate,
+    $4.Timestamp? startDate,
     $core.String? accountId,
     $core.Iterable<SubLoanSpec>? subLoans,
     LoanType? loanType,
@@ -1805,7 +1833,7 @@ class CreateLoanGroupRequest extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'name')
     ..aOS(2, _omitFieldNames ? '' : 'groupType')
     ..a<$core.int>(3, _omitFieldNames ? '' : 'paymentDay', $pb.PbFieldType.O3)
-    ..aOM<$2.Timestamp>(4, _omitFieldNames ? '' : 'startDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(4, _omitFieldNames ? '' : 'startDate', subBuilder: $4.Timestamp.create)
     ..aOS(5, _omitFieldNames ? '' : 'accountId')
     ..pc<SubLoanSpec>(6, _omitFieldNames ? '' : 'subLoans', $pb.PbFieldType.PM, subBuilder: SubLoanSpec.create)
     ..e<LoanType>(7, _omitFieldNames ? '' : 'loanType', $pb.PbFieldType.OE, defaultOrMaker: LoanType.LOAN_TYPE_UNSPECIFIED, valueOf: LoanType.valueOf, enumValues: LoanType.values)
@@ -1861,15 +1889,15 @@ class CreateLoanGroupRequest extends $pb.GeneratedMessage {
   void clearPaymentDay() => clearField(3);
 
   @$pb.TagNumber(4)
-  $2.Timestamp get startDate => $_getN(3);
+  $4.Timestamp get startDate => $_getN(3);
   @$pb.TagNumber(4)
-  set startDate($2.Timestamp v) { setField(4, v); }
+  set startDate($4.Timestamp v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasStartDate() => $_has(3);
   @$pb.TagNumber(4)
   void clearStartDate() => clearField(4);
   @$pb.TagNumber(4)
-  $2.Timestamp ensureStartDate() => $_ensure(3);
+  $4.Timestamp ensureStartDate() => $_ensure(3);
 
   @$pb.TagNumber(5)
   $core.String get accountId => $_getSZ(4);

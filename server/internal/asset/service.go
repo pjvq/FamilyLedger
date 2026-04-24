@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/permission"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -50,6 +51,19 @@ func (s *Service) CreateAsset(ctx context.Context, req *pb.CreateAssetRequest) (
 	at := assetTypeToString(req.AssetType)
 	purchaseDate := req.PurchaseDate.AsTime()
 
+	// Family permission check
+	var familyID *uuid.UUID
+	if req.FamilyId != "" {
+		fid, err := uuid.Parse(req.FamilyId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid family_id")
+		}
+		familyID = &fid
+		if err := permission.Check(ctx, s.pool, userID, req.FamilyId, permission.CanEdit); err != nil {
+			return nil, err
+		}
+	}
+
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to begin transaction")
@@ -59,10 +73,10 @@ func (s *Service) CreateAsset(ctx context.Context, req *pb.CreateAssetRequest) (
 	var id uuid.UUID
 	var createdAt, updatedAt time.Time
 	err = tx.QueryRow(ctx,
-		`INSERT INTO fixed_assets (user_id, name, asset_type, purchase_price, current_value, purchase_date, description)
-		 VALUES ($1, $2, $3, $4, $4, $5, $6)
+		`INSERT INTO fixed_assets (user_id, name, asset_type, purchase_price, current_value, purchase_date, description, family_id)
+		 VALUES ($1, $2, $3, $4, $4, $5, $6, $7)
 		 RETURNING id, created_at, updated_at`,
-		userID, req.Name, at, req.PurchasePrice, purchaseDate, req.Description,
+		userID, req.Name, at, req.PurchasePrice, purchaseDate, req.Description, familyID,
 	).Scan(&id, &createdAt, &updatedAt)
 	if err != nil {
 		log.Printf("asset: create error: %v", err)

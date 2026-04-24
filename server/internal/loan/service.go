@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/permission"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -57,6 +58,18 @@ func (s *Service) CreateLoan(ctx context.Context, req *pb.CreateLoanRequest) (*p
 		accountID = &aid
 	}
 
+	var familyID *uuid.UUID
+	if req.FamilyId != "" {
+		fid, err := uuid.Parse(req.FamilyId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid family_id")
+		}
+		familyID = &fid
+		if err := permission.Check(ctx, s.pool, userID, req.FamilyId, permission.CanEdit); err != nil {
+			return nil, err
+		}
+	}
+
 	schedule := generateSchedule(req.Principal, req.AnnualRate, int(req.TotalMonths), method, int(req.PaymentDay), startDate)
 
 	tx, err := s.pool.Begin(ctx)
@@ -70,12 +83,12 @@ func (s *Service) CreateLoan(ctx context.Context, req *pb.CreateLoanRequest) (*p
 	err = tx.QueryRow(ctx,
 		`INSERT INTO loans (user_id, name, loan_type, principal, remaining_principal,
 		 annual_rate, total_months, paid_months, repayment_method, payment_day,
-		 start_date, account_id)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, $9, $10, $11)
+		 start_date, account_id, family_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, $9, $10, $11, $12)
 		 RETURNING id, created_at, updated_at`,
 		uid, req.Name, loanType, req.Principal, req.Principal,
 		req.AnnualRate, req.TotalMonths, method, req.PaymentDay,
-		startDate, accountID,
+		startDate, accountID, familyID,
 	).Scan(&loanID, &createdAt, &updatedAt)
 	if err != nil {
 		log.Printf("loan: create error: %v", err)
@@ -766,18 +779,21 @@ func (s *Service) loadLoan(ctx context.Context, loanID, userID string) (*pb.Loan
 	var subType, rateType *string
 	var lprBase, lprSpread *float64
 	var rateAdjustMonth *int32
+	var familyID *uuid.UUID
 
 	err := s.pool.QueryRow(ctx,
 		`SELECT id, user_id, name, loan_type, principal, remaining_principal,
 		        annual_rate, total_months, paid_months, repayment_method, payment_day,
 		        start_date, created_at, updated_at, account_id,
-		        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month
+		        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month,
+		        family_id
 		 FROM loans WHERE id=$1 AND deleted_at IS NULL`,
 		loanID,
 	).Scan(&id, &uid, &name, &loanType, &principal, &remainingPrincipal,
 		&annualRate, &totalMonths, &paidMonths, &method, &paymentDay,
 		&startDate, &createdAt, &updatedAt, &accountID,
-		&groupID, &subType, &rateType, &lprBase, &lprSpread, &rateAdjustMonth)
+		&groupID, &subType, &rateType, &lprBase, &lprSpread, &rateAdjustMonth,
+		&familyID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "loan not found")
@@ -785,7 +801,14 @@ func (s *Service) loadLoan(ctx context.Context, loanID, userID string) (*pb.Loan
 		return nil, status.Error(codes.Internal, "failed to query loan")
 	}
 	if uid.String() != userID {
-		return nil, status.Error(codes.PermissionDenied, "not your loan")
+		// If this is a family loan, check family membership
+		if familyID != nil {
+			if err := permission.Check(ctx, s.pool, userID, familyID.String(), permission.CanView); err != nil {
+				return nil, status.Error(codes.PermissionDenied, "not your loan")
+			}
+		} else {
+			return nil, status.Error(codes.PermissionDenied, "not your loan")
+		}
 	}
 
 	f := loanFields{
@@ -816,6 +839,9 @@ func (s *Service) loadLoan(ctx context.Context, loanID, userID string) (*pb.Loan
 	}
 	if rateAdjustMonth != nil {
 		f.rateAdjustMonth = *rateAdjustMonth
+	}
+	if familyID != nil {
+		f.familyID = familyID.String()
 	}
 	return buildLoanProtoFull(f), nil
 }
@@ -932,6 +958,7 @@ type loanFields struct {
 	lprBase          float64
 	lprSpread        float64
 	rateAdjustMonth  int32
+	familyID         string
 }
 
 func buildLoanProto(id, userID, name string, loanType pb.LoanType,
@@ -968,6 +995,7 @@ func buildLoanProtoFull(f loanFields) *pb.Loan {
 	loan.LprBase = f.lprBase
 	loan.LprSpread = f.lprSpread
 	loan.RateAdjustMonth = f.rateAdjustMonth
+	loan.FamilyId = f.familyID
 	return loan
 }
 

@@ -15,7 +15,7 @@ import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import 'asset.pbenum.dart';
-import 'google/protobuf/timestamp.pb.dart' as $2;
+import 'google/protobuf/timestamp.pb.dart' as $4;
 
 export 'asset.pbenum.dart';
 
@@ -27,10 +27,11 @@ class Asset extends $pb.GeneratedMessage {
     AssetType? assetType,
     $fixnum.Int64? purchasePrice,
     $fixnum.Int64? currentValue,
-    $2.Timestamp? purchaseDate,
+    $4.Timestamp? purchaseDate,
     $core.String? description,
-    $2.Timestamp? createdAt,
-    $2.Timestamp? updatedAt,
+    $4.Timestamp? createdAt,
+    $4.Timestamp? updatedAt,
+    $core.String? familyId,
   }) {
     final $result = create();
     if (id != null) {
@@ -63,6 +64,9 @@ class Asset extends $pb.GeneratedMessage {
     if (updatedAt != null) {
       $result.updatedAt = updatedAt;
     }
+    if (familyId != null) {
+      $result.familyId = familyId;
+    }
     return $result;
   }
   Asset._() : super();
@@ -76,10 +80,11 @@ class Asset extends $pb.GeneratedMessage {
     ..e<AssetType>(4, _omitFieldNames ? '' : 'assetType', $pb.PbFieldType.OE, defaultOrMaker: AssetType.ASSET_TYPE_UNSPECIFIED, valueOf: AssetType.valueOf, enumValues: AssetType.values)
     ..aInt64(5, _omitFieldNames ? '' : 'purchasePrice')
     ..aInt64(6, _omitFieldNames ? '' : 'currentValue')
-    ..aOM<$2.Timestamp>(7, _omitFieldNames ? '' : 'purchaseDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(7, _omitFieldNames ? '' : 'purchaseDate', subBuilder: $4.Timestamp.create)
     ..aOS(8, _omitFieldNames ? '' : 'description')
-    ..aOM<$2.Timestamp>(9, _omitFieldNames ? '' : 'createdAt', subBuilder: $2.Timestamp.create)
-    ..aOM<$2.Timestamp>(10, _omitFieldNames ? '' : 'updatedAt', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(9, _omitFieldNames ? '' : 'createdAt', subBuilder: $4.Timestamp.create)
+    ..aOM<$4.Timestamp>(10, _omitFieldNames ? '' : 'updatedAt', subBuilder: $4.Timestamp.create)
+    ..aOS(11, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -159,15 +164,15 @@ class Asset extends $pb.GeneratedMessage {
   void clearCurrentValue() => clearField(6);
 
   @$pb.TagNumber(7)
-  $2.Timestamp get purchaseDate => $_getN(6);
+  $4.Timestamp get purchaseDate => $_getN(6);
   @$pb.TagNumber(7)
-  set purchaseDate($2.Timestamp v) { setField(7, v); }
+  set purchaseDate($4.Timestamp v) { setField(7, v); }
   @$pb.TagNumber(7)
   $core.bool hasPurchaseDate() => $_has(6);
   @$pb.TagNumber(7)
   void clearPurchaseDate() => clearField(7);
   @$pb.TagNumber(7)
-  $2.Timestamp ensurePurchaseDate() => $_ensure(6);
+  $4.Timestamp ensurePurchaseDate() => $_ensure(6);
 
   @$pb.TagNumber(8)
   $core.String get description => $_getSZ(7);
@@ -179,26 +184,35 @@ class Asset extends $pb.GeneratedMessage {
   void clearDescription() => clearField(8);
 
   @$pb.TagNumber(9)
-  $2.Timestamp get createdAt => $_getN(8);
+  $4.Timestamp get createdAt => $_getN(8);
   @$pb.TagNumber(9)
-  set createdAt($2.Timestamp v) { setField(9, v); }
+  set createdAt($4.Timestamp v) { setField(9, v); }
   @$pb.TagNumber(9)
   $core.bool hasCreatedAt() => $_has(8);
   @$pb.TagNumber(9)
   void clearCreatedAt() => clearField(9);
   @$pb.TagNumber(9)
-  $2.Timestamp ensureCreatedAt() => $_ensure(8);
+  $4.Timestamp ensureCreatedAt() => $_ensure(8);
 
   @$pb.TagNumber(10)
-  $2.Timestamp get updatedAt => $_getN(9);
+  $4.Timestamp get updatedAt => $_getN(9);
   @$pb.TagNumber(10)
-  set updatedAt($2.Timestamp v) { setField(10, v); }
+  set updatedAt($4.Timestamp v) { setField(10, v); }
   @$pb.TagNumber(10)
   $core.bool hasUpdatedAt() => $_has(9);
   @$pb.TagNumber(10)
   void clearUpdatedAt() => clearField(10);
   @$pb.TagNumber(10)
-  $2.Timestamp ensureUpdatedAt() => $_ensure(9);
+  $4.Timestamp ensureUpdatedAt() => $_ensure(9);
+
+  @$pb.TagNumber(11)
+  $core.String get familyId => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set familyId($core.String v) { $_setString(10, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasFamilyId() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearFamilyId() => clearField(11);
 }
 
 class AssetValuation extends $pb.GeneratedMessage {
@@ -207,7 +221,7 @@ class AssetValuation extends $pb.GeneratedMessage {
     $core.String? assetId,
     $fixnum.Int64? value,
     $core.String? source,
-    $2.Timestamp? valuationDate,
+    $4.Timestamp? valuationDate,
   }) {
     final $result = create();
     if (id != null) {
@@ -236,7 +250,7 @@ class AssetValuation extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'assetId')
     ..aInt64(3, _omitFieldNames ? '' : 'value')
     ..aOS(4, _omitFieldNames ? '' : 'source')
-    ..aOM<$2.Timestamp>(5, _omitFieldNames ? '' : 'valuationDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(5, _omitFieldNames ? '' : 'valuationDate', subBuilder: $4.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -298,15 +312,15 @@ class AssetValuation extends $pb.GeneratedMessage {
   void clearSource() => clearField(4);
 
   @$pb.TagNumber(5)
-  $2.Timestamp get valuationDate => $_getN(4);
+  $4.Timestamp get valuationDate => $_getN(4);
   @$pb.TagNumber(5)
-  set valuationDate($2.Timestamp v) { setField(5, v); }
+  set valuationDate($4.Timestamp v) { setField(5, v); }
   @$pb.TagNumber(5)
   $core.bool hasValuationDate() => $_has(4);
   @$pb.TagNumber(5)
   void clearValuationDate() => clearField(5);
   @$pb.TagNumber(5)
-  $2.Timestamp ensureValuationDate() => $_ensure(4);
+  $4.Timestamp ensureValuationDate() => $_ensure(4);
 }
 
 class DepreciationRule extends $pb.GeneratedMessage {
@@ -316,7 +330,7 @@ class DepreciationRule extends $pb.GeneratedMessage {
     DepreciationMethod? method,
     $core.int? usefulLifeYears,
     $core.double? salvageRate,
-    $2.Timestamp? createdAt,
+    $4.Timestamp? createdAt,
   }) {
     final $result = create();
     if (id != null) {
@@ -349,7 +363,7 @@ class DepreciationRule extends $pb.GeneratedMessage {
     ..e<DepreciationMethod>(3, _omitFieldNames ? '' : 'method', $pb.PbFieldType.OE, defaultOrMaker: DepreciationMethod.DEPRECIATION_METHOD_UNSPECIFIED, valueOf: DepreciationMethod.valueOf, enumValues: DepreciationMethod.values)
     ..a<$core.int>(4, _omitFieldNames ? '' : 'usefulLifeYears', $pb.PbFieldType.O3)
     ..a<$core.double>(5, _omitFieldNames ? '' : 'salvageRate', $pb.PbFieldType.OD)
-    ..aOM<$2.Timestamp>(6, _omitFieldNames ? '' : 'createdAt', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(6, _omitFieldNames ? '' : 'createdAt', subBuilder: $4.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -420,15 +434,15 @@ class DepreciationRule extends $pb.GeneratedMessage {
   void clearSalvageRate() => clearField(5);
 
   @$pb.TagNumber(6)
-  $2.Timestamp get createdAt => $_getN(5);
+  $4.Timestamp get createdAt => $_getN(5);
   @$pb.TagNumber(6)
-  set createdAt($2.Timestamp v) { setField(6, v); }
+  set createdAt($4.Timestamp v) { setField(6, v); }
   @$pb.TagNumber(6)
   $core.bool hasCreatedAt() => $_has(5);
   @$pb.TagNumber(6)
   void clearCreatedAt() => clearField(6);
   @$pb.TagNumber(6)
-  $2.Timestamp ensureCreatedAt() => $_ensure(5);
+  $4.Timestamp ensureCreatedAt() => $_ensure(5);
 }
 
 class CreateAssetRequest extends $pb.GeneratedMessage {
@@ -436,8 +450,9 @@ class CreateAssetRequest extends $pb.GeneratedMessage {
     $core.String? name,
     AssetType? assetType,
     $fixnum.Int64? purchasePrice,
-    $2.Timestamp? purchaseDate,
+    $4.Timestamp? purchaseDate,
     $core.String? description,
+    $core.String? familyId,
   }) {
     final $result = create();
     if (name != null) {
@@ -455,6 +470,9 @@ class CreateAssetRequest extends $pb.GeneratedMessage {
     if (description != null) {
       $result.description = description;
     }
+    if (familyId != null) {
+      $result.familyId = familyId;
+    }
     return $result;
   }
   CreateAssetRequest._() : super();
@@ -465,8 +483,9 @@ class CreateAssetRequest extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'name')
     ..e<AssetType>(2, _omitFieldNames ? '' : 'assetType', $pb.PbFieldType.OE, defaultOrMaker: AssetType.ASSET_TYPE_UNSPECIFIED, valueOf: AssetType.valueOf, enumValues: AssetType.values)
     ..aInt64(3, _omitFieldNames ? '' : 'purchasePrice')
-    ..aOM<$2.Timestamp>(4, _omitFieldNames ? '' : 'purchaseDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$4.Timestamp>(4, _omitFieldNames ? '' : 'purchaseDate', subBuilder: $4.Timestamp.create)
     ..aOS(5, _omitFieldNames ? '' : 'description')
+    ..aOS(6, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -519,15 +538,15 @@ class CreateAssetRequest extends $pb.GeneratedMessage {
   void clearPurchasePrice() => clearField(3);
 
   @$pb.TagNumber(4)
-  $2.Timestamp get purchaseDate => $_getN(3);
+  $4.Timestamp get purchaseDate => $_getN(3);
   @$pb.TagNumber(4)
-  set purchaseDate($2.Timestamp v) { setField(4, v); }
+  set purchaseDate($4.Timestamp v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasPurchaseDate() => $_has(3);
   @$pb.TagNumber(4)
   void clearPurchaseDate() => clearField(4);
   @$pb.TagNumber(4)
-  $2.Timestamp ensurePurchaseDate() => $_ensure(3);
+  $4.Timestamp ensurePurchaseDate() => $_ensure(3);
 
   @$pb.TagNumber(5)
   $core.String get description => $_getSZ(4);
@@ -537,6 +556,15 @@ class CreateAssetRequest extends $pb.GeneratedMessage {
   $core.bool hasDescription() => $_has(4);
   @$pb.TagNumber(5)
   void clearDescription() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get familyId => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set familyId($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasFamilyId() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearFamilyId() => clearField(6);
 }
 
 class GetAssetRequest extends $pb.GeneratedMessage {
