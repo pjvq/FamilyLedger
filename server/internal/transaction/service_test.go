@@ -168,7 +168,7 @@ func TestListTransactions_Success(t *testing.T) {
 	categoryID := uuid.New()
 	now := time.Now()
 
-	// Count query
+	// Count query (first page, no cursor)
 	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM transactions`).
 		WithArgs(
 			userUUID,
@@ -178,15 +178,16 @@ func TestListTransactions_Success(t *testing.T) {
 		).
 		WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(int32(1)))
 
-	// List query
+	// List query (7 args: uid, account, start, end, cursor_date, cursor_id, limit)
 	mock.ExpectQuery(`SELECT id, user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, created_at, updated_at, tags, image_urls`).
 		WithArgs(
 			userUUID,
 			pgxmock.AnyArg(), // account_id
 			pgxmock.AnyArg(), // start_date
 			pgxmock.AnyArg(), // end_date
-			pgxmock.AnyArg(), // limit
-			pgxmock.AnyArg(), // offset
+			pgxmock.AnyArg(), // cursor_date
+			pgxmock.AnyArg(), // cursor_id
+			pgxmock.AnyArg(), // limit (pageSize+1)
 		).
 		WillReturnRows(pgxmock.NewRows([]string{
 			"id", "user_id", "account_id", "category_id", "amount",
@@ -224,7 +225,7 @@ func TestListTransactions_Empty(t *testing.T) {
 		WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(int32(0)))
 
 	mock.ExpectQuery(`SELECT id, user_id, account_id`).
-		WithArgs(userUUID, pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(userUUID, pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnRows(pgxmock.NewRows([]string{
 			"id", "user_id", "account_id", "category_id", "amount",
 			"currency", "amount_cny", "exchange_rate", "type", "note",
@@ -249,26 +250,27 @@ func TestListTransactions_WithPagination(t *testing.T) {
 	userUUID := uuid.MustParse(testUserID)
 	now := time.Now()
 
-	// Total 30 items, page_size=10, offset starts at 0
+	// First page: count query runs (no cursor)
 	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM transactions`).
 		WithArgs(userUUID, pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(int32(30)))
 
+	// Return pageSize+1 (11) rows to trigger next_page_token
 	rows := pgxmock.NewRows([]string{
 		"id", "user_id", "account_id", "category_id", "amount",
 		"currency", "amount_cny", "exchange_rate", "type", "note",
 		"txn_date", "created_at", "updated_at", "tags", "image_urls",
 	})
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 11; i++ {
 		rows.AddRow(
 			uuid.New(), userUUID, uuid.New(), uuid.New(), int64(1000),
 			"CNY", int64(1000), float64(1.0), "expense", "item",
-			now, now, now, []string{}, []string{},
+			now.Add(-time.Duration(i)*time.Hour), now, now, []string{}, []string{},
 		)
 	}
 
 	mock.ExpectQuery(`SELECT id, user_id, account_id`).
-		WithArgs(userUUID, pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(userUUID, pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnRows(rows)
 
 	resp, err := svc.ListTransactions(authedCtx(), &pb.ListTransactionsRequest{
@@ -277,9 +279,10 @@ func TestListTransactions_WithPagination(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Len(t, resp.Transactions, 10)
+	assert.Len(t, resp.Transactions, 10)  // trimmed from 11 to 10
 	assert.Equal(t, int32(30), resp.TotalCount)
-	assert.Equal(t, "10", resp.NextPageToken) // next offset = 0 + 10
+	assert.NotEmpty(t, resp.NextPageToken) // cursor token present
+	assert.Contains(t, resp.NextPageToken, "|") // format: "unixnano|uuid"
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 

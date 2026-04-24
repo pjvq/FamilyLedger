@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -473,17 +474,19 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 		pageSize = req.PageSize
 	}
 
-	offset := int32(0)
+	// Parse cursor from page_token: "txn_date_unix_nano|id"
+	var cursorDate *time.Time
+	var cursorID *uuid.UUID
 	if req.PageToken != "" {
-		// Simple offset-based pagination via page token
-		// In production, use cursor-based pagination
-		// For now, page_token is just the offset string
-		var n int
-		_, err := uuid.Parse(req.PageToken)
-		if err != nil {
-			// try as int offset
-			fmt.Sscanf(req.PageToken, "%d", &n)
-			offset = int32(n)
+		parts := strings.SplitN(req.PageToken, "|", 2)
+		if len(parts) == 2 {
+			if ns, err := strconv.ParseInt(parts[0], 10, 64); err == nil {
+				t := time.Unix(0, ns)
+				cursorDate = &t
+			}
+			if cid, err := uuid.Parse(parts[1]); err == nil {
+				cursorID = &cid
+			}
 		}
 	}
 
@@ -506,21 +509,24 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 		endDate = &t
 	}
 
-	// Count total
+	// Count total (only on first page — cursor present means not first page)
 	var totalCount int32
-	err = s.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM transactions
-		 WHERE user_id = $1 AND deleted_at IS NULL
-		 AND ($2::uuid IS NULL OR account_id = $2)
-		 AND ($3::timestamptz IS NULL OR txn_date >= $3)
-		 AND ($4::timestamptz IS NULL OR txn_date <= $4)`,
-		uid, accountID, startDate, endDate,
-	).Scan(&totalCount)
-	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to count transactions")
+	if cursorDate == nil {
+		err = s.pool.QueryRow(ctx,
+			`SELECT COUNT(*) FROM transactions
+			 WHERE user_id = $1 AND deleted_at IS NULL
+			 AND ($2::uuid IS NULL OR account_id = $2)
+			 AND ($3::timestamptz IS NULL OR txn_date >= $3)
+			 AND ($4::timestamptz IS NULL OR txn_date <= $4)`,
+			uid, accountID, startDate, endDate,
+		).Scan(&totalCount)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to count transactions")
+		}
 	}
 
-	// Query transactions
+	// Query transactions with cursor-based pagination
+	// Sort: txn_date DESC, id DESC — cursor seeks to (txn_date, id) < (cursor_date, cursor_id)
 	rows, err := s.pool.Query(ctx,
 		`SELECT id, user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, created_at, updated_at, tags, image_urls
 		 FROM transactions
@@ -528,9 +534,13 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 		 AND ($2::uuid IS NULL OR account_id = $2)
 		 AND ($3::timestamptz IS NULL OR txn_date >= $3)
 		 AND ($4::timestamptz IS NULL OR txn_date <= $4)
-		 ORDER BY txn_date DESC, created_at DESC
-		 LIMIT $5 OFFSET $6`,
-		uid, accountID, startDate, endDate, pageSize, offset,
+		 AND (
+		   $5::timestamptz IS NULL
+		   OR (txn_date, id) < ($5, $6)
+		 )
+		 ORDER BY txn_date DESC, id DESC
+		 LIMIT $7`,
+		uid, accountID, startDate, endDate, cursorDate, cursorID, pageSize+1,
 	)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to query transactions")
@@ -550,10 +560,14 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 		transactions = []*pb.Transaction{}
 	}
 
+	// Build next_page_token from last item if there are more results
 	nextPageToken := ""
-	nextOffset := offset + pageSize
-	if nextOffset < totalCount {
-		nextPageToken = fmt.Sprintf("%d", nextOffset)
+	if int32(len(transactions)) > pageSize {
+		// We fetched pageSize+1, trim to pageSize and build cursor from last kept item
+		transactions = transactions[:pageSize]
+		last := transactions[pageSize-1]
+		lastDate := last.TxnDate.AsTime()
+		nextPageToken = fmt.Sprintf("%d|%s", lastDate.UnixNano(), last.Id)
 	}
 
 	return &pb.ListTransactionsResponse{
