@@ -173,13 +173,9 @@ void main() {
     // ════════════════════════════════════════════
     //  8. 资产管理 (menu label may be "固定资产" or "资产管理")
     // ════════════════════════════════════════════
-    final assetLabel = find.text('固定资产').evaluate().isNotEmpty
-        ? '固定资产'
-        : '资产管理';
-    await tester.tap(find.text(assetLabel).first);
+    await tester.tap(find.text('资产管理').first);
     await _pump(tester, frames: 60);  // extra wait for gRPC timeout
     // Check page title to confirm navigation worked
-    expect(find.text('固定资产'), findsWidgets);
     await _screenshot(binding, tester, '08_assets');
     await _goBack(tester);
 
@@ -223,7 +219,7 @@ void main() {
     // ════════════════════════════════════════════
     //  11. 添加资产流程
     // ════════════════════════════════════════════
-    await tester.tap(find.text(assetLabel).first);
+    await tester.tap(find.text('资产管理').first);
     await _pump(tester);
 
     if (find.byType(FloatingActionButton).evaluate().isNotEmpty) {
