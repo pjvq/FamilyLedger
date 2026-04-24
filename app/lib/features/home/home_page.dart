@@ -1,9 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/account_provider.dart';
+import '../account/add_account_page.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/notification_provider.dart';
@@ -514,7 +516,16 @@ class _AccountTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            CupertinoPageRoute(
+              builder: (_) => AddAccountPage(existingAccount: account),
+            ),
+          );
+        },
+        child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
@@ -550,8 +561,15 @@ class _AccountTile extends StatelessWidget {
                     : (isDark ? AppColors.expenseDark : AppColors.expense),
               ),
             ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.chevron_right,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+              size: 20,
+            ),
           ],
         ),
+      ),
       ),
     );
   }
