@@ -155,6 +155,8 @@ const CategoryItem$json = {
     {'1': 'icon', '3': 3, '4': 1, '5': 9, '10': 'icon'},
     {'1': 'amount', '3': 4, '4': 1, '5': 3, '10': 'amount'},
     {'1': 'weight', '3': 5, '4': 1, '5': 1, '10': 'weight'},
+    {'1': 'children', '3': 6, '4': 3, '5': 11, '6': '.familyledger.dashboard.v1.CategoryItem', '10': 'children'},
+    {'1': 'icon_key', '3': 7, '4': 1, '5': 9, '10': 'iconKey'},
   ],
 };
 
@@ -162,7 +164,9 @@ const CategoryItem$json = {
 final $typed_data.Uint8List categoryItemDescriptor = $convert.base64Decode(
     'CgxDYXRlZ29yeUl0ZW0SHwoLY2F0ZWdvcnlfaWQYASABKAlSCmNhdGVnb3J5SWQSIwoNY2F0ZW'
     'dvcnlfbmFtZRgCIAEoCVIMY2F0ZWdvcnlOYW1lEhIKBGljb24YAyABKAlSBGljb24SFgoGYW1v'
-    'dW50GAQgASgDUgZhbW91bnQSFgoGd2VpZ2h0GAUgASgBUgZ3ZWlnaHQ=');
+    'dW50GAQgASgDUgZhbW91bnQSFgoGd2VpZ2h0GAUgASgBUgZ3ZWlnaHQSQwoIY2hpbGRyZW4YBi'
+    'ADKAsyJy5mYW1pbHlsZWRnZXIuZGFzaGJvYXJkLnYxLkNhdGVnb3J5SXRlbVIIY2hpbGRyZW4S'
+    'GQoIaWNvbl9rZXkYByABKAlSB2ljb25LZXk=');
 
 @$core.Deprecated('Use budgetSummaryRequestDescriptor instead')
 const BudgetSummaryRequest$json = {
@@ -206,6 +210,7 @@ const CategoryBudgetItem$json = {
     {'1': 'budget_amount', '3': 3, '4': 1, '5': 3, '10': 'budgetAmount'},
     {'1': 'spent_amount', '3': 4, '4': 1, '5': 3, '10': 'spentAmount'},
     {'1': 'execution_rate', '3': 5, '4': 1, '5': 1, '10': 'executionRate'},
+    {'1': 'children', '3': 6, '4': 3, '5': 11, '6': '.familyledger.dashboard.v1.CategoryBudgetItem', '10': 'children'},
   ],
 };
 
@@ -214,5 +219,6 @@ final $typed_data.Uint8List categoryBudgetItemDescriptor = $convert.base64Decode
     'ChJDYXRlZ29yeUJ1ZGdldEl0ZW0SHwoLY2F0ZWdvcnlfaWQYASABKAlSCmNhdGVnb3J5SWQSIw'
     'oNY2F0ZWdvcnlfbmFtZRgCIAEoCVIMY2F0ZWdvcnlOYW1lEiMKDWJ1ZGdldF9hbW91bnQYAyAB'
     'KANSDGJ1ZGdldEFtb3VudBIhCgxzcGVudF9hbW91bnQYBCABKANSC3NwZW50QW1vdW50EiUKDm'
-    'V4ZWN1dGlvbl9yYXRlGAUgASgBUg1leGVjdXRpb25SYXRl');
+    'V4ZWN1dGlvbl9yYXRlGAUgASgBUg1leGVjdXRpb25SYXRlEkkKCGNoaWxkcmVuGAYgAygLMi0u'
+    'ZmFtaWx5bGVkZ2VyLmRhc2hib2FyZC52MS5DYXRlZ29yeUJ1ZGdldEl0ZW1SCGNoaWxkcmVu');
 

@@ -697,6 +697,8 @@ class CategoryItem extends $pb.GeneratedMessage {
     $core.String? icon,
     $fixnum.Int64? amount,
     $core.double? weight,
+    $core.Iterable<CategoryItem>? children,
+    $core.String? iconKey,
   }) {
     final $result = create();
     if (categoryId != null) {
@@ -714,6 +716,12 @@ class CategoryItem extends $pb.GeneratedMessage {
     if (weight != null) {
       $result.weight = weight;
     }
+    if (children != null) {
+      $result.children.addAll(children);
+    }
+    if (iconKey != null) {
+      $result.iconKey = iconKey;
+    }
     return $result;
   }
   CategoryItem._() : super();
@@ -726,6 +734,8 @@ class CategoryItem extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'icon')
     ..aInt64(4, _omitFieldNames ? '' : 'amount')
     ..a<$core.double>(5, _omitFieldNames ? '' : 'weight', $pb.PbFieldType.OD)
+    ..pc<CategoryItem>(6, _omitFieldNames ? '' : 'children', $pb.PbFieldType.PM, subBuilder: CategoryItem.create)
+    ..aOS(7, _omitFieldNames ? '' : 'iconKey')
     ..hasRequiredFields = false
   ;
 
@@ -794,6 +804,18 @@ class CategoryItem extends $pb.GeneratedMessage {
   $core.bool hasWeight() => $_has(4);
   @$pb.TagNumber(5)
   void clearWeight() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.List<CategoryItem> get children => $_getList(5);
+
+  @$pb.TagNumber(7)
+  $core.String get iconKey => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set iconKey($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasIconKey() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearIconKey() => clearField(7);
 }
 
 class BudgetSummaryRequest extends $pb.GeneratedMessage {
@@ -967,6 +989,7 @@ class CategoryBudgetItem extends $pb.GeneratedMessage {
     $fixnum.Int64? budgetAmount,
     $fixnum.Int64? spentAmount,
     $core.double? executionRate,
+    $core.Iterable<CategoryBudgetItem>? children,
   }) {
     final $result = create();
     if (categoryId != null) {
@@ -984,6 +1007,9 @@ class CategoryBudgetItem extends $pb.GeneratedMessage {
     if (executionRate != null) {
       $result.executionRate = executionRate;
     }
+    if (children != null) {
+      $result.children.addAll(children);
+    }
     return $result;
   }
   CategoryBudgetItem._() : super();
@@ -996,6 +1022,7 @@ class CategoryBudgetItem extends $pb.GeneratedMessage {
     ..aInt64(3, _omitFieldNames ? '' : 'budgetAmount')
     ..aInt64(4, _omitFieldNames ? '' : 'spentAmount')
     ..a<$core.double>(5, _omitFieldNames ? '' : 'executionRate', $pb.PbFieldType.OD)
+    ..pc<CategoryBudgetItem>(6, _omitFieldNames ? '' : 'children', $pb.PbFieldType.PM, subBuilder: CategoryBudgetItem.create)
     ..hasRequiredFields = false
   ;
 
@@ -1064,6 +1091,9 @@ class CategoryBudgetItem extends $pb.GeneratedMessage {
   $core.bool hasExecutionRate() => $_has(4);
   @$pb.TagNumber(5)
   void clearExecutionRate() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.List<CategoryBudgetItem> get children => $_getList(5);
 }
 
 

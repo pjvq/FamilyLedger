@@ -548,6 +548,8 @@ type CategoryItem struct {
 	Icon          string                 `protobuf:"bytes,3,opt,name=icon,proto3" json:"icon,omitempty"`
 	Amount        int64                  `protobuf:"varint,4,opt,name=amount,proto3" json:"amount,omitempty"`
 	Weight        float64                `protobuf:"fixed64,5,opt,name=weight,proto3" json:"weight,omitempty"`
+	Children      []*CategoryItem        `protobuf:"bytes,6,rep,name=children,proto3" json:"children,omitempty"`              // subcategory breakdown
+	IconKey       string                 `protobuf:"bytes,7,opt,name=icon_key,json=iconKey,proto3" json:"icon_key,omitempty"` // material icon key (e.g. "food_breakfast")
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -615,6 +617,20 @@ func (x *CategoryItem) GetWeight() float64 {
 		return x.Weight
 	}
 	return 0
+}
+
+func (x *CategoryItem) GetChildren() []*CategoryItem {
+	if x != nil {
+		return x.Children
+	}
+	return nil
+}
+
+func (x *CategoryItem) GetIconKey() string {
+	if x != nil {
+		return x.IconKey
+	}
+	return ""
 }
 
 type BudgetSummaryRequest struct {
@@ -752,6 +768,7 @@ type CategoryBudgetItem struct {
 	BudgetAmount  int64                  `protobuf:"varint,3,opt,name=budget_amount,json=budgetAmount,proto3" json:"budget_amount,omitempty"`
 	SpentAmount   int64                  `protobuf:"varint,4,opt,name=spent_amount,json=spentAmount,proto3" json:"spent_amount,omitempty"`
 	ExecutionRate float64                `protobuf:"fixed64,5,opt,name=execution_rate,json=executionRate,proto3" json:"execution_rate,omitempty"`
+	Children      []*CategoryBudgetItem  `protobuf:"bytes,6,rep,name=children,proto3" json:"children,omitempty"` // subcategory budget breakdown
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -821,6 +838,13 @@ func (x *CategoryBudgetItem) GetExecutionRate() float64 {
 	return 0
 }
 
+func (x *CategoryBudgetItem) GetChildren() []*CategoryBudgetItem {
+	if x != nil {
+		return x.Children
+	}
+	return nil
+}
+
 var File_dashboard_proto protoreflect.FileDescriptor
 
 const file_dashboard_proto_rawDesc = "" +
@@ -863,14 +887,16 @@ const file_dashboard_proto_rawDesc = "" +
 	"\x04type\x18\x05 \x01(\tR\x04type\"p\n" +
 	"\x19CategoryBreakdownResponse\x12\x14\n" +
 	"\x05total\x18\x01 \x01(\x03R\x05total\x12=\n" +
-	"\x05items\x18\x02 \x03(\v2'.familyledger.dashboard.v1.CategoryItemR\x05items\"\x98\x01\n" +
+	"\x05items\x18\x02 \x03(\v2'.familyledger.dashboard.v1.CategoryItemR\x05items\"\xf8\x01\n" +
 	"\fCategoryItem\x12\x1f\n" +
 	"\vcategory_id\x18\x01 \x01(\tR\n" +
 	"categoryId\x12#\n" +
 	"\rcategory_name\x18\x02 \x01(\tR\fcategoryName\x12\x12\n" +
 	"\x04icon\x18\x03 \x01(\tR\x04icon\x12\x16\n" +
 	"\x06amount\x18\x04 \x01(\x03R\x06amount\x12\x16\n" +
-	"\x06weight\x18\x05 \x01(\x01R\x06weight\"]\n" +
+	"\x06weight\x18\x05 \x01(\x01R\x06weight\x12C\n" +
+	"\bchildren\x18\x06 \x03(\v2'.familyledger.dashboard.v1.CategoryItemR\bchildren\x12\x19\n" +
+	"\bicon_key\x18\a \x01(\tR\aiconKey\"]\n" +
 	"\x14BudgetSummaryRequest\x12\x1b\n" +
 	"\tfamily_id\x18\x01 \x01(\tR\bfamilyId\x12\x12\n" +
 	"\x04year\x18\x02 \x01(\x05R\x04year\x12\x14\n" +
@@ -882,14 +908,15 @@ const file_dashboard_proto_rawDesc = "" +
 	"\x0eexecution_rate\x18\x03 \x01(\x01R\rexecutionRate\x12M\n" +
 	"\n" +
 	"categories\x18\x04 \x03(\v2-.familyledger.dashboard.v1.CategoryBudgetItemR\n" +
-	"categories\"\xc9\x01\n" +
+	"categories\"\x94\x02\n" +
 	"\x12CategoryBudgetItem\x12\x1f\n" +
 	"\vcategory_id\x18\x01 \x01(\tR\n" +
 	"categoryId\x12#\n" +
 	"\rcategory_name\x18\x02 \x01(\tR\fcategoryName\x12#\n" +
 	"\rbudget_amount\x18\x03 \x01(\x03R\fbudgetAmount\x12!\n" +
 	"\fspent_amount\x18\x04 \x01(\x03R\vspentAmount\x12%\n" +
-	"\x0eexecution_rate\x18\x05 \x01(\x01R\rexecutionRate2\xc3\x04\n" +
+	"\x0eexecution_rate\x18\x05 \x01(\x01R\rexecutionRate\x12I\n" +
+	"\bchildren\x18\x06 \x03(\v2-.familyledger.dashboard.v1.CategoryBudgetItemR\bchildren2\xc3\x04\n" +
 	"\x10DashboardService\x12a\n" +
 	"\vGetNetWorth\x12-.familyledger.dashboard.v1.GetNetWorthRequest\x1a#.familyledger.dashboard.v1.NetWorth\x12j\n" +
 	"\x15GetIncomeExpenseTrend\x12'.familyledger.dashboard.v1.TrendRequest\x1a(.familyledger.dashboard.v1.TrendResponse\x12\x81\x01\n" +
@@ -928,22 +955,24 @@ var file_dashboard_proto_depIdxs = []int32{
 	2,  // 0: familyledger.dashboard.v1.NetWorth.composition:type_name -> familyledger.dashboard.v1.AssetComposition
 	5,  // 1: familyledger.dashboard.v1.TrendResponse.points:type_name -> familyledger.dashboard.v1.TrendPoint
 	8,  // 2: familyledger.dashboard.v1.CategoryBreakdownResponse.items:type_name -> familyledger.dashboard.v1.CategoryItem
-	11, // 3: familyledger.dashboard.v1.BudgetSummaryResponse.categories:type_name -> familyledger.dashboard.v1.CategoryBudgetItem
-	0,  // 4: familyledger.dashboard.v1.DashboardService.GetNetWorth:input_type -> familyledger.dashboard.v1.GetNetWorthRequest
-	3,  // 5: familyledger.dashboard.v1.DashboardService.GetIncomeExpenseTrend:input_type -> familyledger.dashboard.v1.TrendRequest
-	6,  // 6: familyledger.dashboard.v1.DashboardService.GetCategoryBreakdown:input_type -> familyledger.dashboard.v1.CategoryBreakdownRequest
-	9,  // 7: familyledger.dashboard.v1.DashboardService.GetBudgetSummary:input_type -> familyledger.dashboard.v1.BudgetSummaryRequest
-	3,  // 8: familyledger.dashboard.v1.DashboardService.GetNetWorthTrend:input_type -> familyledger.dashboard.v1.TrendRequest
-	1,  // 9: familyledger.dashboard.v1.DashboardService.GetNetWorth:output_type -> familyledger.dashboard.v1.NetWorth
-	4,  // 10: familyledger.dashboard.v1.DashboardService.GetIncomeExpenseTrend:output_type -> familyledger.dashboard.v1.TrendResponse
-	7,  // 11: familyledger.dashboard.v1.DashboardService.GetCategoryBreakdown:output_type -> familyledger.dashboard.v1.CategoryBreakdownResponse
-	10, // 12: familyledger.dashboard.v1.DashboardService.GetBudgetSummary:output_type -> familyledger.dashboard.v1.BudgetSummaryResponse
-	4,  // 13: familyledger.dashboard.v1.DashboardService.GetNetWorthTrend:output_type -> familyledger.dashboard.v1.TrendResponse
-	9,  // [9:14] is the sub-list for method output_type
-	4,  // [4:9] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	8,  // 3: familyledger.dashboard.v1.CategoryItem.children:type_name -> familyledger.dashboard.v1.CategoryItem
+	11, // 4: familyledger.dashboard.v1.BudgetSummaryResponse.categories:type_name -> familyledger.dashboard.v1.CategoryBudgetItem
+	11, // 5: familyledger.dashboard.v1.CategoryBudgetItem.children:type_name -> familyledger.dashboard.v1.CategoryBudgetItem
+	0,  // 6: familyledger.dashboard.v1.DashboardService.GetNetWorth:input_type -> familyledger.dashboard.v1.GetNetWorthRequest
+	3,  // 7: familyledger.dashboard.v1.DashboardService.GetIncomeExpenseTrend:input_type -> familyledger.dashboard.v1.TrendRequest
+	6,  // 8: familyledger.dashboard.v1.DashboardService.GetCategoryBreakdown:input_type -> familyledger.dashboard.v1.CategoryBreakdownRequest
+	9,  // 9: familyledger.dashboard.v1.DashboardService.GetBudgetSummary:input_type -> familyledger.dashboard.v1.BudgetSummaryRequest
+	3,  // 10: familyledger.dashboard.v1.DashboardService.GetNetWorthTrend:input_type -> familyledger.dashboard.v1.TrendRequest
+	1,  // 11: familyledger.dashboard.v1.DashboardService.GetNetWorth:output_type -> familyledger.dashboard.v1.NetWorth
+	4,  // 12: familyledger.dashboard.v1.DashboardService.GetIncomeExpenseTrend:output_type -> familyledger.dashboard.v1.TrendResponse
+	7,  // 13: familyledger.dashboard.v1.DashboardService.GetCategoryBreakdown:output_type -> familyledger.dashboard.v1.CategoryBreakdownResponse
+	10, // 14: familyledger.dashboard.v1.DashboardService.GetBudgetSummary:output_type -> familyledger.dashboard.v1.BudgetSummaryResponse
+	4,  // 15: familyledger.dashboard.v1.DashboardService.GetNetWorthTrend:output_type -> familyledger.dashboard.v1.TrendResponse
+	11, // [11:16] is the sub-list for method output_type
+	6,  // [6:11] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_dashboard_proto_init() }

@@ -64,15 +64,19 @@ class CategoryBreakdownItem {
   final String categoryId;
   final String categoryName;
   final String icon;
+  final String iconKey;
   final int amount;
   final double weight;
+  final List<CategoryBreakdownItem> children;
 
   const CategoryBreakdownItem({
     required this.categoryId,
     required this.categoryName,
     required this.icon,
+    this.iconKey = '',
     required this.amount,
     required this.weight,
+    this.children = const [],
   });
 }
 
@@ -394,8 +398,19 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
                   categoryId: c.categoryId,
                   categoryName: c.categoryName,
                   icon: c.icon,
+                  iconKey: c.iconKey,
                   amount: c.amount.toInt(),
                   weight: c.weight,
+                  children: c.children
+                      .map((ch) => CategoryBreakdownItem(
+                            categoryId: ch.categoryId,
+                            categoryName: ch.categoryName,
+                            icon: ch.icon,
+                            iconKey: ch.iconKey,
+                            amount: ch.amount.toInt(),
+                            weight: ch.weight,
+                          ))
+                      .toList(),
                 ))
             .toList(),
         categoryBreakdownTotal: resp.total.toInt(),
@@ -409,18 +424,81 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     final categories = await _db.getAllCategories();
     final catMap = {for (final c in categories) c.id: c};
 
-    final total = expenses.values.fold<int>(0, (sum, v) => sum + v);
-    final items = expenses.entries.map((e) {
-      final cat = catMap[e.key];
-      return CategoryBreakdownItem(
-        categoryId: e.key,
+    // Aggregate subcategory amounts into parent categories
+    final parentAmounts = <String, int>{};
+    final childrenMap = <String, List<CategoryBreakdownItem>>{};
+    final topLevelDirect = <String, int>{};
+
+    for (final entry in expenses.entries) {
+      final cat = catMap[entry.key];
+      final parentId = cat?.parentId;
+      if (parentId != null && parentId.isNotEmpty) {
+        // Subcategory: aggregate to parent
+        parentAmounts[parentId] = (parentAmounts[parentId] ?? 0) + entry.value;
+        childrenMap.putIfAbsent(parentId, () => []);
+        childrenMap[parentId]!.add(CategoryBreakdownItem(
+          categoryId: entry.key,
+          categoryName: cat?.name ?? '未知',
+          icon: cat?.icon ?? '📦',
+          iconKey: cat?.iconKey ?? '',
+          amount: entry.value,
+          weight: 0, // computed later
+        ));
+      } else {
+        // Top-level category
+        topLevelDirect[entry.key] = entry.value;
+      }
+    }
+
+    // Build top-level items
+    final allTopIds = {...topLevelDirect.keys, ...parentAmounts.keys};
+    var total = 0;
+    final items = <CategoryBreakdownItem>[];
+
+    for (final id in allTopIds) {
+      final directAmt = topLevelDirect[id] ?? 0;
+      final subAmt = parentAmounts[id] ?? 0;
+      final totalAmt = directAmt + subAmt;
+      total += totalAmt;
+
+      final cat = catMap[id];
+      final children = childrenMap[id] ?? [];
+      children.sort((a, b) => b.amount.compareTo(a.amount));
+
+      items.add(CategoryBreakdownItem(
+        categoryId: id,
         categoryName: cat?.name ?? '未知',
         icon: cat?.icon ?? '📦',
-        amount: e.value,
-        weight: total > 0 ? e.value / total : 0.0,
+        iconKey: cat?.iconKey ?? '',
+        amount: totalAmt,
+        weight: 0, // computed below
+        children: children,
+      ));
+    }
+
+    // Compute weights
+    for (final item in items) {
+      final updatedChildren = item.children.map((ch) => CategoryBreakdownItem(
+        categoryId: ch.categoryId,
+        categoryName: ch.categoryName,
+        icon: ch.icon,
+        iconKey: ch.iconKey,
+        amount: ch.amount,
+        weight: item.amount > 0 ? ch.amount / item.amount : 0.0,
+      )).toList();
+      // Replace with weight-computed version
+      items[items.indexOf(item)] = CategoryBreakdownItem(
+        categoryId: item.categoryId,
+        categoryName: item.categoryName,
+        icon: item.icon,
+        iconKey: item.iconKey,
+        amount: item.amount,
+        weight: total > 0 ? item.amount / total : 0.0,
+        children: updatedChildren,
       );
-    }).toList()
-      ..sort((a, b) => b.amount.compareTo(a.amount));
+    }
+
+    items.sort((a, b) => b.amount.compareTo(a.amount));
 
     state = state.copyWith(
       categoryBreakdown: items,

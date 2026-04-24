@@ -364,9 +364,10 @@ void main() {
       expect(find.text('娱乐'), findsOneWidget);
       expect(find.text('医疗'), findsOneWidget);
 
-      // Icons
-      expect(find.text('🍜'), findsOneWidget);
-      expect(find.text('🚗'), findsOneWidget);
+      // Icons — CategoryGrid now renders Material Icons via icon_key, not emoji text
+      // Just verify the category names are visible
+      expect(find.text('餐饮'), findsOneWidget);
+      expect(find.text('交通'), findsOneWidget);
     });
 
     testWidgets('highlights selected category', (tester) async {

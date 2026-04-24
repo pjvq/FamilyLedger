@@ -928,6 +928,7 @@ class _CategoryPieChart extends StatefulWidget {
 
 class _CategoryPieChartState extends State<_CategoryPieChart> {
   int? _touchedIndex;
+  int? _expandedIndex;  // legend item with children expanded
 
   @override
   Widget build(BuildContext context) {
@@ -1000,39 +1001,72 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: items.asMap().entries.take(8).map((e) {
+                  children: items.asMap().entries.take(8).expand((e) {
                     final i = e.key;
                     final item = e.value;
                     final isTouched = _touchedIndex == i;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 3),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: AppColors.chartPalette[
-                                  i % AppColors.chartPalette.length],
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              '${item.icon} ${item.categoryName}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontWeight: isTouched
-                                    ? FontWeight.w700
-                                    : FontWeight.w400,
-                                fontSize: isTouched ? 12 : 11,
+                    final isExpanded = _expandedIndex == i;
+                    final hasChildren = item.children.isNotEmpty;
+                    return [
+                      GestureDetector(
+                        onTap: hasChildren
+                            ? () => setState(() {
+                                  _expandedIndex = isExpanded ? null : i;
+                                })
+                            : null,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: AppColors.chartPalette[
+                                      i % AppColors.chartPalette.length],
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  '${item.icon} ${item.categoryName}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontWeight: isTouched
+                                        ? FontWeight.w700
+                                        : FontWeight.w400,
+                                    fontSize: isTouched ? 12 : 11,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (hasChildren)
+                                Icon(
+                                  isExpanded
+                                      ? Icons.expand_less
+                                      : Icons.expand_more,
+                                  size: 14,
+                                  color: theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.4),
+                                ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    );
+                      if (isExpanded)
+                        ...item.children.map((child) => Padding(
+                              padding: const EdgeInsets.only(
+                                  left: 22, top: 1, bottom: 1),
+                              child: Text(
+                                '${child.categoryName}  ¥${(child.amount / 100).toStringAsFixed(0)}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontSize: 10,
+                                  color: theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.5),
+                                ),
+                              ),
+                            )),
+                    ];
                   }).toList(),
                 ),
               ),

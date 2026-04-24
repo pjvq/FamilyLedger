@@ -71,6 +71,8 @@ message CategoryItem {
     string icon = 3;
     int64 amount = 4;
     double weight = 5;
+    repeated CategoryItem children = 6;  // subcategory breakdown
+    string icon_key = 7;                 // material icon key (e.g. "food_breakfast")
 }
 
 message BudgetSummaryRequest {
@@ -92,4 +94,5 @@ message CategoryBudgetItem {
     int64 budget_amount = 3;
     int64 spent_amount = 4;
     double execution_rate = 5;
+    repeated CategoryBudgetItem children = 6;  // subcategory budget breakdown
 }

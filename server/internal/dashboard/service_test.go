@@ -184,9 +184,11 @@ func TestGetCategoryBreakdown_Success(t *testing.T) {
 
 	icon1 := "🍔"
 	icon2 := "🚗"
-	rows := pgxmock.NewRows([]string{"category_id", "name", "icon", "amount"}).
-		AddRow("cat-001", "餐饮", &icon1, int64(30000)).
-		AddRow("cat-002", "交通", &icon2, int64(10000))
+	iconKey1 := "food"
+	iconKey2 := "transport"
+	rows := pgxmock.NewRows([]string{"category_id", "name", "icon", "icon_key", "parent_id", "amount"}).
+		AddRow("cat-001", "餐饮", &icon1, &iconKey1, (*string)(nil), int64(30000)).
+		AddRow("cat-002", "交通", &icon2, &iconKey2, (*string)(nil), int64(10000))
 
 	mock.ExpectQuery("SELECT t.category_id").
 		WithArgs(testUserID, "expense", pgxmock.AnyArg(), pgxmock.AnyArg()).
@@ -216,7 +218,7 @@ func TestGetCategoryBreakdown_NoData(t *testing.T) {
 
 	mock.ExpectQuery("SELECT t.category_id").
 		WithArgs(testUserID, "expense", pgxmock.AnyArg(), pgxmock.AnyArg()).
-		WillReturnRows(pgxmock.NewRows([]string{"category_id", "name", "icon", "amount"}))
+		WillReturnRows(pgxmock.NewRows([]string{"category_id", "name", "icon", "icon_key", "parent_id", "amount"}))
 
 	resp, err := svc.GetCategoryBreakdown(authedCtx(), &pb.CategoryBreakdownRequest{
 		Year:  2026,
@@ -255,11 +257,11 @@ func TestGetBudgetSummary_Success(t *testing.T) {
 		WillReturnRows(pgxmock.NewRows([]string{"category_id", "name", "amount"}).
 			AddRow("cat-001", "餐饮", int64(100000)))
 
-	// category spent
-	mock.ExpectQuery("SELECT t.category_id, COALESCE").
+	// category spent (now includes parent_id)
+	mock.ExpectQuery("SELECT t.category_id").
 		WithArgs(testUserID, pgxmock.AnyArg(), pgxmock.AnyArg()).
-		WillReturnRows(pgxmock.NewRows([]string{"category_id", "spent"}).
-			AddRow("cat-001", int64(80000)))
+		WillReturnRows(pgxmock.NewRows([]string{"category_id", "parent_id", "spent"}).
+			AddRow("cat-001", (*string)(nil), int64(80000)))
 
 	resp, err := svc.GetBudgetSummary(authedCtx(), &pb.BudgetSummaryRequest{
 		Year:  2026,

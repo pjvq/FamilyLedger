@@ -209,7 +209,7 @@ void main() {
       expect(find.text('已同步'), findsOneWidget);
 
       // Scroll down to reveal items at the bottom of the ListView
-      await tester.drag(find.byType(ListView), const Offset(0, -400));
+      await tester.drag(find.byType(ListView), const Offset(0, -600));
       await tester.pumpAndSettle();
 
       expect(find.text('贷款管理'), findsOneWidget);

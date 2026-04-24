@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/familyledger/server/pkg/db"
@@ -318,13 +319,15 @@ func (s *Service) GetCategoryBreakdown(ctx context.Context, req *pb.CategoryBrea
 	startOfMonth := time.Date(int(req.Year), time.Month(req.Month), 1, 0, 0, 0, 0, time.UTC)
 	endOfMonth := startOfMonth.AddDate(0, 1, 0)
 
+	// Query per-category totals with parent_id and icon_key for subcategory aggregation
 	rows, err := s.pool.Query(ctx,
-		`SELECT t.category_id, c.name, c.icon, COALESCE(SUM(t.amount_cny), 0) AS amount
+		`SELECT t.category_id, c.name, c.icon, c.icon_key, c.parent_id,
+		        COALESCE(SUM(t.amount_cny), 0) AS amount
 		 FROM transactions t
 		 JOIN categories c ON c.id = t.category_id
 		 WHERE t.user_id = $1 AND t.type = $2 AND t.deleted_at IS NULL
 		   AND t.txn_date >= $3 AND t.txn_date < $4
-		 GROUP BY t.category_id, c.name, c.icon
+		 GROUP BY t.category_id, c.name, c.icon, c.icon_key, c.parent_id
 		 ORDER BY amount DESC`,
 		userID, txnType, startOfMonth, endOfMonth,
 	)
@@ -334,42 +337,125 @@ func (s *Service) GetCategoryBreakdown(ctx context.Context, req *pb.CategoryBrea
 	}
 	defer rows.Close()
 
-	var items []*pb.CategoryItem
-	var total int64
+	type rawItem struct {
+		catID    string
+		name     string
+		icon     string
+		iconKey  string
+		parentID *string
+		amount   int64
+	}
+	var rawItems []rawItem
 	for rows.Next() {
-		var catID, catName string
-		var icon *string
-		var amount int64
-		if err := rows.Scan(&catID, &catName, &icon, &amount); err != nil {
+		var ri rawItem
+		var iconPtr, iconKeyPtr, parentPtr *string
+		if err := rows.Scan(&ri.catID, &ri.name, &iconPtr, &iconKeyPtr, &parentPtr, &ri.amount); err != nil {
 			return nil, status.Error(codes.Internal, "failed to scan category row")
 		}
-		iconStr := ""
-		if icon != nil {
-			iconStr = *icon
+		if iconPtr != nil {
+			ri.icon = *iconPtr
 		}
-		items = append(items, &pb.CategoryItem{
-			CategoryId:   catID,
-			CategoryName: catName,
-			Icon:         iconStr,
-			Amount:       amount,
-		})
-		total += amount
+		if iconKeyPtr != nil {
+			ri.iconKey = *iconKeyPtr
+		}
+		ri.parentID = parentPtr
+		rawItems = append(rawItems, ri)
 	}
 
-	// 计算占比
-	for _, item := range items {
+	// Build tree: aggregate subcategory amounts into parent categories.
+	// parentMap: parentID → []*pb.CategoryItem (children)
+	// parentAmount: parentID → aggregated amount from subcategories
+	parentMap := make(map[string][]*pb.CategoryItem)
+	parentAmount := make(map[string]int64)
+	var topItems []*pb.CategoryItem
+	var total int64
+
+	// First pass: collect top-level and subcategory items
+	topLevelMap := make(map[string]*pb.CategoryItem) // catID → item
+	for _, ri := range rawItems {
+		total += ri.amount
+		if ri.parentID != nil && *ri.parentID != "" {
+			// Subcategory: add to parent's children
+			child := &pb.CategoryItem{
+				CategoryId:   ri.catID,
+				CategoryName: ri.name,
+				Icon:         ri.icon,
+				IconKey:      ri.iconKey,
+				Amount:       ri.amount,
+			}
+			parentMap[*ri.parentID] = append(parentMap[*ri.parentID], child)
+			parentAmount[*ri.parentID] += ri.amount
+		} else {
+			// Top-level category
+			item := &pb.CategoryItem{
+				CategoryId:   ri.catID,
+				CategoryName: ri.name,
+				Icon:         ri.icon,
+				IconKey:      ri.iconKey,
+				Amount:       ri.amount, // direct spend on parent (no subcategory)
+			}
+			topLevelMap[ri.catID] = item
+			topItems = append(topItems, item)
+		}
+	}
+
+	// Second pass: for subcategories whose parent had no direct spend,
+	// create a synthetic parent entry.
+	for parentID, children := range parentMap {
+		if _, exists := topLevelMap[parentID]; !exists {
+			// Look up parent category name
+			var pName string
+			var pIcon, pIconKey *string
+			err := s.pool.QueryRow(ctx,
+				`SELECT name, icon, icon_key FROM categories WHERE id = $1`, parentID,
+			).Scan(&pName, &pIcon, &pIconKey)
+			if err != nil {
+				pName = "未知"
+			}
+			item := &pb.CategoryItem{
+				CategoryId:   parentID,
+				CategoryName: pName,
+				Amount:       parentAmount[parentID],
+			}
+			if pIcon != nil {
+				item.Icon = *pIcon
+			}
+			if pIconKey != nil {
+				item.IconKey = *pIconKey
+			}
+			item.Children = children
+			topLevelMap[parentID] = item
+			topItems = append(topItems, item)
+		} else {
+			// Parent had direct spend — merge subcategory amount and attach children
+			parent := topLevelMap[parentID]
+			parent.Amount += parentAmount[parentID]
+			parent.Children = children
+		}
+	}
+
+	// Compute weights + children weights
+	for _, item := range topItems {
 		if total > 0 {
 			item.Weight = float64(item.Amount) / float64(total)
 		}
+		for _, child := range item.Children {
+			if item.Amount > 0 {
+				child.Weight = float64(child.Amount) / float64(item.Amount)
+			}
+		}
 	}
 
-	if items == nil {
-		items = []*pb.CategoryItem{}
+	// Sort by amount descending
+	sortCategoryItems(topItems)
+
+	if topItems == nil {
+		topItems = []*pb.CategoryItem{}
 	}
 
 	return &pb.CategoryBreakdownResponse{
 		Total: total,
-		Items: items,
+		Items: topItems,
 	}, nil
 }
 
@@ -450,13 +536,14 @@ func (s *Service) GetBudgetSummary(ctx context.Context, req *pb.BudgetSummaryReq
 		catBudgets = append(catBudgets, cb)
 	}
 
-	// 分类支出
+	// 分类支出（包含子分类）
 	spentRows, err := s.pool.Query(ctx,
-		`SELECT t.category_id, COALESCE(SUM(t.amount_cny), 0)
+		`SELECT t.category_id, c.parent_id, COALESCE(SUM(t.amount_cny), 0)
 		 FROM transactions t
+		 JOIN categories c ON c.id = t.category_id
 		 WHERE t.user_id = $1 AND t.type = 'expense' AND t.deleted_at IS NULL
 		   AND t.txn_date >= $2 AND t.txn_date < $3
-		 GROUP BY t.category_id`,
+		 GROUP BY t.category_id, c.parent_id`,
 		userID, startOfMonth, endOfMonth,
 	)
 	if err != nil {
@@ -464,19 +551,25 @@ func (s *Service) GetBudgetSummary(ctx context.Context, req *pb.BudgetSummaryReq
 	}
 	defer spentRows.Close()
 
-	spentMap := make(map[string]int64)
+	spentMap := make(map[string]int64)    // direct spend per category
+	subSpentMap := make(map[string]int64) // aggregated subcategory spend per parent
 	for spentRows.Next() {
 		var catID string
+		var parentID *string
 		var spent int64
-		if err := spentRows.Scan(&catID, &spent); err != nil {
+		if err := spentRows.Scan(&catID, &parentID, &spent); err != nil {
 			return nil, status.Error(codes.Internal, "failed to scan category spent")
 		}
 		spentMap[catID] = spent
+		if parentID != nil && *parentID != "" {
+			subSpentMap[*parentID] += spent
+		}
 	}
 
 	var categories []*pb.CategoryBudgetItem
 	for _, cb := range catBudgets {
-		spent := spentMap[cb.catID]
+		// Total spent = direct spend on this category + all subcategory spend
+		spent := spentMap[cb.catID] + subSpentMap[cb.catID]
 		var rate float64
 		if cb.budgetAmt > 0 {
 			rate = float64(spent) / float64(cb.budgetAmt)
@@ -596,14 +689,19 @@ func (s *Service) GetNetWorthTrend(ctx context.Context, req *pb.TrendRequest) (*
 		}
 	}
 
-	// 反转为时间正序
-	for i := len(allMonths) - 1; i >= 0; i-- {
-		m := allMonths[i]
-		points = append(points, &pb.TrendPoint{
-			Label: m.label,
-			Net:   m.netWorth,
-		})
-	}
-
 	return &pb.TrendResponse{Points: points}, nil
+}
+
+// sortCategoryItems sorts items by amount descending.
+func sortCategoryItems(items []*pb.CategoryItem) {
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].Amount > items[j].Amount
+	})
+	for _, item := range items {
+		if len(item.Children) > 1 {
+			sort.Slice(item.Children, func(i, j int) bool {
+				return item.Children[i].Amount > item.Children[j].Amount
+			})
+		}
+	}
 }
