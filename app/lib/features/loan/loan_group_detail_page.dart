@@ -131,7 +131,6 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
                     icon: Icons.speed_rounded,
                     label: '提前还款',
                     semanticLabel: '提前还款模拟',
-                    sublabel: '推荐先还商贷',
                     onTap: () {
                       // Default to commercial loan (higher rate)
                       final targetLoan = comLoan ?? pvdLoan;
