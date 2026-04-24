@@ -6,6 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:state_notifier/state_notifier.dart';
 
 import 'package:familyledger/core/theme/app_colors.dart';
+import 'package:familyledger/core/utils/category_uuid.dart';
 import 'package:familyledger/features/dashboard/dashboard_page.dart';
 import 'package:familyledger/features/dashboard/widgets/dashboard_card.dart';
 import 'package:familyledger/features/report/report_page.dart';
@@ -104,27 +105,27 @@ List<TrendPointData> _makeTrendPoints({int count = 6}) {
 }
 
 List<CategoryBreakdownItem> _makeCategoryBreakdown() {
-  return const [
+  return [
     CategoryBreakdownItem(
-        categoryId: 'cat_food',
+        categoryId: CategoryUUID.generate('expense', '餐饮'),
         categoryName: '餐饮',
         icon: '🍜',
         amount: 300000,
         weight: 0.3),
     CategoryBreakdownItem(
-        categoryId: 'cat_transport',
+        categoryId: CategoryUUID.generate('expense', '交通'),
         categoryName: '交通',
         icon: '🚗',
         amount: 200000,
         weight: 0.2),
     CategoryBreakdownItem(
-        categoryId: 'cat_shopping',
+        categoryId: CategoryUUID.generate('expense', '购物'),
         categoryName: '购物',
         icon: '🛍️',
         amount: 150000,
         weight: 0.15),
     CategoryBreakdownItem(
-        categoryId: 'cat_housing',
+        categoryId: CategoryUUID.generate('expense', '居住'),
         categoryName: '居住',
         icon: '🏠',
         amount: 350000,
@@ -167,7 +168,7 @@ DashboardState _makeFullDashboardState({
 }
 
 Category _makeCategory({
-  String id = 'cat_food',
+  String? id,
   String name = '餐饮',
   String icon = '🍜',
   String type = 'expense',
@@ -175,7 +176,7 @@ Category _makeCategory({
   int sortOrder = 1,
 }) {
   return Category(
-    id: id,
+    id: id ?? CategoryUUID.generate(type, name),
     name: name,
     icon: icon,
     type: type,
@@ -192,13 +193,13 @@ TransactionState _makeTransactionState({
     transactions: const [],
     expenseCategories: expenseCategories ??
         [
-          _makeCategory(id: 'cat_food', name: '餐饮', icon: '🍜'),
-          _makeCategory(id: 'cat_transport', name: '交通', icon: '🚗'),
+          _makeCategory(id: CategoryUUID.generate('expense', '餐饮'), name: '餐饮', icon: '🍜'),
+          _makeCategory(id: CategoryUUID.generate('expense', '交通'), name: '交通', icon: '🚗'),
         ],
     incomeCategories: incomeCategories ??
         [
           _makeCategory(
-              id: 'cat_salary', name: '工资', icon: '💰', type: 'income'),
+              id: CategoryUUID.generate('income', '工资'), name: '工资', icon: '💰', type: 'income'),
         ],
     isLoading: false,
   );

@@ -1,6 +1,11 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:familyledger/core/utils/category_uuid.dart';
 import 'package:familyledger/data/local/database.dart';
+
+final _catFood = CategoryUUID.generate('expense', '餐饮');
+final _catTransport = CategoryUUID.generate('expense', '交通');
+final _catSalary = CategoryUUID.generate('income', '工资');
 
 void main() {
   late AppDatabase db;
@@ -28,7 +33,7 @@ void main() {
 
     test('categories have correct fields', () async {
       final cats = await db.getCategoriesByType('expense');
-      final food = cats.firstWhere((c) => c.id == 'cat_food');
+      final food = cats.firstWhere((c) => c.id == _catFood);
       expect(food.name, '餐饮');
       expect(food.icon, '🍜');
       expect(food.isPreset, true);
@@ -95,7 +100,7 @@ void main() {
         id: 'txn_1',
         userId: userId,
         accountId: accountId,
-        categoryId: 'cat_food',
+        categoryId: _catFood,
         amount: 3500, // ¥35.00
         amountCny: 3500,
         type: 'expense',
@@ -113,7 +118,7 @@ void main() {
         id: 'txn_2',
         userId: userId,
         accountId: accountId,
-        categoryId: 'cat_salary',
+        categoryId: _catSalary,
         amount: 1000000, // ¥10,000.00
         amountCny: 1000000,
         type: 'income',
@@ -178,7 +183,7 @@ void main() {
         id: 'txn_today_1',
         userId: userId,
         accountId: accountId,
-        categoryId: 'cat_food',
+        categoryId: _catFood,
         amount: 2000,
         amountCny: 2000,
         type: 'expense',
@@ -189,7 +194,7 @@ void main() {
         id: 'txn_today_2',
         userId: userId,
         accountId: accountId,
-        categoryId: 'cat_salary',
+        categoryId: _catSalary,
         amount: 50000,
         amountCny: 50000,
         type: 'income',
@@ -200,7 +205,7 @@ void main() {
         id: 'txn_yesterday',
         userId: userId,
         accountId: accountId,
-        categoryId: 'cat_transport',
+        categoryId: _catTransport,
         amount: 1500,
         amountCny: 1500,
         type: 'expense',
@@ -218,7 +223,7 @@ void main() {
         id: 'txn_m1',
         userId: userId,
         accountId: accountId,
-        categoryId: 'cat_food',
+        categoryId: _catFood,
         amount: 3000,
         amountCny: 3000,
         type: 'expense',
@@ -228,7 +233,7 @@ void main() {
         id: 'txn_m2',
         userId: userId,
         accountId: accountId,
-        categoryId: 'cat_transport',
+        categoryId: _catTransport,
         amount: 1000,
         amountCny: 1000,
         type: 'expense',

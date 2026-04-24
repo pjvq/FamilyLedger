@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:familyledger/core/theme/app_colors.dart';
 import 'package:familyledger/core/widgets/micro_interactions.dart';
+import 'package:familyledger/core/utils/category_uuid.dart';
 import 'package:familyledger/data/local/database.dart';
 import 'package:familyledger/features/home/widgets/balance_card.dart';
 import 'package:familyledger/features/home/widgets/transaction_list_item.dart';
@@ -39,7 +40,7 @@ Transaction _makeTransaction({
   String id = 'txn_1',
   String userId = 'u1',
   String accountId = 'acc1',
-  String categoryId = 'cat_food',
+  String? categoryId,
   int amount = 2500,
   String currency = 'CNY',
   int amountCny = 2500,
@@ -54,11 +55,12 @@ Transaction _makeTransaction({
   bool synced = false,
 }) {
   final now = DateTime.now();
+  final effectiveCategoryId = categoryId ?? CategoryUUID.generate('expense', '餐饮');
   return Transaction(
     id: id,
     userId: userId,
     accountId: accountId,
-    categoryId: categoryId,
+    categoryId: effectiveCategoryId,
     amount: amount,
     currency: currency,
     amountCny: amountCny,
@@ -76,7 +78,7 @@ Transaction _makeTransaction({
 
 /// Create a test Category.
 Category _makeCategory({
-  String id = 'cat_food',
+  String? id,
   String name = '餐饮',
   String icon = '🍜',
   String type = 'expense',
@@ -84,7 +86,7 @@ Category _makeCategory({
   int sortOrder = 1,
 }) {
   return Category(
-    id: id,
+    id: id ?? CategoryUUID.generate(type, name),
     name: name,
     icon: icon,
     type: type,
@@ -334,12 +336,12 @@ void main() {
 
   group('CategoryGrid', () {
     final categories = [
-      _makeCategory(id: 'cat_food', name: '餐饮', icon: '🍜'),
-      _makeCategory(id: 'cat_transport', name: '交通', icon: '🚗'),
-      _makeCategory(id: 'cat_shopping', name: '购物', icon: '🛍️'),
-      _makeCategory(id: 'cat_housing', name: '居住', icon: '🏠'),
-      _makeCategory(id: 'cat_entertainment', name: '娱乐', icon: '🎮'),
-      _makeCategory(id: 'cat_medical', name: '医疗', icon: '🏥'),
+      _makeCategory(id: CategoryUUID.generate('expense', '餐饮'), name: '餐饮', icon: '🍜'),
+      _makeCategory(id: CategoryUUID.generate('expense', '交通'), name: '交通', icon: '🚗'),
+      _makeCategory(id: CategoryUUID.generate('expense', '购物'), name: '购物', icon: '🛍️'),
+      _makeCategory(id: CategoryUUID.generate('expense', '居住'), name: '居住', icon: '🏠'),
+      _makeCategory(id: CategoryUUID.generate('expense', '娱乐'), name: '娱乐', icon: '🎮'),
+      _makeCategory(id: CategoryUUID.generate('expense', '医疗'), name: '医疗', icon: '🏥'),
     ];
 
     testWidgets('renders all categories', (tester) async {
@@ -372,7 +374,7 @@ void main() {
           height: 400,
           child: CategoryGrid(
             categories: categories,
-            selectedId: 'cat_food',
+            selectedId: CategoryUUID.generate('expense', '餐饮'),
             onSelect: (_) {},
           ),
         ),
@@ -399,7 +401,7 @@ void main() {
       ));
 
       await tester.tap(find.text('交通'));
-      expect(selectedId, 'cat_transport');
+      expect(selectedId, CategoryUUID.generate('expense', '交通'));
     });
 
     testWidgets('renders empty grid for no categories', (tester) async {
@@ -442,7 +444,7 @@ void main() {
           height: 400,
           child: CategoryGrid(
             categories: categories,
-            selectedId: 'cat_food',
+            selectedId: CategoryUUID.generate('expense', '餐饮'),
             onSelect: (_) {},
           ),
         ),
