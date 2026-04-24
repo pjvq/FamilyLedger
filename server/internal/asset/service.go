@@ -185,11 +185,31 @@ func (s *Service) UpdateAsset(ctx context.Context, req *pb.UpdateAssetRequest) (
 		return nil, status.Error(codes.InvalidArgument, "asset_id is required")
 	}
 
+	// Check ownership or family permission
+	var ownerID string
+	var assetFamilyID *string
+	err = s.pool.QueryRow(ctx, "SELECT user_id, family_id FROM fixed_assets WHERE id = $1 AND deleted_at IS NULL", req.AssetId).Scan(&ownerID, &assetFamilyID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "asset not found")
+		}
+		return nil, status.Errorf(codes.Internal, "query asset: %v", err)
+	}
+	if ownerID != userID {
+		if assetFamilyID != nil {
+			if err := permission.Check(ctx, s.pool, userID, *assetFamilyID, permission.CanEdit); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, status.Error(codes.PermissionDenied, "not your asset")
+		}
+	}
+
 	tag, err := s.pool.Exec(ctx,
 		`UPDATE fixed_assets SET name = COALESCE(NULLIF($1, ''), name),
 		        description = $2, updated_at = NOW()
-		 WHERE id = $3 AND user_id = $4 AND deleted_at IS NULL`,
-		req.Name, req.Description, req.AssetId, userID,
+		 WHERE id = $3 AND deleted_at IS NULL`,
+		req.Name, req.Description, req.AssetId,
 	)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "update asset: %v", err)
@@ -211,10 +231,30 @@ func (s *Service) DeleteAsset(ctx context.Context, req *pb.DeleteAssetRequest) (
 		return nil, status.Error(codes.InvalidArgument, "asset_id is required")
 	}
 
+	// Check ownership or family permission
+	var ownerID string
+	var assetFamilyID *string
+	err = s.pool.QueryRow(ctx, "SELECT user_id, family_id FROM fixed_assets WHERE id = $1 AND deleted_at IS NULL", req.AssetId).Scan(&ownerID, &assetFamilyID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "asset not found")
+		}
+		return nil, status.Errorf(codes.Internal, "query asset: %v", err)
+	}
+	if ownerID != userID {
+		if assetFamilyID != nil {
+			if err := permission.Check(ctx, s.pool, userID, *assetFamilyID, permission.CanDelete); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, status.Error(codes.PermissionDenied, "not your asset")
+		}
+	}
+
 	tag, err := s.pool.Exec(ctx,
 		`UPDATE fixed_assets SET deleted_at = NOW(), updated_at = NOW()
-		 WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
-		req.AssetId, userID,
+		 WHERE id = $1 AND deleted_at IS NULL`,
+		req.AssetId,
 	)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "delete asset: %v", err)
@@ -639,15 +679,16 @@ func (s *Service) loadAsset(ctx context.Context, assetID, userID string) (*pb.As
 	var purchaseDate time.Time
 	var description *string
 	var createdAt, updatedAt time.Time
+	var familyID *uuid.UUID
 
 	err := s.pool.QueryRow(ctx,
 		`SELECT id, user_id, name, asset_type, purchase_price, current_value,
-		        purchase_date, description, created_at, updated_at
+		        purchase_date, description, created_at, updated_at, family_id
 		 FROM fixed_assets
 		 WHERE id = $1 AND deleted_at IS NULL`,
 		assetID,
 	).Scan(&id, &uid, &name, &assetType, &purchasePrice, &currentValue,
-		&purchaseDate, &description, &createdAt, &updatedAt)
+		&purchaseDate, &description, &createdAt, &updatedAt, &familyID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "asset not found")
@@ -655,7 +696,13 @@ func (s *Service) loadAsset(ctx context.Context, assetID, userID string) (*pb.As
 		return nil, status.Errorf(codes.Internal, "query asset: %v", err)
 	}
 	if uid != userID {
-		return nil, status.Error(codes.PermissionDenied, "not your asset")
+		if familyID != nil {
+			if err := permission.Check(ctx, s.pool, userID, familyID.String(), permission.CanView); err != nil {
+				return nil, status.Error(codes.PermissionDenied, "not your asset")
+			}
+		} else {
+			return nil, status.Error(codes.PermissionDenied, "not your asset")
+		}
 	}
 
 	desc := ""
@@ -663,7 +710,7 @@ func (s *Service) loadAsset(ctx context.Context, assetID, userID string) (*pb.As
 		desc = *description
 	}
 
-	return &pb.Asset{
+	asset := &pb.Asset{
 		Id:            id.String(),
 		UserId:        uid,
 		Name:          name,
@@ -674,7 +721,11 @@ func (s *Service) loadAsset(ctx context.Context, assetID, userID string) (*pb.As
 		Description:   desc,
 		CreatedAt:     timestamppb.New(createdAt),
 		UpdatedAt:     timestamppb.New(updatedAt),
-	}, nil
+	}
+	if familyID != nil {
+		asset.FamilyId = familyID.String()
+	}
+	return asset, nil
 }
 
 func (s *Service) loadAssetWithRule(ctx context.Context, assetID, userID string) (*assetData, *ruleData, error) {

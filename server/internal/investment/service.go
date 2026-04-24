@@ -168,10 +168,30 @@ func (s *Service) UpdateInvestment(ctx context.Context, req *pb.UpdateInvestment
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
+	// Check ownership or family permission
+	var ownerID string
+	var invFamilyID *string
+	err = s.pool.QueryRow(ctx, "SELECT user_id, family_id FROM investments WHERE id = $1 AND deleted_at IS NULL", req.InvestmentId).Scan(&ownerID, &invFamilyID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "investment not found")
+		}
+		return nil, status.Errorf(codes.Internal, "query investment: %v", err)
+	}
+	if ownerID != userID {
+		if invFamilyID != nil {
+			if err := permission.Check(ctx, s.pool, userID, *invFamilyID, permission.CanEdit); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, status.Error(codes.PermissionDenied, "not your investment")
+		}
+	}
+
 	tag, err := s.pool.Exec(ctx,
 		`UPDATE investments SET name = $1, updated_at = NOW()
-		 WHERE id = $2 AND user_id = $3 AND deleted_at IS NULL`,
-		req.Name, req.InvestmentId, userID,
+		 WHERE id = $2 AND deleted_at IS NULL`,
+		req.Name, req.InvestmentId,
 	)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "update investment: %v", err)
@@ -193,10 +213,30 @@ func (s *Service) DeleteInvestment(ctx context.Context, req *pb.DeleteInvestment
 		return nil, status.Error(codes.InvalidArgument, "investment_id is required")
 	}
 
+	// Check ownership or family permission
+	var ownerID string
+	var invFamilyID *string
+	err = s.pool.QueryRow(ctx, "SELECT user_id, family_id FROM investments WHERE id = $1 AND deleted_at IS NULL", req.InvestmentId).Scan(&ownerID, &invFamilyID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "investment not found")
+		}
+		return nil, status.Errorf(codes.Internal, "query investment: %v", err)
+	}
+	if ownerID != userID {
+		if invFamilyID != nil {
+			if err := permission.Check(ctx, s.pool, userID, *invFamilyID, permission.CanDelete); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, status.Error(codes.PermissionDenied, "not your investment")
+		}
+	}
+
 	tag, err := s.pool.Exec(ctx,
 		`UPDATE investments SET deleted_at = NOW(), updated_at = NOW()
-		 WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
-		req.InvestmentId, userID,
+		 WHERE id = $1 AND deleted_at IS NULL`,
+		req.InvestmentId,
 	)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "delete investment: %v", err)
@@ -470,16 +510,17 @@ func (s *Service) loadInvestmentWithMarket(ctx context.Context, investmentID, us
 	var costBasis int64
 	var createdAt, updatedAt time.Time
 	var currentPrice *int64
+	var familyID *uuid.UUID
 
 	err := s.pool.QueryRow(ctx,
 		`SELECT i.id, i.user_id, i.symbol, i.name, i.market_type, i.quantity, i.cost_basis,
-		        i.created_at, i.updated_at, mq.current_price
+		        i.created_at, i.updated_at, mq.current_price, i.family_id
 		 FROM investments i
 		 LEFT JOIN market_quotes mq ON i.symbol = mq.symbol AND i.market_type = mq.market_type
 		 WHERE i.id = $1 AND i.deleted_at IS NULL`,
 		investmentID,
 	).Scan(&id, &uid, &symbol, &name, &marketType, &quantity, &costBasis,
-		&createdAt, &updatedAt, &currentPrice)
+		&createdAt, &updatedAt, &currentPrice, &familyID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "investment not found")
@@ -487,7 +528,13 @@ func (s *Service) loadInvestmentWithMarket(ctx context.Context, investmentID, us
 		return nil, status.Errorf(codes.Internal, "query investment: %v", err)
 	}
 	if uid != userID {
-		return nil, status.Error(codes.PermissionDenied, "not your investment")
+		if familyID != nil {
+			if err := permission.Check(ctx, s.pool, userID, familyID.String(), permission.CanView); err != nil {
+				return nil, status.Error(codes.PermissionDenied, "not your investment")
+			}
+		} else {
+			return nil, status.Error(codes.PermissionDenied, "not your investment")
+		}
 	}
 
 	inv := &pb.Investment{
@@ -500,6 +547,9 @@ func (s *Service) loadInvestmentWithMarket(ctx context.Context, investmentID, us
 		CostBasis:  costBasis,
 		CreatedAt:  timestamppb.New(createdAt),
 		UpdatedAt:  timestamppb.New(updatedAt),
+	}
+	if familyID != nil {
+		inv.FamilyId = familyID.String()
 	}
 
 	// Calculate current value and returns
