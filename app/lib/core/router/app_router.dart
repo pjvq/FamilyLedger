@@ -26,7 +26,7 @@ import '../../features/asset/add_asset_page.dart';
 import '../../features/asset/asset_detail_page.dart';
 import '../../features/report/report_page.dart';
 import '../../features/report/export_page.dart';
-import '../../features/import/csv_import_page.dart';
+import '../../features/import/import_page.dart';
 import '../../features/transaction/transaction_history_page.dart';
 import '../../features/transaction/transaction_detail_page.dart';
 import '../../features/settings/category_manage_page.dart';
@@ -133,7 +133,7 @@ class AppRouter {
       case AppRouter.export:
         return _slide(const ExportPage());
       case csvImport:
-        return _slide(const CsvImportPage());
+        return _slide(const ImportPage());
       case transactionHistory:
         return _slide(const TransactionHistoryPage());
       case transactionDetail:

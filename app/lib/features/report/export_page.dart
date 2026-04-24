@@ -1,13 +1,15 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_colors.dart';
-import '../../domain/providers/export_provider.dart';
+import '../../data/local/database.dart';
+import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/transaction_provider.dart';
 
-/// Export page: choose format, date range, category filter, then export/share
+/// Export page: choose date range, category filter, then export CSV
 class ExportPage extends ConsumerStatefulWidget {
   const ExportPage({super.key});
 
@@ -16,9 +18,9 @@ class ExportPage extends ConsumerStatefulWidget {
 }
 
 class _ExportPageState extends ConsumerState<ExportPage> {
-  String _selectedFormat = 'csv';
   DateTimeRange? _dateRange;
   Set<String> _selectedCategoryIds = {};
+  bool _isExporting = false;
 
   @override
   void initState() {
@@ -34,12 +36,20 @@ class _ExportPageState extends ConsumerState<ExportPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final exportState = ref.watch(exportProvider);
     final txnState = ref.watch(transactionProvider);
+
+    // Build category tree: parent → children
     final allCats = [
       ...txnState.expenseCategories,
       ...txnState.incomeCategories,
     ];
+    final parentCats = allCats.where((c) => c.parentId == null || c.parentId!.isEmpty).toList();
+    final childrenMap = <String, List<Category>>{};
+    for (final c in allCats) {
+      if (c.parentId != null && c.parentId!.isNotEmpty) {
+        childrenMap.putIfAbsent(c.parentId!, () => []).add(c);
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -49,46 +59,6 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Format selection
-          Text('导出格式', style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          )),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              _FormatCard(
-                label: 'CSV',
-                icon: Icons.table_chart_outlined,
-                description: '通用表格格式',
-                isSelected: _selectedFormat == 'csv',
-                onTap: () => setState(() => _selectedFormat = 'csv'),
-                isDark: isDark,
-                theme: theme,
-              ),
-              const SizedBox(width: 8),
-              _FormatCard(
-                label: 'Excel',
-                icon: Icons.grid_on_rounded,
-                description: 'Excel 电子表格',
-                isSelected: _selectedFormat == 'excel',
-                onTap: () => setState(() => _selectedFormat = 'excel'),
-                isDark: isDark,
-                theme: theme,
-              ),
-              const SizedBox(width: 8),
-              _FormatCard(
-                label: 'PDF',
-                icon: Icons.picture_as_pdf_rounded,
-                description: '可打印报表',
-                isSelected: _selectedFormat == 'pdf',
-                onTap: () => setState(() => _selectedFormat = 'pdf'),
-                isDark: isDark,
-                theme: theme,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
           // Date range
           Text('时间范围', style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
@@ -98,109 +68,79 @@ class _ExportPageState extends ConsumerState<ExportPage> {
             onTap: _pickDateRange,
             borderRadius: BorderRadius.circular(12),
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
                 color: isDark ? AppColors.cardDark : AppColors.cardLight,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color:
-                      theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
                 ),
               ),
-              child: Semantics(
-                label: '选择导出时间范围',
-                button: true,
-                child: Row(
-                  children: [
-                    Icon(Icons.calendar_today_rounded,
-                        size: 18,
-                        color:
-                            isDark ? AppColors.primaryDark : AppColors.primary),
-                    const SizedBox(width: 10),
-                    Text(
-                      _dateRange != null
-                          ? '${_fmtDate(_dateRange!.start)} 至 ${_fmtDate(_dateRange!.end)}'
-                          : '选择时间范围',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    const Spacer(),
-                    Icon(Icons.arrow_drop_down_rounded,
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.4)),
-                  ],
-                ),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today_rounded,
+                      size: 18,
+                      color: isDark ? AppColors.primaryDark : AppColors.primary),
+                  const SizedBox(width: 10),
+                  Text(
+                    _dateRange != null
+                        ? '${_fmtDate(_dateRange!.start)} 至 ${_fmtDate(_dateRange!.end)}'
+                        : '选择时间范围',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const Spacer(),
+                  Icon(Icons.arrow_drop_down_rounded,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+                ],
               ),
             ),
           ),
           const SizedBox(height: 24),
 
-          // Category filter
-          Text('分类筛选', style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          )),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
+          // Category filter — hierarchical
+          Row(
             children: [
-              FilterChip(
-                label: const Text('全部'),
-                selected: _selectedCategoryIds.isEmpty,
-                onSelected: (_) =>
-                    setState(() => _selectedCategoryIds = {}),
+              Text('分类筛选', style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              )),
+              const Spacer(),
+              TextButton(
+                onPressed: () => setState(() => _selectedCategoryIds = {}),
+                child: Text(
+                  _selectedCategoryIds.isEmpty ? '已选全部' : '重置为全部',
+                  style: TextStyle(fontSize: 12),
+                ),
               ),
-              ...allCats.map((cat) => FilterChip(
-                    avatar: Text(cat.icon,
-                        style: const TextStyle(fontSize: 14)),
-                    label: Text(cat.name),
-                    selected: _selectedCategoryIds.contains(cat.id),
-                    onSelected: (selected) {
-                      setState(() {
-                        if (selected) {
-                          _selectedCategoryIds.add(cat.id);
-                        } else {
-                          _selectedCategoryIds.remove(cat.id);
-                        }
-                      });
-                    },
-                  )),
             ],
           ),
-          const SizedBox(height: 32),
-
-          // Error message
-          if (exportState.error != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.expense.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline_rounded,
-                      color: AppColors.expense, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      exportState.error!,
-                      style: const TextStyle(
-                          color: AppColors.expense, fontSize: 13),
-                    ),
-                  ),
-                ],
+          const SizedBox(height: 4),
+          if (_selectedCategoryIds.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                '已选 ${_selectedCategoryIds.length} 个分类',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDark ? AppColors.primaryDark : AppColors.primary,
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-          ],
+
+          // Expense categories
+          if (txnState.expenseCategories.any((c) => c.parentId == null || c.parentId!.isEmpty))
+            _buildCategorySection('支出分类', parentCats.where((c) => c.type == 'expense').toList(), childrenMap, theme, isDark),
+          const SizedBox(height: 8),
+          // Income categories
+          if (txnState.incomeCategories.any((c) => c.parentId == null || c.parentId!.isEmpty))
+            _buildCategorySection('收入分类', parentCats.where((c) => c.type == 'income').toList(), childrenMap, theme, isDark),
+
+          const SizedBox(height: 32),
 
           // Export button
           SizedBox(
             height: 50,
             child: FilledButton.icon(
-              onPressed: exportState.isExporting ? null : _doExport,
-              icon: exportState.isExporting
+              onPressed: _isExporting ? null : _doExport,
+              icon: _isExporting
                   ? const SizedBox(
                       width: 18,
                       height: 18,
@@ -210,7 +150,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                       ),
                     )
                   : const Icon(Icons.file_download_rounded),
-              label: Text(exportState.isExporting ? '导出中...' : '导出'),
+              label: Text(_isExporting ? '导出中...' : '导出 CSV'),
               style: FilledButton.styleFrom(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -223,30 +163,192 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     );
   }
 
+  Widget _buildCategorySection(
+    String title,
+    List<Category> parents,
+    Map<String, List<Category>> childrenMap,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: theme.textTheme.labelMedium?.copyWith(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+          fontWeight: FontWeight.w600,
+        )),
+        const SizedBox(height: 4),
+        ...parents.map((parent) {
+          final children = childrenMap[parent.id] ?? [];
+          final allIds = [parent.id, ...children.map((c) => c.id)];
+          final allSelected = allIds.every((id) => _selectedCategoryIds.contains(id));
+          final someSelected = allIds.any((id) => _selectedCategoryIds.contains(id));
+          final isExpanded = children.isNotEmpty;
+
+          if (!isExpanded) {
+            // No children — simple checkbox
+            return CheckboxListTile(
+              dense: true,
+              visualDensity: VisualDensity.compact,
+              title: Text('${parent.icon} ${parent.name}', style: const TextStyle(fontSize: 14)),
+              value: _selectedCategoryIds.contains(parent.id),
+              onChanged: (v) {
+                setState(() {
+                  if (v == true) {
+                    _selectedCategoryIds.add(parent.id);
+                  } else {
+                    _selectedCategoryIds.remove(parent.id);
+                  }
+                });
+              },
+            );
+          }
+
+          return ExpansionTile(
+            dense: true,
+            visualDensity: VisualDensity.compact,
+            tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+            leading: Checkbox(
+              value: allSelected ? true : (someSelected ? null : false),
+              tristate: true,
+              onChanged: (v) {
+                setState(() {
+                  if (allSelected) {
+                    _selectedCategoryIds.removeAll(allIds);
+                  } else {
+                    _selectedCategoryIds.addAll(allIds);
+                  }
+                });
+              },
+            ),
+            title: Text('${parent.icon} ${parent.name}',
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            trailing: Text('${children.length} 个子分类',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                  fontSize: 11,
+                )),
+            children: children.map((child) {
+              return CheckboxListTile(
+                dense: true,
+                visualDensity: VisualDensity.compact,
+                contentPadding: const EdgeInsets.only(left: 56),
+                title: Text('${child.icon} ${child.name}', style: const TextStyle(fontSize: 13)),
+                value: _selectedCategoryIds.contains(child.id),
+                onChanged: (v) {
+                  setState(() {
+                    if (v == true) {
+                      _selectedCategoryIds.add(child.id);
+                    } else {
+                      _selectedCategoryIds.remove(child.id);
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          );
+        }),
+      ],
+    );
+  }
+
   Future<void> _doExport() async {
     if (_dateRange == null) return;
+    setState(() => _isExporting = true);
 
-    final data = await ref.read(exportProvider.notifier).exportTransactions(
-          format: _selectedFormat,
-          startDate: _dateRange!.start,
-          endDate: _dateRange!.end,
-          categoryIds: _selectedCategoryIds.toList(),
+    try {
+      final db = ref.read(databaseProvider);
+      final userId = ref.read(currentUserIdProvider);
+      if (userId == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('未登录')),
+          );
+        }
+        return;
+      }
+
+      final allTxns = await db.getRecentTransactions(userId, 100000);
+      final categories = await db.getAllCategories();
+      final catMap = {for (final c in categories) c.id: c};
+      final accounts = await db.getActiveAccounts(userId);
+      final accMap = {for (final a in accounts) a.id: a};
+
+      // Filter
+      final startDate = _dateRange!.start;
+      final endDate = _dateRange!.end;
+      final filtered = allTxns.where((t) {
+        if (t.txnDate.isBefore(startDate) ||
+            t.txnDate.isAfter(endDate.add(const Duration(days: 1)))) {
+          return false;
+        }
+        if (_selectedCategoryIds.isNotEmpty && !_selectedCategoryIds.contains(t.categoryId)) {
+          return false;
+        }
+        return true;
+      }).toList();
+
+      filtered.sort((a, b) => a.txnDate.compareTo(b.txnDate));
+
+      // Build CSV
+      final buffer = StringBuffer();
+      buffer.writeln('日期,类型,一级分类,二级分类,金额(元),账户,备注');
+
+      for (final t in filtered) {
+        final cat = catMap[t.categoryId];
+        Category? parentCat;
+        String catName = cat?.name ?? '未知';
+        String parentCatName = '';
+        if (cat != null && cat.parentId != null && cat.parentId!.isNotEmpty) {
+          parentCat = catMap[cat.parentId!];
+          parentCatName = parentCat?.name ?? '';
+        } else {
+          parentCatName = catName;
+          catName = '';
+        }
+
+        final date = '${t.txnDate.year}-'
+            '${t.txnDate.month.toString().padLeft(2, '0')}-'
+            '${t.txnDate.day.toString().padLeft(2, '0')}';
+        final typeLabel = t.type == 'income' ? '收入' : '支出';
+        final yuan = (t.amountCny / 100).toStringAsFixed(2);
+        final accName = accMap[t.accountId]?.name ?? '未知';
+        final note = _escapeCsv(t.note);
+
+        buffer.writeln('$date,$typeLabel,${_escapeCsv(parentCatName)},${_escapeCsv(catName)},$yuan,${_escapeCsv(accName)},$note');
+      }
+
+      final csvBytes = utf8.encode(buffer.toString());
+      final now = DateTime.now();
+      final filename =
+          '记账导出_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.csv';
+
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/$filename');
+      await file.writeAsBytes(csvBytes);
+
+      if (mounted) {
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          subject: '家庭账本导出',
         );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导出失败: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
 
-    if (data == null || !mounted) return;
-
-    final exportState = ref.read(exportProvider);
-    final filename = exportState.lastFilename ?? 'export.$_selectedFormat';
-
-    // Save to temp and share
-    final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/$filename');
-    await file.writeAsBytes(data);
-
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      subject: 'FamilyLedger 交易导出',
-    );
+  String _escapeCsv(String s) {
+    if (s.contains(',') || s.contains('"') || s.contains('\n')) {
+      return '"${s.replaceAll('"', '""')}"';
+    }
+    return s;
   }
 
   Future<void> _pickDateRange() async {
@@ -265,82 +367,4 @@ class _ExportPageState extends ConsumerState<ExportPage> {
 
   String _fmtDate(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-}
-
-class _FormatCard extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final String description;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final bool isDark;
-  final ThemeData theme;
-
-  const _FormatCard({
-    required this.label,
-    required this.icon,
-    required this.description,
-    required this.isSelected,
-    required this.onTap,
-    required this.isDark,
-    required this.theme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final selectedColor = isDark ? AppColors.primaryDark : AppColors.primary;
-
-    return Expanded(
-      child: Semantics(
-        label: '$label格式${isSelected ? "，已选中" : ""}',
-        button: true,
-        child: GestureDetector(
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? selectedColor.withValues(alpha: 0.1)
-                  : (isDark ? AppColors.cardDark : AppColors.cardLight),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isSelected
-                    ? selectedColor
-                    : theme.colorScheme.onSurface.withValues(alpha: 0.08),
-                width: isSelected ? 2 : 1,
-              ),
-            ),
-            child: Column(
-              children: [
-                Icon(icon,
-                    size: 28,
-                    color: isSelected
-                        ? selectedColor
-                        : theme.colorScheme.onSurface
-                            .withValues(alpha: 0.5)),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight:
-                        isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? selectedColor : null,
-                  ),
-                ),
-                Text(
-                  description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 10,
-                    color:
-                        theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

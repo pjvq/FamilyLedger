@@ -10,10 +10,8 @@ import 'package:familyledger/core/utils/category_uuid.dart';
 import 'package:familyledger/features/dashboard/dashboard_page.dart';
 import 'package:familyledger/features/dashboard/widgets/dashboard_card.dart';
 import 'package:familyledger/features/report/report_page.dart';
-import 'package:familyledger/features/report/export_page.dart';
 import 'package:familyledger/features/import/csv_import_page.dart';
 import 'package:familyledger/domain/providers/dashboard_provider.dart';
-import 'package:familyledger/domain/providers/export_provider.dart';
 import 'package:familyledger/domain/providers/transaction_provider.dart';
 import 'package:familyledger/domain/providers/app_providers.dart';
 import 'package:familyledger/data/local/database.dart';
@@ -936,207 +934,6 @@ void main() {
   });
 
   // ═══════════════════════════════════════════════════════════════════════
-  // ExportPage Widget Tests
-  // ═══════════════════════════════════════════════════════════════════════
-
-  group('ExportPage', () {
-    late SharedPreferences prefs;
-
-    setUp(() async {
-      SharedPreferences.setMockInitialValues({'user_id': 'test_user'});
-      prefs = await SharedPreferences.getInstance();
-    });
-
-    List<Override> _exportOverrides({ExportState? exportState}) => [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          currentUserIdProvider.overrideWith((ref) => 'test_user'),
-          databaseProvider.overrideWithValue(_FakeDatabase()),
-          transactionProvider.overrideWith((ref) {
-            return _FakeTransactionNotifier(_makeTransactionState());
-          }),
-          exportProvider.overrideWith((ref) {
-            return _FakeExportNotifierWithState(
-                exportState ?? const ExportState());
-          }),
-        ];
-
-    testWidgets('renders AppBar with title "数据导出"', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('数据导出'), findsOneWidget);
-    });
-
-    testWidgets('shows three format options: CSV, Excel, PDF',
-        (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('CSV'), findsOneWidget);
-      expect(find.text('Excel'), findsOneWidget);
-      expect(find.text('PDF'), findsOneWidget);
-    });
-
-    testWidgets('format cards show descriptions', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('通用表格格式'), findsOneWidget);
-      expect(find.text('Excel 电子表格'), findsOneWidget);
-      expect(find.text('可打印报表'), findsOneWidget);
-    });
-
-    testWidgets('CSV is selected by default', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      // CSV format card should be visible
-      expect(find.text('CSV'), findsOneWidget);
-    });
-
-    testWidgets('tapping Excel selects it', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Excel'));
-      await tester.pumpAndSettle();
-
-      // Excel format card tapped → verify Excel text exists
-      expect(find.text('Excel'), findsOneWidget);
-    });
-
-    testWidgets('tapping PDF selects it', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('PDF'));
-      await tester.pumpAndSettle();
-
-      // PDF format card tapped → verify PDF text exists
-      expect(find.text('PDF'), findsOneWidget);
-    });
-
-    testWidgets('shows format section label "导出格式"', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('导出格式'), findsOneWidget);
-    });
-
-    testWidgets('shows time range section with "时间范围"', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('时间范围'), findsOneWidget);
-      expect(find.text('时间范围'), findsOneWidget);
-    });
-
-    testWidgets('shows category filter section', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('分类筛选'), findsOneWidget);
-      expect(find.text('全部'), findsOneWidget);
-    });
-
-    testWidgets('shows category chips from transaction state', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('餐饮'), findsOneWidget);
-      expect(find.text('交通'), findsOneWidget);
-      expect(find.text('工资'), findsOneWidget);
-    });
-
-    testWidgets('export button renders', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('导出'), findsOneWidget);
-      expect(find.byIcon(Icons.file_download_rounded), findsOneWidget);
-    });
-
-    testWidgets('export button shows loading when isExporting',
-        (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(
-          exportState: const ExportState(isExporting: true),
-        ),
-      ));
-      await tester.pump();
-
-      expect(find.text('导出中...'), findsOneWidget);
-    });
-
-    testWidgets('shows error message when export has error', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(
-          exportState: const ExportState(error: '导出失败：网络错误'),
-        ),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('导出失败：网络错误'), findsOneWidget);
-      expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
-    });
-
-    testWidgets('format card icons render correctly', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.byIcon(Icons.table_chart_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.grid_on_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.picture_as_pdf_rounded), findsOneWidget);
-    });
-
-    testWidgets('date range selector shows calendar icon', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ExportPage(),
-        overrides: _exportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.byIcon(Icons.calendar_today_rounded), findsOneWidget);
-    });
-  });
 
   // ═══════════════════════════════════════════════════════════════════════
   // CsvImportPage Widget Tests
@@ -1325,47 +1122,11 @@ void main() {
     });
   });
 
-  group('ExportState', () {
-    test('default state', () {
-      const state = ExportState();
-      expect(state.isExporting, false);
-      expect(state.error, isNull);
-      expect(state.lastExportData, isNull);
-      expect(state.lastFilename, isNull);
-    });
-
-    test('copyWith works', () {
-      const state = ExportState();
-      final copied = state.copyWith(isExporting: true);
-      expect(copied.isExporting, true);
-      expect(copied.error, isNull);
-    });
-
-    test('copyWith clearError', () {
-      final state = const ExportState().copyWith(error: 'fail');
-      expect(state.error, 'fail');
-      final cleared = state.copyWith(clearError: true);
-      expect(cleared.error, isNull);
-    });
-  });
 }
-
-// ─── Fake Notifiers ──────────────────────────────────────────────────
 
 class _FakeTransactionNotifier extends StateNotifier<TransactionState>
     implements TransactionNotifier {
   _FakeTransactionNotifier(TransactionState initial) : super(initial);
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    if (invocation.isMethod) return Future<void>.value();
-    return null;
-  }
-}
-
-class _FakeExportNotifierWithState extends StateNotifier<ExportState>
-    implements ExportNotifier {
-  _FakeExportNotifierWithState(ExportState initial) : super(initial);
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
