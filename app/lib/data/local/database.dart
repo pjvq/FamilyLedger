@@ -147,7 +147,7 @@ class AppDatabase extends _$AppDatabase {
       _cat(CategoryUUID.generate('income', '其他'), '其他', '💵', 'income', true, 7),
     ];
     await batch((b) {
-      b.insertAll(categories, presets);
+      b.insertAllOnConflictUpdate(categories, presets);
     });
   }
 
@@ -248,7 +248,7 @@ class AppDatabase extends _$AppDatabase {
       _subcat('income', '投资收益', '利息', 'investment_interest', 3),
     ];
     await batch((b) {
-      b.insertAll(categories, subs);
+      b.insertAllOnConflictUpdate(categories, subs);
     });
   }
 

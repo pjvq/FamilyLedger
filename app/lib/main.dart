@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:developer' as dev;
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,17 +11,49 @@ import 'domain/providers/app_providers.dart';
 import 'domain/providers/theme_provider.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
+  // Catch all synchronous Flutter framework errors
+  FlutterError.onError = (details) {
+    dev.log(
+      'FlutterError: ${details.exceptionAsString()}',
+      name: 'crash-guard',
+      error: details.exception,
+      stackTrace: details.stack,
+    );
+    // Don't rethrow — prevents crash
+  };
 
-  runApp(
-    ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ],
-      child: const FamilyLedgerApp(),
-    ),
-  );
+  // Catch all unhandled async errors (platform-level)
+  PlatformDispatcher.instance.onError = (error, stack) {
+    dev.log(
+      'PlatformDispatcher error: $error',
+      name: 'crash-guard',
+      error: error,
+      stackTrace: stack,
+    );
+    return true; // Mark as handled — prevents crash
+  };
+
+  // Wrap everything in a guarded zone for belt-and-suspenders safety
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    final prefs = await SharedPreferences.getInstance();
+
+    runApp(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+        child: const FamilyLedgerApp(),
+      ),
+    );
+  }, (error, stack) {
+    dev.log(
+      'Unhandled zone error: $error',
+      name: 'crash-guard',
+      error: error,
+      stackTrace: stack,
+    );
+  });
 }
 
 class FamilyLedgerApp extends ConsumerWidget {
