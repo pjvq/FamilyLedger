@@ -231,7 +231,7 @@ class SyncEngine {
         );
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
-        await _db!.deleteTransaction(entityId);
+        await _db!.softDeleteTransaction(entityId);
         break;
       default:
         break;

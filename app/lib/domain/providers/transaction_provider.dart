@@ -268,9 +268,8 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     final txn = await _db.getTransactionById(id);
     if (txn == null) return;
 
-    // 2. 本地 DB 删除
-    // TODO: 等 Transactions 表加了 deletedAt 字段后改为软删除
-    await _db.deleteTransaction(id);
+    // 2. 本地 DB 软删除
+    await _db.softDeleteTransaction(id);
 
     // 3. 回退账户余额
     final delta = txn.type == 'income' ? -txn.amountCny : txn.amountCny;

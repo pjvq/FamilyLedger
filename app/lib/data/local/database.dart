@@ -38,7 +38,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -98,6 +98,10 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(loans, loans.lprSpread);
             await m.addColumn(loans, loans.rateAdjustMonth);
             await m.createTable(syncQueue);
+          }
+          if (from < 9) {
+            // v8 → v9: add deletedAt to transactions for soft-delete
+            await m.addColumn(transactions, transactions.deletedAt);
           }
         },
       );
@@ -182,7 +186,7 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Transaction>> getRecentTransactions(
       String userId, int limit) async {
     return (select(transactions)
-          ..where((t) => t.userId.equals(userId))
+          ..where((t) => t.userId.equals(userId) & t.deletedAt.isNull())
           ..orderBy([(t) => OrderingTerm.desc(t.txnDate)])
           ..limit(limit))
         .get();
@@ -218,8 +222,14 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  /// 删除指定交易（远程同步删除时使用）
-  Future<int> deleteTransaction(String id) =>
+  /// 软删除交易记录
+  Future<int> softDeleteTransaction(String id) async {
+    return (update(transactions)..where((t) => t.id.equals(id)))
+        .write(TransactionsCompanion(deletedAt: Value(DateTime.now())));
+  }
+
+  /// 硬删除（仅供远程同步清理用）
+  Future<int> hardDeleteTransaction(String id) =>
       (delete(transactions)..where((t) => t.id.equals(id))).go();
 
   /// 根据 ID 查找单条交易
@@ -235,7 +245,7 @@ class AppDatabase extends _$AppDatabase {
 
   Stream<List<Transaction>> watchTransactions(String userId) =>
       (select(transactions)
-            ..where((t) => t.userId.equals(userId))
+            ..where((t) => t.userId.equals(userId) & t.deletedAt.isNull())
             ..orderBy([(t) => OrderingTerm.desc(t.txnDate)]))
           .watch();
 
@@ -259,7 +269,7 @@ class AppDatabase extends _$AppDatabase {
   /// 总余额 = 所有收入 - 所有支出（从交易记录直接聚合，不依赖 account.balance）
   Future<int> getTotalBalance(String userId) async {
     final allTxns = await (select(transactions)
-          ..where((t) => t.userId.equals(userId)))
+          ..where((t) => t.userId.equals(userId) & t.deletedAt.isNull()))
         .get();
     return allTxns.fold<int>(0, (sum, t) {
       return sum + (t.type == 'income' ? t.amountCny : -t.amountCny);
@@ -273,7 +283,8 @@ class AppDatabase extends _$AppDatabase {
           ..where((t) =>
               t.userId.equals(userId) &
               t.type.equals('expense') &
-              t.txnDate.isBiggerOrEqualValue(startOfDay)))
+              t.txnDate.isBiggerOrEqualValue(startOfDay) &
+              t.deletedAt.isNull()))
         .get();
     return rows.fold<int>(0, (sum, t) => sum + t.amountCny);
   }
@@ -285,7 +296,8 @@ class AppDatabase extends _$AppDatabase {
           ..where((t) =>
               t.userId.equals(userId) &
               t.type.equals('expense') &
-              t.txnDate.isBiggerOrEqualValue(startOfMonth)))
+              t.txnDate.isBiggerOrEqualValue(startOfMonth) &
+              t.deletedAt.isNull()))
         .get();
     return rows.fold<int>(0, (sum, t) => sum + t.amountCny);
   }
@@ -440,7 +452,8 @@ class AppDatabase extends _$AppDatabase {
               t.userId.equals(userId) &
               t.type.equals('expense') &
               t.txnDate.isBiggerOrEqualValue(startOfMonth) &
-              t.txnDate.isSmallerOrEqualValue(endOfMonth)))
+              t.txnDate.isSmallerOrEqualValue(endOfMonth) &
+              t.deletedAt.isNull()))
         .get();
     final map = <String, int>{};
     for (final t in rows) {
