@@ -6,12 +6,20 @@ class AppTheme {
   AppTheme._();
 
   // ---- Light Theme ----
+  static const _pageTransitionsTheme = PageTransitionsTheme(
+    builders: {
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+    },
+  );
+
   static ThemeData get light => ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
         colorSchemeSeed: AppColors.primary,
         scaffoldBackgroundColor: AppColors.surfaceLight,
         fontFamily: GoogleFonts.dmSans().fontFamily,
+        pageTransitionsTheme: _pageTransitionsTheme,
         cardTheme: const CardThemeData(
           color: AppColors.cardLight,
           elevation: 0,
@@ -77,6 +85,7 @@ class AppTheme {
         colorSchemeSeed: AppColors.primaryDark,
         scaffoldBackgroundColor: AppColors.surfaceDark,
         fontFamily: GoogleFonts.dmSans().fontFamily,
+        pageTransitionsTheme: _pageTransitionsTheme,
         cardTheme: const CardThemeData(
           color: AppColors.cardDark,
           elevation: 0,
