@@ -22,7 +22,6 @@ import 'package:familyledger/features/auth/login_page.dart';
 import 'package:familyledger/features/auth/register_page.dart';
 import 'package:familyledger/features/settings/settings_page.dart';
 import 'package:familyledger/features/settings/family_members_page.dart';
-import 'package:familyledger/features/account/accounts_page.dart';
 import 'package:familyledger/features/account/add_account_page.dart';
 import 'package:familyledger/features/account/transfer_page.dart';
 import 'package:familyledger/features/more/more_page.dart';
@@ -1062,79 +1061,6 @@ void main() {
       expect(find.byType(SegmentedButton<String>), findsOneWidget);
       expect(find.text('管理员'), findsWidgets);
       expect(find.text('成员'), findsWidgets);
-    });
-  });
-
-  // ─── 5. AccountsPage ──────────────────────────────────────────────
-
-  group('AccountsPage', () {
-    testWidgets('shows empty state when no accounts', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const AccountsPage(),
-        overrides: _baseOverrides(
-          accountState: const AccountState(accounts: []),
-        ),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('账户'), findsOneWidget);
-      expect(find.text('还没有账户'), findsOneWidget);
-    });
-
-    testWidgets('shows loading indicator', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const AccountsPage(),
-        overrides: _baseOverrides(
-          accountState: const AccountState(isLoading: true),
-        ),
-      ));
-      await tester.pump();
-
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    });
-
-    testWidgets('shows account list with total balance', (tester) async {
-      final accounts = [
-        _makeAccount(
-            id: 'a1', name: '现金', balance: 50000, accountType: 'cash'),
-        _makeAccount(
-            id: 'a2',
-            name: '银行卡',
-            balance: 100000,
-            icon: '🏦',
-            accountType: 'bank_card'),
-      ];
-
-      await tester.pumpWidget(_wrapPage(
-        const AccountsPage(),
-        overrides: _baseOverrides(
-          accountState: AccountState(accounts: accounts),
-        ),
-      ));
-      await tester.pumpAndSettle();
-
-      // Total balance ¥1500.00
-      expect(find.text('总资产'), findsOneWidget);
-      expect(find.textContaining('1500'), findsOneWidget);
-      expect(find.text('共 2 个账户'), findsOneWidget);
-
-      // Account names
-      expect(find.text('现金'), findsWidgets);
-      expect(find.text('银行卡'), findsWidgets);
-    });
-
-    testWidgets('has FABs for transfer and add account', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const AccountsPage(),
-        overrides: _baseOverrides(
-          accountState: const AccountState(accounts: []),
-        ),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(FloatingActionButton), findsWidgets);
-      expect(find.text('添加账户'), findsOneWidget);
-      expect(find.byTooltip('转账'), findsOneWidget);
     });
   });
 

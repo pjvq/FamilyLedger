@@ -7,7 +7,6 @@ import '../../features/home/home_page.dart';
 import '../../features/transaction/add_transaction_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../../features/settings/family_members_page.dart';
-import '../../features/account/accounts_page.dart';
 import '../../features/account/add_account_page.dart';
 import '../../features/account/transfer_page.dart';
 import '../../features/budget/budget_page.dart';
@@ -82,7 +81,7 @@ class AppRouter {
       case familyMembers:
         return _slide(const FamilyMembersPage());
       case accounts:
-        return _slide(const AccountsPage());
+        return _fade(const HomePage());
       case addAccount:
         return _slideUp(const AddAccountPage());
       case transfer:
