@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:grpc/grpc.dart';
 import '../../data/local/database.dart' as db;
 import '../../data/remote/grpc_clients.dart';
 import '../../generated/proto/dashboard.pb.dart' as pb;
@@ -155,29 +158,50 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     }
   }
 
-  /// Load all dashboard data in parallel
+  /// gRPC call timeout — fail fast to local fallback
+  static const _grpcTimeout = Duration(seconds: 3);
+
+  CallOptions get _callOpts => CallOptions(timeout: _grpcTimeout);
+
+  /// Load all dashboard data: local-first, then background refresh via gRPC.
   Future<void> loadAll() async {
     if (_userId == null) return;
     state = state.copyWith(isLoading: true, clearError: true);
 
+    // Phase 1: instant local data (milliseconds)
     await Future.wait([
-      refreshNetWorth(),
-      loadTrend('monthly', 6),
-      loadCategoryBreakdown(DateTime.now().year, DateTime.now().month, 'expense'),
-      loadBudgetSummary(),
-      loadNetWorthTrend(12),
+      _computeLocalNetWorth(),
+      _computeLocalTrend('monthly', 6),
+      _computeLocalCategoryBreakdown(
+          DateTime.now().year, DateTime.now().month),
+      _computeLocalBudgetSummary(),
     ]);
-
     state = state.copyWith(isLoading: false);
+
+    // Phase 2: background gRPC refresh (non-blocking)
+    unawaited(Future.wait([
+      _refreshNetWorthRemote(),
+      _refreshTrendRemote('monthly', 6),
+      _refreshCategoryBreakdownRemote(
+          DateTime.now().year, DateTime.now().month, 'expense'),
+      _refreshBudgetSummaryRemote(),
+      _refreshNetWorthTrendRemote(12),
+    ]));
   }
 
-  /// Refresh net worth data
+  /// Public refresh: local first, then remote.
   Future<void> refreshNetWorth() async {
-    if (_userId == null) return;
+    await _computeLocalNetWorth();
+    await _refreshNetWorthRemote();
+  }
 
+  /// gRPC refresh — silent, updates state if successful.
+  Future<void> _refreshNetWorthRemote() async {
+    if (_userId == null) return;
     try {
       final resp = await _client.getNetWorth(
         pb.GetNetWorthRequest()..familyId = _familyId ?? '',
+        options: _callOpts,
       );
       state = state.copyWith(
         netWorth: NetWorthData(
@@ -198,12 +222,9 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
               .toList(),
         ),
       );
-      return;
     } catch (_) {
-      // Fallback to local
+      // Local data already displayed, silently ignore remote failure
     }
-
-    await _computeLocalNetWorth();
   }
 
   /// Compute net worth from local data
@@ -266,12 +287,16 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     );
   }
 
-  /// Load income/expense trend
+  /// Public: load trend local-first, then remote.
   Future<void> loadTrend(String period, int count) async {
     if (_userId == null) return;
-
     state = state.copyWith(trendPeriod: period);
+    await _computeLocalTrend(period, count);
+    await _refreshTrendRemote(period, count);
+  }
 
+  Future<void> _refreshTrendRemote(String period, int count) async {
+    if (_userId == null) return;
     try {
       final resp = await _client.getIncomeExpenseTrend(
         pb.TrendRequest()
@@ -279,6 +304,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..familyId = _familyId ?? ''
           ..period = period
           ..count = count,
+        options: _callOpts,
       );
       state = state.copyWith(
         incomeExpenseTrend: resp.points
@@ -290,11 +316,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
                 ))
             .toList(),
       );
-      return;
     } catch (_) {}
-
-    // Local fallback: compute from transactions
-    await _computeLocalTrend(period, count);
   }
 
   Future<void> _computeLocalTrend(String period, int count) async {
@@ -346,10 +368,16 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     state = state.copyWith(incomeExpenseTrend: points);
   }
 
-  /// Load category breakdown
+  /// Public: load category breakdown local-first, then remote.
   Future<void> loadCategoryBreakdown(int year, int month, String type) async {
     if (_userId == null) return;
+    await _computeLocalCategoryBreakdown(year, month);
+    await _refreshCategoryBreakdownRemote(year, month, type);
+  }
 
+  Future<void> _refreshCategoryBreakdownRemote(
+      int year, int month, String type) async {
+    if (_userId == null) return;
     try {
       final resp = await _client.getCategoryBreakdown(
         pb.CategoryBreakdownRequest()
@@ -358,6 +386,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..year = year
           ..month = month
           ..type = type,
+        options: _callOpts,
       );
       state = state.copyWith(
         categoryBreakdown: resp.items
@@ -371,10 +400,11 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
             .toList(),
         categoryBreakdownTotal: resp.total.toInt(),
       );
-      return;
     } catch (_) {}
+  }
 
-    // Local fallback
+  Future<void> _computeLocalCategoryBreakdown(int year, int month) async {
+    if (_userId == null) return;
     final expenses = await _db.getMonthCategoryExpenses(_userId, year, month);
     final categories = await _db.getAllCategories();
     final catMap = {for (final c in categories) c.id: c};
@@ -398,18 +428,22 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     );
   }
 
-  /// Load budget summary
+  /// Public: load budget summary local-first, then remote.
   Future<void> loadBudgetSummary() async {
+    await _computeLocalBudgetSummary();
+    await _refreshBudgetSummaryRemote();
+  }
+
+  Future<void> _refreshBudgetSummaryRemote() async {
     if (_userId == null) return;
-
     final now = DateTime.now();
-
     try {
       final resp = await _client.getBudgetSummary(
         pb.BudgetSummaryRequest()
           ..familyId = _familyId ?? ''
           ..year = now.year
           ..month = now.month,
+        options: _callOpts,
       );
       state = state.copyWith(
         budgetSummary: BudgetSummaryData(
@@ -418,10 +452,12 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           executionRate: resp.executionRate,
         ),
       );
-      return;
     } catch (_) {}
+  }
 
-    // Local fallback
+  Future<void> _computeLocalBudgetSummary() async {
+    if (_userId == null) return;
+    final now = DateTime.now();
     final budget = await _db.getBudgetByMonth(_userId, now.year, now.month);
     if (budget != null) {
       final expenses =
@@ -439,10 +475,15 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     }
   }
 
-  /// Load net worth trend (last N months)
+  /// Public: load net worth trend.
   Future<void> loadNetWorthTrend(int months) async {
-    if (_userId == null) return;
+    // Net worth trend has no good local source (would need historical
+    // snapshots), so just try remote with short timeout.
+    await _refreshNetWorthTrendRemote(months);
+  }
 
+  Future<void> _refreshNetWorthTrendRemote(int months) async {
+    if (_userId == null) return;
     try {
       final resp = await _client.getNetWorthTrend(
         pb.TrendRequest()
@@ -450,6 +491,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..familyId = _familyId ?? ''
           ..period = 'monthly'
           ..count = months,
+        options: _callOpts,
       );
       state = state.copyWith(
         netWorthTrend: resp.points
@@ -461,25 +503,22 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
                 ))
             .toList(),
       );
-      return;
-    } catch (_) {}
-
-    // Local fallback: generate approximate net worth trend
-    // For simplicity, use current net worth for all months (proper calculation
-    // would need historical snapshots)
-    final nw = state.netWorth.total;
-    final now = DateTime.now();
-    final points = <TrendPointData>[];
-    for (int i = months - 1; i >= 0; i--) {
-      final month = DateTime(now.year, now.month - i, 1);
-      points.add(TrendPointData(
-        label: '${month.year}-${month.month.toString().padLeft(2, '0')}',
-        income: 0,
-        expense: 0,
-        net: nw, // Simplified: no historical data locally
-      ));
+    } catch (_) {
+      // Fallback: approximate with current net worth
+      final nw = state.netWorth.total;
+      final now = DateTime.now();
+      final points = <TrendPointData>[];
+      for (int i = months - 1; i >= 0; i--) {
+        final month = DateTime(now.year, now.month - i, 1);
+        points.add(TrendPointData(
+          label: '${month.year}-${month.month.toString().padLeft(2, '0')}',
+          income: 0,
+          expense: 0,
+          net: nw,
+        ));
+      }
+      state = state.copyWith(netWorthTrend: points);
     }
-    state = state.copyWith(netWorthTrend: points);
   }
 }
 
