@@ -365,8 +365,19 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     );
     if (result != null && result.files.isNotEmpty) {
       final file = result.files.first;
-      final bytes = file.bytes ?? (file.path != null ? File(file.path!).readAsBytesSync() : null);
+      var bytes = file.bytes ?? (file.path != null ? File(file.path!).readAsBytesSync() : null);
       if (bytes == null) return;
+
+      // Convert xlsx to CSV bytes before format detection
+      if (bytes.length > 4 && bytes[0] == 0x50 && bytes[1] == 0x4B &&
+          bytes[2] == 0x03 && bytes[3] == 0x04) {
+        final csvBytes = _xlsxToCsvBytes(bytes);
+        if (csvBytes == null) {
+          setState(() { _parseError = 'xlsx 解析失败'; });
+          return;
+        }
+        bytes = csvBytes;
+      }
 
       final format = _detectFormat(bytes);
       setState(() {
@@ -380,14 +391,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
 
   ImportFormat _detectFormat(Uint8List bytes) {
-    // Check for xlsx (ZIP magic bytes PK\x03\x04)
-    if (bytes.length > 4 && bytes[0] == 0x50 && bytes[1] == 0x4B &&
-        bytes[2] == 0x03 && bytes[3] == 0x04) {
-      // Convert xlsx to CSV-like bytes for existing parsers
-      _fileBytes = _xlsxToCsvBytes(bytes);
-      if (_fileBytes == null) return ImportFormat.unknown;
-      return _detectFormat(_fileBytes!); // Re-detect from CSV content
-    }
 
     // Try UTF-8 first
     String content;
@@ -419,15 +422,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       if (sheet == null || sheet.rows.isEmpty) return null;
 
       final buffer = StringBuffer();
-      int rowIdx = 0;
       for (final row in sheet.rows) {
         final cells = row.map((cell) {
           if (cell == null || cell.value == null) return '';
           final v = cell.value!;
-          // Debug: log cell types for rows around header area
-          if (rowIdx >= 16 && rowIdx <= 18) {
-            debugPrint('[xlsx] row $rowIdx col ${row.indexOf(cell)}: ${v.runtimeType} = "${v.toString().substring(0, v.toString().length.clamp(0, 50))}"');
-          }
           // Handle different cell value types
           if (v is xl.DateTimeCellValue) {
             final y = v.year.toString().padLeft(4, '0');
@@ -452,15 +450,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           return str;
         });
         buffer.writeln(cells.join(','));
-        rowIdx++;
       }
-      final csvContent = buffer.toString();
-      // Debug: print first 25 lines of converted CSV
-      final debugLines = csvContent.split('\n').take(25).toList();
-      for (int i = 0; i < debugLines.length; i++) {
-        debugPrint('[xlsx→csv] line $i: ${debugLines[i]}');
-      }
-      return utf8.encode(csvContent);
+      return utf8.encode(buffer.toString());
     } catch (e) {
       debugPrint('xlsx parse error: $e');
       return null;
@@ -567,23 +558,11 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     // Find header line
     int headerIdx = -1;
     for (int i = 0; i < lines.length && i < 30; i++) {
-      final hasTime = lines[i].contains('交易时间');
-      final hasAmount = lines[i].contains('金额');
-      if (i >= 15 && i <= 19) {
-        debugPrint('[WeChat] line[$i] hasTime=$hasTime hasAmount=$hasAmount first30=${lines[i].substring(0, lines[i].length.clamp(0, 30))}');
-        if (!hasTime && i == 17) {
-          // Hex dump first 20 chars
-          final codes = lines[i].codeUnits.take(20).map((c) => 'U+${c.toRadixString(16).padLeft(4, '0')}').join(' ');
-          debugPrint('[WeChat] hex: $codes');
-        }
-      }
-      if (hasTime && hasAmount) {
+      if (lines[i].contains('交易时间') && lines[i].contains('金额')) {
         headerIdx = i;
         break;
       }
     }
-    debugPrint('[WeChat] headerIdx=$headerIdx, total lines=${lines.length}');
-    if (headerIdx != -1) debugPrint('[WeChat] header: ${lines[headerIdx]}');
     if (headerIdx == -1) {
       _parseError = '未找到微信表头行';
       return;
