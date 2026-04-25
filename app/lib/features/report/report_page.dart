@@ -657,6 +657,8 @@ class _TransactionRow extends StatelessWidget {
     final amountColor = isIncome
         ? (isDark ? AppColors.incomeDark : AppColors.income)
         : (isDark ? AppColors.expenseDark : AppColors.expense);
+    final d = transaction.txnDate;
+    final dateStr = '${d.month}/${d.day} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -674,16 +676,17 @@ class _TransactionRow extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                if (transaction.note.isNotEmpty)
-                  Text(
-                    transaction.note,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color:
-                          theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                Text(
+                  transaction.note.isNotEmpty
+                      ? '$dateStr · ${transaction.note}'
+                      : dateStr,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color:
+                        theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
