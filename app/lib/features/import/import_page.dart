@@ -449,8 +449,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         buffer.writeln(cells.join(','));
       }
       final csvContent = buffer.toString();
-      // Debug: print first 5 lines of converted CSV
-      final debugLines = csvContent.split('\n').take(5).toList();
+      // Debug: print first 25 lines of converted CSV
+      final debugLines = csvContent.split('\n').take(25).toList();
       for (int i = 0; i < debugLines.length; i++) {
         debugPrint('[xlsx→csv] line $i: ${debugLines[i]}');
       }
