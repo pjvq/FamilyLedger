@@ -23,7 +23,7 @@ class ImportPage extends ConsumerStatefulWidget {
   ConsumerState<ImportPage> createState() => _ImportPageState();
 }
 
-enum ImportFormat { unknown, alipay, wechat, generic }
+enum ImportFormat { unknown, alipay, wechat, baishiAA, generic }
 
 class _ParsedTransaction {
   final DateTime date;
@@ -33,6 +33,7 @@ class _ParsedTransaction {
   final String? counterparty; // 交易对方/商户
   final String? rawCategory;
   String? matchedCategoryId;
+  String? _baishiTag; // 百事AA的标签（二级分类）
 
   _ParsedTransaction({
     required this.date,
@@ -209,7 +210,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           _currentStep = 2;
         });
       } else {
-        // No duplicates — skip step 2, go straight to import
+        // No duplicates - skip step 2, go straight to import
         setState(() {
           _hasDuplicateStep = false;
           _currentStep = 3;
@@ -291,6 +292,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   IconData _formatIcon() => switch (_detectedFormat) {
     ImportFormat.alipay => Icons.account_balance_wallet_rounded,
     ImportFormat.wechat => Icons.chat_rounded,
+    ImportFormat.baishiAA => Icons.group_rounded,
     ImportFormat.generic => Icons.table_chart_rounded,
     ImportFormat.unknown => Icons.description_rounded,
   };
@@ -298,12 +300,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Color _formatColor() => switch (_detectedFormat) {
     ImportFormat.alipay => const Color(0xFF1677FF),
     ImportFormat.wechat => const Color(0xFF07C160),
+    ImportFormat.baishiAA => const Color(0xFFFF9800),
     _ => AppColors.primary,
   };
 
   String _formatLabel() => switch (_detectedFormat) {
-    ImportFormat.alipay => '检测到:支付宝账单',
-    ImportFormat.wechat => '检测到:微信账单',
+    ImportFormat.alipay => '检测到：支付宝账单',
+    ImportFormat.wechat => '检测到：微信账单',
+    ImportFormat.baishiAA => '检测到：百事AA记账',
     ImportFormat.generic => '通用 CSV/XLSX 文件',
     ImportFormat.unknown => '未知格式',
   };
@@ -489,6 +493,11 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       return ImportFormat.wechat;
     }
 
+    // 百事AA记账: has "账本名称" and "交易类型" columns
+    if (firstChunk.contains('账本名称') && firstChunk.contains('交易类型')) {
+      return ImportFormat.baishiAA;
+    }
+
     // Try GBK only if UTF-8 was invalid (likely a GBK-encoded file)
     if (!isValidUtf8) {
       // Check for GBK-encoded Alipay keywords in raw bytes
@@ -558,6 +567,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           _parseAlipay(_fileBytes!);
         case ImportFormat.wechat:
           _parseWechat(_fileBytes!);
+        case ImportFormat.baishiAA:
+          _parseBaishiAA(_fileBytes!);
         case ImportFormat.generic:
         case ImportFormat.unknown:
           _parseGenericCsv(_fileBytes!);
@@ -721,6 +732,135 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         note: note,
         counterparty: counterparty,
       ));
+    }
+  }
+
+  // ── 百事AA记账 parser ──
+
+  void _parseBaishiAA(Uint8List bytes) {
+    final content = utf8.decode(bytes, allowMalformed: true);
+    final lines = content.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+
+    // Find header line containing "交易类型" and "账本名称"
+    int headerIdx = -1;
+    for (int i = 0; i < lines.length && i < 10; i++) {
+      if (lines[i].contains('交易类型') && lines[i].contains('账本名称')) {
+        headerIdx = i;
+        break;
+      }
+    }
+    if (headerIdx == -1) {
+      _parseError = '未找到百事AA表头行';
+      return;
+    }
+
+    final headers = _splitCsvLine(lines[headerIdx]);
+    final typeIdx = _findCol(headers, ['交易类型']);
+    final dateIdx = _findCol(headers, ['日期']);
+    final catIdx = _findCol(headers, ['类别']);
+    final tagIdx = _findCol(headers, ['标签']);
+    final currencyIdx = _findCol(headers, ['币种']);
+    // 金额列可能有多个，取第一个"金额"列
+    final amountIdx = _findCol(headers, ['金额']);
+    final descIdx = _findCol(headers, ['描述']);
+    final counterpartyIdx = _findCol(headers, ['付款人/收款人/交款人', '付款人']);
+
+    if (dateIdx == -1 || amountIdx == -1) {
+      _parseError = '百事AA账单缺少必要列（日期/金额）';
+      return;
+    }
+
+    _parsed = [];
+    _skippedRows = 0;
+
+    for (int i = headerIdx + 1; i < lines.length; i++) {
+      final cols = _splitCsvLine(lines[i]);
+      if (cols.length <= amountIdx) { _skippedRows++; continue; }
+
+      // Type
+      final typeStr = typeIdx != -1 && cols.length > typeIdx ? cols[typeIdx].trim() : '';
+      if (typeStr != '支出' && typeStr != '收入') { _skippedRows++; continue; }
+
+      // Date: "2026-02-23 12:50" or "2026/02/23 12:50"
+      final date = _parseDate(cols[dateIdx].trim());
+      if (date == null) { _skippedRows++; continue; }
+
+      // Amount
+      final amountStr = cols[amountIdx].trim().replaceAll(',', '');
+      final amount = double.tryParse(amountStr);
+      if (amount == null || amount == 0) { _skippedRows++; continue; }
+
+      // Category (类别 = parent category)
+      final rawCategory = catIdx != -1 && cols.length > catIdx ? cols[catIdx].trim() : null;
+      // Tag (标签 = sub category)
+      final tag = tagIdx != -1 && cols.length > tagIdx ? cols[tagIdx].trim() : null;
+      // Description
+      final desc = descIdx != -1 && cols.length > descIdx ? cols[descIdx].trim() : '';
+      // Counterparty
+      final cp = counterpartyIdx != -1 && cols.length > counterpartyIdx
+          ? cols[counterpartyIdx].trim()
+          : null;
+
+      // Use tag as note if desc is empty; tag maps to sub-category in matching
+      final note = desc.isNotEmpty ? desc : (tag ?? '');
+
+      _parsed.add(_ParsedTransaction(
+        date: date,
+        type: typeStr == '收入' ? 'income' : 'expense',
+        amount: amount.abs(),
+        note: note,
+        rawCategory: rawCategory,
+        counterparty: cp,
+      ));
+
+      // Store tag in a way that _matchCategories can use it:
+      // rawCategory = parent cat name, we'll try to match tag as child.
+      // We override matchedCategoryId in _matchBaishiCategories below.
+      if (tag != null && tag.isNotEmpty) {
+        _parsed.last._baishiTag = tag;
+      }
+    }
+
+    // Override category matching for 百事AA format
+    _matchBaishiCategories();
+  }
+
+  /// Match categories for 百事AA: rawCategory = parent, tag = child
+  void _matchBaishiCategories() {
+    for (final t in _parsed) {
+      // Try to find a child category matching the tag under the parent
+      final tag = t._baishiTag;
+      final parentName = t.rawCategory;
+
+      if (tag != null && tag.isNotEmpty) {
+        // First try: exact match on tag name
+        final tagCat = _catByName[tag];
+        if (tagCat != null) {
+          // Verify parent matches if we have one
+          if (parentName != null && parentName.isNotEmpty && tagCat.parentId != null) {
+            final parent = _allCategories.where((c) => c.id == tagCat.parentId).firstOrNull;
+            if (parent != null && parent.name == parentName) {
+              t.matchedCategoryId = tagCat.id;
+              continue;
+            }
+          }
+          // Tag matches but parent doesn't — still use tag match
+          t.matchedCategoryId = tagCat.id;
+          continue;
+        }
+      }
+
+      // Fallback: match parent category name
+      if (parentName != null && parentName.isNotEmpty) {
+        final parentCat = _catByName[parentName];
+        if (parentCat != null) {
+          t.matchedCategoryId = parentCat.id;
+          continue;
+        }
+      }
+
+      // Default
+      t.matchedCategoryId = _defaultCategory?.id;
     }
   }
 
@@ -998,7 +1138,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
   Widget _buildDuplicateReviewStep(ThemeData theme) {
     if (_duplicates.isEmpty) {
-      return const Text('无重复记录，可直接导入');
+      return const Text('无重复记录,可直接导入');
     }
     final selectedCount = _dupSelection.values.where((v) => v).length;
     final totalDup = _duplicates.length;
