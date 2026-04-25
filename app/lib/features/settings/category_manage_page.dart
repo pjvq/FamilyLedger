@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:grpc/grpc.dart';
 import '../../core/constants/category_icons.dart';
+import '../../data/local/database.dart' as db;
 import '../../data/remote/grpc_clients.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../generated/proto/transaction.pb.dart';
@@ -44,21 +44,78 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
           GetCategoriesRequest(type: TransactionType.TRANSACTION_TYPE_EXPENSE));
       final incResp = await client.getCategories(
           GetCategoriesRequest(type: TransactionType.TRANSACTION_TYPE_INCOME));
+
+      // Merge locally-created categories (from import) that server doesn't know about
+      final database = ref.read(databaseProvider);
+      final localExp = await database.getCategoriesByType('expense');
+      final localInc = await database.getCategoriesByType('income');
+
+      final serverExpIds = expResp.categories.map((c) => c.id).toSet();
+      final serverIncIds = incResp.categories.map((c) => c.id).toSet();
+
+      // Build trees from local-only categories
+      final localOnlyExp = _buildProtoTree(localExp.where((c) => !serverExpIds.contains(c.id)).toList(), localExp);
+      final localOnlyInc = _buildProtoTree(localInc.where((c) => !serverIncIds.contains(c.id)).toList(), localInc);
+
       setState(() {
-        _expenseCategories = expResp.categories;
-        _incomeCategories = incResp.categories;
+        _expenseCategories = [...expResp.categories, ...localOnlyExp];
+        _incomeCategories = [...incResp.categories, ...localOnlyInc];
         _loading = false;
       });
-      // Sync to local DB for offline access
+      // Sync server categories to local DB for offline access
       _syncCategoriesToLocal([...expResp.categories, ...incResp.categories]);
     } catch (e) {
-      setState(() => _loading = false);
+      // Fallback to local DB
+      try {
+        final database = ref.read(databaseProvider);
+        final localExp = await database.getCategoriesByType('expense');
+        final localInc = await database.getCategoriesByType('income');
+        setState(() {
+          _expenseCategories = _buildProtoTree(localExp, localExp);
+          _incomeCategories = _buildProtoTree(localInc, localInc);
+          _loading = false;
+        });
+      } catch (_) {
+        setState(() => _loading = false);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('加载分类失败: $e')),
         );
       }
     }
+  }
+
+  /// Build proto Category tree from flat local DB categories.
+  /// [candidates] are the categories to include; [allOfType] is the full list for parent lookup.
+  List<Category> _buildProtoTree(List<db.Category> candidates, List<db.Category> allOfType) {
+    // Only include top-level categories from candidates (children will be nested)
+    final roots = candidates.where((c) => c.parentId == null).toList();
+    final childMap = <String, List<db.Category>>{};
+    for (final c in allOfType) {
+      if (c.parentId != null) {
+        childMap.putIfAbsent(c.parentId!, () => []).add(c);
+      }
+    }
+
+    Category toProto(db.Category c) {
+      final children = childMap[c.id] ?? [];
+      return Category(
+        id: c.id,
+        name: c.name,
+        icon: c.icon,
+        iconKey: c.iconKey,
+        type: c.type == 'income'
+            ? TransactionType.TRANSACTION_TYPE_INCOME
+            : TransactionType.TRANSACTION_TYPE_EXPENSE,
+        isPreset: c.isPreset,
+        sortOrder: c.sortOrder,
+        parentId: c.parentId ?? '',
+        children: children.map(toProto),
+      );
+    }
+
+    return roots.map(toProto).toList();
   }
 
   List<Category> get _currentCategories =>

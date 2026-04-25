@@ -94,6 +94,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
   // Category matching
   Map<String, db.Category> _catByName = {};
+  Map<String, db.Category> _catByNameType = {};
   List<db.Category> _allCategories = [];
   db.Category? _defaultCategory;
 
@@ -109,9 +110,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       ...txnState.expenseCategories,
       ...txnState.incomeCategories,
     ];
-    // Build name→category map (including children)
+    // Build name→category map: use "name|type" as key to avoid
+    // collisions between expense/income categories with the same name.
+    // Also keep a simple name→category fallback map.
+    _catByName = {};
+    _catByNameType = {};
     for (final c in _allCategories) {
-      _catByName[c.name] = c;
+      _catByNameType['${c.name}|${c.type}'] = c;
+      _catByName[c.name] = c; // last-write-wins fallback
     }
     // Default: "其他" expense category
     _defaultCategory = _allCategories.where((c) => c.name == '其他' && c.type == 'expense').firstOrNull;
@@ -1106,15 +1112,33 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   static const _defaultIcon = '📌';
 
   /// Get or create a top-level category by name.
+  /// Looks up by name+type first, then name-only fallback, then creates.
   Future<db.Category> _getOrCreateCategory({
     required db.AppDatabase database,
     required String? userId,
     required String name,
     required String type,
   }) async {
-    if (_catByName.containsKey(name)) {
-      return _catByName[name]!;
+    // Prefer exact name+type match
+    final byNameType = _catByNameType['$name|$type'];
+    if (byNameType != null) return byNameType;
+    // Fallback: any type with same name (avoid creating duplicates)
+    final byName = _catByName[name];
+    if (byName != null) return byName;
+
+    // Also check DB directly (in case _allCategories was stale)
+    final dbExisting = await (database.select(database.categories)
+          ..where((c) => c.name.equals(name))
+          ..where((c) => c.parentId.isNull())
+          ..limit(1))
+        .getSingleOrNull();
+    if (dbExisting != null) {
+      _catByName[name] = dbExisting;
+      _catByNameType['$name|${dbExisting.type}'] = dbExisting;
+      _allCategories.add(dbExisting);
+      return dbExisting;
     }
+
     final id = const Uuid().v4();
     await database.upsertCategory(
       id: id,
@@ -1136,6 +1160,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       deletedAt: null,
     );
     _catByName[name] = newCat;
+    _catByNameType['$name|$type'] = newCat;
     _allCategories.add(newCat);
     return newCat;
   }
@@ -1148,13 +1173,26 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     required String type,
     required String parentId,
   }) async {
-    // Check if a child with this name under this parent already exists
+    // Check in-memory cache first
     final existing = _allCategories.where((c) =>
         c.name == name && c.parentId == parentId).firstOrNull;
     if (existing != null) {
       _catByName[name] = existing;
       return existing;
     }
+
+    // Check DB directly
+    final dbExisting = await (database.select(database.categories)
+          ..where((c) => c.name.equals(name))
+          ..where((c) => c.parentId.equals(parentId))
+          ..limit(1))
+        .getSingleOrNull();
+    if (dbExisting != null) {
+      _catByName[name] = dbExisting;
+      _allCategories.add(dbExisting);
+      return dbExisting;
+    }
+
     final id = const Uuid().v4();
     await database.upsertCategory(
       id: id,
