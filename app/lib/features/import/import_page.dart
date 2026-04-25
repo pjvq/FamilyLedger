@@ -448,7 +448,13 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         });
         buffer.writeln(cells.join(','));
       }
-      return utf8.encode(buffer.toString());
+      final csvContent = buffer.toString();
+      // Debug: print first 5 lines of converted CSV
+      final debugLines = csvContent.split('\n').take(5).toList();
+      for (int i = 0; i < debugLines.length; i++) {
+        debugPrint('[xlsx→csv] line $i: ${debugLines[i]}');
+      }
+      return utf8.encode(csvContent);
     } catch (e) {
       debugPrint('xlsx parse error: $e');
       return null;
