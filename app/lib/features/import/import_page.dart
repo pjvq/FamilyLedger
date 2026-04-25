@@ -73,11 +73,13 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Map<String, int> _existingKeyCounts = {};
   bool _hasDuplicateStep = false;
 
-  // Step 2: import result
+  // Step 3: import result
   bool _isImporting = false;
   bool _importDone = false;
   int _importedCount = 0;
   int _duplicateCount = 0;
+  int _importTotal = 0;
+  int _importProgress = 0;
   List<String> _importErrors = [];
 
   // Category matching
@@ -365,11 +367,20 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
   Widget _buildResultStep(ThemeData theme) {
     if (_isImporting) {
-      return const Center(
+      final pct = _importTotal > 0 ? _importProgress / _importTotal : 0.0;
+      return Center(
         child: Column(children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text('正在导入...'),
+          LinearProgressIndicator(value: pct),
+          const SizedBox(height: 16),
+          Text(
+            '正在导入 $_importProgress / $_importTotal',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${(pct * 100).toStringAsFixed(0)}%',
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+          ),
         ]),
       );
     }
@@ -1086,7 +1097,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   // ── Import ──
 
   Future<void> _doImport() async {
-    setState(() => _isImporting = true);
+    setState(() {
+      _isImporting = true;
+      _importProgress = 0;
+    });
     final uuid = const Uuid();
 
     try {
@@ -1112,12 +1126,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           toImport.add(_duplicates[i]);
         }
       }
-      final skippedDups = _duplicates.length - toImport.length + _nonDuplicates.length;
+
+      setState(() => _importTotal = toImport.length);
 
       int imported = 0;
       final errors = <String>[];
 
-      for (final t in toImport) {
+      for (int idx = 0; idx < toImport.length; idx++) {
+        final t = toImport[idx];
         try {
           final amountCents = (t.amount * 100).round();
           final catId = t.matchedCategoryId ?? _defaultCategory?.id ?? '';
@@ -1142,6 +1158,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           imported++;
         } catch (e) {
           errors.add('行 ${t.note}: $e');
+        }
+        // Update progress every 5 items or on last item
+        if (idx % 5 == 0 || idx == toImport.length - 1) {
+          setState(() => _importProgress = idx + 1);
+          // Yield to let UI repaint
+          await Future<void>.delayed(Duration.zero);
         }
       }
 
