@@ -369,31 +369,30 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Widget _buildResultStep(ThemeData theme) {
     if (_isImporting) {
       final pct = _importTotal > 0 ? _importProgress / _importTotal : 0.0;
-      final digits = _importTotal.toString().length;
-      final progressStr = _importProgress.toString().padLeft(digits);
       return Center(
-        child: Column(children: [
-          LinearProgressIndicator(value: pct),
-          const SizedBox(height: 16),
-          Text.rich(
-            TextSpan(children: [
-              const TextSpan(text: '正在导入 '),
-              TextSpan(
-                text: '$progressStr / $_importTotal',
-                style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${(pct * 100).toStringAsFixed(0)}%',
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                fontFeatures: [const FontFeature.tabularFigures()],
               ),
-            ]),
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${(pct * 100).toStringAsFixed(0)}%',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontFeatures: [const FontFeature.tabularFigures()],
             ),
-          ),
-        ]),
+            const SizedBox(height: 12),
+            LinearProgressIndicator(value: pct),
+            const SizedBox(height: 8),
+            Text(
+              '$_importProgress / $_importTotal',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                fontFamily: 'monospace',
+                letterSpacing: 1,
+              ),
+            ),
+          ],
+        ),
       );
     }
     if (!_importDone) return const Text('等待导入...');
