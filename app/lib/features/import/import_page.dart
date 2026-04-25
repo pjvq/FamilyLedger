@@ -422,6 +422,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       try {
         final gbkContent = gbk.decode(bytes);
         final gbkChunk = gbkContent.length > 500 ? gbkContent.substring(0, 500) : gbkContent;
+        debugPrint('[detect] GBK chunk: ${gbkChunk.substring(0, gbkChunk.length.clamp(0, 200))}');
         if (gbkChunk.contains('支付宝交易记录') || gbkChunk.contains('支付宝（中国）') || gbkChunk.contains('支付宝账单')) {
           return ImportFormat.alipay;
         }
