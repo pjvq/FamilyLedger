@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' show FontFeature;
 import 'package:drift/drift.dart' show Value;
 import 'package:excel/excel.dart' as xl;
 import 'package:fast_gbk/fast_gbk.dart';
@@ -368,18 +369,29 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Widget _buildResultStep(ThemeData theme) {
     if (_isImporting) {
       final pct = _importTotal > 0 ? _importProgress / _importTotal : 0.0;
+      final digits = _importTotal.toString().length;
+      final progressStr = _importProgress.toString().padLeft(digits);
       return Center(
         child: Column(children: [
           LinearProgressIndicator(value: pct),
           const SizedBox(height: 16),
-          Text(
-            '正在导入 $_importProgress / $_importTotal',
+          Text.rich(
+            TextSpan(children: [
+              const TextSpan(text: '正在导入 '),
+              TextSpan(
+                text: '$progressStr / $_importTotal',
+                style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
+              ),
+            ]),
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 4),
           Text(
             '${(pct * 100).toStringAsFixed(0)}%',
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontFeatures: [const FontFeature.tabularFigures()],
+            ),
           ),
         ]),
       );
