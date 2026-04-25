@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value;
+import 'package:excel/excel.dart' as xl;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -170,7 +171,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('支持支付宝账单、微信账单、通用 CSV 文件',
+        Text('支持支付宝账单、微信账单、通用 CSV/XLSX 文件',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             )),
@@ -246,7 +247,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   String _formatLabel() => switch (_detectedFormat) {
     ImportFormat.alipay => '检测到：支付宝账单',
     ImportFormat.wechat => '检测到：微信账单',
-    ImportFormat.generic => '通用 CSV 文件',
+    ImportFormat.generic => '通用 CSV/XLSX 文件',
     ImportFormat.unknown => '未知格式',
   };
 
@@ -359,7 +360,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Future<void> _pickFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['csv'],
+      allowedExtensions: ['csv', 'xlsx', 'xls'],
       withData: true,
     );
     if (result != null && result.files.isNotEmpty) {
@@ -379,6 +380,15 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
 
   ImportFormat _detectFormat(Uint8List bytes) {
+    // Check for xlsx (ZIP magic bytes PK\x03\x04)
+    if (bytes.length > 4 && bytes[0] == 0x50 && bytes[1] == 0x4B &&
+        bytes[2] == 0x03 && bytes[3] == 0x04) {
+      // Convert xlsx to CSV-like bytes for existing parsers
+      _fileBytes = _xlsxToCsvBytes(bytes);
+      if (_fileBytes == null) return ImportFormat.unknown;
+      return _detectFormat(_fileBytes!); // Re-detect from CSV content
+    }
+
     // Try UTF-8 first
     String content;
     try {
@@ -397,6 +407,52 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       return ImportFormat.wechat;
     }
     return ImportFormat.generic;
+  }
+
+  /// Convert xlsx file bytes to CSV-formatted UTF-8 bytes.
+  /// Reads the first sheet and joins cells with commas.
+  Uint8List? _xlsxToCsvBytes(Uint8List xlsxBytes) {
+    try {
+      final excel = xl.Excel.decodeBytes(xlsxBytes);
+      final sheetName = excel.tables.keys.first;
+      final sheet = excel.tables[sheetName];
+      if (sheet == null || sheet.rows.isEmpty) return null;
+
+      final buffer = StringBuffer();
+      for (final row in sheet.rows) {
+        final cells = row.map((cell) {
+          if (cell == null || cell.value == null) return '';
+          final v = cell.value!;
+          // Handle different cell value types
+          if (v is xl.DateTimeCellValue) {
+            final y = v.year.toString().padLeft(4, '0');
+            final mo = v.month.toString().padLeft(2, '0');
+            final d = v.day.toString().padLeft(2, '0');
+            final hh = v.hour.toString().padLeft(2, '0');
+            final mm = v.minute.toString().padLeft(2, '0');
+            final ss = v.second.toString().padLeft(2, '0');
+            return '$y-$mo-$d $hh:$mm:$ss';
+          }
+          if (v is xl.DateCellValue) {
+            final y = v.year.toString().padLeft(4, '0');
+            final mo = v.month.toString().padLeft(2, '0');
+            final d = v.day.toString().padLeft(2, '0');
+            return '$y-$mo-$d 00:00:00';
+          }
+          final str = v.toString();
+          // Escape CSV: quote if contains comma, quote, or newline
+          if (str.contains(',') || str.contains('"') || str.contains('\n')) {
+            return '"${str.replaceAll('"', '""')}"';
+          }
+          return str;
+        });
+        buffer.writeln(cells.join(','));
+      }
+      return utf8.encode(buffer.toString());
+    } catch (e) {
+      debugPrint('xlsx parse error: $e');
+      return null;
+    }
   }
 
   Future<void> _parseFile() async {

@@ -43,6 +43,7 @@ dependencies:
   # File / Image picker
   file_picker: ^8.0.0
   image_picker: ^1.0.0
+  excel: ^4.0.6
 
 dev_dependencies:
   flutter_test:
