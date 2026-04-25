@@ -393,12 +393,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
   ImportFormat _detectFormat(Uint8List bytes) {
 
-    // Try UTF-8 first
+    // Try strict UTF-8 first
     String content;
+    bool isValidUtf8 = false;
     try {
-      content = utf8.decode(bytes, allowMalformed: true);
+      content = utf8.decode(bytes); // strict — throws on invalid
+      isValidUtf8 = true;
     } catch (_) {
-      content = '';
+      content = utf8.decode(bytes, allowMalformed: true);
     }
 
     // Check first few lines
@@ -411,14 +413,16 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       return ImportFormat.wechat;
     }
 
-    // Try GBK for Alipay files
-    try {
-      final gbkContent = gbk.decode(bytes);
-      final gbkChunk = gbkContent.length > 500 ? gbkContent.substring(0, 500) : gbkContent;
-      if (gbkChunk.contains('支付宝') || gbkChunk.contains('交易号')) {
-        return ImportFormat.alipay;
-      }
-    } catch (_) {}
+    // Try GBK only if UTF-8 was invalid (likely a GBK-encoded file)
+    if (!isValidUtf8) {
+      try {
+        final gbkContent = gbk.decode(bytes);
+        final gbkChunk = gbkContent.length > 500 ? gbkContent.substring(0, 500) : gbkContent;
+        if (gbkChunk.contains('支付宝') || gbkChunk.contains('交易号')) {
+          return ImportFormat.alipay;
+        }
+      } catch (_) {}
+    }
 
     return ImportFormat.generic;
   }
