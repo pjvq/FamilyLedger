@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value;
 import 'package:excel/excel.dart' as xl;
+import 'package:fast_gbk/fast_gbk.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -409,6 +410,16 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     if (firstChunk.contains('微信支付') || firstChunk.contains('微信支付账单')) {
       return ImportFormat.wechat;
     }
+
+    // Try GBK for Alipay files
+    try {
+      final gbkContent = gbk.decode(bytes);
+      final gbkChunk = gbkContent.length > 500 ? gbkContent.substring(0, 500) : gbkContent;
+      if (gbkChunk.contains('支付宝') || gbkChunk.contains('交易号')) {
+        return ImportFormat.alipay;
+      }
+    } catch (_) {}
+
     return ImportFormat.generic;
   }
 
@@ -483,10 +494,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     // Alipay uses GBK encoding
     String content;
     try {
-      content = utf8.decode(bytes, allowMalformed: true);
-      // If garbled, it's likely GBK — we'll work with what we have
+      content = gbk.decode(bytes);
     } catch (_) {
-      content = String.fromCharCodes(bytes);
+      // Fallback to UTF-8
+      content = utf8.decode(bytes, allowMalformed: true);
     }
 
     final lines = content.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
@@ -549,8 +560,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
 
   void _parseWechat(Uint8List bytes) {
-    // Debug: check if bytes are xlsx or CSV
-    debugPrint('[WeChat] bytes[0..3]: ${bytes.take(4).toList()}, length=${bytes.length}');
     String content = utf8.decode(bytes, allowMalformed: true);
     // Remove BOM
     if (content.startsWith('\uFEFF')) content = content.substring(1);
