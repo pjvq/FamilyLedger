@@ -414,19 +414,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       return ImportFormat.wechat;
     }
 
-    // DEBUG: log firstChunk to identify real patterns
-    debugPrint('[detect] firstChunk: ${firstChunk.substring(0, firstChunk.length.clamp(0, 200))}');
-
     // Try GBK only if UTF-8 was invalid (likely a GBK-encoded file)
     if (!isValidUtf8) {
-      try {
-        final gbkContent = gbk.decode(bytes);
-        final gbkChunk = gbkContent.length > 500 ? gbkContent.substring(0, 500) : gbkContent;
-        debugPrint('[detect] GBK chunk: ${gbkChunk.substring(0, gbkChunk.length.clamp(0, 200))}');
-        if (gbkChunk.contains('支付宝交易记录') || gbkChunk.contains('支付宝（中国）') || gbkChunk.contains('支付宝账单')) {
-          return ImportFormat.alipay;
-        }
-      } catch (_) {}
+      // Check for GBK-encoded Alipay keywords in raw bytes
+      // 支付宝 in GBK: [214, 167, 184, 182, 177, 166]
+      const alipayGbk = [214, 167, 184, 182, 177, 166];
+      if (_containsBytes(bytes, alipayGbk)) {
+        return ImportFormat.alipay;
+      }
     }
 
     return ImportFormat.generic;
@@ -694,6 +689,20 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
 
   // ── Helpers ──
+
+  bool _containsBytes(Uint8List data, List<int> pattern) {
+    if (pattern.isEmpty || data.length < pattern.length) return false;
+    // Only search first 1000 bytes for performance
+    final limit = data.length.clamp(0, 1000) - pattern.length;
+    outer:
+    for (int i = 0; i <= limit; i++) {
+      for (int j = 0; j < pattern.length; j++) {
+        if (data[i + j] != pattern[j]) continue outer;
+      }
+      return true;
+    }
+    return false;
+  }
 
   int _findCol(List<String> headers, List<String> keywords) {
     for (int i = 0; i < headers.length; i++) {
