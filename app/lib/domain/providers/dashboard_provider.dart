@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
 import '../../data/local/database.dart' as db;
@@ -169,7 +170,11 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
   /// Load all dashboard data: local-first, then background refresh via gRPC.
   Future<void> loadAll() async {
-    if (_userId == null) return;
+    if (_userId == null) {
+      debugPrint('[Dashboard] loadAll: _userId is null, skipping');
+      return;
+    }
+    debugPrint('[Dashboard] loadAll: starting for user=$_userId');
     state = state.copyWith(isLoading: true, clearError: true);
 
     // Phase 1: instant local data (milliseconds)
@@ -180,6 +185,10 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           DateTime.now().year, DateTime.now().month),
       _computeLocalBudgetSummary(),
     ]);
+    debugPrint('[Dashboard] Phase 1 done: netWorth=${state.netWorth.total}, '
+        'trend=${state.incomeExpenseTrend.length} points, '
+        'breakdown=${state.categoryBreakdown.length} cats, '
+        'trendHasData=${state.incomeExpenseTrend.any((p) => p.income > 0 || p.expense > 0)}');
     state = state.copyWith(isLoading: false);
 
     // Phase 2: background gRPC refresh (non-blocking)
@@ -337,6 +346,8 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
     final now = DateTime.now();
     final points = <TrendPointData>[];
+    final allTxns = await _db.getRecentTransactions(_userId, 10000);
+    debugPrint('[Dashboard] _computeLocalTrend: total txns=${allTxns.length} for user=$_userId');
 
     for (int i = count - 1; i >= 0; i--) {
       DateTime start;
@@ -357,8 +368,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
             '${month.year}-${month.month.toString().padLeft(2, '0')}';
       }
 
-      final txns = await _db.getRecentTransactions(_userId, 10000);
-      final filtered = txns.where(
+      final filtered = allTxns.where(
           (t) => !t.txnDate.isBefore(start) && !t.txnDate.isAfter(end));
 
       int income = 0, expense = 0;
