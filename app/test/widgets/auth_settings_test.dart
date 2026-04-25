@@ -1260,6 +1260,8 @@ void main() {
             userId: 'user_1',
           ),
           familyState: const FamilyState(),
+          syncState: const SyncState(status: SyncStatus.synced),
+          themeMode: ThemeMode.system,
         ),
       ));
       await tester.pumpAndSettle();
@@ -1279,9 +1281,9 @@ void main() {
       expect(find.text('交易报表'), findsOneWidget);
 
       await tester.scrollUntilVisible(
-          find.text('CSV 导入'), 100);
+          find.text('账单导入'), 100);
       await tester.pumpAndSettle();
-      expect(find.text('CSV 导入'), findsOneWidget);
+      expect(find.text('账单导入'), findsOneWidget);
 
       // Scroll to see Settings section
       await tester.scrollUntilVisible(
@@ -1314,19 +1316,22 @@ void main() {
             currentFamily: family,
             members: members,
           ),
+          syncState: const SyncState(status: SyncStatus.synced),
+          themeMode: ThemeMode.system,
         ),
       ));
       await tester.pumpAndSettle();
 
-      // Scroll down to the "设置" section where family tile is
+      // Family info shown in user card
+      expect(find.text('我的家庭 · 3 位成员'), findsOneWidget);
+
+      // Scroll to family section
       await tester.scrollUntilVisible(find.text('我的家庭'), 200);
       await tester.pumpAndSettle();
-
-      expect(find.text('我的家庭'), findsOneWidget);
-      expect(find.text('3 位成员'), findsOneWidget);
+      expect(find.textContaining('我的家庭'), findsWidgets);
     });
 
-    testWidgets('shows "家庭管理" when no family', (tester) async {
+    testWidgets('shows create/join family when no family', (tester) async {
       await tester.pumpWidget(_wrapPage(
         const MorePage(),
         overrides: _baseOverrides(
@@ -1335,16 +1340,18 @@ void main() {
             userId: 'u',
           ),
           familyState: const FamilyState(),
+          syncState: const SyncState(status: SyncStatus.synced),
+          themeMode: ThemeMode.system,
         ),
       ));
       await tester.pumpAndSettle();
 
-      // Scroll down to the "设置" section where family tile is
-      await tester.scrollUntilVisible(find.text('家庭管理'), 200);
+      // Scroll to family section
+      await tester.scrollUntilVisible(find.text('创建家庭'), 200);
       await tester.pumpAndSettle();
 
-      expect(find.text('家庭管理'), findsOneWidget);
-      expect(find.text('创建或加入家庭'), findsOneWidget);
+      expect(find.text('创建家庭'), findsOneWidget);
+      expect(find.text('加入家庭'), findsOneWidget);
     });
 
     testWidgets('logout shows confirmation dialog', (tester) async {
@@ -1356,6 +1363,8 @@ void main() {
             userId: 'u',
           ),
           familyState: const FamilyState(),
+          syncState: const SyncState(status: SyncStatus.synced),
+          themeMode: ThemeMode.system,
         ),
       ));
       await tester.pumpAndSettle();
