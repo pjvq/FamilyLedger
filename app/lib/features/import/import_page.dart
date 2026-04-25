@@ -25,6 +25,13 @@ class ImportPage extends ConsumerStatefulWidget {
 
 enum ImportFormat { unknown, alipay, wechat, baishiAA, generic }
 
+class _SkippedRow {
+  final int lineNumber;
+  final String content;
+  final String reason;
+  const _SkippedRow(this.lineNumber, this.content, this.reason);
+}
+
 class _ParsedTransaction {
   final DateTime date;
   final String type; // income / expense
@@ -33,7 +40,7 @@ class _ParsedTransaction {
   final String? counterparty; // 交易对方/商户
   final String? rawCategory;
   String? matchedCategoryId;
-  String? _baishiTag; // 百事AA的标签（二级分类）
+  String? _baishiTag; // 百事AA的标签(二级分类)
 
   _ParsedTransaction({
     required this.date,
@@ -66,6 +73,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   // Step 1: preview
   List<_ParsedTransaction> _parsed = [];
   int _skippedRows = 0;
+  List<_SkippedRow> _skippedDetails = [];
 
   // Step 2: duplicate review
   List<_ParsedTransaction> _duplicates = [];
@@ -305,9 +313,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   };
 
   String _formatLabel() => switch (_detectedFormat) {
-    ImportFormat.alipay => '检测到：支付宝账单',
-    ImportFormat.wechat => '检测到：微信账单',
-    ImportFormat.baishiAA => '检测到：百事AA记账',
+    ImportFormat.alipay => '检测到:支付宝账单',
+    ImportFormat.wechat => '检测到:微信账单',
+    ImportFormat.baishiAA => '检测到:百事AA记账',
     ImportFormat.generic => '通用 CSV/XLSX 文件',
     ImportFormat.unknown => '未知格式',
   };
@@ -364,6 +372,76 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                 )),
           ),
+        // Skipped rows details
+        if (_skippedDetails.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Theme(
+            data: theme.copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: Text(
+                '跳过 $_skippedRows 行',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              children: _skippedDetails.take(50).map((s) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (s.lineNumber > 0)
+                        SizedBox(
+                          width: 36,
+                          child: Text(
+                            'L${s.lineNumber}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                              fontFamily: 'monospace',
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          s.reason,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.orange,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          s.content,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                            fontSize: 10,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          if (_skippedDetails.length > 50)
+            Text('... 还有 ${_skippedDetails.length - 50} 行',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                )),
+        ],
       ],
     );
   }
@@ -573,7 +651,11 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         case ImportFormat.unknown:
           _parseGenericCsv(_fileBytes!);
       }
-      _matchCategories();
+      if (_detectedFormat == ImportFormat.baishiAA) {
+        await _matchBaishiCategories();
+      } else {
+        await _matchCategories();
+      }
       setState(() => _isParsing = false);
     } catch (e) {
       setState(() { _isParsing = false; _parseError = '解析失败: $e'; });
@@ -624,26 +706,45 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
     _parsed = [];
     _skippedRows = 0;
+    _skippedDetails = [];
 
     for (int i = headerIdx + 1; i < lines.length; i++) {
       final cols = _splitCsvLine(lines[i]);
-      if (cols.length <= amountIdx) { _skippedRows++; continue; }
+      final rawLine = cols.join(', ');
+      if (cols.length <= amountIdx) {
+        _skippedRows++;
+        _skippedDetails.add(_SkippedRow(i + 1, rawLine, '列数不足'));
+        continue;
+      }
 
       // Skip non-successful transactions
       if (statusIdx != -1 && cols.length > statusIdx) {
         final status = cols[statusIdx].trim();
-        if (status.isNotEmpty && !status.contains('成功')) { _skippedRows++; continue; }
+        if (status.isNotEmpty && !status.contains('成功')) {
+          _skippedRows++;
+          _skippedDetails.add(_SkippedRow(i + 1, rawLine, '交易状态: $status'));
+          continue;
+        }
       }
 
       // Skip non income/expense
       final typeStr = typeIdx != -1 && cols.length > typeIdx ? cols[typeIdx].trim() : '';
-      if (typeStr != '支出' && typeStr != '收入') { _skippedRows++; continue; }
+      if (typeStr != '支出' && typeStr != '收入') {
+        _skippedRows++;
+        _skippedDetails.add(_SkippedRow(i + 1, rawLine, '非收支类型: ${typeStr.isEmpty ? "空" : typeStr}'));
+        continue;
+      }
 
       final date = _parseDate(cols[dateIdx].trim());
       final amount = double.tryParse(cols[amountIdx].trim().replaceAll('¥', '').replaceAll(',', ''));
       final note = noteIdx != -1 && cols.length > noteIdx ? cols[noteIdx].trim() : '';
 
-      if (date == null || amount == null || amount == 0) { _skippedRows++; continue; }
+      if (date == null || amount == null || amount == 0) {
+        _skippedRows++;
+        _skippedDetails.add(_SkippedRow(i + 1, rawLine,
+            date == null ? '日期解析失败' : '金额无效(${cols[amountIdx].trim()})'));
+        continue;
+      }
 
       final counterparty = counterpartyIdx != -1 && cols.length > counterpartyIdx
           ? cols[counterpartyIdx].trim()
@@ -697,29 +798,45 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
     _parsed = [];
     _skippedRows = 0;
+    _skippedDetails = [];
 
     for (int i = headerIdx + 1; i < lines.length; i++) {
       final cols = _splitCsvLine(lines[i]);
-      if (cols.length <= amountIdx) { _skippedRows++; continue; }
+      final rawLine = cols.join(', ');
+      if (cols.length <= amountIdx) {
+        _skippedRows++;
+        _skippedDetails.add(_SkippedRow(i + 1, rawLine, '列数不足'));
+        continue;
+      }
 
       // Filter status
       if (statusIdx != -1 && cols.length > statusIdx) {
         final status = cols[statusIdx].trim();
         if (status.isNotEmpty && !status.contains('成功') && !status.contains('已收钱') && !status.contains('已存入')) {
           _skippedRows++;
+          _skippedDetails.add(_SkippedRow(i + 1, rawLine, '交易状态: $status'));
           continue;
         }
       }
 
       final typeStr = typeIdx != -1 && cols.length > typeIdx ? cols[typeIdx].trim() : '';
-      if (typeStr != '支出' && typeStr != '收入') { _skippedRows++; continue; }
+      if (typeStr != '支出' && typeStr != '收入') {
+        _skippedRows++;
+        _skippedDetails.add(_SkippedRow(i + 1, rawLine, '非收支类型: ${typeStr.isEmpty ? "空" : typeStr}'));
+        continue;
+      }
 
       final date = _parseDate(cols[dateIdx].trim());
-      final amountStr = cols[amountIdx].trim().replaceAll('¥', '').replaceAll(',', '').replaceAll('¥', '');
+      final amountStr = cols[amountIdx].trim().replaceAll('¥', '').replaceAll(',', '').replaceAll('￥', '');
       final amount = double.tryParse(amountStr);
       final note = noteIdx != -1 && cols.length > noteIdx ? cols[noteIdx].trim() : '';
 
-      if (date == null || amount == null || amount == 0) { _skippedRows++; continue; }
+      if (date == null || amount == null || amount == 0) {
+        _skippedRows++;
+        _skippedDetails.add(_SkippedRow(i + 1, rawLine,
+            date == null ? '日期解析失败' : '金额无效($amountStr)'));
+        continue;
+      }
 
       final counterparty = counterpartyIdx != -1 && cols.length > counterpartyIdx
           ? cols[counterpartyIdx].trim()
@@ -760,35 +877,52 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final catIdx = _findCol(headers, ['类别']);
     final tagIdx = _findCol(headers, ['标签']);
     final currencyIdx = _findCol(headers, ['币种']);
-    // 金额列可能有多个，取第一个"金额"列
+    // 金额列可能有多个,取第一个"金额"列
     final amountIdx = _findCol(headers, ['金额']);
     final descIdx = _findCol(headers, ['描述']);
     final counterpartyIdx = _findCol(headers, ['付款人/收款人/交款人', '付款人']);
 
     if (dateIdx == -1 || amountIdx == -1) {
-      _parseError = '百事AA账单缺少必要列（日期/金额）';
+      _parseError = '百事AA账单缺少必要列(日期/金额)';
       return;
     }
 
     _parsed = [];
     _skippedRows = 0;
+    _skippedDetails = [];
 
     for (int i = headerIdx + 1; i < lines.length; i++) {
       final cols = _splitCsvLine(lines[i]);
-      if (cols.length <= amountIdx) { _skippedRows++; continue; }
+      final rawLine = cols.join(', ');
+      if (cols.length <= amountIdx) {
+        _skippedRows++;
+        _skippedDetails.add(_SkippedRow(i + 1, rawLine, '列数不足'));
+        continue;
+      }
 
       // Type
       final typeStr = typeIdx != -1 && cols.length > typeIdx ? cols[typeIdx].trim() : '';
-      if (typeStr != '支出' && typeStr != '收入') { _skippedRows++; continue; }
+      if (typeStr != '支出' && typeStr != '收入') {
+        _skippedRows++;
+        _skippedDetails.add(_SkippedRow(i + 1, rawLine, '非收支类型: ${typeStr.isEmpty ? "空" : typeStr}'));
+        continue;
+      }
 
-      // Date: "2026-02-23 12:50" or "2026/02/23 12:50"
       final date = _parseDate(cols[dateIdx].trim());
-      if (date == null) { _skippedRows++; continue; }
+      if (date == null) {
+        _skippedRows++;
+        _skippedDetails.add(_SkippedRow(i + 1, rawLine, '日期解析失败'));
+        continue;
+      }
 
       // Amount
       final amountStr = cols[amountIdx].trim().replaceAll(',', '');
       final amount = double.tryParse(amountStr);
-      if (amount == null || amount == 0) { _skippedRows++; continue; }
+      if (amount == null || amount == 0) {
+        _skippedRows++;
+        _skippedDetails.add(_SkippedRow(i + 1, rawLine, '金额无效($amountStr)'));
+        continue;
+      }
 
       // Category (类别 = parent category)
       final rawCategory = catIdx != -1 && cols.length > catIdx ? cols[catIdx].trim() : null;
@@ -826,9 +960,11 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
 
   /// Match categories for 百事AA: rawCategory = parent, tag = child
-  void _matchBaishiCategories() {
+  Future<void> _matchBaishiCategories() async {
+    final database = ref.read(databaseProvider);
+    final userId = ref.read(currentUserIdProvider);
+
     for (final t in _parsed) {
-      // Try to find a child category matching the tag under the parent
       final tag = t._baishiTag;
       final parentName = t.rawCategory;
 
@@ -848,15 +984,37 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           t.matchedCategoryId = tagCat.id;
           continue;
         }
-      }
 
-      // Fallback: match parent category name
-      if (parentName != null && parentName.isNotEmpty) {
-        final parentCat = _catByName[parentName];
-        if (parentCat != null) {
-          t.matchedCategoryId = parentCat.id;
+        // Tag not found — auto-create parent + child
+        if (parentName != null && parentName.isNotEmpty) {
+          final parentCat = await _getOrCreateCategory(
+            database: database,
+            userId: userId,
+            name: parentName,
+            type: t.type,
+          );
+          final childCat = await _getOrCreateChildCategory(
+            database: database,
+            userId: userId,
+            name: tag,
+            type: t.type,
+            parentId: parentCat.id,
+          );
+          t.matchedCategoryId = childCat.id;
           continue;
         }
+      }
+
+      // Fallback: match or create parent category
+      if (parentName != null && parentName.isNotEmpty) {
+        final parentCat = await _getOrCreateCategory(
+          database: database,
+          userId: userId,
+          name: parentName,
+          type: t.type,
+        );
+        t.matchedCategoryId = parentCat.id;
+        continue;
       }
 
       // Default
@@ -898,14 +1056,25 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
     _parsed = [];
     _skippedRows = 0;
+    _skippedDetails = [];
 
     for (int i = headerIdx + 1; i < lines.length; i++) {
       final cols = _splitCsvLine(lines[i]);
-      if (cols.length <= amountIdx) { _skippedRows++; continue; }
+      final rawLine = cols.join(', ');
+      if (cols.length <= amountIdx) {
+        _skippedRows++;
+        _skippedDetails.add(_SkippedRow(i + 1, rawLine, '列数不足'));
+        continue;
+      }
 
       final date = _parseDate(cols[dateIdx].trim());
       final amount = double.tryParse(cols[amountIdx].trim().replaceAll('¥', '').replaceAll(',', ''));
-      if (date == null || amount == null || amount == 0) { _skippedRows++; continue; }
+      if (date == null || amount == null || amount == 0) {
+        _skippedRows++;
+        _skippedDetails.add(_SkippedRow(i + 1, rawLine,
+            date == null ? '日期解析失败' : '金额无效(${cols[amountIdx].trim()})'));
+        continue;
+      }
 
       String type = 'expense';
       if (typeIdx != -1 && cols.length > typeIdx) {
@@ -930,6 +1099,86 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         rawCategory: rawCat,
       ));
     }
+  }
+
+  // ── Auto-create categories ──
+
+  static const _defaultIcon = '📌';
+
+  /// Get or create a top-level category by name.
+  Future<db.Category> _getOrCreateCategory({
+    required db.AppDatabase database,
+    required String? userId,
+    required String name,
+    required String type,
+  }) async {
+    if (_catByName.containsKey(name)) {
+      return _catByName[name]!;
+    }
+    final id = const Uuid().v4();
+    await database.upsertCategory(
+      id: id,
+      name: name,
+      icon: _defaultIcon,
+      type: type,
+      userId: userId,
+    );
+    final newCat = db.Category(
+      id: id,
+      name: name,
+      icon: _defaultIcon,
+      iconKey: '',
+      type: type,
+      isPreset: false,
+      sortOrder: 999,
+      parentId: null,
+      userId: userId,
+      deletedAt: null,
+    );
+    _catByName[name] = newCat;
+    _allCategories.add(newCat);
+    return newCat;
+  }
+
+  /// Get or create a child category under a parent.
+  Future<db.Category> _getOrCreateChildCategory({
+    required db.AppDatabase database,
+    required String? userId,
+    required String name,
+    required String type,
+    required String parentId,
+  }) async {
+    // Check if a child with this name under this parent already exists
+    final existing = _allCategories.where((c) =>
+        c.name == name && c.parentId == parentId).firstOrNull;
+    if (existing != null) {
+      _catByName[name] = existing;
+      return existing;
+    }
+    final id = const Uuid().v4();
+    await database.upsertCategory(
+      id: id,
+      name: name,
+      icon: _defaultIcon,
+      type: type,
+      parentId: parentId,
+      userId: userId,
+    );
+    final newCat = db.Category(
+      id: id,
+      name: name,
+      icon: _defaultIcon,
+      iconKey: '',
+      type: type,
+      isPreset: false,
+      sortOrder: 999,
+      parentId: parentId,
+      userId: userId,
+      deletedAt: null,
+    );
+    _catByName[name] = newCat;
+    _allCategories.add(newCat);
+    return newCat;
   }
 
   // ── Helpers ──
@@ -1038,7 +1287,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   // Keywords to skip (transfers, not real expenses)
   static const _skipKeywords = ['转账', '红包', '还款', '信用卡还款', '余额宝', '理财'];
 
-  void _matchCategories() {
+  Future<void> _matchCategories() async {
+    final database = ref.read(databaseProvider);
+    final userId = ref.read(currentUserIdProvider);
     final toRemove = <int>[];
     for (int i = 0; i < _parsed.length; i++) {
       final t = _parsed[i];
@@ -1047,6 +1298,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       if (_skipKeywords.any((k) => t.note.contains(k))) {
         toRemove.add(i);
         _skippedRows++;
+        _skippedDetails.add(_SkippedRow(0, t.note, '转账/还款等非收支交易'));
         continue;
       }
 
@@ -1066,6 +1318,15 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       }
       if (matchedCatName != null && _catByName.containsKey(matchedCatName)) {
         t.matchedCategoryId = _catByName[matchedCatName]!.id;
+      } else if (t.rawCategory != null && t.rawCategory!.isNotEmpty) {
+        // Auto-create missing category
+        final newCat = await _getOrCreateCategory(
+          database: database,
+          userId: userId,
+          name: t.rawCategory!,
+          type: t.type,
+        );
+        t.matchedCategoryId = newCat.id;
       } else {
         t.matchedCategoryId = _defaultCategory?.id;
       }
