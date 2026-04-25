@@ -207,25 +207,28 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         pb.GetNetWorthRequest()..familyId = _familyId ?? '',
         options: _callOpts,
       );
-      state = state.copyWith(
-        netWorth: NetWorthData(
-          total: resp.total.toInt(),
-          cashAndBank: resp.cashAndBank.toInt(),
-          investmentValue: resp.investmentValue.toInt(),
-          fixedAssetValue: resp.fixedAssetValue.toInt(),
-          loanBalance: resp.loanBalance.toInt(),
-          changeFromLastMonth: resp.changeFromLastMonth.toInt(),
-          changePercent: resp.changePercent,
-          composition: resp.composition
-              .map((c) => AssetCompositionItem(
-                    category: c.category,
-                    label: c.label,
-                    value: c.value.toInt(),
-                    weight: c.weight,
-                  ))
-              .toList(),
-        ),
-      );
+      // Only override if local net worth is zero (local is source of truth)
+      if (state.netWorth.total == 0) {
+        state = state.copyWith(
+          netWorth: NetWorthData(
+            total: resp.total.toInt(),
+            cashAndBank: resp.cashAndBank.toInt(),
+            investmentValue: resp.investmentValue.toInt(),
+            fixedAssetValue: resp.fixedAssetValue.toInt(),
+            loanBalance: resp.loanBalance.toInt(),
+            changeFromLastMonth: resp.changeFromLastMonth.toInt(),
+            changePercent: resp.changePercent,
+            composition: resp.composition
+                .map((c) => AssetCompositionItem(
+                      category: c.category,
+                      label: c.label,
+                      value: c.value.toInt(),
+                      weight: c.weight,
+                    ))
+                .toList(),
+          ),
+        );
+      }
     } catch (_) {
       // Local data already displayed, silently ignore remote failure
     }
@@ -310,16 +313,22 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..count = count,
         options: _callOpts,
       );
-      state = state.copyWith(
-        incomeExpenseTrend: resp.points
-            .map((p) => TrendPointData(
-                  label: p.label,
-                  income: p.income.toInt(),
-                  expense: p.expense.toInt(),
-                  net: p.net.toInt(),
-                ))
-            .toList(),
-      );
+      // Only override if local has no data — local is source of truth
+      // (CSV imports and offline txns exist only locally until synced)
+      final localHasData = state.incomeExpenseTrend
+          .any((p) => p.income > 0 || p.expense > 0);
+      if (!localHasData) {
+        state = state.copyWith(
+          incomeExpenseTrend: resp.points
+              .map((p) => TrendPointData(
+                    label: p.label,
+                    income: p.income.toInt(),
+                    expense: p.expense.toInt(),
+                    net: p.net.toInt(),
+                  ))
+              .toList(),
+        );
+      }
     } catch (_) {}
   }
 
@@ -392,29 +401,33 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..type = type,
         options: _callOpts,
       );
-      state = state.copyWith(
-        categoryBreakdown: resp.items
-            .map((c) => CategoryBreakdownItem(
-                  categoryId: c.categoryId,
-                  categoryName: c.categoryName,
-                  icon: c.icon,
-                  iconKey: c.iconKey,
-                  amount: c.amount.toInt(),
-                  weight: c.weight,
-                  children: c.children
-                      .map((ch) => CategoryBreakdownItem(
-                            categoryId: ch.categoryId,
-                            categoryName: ch.categoryName,
-                            icon: ch.icon,
-                            iconKey: ch.iconKey,
-                            amount: ch.amount.toInt(),
-                            weight: ch.weight,
-                          ))
-                      .toList(),
-                ))
-            .toList(),
-        categoryBreakdownTotal: resp.total.toInt(),
-      );
+      // Only override if local has no data
+      final localHasData = state.categoryBreakdown.isNotEmpty;
+      if (!localHasData) {
+        state = state.copyWith(
+          categoryBreakdown: resp.items
+              .map((c) => CategoryBreakdownItem(
+                    categoryId: c.categoryId,
+                    categoryName: c.categoryName,
+                    icon: c.icon,
+                    iconKey: c.iconKey,
+                    amount: c.amount.toInt(),
+                    weight: c.weight,
+                    children: c.children
+                        .map((ch) => CategoryBreakdownItem(
+                              categoryId: ch.categoryId,
+                              categoryName: ch.categoryName,
+                              icon: ch.icon,
+                              iconKey: ch.iconKey,
+                              amount: ch.amount.toInt(),
+                              weight: ch.weight,
+                            ))
+                        .toList(),
+                  ))
+              .toList(),
+          categoryBreakdownTotal: resp.total.toInt(),
+        );
+      }
     } catch (_) {}
   }
 
@@ -523,13 +536,16 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..month = now.month,
         options: _callOpts,
       );
-      state = state.copyWith(
-        budgetSummary: BudgetSummaryData(
-          totalBudget: resp.totalBudget.toInt(),
-          totalSpent: resp.totalSpent.toInt(),
-          executionRate: resp.executionRate,
-        ),
-      );
+      // Only override if local budget summary has no data
+      if (state.budgetSummary.totalBudget == 0 && state.budgetSummary.totalSpent == 0) {
+        state = state.copyWith(
+          budgetSummary: BudgetSummaryData(
+            totalBudget: resp.totalBudget.toInt(),
+            totalSpent: resp.totalSpent.toInt(),
+            executionRate: resp.executionRate,
+          ),
+        );
+      }
     } catch (_) {}
   }
 
@@ -571,16 +587,20 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..count = months,
         options: _callOpts,
       );
-      state = state.copyWith(
-        netWorthTrend: resp.points
-            .map((p) => TrendPointData(
-                  label: p.label,
-                  income: p.income.toInt(),
-                  expense: p.expense.toInt(),
-                  net: p.net.toInt(),
-                ))
-            .toList(),
-      );
+      // Only override if local has no data
+      final localHasData = state.netWorthTrend.any((p) => p.net != 0);
+      if (!localHasData) {
+        state = state.copyWith(
+          netWorthTrend: resp.points
+              .map((p) => TrendPointData(
+                    label: p.label,
+                    income: p.income.toInt(),
+                    expense: p.expense.toInt(),
+                    net: p.net.toInt(),
+                  ))
+              .toList(),
+        );
+      }
     } catch (_) {
       // Fallback: approximate with current net worth
       final nw = state.netWorth.total;
