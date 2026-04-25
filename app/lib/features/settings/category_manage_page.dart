@@ -178,14 +178,29 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         name: result.name,
         iconKey: result.iconKey,
       ));
-      await _loadCategories();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('更新失败: $e')),
+      // If server doesn't have this category (local-only from import),
+      // fall back to updating local DB directly
+      if (e.toString().contains('NOT_FOUND')) {
+        final database = ref.read(databaseProvider);
+        await database.upsertCategory(
+          id: cat.id,
+          name: result.name,
+          icon: result.iconKey, // icon column stores the key for display
+          iconKey: result.iconKey,
+          type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
+          parentId: cat.parentId.isEmpty ? null : cat.parentId,
         );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('更新失败: $e')),
+          );
+        }
+        return;
       }
     }
+    await _loadCategories();
   }
 
   void _syncCategoriesToLocal(List<Category> cats) {
