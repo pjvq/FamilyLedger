@@ -406,19 +406,23 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     // Check first few lines
     final firstChunk = content.length > 500 ? content.substring(0, 500) : content;
 
-    if (firstChunk.contains('支付宝') || firstChunk.contains('交易号')) {
+    // Alipay exports have specific header patterns in first lines
+    if (firstChunk.contains('支付宝交易记录') || firstChunk.contains('支付宝（中国）') || firstChunk.contains('支付宝账单')) {
       return ImportFormat.alipay;
     }
-    if (firstChunk.contains('微信支付') || firstChunk.contains('微信支付账单')) {
+    if (firstChunk.contains('微信支付账单') || firstChunk.contains('微信支付账单明细')) {
       return ImportFormat.wechat;
     }
+
+    // DEBUG: log firstChunk to identify real patterns
+    debugPrint('[detect] firstChunk: ${firstChunk.substring(0, firstChunk.length.clamp(0, 200))}');
 
     // Try GBK only if UTF-8 was invalid (likely a GBK-encoded file)
     if (!isValidUtf8) {
       try {
         final gbkContent = gbk.decode(bytes);
         final gbkChunk = gbkContent.length > 500 ? gbkContent.substring(0, 500) : gbkContent;
-        if (gbkChunk.contains('支付宝') || gbkChunk.contains('交易号')) {
+        if (gbkChunk.contains('支付宝交易记录') || gbkChunk.contains('支付宝（中国）') || gbkChunk.contains('支付宝账单')) {
           return ImportFormat.alipay;
         }
       } catch (_) {}
