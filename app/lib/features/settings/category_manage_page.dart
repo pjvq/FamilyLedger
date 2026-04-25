@@ -4,6 +4,7 @@ import '../../core/constants/category_icons.dart';
 import '../../data/local/database.dart' as db;
 import '../../data/remote/grpc_clients.dart';
 import '../../domain/providers/app_providers.dart';
+import '../../domain/providers/transaction_provider.dart';
 import '../../generated/proto/transaction.pb.dart';
 import '../../generated/proto/transaction.pbgrpc.dart';
 import '../transaction/widgets/icon_picker_sheet.dart';
@@ -154,6 +155,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         parentId: parentId ?? '',
       ));
       await _loadCategories();
+      ref.read(transactionProvider.notifier).reload();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -201,6 +203,8 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       }
     }
     await _loadCategories();
+    // Also refresh transactionProvider so other pages (e.g. add transaction) see updated categories
+    ref.read(transactionProvider.notifier).reload();
   }
 
   void _syncCategoriesToLocal(List<Category> cats) {
