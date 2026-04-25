@@ -38,6 +38,17 @@ class TransactionDetailPage extends ConsumerWidget {
     final category = args.category;
     final isIncome = txn.type == 'income';
 
+    // Resolve parent category for display
+    final txnState = ref.watch(transactionProvider);
+    final allCats = [...txnState.expenseCategories, ...txnState.incomeCategories];
+    final catMap = {for (final c in allCats) c.id: c};
+    final parentCategory = category?.parentId != null && category!.parentId!.isNotEmpty
+        ? catMap[category.parentId!]
+        : null;
+    final catDisplayName = parentCategory != null
+        ? '${parentCategory.name}-${category?.name ?? "未分类"}'
+        : (category?.name ?? '未分类');
+
     // 获取账户名称
         // 获取账户名称
     final accountState = ref.watch(accountProvider);
@@ -119,7 +130,7 @@ class TransactionDetailPage extends ConsumerWidget {
 
                   // ── 分类卡片 ──
                   Semantics(
-                    label: '分类：${category?.name ?? "未分类"}，${isIncome ? "收入" : "支出"}',
+                    label: '分类：$catDisplayName，${isIncome ? "收入" : "支出"}',
                     child: _buildCard(
                       isDark: isDark,
                       child: Row(
@@ -145,7 +156,7 @@ class TransactionDetailPage extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  category?.name ?? '未分类',
+                                  catDisplayName,
                                   style: TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w600,

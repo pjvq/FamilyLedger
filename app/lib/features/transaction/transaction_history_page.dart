@@ -223,9 +223,13 @@ class _TransactionHistoryPageState
               },
               itemBuilder: (context, txn, index) {
                 final txnCategory = categoryMap[txn.categoryId];
+                final txnParentCategory = txnCategory?.parentId != null && txnCategory!.parentId!.isNotEmpty
+                    ? categoryMap[txnCategory.parentId!]
+                    : null;
                 return _TransactionRow(
                   transaction: txn,
                   category: txnCategory,
+                  parentCategory: txnParentCategory,
                   isDark: isDark,
                   selectionMode: _selectionMode,
                   selected: _selectedIds.contains(txn.id),
@@ -345,6 +349,7 @@ class _DateHeader extends StatelessWidget {
 class _TransactionRow extends StatelessWidget {
   final Transaction transaction;
   final Category? category;
+  final Category? parentCategory;
   final bool isDark;
   final VoidCallback onTap;
   final VoidCallback? onDelete;
@@ -356,6 +361,7 @@ class _TransactionRow extends StatelessWidget {
   const _TransactionRow({
     required this.transaction,
     required this.category,
+    this.parentCategory,
     required this.isDark,
     required this.onTap,
     this.onDelete,
@@ -378,7 +384,8 @@ class _TransactionRow extends StatelessWidget {
         : yuan.toStringAsFixed(2);
     final timeText = DateFormat('HH:mm').format(transaction.txnDate);
     final icon = category?.icon ?? '📦';
-    final categoryName = category?.name ?? '未分类';
+    final catName = category?.name ?? '未分类';
+    final categoryName = parentCategory != null ? '${parentCategory!.name}-$catName' : catName;
 
     final typeLabel = isIncome ? '收入' : '支出';
 
