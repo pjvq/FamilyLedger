@@ -118,7 +118,51 @@ class AppDatabase extends _$AppDatabase {
             await _seedSubcategories();
           }
         },
+        beforeOpen: (details) async {
+          // One-time cleanup: deduplicate categories created by import
+          await _deduplicateCategories();
+        },
       );
+
+  /// Remove duplicate categories (same name+type+parentId).
+  /// Keeps the one with isPreset=true, or earliest createdAt.
+  /// Reassigns transactions from removed duplicates to the keeper.
+  Future<void> _deduplicateCategories() async {
+    final allCats = await (select(categories)
+          ..where((c) => c.deletedAt.isNull()))
+        .get();
+
+    // Group by (name, type, parentId)
+    final groups = <String, List<Category>>{};
+    for (final c in allCats) {
+      final key = '${c.name}|${c.type}|${c.parentId ?? ""}';
+      groups.putIfAbsent(key, () => []).add(c);
+    }
+
+    for (final group in groups.values) {
+      if (group.length <= 1) continue;
+
+      // Pick keeper: prefer isPreset, then smallest sortOrder (preset=small, import=999)
+      group.sort((a, b) {
+        if (a.isPreset && !b.isPreset) return -1;
+        if (!a.isPreset && b.isPreset) return 1;
+        return a.sortOrder.compareTo(b.sortOrder);
+      });
+      final keeper = group.first;
+      final duplicates = group.skip(1).toList();
+
+      for (final dup in duplicates) {
+        // Reassign transactions
+        await (update(transactions)..where((t) => t.categoryId.equals(dup.id)))
+            .write(TransactionsCompanion(categoryId: Value(keeper.id)));
+        // Reassign child categories
+        await (update(categories)..where((c) => c.parentId.equals(dup.id)))
+            .write(CategoriesCompanion(parentId: Value(keeper.id)));
+        // Delete duplicate
+        await (delete(categories)..where((c) => c.id.equals(dup.id))).go();
+      }
+    }
+  }
 
   Future<void> _seedCategories() async {
     final presets = [
