@@ -14,7 +14,7 @@ import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
 
-/// Import page — supports Alipay, WeChat, and generic CSV
+/// Import page - supports Alipay, WeChat, and generic CSV
 class ImportPage extends ConsumerStatefulWidget {
   const ImportPage({super.key});
 
@@ -114,8 +114,15 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       body: Stepper(
         currentStep: _currentStep,
         onStepContinue: _onContinue,
-        onStepCancel: _currentStep > 0 && _currentStep < 2
-            ? () => setState(() => _currentStep--)
+        onStepCancel: _currentStep > 0 && _currentStep < 3
+            ? () => setState(() {
+                // Skip back over duplicate step if it's empty
+                if (_currentStep == 3) {
+                  _currentStep = _hasDuplicateStep ? 2 : 1;
+                } else {
+                  _currentStep--;
+                }
+              })
             : null,
         controlsBuilder: (context, details) {
           return Padding(
@@ -132,18 +139,18 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                     onPressed: _parsed.isNotEmpty ? details.onStepContinue : null,
                     child: Text('导入 ${_parsed.length} 条记录'),
                   ),
-                if (_currentStep == 2 && _hasDuplicateStep && !_importDone) ...[                  
+                if (_currentStep == 2 && _hasDuplicateStep && !_importDone) ...[
                   FilledButton(
                     onPressed: details.onStepContinue,
                     child: Text('确认导入 ${_nonDuplicates.length + _dupSelection.values.where((v) => v).length} 条'),
                   ),
                 ],
-                if (((_currentStep == 2 && !_hasDuplicateStep) || _currentStep == 3) && _importDone)
+                if (_currentStep == 3 && _importDone)
                   FilledButton(
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('完成'),
                   ),
-                if (_currentStep > 0 && _currentStep < 2) ...[
+                if (_currentStep > 0 && _currentStep < 3) ...[
                   const SizedBox(width: 12),
                   TextButton(
                     onPressed: details.onStepCancel,
@@ -167,26 +174,18 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             isActive: _currentStep >= 1,
             state: _currentStep > 1 ? StepState.complete : StepState.indexed,
           ),
-          if (_hasDuplicateStep) ...[
-            Step(
-              title: const Text('重复确认'),
-              content: _buildDuplicateReviewStep(theme),
-              isActive: _currentStep >= 2,
-              state: _currentStep > 2 ? StepState.complete : StepState.indexed,
-            ),
-            Step(
-              title: const Text('导入结果'),
-              content: _buildResultStep(theme),
-              isActive: _currentStep >= 3,
-              state: _importDone ? StepState.complete : StepState.indexed,
-            ),
-          ] else
-            Step(
-              title: const Text('导入结果'),
-              content: _buildResultStep(theme),
-              isActive: _currentStep >= 2,
-              state: _importDone ? StepState.complete : StepState.indexed,
-            ),
+          Step(
+            title: const Text('重复确认'),
+            content: _buildDuplicateReviewStep(theme),
+            isActive: _currentStep >= 2,
+            state: _currentStep > 2 ? StepState.complete : StepState.indexed,
+          ),
+          Step(
+            title: const Text('导入结果'),
+            content: _buildResultStep(theme),
+            isActive: _currentStep >= 3,
+            state: _importDone ? StepState.complete : StepState.indexed,
+          ),
         ],
       ),
     );
@@ -207,9 +206,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           _currentStep = 2;
         });
       } else {
+        // No duplicates — skip step 2, go straight to import
         setState(() {
           _hasDuplicateStep = false;
-          _currentStep = 2;
+          _currentStep = 3;
         });
         await _doImport();
       }
@@ -299,8 +299,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   };
 
   String _formatLabel() => switch (_detectedFormat) {
-    ImportFormat.alipay => '检测到：支付宝账单',
-    ImportFormat.wechat => '检测到：微信账单',
+    ImportFormat.alipay => '检测到:支付宝账单',
+    ImportFormat.wechat => '检测到:微信账单',
     ImportFormat.generic => '通用 CSV/XLSX 文件',
     ImportFormat.unknown => '未知格式',
   };
@@ -315,7 +315,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '共解析 ${_parsed.length} 条有效记录，跳过 $_skippedRows 行',
+          '共解析 ${_parsed.length} 条有效记录,跳过 $_skippedRows 行',
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
           ),
@@ -450,7 +450,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     String content;
     bool isValidUtf8 = false;
     try {
-      content = utf8.decode(bytes); // strict — throws on invalid
+      content = utf8.decode(bytes); // strict - throws on invalid
       isValidUtf8 = true;
     } catch (_) {
       content = utf8.decode(bytes, allowMalformed: true);
@@ -460,7 +460,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final firstChunk = content.length > 500 ? content.substring(0, 500) : content;
 
     // Alipay exports have specific header patterns in first lines
-    if (firstChunk.contains('支付宝交易记录') || firstChunk.contains('支付宝（中国）') || firstChunk.contains('支付宝账单')) {
+    if (firstChunk.contains('支付宝交易记录') || firstChunk.contains('支付宝(中国)') || firstChunk.contains('支付宝账单')) {
       return ImportFormat.alipay;
     }
     if (firstChunk.contains('微信支付账单') || firstChunk.contains('微信支付账单明细')) {
@@ -578,14 +578,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
     final headers = _splitCsvLine(lines[headerIdx]);
     final dateIdx = _findCol(headers, ['交易创建时间', '交易时间', '付款时间']);
-    final amountIdx = _findCol(headers, ['金额（元）', '金额(元)', '金额']);
+    final amountIdx = _findCol(headers, ['金额(元)', '金额(元)', '金额']);
     final typeIdx = _findCol(headers, ['收/支']);
     final noteIdx = _findCol(headers, ['商品名称', '商品说明']);
     final counterpartyIdx = _findCol(headers, ['交易对方', '商户名称', '对方']);
     final statusIdx = _findCol(headers, ['交易状态']);
 
     if (dateIdx == -1 || amountIdx == -1) {
-      _parseError = '支付宝账单缺少必要列（日期/金额）';
+      _parseError = '支付宝账单缺少必要列(日期/金额)';
       return;
     }
 
@@ -651,14 +651,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
     final headers = _splitCsvLine(lines[headerIdx]);
     final dateIdx = _findCol(headers, ['交易时间']);
-    final amountIdx = _findCol(headers, ['金额(元)', '金额（元）', '金额']);
+    final amountIdx = _findCol(headers, ['金额(元)', '金额(元)', '金额']);
     final typeIdx = _findCol(headers, ['收/支']);
     final noteIdx = _findCol(headers, ['商品', '商品名称']);
     final counterpartyIdx = _findCol(headers, ['交易对方', '商户名称', '对方']);
     final statusIdx = _findCol(headers, ['当前状态']);
 
     if (dateIdx == -1 || amountIdx == -1) {
-      _parseError = '微信账单缺少必要列（日期/金额）';
+      _parseError = '微信账单缺少必要列(日期/金额)';
       return;
     }
 
@@ -682,7 +682,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       if (typeStr != '支出' && typeStr != '收入') { _skippedRows++; continue; }
 
       final date = _parseDate(cols[dateIdx].trim());
-      final amountStr = cols[amountIdx].trim().replaceAll('¥', '').replaceAll(',', '').replaceAll('￥', '');
+      final amountStr = cols[amountIdx].trim().replaceAll('¥', '').replaceAll(',', '').replaceAll('¥', '');
       final amount = double.tryParse(amountStr);
       final note = noteIdx != -1 && cols.length > noteIdx ? cols[noteIdx].trim() : '';
 
@@ -715,20 +715,20 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       final cols = _splitCsvLine(lines[i]);
       if (cols.length < 3) continue;
       final dateCol = _findCol(cols, ['日期', 'date', '交易日期', '交易时间', 'time', '日期时间']);
-      final amountCol = _findCol(cols, ['金额', 'amount', '金额(元)', '金额（元）']);
+      final amountCol = _findCol(cols, ['金额', 'amount', '金额(元)', '金额(元)']);
       if (dateCol != -1 && amountCol != -1) {
         headerIdx = i;
         break;
       }
     }
     if (headerIdx == -1) {
-      _parseError = '缺少必要列：日期 和 金额';
+      _parseError = '缺少必要列:日期 和 金额';
       return;
     }
 
     final headers = _splitCsvLine(lines[headerIdx]);
     final dateIdx = _findCol(headers, ['日期', 'date', '交易日期', '交易时间', 'time', '日期时间']);
-    final amountIdx = _findCol(headers, ['金额', 'amount', '金额(元)', '金额（元）']);
+    final amountIdx = _findCol(headers, ['金额', 'amount', '金额(元)', '金额(元)']);
     final typeIdx = _findCol(headers, ['类型', 'type', '收/支', '收支', '交易类型']);
     final noteIdx = _findCol(headers, ['备注', 'note', '说明', '描述', '商品名称']);
     final counterpartyIdx = _findCol(headers, ['交易对方', '商户', '对方', 'counterparty', 'merchant']);
@@ -975,6 +975,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   // ── Step 2: Duplicate review ──
 
   Widget _buildDuplicateReviewStep(ThemeData theme) {
+    if (_duplicates.isEmpty) {
+      return const Text('无重复记录，可直接导入');
+    }
     final selectedCount = _dupSelection.values.where((v) => v).length;
     final totalDup = _duplicates.length;
 
@@ -993,7 +996,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '发现 $totalDup 条疑似重复记录（日期、金额、备注均相同）',
+                  '发现 $totalDup 条疑似重复记录(日期、金额、备注均相同)',
                   style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                 ),
               ),
