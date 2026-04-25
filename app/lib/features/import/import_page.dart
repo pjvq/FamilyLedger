@@ -65,6 +65,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   List<_ParsedTransaction> _parsed = [];
   int _skippedRows = 0;
 
+  // Step 2: duplicate review
+  List<_ParsedTransaction> _duplicates = [];
+  List<_ParsedTransaction> _nonDuplicates = [];
+  Map<int, bool> _dupSelection = {}; // index in _duplicates → import?
+  Set<String> _existingKeySet = {};
+  Map<String, int> _existingKeyCounts = {};
+  bool _hasDuplicateStep = false;
+
   // Step 2: import result
   bool _isImporting = false;
   bool _importDone = false;
@@ -124,7 +132,13 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                     onPressed: _parsed.isNotEmpty ? details.onStepContinue : null,
                     child: Text('导入 ${_parsed.length} 条记录'),
                   ),
-                if (_currentStep == 2 && _importDone)
+                if (_currentStep == 2 && _hasDuplicateStep && !_importDone) ...[                  
+                  FilledButton(
+                    onPressed: details.onStepContinue,
+                    child: Text('确认导入 ${_nonDuplicates.length + _dupSelection.values.where((v) => v).length} 条'),
+                  ),
+                ],
+                if (((_currentStep == 2 && !_hasDuplicateStep) || _currentStep == 3) && _importDone)
                   FilledButton(
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('完成'),
@@ -153,12 +167,26 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             isActive: _currentStep >= 1,
             state: _currentStep > 1 ? StepState.complete : StepState.indexed,
           ),
-          Step(
-            title: const Text('导入结果'),
-            content: _buildResultStep(theme),
-            isActive: _currentStep >= 2,
-            state: _importDone ? StepState.complete : StepState.indexed,
-          ),
+          if (_hasDuplicateStep) ...[
+            Step(
+              title: const Text('重复确认'),
+              content: _buildDuplicateReviewStep(theme),
+              isActive: _currentStep >= 2,
+              state: _currentStep > 2 ? StepState.complete : StepState.indexed,
+            ),
+            Step(
+              title: const Text('导入结果'),
+              content: _buildResultStep(theme),
+              isActive: _currentStep >= 3,
+              state: _importDone ? StepState.complete : StepState.indexed,
+            ),
+          ] else
+            Step(
+              title: const Text('导入结果'),
+              content: _buildResultStep(theme),
+              isActive: _currentStep >= 2,
+              state: _importDone ? StepState.complete : StepState.indexed,
+            ),
         ],
       ),
     );
@@ -171,7 +199,22 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         setState(() => _currentStep = 1);
       }
     } else if (_currentStep == 1) {
-      setState(() => _currentStep = 2);
+      // Check for duplicates before importing
+      await _checkDuplicates();
+      if (_duplicates.isNotEmpty) {
+        setState(() {
+          _hasDuplicateStep = true;
+          _currentStep = 2;
+        });
+      } else {
+        setState(() {
+          _hasDuplicateStep = false;
+          _currentStep = 2;
+        });
+        await _doImport();
+      }
+    } else if (_currentStep == 2 && _hasDuplicateStep && !_importDone) {
+      setState(() => _currentStep = 3);
       await _doImport();
     }
   }
@@ -872,6 +915,171 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     }
   }
 
+  // ── Duplicate check ──
+
+  String _txnDedupKey(_ParsedTransaction t) {
+    final d = t.date;
+    final ts = '${d.year}-${d.month}-${d.day}_${d.hour}:${d.minute}';
+    final cents = (t.amount * 100).round();
+    return '${ts}_${cents}_${t.type}_${t.note}';
+  }
+
+  String _dbDedupKey(db.Transaction t) {
+    final d = t.txnDate;
+    final ts = '${d.year}-${d.month}-${d.day}_${d.hour}:${d.minute}';
+    return '${ts}_${t.amountCny}_${t.type}_${t.note}';
+  }
+
+  Future<void> _checkDuplicates() async {
+    final database = ref.read(databaseProvider);
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) return;
+
+    final existingTxns = await database.getRecentTransactions(userId, 100000);
+    _existingKeyCounts = <String, int>{};
+    for (final t in existingTxns) {
+      final key = _dbDedupKey(t);
+      _existingKeyCounts[key] = (_existingKeyCounts[key] ?? 0) + 1;
+    }
+
+    // Count occurrences of each key in the import file
+    final importKeyCounts = <String, int>{};
+    for (final t in _parsed) {
+      final key = _txnDedupKey(t);
+      importKeyCounts[key] = (importKeyCounts[key] ?? 0) + 1;
+    }
+
+    // A parsed transaction is "duplicate" if its key exists in DB
+    // AND the import file doesn't have more of that key than the DB
+    // Use counting: track how many of each key we've seen
+    final seenCounts = <String, int>{};
+    _duplicates = [];
+    _nonDuplicates = [];
+    _dupSelection = {};
+
+    for (final t in _parsed) {
+      final key = _txnDedupKey(t);
+      final existingCount = _existingKeyCounts[key] ?? 0;
+      seenCounts[key] = (seenCounts[key] ?? 0) + 1;
+
+      if (existingCount > 0 && seenCounts[key]! <= existingCount) {
+        // This occurrence is covered by an existing DB record
+        _dupSelection[_duplicates.length] = false; // default: skip
+        _duplicates.add(t);
+      } else {
+        _nonDuplicates.add(t);
+      }
+    }
+  }
+
+  // ── Step 2: Duplicate review ──
+
+  Widget _buildDuplicateReviewStep(ThemeData theme) {
+    final selectedCount = _dupSelection.values.where((v) => v).length;
+    final totalDup = _duplicates.length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '发现 $totalDup 条疑似重复记录（日期、金额、备注均相同）',
+                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Quick action buttons
+        Row(
+          children: [
+            OutlinedButton(
+              onPressed: () => setState(() {
+                for (final k in _dupSelection.keys) _dupSelection[k] = true;
+              }),
+              child: const Text('全部导入'),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton(
+              onPressed: () => setState(() {
+                for (final k in _dupSelection.keys) _dupSelection[k] = false;
+              }),
+              child: const Text('全部跳过'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '已选择导入 $selectedCount / $totalDup 条',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // List with checkboxes
+        ...List.generate(_duplicates.length > 50 ? 50 : _duplicates.length, (i) {
+          final t = _duplicates[i];
+          final dateStr = '${t.date.month}/${t.date.day} ${t.date.hour.toString().padLeft(2, '0')}:${t.date.minute.toString().padLeft(2, '0')}';
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 2),
+            child: CheckboxListTile(
+              dense: true,
+              value: _dupSelection[i] ?? false,
+              onChanged: (v) => setState(() => _dupSelection[i] = v ?? false),
+              title: Row(
+                children: [
+                  Text(dateStr, style: const TextStyle(fontSize: 12)),
+                  const SizedBox(width: 8),
+                  Text(
+                    t.type == 'income' ? '+' : '-',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: t.type == 'income' ? AppColors.income : AppColors.expense,
+                    ),
+                  ),
+                  Text(
+                    '¥${t.amount.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: t.type == 'income' ? AppColors.income : AppColors.expense,
+                    ),
+                  ),
+                ],
+              ),
+              subtitle: Text(
+                t.note,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11),
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }),
+        if (_duplicates.length > 50)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text('... 还有 ${_duplicates.length - 50} 条',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                )),
+          ),
+      ],
+    );
+  }
+
   // ── Import ──
 
   Future<void> _doImport() async {
@@ -894,33 +1102,21 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         return;
       }
 
-      // Get existing transactions for dedup
-      final existingTxns = await database.getRecentTransactions(userId, 100000);
-      final existingKeys = <String>{};
-      for (final t in existingTxns) {
-        final d = t.txnDate;
-        final ts = '${d.year}-${d.month}-${d.day}_${d.hour}:${d.minute}';
-        final key = '${ts}_${t.amountCny}_${t.type}_${t.note}';
-        existingKeys.add(key);
+      // Build final list: non-duplicates + user-selected duplicates
+      final toImport = <_ParsedTransaction>[..._nonDuplicates];
+      for (int i = 0; i < _duplicates.length; i++) {
+        if (_dupSelection[i] == true) {
+          toImport.add(_duplicates[i]);
+        }
       }
+      final skippedDups = _duplicates.length - toImport.length + _nonDuplicates.length;
 
       int imported = 0;
-      int duplicates = 0;
       final errors = <String>[];
 
-      for (final t in _parsed) {
+      for (final t in toImport) {
         try {
-          // Build dedup key matching existing key format (without counterparty)
-          final d = t.date;
-          final ts = '${d.year}-${d.month}-${d.day}_${d.hour}:${d.minute}';
           final amountCents = (t.amount * 100).round();
-          final key = '${ts}_${amountCents}_${t.type}_${t.note}';
-
-          if (existingKeys.contains(key)) {
-            duplicates++;
-            continue;
-          }
-
           final catId = t.matchedCategoryId ?? _defaultCategory?.id ?? '';
 
           await database.into(database.transactions).insert(
@@ -940,8 +1136,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           // Update account balance
           final delta = t.type == 'income' ? amountCents : -amountCents;
           await database.updateAccountBalance(defaultAccId, delta);
-
-          existingKeys.add(key);
           imported++;
         } catch (e) {
           errors.add('行 ${t.note}: $e');
@@ -956,7 +1150,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         _isImporting = false;
         _importDone = true;
         _importedCount = imported;
-        _duplicateCount = duplicates;
+        _duplicateCount = _duplicates.length - _dupSelection.values.where((v) => v).length;
         _importErrors = errors;
       });
     } catch (e) {
