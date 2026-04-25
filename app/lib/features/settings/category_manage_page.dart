@@ -50,12 +50,15 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       final localExp = await database.getCategoriesByType('expense');
       final localInc = await database.getCategoriesByType('income');
 
-      final serverExpIds = expResp.categories.map((c) => c.id).toSet();
-      final serverIncIds = incResp.categories.map((c) => c.id).toSet();
+      // Collect all server category names (including children) to deduplicate
+      final serverExpNames = _collectAllNames(expResp.categories);
+      final serverIncNames = _collectAllNames(incResp.categories);
 
-      // Build trees from local-only categories
-      final localOnlyExp = _buildProtoTree(localExp.where((c) => !serverExpIds.contains(c.id)).toList(), localExp);
-      final localOnlyInc = _buildProtoTree(localInc.where((c) => !serverIncIds.contains(c.id)).toList(), localInc);
+      // Build trees from local-only categories (not on server by name)
+      final localOnlyExp = _buildProtoTree(
+          localExp.where((c) => c.parentId == null && !serverExpNames.contains(c.name)).toList(), localExp);
+      final localOnlyInc = _buildProtoTree(
+          localInc.where((c) => c.parentId == null && !serverIncNames.contains(c.name)).toList(), localInc);
 
       setState(() {
         _expenseCategories = [...expResp.categories, ...localOnlyExp];
@@ -84,6 +87,19 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         );
       }
     }
+  }
+
+  /// Recursively collect all category names from a proto tree.
+  Set<String> _collectAllNames(List<Category> cats) {
+    final names = <String>{};
+    void walk(List<Category> list) {
+      for (final c in list) {
+        names.add(c.name);
+        if (c.children.isNotEmpty) walk(c.children);
+      }
+    }
+    walk(cats);
+    return names;
   }
 
   /// Build proto Category tree from flat local DB categories.
