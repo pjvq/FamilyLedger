@@ -644,22 +644,34 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final lines = content.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
     if (lines.isEmpty) { _parseError = '文件为空'; return; }
 
-    final headers = _splitCsvLine(lines[0]);
-    final dateIdx = _findCol(headers, ['日期', 'date', '交易日期', '交易时间', 'time']);
-    final amountIdx = _findCol(headers, ['金额', 'amount', '金额(元)', '金额（元）']);
-    final typeIdx = _findCol(headers, ['类型', 'type', '收/支', '收支']);
-    final noteIdx = _findCol(headers, ['备注', 'note', '说明', '描述', '商品名称']);
-    final catIdx = _findCol(headers, ['分类', 'category', '类别']);
-
-    if (dateIdx == -1 || amountIdx == -1) {
+    // Search for header line: must have ≥ 3 columns and contain date/amount-like keywords
+    int headerIdx = -1;
+    for (int i = 0; i < lines.length && i < 30; i++) {
+      final cols = _splitCsvLine(lines[i]);
+      if (cols.length < 3) continue;
+      final dateCol = _findCol(cols, ['日期', 'date', '交易日期', '交易时间', 'time', '日期时间']);
+      final amountCol = _findCol(cols, ['金额', 'amount', '金额(元)', '金额（元）']);
+      if (dateCol != -1 && amountCol != -1) {
+        headerIdx = i;
+        break;
+      }
+    }
+    if (headerIdx == -1) {
       _parseError = '缺少必要列：日期 和 金额';
       return;
     }
 
+    final headers = _splitCsvLine(lines[headerIdx]);
+    final dateIdx = _findCol(headers, ['日期', 'date', '交易日期', '交易时间', 'time', '日期时间']);
+    final amountIdx = _findCol(headers, ['金额', 'amount', '金额(元)', '金额（元）']);
+    final typeIdx = _findCol(headers, ['类型', 'type', '收/支', '收支', '交易类型']);
+    final noteIdx = _findCol(headers, ['备注', 'note', '说明', '描述', '商品名称']);
+    final catIdx = _findCol(headers, ['分类', 'category', '类别']);
+
     _parsed = [];
     _skippedRows = 0;
 
-    for (int i = 1; i < lines.length; i++) {
+    for (int i = headerIdx + 1; i < lines.length; i++) {
       final cols = _splitCsvLine(lines[i]);
       if (cols.length <= amountIdx) { _skippedRows++; continue; }
 
