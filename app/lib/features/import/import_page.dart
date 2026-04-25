@@ -520,13 +520,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     }
 
     final headers = _splitCsvLine(lines[headerIdx]);
-    debugPrint('[Alipay] headerIdx=$headerIdx, cols=${headers.length}');
-    debugPrint('[Alipay] headers: $headers');
-    if (headerIdx + 1 < lines.length) debugPrint('[Alipay] next line: ${lines[headerIdx + 1].substring(0, lines[headerIdx + 1].length.clamp(0, 80))}');
-    // Print lines around idx 20-30 for debugging
-    for (int j = headerIdx; j < lines.length && j < headerIdx + 5; j++) {
-      debugPrint('[Alipay] line[$j]: ${lines[j].substring(0, lines[j].length.clamp(0, 100))}');
-    }
     final dateIdx = _findCol(headers, ['交易创建时间', '交易时间', '付款时间']);
     final amountIdx = _findCol(headers, ['金额（元）', '金额(元)', '金额']);
     final typeIdx = _findCol(headers, ['收/支']);
