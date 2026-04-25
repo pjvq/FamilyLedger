@@ -292,7 +292,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
 
       // Build CSV
       final buffer = StringBuffer();
-      buffer.writeln('日期,类型,一级分类,二级分类,金额(元),账户,备注');
+      buffer.writeln('日期,时间,类型,一级分类,二级分类,金额(元),账户,备注');
 
       for (final t in filtered) {
         final cat = catMap[t.categoryId];
@@ -310,12 +310,15 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         final date = '${t.txnDate.year}-'
             '${t.txnDate.month.toString().padLeft(2, '0')}-'
             '${t.txnDate.day.toString().padLeft(2, '0')}';
+        final time = '${t.txnDate.hour.toString().padLeft(2, '0')}:'
+            '${t.txnDate.minute.toString().padLeft(2, '0')}:'
+            '${t.txnDate.second.toString().padLeft(2, '0')}';
         final typeLabel = t.type == 'income' ? '收入' : '支出';
         final yuan = (t.amountCny / 100).toStringAsFixed(2);
         final accName = accMap[t.accountId]?.name ?? '未知';
         final note = _escapeCsv(t.note);
 
-        buffer.writeln('$date,$typeLabel,${_escapeCsv(parentCatName)},${_escapeCsv(catName)},$yuan,${_escapeCsv(accName)},$note');
+        buffer.writeln('$date,$time,$typeLabel,${_escapeCsv(parentCatName)},${_escapeCsv(catName)},$yuan,${_escapeCsv(accName)},$note');
       }
 
       final csvBytes = utf8.encode(buffer.toString());
