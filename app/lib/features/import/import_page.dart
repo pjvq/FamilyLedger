@@ -29,6 +29,7 @@ class _ParsedTransaction {
   final String type; // income / expense
   final double amount; // yuan
   final String note;
+  final String? counterparty; // 交易对方/商户
   final String? rawCategory;
   String? matchedCategoryId;
 
@@ -37,8 +38,17 @@ class _ParsedTransaction {
     required this.type,
     required this.amount,
     required this.note,
+    this.counterparty,
     this.rawCategory,
   });
+
+  /// Dedup key: datetime(minute precision) + amount(cents) + type + note + counterparty
+  String get dedupKey {
+    final d = date;
+    final ts = '${d.year}-${d.month}-${d.day}_${d.hour}:${d.minute}';
+    final cents = (amount * 100).round();
+    return '${ts}_${cents}_${type}_${note}_${counterparty ?? ""}';
+  }
 }
 
 class _ImportPageState extends ConsumerState<ImportPage> {
@@ -528,6 +538,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final amountIdx = _findCol(headers, ['金额（元）', '金额(元)', '金额']);
     final typeIdx = _findCol(headers, ['收/支']);
     final noteIdx = _findCol(headers, ['商品名称', '商品说明']);
+    final counterpartyIdx = _findCol(headers, ['交易对方', '商户名称', '对方']);
     final statusIdx = _findCol(headers, ['交易状态']);
 
     if (dateIdx == -1 || amountIdx == -1) {
@@ -558,11 +569,16 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
       if (date == null || amount == null || amount == 0) { _skippedRows++; continue; }
 
+      final counterparty = counterpartyIdx != -1 && cols.length > counterpartyIdx
+          ? cols[counterpartyIdx].trim()
+          : null;
+
       _parsed.add(_ParsedTransaction(
         date: date,
         type: typeStr == '收入' ? 'income' : 'expense',
         amount: amount,
         note: note,
+        counterparty: counterparty,
       ));
     }
   }
@@ -594,7 +610,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final dateIdx = _findCol(headers, ['交易时间']);
     final amountIdx = _findCol(headers, ['金额(元)', '金额（元）', '金额']);
     final typeIdx = _findCol(headers, ['收/支']);
-    final noteIdx = _findCol(headers, ['商品', '商品名称', '交易对方']);
+    final noteIdx = _findCol(headers, ['商品', '商品名称']);
+    final counterpartyIdx = _findCol(headers, ['交易对方', '商户名称', '对方']);
     final statusIdx = _findCol(headers, ['当前状态']);
 
     if (dateIdx == -1 || amountIdx == -1) {
@@ -628,11 +645,16 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
       if (date == null || amount == null || amount == 0) { _skippedRows++; continue; }
 
+      final counterparty = counterpartyIdx != -1 && cols.length > counterpartyIdx
+          ? cols[counterpartyIdx].trim()
+          : null;
+
       _parsed.add(_ParsedTransaction(
         date: date,
         type: typeStr == '收入' ? 'income' : 'expense',
         amount: amount,
         note: note,
+        counterparty: counterparty,
       ));
     }
   }
@@ -666,6 +688,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final amountIdx = _findCol(headers, ['金额', 'amount', '金额(元)', '金额（元）']);
     final typeIdx = _findCol(headers, ['类型', 'type', '收/支', '收支', '交易类型']);
     final noteIdx = _findCol(headers, ['备注', 'note', '说明', '描述', '商品名称']);
+    final counterpartyIdx = _findCol(headers, ['交易对方', '商户', '对方', 'counterparty', 'merchant']);
     final catIdx = _findCol(headers, ['分类', 'category', '类别']);
 
     _parsed = [];
@@ -689,12 +712,16 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
       final note = noteIdx != -1 && cols.length > noteIdx ? cols[noteIdx].trim() : '';
       final rawCat = catIdx != -1 && cols.length > catIdx ? cols[catIdx].trim() : null;
+      final counterparty = counterpartyIdx != -1 && cols.length > counterpartyIdx
+          ? cols[counterpartyIdx].trim()
+          : null;
 
       _parsed.add(_ParsedTransaction(
         date: date,
         type: type,
         amount: amount.abs(),
         note: note,
+        counterparty: counterparty,
         rawCategory: rawCat,
       ));
     }
@@ -871,7 +898,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       final existingTxns = await database.getRecentTransactions(userId, 100000);
       final existingKeys = <String>{};
       for (final t in existingTxns) {
-        final key = '${t.txnDate.year}-${t.txnDate.month}-${t.txnDate.day}_${t.amountCny}_${t.note}';
+        final d = t.txnDate;
+        final ts = '${d.year}-${d.month}-${d.day}_${d.hour}:${d.minute}';
+        final key = '${ts}_${t.amountCny}_${t.type}_${t.note}';
         existingKeys.add(key);
       }
 
@@ -881,8 +910,11 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
       for (final t in _parsed) {
         try {
+          // Build dedup key matching existing key format (without counterparty)
+          final d = t.date;
+          final ts = '${d.year}-${d.month}-${d.day}_${d.hour}:${d.minute}';
           final amountCents = (t.amount * 100).round();
-          final key = '${t.date.year}-${t.date.month}-${t.date.day}_${amountCents}_${t.note}';
+          final key = '${ts}_${amountCents}_${t.type}_${t.note}';
 
           if (existingKeys.contains(key)) {
             duplicates++;
