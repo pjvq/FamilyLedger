@@ -419,10 +419,15 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       if (sheet == null || sheet.rows.isEmpty) return null;
 
       final buffer = StringBuffer();
+      int rowIdx = 0;
       for (final row in sheet.rows) {
         final cells = row.map((cell) {
           if (cell == null || cell.value == null) return '';
           final v = cell.value!;
+          // Debug: log cell types for rows around header area
+          if (rowIdx >= 16 && rowIdx <= 18) {
+            debugPrint('[xlsx] row $rowIdx col ${row.indexOf(cell)}: ${v.runtimeType} = "${v.toString().substring(0, v.toString().length.clamp(0, 50))}"');
+          }
           // Handle different cell value types
           if (v is xl.DateTimeCellValue) {
             final y = v.year.toString().padLeft(4, '0');
@@ -447,6 +452,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           return str;
         });
         buffer.writeln(cells.join(','));
+        rowIdx++;
       }
       final csvContent = buffer.toString();
       // Debug: print first 25 lines of converted CSV
@@ -561,7 +567,17 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     // Find header line
     int headerIdx = -1;
     for (int i = 0; i < lines.length && i < 30; i++) {
-      if (lines[i].contains('交易时间') && lines[i].contains('金额')) {
+      final hasTime = lines[i].contains('交易时间');
+      final hasAmount = lines[i].contains('金额');
+      if (i >= 15 && i <= 19) {
+        debugPrint('[WeChat] line[$i] hasTime=$hasTime hasAmount=$hasAmount first30=${lines[i].substring(0, lines[i].length.clamp(0, 30))}');
+        if (!hasTime && i == 17) {
+          // Hex dump first 20 chars
+          final codes = lines[i].codeUnits.take(20).map((c) => 'U+${c.toRadixString(16).padLeft(4, '0')}').join(' ');
+          debugPrint('[WeChat] hex: $codes');
+        }
+      }
+      if (hasTime && hasAmount) {
         headerIdx = i;
         break;
       }
