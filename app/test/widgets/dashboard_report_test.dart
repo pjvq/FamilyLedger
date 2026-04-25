@@ -860,52 +860,37 @@ void main() {
       expect(find.text('交易报表'), findsOneWidget);
     });
 
-    testWidgets('shows date range selector', (tester) async {
+    testWidgets('shows date preset chips', (tester) async {
       await tester.pumpWidget(_wrapWithProviders(
         const ReportPage(),
         overrides: _reportOverrides(),
       ));
       await tester.pumpAndSettle();
 
-      // Date range selector has calendar icon
-      expect(find.byIcon(Icons.calendar_today_rounded), findsOneWidget);
-      // Should show current month range
-      expect(find.byIcon(Icons.calendar_today_rounded), findsWidgets);
+      expect(find.text('本月'), findsOneWidget);
+      expect(find.text('上月'), findsOneWidget);
+      expect(find.text('近30天'), findsOneWidget);
     });
 
-    testWidgets('shows "全部" filter chip', (tester) async {
+    testWidgets('shows 支出/收入 tabs', (tester) async {
       await tester.pumpWidget(_wrapWithProviders(
         const ReportPage(),
         overrides: _reportOverrides(),
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('全部'), findsOneWidget);
-    });
-
-    testWidgets('shows category filter chips from transaction state',
-        (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ReportPage(),
-        overrides: _reportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('餐饮'), findsOneWidget);
-      expect(find.text('交通'), findsOneWidget);
-      expect(find.text('工资'), findsOneWidget);
-    });
-
-    testWidgets('shows summary bar with 收入、支出、净额', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ReportPage(),
-        overrides: _reportOverrides(),
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('收入'), findsOneWidget);
       expect(find.text('支出'), findsOneWidget);
-      expect(find.text('净额'), findsOneWidget);
+      expect(find.text('收入'), findsOneWidget);
+    });
+
+    testWidgets('shows summary with 总支出', (tester) async {
+      await tester.pumpWidget(_wrapWithProviders(
+        const ReportPage(),
+        overrides: _reportOverrides(),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('总支出'), findsOneWidget);
     });
 
     testWidgets('shows empty state message when no transactions',
@@ -916,20 +901,17 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('该时间段暂无交易记录'), findsOneWidget);
+      expect(find.text('暂无数据'), findsOneWidget);
     });
 
-    testWidgets('has summary section with semantics', (tester) async {
+    testWidgets('shows 自定义 date preset chip', (tester) async {
       await tester.pumpWidget(_wrapWithProviders(
         const ReportPage(),
         overrides: _reportOverrides(),
       ));
       await tester.pumpAndSettle();
 
-      expect(
-        find.bySemanticsLabel(RegExp(r'汇总：总收入.*总支出.*净额')),
-        findsOneWidget,
-      );
+      expect(find.text('自定义'), findsOneWidget);
     });
   });
 
