@@ -646,10 +646,23 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       return DateTime.parse(cleaned);
     } catch (_) {}
     try {
-      // 2024-01-15
-      final parts = s.split(RegExp(r'[-/]'));
+      // 2024-01-15 or 2024/1/5 with optional time
+      final dtParts = s.trim().split(RegExp(r'\s+'));
+      final datePart = dtParts[0];
+      final parts = datePart.split(RegExp(r'[-/]'));
       if (parts.length >= 3) {
-        return DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+        final y = int.parse(parts[0]);
+        final m = int.parse(parts[1]);
+        final d = int.parse(parts[2]);
+        // Try to parse time part if present
+        if (dtParts.length >= 2) {
+          final timeParts = dtParts[1].split(':');
+          final h = timeParts.isNotEmpty ? int.tryParse(timeParts[0]) ?? 0 : 0;
+          final min = timeParts.length > 1 ? int.tryParse(timeParts[1]) ?? 0 : 0;
+          final sec = timeParts.length > 2 ? int.tryParse(timeParts[2]) ?? 0 : 0;
+          return DateTime(y, m, d, h, min, sec);
+        }
+        return DateTime(y, m, d);
       }
     } catch (_) {}
     return null;
