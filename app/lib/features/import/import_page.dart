@@ -496,7 +496,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
     // Find header line (contains '交易' or '金额')
     int headerIdx = -1;
-    for (int i = 0; i < lines.length && i < 10; i++) {
+    for (int i = 0; i < lines.length && i < 30; i++) {
       if (lines[i].contains('交易') && lines[i].contains('金额')) {
         headerIdx = i;
         break;
@@ -560,12 +560,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
     // Find header line
     int headerIdx = -1;
-    for (int i = 0; i < lines.length && i < 20; i++) {
+    for (int i = 0; i < lines.length && i < 30; i++) {
       if (lines[i].contains('交易时间') && lines[i].contains('金额')) {
         headerIdx = i;
         break;
       }
     }
+    debugPrint('[WeChat] headerIdx=$headerIdx, total lines=${lines.length}');
+    if (headerIdx != -1) debugPrint('[WeChat] header: ${lines[headerIdx]}');
     if (headerIdx == -1) {
       _parseError = '未找到微信表头行';
       return;
