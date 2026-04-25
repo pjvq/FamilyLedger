@@ -328,9 +328,14 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       await file.writeAsBytes(csvBytes);
 
       if (mounted) {
+        final box = context.findRenderObject() as RenderBox?;
+        final origin = box != null
+            ? box.localToGlobal(Offset.zero) & box.size
+            : Rect.fromLTWH(0, 0, MediaQuery.of(context).size.width, 100);
         await Share.shareXFiles(
           [XFile(file.path)],
           subject: '家庭账本导出',
+          sharePositionOrigin: origin,
         );
       }
     } catch (e) {

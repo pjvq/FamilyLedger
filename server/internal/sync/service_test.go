@@ -48,6 +48,9 @@ func TestPushOperations_Success(t *testing.T) {
 
 	mock.ExpectBegin()
 
+	// Savepoint for this operation
+	mock.ExpectExec(`SAVEPOINT sp_0`).WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
+
 	// Insert sync_operation
 	mock.ExpectExec(`INSERT INTO sync_operations`).
 		WithArgs(
@@ -88,6 +91,9 @@ func TestPushOperations_Success(t *testing.T) {
 	mock.ExpectExec(`UPDATE accounts SET balance = balance \+ \$1`).
 		WithArgs(pgxmock.AnyArg(), accountID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	// Release savepoint
+	mock.ExpectExec(`RELEASE SAVEPOINT sp_0`).WillReturnResult(pgxmock.NewResult("RELEASE", 0))
 
 	mock.ExpectCommit()
 
