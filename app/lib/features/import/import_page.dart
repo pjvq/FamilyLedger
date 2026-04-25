@@ -516,6 +516,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     }
 
     final headers = _splitCsvLine(lines[headerIdx]);
+    debugPrint('[Alipay] headers: $headers');
     final dateIdx = _findCol(headers, ['交易创建时间', '交易时间', '付款时间']);
     final amountIdx = _findCol(headers, ['金额（元）', '金额(元)', '金额']);
     final typeIdx = _findCol(headers, ['收/支']);
