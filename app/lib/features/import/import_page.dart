@@ -549,6 +549,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
 
   void _parseWechat(Uint8List bytes) {
+    // Debug: check if bytes are xlsx or CSV
+    debugPrint('[WeChat] bytes[0..3]: ${bytes.take(4).toList()}, length=${bytes.length}');
     String content = utf8.decode(bytes, allowMalformed: true);
     // Remove BOM
     if (content.startsWith('\uFEFF')) content = content.substring(1);
