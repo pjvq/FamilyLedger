@@ -35,6 +35,13 @@ class _TransactionHistoryPageState
   void initState() {
     super.initState();
     _scrollController = ScrollController()..addListener(_onScroll);
+    // In family mode, pull fresh data from server on page open
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final familyId = ref.read(currentFamilyIdProvider);
+      if (familyId != null && familyId.isNotEmpty) {
+        ref.read(transactionProvider.notifier).reload();
+      }
+    });
   }
 
   @override
@@ -122,7 +129,8 @@ class _TransactionHistoryPageState
   }
 
   Future<void> _onRefresh() async {
-    // Reset display count and let the provider stream refresh naturally.
+    // Pull fresh data from server and reset display count
+    await ref.read(transactionProvider.notifier).reload();
     setState(() => _displayCount = _pageSize);
   }
 
