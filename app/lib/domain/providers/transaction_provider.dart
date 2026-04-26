@@ -125,7 +125,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   }) async {
     final now = DateTime.now();
     final id = _uuid.v4();
-    final account = await _db.getDefaultAccount(_userId);
+    final account = await _db.getDefaultAccount(_userId, familyId: _familyId);
     if (account == null) {
       throw StateError('无默认账户，请先创建账户');
     }

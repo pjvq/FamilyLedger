@@ -420,11 +420,20 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Account>> getAllAccounts(String userId) =>
       (select(accounts)..where((a) => a.userId.equals(userId))).get();
 
-  Future<Account?> getDefaultAccount(String userId) =>
-      (select(accounts)
-            ..where((a) => a.userId.equals(userId))
+  Future<Account?> getDefaultAccount(String userId, {String? familyId}) {
+    if (familyId != null && familyId.isNotEmpty) {
+      return (select(accounts)
+            ..where((a) => a.familyId.equals(familyId) & a.isActive.equals(true))
             ..limit(1))
           .getSingleOrNull();
+    }
+    return (select(accounts)
+          ..where((a) => a.userId.equals(userId) &
+              (a.familyId.equals('') | a.familyId.isNull()) &
+              a.isActive.equals(true))
+          ..limit(1))
+        .getSingleOrNull();
+  }
 
   Future<int> insertAccount(AccountsCompanion entry) =>
       into(accounts).insert(entry);
