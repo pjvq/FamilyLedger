@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
+import '../../core/constants/app_constants.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/auth_provider.dart';
+import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/theme_provider.dart';
 import '../../domain/providers/sync_status_provider.dart';
@@ -136,11 +138,19 @@ class SettingsPage extends ConsumerWidget {
             child: const Text('取消'),
           ),
           FilledButton(
-            onPressed: () {
+            onPressed: () async {
               final name = controller.text.trim();
               if (name.isNotEmpty) {
-                ref.read(familyProvider.notifier).createFamily(name);
                 Navigator.of(ctx).pop();
+                final familyId = await ref
+                    .read(familyProvider.notifier)
+                    .createFamily(name);
+                if (familyId != null) {
+                  // Auto-switch to family mode
+                  ref.read(currentFamilyIdProvider.notifier).state = familyId;
+                  ref.read(sharedPreferencesProvider)
+                      .setString(AppConstants.familyIdKey, familyId);
+                }
               }
             },
             child: const Text('创建'),
@@ -171,11 +181,18 @@ class SettingsPage extends ConsumerWidget {
             child: const Text('取消'),
           ),
           FilledButton(
-            onPressed: () {
+            onPressed: () async {
               final code = controller.text.trim();
               if (code.isNotEmpty) {
-                ref.read(familyProvider.notifier).joinFamily(code);
                 Navigator.of(ctx).pop();
+                final familyId = await ref
+                    .read(familyProvider.notifier)
+                    .joinFamily(code);
+                if (familyId != null) {
+                  ref.read(currentFamilyIdProvider.notifier).state = familyId;
+                  ref.read(sharedPreferencesProvider)
+                      .setString(AppConstants.familyIdKey, familyId);
+                }
               }
             },
             child: const Text('加入'),

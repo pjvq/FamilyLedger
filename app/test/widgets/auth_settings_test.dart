@@ -225,9 +225,9 @@ class _FakeFamilyNotifier extends StateNotifier<FamilyState>
   _FakeFamilyNotifier(super.state);
 
   @override
-  Future<void> createFamily(String name) async {}
+  Future<String?> createFamily(String name) async => null;
   @override
-  Future<void> joinFamily(String inviteCode) async {}
+  Future<String?> joinFamily(String inviteCode) async => null;
   @override
   Future<String?> generateInviteCode() async => 'ABCD1234';
   @override

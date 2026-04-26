@@ -112,9 +112,11 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
     }
   }
 
-  Future<void> createFamily(String name) async {
+  /// Returns the created family ID, or null on failure.
+  Future<String?> createFamily(String name) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      String? createdFamilyId;
       // Try gRPC first
       if (_familyClient != null) {
         try {
@@ -123,6 +125,7 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
             options: _callOpts,
           );
           final family = resp.family;
+          createdFamilyId = family.id;
           // Save to local DB
           await _db.insertFamily(FamiliesCompanion.insert(
             id: family.id,
@@ -142,7 +145,7 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
             canManageAccounts: Value(true),
           ));
           await _load();
-          return;
+          return createdFamilyId;
         } catch (e) {
           dev.log('FamilyNotifier: gRPC createFamily failed, fallback local: $e',
               name: 'family');
@@ -168,12 +171,15 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
         canManageAccounts: Value(true),
       ));
       await _load();
+      return familyId;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: '创建家庭失败: $e');
+      return null;
     }
   }
 
-  Future<void> joinFamily(String inviteCode) async {
+  /// Returns the joined family ID, or null on failure.
+  Future<String?> joinFamily(String inviteCode) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       if (_familyClient != null) {
@@ -215,16 +221,18 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
           } catch (_) {}
 
           await _load();
-          return;
+          return family.id;
         } catch (e) {
           state = state.copyWith(
               isLoading: false, error: '加入家庭失败: ${e.toString()}');
-          return;
+          return null;
         }
       }
       state = state.copyWith(isLoading: false, error: '需要网络连接才能加入家庭');
+      return null;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: '加入家庭失败: $e');
+      return null;
     }
   }
 
