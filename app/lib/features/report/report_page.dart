@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/app_providers.dart';
+import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 
 // ── Quick date range presets ──
@@ -114,7 +115,8 @@ class _ReportPageState extends ConsumerState<ReportPage>
     }
 
     final database = ref.read(databaseProvider);
-    final allTxns = await database.getRecentTransactions(userId, 100000);
+    final familyId = ref.read(currentFamilyIdProvider);
+    final allTxns = await database.getRecentTransactions(userId, 100000, familyId: familyId);
 
     final rangeStart = _dateRange!.start;
     final rangeEnd =
