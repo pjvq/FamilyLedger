@@ -152,8 +152,10 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
         }
       }
 
-      final budgetsList = await _db.getBudgetsByYear(_userId, year);
-      final current = await _db.getBudgetByMonth(_userId, year, month);
+      final budgetsList = await _db.getBudgetsByYear(_userId, year,
+          familyId: _familyId);
+      final current = await _db.getBudgetByMonth(_userId, year, month,
+          familyId: _familyId);
       List<db.CategoryBudgetsTableData> catBudgets = [];
 
       if (current != null) {
@@ -208,8 +210,10 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
   Future<void> _loadFromLocal(int year, int month) async {
     if (_userId == null) return;
     try {
-      final budgetsList = await _db.getBudgetsByYear(_userId, year);
-      final current = await _db.getBudgetByMonth(_userId, year, month);
+      final budgetsList = await _db.getBudgetsByYear(_userId, year,
+          familyId: _familyId);
+      final current = await _db.getBudgetByMonth(_userId, year, month,
+          familyId: _familyId);
       List<db.CategoryBudgetsTableData> catBudgets = [];
       if (current != null) {
         catBudgets = await _db.getCategoryBudgets(current.id);

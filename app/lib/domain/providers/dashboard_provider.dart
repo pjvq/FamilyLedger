@@ -587,7 +587,8 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   Future<void> _computeLocalBudgetSummary() async {
     if (_userId == null) return;
     final now = DateTime.now();
-    final budget = await _db.getBudgetByMonth(_userId, now.year, now.month);
+    final budget = await _db.getBudgetByMonth(_userId, now.year, now.month,
+        familyId: _familyId ?? '');
     if (budget != null) {
       final expenses =
           await _db.getMonthCategoryExpenses(_userId, now.year, now.month,

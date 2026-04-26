@@ -817,20 +817,25 @@ class AppDatabase extends _$AppDatabase {
   Future<int> insertBudget(BudgetsCompanion entry) =>
       into(budgets).insert(entry, mode: InsertMode.insertOrReplace);
 
-  Future<Budget?> getBudgetByMonth(String userId, int year, int month) =>
+  Future<Budget?> getBudgetByMonth(String userId, int year, int month,
+      {String familyId = ''}) =>
       (select(budgets)
             ..where((b) =>
                 b.userId.equals(userId) &
                 b.year.equals(year) &
-                b.month.equals(month)))
+                b.month.equals(month) &
+                b.familyId.equals(familyId)))
           .getSingleOrNull();
 
   Future<Budget?> getBudgetById(String id) =>
       (select(budgets)..where((b) => b.id.equals(id))).getSingleOrNull();
 
-  Future<List<Budget>> getBudgetsByYear(String userId, int year) =>
+  Future<List<Budget>> getBudgetsByYear(String userId, int year,
+      {String familyId = ''}) =>
       (select(budgets)
-            ..where((b) => b.userId.equals(userId) & b.year.equals(year))
+            ..where((b) => b.userId.equals(userId) &
+                b.year.equals(year) &
+                b.familyId.equals(familyId))
             ..orderBy([(b) => OrderingTerm.asc(b.month)]))
           .get();
 
