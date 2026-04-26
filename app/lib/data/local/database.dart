@@ -459,12 +459,42 @@ class AppDatabase extends _$AppDatabase {
 
   // Transactions
   Future<List<Transaction>> getRecentTransactions(
-      String userId, int limit) async {
-    return (select(transactions)
+      String userId, int limit, {String? familyId}) async {
+    if (familyId != null && familyId.isNotEmpty) {
+      // Family mode: get family account IDs, then filter transactions
+      final familyAccounts = await getAccountsByFamily(familyId);
+      final familyAccountIds = familyAccounts.map((a) => a.id).toSet();
+      final rows = await (select(transactions)
+            ..where((t) => t.userId.equals(userId) & t.deletedAt.isNull())
+            ..orderBy([(t) => OrderingTerm.desc(t.txnDate)])
+            ..limit(limit * 2)) // fetch extra, filter in memory
+          .get();
+      return rows
+          .where((t) => familyAccountIds.contains(t.accountId))
+          .take(limit)
+          .toList();
+    }
+    // Personal mode: exclude family accounts
+    final familyAccountIds = await _getFamilyAccountIds(userId);
+    final rows = await (select(transactions)
           ..where((t) => t.userId.equals(userId) & t.deletedAt.isNull())
           ..orderBy([(t) => OrderingTerm.desc(t.txnDate)])
-          ..limit(limit))
+          ..limit(limit * 2))
         .get();
+    return rows
+        .where((t) => !familyAccountIds.contains(t.accountId))
+        .take(limit)
+        .toList();
+  }
+
+  Future<Set<String>> _getFamilyAccountIds(String userId) async {
+    final rows = await (select(accounts)
+          ..where((a) =>
+              a.userId.equals(userId) &
+              a.familyId.isNotNull() &
+              a.familyId.equals('').not()))
+        .get();
+    return rows.map((a) => a.id).toSet();
   }
 
   Future<int> insertTransaction(TransactionsCompanion entry) =>

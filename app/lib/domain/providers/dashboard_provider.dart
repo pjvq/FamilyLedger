@@ -244,7 +244,12 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     if (_userId == null) return;
 
     // Cash & bank = sum of account balances
-    final accounts = await _db.getActiveAccounts(_userId);
+    final List<db.Account> accounts;
+    if (_familyId != null && _familyId.isNotEmpty) {
+      accounts = await _db.getAccountsByFamily(_familyId);
+    } else {
+      accounts = await _db.getActiveAccounts(_userId);
+    }
     final cashAndBank =
         accounts.fold<int>(0, (sum, a) => sum + a.balance);
 
@@ -342,7 +347,8 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
     final now = DateTime.now();
     final points = <TrendPointData>[];
-    final allTxns = await _db.getRecentTransactions(_userId, 10000);
+    final allTxns = await _db.getRecentTransactions(_userId, 10000,
+        familyId: _familyId);
 
     for (int i = count - 1; i >= 0; i--) {
       DateTime start;

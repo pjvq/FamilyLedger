@@ -233,7 +233,7 @@ class _FakeDashboardNotifier extends StateNotifier<DashboardState>
 
 class _FakeDatabase extends Fake implements AppDatabase {
   @override
-  Future<List<Transaction>> getRecentTransactions(String userId, int limit) async => [];
+  Future<List<Transaction>> getRecentTransactions(String userId, int limit, {String? familyId}) async => [];
 }
 
 // ═══════════════════════════════════════════════════════════════════════
