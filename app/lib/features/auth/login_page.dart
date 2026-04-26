@@ -30,6 +30,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     ref.listen<AuthState>(authProvider, (prev, next) {
       if (!context.mounted) return;
       if (next.status == AuthStatus.authenticated) {
+        if (next.isOfflineMode) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('服务器连接失败，已进入离线模式。\n数据仅保存在本地，稍后可重新登录同步。'),
+              backgroundColor: Colors.orange.shade600,
+              duration: const Duration(seconds: 4),
+              behavior: SnackBarBehavior.fixed,
+            ),
+          );
+        }
         Navigator.of(context).pushReplacementNamed(AppRouter.home);
       }
       if (next.status == AuthStatus.error && next.errorMessage != null) {

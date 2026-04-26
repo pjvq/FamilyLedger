@@ -21,22 +21,26 @@ class AuthState {
   final AuthStatus status;
   final String? userId;
   final String? errorMessage;
+  final bool isOfflineMode;
 
   const AuthState({
     this.status = AuthStatus.initial,
     this.userId,
     this.errorMessage,
+    this.isOfflineMode = false,
   });
 
   AuthState copyWith({
     AuthStatus? status,
     String? userId,
     String? errorMessage,
+    bool? isOfflineMode,
   }) =>
       AuthState(
         status: status ?? this.status,
         userId: userId ?? this.userId,
         errorMessage: errorMessage ?? this.errorMessage,
+        isOfflineMode: isOfflineMode ?? this.isOfflineMode,
       );
 }
 
@@ -112,11 +116,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       _ref.read(currentUserIdProvider.notifier).state = resp.userId;
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
-    } on GrpcError {
-      // gRPC 失败，降级本地注册
-      await _registerLocal(email, password);
+    } on GrpcError catch (e) {
+      if (e.code == StatusCode.alreadyExists) {
+        // 邮箱已注册，自动尝试登录
+        try {
+          await login(email, password);
+          return;
+        } catch (_) {
+          // 登录也失败，降级本地
+          await _registerLocal(email, password);
+        }
+      } else {
+        // 其他 gRPC 错误（网络不通等），降级本地注册
+        await _registerLocal(email, password);
+      }
     } catch (e) {
-      // 网络不通等，降级本地注册
+      // 非 gRPC 异常，降级本地注册
       await _registerLocal(email, password);
     }
   }
@@ -136,7 +151,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       ));
       await _prefs.setString(AppConstants.userIdKey, userId);
       _ref.read(currentUserIdProvider.notifier).state = userId;
-      state = AuthState(status: AuthStatus.authenticated, userId: userId);
+      state = AuthState(status: AuthStatus.authenticated, userId: userId, isOfflineMode: true);
     } catch (e) {
       state = AuthState(
         status: AuthStatus.error,
@@ -216,7 +231,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
       await _prefs.setString(AppConstants.userIdKey, user.id);
       _ref.read(currentUserIdProvider.notifier).state = user.id;
-      state = AuthState(status: AuthStatus.authenticated, userId: user.id);
+      state = AuthState(status: AuthStatus.authenticated, userId: user.id, isOfflineMode: true);
     } catch (e) {
       state = AuthState(
         status: AuthStatus.error,
