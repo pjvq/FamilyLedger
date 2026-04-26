@@ -121,6 +121,8 @@ class AppDatabase extends _$AppDatabase {
         beforeOpen: (details) async {
           // One-time cleanup: deduplicate categories created by import
           await _deduplicateCategories();
+          // Backfill iconKey for preset parent categories that were seeded without it
+          await _backfillParentIconKeys();
         },
       );
 
@@ -197,31 +199,68 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  Future<void> _backfillParentIconKeys() async {
+    const nameToIconKey = {
+      // Expense
+      '餐饮': 'food',
+      '交通': 'transport',
+      '购物': 'shopping',
+      '居住': 'housing',
+      '娱乐': 'entertainment',
+      '医疗': 'medical',
+      '教育': 'education',
+      '通讯': 'communication',
+      '人情': 'gift',
+      '服饰': 'clothing',
+      '日用': 'daily',
+      '旅行': 'travel',
+      '宠物': 'pet',
+      // Income
+      '工资': 'salary',
+      '奖金': 'bonus',
+      '投资收益': 'investment_income',
+      '兼职': 'freelance',
+      '红包': 'red_packet',
+      '报销': 'reimbursement',
+      '其他': 'other',
+    };
+    final parents = await (select(categories)
+          ..where((c) => c.parentId.isNull() & c.iconKey.equals('')))
+        .get();
+    for (final cat in parents) {
+      final key = nameToIconKey[cat.name];
+      if (key != null) {
+        await (update(categories)..where((c) => c.id.equals(cat.id)))
+            .write(CategoriesCompanion(iconKey: Value(key)));
+      }
+    }
+  }
+
   Future<void> _seedCategories() async {
     final presets = [
       // Expense
-      _cat(CategoryUUID.generate('expense', '餐饮'), '餐饮', '🍜', 'expense', true, 1),
-      _cat(CategoryUUID.generate('expense', '交通'), '交通', '🚗', 'expense', true, 2),
-      _cat(CategoryUUID.generate('expense', '购物'), '购物', '🛍️', 'expense', true, 3),
-      _cat(CategoryUUID.generate('expense', '居住'), '居住', '🏠', 'expense', true, 4),
-      _cat(CategoryUUID.generate('expense', '娱乐'), '娱乐', '🎮', 'expense', true, 5),
-      _cat(CategoryUUID.generate('expense', '医疗'), '医疗', '🏥', 'expense', true, 6),
-      _cat(CategoryUUID.generate('expense', '教育'), '教育', '📚', 'expense', true, 7),
-      _cat(CategoryUUID.generate('expense', '通讯'), '通讯', '📱', 'expense', true, 8),
-      _cat(CategoryUUID.generate('expense', '人情'), '人情', '🎁', 'expense', true, 9),
-      _cat(CategoryUUID.generate('expense', '服饰'), '服饰', '👔', 'expense', true, 10),
-      _cat(CategoryUUID.generate('expense', '日用'), '日用', '🧴', 'expense', true, 11),
-      _cat(CategoryUUID.generate('expense', '旅行'), '旅行', '✈️', 'expense', true, 12),
-      _cat(CategoryUUID.generate('expense', '宠物'), '宠物', '🐱', 'expense', true, 13),
-      _cat(CategoryUUID.generate('expense', '其他'), '其他', '📦', 'expense', true, 14),
+      _cat(CategoryUUID.generate('expense', '餐饮'), '餐饮', '🍜', 'expense', true, 1, 'food'),
+      _cat(CategoryUUID.generate('expense', '交通'), '交通', '🚗', 'expense', true, 2, 'transport'),
+      _cat(CategoryUUID.generate('expense', '购物'), '购物', '🛍️', 'expense', true, 3, 'shopping'),
+      _cat(CategoryUUID.generate('expense', '居住'), '居住', '🏠', 'expense', true, 4, 'housing'),
+      _cat(CategoryUUID.generate('expense', '娱乐'), '娱乐', '🎮', 'expense', true, 5, 'entertainment'),
+      _cat(CategoryUUID.generate('expense', '医疗'), '医疗', '🏥', 'expense', true, 6, 'medical'),
+      _cat(CategoryUUID.generate('expense', '教育'), '教育', '📚', 'expense', true, 7, 'education'),
+      _cat(CategoryUUID.generate('expense', '通讯'), '通讯', '📱', 'expense', true, 8, 'communication'),
+      _cat(CategoryUUID.generate('expense', '人情'), '人情', '🎁', 'expense', true, 9, 'gift'),
+      _cat(CategoryUUID.generate('expense', '服饰'), '服饰', '👔', 'expense', true, 10, 'clothing'),
+      _cat(CategoryUUID.generate('expense', '日用'), '日用', '🧴', 'expense', true, 11, 'daily'),
+      _cat(CategoryUUID.generate('expense', '旅行'), '旅行', '✈️', 'expense', true, 12, 'travel'),
+      _cat(CategoryUUID.generate('expense', '宠物'), '宠物', '🐱', 'expense', true, 13, 'pet'),
+      _cat(CategoryUUID.generate('expense', '其他'), '其他', '📦', 'expense', true, 14, 'other'),
       // Income
-      _cat(CategoryUUID.generate('income', '工资'), '工资', '💰', 'income', true, 1),
-      _cat(CategoryUUID.generate('income', '奖金'), '奖金', '🏆', 'income', true, 2),
-      _cat(CategoryUUID.generate('income', '投资收益'), '投资收益', '📈', 'income', true, 3),
-      _cat(CategoryUUID.generate('income', '兼职'), '兼职', '💼', 'income', true, 4),
-      _cat(CategoryUUID.generate('income', '红包'), '红包', '🧧', 'income', true, 5),
-      _cat(CategoryUUID.generate('income', '报销'), '报销', '🧾', 'income', true, 6),
-      _cat(CategoryUUID.generate('income', '其他'), '其他', '💵', 'income', true, 7),
+      _cat(CategoryUUID.generate('income', '工资'), '工资', '💰', 'income', true, 1, 'salary'),
+      _cat(CategoryUUID.generate('income', '奖金'), '奖金', '🏆', 'income', true, 2, 'bonus'),
+      _cat(CategoryUUID.generate('income', '投资收益'), '投资收益', '📈', 'income', true, 3, 'investment_income'),
+      _cat(CategoryUUID.generate('income', '兼职'), '兼职', '💼', 'income', true, 4, 'freelance'),
+      _cat(CategoryUUID.generate('income', '红包'), '红包', '🧧', 'income', true, 5, 'red_packet'),
+      _cat(CategoryUUID.generate('income', '报销'), '报销', '🧾', 'income', true, 6, 'reimbursement'),
+      _cat(CategoryUUID.generate('income', '其他'), '其他', '💵', 'income', true, 7, 'other'),
     ];
     await batch((b) {
       b.insertAllOnConflictUpdate(categories, presets);
@@ -229,7 +268,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   CategoriesCompanion _cat(
-          String id, String name, String icon, String type, bool isPreset, int sort) =>
+          String id, String name, String icon, String type, bool isPreset, int sort, [String iconKey = '']) =>
       CategoriesCompanion.insert(
         id: id,
         name: name,
@@ -237,6 +276,7 @@ class AppDatabase extends _$AppDatabase {
         type: type,
         isPreset: Value(isPreset),
         sortOrder: Value(sort),
+        iconKey: Value(iconKey),
       );
 
   CategoriesCompanion _subcat(
