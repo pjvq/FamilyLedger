@@ -5,11 +5,25 @@ import '../../data/local/database.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
 
-class FamilyMembersPage extends ConsumerWidget {
+class FamilyMembersPage extends ConsumerStatefulWidget {
   const FamilyMembersPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FamilyMembersPage> createState() => _FamilyMembersPageState();
+}
+
+class _FamilyMembersPageState extends ConsumerState<FamilyMembersPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Refresh members from server when page opens
+    Future.microtask(() {
+      ref.read(familyProvider.notifier).refreshMembers();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final familyState = ref.watch(familyProvider);
     final currentUserId = ref.watch(currentUserIdProvider);
     final theme = Theme.of(context);

@@ -165,6 +165,8 @@ class _DashboardShell extends ConsumerWidget {
                 final prefs = ref.read(sharedPreferencesProvider);
                 if (newId != null) {
                   prefs.setString(AppConstants.familyIdKey, newId);
+                  // Refresh members when switching to family mode
+                  ref.read(familyProvider.notifier).refreshMembers();
                 } else {
                   prefs.remove(AppConstants.familyIdKey);
                 }
