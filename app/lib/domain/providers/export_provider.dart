@@ -106,10 +106,16 @@ class ExportNotifier extends StateNotifier<ExportState> {
     if (_userId == null) return null;
 
     try {
-      final allTxns = await _db.getRecentTransactions(_userId, 100000);
+      final allTxns = await _db.getRecentTransactions(_userId, 100000,
+          familyId: _familyId);
       final categories = await _db.getAllCategories();
       final catMap = {for (final c in categories) c.id: c};
-      final accounts = await _db.getActiveAccounts(_userId);
+      List<db.Account> accounts;
+      if (_familyId != null && _familyId.isNotEmpty) {
+        accounts = await _db.getAccountsByFamily(_familyId);
+      } else {
+        accounts = await _db.getActiveAccounts(_userId);
+      }
       final accMap = {for (final a in accounts) a.id: a};
 
       // Filter by date range and categories

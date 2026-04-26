@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/app_providers.dart';
+import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 
 /// Export page: choose date range, category filter, then export CSV
@@ -268,10 +269,17 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         return;
       }
 
-      final allTxns = await db.getRecentTransactions(userId, 100000);
+      final allTxns = await db.getRecentTransactions(userId, 100000,
+          familyId: ref.read(currentFamilyIdProvider));
       final categories = await db.getAllCategories();
       final catMap = {for (final c in categories) c.id: c};
-      final accounts = await db.getActiveAccounts(userId);
+      final familyId = ref.read(currentFamilyIdProvider);
+      List<Account> accounts;
+      if (familyId != null && familyId.isNotEmpty) {
+        accounts = await db.getAccountsByFamily(familyId);
+      } else {
+        accounts = await db.getActiveAccounts(userId);
+      }
       final accMap = {for (final a in accounts) a.id: a};
 
       // Filter
