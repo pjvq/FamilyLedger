@@ -961,8 +961,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       }
     }
 
-    // Override category matching for 百事AA format
-    _matchBaishiCategories();
+    // Category matching is done in _parseFile after this returns.
+    // Do NOT call _matchBaishiCategories() here — it would run twice.
   }
 
   /// Match categories for 百事AA: rawCategory = parent, tag = child
