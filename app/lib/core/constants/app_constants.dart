@@ -3,7 +3,7 @@ class AppConstants {
   AppConstants._();
 
   // Server
-  static const serverHost = '192.168.5.6';
+  static const serverHost = '13.229.111.244';
   static const grpcPort = 50051;
   static const wsPort = 8080;
 
