@@ -110,6 +110,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
 
   Future<void> loadCurrentMonth() async {
     if (_userId == null) return;
+    print('[Budget] loadCurrentMonth START');
     state = state.copyWith(isLoading: true, clearError: true);
 
     final now = DateTime.now();
@@ -118,12 +119,14 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
 
     try {
       // Try gRPC first
+      print('[Budget] loadCurrentMonth: listBudgets gRPC...');
       final resp = await _client.listBudgets(
         pb.ListBudgetsRequest()
           ..familyId = ''
           ..year = year,
         options: _callOpts,
       );
+      print('[Budget] loadCurrentMonth: listBudgets OK, ${resp.budgets.length} budgets');
 
       // Cache all budgets locally
       for (final b in resp.budgets) {
@@ -156,10 +159,12 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
         catBudgets = await _db.getCategoryBudgets(current.id);
         // Fetch execution from gRPC
         try {
+          print('[Budget] loadCurrentMonth: getBudgetExecution gRPC...');
           final execResp = await _client.getBudgetExecution(
             pb.GetBudgetExecutionRequest()..budgetId = current.id,
             options: _callOpts,
           );
+          print('[Budget] loadCurrentMonth: getBudgetExecution OK');
           final exec = execResp.execution;
           state = state.copyWith(
             currentBudget: current,
@@ -181,17 +186,21 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
             ),
             isLoading: false,
           );
+          print('[Budget] loadCurrentMonth: DONE via gRPC execution, isLoading=false');
           return;
-        } catch (_) {
-          // Fall through to local calculation
+        } catch (e) {
+          print('[Budget] loadCurrentMonth: getBudgetExecution failed: $e');
         }
       }
 
       // Local execution calculation
+      print('[Budget] loadCurrentMonth: falling back to local execution');
       await _loadLocalExecution(current, budgetsList, catBudgets);
-    } catch (_) {
-      // Fallback to local DB
+      print('[Budget] loadCurrentMonth: DONE via local, isLoading=${state.isLoading}');
+    } catch (e) {
+      print('[Budget] loadCurrentMonth: outer catch: $e');
       await _loadFromLocal(year, month);
+      print('[Budget] loadCurrentMonth: DONE via _loadFromLocal, isLoading=${state.isLoading}');
     }
   }
 
@@ -338,6 +347,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
     List<CategoryBudgetItem>? categoryBudgets,
   }) async {
     if (_userId == null) return;
+    print('[Budget] updateBudget START id=$id amount=$totalAmount');
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
@@ -350,12 +360,14 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
             ..amount = Int64(cb.amount)),
         );
       }
+      print('[Budget] updateBudget gRPC call...');
       await _client.updateBudget(req, options: _callOpts);
-    } catch (_) {
-      // Offline update
+      print('[Budget] updateBudget gRPC OK');
+    } catch (e) {
+      print('[Budget] updateBudget gRPC failed: $e');
     }
 
-    // Update local
+    print('[Budget] updateBudget local update...');
     final existing = await _db.getBudgetById(id);
     if (existing != null) {
       await _db.insertBudget(db.BudgetsCompanion.insert(
@@ -378,9 +390,13 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
           );
         }
       }
+    } else {
+      print('[Budget] updateBudget: existing budget not found in DB!');
     }
 
+    print('[Budget] updateBudget -> loadCurrentMonth...');
     await loadCurrentMonth();
+    print('[Budget] updateBudget DONE, isLoading=${state.isLoading}');
   }
 
   Future<void> deleteBudget(String id) async {

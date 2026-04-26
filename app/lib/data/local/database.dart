@@ -776,7 +776,7 @@ class AppDatabase extends _$AppDatabase {
   // ---- Budget CRUD ----
 
   Future<int> insertBudget(BudgetsCompanion entry) =>
-      into(budgets).insert(entry);
+      into(budgets).insert(entry, mode: InsertMode.insertOrReplace);
 
   Future<Budget?> getBudgetByMonth(String userId, int year, int month) =>
       (select(budgets)
