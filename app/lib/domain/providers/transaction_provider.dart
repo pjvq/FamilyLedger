@@ -8,6 +8,7 @@ import 'package:fixnum/fixnum.dart';
 import '../../generated/proto/google/protobuf/timestamp.pb.dart'
     as proto_ts;
 import '../../data/local/database.dart';
+import 'package:grpc/grpc.dart';
 import '../../data/remote/grpc_clients.dart';
 import '../../generated/proto/transaction.pbgrpc.dart' as pb;
 import '../../generated/proto/transaction.pbenum.dart' as pbe;
@@ -64,6 +65,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   final pb.TransactionServiceClient? _txnClient;
   final _uuid = const Uuid();
   StreamSubscription? _sub;
+  static final _callOpts = CallOptions(timeout: const Duration(seconds: 5));
 
   TransactionNotifier(this._db, this._userId, this._familyId, this._txnClient)
       : super(const TransactionState()) {
@@ -76,6 +78,35 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
   Future<void> _load() async {
     try {
+      // Sync family transactions from server
+      if (_familyId != null && _familyId.isNotEmpty && _txnClient != null) {
+        try {
+          final resp = await _txnClient.listTransactions(
+            pb.ListTransactionsRequest()
+              ..familyId = _familyId
+              ..pageSize = 10000,
+            options: _callOpts,
+          );
+          for (final t in resp.transactions) {
+            await _db.insertTransaction(TransactionsCompanion.insert(
+              id: t.id,
+              userId: t.userId,
+              accountId: t.accountId,
+              categoryId: t.categoryId,
+              amount: t.amount.toInt(),
+              currency: Value(t.currency),
+              amountCny: t.amountCny.toInt(),
+              exchangeRate: Value(t.exchangeRate),
+              type: t.type == pbe.TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
+              note: Value(t.note),
+              txnDate: t.txnDate.toDateTime().toLocal(),
+            ));
+          }
+        } catch (_) {
+          // Offline
+        }
+      }
+
       final expCats = await _db.getCategoriesByType('expense');
       final incCats = await _db.getCategoriesByType('income');
       state = state.copyWith(

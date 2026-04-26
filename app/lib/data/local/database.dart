@@ -436,7 +436,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<int> insertAccount(AccountsCompanion entry) =>
-      into(accounts).insert(entry);
+      into(accounts).insert(entry, mode: InsertMode.insertOrReplace);
 
   Future<void> updateAccountBalance(String accountId, int delta) async {
     final acc = await (select(accounts)..where((a) => a.id.equals(accountId)))
@@ -498,7 +498,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<int> insertTransaction(TransactionsCompanion entry) =>
-      into(transactions).insert(entry);
+      into(transactions).insert(entry, mode: InsertMode.insertOrReplace);
 
   /// Upsert: 远程同步时使用，有则更新无则插入
   Future<void> insertOrUpdateTransaction({

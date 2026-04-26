@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import 'package:fixnum/fixnum.dart';
 import '../../data/local/database.dart';
 import '../../data/remote/grpc_clients.dart';
+import 'package:grpc/grpc.dart';
 import '../../generated/proto/account.pbgrpc.dart' as pb;
 import '../../generated/proto/account.pb.dart' as pb_model;
 import '../../generated/proto/account.pbenum.dart' as pb_enum;
@@ -118,6 +119,7 @@ class AccountNotifier extends StateNotifier<AccountState> {
   final String? _familyId;
   final pb.AccountServiceClient? _accountClient;
   final _uuid = const Uuid();
+  static final _callOpts = CallOptions(timeout: const Duration(seconds: 5));
 
   AccountNotifier(this._db, this._userId, this._familyId, this._accountClient)
       : super(const AccountState()) {
@@ -128,6 +130,30 @@ class AccountNotifier extends StateNotifier<AccountState> {
     if (_userId.isEmpty) return;
     state = state.copyWith(isLoading: true);
     try {
+      // Sync from server first
+      if (_accountClient != null) {
+        try {
+          final resp = await _accountClient.listAccounts(
+            pb_model.ListAccountsRequest()
+              ..familyId = _familyId ?? '',
+            options: _callOpts,
+          );
+          for (final acc in resp.accounts) {
+            await _db.insertAccount(AccountsCompanion.insert(
+              id: acc.id,
+              userId: _userId,
+              name: acc.name,
+              icon: Value(acc.icon),
+              balance: Value(acc.balance.toInt()),
+              familyId: Value(acc.familyId),
+              accountType: Value(AccountTypeHelper.fromProto(acc.type)),
+            ));
+          }
+        } catch (_) {
+          // Offline, use local data
+        }
+      }
+
       List<Account> accounts;
       if (_familyId != null && _familyId.isNotEmpty) {
         accounts = await _db.getAccountsByFamily(_familyId);
