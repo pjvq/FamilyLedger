@@ -975,20 +975,32 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       final parentName = t.rawCategory;
 
       if (tag != null && tag.isNotEmpty) {
-        // First try: exact match on tag name
-        final tagCat = _catByName[tag];
+        // First try: exact match on tag name + type
+        final tagCat = _catByNameType['$tag|${t.type}'] ?? _catByName[tag];
         if (tagCat != null) {
-          // Verify parent matches if we have one
           if (parentName != null && parentName.isNotEmpty && tagCat.parentId != null) {
             final parent = _allCategories.where((c) => c.id == tagCat.parentId).firstOrNull;
             if (parent != null && parent.name == parentName) {
+              // Perfect match: tag name + parent name
               t.matchedCategoryId = tagCat.id;
               continue;
             }
+            // Tag exists but under a DIFFERENT parent — also check type match.
+            // If type also differs (e.g. income "沙发" vs expense "沙发"), fall through
+            // to create the correct parent/child pair.
+            if (tagCat.type != t.type) {
+              // Different type entirely — don't reuse, create new
+            } else {
+              // Same type but different parent — still don't reuse;
+              // fall through to auto-create under the correct parent.
+            }
+          } else if (tagCat.parentId == null && parentName != null && parentName.isNotEmpty) {
+            // tagCat is a top-level category but we need a child — fall through
+          } else {
+            // No parent constraint or tag has no parent — use as-is
+            t.matchedCategoryId = tagCat.id;
+            continue;
           }
-          // Tag matches but parent doesn't — still use tag match
-          t.matchedCategoryId = tagCat.id;
-          continue;
         }
 
         // Tag not found — auto-create parent + child
@@ -1186,6 +1198,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         c.name == name && c.parentId == parentId).firstOrNull;
     if (existing != null) {
       _catByName[name] = existing;
+      _catByNameType['$name|$type'] = existing;
       return existing;
     }
 
@@ -1197,6 +1210,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         .getSingleOrNull();
     if (dbExisting != null) {
       _catByName[name] = dbExisting;
+      _catByNameType['$name|${dbExisting.type}'] = dbExisting;
       _allCategories.add(dbExisting);
       return dbExisting;
     }
@@ -1223,6 +1237,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       deletedAt: null,
     );
     _catByName[name] = newCat;
+    _catByNameType['$name|$type'] = newCat;
     _allCategories.add(newCat);
     return newCat;
   }
