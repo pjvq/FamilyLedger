@@ -72,6 +72,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         RegisterRequest()
           ..email = email
           ..password = password,
+        options: CallOptions(timeout: const Duration(seconds: 5)),
       );
 
       // 保存 tokens
@@ -168,6 +169,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         LoginRequest()
           ..email = email
           ..password = password,
+        options: CallOptions(timeout: const Duration(seconds: 5)),
       );
 
       await _prefs.setString(AppConstants.accessTokenKey, resp.accessToken);

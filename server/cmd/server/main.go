@@ -121,7 +121,7 @@ func main() {
 	reflection.Register(grpcServer)
 
 	// Start gRPC
-	grpcLis, err := net.Listen("tcp", fmt.Sprintf(":%s", grpcPort))
+	grpcLis, err := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%s", grpcPort))
 	if err != nil {
 		log.Fatalf("failed to listen on port %s: %v", grpcPort, err)
 	}
@@ -142,7 +142,7 @@ func main() {
 	})
 
 	wsServer := &http.Server{
-		Addr:    fmt.Sprintf(":%s", wsPort),
+		Addr:    fmt.Sprintf("0.0.0.0:%s", wsPort),
 		Handler: mux,
 	}
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:grpc/grpc.dart';
 import '../../core/constants/category_icons.dart';
 import '../../data/local/database.dart' as db;
 import '../../data/remote/grpc_clients.dart';
@@ -41,10 +42,13 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
     setState(() => _loading = true);
     try {
       final client = ref.read(transactionClientProvider);
+      final options = CallOptions(timeout: const Duration(seconds: 5));
       final expResp = await client.getCategories(
-          GetCategoriesRequest(type: TransactionType.TRANSACTION_TYPE_EXPENSE));
+          GetCategoriesRequest(type: TransactionType.TRANSACTION_TYPE_EXPENSE),
+          options: options);
       final incResp = await client.getCategories(
-          GetCategoriesRequest(type: TransactionType.TRANSACTION_TYPE_INCOME));
+          GetCategoriesRequest(type: TransactionType.TRANSACTION_TYPE_INCOME),
+          options: options);
 
       // Merge locally-created categories (from import) that server doesn't know about
       final database = ref.read(databaseProvider);
@@ -83,9 +87,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         setState(() => _loading = false);
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('加载分类失败: $e')),
-        );
+        // Don't show error SnackBar — silently using local data is fine
       }
     }
   }
