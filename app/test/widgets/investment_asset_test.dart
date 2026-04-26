@@ -41,6 +41,7 @@ db.Investment _inv({
     db.Investment(
       id: id,
       userId: 'u1',
+      familyId: '',
       symbol: symbol,
       name: name,
       marketType: marketType,

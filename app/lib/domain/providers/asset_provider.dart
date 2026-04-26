@@ -190,8 +190,9 @@ class AssetNotifier extends StateNotifier<AssetState> {
   final db.AppDatabase _db;
   final AssetServiceClient _assetClient;
   final String? _userId;
+  final String? _familyId;
 
-  AssetNotifier(this._db, this._assetClient, this._userId)
+  AssetNotifier(this._db, this._assetClient, this._userId, this._familyId)
       : super(const AssetState()) {
     if (_userId != null) {
       listAssets();
@@ -222,7 +223,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
     }
 
     try {
-      final assets = await _db.getFixedAssets(_userId);
+      final assets = await _db.getFixedAssets(_userId, familyId: _familyId);
       final displayItems = <AssetDisplayItem>[];
       int totalNet = 0;
 
@@ -634,5 +635,6 @@ final assetProvider =
   final database = ref.watch(databaseProvider);
   final client = ref.watch(assetClientProvider);
   final userId = ref.watch(currentUserIdProvider);
-  return AssetNotifier(database, client, userId);
+  final familyId = ref.watch(currentFamilyIdProvider);
+  return AssetNotifier(database, client, userId, familyId);
 });

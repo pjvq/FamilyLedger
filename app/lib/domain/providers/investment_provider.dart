@@ -151,8 +151,9 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
   final db.AppDatabase _db;
   final InvestmentServiceClient _investmentClient;
   final String? _userId;
+  final String? _familyId;
 
-  InvestmentNotifier(this._db, this._investmentClient, this._userId)
+  InvestmentNotifier(this._db, this._investmentClient, this._userId, this._familyId)
       : super(const InvestmentState()) {
     if (_userId != null) {
       listInvestments();
@@ -183,7 +184,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
     }
 
     try {
-      final investments = await _db.getInvestments(_userId);
+      final investments = await _db.getInvestments(_userId, familyId: _familyId);
       final portfolio = await _computePortfolio(investments);
       state = state.copyWith(
         investments: investments,
@@ -412,5 +413,6 @@ final investmentProvider =
   final database = ref.watch(databaseProvider);
   final client = ref.watch(investmentClientProvider);
   final userId = ref.watch(currentUserIdProvider);
-  return InvestmentNotifier(database, client, userId);
+  final familyId = ref.watch(currentFamilyIdProvider);
+  return InvestmentNotifier(database, client, userId, familyId);
 });

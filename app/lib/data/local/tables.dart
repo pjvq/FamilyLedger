@@ -180,6 +180,7 @@ class NotificationSettingsTable extends Table {
 class LoanGroups extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text().references(Users, #id)();
+  TextColumn get familyId => text().withDefault(const Constant(''))();
   TextColumn get name => text().withLength(min: 1, max: 100)();
   TextColumn get groupType => text()(); // commercial_only / provident_only / combined
   IntColumn get totalPrincipal => integer()(); // 总贷款本金（分）
@@ -199,6 +200,7 @@ class LoanGroups extends Table {
 class Loans extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text().references(Users, #id)();
+  TextColumn get familyId => text().withDefault(const Constant(''))();
   TextColumn get name => text().withLength(min: 1, max: 50)();
   TextColumn get loanType => text().withDefault(const Constant('other'))(); // mortgage, car_loan, credit_card, consumer, business, other
   IntColumn get principal => integer()(); // 分
@@ -262,6 +264,7 @@ class Investments extends Table {
 
   TextColumn get id => text()();
   TextColumn get userId => text().references(Users, #id)();
+  TextColumn get familyId => text().withDefault(const Constant(''))();
   TextColumn get symbol => text()();
   TextColumn get name => text()();
   TextColumn get marketType => text()();
@@ -318,6 +321,7 @@ class FixedAssets extends Table {
 
   TextColumn get id => text()();
   TextColumn get userId => text().references(Users, #id)();
+  TextColumn get familyId => text().withDefault(const Constant(''))();
   TextColumn get name => text().withLength(min: 1, max: 50)();
   TextColumn get assetType => text().withDefault(const Constant('other'))(); // real_estate, vehicle, electronics, furniture, jewelry, other
   IntColumn get purchasePrice => integer()(); // 分

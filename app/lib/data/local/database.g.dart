@@ -5849,6 +5849,18 @@ class $LoanGroupsTable extends LoanGroups
       'REFERENCES users (id)',
     ),
   );
+  static const VerificationMeta _familyIdMeta = const VerificationMeta(
+    'familyId',
+  );
+  @override
+  late final GeneratedColumn<String> familyId = GeneratedColumn<String>(
+    'family_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -5969,6 +5981,7 @@ class $LoanGroupsTable extends LoanGroups
   List<GeneratedColumn> get $columns => [
     id,
     userId,
+    familyId,
     name,
     groupType,
     totalPrincipal,
@@ -6004,6 +6017,12 @@ class $LoanGroupsTable extends LoanGroups
       );
     } else if (isInserting) {
       context.missing(_userIdMeta);
+    }
+    if (data.containsKey('family_id')) {
+      context.handle(
+        _familyIdMeta,
+        familyId.isAcceptableOrUnknown(data['family_id']!, _familyIdMeta),
+      );
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -6095,6 +6114,10 @@ class $LoanGroupsTable extends LoanGroups
         DriftSqlType.string,
         data['${effectivePrefix}user_id'],
       )!,
+      familyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}family_id'],
+      )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -6147,6 +6170,7 @@ class $LoanGroupsTable extends LoanGroups
 class LoanGroup extends DataClass implements Insertable<LoanGroup> {
   final String id;
   final String userId;
+  final String familyId;
   final String name;
   final String groupType;
   final int totalPrincipal;
@@ -6160,6 +6184,7 @@ class LoanGroup extends DataClass implements Insertable<LoanGroup> {
   const LoanGroup({
     required this.id,
     required this.userId,
+    required this.familyId,
     required this.name,
     required this.groupType,
     required this.totalPrincipal,
@@ -6176,6 +6201,7 @@ class LoanGroup extends DataClass implements Insertable<LoanGroup> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['user_id'] = Variable<String>(userId);
+    map['family_id'] = Variable<String>(familyId);
     map['name'] = Variable<String>(name);
     map['group_type'] = Variable<String>(groupType);
     map['total_principal'] = Variable<int>(totalPrincipal);
@@ -6195,6 +6221,7 @@ class LoanGroup extends DataClass implements Insertable<LoanGroup> {
     return LoanGroupsCompanion(
       id: Value(id),
       userId: Value(userId),
+      familyId: Value(familyId),
       name: Value(name),
       groupType: Value(groupType),
       totalPrincipal: Value(totalPrincipal),
@@ -6218,6 +6245,7 @@ class LoanGroup extends DataClass implements Insertable<LoanGroup> {
     return LoanGroup(
       id: serializer.fromJson<String>(json['id']),
       userId: serializer.fromJson<String>(json['userId']),
+      familyId: serializer.fromJson<String>(json['familyId']),
       name: serializer.fromJson<String>(json['name']),
       groupType: serializer.fromJson<String>(json['groupType']),
       totalPrincipal: serializer.fromJson<int>(json['totalPrincipal']),
@@ -6236,6 +6264,7 @@ class LoanGroup extends DataClass implements Insertable<LoanGroup> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'userId': serializer.toJson<String>(userId),
+      'familyId': serializer.toJson<String>(familyId),
       'name': serializer.toJson<String>(name),
       'groupType': serializer.toJson<String>(groupType),
       'totalPrincipal': serializer.toJson<int>(totalPrincipal),
@@ -6252,6 +6281,7 @@ class LoanGroup extends DataClass implements Insertable<LoanGroup> {
   LoanGroup copyWith({
     String? id,
     String? userId,
+    String? familyId,
     String? name,
     String? groupType,
     int? totalPrincipal,
@@ -6265,6 +6295,7 @@ class LoanGroup extends DataClass implements Insertable<LoanGroup> {
   }) => LoanGroup(
     id: id ?? this.id,
     userId: userId ?? this.userId,
+    familyId: familyId ?? this.familyId,
     name: name ?? this.name,
     groupType: groupType ?? this.groupType,
     totalPrincipal: totalPrincipal ?? this.totalPrincipal,
@@ -6280,6 +6311,7 @@ class LoanGroup extends DataClass implements Insertable<LoanGroup> {
     return LoanGroup(
       id: data.id.present ? data.id.value : this.id,
       userId: data.userId.present ? data.userId.value : this.userId,
+      familyId: data.familyId.present ? data.familyId.value : this.familyId,
       name: data.name.present ? data.name.value : this.name,
       groupType: data.groupType.present ? data.groupType.value : this.groupType,
       totalPrincipal: data.totalPrincipal.present
@@ -6302,6 +6334,7 @@ class LoanGroup extends DataClass implements Insertable<LoanGroup> {
     return (StringBuffer('LoanGroup(')
           ..write('id: $id, ')
           ..write('userId: $userId, ')
+          ..write('familyId: $familyId, ')
           ..write('name: $name, ')
           ..write('groupType: $groupType, ')
           ..write('totalPrincipal: $totalPrincipal, ')
@@ -6320,6 +6353,7 @@ class LoanGroup extends DataClass implements Insertable<LoanGroup> {
   int get hashCode => Object.hash(
     id,
     userId,
+    familyId,
     name,
     groupType,
     totalPrincipal,
@@ -6337,6 +6371,7 @@ class LoanGroup extends DataClass implements Insertable<LoanGroup> {
       (other is LoanGroup &&
           other.id == this.id &&
           other.userId == this.userId &&
+          other.familyId == this.familyId &&
           other.name == this.name &&
           other.groupType == this.groupType &&
           other.totalPrincipal == this.totalPrincipal &&
@@ -6352,6 +6387,7 @@ class LoanGroup extends DataClass implements Insertable<LoanGroup> {
 class LoanGroupsCompanion extends UpdateCompanion<LoanGroup> {
   final Value<String> id;
   final Value<String> userId;
+  final Value<String> familyId;
   final Value<String> name;
   final Value<String> groupType;
   final Value<int> totalPrincipal;
@@ -6366,6 +6402,7 @@ class LoanGroupsCompanion extends UpdateCompanion<LoanGroup> {
   const LoanGroupsCompanion({
     this.id = const Value.absent(),
     this.userId = const Value.absent(),
+    this.familyId = const Value.absent(),
     this.name = const Value.absent(),
     this.groupType = const Value.absent(),
     this.totalPrincipal = const Value.absent(),
@@ -6381,6 +6418,7 @@ class LoanGroupsCompanion extends UpdateCompanion<LoanGroup> {
   LoanGroupsCompanion.insert({
     required String id,
     required String userId,
+    this.familyId = const Value.absent(),
     required String name,
     required String groupType,
     required int totalPrincipal,
@@ -6402,6 +6440,7 @@ class LoanGroupsCompanion extends UpdateCompanion<LoanGroup> {
   static Insertable<LoanGroup> custom({
     Expression<String>? id,
     Expression<String>? userId,
+    Expression<String>? familyId,
     Expression<String>? name,
     Expression<String>? groupType,
     Expression<int>? totalPrincipal,
@@ -6417,6 +6456,7 @@ class LoanGroupsCompanion extends UpdateCompanion<LoanGroup> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (userId != null) 'user_id': userId,
+      if (familyId != null) 'family_id': familyId,
       if (name != null) 'name': name,
       if (groupType != null) 'group_type': groupType,
       if (totalPrincipal != null) 'total_principal': totalPrincipal,
@@ -6434,6 +6474,7 @@ class LoanGroupsCompanion extends UpdateCompanion<LoanGroup> {
   LoanGroupsCompanion copyWith({
     Value<String>? id,
     Value<String>? userId,
+    Value<String>? familyId,
     Value<String>? name,
     Value<String>? groupType,
     Value<int>? totalPrincipal,
@@ -6449,6 +6490,7 @@ class LoanGroupsCompanion extends UpdateCompanion<LoanGroup> {
     return LoanGroupsCompanion(
       id: id ?? this.id,
       userId: userId ?? this.userId,
+      familyId: familyId ?? this.familyId,
       name: name ?? this.name,
       groupType: groupType ?? this.groupType,
       totalPrincipal: totalPrincipal ?? this.totalPrincipal,
@@ -6471,6 +6513,9 @@ class LoanGroupsCompanion extends UpdateCompanion<LoanGroup> {
     }
     if (userId.present) {
       map['user_id'] = Variable<String>(userId.value);
+    }
+    if (familyId.present) {
+      map['family_id'] = Variable<String>(familyId.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -6513,6 +6558,7 @@ class LoanGroupsCompanion extends UpdateCompanion<LoanGroup> {
     return (StringBuffer('LoanGroupsCompanion(')
           ..write('id: $id, ')
           ..write('userId: $userId, ')
+          ..write('familyId: $familyId, ')
           ..write('name: $name, ')
           ..write('groupType: $groupType, ')
           ..write('totalPrincipal: $totalPrincipal, ')
@@ -6554,6 +6600,18 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, Loan> {
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'REFERENCES users (id)',
     ),
+  );
+  static const VerificationMeta _familyIdMeta = const VerificationMeta(
+    'familyId',
+  );
+  @override
+  late final GeneratedColumn<String> familyId = GeneratedColumn<String>(
+    'family_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -6792,6 +6850,7 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, Loan> {
   List<GeneratedColumn> get $columns => [
     id,
     userId,
+    familyId,
     name,
     loanType,
     principal,
@@ -6837,6 +6896,12 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, Loan> {
       );
     } else if (isInserting) {
       context.missing(_userIdMeta);
+    }
+    if (data.containsKey('family_id')) {
+      context.handle(
+        _familyIdMeta,
+        familyId.isAcceptableOrUnknown(data['family_id']!, _familyIdMeta),
+      );
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -7001,6 +7066,10 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, Loan> {
         DriftSqlType.string,
         data['${effectivePrefix}user_id'],
       )!,
+      familyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}family_id'],
+      )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -7093,6 +7162,7 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, Loan> {
 class Loan extends DataClass implements Insertable<Loan> {
   final String id;
   final String userId;
+  final String familyId;
   final String name;
   final String loanType;
   final int principal;
@@ -7116,6 +7186,7 @@ class Loan extends DataClass implements Insertable<Loan> {
   const Loan({
     required this.id,
     required this.userId,
+    required this.familyId,
     required this.name,
     required this.loanType,
     required this.principal,
@@ -7142,6 +7213,7 @@ class Loan extends DataClass implements Insertable<Loan> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['user_id'] = Variable<String>(userId);
+    map['family_id'] = Variable<String>(familyId);
     map['name'] = Variable<String>(name);
     map['loan_type'] = Variable<String>(loanType);
     map['principal'] = Variable<int>(principal);
@@ -7171,6 +7243,7 @@ class Loan extends DataClass implements Insertable<Loan> {
     return LoansCompanion(
       id: Value(id),
       userId: Value(userId),
+      familyId: Value(familyId),
       name: Value(name),
       loanType: Value(loanType),
       principal: Value(principal),
@@ -7204,6 +7277,7 @@ class Loan extends DataClass implements Insertable<Loan> {
     return Loan(
       id: serializer.fromJson<String>(json['id']),
       userId: serializer.fromJson<String>(json['userId']),
+      familyId: serializer.fromJson<String>(json['familyId']),
       name: serializer.fromJson<String>(json['name']),
       loanType: serializer.fromJson<String>(json['loanType']),
       principal: serializer.fromJson<int>(json['principal']),
@@ -7232,6 +7306,7 @@ class Loan extends DataClass implements Insertable<Loan> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'userId': serializer.toJson<String>(userId),
+      'familyId': serializer.toJson<String>(familyId),
       'name': serializer.toJson<String>(name),
       'loanType': serializer.toJson<String>(loanType),
       'principal': serializer.toJson<int>(principal),
@@ -7258,6 +7333,7 @@ class Loan extends DataClass implements Insertable<Loan> {
   Loan copyWith({
     String? id,
     String? userId,
+    String? familyId,
     String? name,
     String? loanType,
     int? principal,
@@ -7281,6 +7357,7 @@ class Loan extends DataClass implements Insertable<Loan> {
   }) => Loan(
     id: id ?? this.id,
     userId: userId ?? this.userId,
+    familyId: familyId ?? this.familyId,
     name: name ?? this.name,
     loanType: loanType ?? this.loanType,
     principal: principal ?? this.principal,
@@ -7306,6 +7383,7 @@ class Loan extends DataClass implements Insertable<Loan> {
     return Loan(
       id: data.id.present ? data.id.value : this.id,
       userId: data.userId.present ? data.userId.value : this.userId,
+      familyId: data.familyId.present ? data.familyId.value : this.familyId,
       name: data.name.present ? data.name.value : this.name,
       loanType: data.loanType.present ? data.loanType.value : this.loanType,
       principal: data.principal.present ? data.principal.value : this.principal,
@@ -7348,6 +7426,7 @@ class Loan extends DataClass implements Insertable<Loan> {
     return (StringBuffer('Loan(')
           ..write('id: $id, ')
           ..write('userId: $userId, ')
+          ..write('familyId: $familyId, ')
           ..write('name: $name, ')
           ..write('loanType: $loanType, ')
           ..write('principal: $principal, ')
@@ -7376,6 +7455,7 @@ class Loan extends DataClass implements Insertable<Loan> {
   int get hashCode => Object.hashAll([
     id,
     userId,
+    familyId,
     name,
     loanType,
     principal,
@@ -7403,6 +7483,7 @@ class Loan extends DataClass implements Insertable<Loan> {
       (other is Loan &&
           other.id == this.id &&
           other.userId == this.userId &&
+          other.familyId == this.familyId &&
           other.name == this.name &&
           other.loanType == this.loanType &&
           other.principal == this.principal &&
@@ -7428,6 +7509,7 @@ class Loan extends DataClass implements Insertable<Loan> {
 class LoansCompanion extends UpdateCompanion<Loan> {
   final Value<String> id;
   final Value<String> userId;
+  final Value<String> familyId;
   final Value<String> name;
   final Value<String> loanType;
   final Value<int> principal;
@@ -7452,6 +7534,7 @@ class LoansCompanion extends UpdateCompanion<Loan> {
   const LoansCompanion({
     this.id = const Value.absent(),
     this.userId = const Value.absent(),
+    this.familyId = const Value.absent(),
     this.name = const Value.absent(),
     this.loanType = const Value.absent(),
     this.principal = const Value.absent(),
@@ -7477,6 +7560,7 @@ class LoansCompanion extends UpdateCompanion<Loan> {
   LoansCompanion.insert({
     required String id,
     required String userId,
+    this.familyId = const Value.absent(),
     required String name,
     this.loanType = const Value.absent(),
     required int principal,
@@ -7510,6 +7594,7 @@ class LoansCompanion extends UpdateCompanion<Loan> {
   static Insertable<Loan> custom({
     Expression<String>? id,
     Expression<String>? userId,
+    Expression<String>? familyId,
     Expression<String>? name,
     Expression<String>? loanType,
     Expression<int>? principal,
@@ -7535,6 +7620,7 @@ class LoansCompanion extends UpdateCompanion<Loan> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (userId != null) 'user_id': userId,
+      if (familyId != null) 'family_id': familyId,
       if (name != null) 'name': name,
       if (loanType != null) 'loan_type': loanType,
       if (principal != null) 'principal': principal,
@@ -7562,6 +7648,7 @@ class LoansCompanion extends UpdateCompanion<Loan> {
   LoansCompanion copyWith({
     Value<String>? id,
     Value<String>? userId,
+    Value<String>? familyId,
     Value<String>? name,
     Value<String>? loanType,
     Value<int>? principal,
@@ -7587,6 +7674,7 @@ class LoansCompanion extends UpdateCompanion<Loan> {
     return LoansCompanion(
       id: id ?? this.id,
       userId: userId ?? this.userId,
+      familyId: familyId ?? this.familyId,
       name: name ?? this.name,
       loanType: loanType ?? this.loanType,
       principal: principal ?? this.principal,
@@ -7619,6 +7707,9 @@ class LoansCompanion extends UpdateCompanion<Loan> {
     }
     if (userId.present) {
       map['user_id'] = Variable<String>(userId.value);
+    }
+    if (familyId.present) {
+      map['family_id'] = Variable<String>(familyId.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -7691,6 +7782,7 @@ class LoansCompanion extends UpdateCompanion<Loan> {
     return (StringBuffer('LoansCompanion(')
           ..write('id: $id, ')
           ..write('userId: $userId, ')
+          ..write('familyId: $familyId, ')
           ..write('name: $name, ')
           ..write('loanType: $loanType, ')
           ..write('principal: $principal, ')
@@ -8787,6 +8879,18 @@ class $InvestmentsTable extends Investments
       'REFERENCES users (id)',
     ),
   );
+  static const VerificationMeta _familyIdMeta = const VerificationMeta(
+    'familyId',
+  );
+  @override
+  late final GeneratedColumn<String> familyId = GeneratedColumn<String>(
+    'family_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _symbolMeta = const VerificationMeta('symbol');
   @override
   late final GeneratedColumn<String> symbol = GeneratedColumn<String>(
@@ -8879,6 +8983,7 @@ class $InvestmentsTable extends Investments
   List<GeneratedColumn> get $columns => [
     id,
     userId,
+    familyId,
     symbol,
     name,
     marketType,
@@ -8912,6 +9017,12 @@ class $InvestmentsTable extends Investments
       );
     } else if (isInserting) {
       context.missing(_userIdMeta);
+    }
+    if (data.containsKey('family_id')) {
+      context.handle(
+        _familyIdMeta,
+        familyId.isAcceptableOrUnknown(data['family_id']!, _familyIdMeta),
+      );
     }
     if (data.containsKey('symbol')) {
       context.handle(
@@ -8984,6 +9095,10 @@ class $InvestmentsTable extends Investments
         DriftSqlType.string,
         data['${effectivePrefix}user_id'],
       )!,
+      familyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}family_id'],
+      )!,
       symbol: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}symbol'],
@@ -9028,6 +9143,7 @@ class $InvestmentsTable extends Investments
 class Investment extends DataClass implements Insertable<Investment> {
   final String id;
   final String userId;
+  final String familyId;
   final String symbol;
   final String name;
   final String marketType;
@@ -9039,6 +9155,7 @@ class Investment extends DataClass implements Insertable<Investment> {
   const Investment({
     required this.id,
     required this.userId,
+    required this.familyId,
     required this.symbol,
     required this.name,
     required this.marketType,
@@ -9053,6 +9170,7 @@ class Investment extends DataClass implements Insertable<Investment> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['user_id'] = Variable<String>(userId);
+    map['family_id'] = Variable<String>(familyId);
     map['symbol'] = Variable<String>(symbol);
     map['name'] = Variable<String>(name);
     map['market_type'] = Variable<String>(marketType);
@@ -9070,6 +9188,7 @@ class Investment extends DataClass implements Insertable<Investment> {
     return InvestmentsCompanion(
       id: Value(id),
       userId: Value(userId),
+      familyId: Value(familyId),
       symbol: Value(symbol),
       name: Value(name),
       marketType: Value(marketType),
@@ -9091,6 +9210,7 @@ class Investment extends DataClass implements Insertable<Investment> {
     return Investment(
       id: serializer.fromJson<String>(json['id']),
       userId: serializer.fromJson<String>(json['userId']),
+      familyId: serializer.fromJson<String>(json['familyId']),
       symbol: serializer.fromJson<String>(json['symbol']),
       name: serializer.fromJson<String>(json['name']),
       marketType: serializer.fromJson<String>(json['marketType']),
@@ -9107,6 +9227,7 @@ class Investment extends DataClass implements Insertable<Investment> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'userId': serializer.toJson<String>(userId),
+      'familyId': serializer.toJson<String>(familyId),
       'symbol': serializer.toJson<String>(symbol),
       'name': serializer.toJson<String>(name),
       'marketType': serializer.toJson<String>(marketType),
@@ -9121,6 +9242,7 @@ class Investment extends DataClass implements Insertable<Investment> {
   Investment copyWith({
     String? id,
     String? userId,
+    String? familyId,
     String? symbol,
     String? name,
     String? marketType,
@@ -9132,6 +9254,7 @@ class Investment extends DataClass implements Insertable<Investment> {
   }) => Investment(
     id: id ?? this.id,
     userId: userId ?? this.userId,
+    familyId: familyId ?? this.familyId,
     symbol: symbol ?? this.symbol,
     name: name ?? this.name,
     marketType: marketType ?? this.marketType,
@@ -9145,6 +9268,7 @@ class Investment extends DataClass implements Insertable<Investment> {
     return Investment(
       id: data.id.present ? data.id.value : this.id,
       userId: data.userId.present ? data.userId.value : this.userId,
+      familyId: data.familyId.present ? data.familyId.value : this.familyId,
       symbol: data.symbol.present ? data.symbol.value : this.symbol,
       name: data.name.present ? data.name.value : this.name,
       marketType: data.marketType.present
@@ -9163,6 +9287,7 @@ class Investment extends DataClass implements Insertable<Investment> {
     return (StringBuffer('Investment(')
           ..write('id: $id, ')
           ..write('userId: $userId, ')
+          ..write('familyId: $familyId, ')
           ..write('symbol: $symbol, ')
           ..write('name: $name, ')
           ..write('marketType: $marketType, ')
@@ -9179,6 +9304,7 @@ class Investment extends DataClass implements Insertable<Investment> {
   int get hashCode => Object.hash(
     id,
     userId,
+    familyId,
     symbol,
     name,
     marketType,
@@ -9194,6 +9320,7 @@ class Investment extends DataClass implements Insertable<Investment> {
       (other is Investment &&
           other.id == this.id &&
           other.userId == this.userId &&
+          other.familyId == this.familyId &&
           other.symbol == this.symbol &&
           other.name == this.name &&
           other.marketType == this.marketType &&
@@ -9207,6 +9334,7 @@ class Investment extends DataClass implements Insertable<Investment> {
 class InvestmentsCompanion extends UpdateCompanion<Investment> {
   final Value<String> id;
   final Value<String> userId;
+  final Value<String> familyId;
   final Value<String> symbol;
   final Value<String> name;
   final Value<String> marketType;
@@ -9219,6 +9347,7 @@ class InvestmentsCompanion extends UpdateCompanion<Investment> {
   const InvestmentsCompanion({
     this.id = const Value.absent(),
     this.userId = const Value.absent(),
+    this.familyId = const Value.absent(),
     this.symbol = const Value.absent(),
     this.name = const Value.absent(),
     this.marketType = const Value.absent(),
@@ -9232,6 +9361,7 @@ class InvestmentsCompanion extends UpdateCompanion<Investment> {
   InvestmentsCompanion.insert({
     required String id,
     required String userId,
+    this.familyId = const Value.absent(),
     required String symbol,
     required String name,
     required String marketType,
@@ -9249,6 +9379,7 @@ class InvestmentsCompanion extends UpdateCompanion<Investment> {
   static Insertable<Investment> custom({
     Expression<String>? id,
     Expression<String>? userId,
+    Expression<String>? familyId,
     Expression<String>? symbol,
     Expression<String>? name,
     Expression<String>? marketType,
@@ -9262,6 +9393,7 @@ class InvestmentsCompanion extends UpdateCompanion<Investment> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (userId != null) 'user_id': userId,
+      if (familyId != null) 'family_id': familyId,
       if (symbol != null) 'symbol': symbol,
       if (name != null) 'name': name,
       if (marketType != null) 'market_type': marketType,
@@ -9277,6 +9409,7 @@ class InvestmentsCompanion extends UpdateCompanion<Investment> {
   InvestmentsCompanion copyWith({
     Value<String>? id,
     Value<String>? userId,
+    Value<String>? familyId,
     Value<String>? symbol,
     Value<String>? name,
     Value<String>? marketType,
@@ -9290,6 +9423,7 @@ class InvestmentsCompanion extends UpdateCompanion<Investment> {
     return InvestmentsCompanion(
       id: id ?? this.id,
       userId: userId ?? this.userId,
+      familyId: familyId ?? this.familyId,
       symbol: symbol ?? this.symbol,
       name: name ?? this.name,
       marketType: marketType ?? this.marketType,
@@ -9310,6 +9444,9 @@ class InvestmentsCompanion extends UpdateCompanion<Investment> {
     }
     if (userId.present) {
       map['user_id'] = Variable<String>(userId.value);
+    }
+    if (familyId.present) {
+      map['family_id'] = Variable<String>(familyId.value);
     }
     if (symbol.present) {
       map['symbol'] = Variable<String>(symbol.value);
@@ -9346,6 +9483,7 @@ class InvestmentsCompanion extends UpdateCompanion<Investment> {
     return (StringBuffer('InvestmentsCompanion(')
           ..write('id: $id, ')
           ..write('userId: $userId, ')
+          ..write('familyId: $familyId, ')
           ..write('symbol: $symbol, ')
           ..write('name: $name, ')
           ..write('marketType: $marketType, ')
@@ -10424,6 +10562,18 @@ class $FixedAssetsTable extends FixedAssets
       'REFERENCES users (id)',
     ),
   );
+  static const VerificationMeta _familyIdMeta = const VerificationMeta(
+    'familyId',
+  );
+  @override
+  late final GeneratedColumn<String> familyId = GeneratedColumn<String>(
+    'family_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -10533,6 +10683,7 @@ class $FixedAssetsTable extends FixedAssets
   List<GeneratedColumn> get $columns => [
     id,
     userId,
+    familyId,
     name,
     assetType,
     purchasePrice,
@@ -10567,6 +10718,12 @@ class $FixedAssetsTable extends FixedAssets
       );
     } else if (isInserting) {
       context.missing(_userIdMeta);
+    }
+    if (data.containsKey('family_id')) {
+      context.handle(
+        _familyIdMeta,
+        familyId.isAcceptableOrUnknown(data['family_id']!, _familyIdMeta),
+      );
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -10659,6 +10816,10 @@ class $FixedAssetsTable extends FixedAssets
         DriftSqlType.string,
         data['${effectivePrefix}user_id'],
       )!,
+      familyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}family_id'],
+      )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -10707,6 +10868,7 @@ class $FixedAssetsTable extends FixedAssets
 class FixedAsset extends DataClass implements Insertable<FixedAsset> {
   final String id;
   final String userId;
+  final String familyId;
   final String name;
   final String assetType;
   final int purchasePrice;
@@ -10719,6 +10881,7 @@ class FixedAsset extends DataClass implements Insertable<FixedAsset> {
   const FixedAsset({
     required this.id,
     required this.userId,
+    required this.familyId,
     required this.name,
     required this.assetType,
     required this.purchasePrice,
@@ -10734,6 +10897,7 @@ class FixedAsset extends DataClass implements Insertable<FixedAsset> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['user_id'] = Variable<String>(userId);
+    map['family_id'] = Variable<String>(familyId);
     map['name'] = Variable<String>(name);
     map['asset_type'] = Variable<String>(assetType);
     map['purchase_price'] = Variable<int>(purchasePrice);
@@ -10752,6 +10916,7 @@ class FixedAsset extends DataClass implements Insertable<FixedAsset> {
     return FixedAssetsCompanion(
       id: Value(id),
       userId: Value(userId),
+      familyId: Value(familyId),
       name: Value(name),
       assetType: Value(assetType),
       purchasePrice: Value(purchasePrice),
@@ -10774,6 +10939,7 @@ class FixedAsset extends DataClass implements Insertable<FixedAsset> {
     return FixedAsset(
       id: serializer.fromJson<String>(json['id']),
       userId: serializer.fromJson<String>(json['userId']),
+      familyId: serializer.fromJson<String>(json['familyId']),
       name: serializer.fromJson<String>(json['name']),
       assetType: serializer.fromJson<String>(json['assetType']),
       purchasePrice: serializer.fromJson<int>(json['purchasePrice']),
@@ -10791,6 +10957,7 @@ class FixedAsset extends DataClass implements Insertable<FixedAsset> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'userId': serializer.toJson<String>(userId),
+      'familyId': serializer.toJson<String>(familyId),
       'name': serializer.toJson<String>(name),
       'assetType': serializer.toJson<String>(assetType),
       'purchasePrice': serializer.toJson<int>(purchasePrice),
@@ -10806,6 +10973,7 @@ class FixedAsset extends DataClass implements Insertable<FixedAsset> {
   FixedAsset copyWith({
     String? id,
     String? userId,
+    String? familyId,
     String? name,
     String? assetType,
     int? purchasePrice,
@@ -10818,6 +10986,7 @@ class FixedAsset extends DataClass implements Insertable<FixedAsset> {
   }) => FixedAsset(
     id: id ?? this.id,
     userId: userId ?? this.userId,
+    familyId: familyId ?? this.familyId,
     name: name ?? this.name,
     assetType: assetType ?? this.assetType,
     purchasePrice: purchasePrice ?? this.purchasePrice,
@@ -10832,6 +11001,7 @@ class FixedAsset extends DataClass implements Insertable<FixedAsset> {
     return FixedAsset(
       id: data.id.present ? data.id.value : this.id,
       userId: data.userId.present ? data.userId.value : this.userId,
+      familyId: data.familyId.present ? data.familyId.value : this.familyId,
       name: data.name.present ? data.name.value : this.name,
       assetType: data.assetType.present ? data.assetType.value : this.assetType,
       purchasePrice: data.purchasePrice.present
@@ -10857,6 +11027,7 @@ class FixedAsset extends DataClass implements Insertable<FixedAsset> {
     return (StringBuffer('FixedAsset(')
           ..write('id: $id, ')
           ..write('userId: $userId, ')
+          ..write('familyId: $familyId, ')
           ..write('name: $name, ')
           ..write('assetType: $assetType, ')
           ..write('purchasePrice: $purchasePrice, ')
@@ -10874,6 +11045,7 @@ class FixedAsset extends DataClass implements Insertable<FixedAsset> {
   int get hashCode => Object.hash(
     id,
     userId,
+    familyId,
     name,
     assetType,
     purchasePrice,
@@ -10890,6 +11062,7 @@ class FixedAsset extends DataClass implements Insertable<FixedAsset> {
       (other is FixedAsset &&
           other.id == this.id &&
           other.userId == this.userId &&
+          other.familyId == this.familyId &&
           other.name == this.name &&
           other.assetType == this.assetType &&
           other.purchasePrice == this.purchasePrice &&
@@ -10904,6 +11077,7 @@ class FixedAsset extends DataClass implements Insertable<FixedAsset> {
 class FixedAssetsCompanion extends UpdateCompanion<FixedAsset> {
   final Value<String> id;
   final Value<String> userId;
+  final Value<String> familyId;
   final Value<String> name;
   final Value<String> assetType;
   final Value<int> purchasePrice;
@@ -10917,6 +11091,7 @@ class FixedAssetsCompanion extends UpdateCompanion<FixedAsset> {
   const FixedAssetsCompanion({
     this.id = const Value.absent(),
     this.userId = const Value.absent(),
+    this.familyId = const Value.absent(),
     this.name = const Value.absent(),
     this.assetType = const Value.absent(),
     this.purchasePrice = const Value.absent(),
@@ -10931,6 +11106,7 @@ class FixedAssetsCompanion extends UpdateCompanion<FixedAsset> {
   FixedAssetsCompanion.insert({
     required String id,
     required String userId,
+    this.familyId = const Value.absent(),
     required String name,
     this.assetType = const Value.absent(),
     required int purchasePrice,
@@ -10950,6 +11126,7 @@ class FixedAssetsCompanion extends UpdateCompanion<FixedAsset> {
   static Insertable<FixedAsset> custom({
     Expression<String>? id,
     Expression<String>? userId,
+    Expression<String>? familyId,
     Expression<String>? name,
     Expression<String>? assetType,
     Expression<int>? purchasePrice,
@@ -10964,6 +11141,7 @@ class FixedAssetsCompanion extends UpdateCompanion<FixedAsset> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (userId != null) 'user_id': userId,
+      if (familyId != null) 'family_id': familyId,
       if (name != null) 'name': name,
       if (assetType != null) 'asset_type': assetType,
       if (purchasePrice != null) 'purchase_price': purchasePrice,
@@ -10980,6 +11158,7 @@ class FixedAssetsCompanion extends UpdateCompanion<FixedAsset> {
   FixedAssetsCompanion copyWith({
     Value<String>? id,
     Value<String>? userId,
+    Value<String>? familyId,
     Value<String>? name,
     Value<String>? assetType,
     Value<int>? purchasePrice,
@@ -10994,6 +11173,7 @@ class FixedAssetsCompanion extends UpdateCompanion<FixedAsset> {
     return FixedAssetsCompanion(
       id: id ?? this.id,
       userId: userId ?? this.userId,
+      familyId: familyId ?? this.familyId,
       name: name ?? this.name,
       assetType: assetType ?? this.assetType,
       purchasePrice: purchasePrice ?? this.purchasePrice,
@@ -11015,6 +11195,9 @@ class FixedAssetsCompanion extends UpdateCompanion<FixedAsset> {
     }
     if (userId.present) {
       map['user_id'] = Variable<String>(userId.value);
+    }
+    if (familyId.present) {
+      map['family_id'] = Variable<String>(familyId.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -11054,6 +11237,7 @@ class FixedAssetsCompanion extends UpdateCompanion<FixedAsset> {
     return (StringBuffer('FixedAssetsCompanion(')
           ..write('id: $id, ')
           ..write('userId: $userId, ')
+          ..write('familyId: $familyId, ')
           ..write('name: $name, ')
           ..write('assetType: $assetType, ')
           ..write('purchasePrice: $purchasePrice, ')
@@ -17661,6 +17845,7 @@ typedef $$LoanGroupsTableCreateCompanionBuilder =
     LoanGroupsCompanion Function({
       required String id,
       required String userId,
+      Value<String> familyId,
       required String name,
       required String groupType,
       required int totalPrincipal,
@@ -17677,6 +17862,7 @@ typedef $$LoanGroupsTableUpdateCompanionBuilder =
     LoanGroupsCompanion Function({
       Value<String> id,
       Value<String> userId,
+      Value<String> familyId,
       Value<String> name,
       Value<String> groupType,
       Value<int> totalPrincipal,
@@ -17724,6 +17910,11 @@ class $$LoanGroupsTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get familyId => $composableBuilder(
+    column: $table.familyId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17815,6 +18006,11 @@ class $$LoanGroupsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get familyId => $composableBuilder(
+    column: $table.familyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -17900,6 +18096,9 @@ class $$LoanGroupsTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get familyId =>
+      $composableBuilder(column: $table.familyId, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -17989,6 +18188,7 @@ class $$LoanGroupsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> userId = const Value.absent(),
+                Value<String> familyId = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> groupType = const Value.absent(),
                 Value<int> totalPrincipal = const Value.absent(),
@@ -18003,6 +18203,7 @@ class $$LoanGroupsTableTableManager
               }) => LoanGroupsCompanion(
                 id: id,
                 userId: userId,
+                familyId: familyId,
                 name: name,
                 groupType: groupType,
                 totalPrincipal: totalPrincipal,
@@ -18019,6 +18220,7 @@ class $$LoanGroupsTableTableManager
               ({
                 required String id,
                 required String userId,
+                Value<String> familyId = const Value.absent(),
                 required String name,
                 required String groupType,
                 required int totalPrincipal,
@@ -18033,6 +18235,7 @@ class $$LoanGroupsTableTableManager
               }) => LoanGroupsCompanion.insert(
                 id: id,
                 userId: userId,
+                familyId: familyId,
                 name: name,
                 groupType: groupType,
                 totalPrincipal: totalPrincipal,
@@ -18116,6 +18319,7 @@ typedef $$LoansTableCreateCompanionBuilder =
     LoansCompanion Function({
       required String id,
       required String userId,
+      Value<String> familyId,
       required String name,
       Value<String> loanType,
       required int principal,
@@ -18142,6 +18346,7 @@ typedef $$LoansTableUpdateCompanionBuilder =
     LoansCompanion Function({
       Value<String> id,
       Value<String> userId,
+      Value<String> familyId,
       Value<String> name,
       Value<String> loanType,
       Value<int> principal,
@@ -18235,6 +18440,11 @@ class $$LoansTableFilterComposer extends Composer<_$AppDatabase, $LoansTable> {
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get familyId => $composableBuilder(
+    column: $table.familyId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -18426,6 +18636,11 @@ class $$LoansTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get familyId => $composableBuilder(
+    column: $table.familyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -18561,6 +18776,9 @@ class $$LoansTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get familyId =>
+      $composableBuilder(column: $table.familyId, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -18744,6 +18962,7 @@ class $$LoansTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> userId = const Value.absent(),
+                Value<String> familyId = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> loanType = const Value.absent(),
                 Value<int> principal = const Value.absent(),
@@ -18768,6 +18987,7 @@ class $$LoansTableTableManager
               }) => LoansCompanion(
                 id: id,
                 userId: userId,
+                familyId: familyId,
                 name: name,
                 loanType: loanType,
                 principal: principal,
@@ -18794,6 +19014,7 @@ class $$LoansTableTableManager
               ({
                 required String id,
                 required String userId,
+                Value<String> familyId = const Value.absent(),
                 required String name,
                 Value<String> loanType = const Value.absent(),
                 required int principal,
@@ -18818,6 +19039,7 @@ class $$LoansTableTableManager
               }) => LoansCompanion.insert(
                 id: id,
                 userId: userId,
+                familyId: familyId,
                 name: name,
                 loanType: loanType,
                 principal: principal,
@@ -19737,6 +19959,7 @@ typedef $$InvestmentsTableCreateCompanionBuilder =
     InvestmentsCompanion Function({
       required String id,
       required String userId,
+      Value<String> familyId,
       required String symbol,
       required String name,
       required String marketType,
@@ -19751,6 +19974,7 @@ typedef $$InvestmentsTableUpdateCompanionBuilder =
     InvestmentsCompanion Function({
       Value<String> id,
       Value<String> userId,
+      Value<String> familyId,
       Value<String> symbol,
       Value<String> name,
       Value<String> marketType,
@@ -19819,6 +20043,11 @@ class $$InvestmentsTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get familyId => $composableBuilder(
+    column: $table.familyId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -19925,6 +20154,11 @@ class $$InvestmentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get familyId => $composableBuilder(
+    column: $table.familyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get symbol => $composableBuilder(
     column: $table.symbol,
     builder: (column) => ColumnOrderings(column),
@@ -20000,6 +20234,9 @@ class $$InvestmentsTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get familyId =>
+      $composableBuilder(column: $table.familyId, builder: (column) => column);
 
   GeneratedColumn<String> get symbol =>
       $composableBuilder(column: $table.symbol, builder: (column) => column);
@@ -20106,6 +20343,7 @@ class $$InvestmentsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> userId = const Value.absent(),
+                Value<String> familyId = const Value.absent(),
                 Value<String> symbol = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> marketType = const Value.absent(),
@@ -20118,6 +20356,7 @@ class $$InvestmentsTableTableManager
               }) => InvestmentsCompanion(
                 id: id,
                 userId: userId,
+                familyId: familyId,
                 symbol: symbol,
                 name: name,
                 marketType: marketType,
@@ -20132,6 +20371,7 @@ class $$InvestmentsTableTableManager
               ({
                 required String id,
                 required String userId,
+                Value<String> familyId = const Value.absent(),
                 required String symbol,
                 required String name,
                 required String marketType,
@@ -20144,6 +20384,7 @@ class $$InvestmentsTableTableManager
               }) => InvestmentsCompanion.insert(
                 id: id,
                 userId: userId,
+                familyId: familyId,
                 symbol: symbol,
                 name: name,
                 marketType: marketType,
@@ -20907,6 +21148,7 @@ typedef $$FixedAssetsTableCreateCompanionBuilder =
     FixedAssetsCompanion Function({
       required String id,
       required String userId,
+      Value<String> familyId,
       required String name,
       Value<String> assetType,
       required int purchasePrice,
@@ -20922,6 +21164,7 @@ typedef $$FixedAssetsTableUpdateCompanionBuilder =
     FixedAssetsCompanion Function({
       Value<String> id,
       Value<String> userId,
+      Value<String> familyId,
       Value<String> name,
       Value<String> assetType,
       Value<int> purchasePrice,
@@ -21015,6 +21258,11 @@ class $$FixedAssetsTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get familyId => $composableBuilder(
+    column: $table.familyId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21151,6 +21399,11 @@ class $$FixedAssetsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get familyId => $composableBuilder(
+    column: $table.familyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -21231,6 +21484,9 @@ class $$FixedAssetsTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get familyId =>
+      $composableBuilder(column: $table.familyId, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -21376,6 +21632,7 @@ class $$FixedAssetsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> userId = const Value.absent(),
+                Value<String> familyId = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> assetType = const Value.absent(),
                 Value<int> purchasePrice = const Value.absent(),
@@ -21389,6 +21646,7 @@ class $$FixedAssetsTableTableManager
               }) => FixedAssetsCompanion(
                 id: id,
                 userId: userId,
+                familyId: familyId,
                 name: name,
                 assetType: assetType,
                 purchasePrice: purchasePrice,
@@ -21404,6 +21662,7 @@ class $$FixedAssetsTableTableManager
               ({
                 required String id,
                 required String userId,
+                Value<String> familyId = const Value.absent(),
                 required String name,
                 Value<String> assetType = const Value.absent(),
                 required int purchasePrice,
@@ -21417,6 +21676,7 @@ class $$FixedAssetsTableTableManager
               }) => FixedAssetsCompanion.insert(
                 id: id,
                 userId: userId,
+                familyId: familyId,
                 name: name,
                 assetType: assetType,
                 purchasePrice: purchasePrice,

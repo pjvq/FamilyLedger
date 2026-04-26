@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -117,6 +117,13 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(categories, categories.deletedAt);
             // Seed subcategories
             await _seedSubcategories();
+          }
+          if (from < 12) {
+            // v11 → v12: add familyId to loans, investments, fixed_assets, loan_groups
+            await m.addColumn(loans, loans.familyId);
+            await m.addColumn(investments, investments.familyId);
+            await m.addColumn(fixedAssets, fixedAssets.familyId);
+            await m.addColumn(loanGroups, loanGroups.familyId);
           }
         },
         beforeOpen: (details) async {
@@ -1008,14 +1015,25 @@ class AppDatabase extends _$AppDatabase {
           .get();
 
   /// Get standalone loans (not in any group)
-  Future<List<Loan>> getStandaloneLoans(String userId) =>
-      (select(loans)
+  Future<List<Loan>> getStandaloneLoans(String userId, {String? familyId}) {
+    if (familyId != null && familyId.isNotEmpty) {
+      return (select(loans)
             ..where((l) =>
-                l.userId.equals(userId) &
+                l.familyId.equals(familyId) &
                 l.deletedAt.isNull() &
                 (l.groupId.equals('') | l.groupId.isNull()))
             ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
           .get();
+    }
+    return (select(loans)
+            ..where((l) =>
+                l.userId.equals(userId) &
+                l.deletedAt.isNull() &
+                (l.groupId.equals('') | l.groupId.isNull()) &
+                (l.familyId.equals('') | l.familyId.isNull()))
+            ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
+          .get();
+  }
 
   /// Get loans belonging to a specific group
   Future<List<Loan>> getLoansByGroupId(String groupId) =>
@@ -1085,11 +1103,19 @@ class AppDatabase extends _$AppDatabase {
     await into(loanGroups).insertOnConflictUpdate(entry);
   }
 
-  Future<List<LoanGroup>> getLoanGroups(String userId) =>
-      (select(loanGroups)
-            ..where((g) => g.userId.equals(userId) & g.deletedAt.isNull())
+  Future<List<LoanGroup>> getLoanGroups(String userId, {String? familyId}) {
+    if (familyId != null && familyId.isNotEmpty) {
+      return (select(loanGroups)
+            ..where((g) => g.familyId.equals(familyId) & g.deletedAt.isNull())
             ..orderBy([(g) => OrderingTerm.desc(g.createdAt)]))
           .get();
+    }
+    return (select(loanGroups)
+            ..where((g) => g.userId.equals(userId) & g.deletedAt.isNull() &
+                (g.familyId.equals('') | g.familyId.isNull()))
+            ..orderBy([(g) => OrderingTerm.desc(g.createdAt)]))
+          .get();
+  }
 
   Future<LoanGroup?> getLoanGroupById(String id) =>
       (select(loanGroups)..where((g) => g.id.equals(id))).getSingleOrNull();
@@ -1115,11 +1141,19 @@ class AppDatabase extends _$AppDatabase {
     await into(investments).insertOnConflictUpdate(entry);
   }
 
-  Future<List<Investment>> getInvestments(String userId) =>
-      (select(investments)
-            ..where((i) => i.userId.equals(userId) & i.deletedAt.isNull())
+  Future<List<Investment>> getInvestments(String userId, {String? familyId}) {
+    if (familyId != null && familyId.isNotEmpty) {
+      return (select(investments)
+            ..where((i) => i.familyId.equals(familyId) & i.deletedAt.isNull())
             ..orderBy([(i) => OrderingTerm.desc(i.createdAt)]))
           .get();
+    }
+    return (select(investments)
+            ..where((i) => i.userId.equals(userId) & i.deletedAt.isNull() &
+                (i.familyId.equals('') | i.familyId.isNull()))
+            ..orderBy([(i) => OrderingTerm.desc(i.createdAt)]))
+          .get();
+  }
 
   Future<Investment?> getInvestmentById(String id) =>
       (select(investments)..where((i) => i.id.equals(id))).getSingleOrNull();
@@ -1164,11 +1198,19 @@ class AppDatabase extends _$AppDatabase {
     await into(fixedAssets).insertOnConflictUpdate(entry);
   }
 
-  Future<List<FixedAsset>> getFixedAssets(String userId) =>
-      (select(fixedAssets)
-            ..where((a) => a.userId.equals(userId) & a.deletedAt.isNull())
+  Future<List<FixedAsset>> getFixedAssets(String userId, {String? familyId}) {
+    if (familyId != null && familyId.isNotEmpty) {
+      return (select(fixedAssets)
+            ..where((a) => a.familyId.equals(familyId) & a.deletedAt.isNull())
             ..orderBy([(a) => OrderingTerm.desc(a.createdAt)]))
           .get();
+    }
+    return (select(fixedAssets)
+            ..where((a) => a.userId.equals(userId) & a.deletedAt.isNull() &
+                (a.familyId.equals('') | a.familyId.isNull()))
+            ..orderBy([(a) => OrderingTerm.desc(a.createdAt)]))
+          .get();
+  }
 
   Future<FixedAsset?> getFixedAssetById(String id) =>
       (select(fixedAssets)..where((a) => a.id.equals(id))).getSingleOrNull();

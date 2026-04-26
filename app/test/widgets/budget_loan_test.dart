@@ -70,6 +70,7 @@ db.Loan makeLoan({
   return db.Loan(
     id: id,
     userId: userId,
+    familyId: '',
     name: name,
     loanType: loanType,
     principal: principal,
@@ -107,6 +108,7 @@ db.LoanGroup makeLoanGroup({
   return db.LoanGroup(
     id: id,
     userId: userId,
+    familyId: '',
     name: name,
     groupType: groupType,
     totalPrincipal: totalPrincipal,

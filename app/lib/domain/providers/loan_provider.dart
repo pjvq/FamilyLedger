@@ -565,8 +565,9 @@ class LoanNotifier extends StateNotifier<LoanState> {
   final db.AppDatabase _db;
   final LoanServiceClient _client;
   final String? _userId;
+  final String? _familyId;
 
-  LoanNotifier(this._db, this._client, this._userId)
+  LoanNotifier(this._db, this._client, this._userId, this._familyId)
       : super(const LoanState()) {
     if (_userId != null) {
       loadAll();
@@ -593,7 +594,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     }
 
     try {
-      final loans = await _db.getStandaloneLoans(_userId);
+      final loans = await _db.getStandaloneLoans(_userId, familyId: _familyId);
       state = state.copyWith(loans: loans, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -625,7 +626,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     }
 
     try {
-      final groups = await _db.getLoanGroups(_userId);
+      final groups = await _db.getLoanGroups(_userId, familyId: _familyId);
       final displayGroups = <LoanGroupDisplayItem>[];
       for (final group in groups) {
         final subLoans = await _db.getLoansByGroupId(group.id);
@@ -1316,5 +1317,6 @@ final loanProvider =
   final database = ref.watch(databaseProvider);
   final client = ref.watch(loanClientProvider);
   final userId = ref.watch(currentUserIdProvider);
-  return LoanNotifier(database, client, userId);
+  final familyId = ref.watch(currentFamilyIdProvider);
+  return LoanNotifier(database, client, userId, familyId);
 });
