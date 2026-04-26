@@ -243,10 +243,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    // Clear local database
+    await _db.clearAllData();
+    // Clear preferences
     await _prefs.remove(AppConstants.userIdKey);
     await _prefs.remove(AppConstants.accessTokenKey);
     await _prefs.remove(AppConstants.refreshTokenKey);
+    await _prefs.remove(AppConstants.familyIdKey);
     _ref.read(currentUserIdProvider.notifier).state = null;
+    _ref.read(currentFamilyIdProvider.notifier).state = null;
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 

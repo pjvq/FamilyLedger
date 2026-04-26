@@ -1200,6 +1200,15 @@ class AppDatabase extends _$AppDatabase {
             ..orderBy([(r) => OrderingTerm.desc(r.createdAt)])
             ..limit(1))
           .getSingleOrNull();
+
+  /// Clear all data from all tables. Used on logout.
+  Future<void> clearAllData() async {
+    await transaction(() async {
+      for (final table in allTables) {
+        await delete(table).go();
+      }
+    });
+  }
 }
 
 LazyDatabase _openConnection() {
