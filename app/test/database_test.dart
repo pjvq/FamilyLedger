@@ -19,16 +19,21 @@ void main() {
   });
 
   group('Database schema & seed', () {
-    test('creates tables and seeds 21 preset categories', () async {
+    test('creates tables and seeds preset categories with subcategories', () async {
       final cats = await db.getAllCategories();
-      expect(cats.length, 21);
+      final parents = cats.where((c) => c.parentId == null).toList();
+      final subs = cats.where((c) => c.parentId != null).toList();
+      expect(parents.length, 21);
+      expect(subs.length, greaterThan(0));
     });
 
-    test('seeds 14 expense + 7 income categories', () async {
+    test('seeds 14 expense + 7 income parent categories', () async {
       final expense = await db.getCategoriesByType('expense');
       final income = await db.getCategoriesByType('income');
-      expect(expense.length, 14);
-      expect(income.length, 7);
+      final expParents = expense.where((c) => c.parentId == null).toList();
+      final incParents = income.where((c) => c.parentId == null).toList();
+      expect(expParents.length, 14);
+      expect(incParents.length, 7);
     });
 
     test('categories have correct fields', () async {

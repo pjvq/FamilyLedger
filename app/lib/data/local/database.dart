@@ -45,8 +45,9 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
-          // Seed preset categories
+          // Seed preset categories + subcategories
           await _seedCategories();
+          await _seedSubcategories();
         },
         onUpgrade: (m, from, to) async {
           if (from < 2) {
@@ -301,7 +302,7 @@ class AppDatabase extends _$AppDatabase {
       _subcat('expense', '餐饮', '早餐', 'food_breakfast', 1),
       _subcat('expense', '餐饮', '午餐', 'food_lunch', 2),
       _subcat('expense', '餐饮', '晚餐', 'food_dinner', 3),
-      _subcat('expense', '餐饮', '夜孜', 'food_midnight', 4),
+      _subcat('expense', '餐饮', '夜宵', 'food_midnight', 4),
       _subcat('expense', '餐饮', '饮品', 'food_drink', 5),
       _subcat('expense', '餐饮', '水果零食', 'food_snack', 6),
       // 交通
