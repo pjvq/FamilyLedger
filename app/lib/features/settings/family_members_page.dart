@@ -344,10 +344,10 @@ class _MemberManageSheetState extends State<_MemberManageSheet> {
     );
   }
 
-  void _save() {
+  Future<void> _save() async {
     final notifier = widget.ref.read(familyProvider.notifier);
-    notifier.setMemberRole(widget.member.userId, _selectedRole);
-    notifier.setMemberPermissions(
+    await notifier.setMemberRole(widget.member.userId, _selectedRole);
+    await notifier.setMemberPermissions(
       targetUserId: widget.member.userId,
       canView: _canView,
       canCreate: _canCreate,
