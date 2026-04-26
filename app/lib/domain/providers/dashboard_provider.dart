@@ -450,13 +450,15 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
   Future<void> _computeLocalCategoryBreakdown(int year, int month) async {
     if (_userId == null) return;
-    final expenses = await _db.getMonthCategoryExpenses(_userId, year, month);
+    final expenses = await _db.getMonthCategoryExpenses(_userId, year, month,
+        familyId: _familyId);
     await _aggregateCategoryBreakdown(expenses);
   }
 
   Future<void> _computeLocalCategoryBreakdownYear(int year) async {
     if (_userId == null) return;
-    final expenses = await _db.getYearCategoryExpenses(_userId, year);
+    final expenses = await _db.getYearCategoryExpenses(_userId, year,
+        familyId: _familyId);
     await _aggregateCategoryBreakdown(expenses);
   }
 
@@ -582,7 +584,8 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     final budget = await _db.getBudgetByMonth(_userId, now.year, now.month);
     if (budget != null) {
       final expenses =
-          await _db.getMonthCategoryExpenses(_userId, now.year, now.month);
+          await _db.getMonthCategoryExpenses(_userId, now.year, now.month,
+              familyId: _familyId);
       final totalSpent = expenses.values.fold<int>(0, (sum, v) => sum + v);
       final rate =
           budget.totalAmount > 0 ? totalSpent / budget.totalAmount : 0.0;

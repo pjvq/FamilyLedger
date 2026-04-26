@@ -817,41 +817,66 @@ class AppDatabase extends _$AppDatabase {
 
   /// Get expense sum per category for a given month
   Future<Map<String, int>> getMonthCategoryExpenses(
-      String userId, int year, int month) async {
+      String userId, int year, int month, {String? familyId}) async {
     final startOfMonth = DateTime(year, month, 1);
     final endOfMonth =
         DateTime(year, month + 1, 1).subtract(const Duration(milliseconds: 1));
-    final rows = await (select(transactions)
-          ..where((t) =>
-              t.userId.equals(userId) &
-              t.type.equals('expense') &
-              t.txnDate.isBiggerOrEqualValue(startOfMonth) &
-              t.txnDate.isSmallerOrEqualValue(endOfMonth) &
-              t.deletedAt.isNull()))
-        .get();
+
+    // Use raw SQL to JOIN accounts for family filtering
+    final familyFilter = (familyId != null && familyId.isNotEmpty)
+        ? "AND a.family_id = '" + familyId.replaceAll("'", "''") + "'"
+        : "AND (a.family_id IS NULL OR a.family_id = '')";
+    final rows = await customSelect(
+      'SELECT t.category_id, SUM(t.amount_cny) as total FROM transactions t '
+      'JOIN accounts a ON a.id = t.account_id '
+      'WHERE t.user_id = ? AND t.type = \'expense\' '
+      'AND t.txn_date >= ? AND t.txn_date <= ? '
+      'AND t.deleted_at IS NULL '
+      '$familyFilter '
+      'GROUP BY t.category_id',
+      variables: [
+        Variable.withString(userId),
+        Variable.withDateTime(startOfMonth),
+        Variable.withDateTime(endOfMonth),
+      ],
+      readsFrom: {transactions, accounts},
+    ).get();
     final map = <String, int>{};
-    for (final t in rows) {
-      map[t.categoryId] = (map[t.categoryId] ?? 0) + t.amountCny;
+    for (final row in rows) {
+      map[row.data['category_id'] as String] =
+          (row.data['total'] as int?) ?? 0;
     }
     return map;
   }
 
   Future<Map<String, int>> getYearCategoryExpenses(
-      String userId, int year) async {
+      String userId, int year, {String? familyId}) async {
     final startOfYear = DateTime(year, 1, 1);
     final endOfYear =
         DateTime(year + 1, 1, 1).subtract(const Duration(milliseconds: 1));
-    final rows = await (select(transactions)
-          ..where((t) =>
-              t.userId.equals(userId) &
-              t.type.equals('expense') &
-              t.txnDate.isBiggerOrEqualValue(startOfYear) &
-              t.txnDate.isSmallerOrEqualValue(endOfYear) &
-              t.deletedAt.isNull()))
-        .get();
+
+    final familyFilter = (familyId != null && familyId.isNotEmpty)
+        ? "AND a.family_id = '" + familyId.replaceAll("'", "''") + "'"
+        : "AND (a.family_id IS NULL OR a.family_id = '')";
+    final rows = await customSelect(
+      'SELECT t.category_id, SUM(t.amount_cny) as total FROM transactions t '
+      'JOIN accounts a ON a.id = t.account_id '
+      'WHERE t.user_id = ? AND t.type = \'expense\' '
+      'AND t.txn_date >= ? AND t.txn_date <= ? '
+      'AND t.deleted_at IS NULL '
+      '$familyFilter '
+      'GROUP BY t.category_id',
+      variables: [
+        Variable.withString(userId),
+        Variable.withDateTime(startOfYear),
+        Variable.withDateTime(endOfYear),
+      ],
+      readsFrom: {transactions, accounts},
+    ).get();
     final map = <String, int>{};
-    for (final t in rows) {
-      map[t.categoryId] = (map[t.categoryId] ?? 0) + t.amountCny;
+    for (final row in rows) {
+      map[row.data['category_id'] as String] =
+          (row.data['total'] as int?) ?? 0;
     }
     return map;
   }
