@@ -285,6 +285,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
     String depreciationMethod = 'none',
     int usefulLifeYears = 5,
     double salvageRate = 0.05,
+    String? familyId,
   }) async {
     if (_userId == null) return;
     state = state.copyWith(isLoading: true, clearError: true);
@@ -303,6 +304,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
       await _db.upsertFixedAsset(db.FixedAssetsCompanion.insert(
         id: resp.id,
         userId: resp.userId,
+        familyId: Value(familyId ?? ''),
         name: resp.name,
         assetType: Value(_assetTypeToString(resp.assetType)),
         purchasePrice: resp.purchasePrice.toInt(),
@@ -315,6 +317,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
       await _db.upsertFixedAsset(db.FixedAssetsCompanion.insert(
         id: assetId,
         userId: _userId,
+        familyId: Value(familyId ?? ''),
         name: name,
         assetType: Value(assetType),
         purchasePrice: purchasePrice,

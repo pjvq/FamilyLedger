@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/asset_provider.dart';
+import '../shared/family_scope_selector.dart';
 
 class AddAssetPage extends ConsumerStatefulWidget {
   const AddAssetPage({super.key});
@@ -17,6 +18,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   final _priceController = TextEditingController();
   final _descController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  String? _scopeFamilyId;
 
   String _selectedType = 'other';
   DateTime _purchaseDate = DateTime.now();
@@ -63,6 +65,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
           depreciationMethod: _depreciationMethod,
           usefulLifeYears: _usefulLifeYears,
           salvageRate: _salvageRate,
+          familyId: _scopeFamilyId,
         );
 
     if (mounted) Navigator.of(context).pop();
@@ -94,6 +97,10 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
           children: [
+            // Family/personal scope selector
+            FamilyScopeSelector(
+              onChanged: (fid) => _scopeFamilyId = fid,
+            ),
             // Asset name
             Semantics(
               label: '资产名称',

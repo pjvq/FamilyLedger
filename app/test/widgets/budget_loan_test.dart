@@ -345,6 +345,7 @@ class FakeLoanNotifier extends StateNotifier<LoanState>
     double? lprBase,
     double? lprSpread,
     int? rateAdjustMonth,
+    String? familyId,
   }) async {}
   @override
   Future<void> createLoanGroup({
@@ -355,6 +356,7 @@ class FakeLoanNotifier extends StateNotifier<LoanState>
     required DateTime startDate,
     required List<SubLoanInput> subLoans,
     String? accountId,
+    String? familyId,
   }) async {}
   @override
   DateTime? getNextPaymentDate(db.Loan loan) => null;

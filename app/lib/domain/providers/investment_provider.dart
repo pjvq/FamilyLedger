@@ -201,6 +201,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
     required String symbol,
     required String name,
     required String marketType,
+    String? familyId,
   }) async {
     if (_userId == null) return;
     state = state.copyWith(isLoading: true, clearError: true);
@@ -218,6 +219,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
       await _db.upsertInvestment(db.InvestmentsCompanion.insert(
         id: resp.id,
         userId: resp.userId,
+        familyId: Value(familyId ?? ''),
         symbol: resp.symbol,
         name: resp.name,
         marketType: _marketTypeToString(resp.marketType),
@@ -229,6 +231,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
       await _db.upsertInvestment(db.InvestmentsCompanion.insert(
         id: invId,
         userId: _userId,
+        familyId: Value(familyId ?? ''),
         symbol: symbol,
         name: name,
         marketType: marketType,

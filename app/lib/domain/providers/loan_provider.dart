@@ -702,6 +702,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     double? lprBase,
     double? lprSpread,
     int? rateAdjustMonth,
+    String? familyId,
   }) async {
     if (_userId == null) return;
     state = state.copyWith(isLoading: true, clearError: true);
@@ -726,6 +727,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
       await _db.upsertLoan(db.LoansCompanion.insert(
         id: loanId,
         userId: _userId,
+        familyId: Value(familyId ?? ''),
         name: name,
         principal: principal,
         remainingPrincipal: principal,
@@ -779,6 +781,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     required DateTime startDate,
     required List<SubLoanInput> subLoans,
     String? accountId,
+    String? familyId,
   }) async {
     if (_userId == null) return;
     state = state.copyWith(isLoading: true, clearError: true);

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/investment_provider.dart';
 import '../../domain/providers/market_data_provider.dart';
+import '../shared/family_scope_selector.dart';
 
 class AddInvestmentPage extends ConsumerStatefulWidget {
   const AddInvestmentPage({super.key});
@@ -16,6 +17,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
   String _selectedMarket = 'a_share';
   final _searchController = TextEditingController();
   Timer? _debounce;
+  String? _scopeFamilyId;
 
   // After user selects a symbol, show buy form
   SymbolSearchResult? _selectedSymbol;
@@ -88,6 +90,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
           symbol: _selectedSymbol!.symbol,
           name: _selectedSymbol!.name,
           marketType: _selectedSymbol!.marketType,
+          familyId: _scopeFamilyId,
         );
 
     // Find the newly created investment and record trade
@@ -125,6 +128,10 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Family/personal scope selector
+            FamilyScopeSelector(
+              onChanged: (fid) => _scopeFamilyId = fid,
+            ),
             // Market selector
             Semantics(
               label: '选择市场类型',

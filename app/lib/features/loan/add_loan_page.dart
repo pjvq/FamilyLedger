@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/loan_provider.dart';
+import '../shared/family_scope_selector.dart';
 import '../transaction/widgets/number_pad.dart';
 import 'loans_page.dart';
 
@@ -32,6 +33,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
   DateTime _startDate = DateTime.now();
   String? _accountId;
   bool _isSubmitting = false;
+  String? _scopeFamilyId; // null = personal, familyId = family
 
   // ── Commercial loan fields ──
   final _comRateController = TextEditingController();
@@ -121,6 +123,10 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
                 ),
 
                 const SizedBox(height: 20),
+                // ── 归属选择（个人/家庭）──
+                FamilyScopeSelector(
+                  onChanged: (fid) => _scopeFamilyId = fid,
+                ),
                 // ── 贷款名称 ──
                 _SectionTitle(title: '贷款名称', theme: theme),
                 const SizedBox(height: 8),
@@ -1029,6 +1035,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
           lprSpread: _comRateType == 'lpr_floating'
               ? _parseLprSpread(_comLprSpreadController)
               : null,
+          familyId: _scopeFamilyId,
         );
   }
 
@@ -1051,6 +1058,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
           startDate: _startDate,
           accountId: _accountId,
           rateType: 'fixed',
+          familyId: _scopeFamilyId,
         );
   }
 
@@ -1089,6 +1097,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
       paymentDay: _paymentDay,
       startDate: _startDate,
       accountId: _accountId,
+      familyId: _scopeFamilyId,
       subLoans: [
         SubLoanInput(
           name: '$name-公积金',
