@@ -199,7 +199,24 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
               : pbe.TransactionType.TRANSACTION_TYPE_EXPENSE
           ..note = note
           ..txnDate = _toTimestamp(txnDate0);
-        await _txnClient.createTransaction(req);
+        final resp = await _txnClient.createTransaction(req);
+        // Replace local id with server-assigned id to avoid duplicates
+        if (resp.hasTransaction() && resp.transaction.id.isNotEmpty && resp.transaction.id != id) {
+          await _db.hardDeleteTransaction(id);
+          await _db.insertTransaction(TransactionsCompanion.insert(
+            id: resp.transaction.id,
+            userId: _userId,
+            accountId: account.id,
+            categoryId: categoryId,
+            amount: amount,
+            amountCny: effectiveAmountCny,
+            type: type,
+            note: Value(note),
+            tags: Value(tags),
+            imageUrls: Value(imageUrls),
+            txnDate: txnDate ?? now,
+          ));
+        }
       }
     } catch (e) {
       // 服务端推送失败，加入同步队列
