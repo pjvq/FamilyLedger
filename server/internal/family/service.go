@@ -23,7 +23,7 @@ import (
 const (
 	inviteCodeLength  = 8
 	inviteCodeCharset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	inviteCodeTTL     = 24 * time.Hour
+	inviteCodeTTL     = 7 * 24 * time.Hour
 )
 
 // permissions is the JSON representation stored in the database.
