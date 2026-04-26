@@ -598,7 +598,7 @@ class AppDatabase extends _$AppDatabase {
       (select(families)..where((f) => f.id.equals(id))).getSingleOrNull();
 
   Future<int> insertFamily(FamiliesCompanion entry) =>
-      into(families).insert(entry);
+      into(families).insert(entry, mode: InsertMode.insertOrReplace);
 
   Future<bool> updateFamily(FamiliesCompanion entry) =>
       update(families).replace(entry);
@@ -617,7 +617,7 @@ class AppDatabase extends _$AppDatabase {
           .getSingleOrNull();
 
   Future<int> insertFamilyMember(FamilyMembersCompanion entry) =>
-      into(familyMembers).insert(entry);
+      into(familyMembers).insert(entry, mode: InsertMode.insertOrReplace);
 
   Future<void> updateFamilyMemberRole(String familyId, String userId, String role) async {
     await (update(familyMembers)
