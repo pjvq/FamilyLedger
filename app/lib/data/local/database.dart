@@ -461,13 +461,12 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Transaction>> getRecentTransactions(
       String userId, int limit, {String? familyId}) async {
     if (familyId != null && familyId.isNotEmpty) {
-      // Family mode: get family account IDs, then filter transactions
+      // Family mode: get family account IDs, then filter all transactions
       final familyAccounts = await getAccountsByFamily(familyId);
       final familyAccountIds = familyAccounts.map((a) => a.id).toSet();
       final rows = await (select(transactions)
-            ..where((t) => t.userId.equals(userId) & t.deletedAt.isNull())
-            ..orderBy([(t) => OrderingTerm.desc(t.txnDate)])
-            ..limit(limit * 2)) // fetch extra, filter in memory
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([(t) => OrderingTerm.desc(t.txnDate)]))
           .get();
       return rows
           .where((t) => familyAccountIds.contains(t.accountId))
@@ -550,13 +549,13 @@ class AppDatabase extends _$AppDatabase {
 
   Stream<List<Transaction>> watchTransactions(String userId, {String? familyId}) {
     if (familyId != null && familyId.isNotEmpty) {
-      // Family mode: only transactions from family accounts
+      // Family mode: all transactions from family accounts (all members)
       return customSelect(
         'SELECT t.* FROM transactions t '
         'JOIN accounts a ON a.id = t.account_id '
-        'WHERE t.user_id = ? AND t.deleted_at IS NULL AND a.family_id = ? '
+        'WHERE t.deleted_at IS NULL AND a.family_id = ? '
         'ORDER BY t.txn_date DESC',
-        variables: [Variable.withString(userId), Variable.withString(familyId)],
+        variables: [Variable.withString(familyId)],
         readsFrom: {transactions, accounts},
       ).watch().map((rows) => rows.map((row) {
         return transactions.map(row.data);
@@ -891,19 +890,22 @@ class AppDatabase extends _$AppDatabase {
         DateTime(year, month + 1, 1).subtract(const Duration(milliseconds: 1));
 
     // Use raw SQL to JOIN accounts for family filtering
-    final familyFilter = (familyId != null && familyId.isNotEmpty)
+    final isFamilyMode = familyId != null && familyId.isNotEmpty;
+    final familyFilter = isFamilyMode
         ? "AND a.family_id = '" + familyId.replaceAll("'", "''") + "'"
         : "AND (a.family_id IS NULL OR a.family_id = '')";
+    final userFilter = isFamilyMode ? '' : 'AND t.user_id = ?';
     final rows = await customSelect(
       'SELECT t.category_id, SUM(t.amount_cny) as total FROM transactions t '
       'JOIN accounts a ON a.id = t.account_id '
-      'WHERE t.user_id = ? AND t.type = \'expense\' '
+      'WHERE t.type = \'expense\' '
+      '$userFilter '
       'AND t.txn_date >= ? AND t.txn_date <= ? '
       'AND t.deleted_at IS NULL '
       '$familyFilter '
       'GROUP BY t.category_id',
       variables: [
-        Variable.withString(userId),
+        if (!isFamilyMode) Variable.withString(userId),
         Variable.withDateTime(startOfMonth),
         Variable.withDateTime(endOfMonth),
       ],
@@ -923,19 +925,22 @@ class AppDatabase extends _$AppDatabase {
     final endOfYear =
         DateTime(year + 1, 1, 1).subtract(const Duration(milliseconds: 1));
 
-    final familyFilter = (familyId != null && familyId.isNotEmpty)
+    final isFamilyMode = familyId != null && familyId.isNotEmpty;
+    final familyFilter = isFamilyMode
         ? "AND a.family_id = '" + familyId.replaceAll("'", "''") + "'"
         : "AND (a.family_id IS NULL OR a.family_id = '')";
+    final userFilter = isFamilyMode ? '' : 'AND t.user_id = ?';
     final rows = await customSelect(
       'SELECT t.category_id, SUM(t.amount_cny) as total FROM transactions t '
       'JOIN accounts a ON a.id = t.account_id '
-      'WHERE t.user_id = ? AND t.type = \'expense\' '
+      'WHERE t.type = \'expense\' '
+      '$userFilter '
       'AND t.txn_date >= ? AND t.txn_date <= ? '
       'AND t.deleted_at IS NULL '
       '$familyFilter '
       'GROUP BY t.category_id',
       variables: [
-        Variable.withString(userId),
+        if (!isFamilyMode) Variable.withString(userId),
         Variable.withDateTime(startOfYear),
         Variable.withDateTime(endOfYear),
       ],
