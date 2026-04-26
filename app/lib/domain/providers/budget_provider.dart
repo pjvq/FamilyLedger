@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
 import 'package:uuid/uuid.dart';
@@ -134,6 +135,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
         await _db.insertBudget(db.BudgetsCompanion.insert(
           id: b.id,
           userId: _userId,
+          familyId: Value(_familyId),
           year: b.year,
           month: b.month,
           totalAmount: b.totalAmount.toInt(),
@@ -306,6 +308,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       await _db.insertBudget(db.BudgetsCompanion.insert(
         id: b.id,
         userId: _userId,
+        familyId: Value(_familyId),
         year: b.year,
         month: b.month,
         totalAmount: b.totalAmount.toInt(),
@@ -327,6 +330,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       await _db.insertBudget(db.BudgetsCompanion.insert(
         id: id,
         userId: _userId,
+        familyId: Value(_familyId),
         year: year,
         month: month,
         totalAmount: totalAmount,
@@ -378,6 +382,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       await _db.insertBudget(db.BudgetsCompanion.insert(
         id: id,
         userId: _userId,
+        familyId: Value(_familyId),
         year: existing.year,
         month: existing.month,
         totalAmount: totalAmount ?? existing.totalAmount,
