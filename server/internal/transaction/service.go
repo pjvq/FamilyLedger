@@ -137,17 +137,29 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	}
 	defer tx.Rollback(ctx)
 
-	// Verify account belongs to user
+	// Verify account belongs to user or user is a family member
 	var ownerID uuid.UUID
+	var acctFamilyID *uuid.UUID
 	err = tx.QueryRow(ctx,
-		"SELECT user_id FROM accounts WHERE id = $1 AND deleted_at IS NULL",
+		"SELECT user_id, family_id FROM accounts WHERE id = $1 AND deleted_at IS NULL",
 		accountID,
-	).Scan(&ownerID)
+	).Scan(&ownerID, &acctFamilyID)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "account not found")
 	}
 	if ownerID != uid {
-		return nil, status.Error(codes.PermissionDenied, "account does not belong to user")
+		// For family accounts, check membership instead of ownership
+		if acctFamilyID == nil {
+			return nil, status.Error(codes.PermissionDenied, "account does not belong to user")
+		}
+		var isMember bool
+		err = tx.QueryRow(ctx,
+			"SELECT EXISTS(SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2)",
+			*acctFamilyID, uid,
+		).Scan(&isMember)
+		if err != nil || !isMember {
+			return nil, status.Error(codes.PermissionDenied, "account does not belong to user")
+		}
 	}
 
 	// Create transaction

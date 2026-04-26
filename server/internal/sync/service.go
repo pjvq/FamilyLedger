@@ -194,17 +194,28 @@ func (s *Service) applyTransactionCreate(ctx context.Context, tx pgx.Tx, userID 
 		return fmt.Errorf("invalid category_id in payload: %w", err)
 	}
 
-	// Verify account belongs to user
+	// Verify account belongs to user or user is a family member
 	var ownerID uuid.UUID
+	var syncFamilyID *uuid.UUID
 	err = tx.QueryRow(ctx,
-		"SELECT user_id FROM accounts WHERE id = $1 AND deleted_at IS NULL",
+		"SELECT user_id, family_id FROM accounts WHERE id = $1 AND deleted_at IS NULL",
 		accountID,
-	).Scan(&ownerID)
+	).Scan(&ownerID, &syncFamilyID)
 	if err != nil {
 		return fmt.Errorf("account not found: %w", err)
 	}
 	if ownerID != userID {
-		return fmt.Errorf("account %s does not belong to user", accountID)
+		if syncFamilyID == nil {
+			return fmt.Errorf("account %s does not belong to user", accountID)
+		}
+		var isMember bool
+		err = tx.QueryRow(ctx,
+			"SELECT EXISTS(SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2)",
+			*syncFamilyID, userID,
+		).Scan(&isMember)
+		if err != nil || !isMember {
+			return fmt.Errorf("account %s does not belong to user", accountID)
+		}
 	}
 
 	currency := p.Currency
