@@ -98,10 +98,11 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
   final db.AppDatabase _db;
   final BudgetServiceClient _client;
   final String? _userId;
+  final String _familyId;
   static final _callOpts = CallOptions(
       timeout: const Duration(seconds: 5));
 
-  BudgetNotifier(this._db, this._client, this._userId)
+  BudgetNotifier(this._db, this._client, this._userId, this._familyId)
       : super(const BudgetState()) {
     if (_userId != null) {
       loadCurrentMonth();
@@ -122,7 +123,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       print('[Budget] loadCurrentMonth: listBudgets gRPC...');
       final resp = await _client.listBudgets(
         pb.ListBudgetsRequest()
-          ..familyId = ''
+          ..familyId = _familyId
           ..year = year,
         options: _callOpts,
       );
@@ -284,7 +285,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       // Try gRPC first
       final resp = await _client.createBudget(
         pb.CreateBudgetRequest()
-          ..familyId = ''
+          ..familyId = _familyId
           ..year = year
           ..month = month
           ..totalAmount = Int64(totalAmount)
@@ -421,5 +422,6 @@ final budgetProvider =
   final database = ref.watch(databaseProvider);
   final client = ref.watch(budgetClientProvider);
   final userId = ref.watch(currentUserIdProvider);
-  return BudgetNotifier(database, client, userId);
+  final familyId = ref.watch(currentFamilyIdProvider) ?? '';
+  return BudgetNotifier(database, client, userId, familyId);
 });
