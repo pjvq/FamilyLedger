@@ -842,6 +842,7 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 
 	// Family filter: empty = personal accounts only, non-empty = family accounts
 	var familyID *uuid.UUID
+	log.Printf("ListTransactions: user=%s familyId=%q pageSize=%d", userID, req.FamilyId, req.PageSize)
 	if req.FamilyId != "" {
 		fid, err := uuid.Parse(req.FamilyId)
 		if err != nil {
@@ -959,6 +960,7 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 		nextPageToken = fmt.Sprintf("%d|%s", lastDate.UnixNano(), last.Id)
 	}
 
+	log.Printf("ListTransactions: returning %d transactions (total=%d)", len(transactions), totalCount)
 	return &pb.ListTransactionsResponse{
 		Transactions:  transactions,
 		NextPageToken: nextPageToken,
