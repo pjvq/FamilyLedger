@@ -194,10 +194,22 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           icon: Icons.pie_chart_outline_rounded,
           isExpanded: isExp,
           onToggle: () => _toggle(section),
-          trailing: ReorderableDragStartListener(
-            index: index,
-            child: Icon(Icons.drag_handle_rounded, size: 20,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _PeriodToggle(
+                period: dashState.categoryBreakdownPeriod,
+                onChanged: (p) => ref
+                    .read(dashboardProvider.notifier)
+                    .loadCategoryBreakdownByPeriod(p),
+              ),
+              const SizedBox(width: 4),
+              ReorderableDragStartListener(
+                index: index,
+                child: Icon(Icons.drag_handle_rounded, size: 20,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+              ),
+            ],
           ),
           child: RepaintBoundary(
             child: _CategoryPieChart(

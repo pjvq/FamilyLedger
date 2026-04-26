@@ -836,6 +836,26 @@ class AppDatabase extends _$AppDatabase {
     return map;
   }
 
+  Future<Map<String, int>> getYearCategoryExpenses(
+      String userId, int year) async {
+    final startOfYear = DateTime(year, 1, 1);
+    final endOfYear =
+        DateTime(year + 1, 1, 1).subtract(const Duration(milliseconds: 1));
+    final rows = await (select(transactions)
+          ..where((t) =>
+              t.userId.equals(userId) &
+              t.type.equals('expense') &
+              t.txnDate.isBiggerOrEqualValue(startOfYear) &
+              t.txnDate.isSmallerOrEqualValue(endOfYear) &
+              t.deletedAt.isNull()))
+        .get();
+    final map = <String, int>{};
+    for (final t in rows) {
+      map[t.categoryId] = (map[t.categoryId] ?? 0) + t.amountCny;
+    }
+    return map;
+  }
+
   // ---- Notification CRUD ----
 
   Future<int> insertNotification(NotificationsCompanion entry) =>

@@ -105,6 +105,7 @@ class DashboardState {
   final bool isLoading;
   final String? error;
   final String trendPeriod; // 'monthly' | 'yearly'
+  final String categoryBreakdownPeriod; // 'monthly' | 'yearly'
 
   const DashboardState({
     this.netWorth = const NetWorthData(),
@@ -117,6 +118,7 @@ class DashboardState {
     this.isLoading = false,
     this.error,
     this.trendPeriod = 'monthly',
+    this.categoryBreakdownPeriod = 'monthly',
   });
 
   DashboardState copyWith({
@@ -130,6 +132,7 @@ class DashboardState {
     bool? isLoading,
     String? error,
     String? trendPeriod,
+    String? categoryBreakdownPeriod,
     bool clearError = false,
   }) =>
       DashboardState(
@@ -144,6 +147,8 @@ class DashboardState {
         isLoading: isLoading ?? this.isLoading,
         error: clearError ? null : (error ?? this.error),
         trendPeriod: trendPeriod ?? this.trendPeriod,
+        categoryBreakdownPeriod:
+            categoryBreakdownPeriod ?? this.categoryBreakdownPeriod,
       );
 }
 
@@ -388,6 +393,18 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     await _refreshCategoryBreakdownRemote(year, month, type);
   }
 
+  /// Load category breakdown with period toggle (monthly/yearly).
+  Future<void> loadCategoryBreakdownByPeriod(String period) async {
+    if (_userId == null) return;
+    final now = DateTime.now();
+    state = state.copyWith(categoryBreakdownPeriod: period);
+    if (period == 'yearly') {
+      await _computeLocalCategoryBreakdownYear(now.year);
+    } else {
+      await _computeLocalCategoryBreakdown(now.year, now.month);
+    }
+  }
+
   Future<void> _refreshCategoryBreakdownRemote(
       int year, int month, String type) async {
     if (_userId == null) return;
@@ -434,6 +451,16 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   Future<void> _computeLocalCategoryBreakdown(int year, int month) async {
     if (_userId == null) return;
     final expenses = await _db.getMonthCategoryExpenses(_userId, year, month);
+    await _aggregateCategoryBreakdown(expenses);
+  }
+
+  Future<void> _computeLocalCategoryBreakdownYear(int year) async {
+    if (_userId == null) return;
+    final expenses = await _db.getYearCategoryExpenses(_userId, year);
+    await _aggregateCategoryBreakdown(expenses);
+  }
+
+  Future<void> _aggregateCategoryBreakdown(Map<String, int> expenses) async {
     final categories = await _db.getAllCategories();
     final catMap = {for (final c in categories) c.id: c};
 
