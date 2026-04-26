@@ -80,27 +80,27 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
     try {
       final budgetState = ref.read(budgetProvider);
       final now = DateTime.now();
+      final notifier = ref.read(budgetProvider.notifier);
+
+      // Pop immediately for responsive UX, then update in background
+      if (mounted) Navigator.of(context).pop();
 
       if (budgetState.currentBudget != null) {
-        await ref.read(budgetProvider.notifier).updateBudget(
+        await notifier.updateBudget(
               id: budgetState.currentBudget!.id,
               totalAmount: totalCents,
               categoryBudgets: categoryBudgets,
             );
       } else {
-        await ref.read(budgetProvider.notifier).createBudget(
+        await notifier.createBudget(
               year: now.year,
               month: now.month,
               totalAmount: totalCents,
               categoryBudgets: categoryBudgets,
             );
       }
-
-      if (mounted) Navigator.of(context).pop();
     } catch (_) {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+      // Already popped; error handled by provider
     }
   }
 
