@@ -949,9 +949,9 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('owner@test.com'), findsOneWidget);
-      expect(find.text('admin@test.com'), findsOneWidget);
-      expect(find.text('member@test.com'), findsOneWidget);
+      expect(find.text('owner'), findsOneWidget);
+      expect(find.text('admin'), findsOneWidget);
+      expect(find.text('member'), findsOneWidget);
       expect(find.text('创建者'), findsOneWidget);
       expect(find.text('管理员'), findsOneWidget);
       expect(find.text('成员'), findsOneWidget);
@@ -1012,7 +1012,7 @@ void main() {
       expect(find.byIcon(Icons.settings_rounded), findsOneWidget);
 
       // Tap the manageable member
-      await tester.tap(find.text('member@test.com'));
+      await tester.tap(find.text('member'));
       await tester.pumpAndSettle();
 
       // Bottom sheet should appear with management options
@@ -1054,7 +1054,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('target@test.com'));
+      await tester.tap(find.text('target'));
       await tester.pumpAndSettle();
 
       // SegmentedButton with admin/member

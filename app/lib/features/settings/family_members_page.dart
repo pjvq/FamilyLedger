@@ -133,7 +133,7 @@ class _MemberTile extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  member.email.isNotEmpty ? member.email : member.userId,
+                  _displayName(member),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -171,6 +171,18 @@ class _MemberTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _displayName(FamilyMember m) {
+    if (m.email.isNotEmpty) {
+      // Show part before @ as display name
+      final atIndex = m.email.indexOf('@');
+      if (atIndex > 0) return m.email.substring(0, atIndex);
+      return m.email;
+    }
+    // Truncate UUID to first 8 chars for readability
+    if (m.userId.length > 8) return m.userId.substring(0, 8);
+    return m.userId;
   }
 
   String _avatarText(FamilyMember m) {

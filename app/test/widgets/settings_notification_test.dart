@@ -456,8 +456,8 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('alice@example.com'), findsOneWidget);
-      expect(find.text('bob@example.com'), findsOneWidget);
+      expect(find.text('alice'), findsOneWidget);
+      expect(find.text('bob'), findsOneWidget);
       expect(find.text('创建者'), findsOneWidget);
       expect(find.text('成员'), findsOneWidget);
       expect(find.text('(我)'), findsOneWidget);
