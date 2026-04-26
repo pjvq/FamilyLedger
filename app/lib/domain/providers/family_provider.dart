@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as dev;
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
 import 'package:drift/drift.dart';
+import 'package:grpc/grpc.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/local/database.dart';
 import '../../data/remote/grpc_clients.dart';
@@ -53,6 +54,7 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
   final String _userId;
   final pb.FamilyServiceClient? _familyClient;
   final _uuid = const Uuid();
+  static final _callOpts = CallOptions(timeout: const Duration(seconds: 5));
 
   FamilyNotifier(this._db, this._userId, this._familyClient)
       : super(const FamilyState()) {
@@ -118,6 +120,7 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
         try {
           final resp = await _familyClient.createFamily(
             pb_model.CreateFamilyRequest()..name = name,
+            options: _callOpts,
           );
           final family = resp.family;
           // Save to local DB
@@ -177,6 +180,7 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
         try {
           final resp = await _familyClient.joinFamily(
             pb_model.JoinFamilyRequest()..inviteCode = inviteCode,
+            options: _callOpts,
           );
           final family = resp.family;
           // Save to local
@@ -196,6 +200,7 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
           try {
             final membersResp = await _familyClient.listFamilyMembers(
               pb_model.ListFamilyMembersRequest()..familyId = family.id,
+              options: _callOpts,
             );
             for (final m in membersResp.members) {
               if (m.userId == _userId) continue; // skip self, already added
@@ -232,6 +237,7 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
         try {
           final resp = await _familyClient.generateInviteCode(
             pb_model.GenerateInviteCodeRequest()..familyId = family.id,
+            options: _callOpts,
           );
           // Update local family
           final expiresAt = resp.hasExpiresAt()
@@ -282,6 +288,7 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
               ..familyId = family.id
               ..userId = targetUserId
               ..role = _stringToProtoRole(role),
+            options: _callOpts,
           );
         } catch (e) {
           dev.log('FamilyNotifier: gRPC setMemberRole failed: $e',
@@ -319,6 +326,7 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
                 ..canEdit = canEdit
                 ..canDelete = canDelete
                 ..canManageAccounts = canManageAccounts),
+            options: _callOpts,
           );
         } catch (e) {
           dev.log('FamilyNotifier: gRPC setMemberPermissions failed: $e',
@@ -350,6 +358,7 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
         try {
           await _familyClient.leaveFamily(
             pb_model.LeaveFamilyRequest()..familyId = family.id,
+            options: _callOpts,
           );
         } catch (e) {
           dev.log('FamilyNotifier: gRPC leaveFamily failed: $e',
@@ -377,6 +386,7 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
       try {
         final resp = await _familyClient.listFamilyMembers(
           pb_model.ListFamilyMembersRequest()..familyId = family.id,
+          options: _callOpts,
         );
         // Clear and re-insert
         await _db.deleteAllFamilyMembers(family.id);
