@@ -668,7 +668,7 @@ class AppDatabase extends _$AppDatabase {
       (select(accounts)..where((a) => a.familyId.equals(familyId) & a.isActive.equals(true))).get();
 
   Future<List<Account>> getActiveAccounts(String userId) =>
-      (select(accounts)..where((a) => a.userId.equals(userId) & a.isActive.equals(true))).get();
+      (select(accounts)..where((a) => a.userId.equals(userId) & a.isActive.equals(true) & (a.familyId.equals('') | a.familyId.isNull()))).get();
 
   Future<Account?> getAccountById(String accountId) =>
       (select(accounts)..where((a) => a.id.equals(accountId))).getSingleOrNull();
