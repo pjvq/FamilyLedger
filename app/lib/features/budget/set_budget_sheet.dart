@@ -77,25 +77,31 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
 
     setState(() => _isSaving = true);
 
-    final budgetState = ref.read(budgetProvider);
-    final now = DateTime.now();
+    try {
+      final budgetState = ref.read(budgetProvider);
+      final now = DateTime.now();
 
-    if (budgetState.currentBudget != null) {
-      await ref.read(budgetProvider.notifier).updateBudget(
-            id: budgetState.currentBudget!.id,
-            totalAmount: totalCents,
-            categoryBudgets: categoryBudgets,
-          );
-    } else {
-      await ref.read(budgetProvider.notifier).createBudget(
-            year: now.year,
-            month: now.month,
-            totalAmount: totalCents,
-            categoryBudgets: categoryBudgets,
-          );
+      if (budgetState.currentBudget != null) {
+        await ref.read(budgetProvider.notifier).updateBudget(
+              id: budgetState.currentBudget!.id,
+              totalAmount: totalCents,
+              categoryBudgets: categoryBudgets,
+            );
+      } else {
+        await ref.read(budgetProvider.notifier).createBudget(
+              year: now.year,
+              month: now.month,
+              totalAmount: totalCents,
+              categoryBudgets: categoryBudgets,
+            );
+      }
+
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
-
-    if (mounted) Navigator.of(context).pop();
   }
 
   @override

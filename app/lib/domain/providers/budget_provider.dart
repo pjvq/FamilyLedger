@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:grpc/grpc.dart';
 import 'package:uuid/uuid.dart';
 import 'package:fixnum/fixnum.dart';
 import '../../data/local/database.dart' as db;
@@ -97,6 +98,8 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
   final db.AppDatabase _db;
   final BudgetServiceClient _client;
   final String? _userId;
+  static final _callOpts = CallOptions(
+      timeout: const Duration(seconds: 5));
 
   BudgetNotifier(this._db, this._client, this._userId)
       : super(const BudgetState()) {
@@ -119,6 +122,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
         pb.ListBudgetsRequest()
           ..familyId = ''
           ..year = year,
+        options: _callOpts,
       );
 
       // Cache all budgets locally
@@ -154,6 +158,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
         try {
           final execResp = await _client.getBudgetExecution(
             pb.GetBudgetExecutionRequest()..budgetId = current.id,
+            options: _callOpts,
           );
           final exec = execResp.execution;
           state = state.copyWith(
@@ -279,6 +284,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
               ..categoryId = cb.categoryId
               ..amount = Int64(cb.amount)),
           ),
+        options: _callOpts,
       );
 
       final b = resp.budget;
@@ -344,7 +350,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
             ..amount = Int64(cb.amount)),
         );
       }
-      await _client.updateBudget(req);
+      await _client.updateBudget(req, options: _callOpts);
     } catch (_) {
       // Offline update
     }
@@ -381,7 +387,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _client.deleteBudget(pb.DeleteBudgetRequest()..budgetId = id);
+      await _client.deleteBudget(pb.DeleteBudgetRequest()..budgetId = id, options: _callOpts);
     } catch (_) {
       // offline
     }
