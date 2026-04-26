@@ -1127,9 +1127,17 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     if (byName != null) return byName;
 
     // Also check DB directly (in case _allCategories was stale)
-    final dbExisting = await (database.select(database.categories)
+    // First try top-level, then any match (including subcategories) to avoid
+    // creating a duplicate top-level category when a subcategory already exists.
+    var dbExisting = await (database.select(database.categories)
           ..where((c) => c.name.equals(name))
+          ..where((c) => c.type.equals(type))
           ..where((c) => c.parentId.isNull())
+          ..limit(1))
+        .getSingleOrNull();
+    dbExisting ??= await (database.select(database.categories)
+          ..where((c) => c.name.equals(name))
+          ..where((c) => c.type.equals(type))
           ..limit(1))
         .getSingleOrNull();
     if (dbExisting != null) {

@@ -132,9 +132,42 @@ class AppDatabase extends _$AppDatabase {
           ..where((c) => c.deletedAt.isNull()))
         .get();
 
-    // Group by (name, type, parentId)
-    final groups = <String, List<Category>>{};
+    // Phase 1: Merge orphan top-level categories into existing subcategories.
+    // e.g. import created "衣服" (parentId=null, iconKey='') but seed already
+    // has "衣服" as a child of "服饰" (parentId!=null, iconKey='clothing_clothes').
+    // Move transactions from the orphan to the real subcategory, then delete orphan.
+    final byNameType = <String, List<Category>>{};
     for (final c in allCats) {
+      byNameType.putIfAbsent('${c.name}|${c.type}', () => []).add(c);
+    }
+    for (final group in byNameType.values) {
+      if (group.length < 2) continue;
+      final orphans = group.where((c) => c.parentId == null && !c.isPreset).toList();
+      final subs = group.where((c) => c.parentId != null).toList();
+      if (orphans.isEmpty || subs.isEmpty) continue;
+      // Prefer preset subcategory as keeper
+      subs.sort((a, b) {
+        if (a.isPreset && !b.isPreset) return -1;
+        if (!a.isPreset && b.isPreset) return 1;
+        return a.sortOrder.compareTo(b.sortOrder);
+      });
+      final keeper = subs.first;
+      for (final orphan in orphans) {
+        await (update(transactions)..where((t) => t.categoryId.equals(orphan.id)))
+            .write(TransactionsCompanion(categoryId: Value(keeper.id)));
+        await (update(categories)..where((c) => c.parentId.equals(orphan.id)))
+            .write(CategoriesCompanion(parentId: Value(keeper.id)));
+        await (delete(categories)..where((c) => c.id.equals(orphan.id))).go();
+      }
+    }
+
+    // Phase 2: Standard dedup — same (name, type, parentId)
+    // Re-fetch after Phase 1 mutations
+    final remaining = await (select(categories)
+          ..where((c) => c.deletedAt.isNull()))
+        .get();
+    final groups = <String, List<Category>>{};
+    for (final c in remaining) {
       final key = '${c.name}|${c.type}|${c.parentId ?? ""}';
       groups.putIfAbsent(key, () => []).add(c);
     }
