@@ -53,6 +53,14 @@ class FamilyServiceClient extends $grpc.Client {
       '/familyledger.family.v1.FamilyService/LeaveFamily',
       ($0.LeaveFamilyRequest value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $0.LeaveFamilyResponse.fromBuffer(value));
+  static final _$transferOwnership = $grpc.ClientMethod<$0.TransferOwnershipRequest, $0.TransferOwnershipResponse>(
+      '/familyledger.family.v1.FamilyService/TransferOwnership',
+      ($0.TransferOwnershipRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.TransferOwnershipResponse.fromBuffer(value));
+  static final _$deleteFamily = $grpc.ClientMethod<$0.DeleteFamilyRequest, $0.DeleteFamilyResponse>(
+      '/familyledger.family.v1.FamilyService/DeleteFamily',
+      ($0.DeleteFamilyRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.DeleteFamilyResponse.fromBuffer(value));
 
   FamilyServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -90,6 +98,14 @@ class FamilyServiceClient extends $grpc.Client {
 
   $grpc.ResponseFuture<$0.LeaveFamilyResponse> leaveFamily($0.LeaveFamilyRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$leaveFamily, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.TransferOwnershipResponse> transferOwnership($0.TransferOwnershipRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$transferOwnership, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.DeleteFamilyResponse> deleteFamily($0.DeleteFamilyRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$deleteFamily, request, options: options);
   }
 }
 
@@ -154,6 +170,20 @@ abstract class FamilyServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.LeaveFamilyRequest.fromBuffer(value),
         ($0.LeaveFamilyResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.TransferOwnershipRequest, $0.TransferOwnershipResponse>(
+        'TransferOwnership',
+        transferOwnership_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.TransferOwnershipRequest.fromBuffer(value),
+        ($0.TransferOwnershipResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.DeleteFamilyRequest, $0.DeleteFamilyResponse>(
+        'DeleteFamily',
+        deleteFamily_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.DeleteFamilyRequest.fromBuffer(value),
+        ($0.DeleteFamilyResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.CreateFamilyResponse> createFamily_Pre($grpc.ServiceCall call, $async.Future<$0.CreateFamilyRequest> request) async {
@@ -188,6 +218,14 @@ abstract class FamilyServiceBase extends $grpc.Service {
     return leaveFamily(call, await request);
   }
 
+  $async.Future<$0.TransferOwnershipResponse> transferOwnership_Pre($grpc.ServiceCall call, $async.Future<$0.TransferOwnershipRequest> request) async {
+    return transferOwnership(call, await request);
+  }
+
+  $async.Future<$0.DeleteFamilyResponse> deleteFamily_Pre($grpc.ServiceCall call, $async.Future<$0.DeleteFamilyRequest> request) async {
+    return deleteFamily(call, await request);
+  }
+
   $async.Future<$0.CreateFamilyResponse> createFamily($grpc.ServiceCall call, $0.CreateFamilyRequest request);
   $async.Future<$0.JoinFamilyResponse> joinFamily($grpc.ServiceCall call, $0.JoinFamilyRequest request);
   $async.Future<$0.GetFamilyResponse> getFamily($grpc.ServiceCall call, $0.GetFamilyRequest request);
@@ -196,4 +234,6 @@ abstract class FamilyServiceBase extends $grpc.Service {
   $async.Future<$0.SetMemberPermissionsResponse> setMemberPermissions($grpc.ServiceCall call, $0.SetMemberPermissionsRequest request);
   $async.Future<$0.ListFamilyMembersResponse> listFamilyMembers($grpc.ServiceCall call, $0.ListFamilyMembersRequest request);
   $async.Future<$0.LeaveFamilyResponse> leaveFamily($grpc.ServiceCall call, $0.LeaveFamilyRequest request);
+  $async.Future<$0.TransferOwnershipResponse> transferOwnership($grpc.ServiceCall call, $0.TransferOwnershipRequest request);
+  $async.Future<$0.DeleteFamilyResponse> deleteFamily($grpc.ServiceCall call, $0.DeleteFamilyRequest request);
 }

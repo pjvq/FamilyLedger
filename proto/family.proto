@@ -15,6 +15,8 @@ service FamilyService {
   rpc SetMemberPermissions(SetMemberPermissionsRequest) returns (SetMemberPermissionsResponse);
   rpc ListFamilyMembers(ListFamilyMembersRequest) returns (ListFamilyMembersResponse);
   rpc LeaveFamily(LeaveFamilyRequest) returns (LeaveFamilyResponse);
+  rpc TransferOwnership(TransferOwnershipRequest) returns (TransferOwnershipResponse);
+  rpc DeleteFamily(DeleteFamilyRequest) returns (DeleteFamilyResponse);
 }
 
 enum FamilyRole {
@@ -122,3 +124,18 @@ message LeaveFamilyRequest {
 }
 
 message LeaveFamilyResponse {}
+
+// TransferOwnership
+message TransferOwnershipRequest {
+  string family_id = 1;
+  string new_owner_id = 2;
+}
+
+message TransferOwnershipResponse {}
+
+// DeleteFamily
+message DeleteFamilyRequest {
+  string family_id = 1;
+}
+
+message DeleteFamilyResponse {}

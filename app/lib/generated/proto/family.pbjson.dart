@@ -294,3 +294,47 @@ const LeaveFamilyResponse$json = {
 final $typed_data.Uint8List leaveFamilyResponseDescriptor = $convert.base64Decode(
     'ChNMZWF2ZUZhbWlseVJlc3BvbnNl');
 
+@$core.Deprecated('Use transferOwnershipRequestDescriptor instead')
+const TransferOwnershipRequest$json = {
+  '1': 'TransferOwnershipRequest',
+  '2': [
+    {'1': 'family_id', '3': 1, '4': 1, '5': 9, '10': 'familyId'},
+    {'1': 'new_owner_id', '3': 2, '4': 1, '5': 9, '10': 'newOwnerId'},
+  ],
+};
+
+/// Descriptor for `TransferOwnershipRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List transferOwnershipRequestDescriptor = $convert.base64Decode(
+    'ChhUcmFuc2Zlck93bmVyc2hpcFJlcXVlc3QSGwoJZmFtaWx5X2lkGAEgASgJUghmYW1pbHlJZB'
+    'IgCgxuZXdfb3duZXJfaWQYAiABKAlSCm5ld093bmVySWQ=');
+
+@$core.Deprecated('Use transferOwnershipResponseDescriptor instead')
+const TransferOwnershipResponse$json = {
+  '1': 'TransferOwnershipResponse',
+};
+
+/// Descriptor for `TransferOwnershipResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List transferOwnershipResponseDescriptor = $convert.base64Decode(
+    'ChlUcmFuc2Zlck93bmVyc2hpcFJlc3BvbnNl');
+
+@$core.Deprecated('Use deleteFamilyRequestDescriptor instead')
+const DeleteFamilyRequest$json = {
+  '1': 'DeleteFamilyRequest',
+  '2': [
+    {'1': 'family_id', '3': 1, '4': 1, '5': 9, '10': 'familyId'},
+  ],
+};
+
+/// Descriptor for `DeleteFamilyRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteFamilyRequestDescriptor = $convert.base64Decode(
+    'ChNEZWxldGVGYW1pbHlSZXF1ZXN0EhsKCWZhbWlseV9pZBgBIAEoCVIIZmFtaWx5SWQ=');
+
+@$core.Deprecated('Use deleteFamilyResponseDescriptor instead')
+const DeleteFamilyResponse$json = {
+  '1': 'DeleteFamilyResponse',
+};
+
+/// Descriptor for `DeleteFamilyResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteFamilyResponseDescriptor = $convert.base64Decode(
+    'ChREZWxldGVGYW1pbHlSZXNwb25zZQ==');
+

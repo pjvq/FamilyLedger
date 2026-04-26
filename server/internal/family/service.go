@@ -524,6 +524,124 @@ func (s *Service) LeaveFamily(ctx context.Context, req *pb.LeaveFamilyRequest) (
 	return &pb.LeaveFamilyResponse{}, nil
 }
 
+func (s *Service) TransferOwnership(ctx context.Context, req *pb.TransferOwnershipRequest) (*pb.TransferOwnershipResponse, error) {
+	callerID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.FamilyId == "" || req.NewOwnerId == "" {
+		return nil, status.Error(codes.InvalidArgument, "family_id and new_owner_id are required")
+	}
+
+	familyID, err := uuid.Parse(req.FamilyId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid family_id")
+	}
+
+	newOwnerUID, err := uuid.Parse(req.NewOwnerId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid new_owner_id")
+	}
+
+	if err := s.requireRole(ctx, familyID, callerID, "owner"); err != nil {
+		return nil, err
+	}
+
+	callerUID, _ := uuid.Parse(callerID)
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to begin transaction")
+	}
+	defer tx.Rollback(ctx)
+
+	var exists bool
+	err = tx.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2)`,
+		familyID, newOwnerUID,
+	).Scan(&exists)
+	if err != nil || !exists {
+		return nil, status.Error(codes.NotFound, "new owner is not a member of this family")
+	}
+
+	_, err = tx.Exec(ctx,
+		`UPDATE family_members SET role = 'admin' WHERE family_id = $1 AND user_id = $2`,
+		familyID, callerUID,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to demote current owner")
+	}
+
+	ownerPerms := ownerPermissions()
+	permsJSON, _ := json.Marshal(ownerPerms)
+	_, err = tx.Exec(ctx,
+		`UPDATE family_members SET role = 'owner', permissions = $1 WHERE family_id = $2 AND user_id = $3`,
+		permsJSON, familyID, newOwnerUID,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to promote new owner")
+	}
+
+	_, err = tx.Exec(ctx,
+		`UPDATE families SET owner_id = $1, updated_at = NOW() WHERE id = $2`,
+		newOwnerUID, familyID,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to update family owner")
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, status.Error(codes.Internal, "failed to commit")
+	}
+
+	log.Printf("family: ownership transferred from %s to %s in family %s", callerID, req.NewOwnerId, req.FamilyId)
+	return &pb.TransferOwnershipResponse{}, nil
+}
+
+func (s *Service) DeleteFamily(ctx context.Context, req *pb.DeleteFamilyRequest) (*pb.DeleteFamilyResponse, error) {
+	callerID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.FamilyId == "" {
+		return nil, status.Error(codes.InvalidArgument, "family_id is required")
+	}
+
+	familyID, err := uuid.Parse(req.FamilyId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid family_id")
+	}
+
+	if err := s.requireRole(ctx, familyID, callerID, "owner"); err != nil {
+		return nil, err
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to begin transaction")
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, `DELETE FROM family_members WHERE family_id = $1`, familyID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to delete members")
+	}
+
+	_, err = tx.Exec(ctx, `DELETE FROM families WHERE id = $1`, familyID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to delete family")
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, status.Error(codes.Internal, "failed to commit")
+	}
+
+	log.Printf("family: deleted family %s by owner %s", req.FamilyId, callerID)
+	return &pb.DeleteFamilyResponse{}, nil
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 func (s *Service) requireMembership(ctx context.Context, familyID uuid.UUID, userID string) error {
