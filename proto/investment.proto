@@ -128,6 +128,7 @@ message GetInvestmentRequest {
 
 message ListInvestmentsRequest {
     MarketType market_type = 1;    // optional filter
+    string family_id = 2;
 }
 
 message ListInvestmentsResponse {

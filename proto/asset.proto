@@ -84,6 +84,7 @@ message GetAssetRequest {
 
 message ListAssetsRequest {
     AssetType asset_type = 1;  // optional filter
+    string family_id = 2;
 }
 
 message ListAssetsResponse {

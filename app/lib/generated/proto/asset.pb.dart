@@ -620,10 +620,14 @@ class GetAssetRequest extends $pb.GeneratedMessage {
 class ListAssetsRequest extends $pb.GeneratedMessage {
   factory ListAssetsRequest({
     AssetType? assetType,
+    $core.String? familyId,
   }) {
     final $result = create();
     if (assetType != null) {
       $result.assetType = assetType;
+    }
+    if (familyId != null) {
+      $result.familyId = familyId;
     }
     return $result;
   }
@@ -633,6 +637,7 @@ class ListAssetsRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListAssetsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.asset.v1'), createEmptyInstance: create)
     ..e<AssetType>(1, _omitFieldNames ? '' : 'assetType', $pb.PbFieldType.OE, defaultOrMaker: AssetType.ASSET_TYPE_UNSPECIFIED, valueOf: AssetType.valueOf, enumValues: AssetType.values)
+    ..aOS(2, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -665,6 +670,15 @@ class ListAssetsRequest extends $pb.GeneratedMessage {
   $core.bool hasAssetType() => $_has(0);
   @$pb.TagNumber(1)
   void clearAssetType() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get familyId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set familyId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFamilyId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFamilyId() => clearField(2);
 }
 
 class ListAssetsResponse extends $pb.GeneratedMessage {

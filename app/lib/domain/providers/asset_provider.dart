@@ -205,11 +205,16 @@ class AssetNotifier extends StateNotifier<AssetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final resp = await _assetClient.listAssets(pb.ListAssetsRequest());
+      final assetReq = pb.ListAssetsRequest();
+      if (_familyId != null && _familyId.isNotEmpty) {
+        assetReq.familyId = _familyId;
+      }
+      final resp = await _assetClient.listAssets(assetReq);
       for (final asset in resp.assets) {
         await _db.upsertFixedAsset(db.FixedAssetsCompanion.insert(
           id: asset.id,
           userId: asset.userId,
+          familyId: Value(asset.familyId),
           name: asset.name,
           assetType: Value(_assetTypeToString(asset.assetType)),
           purchasePrice: asset.purchasePrice.toInt(),
@@ -298,7 +303,8 @@ class AssetNotifier extends StateNotifier<AssetState> {
         ..assetType = _stringToAssetType(assetType)
         ..purchasePrice = Int64(purchasePrice)
         ..purchaseDate = _toTimestamp(purchaseDate)
-        ..description = description ?? '');
+        ..description = description ?? ''
+        ..familyId = familyId ?? '');
       assetId = resp.id;
 
       await _db.upsertFixedAsset(db.FixedAssetsCompanion.insert(

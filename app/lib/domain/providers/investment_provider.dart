@@ -166,12 +166,17 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
+      final invReq = pb.ListInvestmentsRequest();
+      if (_familyId != null && _familyId.isNotEmpty) {
+        invReq.familyId = _familyId;
+      }
       final resp =
-          await _investmentClient.listInvestments(pb.ListInvestmentsRequest());
+          await _investmentClient.listInvestments(invReq);
       for (final inv in resp.investments) {
         await _db.upsertInvestment(db.InvestmentsCompanion.insert(
           id: inv.id,
           userId: inv.userId,
+          familyId: Value(inv.familyId),
           symbol: inv.symbol,
           name: inv.name,
           marketType: _marketTypeToString(inv.marketType),
@@ -213,7 +218,8 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
           await _investmentClient.createInvestment(pb.CreateInvestmentRequest()
             ..symbol = symbol
             ..name = name
-            ..marketType = _stringToMarketType(marketType));
+            ..marketType = _stringToMarketType(marketType)
+            ..familyId = familyId ?? '');
       invId = resp.id;
 
       await _db.upsertInvestment(db.InvestmentsCompanion.insert(

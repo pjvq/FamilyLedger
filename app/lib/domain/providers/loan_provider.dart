@@ -585,7 +585,11 @@ class LoanNotifier extends StateNotifier<LoanState> {
 
     try {
       // gRPC first
-      final resp = await _client.listLoans(pb.ListLoansRequest());
+      final req = pb.ListLoansRequest();
+      if (_familyId != null && _familyId.isNotEmpty) {
+        req.familyId = _familyId;
+      }
+      final resp = await _client.listLoans(req);
       for (final loan in resp.loans) {
         await _db.upsertLoan(_loanFromProto(loan));
       }
@@ -605,7 +609,11 @@ class LoanNotifier extends StateNotifier<LoanState> {
     if (_userId == null) return;
 
     try {
-      final resp = await _client.listLoanGroups(pb.ListLoanGroupsRequest());
+      final grpReq = pb.ListLoanGroupsRequest();
+      if (_familyId != null && _familyId.isNotEmpty) {
+        grpReq.familyId = _familyId;
+      }
+      final resp = await _client.listLoanGroups(grpReq);
       for (final group in resp.groups) {
         await _db.upsertLoanGroup(db.LoanGroupsCompanion.insert(
           id: group.id,
@@ -642,6 +650,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     return db.LoansCompanion.insert(
       id: loan.id,
       userId: loan.userId,
+      familyId: Value(loan.familyId),
       name: loan.name,
       principal: loan.principal.toInt(),
       remainingPrincipal: loan.remainingPrincipal.toInt(),
@@ -719,7 +728,8 @@ class LoanNotifier extends StateNotifier<LoanState> {
         ..repaymentMethod = _stringToRepaymentMethod(repaymentMethod)
         ..paymentDay = paymentDay
         ..startDate = _toTimestamp(startDate)
-        ..accountId = accountId ?? '');
+        ..accountId = accountId ?? ''
+        ..familyId = familyId ?? '');
       loanId = resp.id;
       await _db.upsertLoan(_loanFromProto(resp));
     } catch (_) {
@@ -798,7 +808,8 @@ class LoanNotifier extends StateNotifier<LoanState> {
         ..paymentDay = paymentDay
         ..startDate = _toTimestamp(startDate)
         ..accountId = accountId ?? ''
-        ..loanType = _stringToLoanType(loanType);
+        ..loanType = _stringToLoanType(loanType)
+        ..familyId = familyId ?? '';
 
       for (final sub in subLoans) {
         req.subLoans.add(pb.SubLoanSpec()

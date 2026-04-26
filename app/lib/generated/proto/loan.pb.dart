@@ -878,12 +878,21 @@ class GetLoanRequest extends $pb.GeneratedMessage {
 }
 
 class ListLoansRequest extends $pb.GeneratedMessage {
-  factory ListLoansRequest() => create();
+  factory ListLoansRequest({
+    $core.String? familyId,
+  }) {
+    final $result = create();
+    if (familyId != null) {
+      $result.familyId = familyId;
+    }
+    return $result;
+  }
   ListLoansRequest._() : super();
   factory ListLoansRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ListLoansRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListLoansRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -907,6 +916,15 @@ class ListLoansRequest extends $pb.GeneratedMessage {
   @$core.pragma('dart2js:noInline')
   static ListLoansRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListLoansRequest>(create);
   static ListLoansRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get familyId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set familyId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasFamilyId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFamilyId() => clearField(1);
 }
 
 class ListLoansResponse extends $pb.GeneratedMessage {
@@ -1800,6 +1818,7 @@ class CreateLoanGroupRequest extends $pb.GeneratedMessage {
     $core.String? accountId,
     $core.Iterable<SubLoanSpec>? subLoans,
     LoanType? loanType,
+    $core.String? familyId,
   }) {
     final $result = create();
     if (name != null) {
@@ -1823,6 +1842,9 @@ class CreateLoanGroupRequest extends $pb.GeneratedMessage {
     if (loanType != null) {
       $result.loanType = loanType;
     }
+    if (familyId != null) {
+      $result.familyId = familyId;
+    }
     return $result;
   }
   CreateLoanGroupRequest._() : super();
@@ -1837,6 +1859,7 @@ class CreateLoanGroupRequest extends $pb.GeneratedMessage {
     ..aOS(5, _omitFieldNames ? '' : 'accountId')
     ..pc<SubLoanSpec>(6, _omitFieldNames ? '' : 'subLoans', $pb.PbFieldType.PM, subBuilder: SubLoanSpec.create)
     ..e<LoanType>(7, _omitFieldNames ? '' : 'loanType', $pb.PbFieldType.OE, defaultOrMaker: LoanType.LOAN_TYPE_UNSPECIFIED, valueOf: LoanType.valueOf, enumValues: LoanType.values)
+    ..aOS(8, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -1919,6 +1942,15 @@ class CreateLoanGroupRequest extends $pb.GeneratedMessage {
   $core.bool hasLoanType() => $_has(6);
   @$pb.TagNumber(7)
   void clearLoanType() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get familyId => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set familyId($core.String v) { $_setString(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasFamilyId() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearFamilyId() => clearField(8);
 }
 
 class GetLoanGroupRequest extends $pb.GeneratedMessage {
@@ -1972,12 +2004,21 @@ class GetLoanGroupRequest extends $pb.GeneratedMessage {
 }
 
 class ListLoanGroupsRequest extends $pb.GeneratedMessage {
-  factory ListLoanGroupsRequest() => create();
+  factory ListLoanGroupsRequest({
+    $core.String? familyId,
+  }) {
+    final $result = create();
+    if (familyId != null) {
+      $result.familyId = familyId;
+    }
+    return $result;
+  }
   ListLoanGroupsRequest._() : super();
   factory ListLoanGroupsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory ListLoanGroupsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListLoanGroupsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -2001,6 +2042,15 @@ class ListLoanGroupsRequest extends $pb.GeneratedMessage {
   @$core.pragma('dart2js:noInline')
   static ListLoanGroupsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListLoanGroupsRequest>(create);
   static ListLoanGroupsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get familyId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set familyId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasFamilyId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFamilyId() => clearField(1);
 }
 
 class ListLoanGroupsResponse extends $pb.GeneratedMessage {

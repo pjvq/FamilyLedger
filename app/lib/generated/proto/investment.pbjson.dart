@@ -237,13 +237,15 @@ const ListInvestmentsRequest$json = {
   '1': 'ListInvestmentsRequest',
   '2': [
     {'1': 'market_type', '3': 1, '4': 1, '5': 14, '6': '.familyledger.investment.v1.MarketType', '10': 'marketType'},
+    {'1': 'family_id', '3': 2, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
 
 /// Descriptor for `ListInvestmentsRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List listInvestmentsRequestDescriptor = $convert.base64Decode(
     'ChZMaXN0SW52ZXN0bWVudHNSZXF1ZXN0EkcKC21hcmtldF90eXBlGAEgASgOMiYuZmFtaWx5bG'
-    'VkZ2VyLmludmVzdG1lbnQudjEuTWFya2V0VHlwZVIKbWFya2V0VHlwZQ==');
+    'VkZ2VyLmludmVzdG1lbnQudjEuTWFya2V0VHlwZVIKbWFya2V0VHlwZRIbCglmYW1pbHlfaWQY'
+    'AiABKAlSCGZhbWlseUlk');
 
 @$core.Deprecated('Use listInvestmentsResponseDescriptor instead')
 const ListInvestmentsResponse$json = {

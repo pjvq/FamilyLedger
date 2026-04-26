@@ -124,7 +124,9 @@ message GetLoanRequest {
     string loan_id = 1;
 }
 
-message ListLoansRequest {}
+message ListLoansRequest {
+    string family_id = 1;
+}
 
 message ListLoansResponse {
     repeated Loan loans = 1;
@@ -204,13 +206,16 @@ message CreateLoanGroupRequest {
     string account_id = 5;
     repeated SubLoanSpec sub_loans = 6;
     LoanType loan_type = 7;        // 贷款大类（如房贷）
+    string family_id = 8;
 }
 
 message GetLoanGroupRequest {
     string group_id = 1;
 }
 
-message ListLoanGroupsRequest {}
+message ListLoanGroupsRequest {
+    string family_id = 1;
+}
 
 message ListLoanGroupsResponse {
     repeated LoanGroup groups = 1;

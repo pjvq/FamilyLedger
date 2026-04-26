@@ -160,13 +160,15 @@ const ListAssetsRequest$json = {
   '1': 'ListAssetsRequest',
   '2': [
     {'1': 'asset_type', '3': 1, '4': 1, '5': 14, '6': '.familyledger.asset.v1.AssetType', '10': 'assetType'},
+    {'1': 'family_id', '3': 2, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
 
 /// Descriptor for `ListAssetsRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List listAssetsRequestDescriptor = $convert.base64Decode(
     'ChFMaXN0QXNzZXRzUmVxdWVzdBI/Cgphc3NldF90eXBlGAEgASgOMiAuZmFtaWx5bGVkZ2VyLm'
-    'Fzc2V0LnYxLkFzc2V0VHlwZVIJYXNzZXRUeXBl');
+    'Fzc2V0LnYxLkFzc2V0VHlwZVIJYXNzZXRUeXBlEhsKCWZhbWlseV9pZBgCIAEoCVIIZmFtaWx5'
+    'SWQ=');
 
 @$core.Deprecated('Use listAssetsResponseDescriptor instead')
 const ListAssetsResponse$json = {

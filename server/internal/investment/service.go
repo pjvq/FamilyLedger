@@ -111,7 +111,18 @@ func (s *Service) ListInvestments(ctx context.Context, req *pb.ListInvestmentsRe
 	}
 
 	var rows pgx.Rows
-	if req.MarketType != pb.MarketType_MARKET_TYPE_UNSPECIFIED {
+	if req.FamilyId != "" {
+		rows, err = s.pool.Query(ctx,
+			`SELECT i.id, i.user_id, i.symbol, i.name, i.market_type, i.quantity, i.cost_basis,
+			        i.created_at, i.updated_at,
+			        mq.current_price
+			 FROM investments i
+			 LEFT JOIN market_quotes mq ON i.symbol = mq.symbol AND i.market_type = mq.market_type
+			 WHERE i.family_id = $1 AND i.deleted_at IS NULL
+			 ORDER BY i.created_at DESC`,
+			req.FamilyId,
+		)
+	} else if req.MarketType != pb.MarketType_MARKET_TYPE_UNSPECIFIED {
 		mt := marketTypeToString(req.MarketType)
 		rows, err = s.pool.Query(ctx,
 			`SELECT i.id, i.user_id, i.symbol, i.name, i.market_type, i.quantity, i.cost_basis,

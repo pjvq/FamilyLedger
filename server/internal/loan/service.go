@@ -127,15 +127,28 @@ func (s *Service) ListLoans(ctx context.Context, req *pb.ListLoansRequest) (*pb.
 		return nil, err
 	}
 
-	rows, err := s.pool.Query(ctx,
-		`SELECT id, user_id, name, loan_type, principal, remaining_principal,
-		        annual_rate, total_months, paid_months, repayment_method, payment_day,
-		        start_date, created_at, updated_at, account_id,
-		        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month
-		 FROM loans WHERE user_id = $1 AND deleted_at IS NULL
-		 ORDER BY created_at DESC`,
-		userID,
-	)
+	var rows pgx.Rows
+	if req.FamilyId != "" {
+		rows, err = s.pool.Query(ctx,
+			`SELECT id, user_id, name, loan_type, principal, remaining_principal,
+			        annual_rate, total_months, paid_months, repayment_method, payment_day,
+			        start_date, created_at, updated_at, account_id,
+			        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month
+			 FROM loans WHERE family_id = $1 AND deleted_at IS NULL
+			 ORDER BY created_at DESC`,
+			req.FamilyId,
+		)
+	} else {
+		rows, err = s.pool.Query(ctx,
+			`SELECT id, user_id, name, loan_type, principal, remaining_principal,
+			        annual_rate, total_months, paid_months, repayment_method, payment_day,
+			        start_date, created_at, updated_at, account_id,
+			        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month
+			 FROM loans WHERE user_id = $1 AND deleted_at IS NULL
+			 ORDER BY created_at DESC`,
+			userID,
+		)
+	}
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to query loans")
 	}
@@ -1316,13 +1329,24 @@ func (s *Service) ListLoanGroups(ctx context.Context, req *pb.ListLoanGroupsRequ
 		return nil, err
 	}
 
-	rows, err := s.pool.Query(ctx,
-		`SELECT id, name, group_type, total_principal, payment_day, start_date,
-		        account_id, created_at, updated_at
-		 FROM loan_groups WHERE user_id = $1 AND deleted_at IS NULL
-		 ORDER BY created_at DESC`,
-		userID,
-	)
+	var rows pgx.Rows
+	if req.FamilyId != "" {
+		rows, err = s.pool.Query(ctx,
+			`SELECT id, name, group_type, total_principal, payment_day, start_date,
+			        account_id, created_at, updated_at
+			 FROM loan_groups WHERE family_id = $1 AND deleted_at IS NULL
+			 ORDER BY created_at DESC`,
+			req.FamilyId,
+		)
+	} else {
+		rows, err = s.pool.Query(ctx,
+			`SELECT id, name, group_type, total_principal, payment_day, start_date,
+			        account_id, created_at, updated_at
+			 FROM loan_groups WHERE user_id = $1 AND deleted_at IS NULL
+			 ORDER BY created_at DESC`,
+			userID,
+		)
+	}
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to query loan groups")
 	}

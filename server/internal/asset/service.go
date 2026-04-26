@@ -135,7 +135,16 @@ func (s *Service) ListAssets(ctx context.Context, req *pb.ListAssetsRequest) (*p
 	}
 
 	var rows pgx.Rows
-	if req.AssetType != pb.AssetType_ASSET_TYPE_UNSPECIFIED {
+	if req.FamilyId != "" {
+		rows, err = s.pool.Query(ctx,
+			`SELECT id, user_id, name, asset_type, purchase_price, current_value,
+			        purchase_date, description, created_at, updated_at
+			 FROM fixed_assets
+			 WHERE family_id = $1 AND deleted_at IS NULL
+			 ORDER BY purchase_date DESC`,
+			req.FamilyId,
+		)
+	} else if req.AssetType != pb.AssetType_ASSET_TYPE_UNSPECIFIED {
 		at := assetTypeToString(req.AssetType)
 		rows, err = s.pool.Query(ctx,
 			`SELECT id, user_id, name, asset_type, purchase_price, current_value,

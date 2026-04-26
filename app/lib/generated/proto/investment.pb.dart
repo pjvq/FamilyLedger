@@ -1107,10 +1107,14 @@ class GetInvestmentRequest extends $pb.GeneratedMessage {
 class ListInvestmentsRequest extends $pb.GeneratedMessage {
   factory ListInvestmentsRequest({
     MarketType? marketType,
+    $core.String? familyId,
   }) {
     final $result = create();
     if (marketType != null) {
       $result.marketType = marketType;
+    }
+    if (familyId != null) {
+      $result.familyId = familyId;
     }
     return $result;
   }
@@ -1120,6 +1124,7 @@ class ListInvestmentsRequest extends $pb.GeneratedMessage {
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListInvestmentsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.investment.v1'), createEmptyInstance: create)
     ..e<MarketType>(1, _omitFieldNames ? '' : 'marketType', $pb.PbFieldType.OE, defaultOrMaker: MarketType.MARKET_TYPE_UNSPECIFIED, valueOf: MarketType.valueOf, enumValues: MarketType.values)
+    ..aOS(2, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -1152,6 +1157,15 @@ class ListInvestmentsRequest extends $pb.GeneratedMessage {
   $core.bool hasMarketType() => $_has(0);
   @$pb.TagNumber(1)
   void clearMarketType() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get familyId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set familyId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFamilyId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFamilyId() => clearField(2);
 }
 
 class ListInvestmentsResponse extends $pb.GeneratedMessage {

@@ -237,11 +237,14 @@ final $typed_data.Uint8List getLoanRequestDescriptor = $convert.base64Decode(
 @$core.Deprecated('Use listLoansRequestDescriptor instead')
 const ListLoansRequest$json = {
   '1': 'ListLoansRequest',
+  '2': [
+    {'1': 'family_id', '3': 1, '4': 1, '5': 9, '10': 'familyId'},
+  ],
 };
 
 /// Descriptor for `ListLoansRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List listLoansRequestDescriptor = $convert.base64Decode(
-    'ChBMaXN0TG9hbnNSZXF1ZXN0');
+    'ChBMaXN0TG9hbnNSZXF1ZXN0EhsKCWZhbWlseV9pZBgBIAEoCVIIZmFtaWx5SWQ=');
 
 @$core.Deprecated('Use listLoansResponseDescriptor instead')
 const ListLoansResponse$json = {
@@ -427,6 +430,7 @@ const CreateLoanGroupRequest$json = {
     {'1': 'account_id', '3': 5, '4': 1, '5': 9, '10': 'accountId'},
     {'1': 'sub_loans', '3': 6, '4': 3, '5': 11, '6': '.familyledger.loan.v1.SubLoanSpec', '10': 'subLoans'},
     {'1': 'loan_type', '3': 7, '4': 1, '5': 14, '6': '.familyledger.loan.v1.LoanType', '10': 'loanType'},
+    {'1': 'family_id', '3': 8, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
 
@@ -437,7 +441,8 @@ final $typed_data.Uint8List createLoanGroupRequestDescriptor = $convert.base64De
     'CnN0YXJ0X2RhdGUYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUglzdGFydERhdG'
     'USHQoKYWNjb3VudF9pZBgFIAEoCVIJYWNjb3VudElkEj4KCXN1Yl9sb2FucxgGIAMoCzIhLmZh'
     'bWlseWxlZGdlci5sb2FuLnYxLlN1YkxvYW5TcGVjUghzdWJMb2FucxI7Cglsb2FuX3R5cGUYBy'
-    'ABKA4yHi5mYW1pbHlsZWRnZXIubG9hbi52MS5Mb2FuVHlwZVIIbG9hblR5cGU=');
+    'ABKA4yHi5mYW1pbHlsZWRnZXIubG9hbi52MS5Mb2FuVHlwZVIIbG9hblR5cGUSGwoJZmFtaWx5'
+    'X2lkGAggASgJUghmYW1pbHlJZA==');
 
 @$core.Deprecated('Use getLoanGroupRequestDescriptor instead')
 const GetLoanGroupRequest$json = {
@@ -454,11 +459,14 @@ final $typed_data.Uint8List getLoanGroupRequestDescriptor = $convert.base64Decod
 @$core.Deprecated('Use listLoanGroupsRequestDescriptor instead')
 const ListLoanGroupsRequest$json = {
   '1': 'ListLoanGroupsRequest',
+  '2': [
+    {'1': 'family_id', '3': 1, '4': 1, '5': 9, '10': 'familyId'},
+  ],
 };
 
 /// Descriptor for `ListLoanGroupsRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List listLoanGroupsRequestDescriptor = $convert.base64Decode(
-    'ChVMaXN0TG9hbkdyb3Vwc1JlcXVlc3Q=');
+    'ChVMaXN0TG9hbkdyb3Vwc1JlcXVlc3QSGwoJZmFtaWx5X2lkGAEgASgJUghmYW1pbHlJZA==');
 
 @$core.Deprecated('Use listLoanGroupsResponseDescriptor instead')
 const ListLoanGroupsResponse$json = {
