@@ -836,6 +836,16 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 			return nil, status.Error(codes.InvalidArgument, "invalid family_id")
 		}
 		familyID = &fid
+
+		// Verify user is a member of this family
+		var isMember bool
+		err = s.pool.QueryRow(ctx,
+			`SELECT EXISTS(SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2)`,
+			fid, uid,
+		).Scan(&isMember)
+		if err != nil || !isMember {
+			return nil, status.Error(codes.PermissionDenied, "not a member of this family")
+		}
 	}
 
 	// Count total (only on first page — cursor present means not first page)
@@ -845,12 +855,12 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 			err = s.pool.QueryRow(ctx,
 				`SELECT COUNT(*) FROM transactions t
 				 JOIN accounts a ON a.id = t.account_id
-				 WHERE t.user_id = $1 AND t.deleted_at IS NULL
-				 AND a.family_id = $5
+				 WHERE t.deleted_at IS NULL
+				 AND a.family_id = $1
 				 AND ($2::uuid IS NULL OR t.account_id = $2)
 				 AND ($3::timestamptz IS NULL OR t.txn_date >= $3)
 				 AND ($4::timestamptz IS NULL OR t.txn_date <= $4)`,
-				uid, accountID, startDate, endDate, familyID,
+				familyID, accountID, startDate, endDate,
 			).Scan(&totalCount)
 		} else {
 			err = s.pool.QueryRow(ctx,
@@ -877,18 +887,18 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 			`SELECT t.id, t.user_id, t.account_id, t.category_id, t.amount, t.currency, t.amount_cny, t.exchange_rate, t.type, t.note, t.txn_date, t.created_at, t.updated_at, t.tags, t.image_urls
 			 FROM transactions t
 			 JOIN accounts a ON a.id = t.account_id
-			 WHERE t.user_id = $1 AND t.deleted_at IS NULL
-			 AND a.family_id = $8
-			 AND ($2::uuid IS NULL OR t.account_id = $2)
-			 AND ($3::timestamptz IS NULL OR t.txn_date >= $3)
-			 AND ($4::timestamptz IS NULL OR t.txn_date <= $4)
+			 WHERE t.deleted_at IS NULL
+			 AND a.family_id = $7
+			 AND ($1::uuid IS NULL OR t.account_id = $1)
+			 AND ($2::timestamptz IS NULL OR t.txn_date >= $2)
+			 AND ($3::timestamptz IS NULL OR t.txn_date <= $3)
 			 AND (
-			   $5::timestamptz IS NULL
-			   OR (t.txn_date, t.id) < ($5, $6)
+			   $4::timestamptz IS NULL
+			   OR (t.txn_date, t.id) < ($4, $5)
 			 )
 			 ORDER BY t.txn_date DESC, t.id DESC
-			 LIMIT $7`,
-			uid, accountID, startDate, endDate, cursorDate, cursorID, pageSize+1, familyID,
+			 LIMIT $6`,
+			accountID, startDate, endDate, cursorDate, cursorID, pageSize+1, familyID,
 		)
 	} else {
 		rows, err = s.pool.Query(ctx,
