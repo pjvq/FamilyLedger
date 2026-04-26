@@ -12,6 +12,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/app_providers.dart';
+import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
@@ -1624,9 +1625,25 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       String? defaultAccId;
       if (_importToFamily) {
         final familyId = ref.read(currentFamilyIdProvider);
+        debugPrint('Import: familyId=$familyId');
         if (familyId != null && familyId.isNotEmpty) {
           final familyAccounts = await database.getAccountsByFamily(familyId);
+          debugPrint('Import: familyAccounts.length=${familyAccounts.length}');
+          for (final a in familyAccounts) {
+            debugPrint('  account: id=${a.id}, name=${a.name}, familyId=${a.familyId}');
+          }
           defaultAccId = familyAccounts.isNotEmpty ? familyAccounts.first.id : null;
+        }
+        if (defaultAccId == null) {
+          // Try refreshing accounts from server first
+          try {
+            await ref.read(accountProvider.notifier).refresh();
+            final fid = ref.read(currentFamilyIdProvider);
+            if (fid != null && fid.isNotEmpty) {
+              final refreshedAccounts = await database.getAccountsByFamily(fid);
+              defaultAccId = refreshedAccounts.isNotEmpty ? refreshedAccounts.first.id : null;
+            }
+          } catch (_) {}
         }
         if (defaultAccId == null) {
           setState(() { _isImporting = false; _importDone = true; _importErrors = ['没有家庭账户，请先创建']; });
