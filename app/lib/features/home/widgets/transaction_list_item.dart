@@ -7,12 +7,14 @@ class TransactionListItem extends StatelessWidget {
   final Transaction transaction;
   final String categoryName;
   final String categoryIcon;
+  final String? creatorName;
 
   const TransactionListItem({
     super.key,
     required this.transaction,
     required this.categoryName,
     required this.categoryIcon,
+    this.creatorName,
   });
 
   @override
@@ -54,11 +56,34 @@ class TransactionListItem extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      categoryName,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            categoryName,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        if (creatorName != null) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              creatorName!,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onPrimaryContainer,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     if (transaction.note.isNotEmpty) ...[
                       const SizedBox(height: 2),

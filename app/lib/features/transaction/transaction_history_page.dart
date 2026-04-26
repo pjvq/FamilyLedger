@@ -8,6 +8,7 @@ import '../../data/local/database.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
 import '../../domain/providers/account_provider.dart';
+import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../core/widgets/widgets.dart';
 import 'transaction_detail_page.dart';
@@ -132,6 +133,18 @@ class _TransactionHistoryPageState
     final state = ref.watch(transactionProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final familyId = ref.watch(currentFamilyIdProvider);
+    final isFamilyMode = familyId != null && familyId.isNotEmpty;
+
+    // Build member name lookup for family mode
+    Map<String, String> memberNameMap = {};
+    if (isFamilyMode) {
+      final familyState = ref.watch(familyProvider);
+      for (final m in familyState.members) {
+        final email = m.email;
+        memberNameMap[m.userId] = email.contains('@') ? email.split('@').first : email;
+      }
+    }
 
     // Build a category lookup map (id → Category)
     final categoryMap = <String, Category>{};
@@ -179,7 +192,7 @@ class _TransactionHistoryPageState
                   )
                 : state.transactions.isEmpty
                     ? _EmptyState(isDark: isDark, canCreate: ref.watch(canCreateProvider))
-                    : _buildList(state, categoryMap, theme, isDark),
+                    : _buildList(state, categoryMap, theme, isDark, memberNameMap),
       ),
     );
   }
@@ -189,6 +202,7 @@ class _TransactionHistoryPageState
     Map<String, Category> categoryMap,
     ThemeData theme,
     bool isDark,
+    Map<String, String> memberNameMap,
   ) {
     final visible = state.transactions.take(_displayCount).toList();
     final hasMore = _displayCount < state.transactions.length;
@@ -233,6 +247,7 @@ class _TransactionHistoryPageState
                   isDark: isDark,
                   selectionMode: _selectionMode,
                   selected: _selectedIds.contains(txn.id),
+                  creatorName: memberNameMap.isNotEmpty ? memberNameMap[txn.userId] : null,
                   onTap: _selectionMode
                       ? () => _toggleSelection(txn.id)
                       : () {
@@ -357,6 +372,7 @@ class _TransactionRow extends StatelessWidget {
   final VoidCallback? onLongPress;
   final bool selectionMode;
   final bool selected;
+  final String? creatorName;
 
   const _TransactionRow({
     required this.transaction,
@@ -369,6 +385,7 @@ class _TransactionRow extends StatelessWidget {
     this.onLongPress,
     this.selectionMode = false,
     this.selected = false,
+    this.creatorName,
   });
 
   @override
@@ -444,9 +461,11 @@ class _TransactionRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      transaction.note.isNotEmpty
-                          ? '$timeText · ${transaction.note}'
-                          : timeText,
+                      [
+                        timeText,
+                        if (creatorName != null) creatorName!,
+                        if (transaction.note.isNotEmpty) transaction.note,
+                      ].join(' · '),
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark
