@@ -12,6 +12,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/app_providers.dart';
+import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
 
@@ -69,6 +70,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   ImportFormat _detectedFormat = ImportFormat.unknown;
   String? _parseError;
   bool _isParsing = false;
+  bool _importToFamily = false; // true = import to family account
 
   // Step 1: preview
   List<_ParsedTransaction> _parsed = [];
@@ -299,6 +301,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             padding: const EdgeInsets.only(top: 12),
             child: Text(_parseError!, style: TextStyle(color: theme.colorScheme.error)),
           ),
+        // Import target selector (personal vs family)
+        _buildImportTargetSelector(theme),
       ],
     );
   }
@@ -310,6 +314,32 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     ImportFormat.generic => Icons.table_chart_rounded,
     ImportFormat.unknown => Icons.description_rounded,
   };
+
+  Widget _buildImportTargetSelector(ThemeData theme) {
+    final familyState = ref.watch(familyProvider);
+    final hasFamily = familyState.currentFamily != null;
+    if (!hasFamily) return const SizedBox.shrink();
+
+    final familyName = familyState.currentFamily!.name;
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('导入到', style: theme.textTheme.titleSmall),
+          const SizedBox(height: 8),
+          SegmentedButton<bool>(
+            segments: [
+              const ButtonSegment<bool>(value: false, label: Text('个人'), icon: Icon(Icons.person)),
+              ButtonSegment<bool>(value: true, label: Text(familyName), icon: const Icon(Icons.family_restroom)),
+            ],
+            selected: {_importToFamily},
+            onSelectionChanged: (v) => setState(() => _importToFamily = v.first),
+          ),
+        ],
+      ),
+    );
+  }
 
   Color _formatColor() => switch (_detectedFormat) {
     ImportFormat.alipay => const Color(0xFF1677FF),
@@ -1585,11 +1615,24 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       }
 
       // Get accounts for default
-      final accounts = await database.getActiveAccounts(userId);
-      final defaultAccId = accounts.isNotEmpty ? accounts.first.id : null;
-      if (defaultAccId == null) {
-        setState(() { _isImporting = false; _importDone = true; _importErrors = ['没有可用账户']; });
-        return;
+      String? defaultAccId;
+      if (_importToFamily) {
+        final familyId = ref.read(currentFamilyIdProvider);
+        if (familyId != null && familyId.isNotEmpty) {
+          final familyAccounts = await database.getAccountsByFamily(familyId);
+          defaultAccId = familyAccounts.isNotEmpty ? familyAccounts.first.id : null;
+        }
+        if (defaultAccId == null) {
+          setState(() { _isImporting = false; _importDone = true; _importErrors = ['没有家庭账户，请先创建']; });
+          return;
+        }
+      } else {
+        final accounts = await database.getActiveAccounts(userId);
+        defaultAccId = accounts.isNotEmpty ? accounts.first.id : null;
+        if (defaultAccId == null) {
+          setState(() { _isImporting = false; _importDone = true; _importErrors = ['没有可用账户']; });
+          return;
+        }
       }
 
       // Build final list: non-duplicates + user-selected duplicates
