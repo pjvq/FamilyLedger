@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
+import '../../core/constants/app_constants.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart';
@@ -159,8 +160,14 @@ class _DashboardShell extends ConsumerWidget {
               familyName: familyName,
               onToggle: (isFamily) {
                 final familyState = ref.read(familyProvider);
-                ref.read(currentFamilyIdProvider.notifier).state =
-                    isFamily ? familyState.currentFamily?.id : null;
+                final newId = isFamily ? familyState.currentFamily?.id : null;
+                ref.read(currentFamilyIdProvider.notifier).state = newId;
+                final prefs = ref.read(sharedPreferencesProvider);
+                if (newId != null) {
+                  prefs.setString(AppConstants.familyIdKey, newId);
+                } else {
+                  prefs.remove(AppConstants.familyIdKey);
+                }
               },
             ),
           const Expanded(child: DashboardPage()),

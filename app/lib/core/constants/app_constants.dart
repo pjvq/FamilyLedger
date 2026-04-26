@@ -12,6 +12,9 @@ class AppConstants {
   static const refreshTokenKey = 'refresh_token';
   static const userIdKey = 'user_id';
 
+  // Family
+  static const familyIdKey = 'current_family_id';
+
   // Sync
   static const syncBatchSize = 50;
   static const syncIntervalSeconds = 30;

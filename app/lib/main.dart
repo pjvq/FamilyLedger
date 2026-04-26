@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'core/constants/app_constants.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'domain/providers/app_providers.dart';
@@ -39,10 +40,15 @@ void main() async {
     WidgetsFlutterBinding.ensureInitialized();
     final prefs = await SharedPreferences.getInstance();
 
+    // Restore persisted family mode
+    final savedFamilyId = prefs.getString(AppConstants.familyIdKey);
+
     runApp(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          if (savedFamilyId != null)
+            currentFamilyIdProvider.overrideWith((ref) => savedFamilyId),
         ],
         child: const FamilyLedgerApp(),
       ),

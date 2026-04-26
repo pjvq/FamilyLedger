@@ -27,6 +27,7 @@ final isLoggedInProvider = Provider<bool>((ref) {
 });
 
 /// 当前家庭 ID（null = 个人模式）
+/// 启动时通过 initFamilyIdFromPrefs() 从 SharedPreferences 恢复
 final currentFamilyIdProvider = StateProvider<String?>((ref) {
-  return null; // 默认个人模式
+  return null; // 启动后由 initFamilyIdFromPrefs 设置
 });
