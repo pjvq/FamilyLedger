@@ -818,14 +818,18 @@ class AppDatabase extends _$AppDatabase {
       into(budgets).insert(entry, mode: InsertMode.insertOrReplace);
 
   Future<Budget?> getBudgetByMonth(String userId, int year, int month,
-      {String familyId = ''}) =>
-      (select(budgets)
-            ..where((b) =>
-                b.userId.equals(userId) &
-                b.year.equals(year) &
-                b.month.equals(month) &
-                b.familyId.equals(familyId)))
-          .getSingleOrNull();
+      {String familyId = ''}) async {
+    final results = await (select(budgets)
+          ..where((b) =>
+              b.userId.equals(userId) &
+              b.year.equals(year) &
+              b.month.equals(month) &
+              b.familyId.equals(familyId))
+          ..orderBy([(b) => OrderingTerm.desc(b.updatedAt)])
+          ..limit(1))
+        .get();
+    return results.firstOrNull;
+  }
 
   Future<Budget?> getBudgetById(String id) =>
       (select(budgets)..where((b) => b.id.equals(id))).getSingleOrNull();
@@ -844,6 +848,26 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteBudget(String id) =>
       (delete(budgets)..where((b) => b.id.equals(id))).go();
+
+  /// Remove duplicate budgets for same user+year+month+familyId, keeping only
+  /// the one with the given [keepId]. Call before insert to avoid duplicates.
+  Future<void> deleteBudgetDuplicates(
+      String userId, int year, int month, String familyId,
+      {String? keepId}) async {
+    final dupes = await (select(budgets)
+          ..where((b) =>
+              b.userId.equals(userId) &
+              b.year.equals(year) &
+              b.month.equals(month) &
+              b.familyId.equals(familyId)))
+        .get();
+    for (final d in dupes) {
+      if (d.id != keepId) {
+        await deleteBudget(d.id);
+        await deleteCategoryBudgets(d.id);
+      }
+    }
+  }
 
   // Category Budgets
   Future<int> insertCategoryBudget(CategoryBudgetsTableCompanion entry) =>

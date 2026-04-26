@@ -132,6 +132,9 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
 
       // Cache all budgets locally
       for (final b in resp.budgets) {
+        // Clean up duplicates before caching
+        await _db.deleteBudgetDuplicates(
+            _userId, b.year, b.month, _familyId, keepId: b.id);
         await _db.insertBudget(db.BudgetsCompanion.insert(
           id: b.id,
           userId: _userId,
@@ -327,6 +330,9 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
     } catch (_) {
       // Offline: save locally
       final id = const Uuid().v4();
+      // Remove any existing budget for same month to prevent duplicates
+      await _db.deleteBudgetDuplicates(
+          _userId, year, month, _familyId);
       await _db.insertBudget(db.BudgetsCompanion.insert(
         id: id,
         userId: _userId,
