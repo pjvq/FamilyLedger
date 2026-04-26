@@ -352,26 +352,23 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
     final family = state.currentFamily;
     if (family == null) return;
 
+    // Owner cannot leave — must transfer ownership or delete family first
+    if (family.ownerId == _userId) {
+      state = state.copyWith(error: '创建者不能直接退出家庭，请先转让所有权');
+      return;
+    }
+
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       if (_familyClient != null) {
-        try {
-          await _familyClient.leaveFamily(
-            pb_model.LeaveFamilyRequest()..familyId = family.id,
-            options: _callOpts,
-          );
-        } catch (e) {
-          dev.log('FamilyNotifier: gRPC leaveFamily failed: $e',
-              name: 'family');
-        }
+        // gRPC is authoritative — if it fails, abort
+        await _familyClient.leaveFamily(
+          pb_model.LeaveFamilyRequest()..familyId = family.id,
+          options: _callOpts,
+        );
       }
-      // Clean up local
+      // Clean up local only after server success (or offline)
       await _db.deleteFamilyMember(family.id, _userId);
-      // If owner, delete family entirely
-      if (family.ownerId == _userId) {
-        await _db.deleteAllFamilyMembers(family.id);
-        await _db.deleteFamily(family.id);
-      }
       await _load();
     } catch (e) {
       state = state.copyWith(isLoading: false, error: '退出家庭失败: $e');
