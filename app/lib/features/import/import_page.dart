@@ -15,6 +15,12 @@ import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
+import '../../data/remote/grpc_clients.dart';
+import '../../generated/proto/transaction.pbgrpc.dart' as pb_txn;
+import '../../generated/proto/transaction.pbenum.dart' as pb_enum;
+import '../../generated/proto/google/protobuf/timestamp.pb.dart' as proto_ts;
+import 'package:grpc/grpc.dart';
+import 'package:fixnum/fixnum.dart';
 
 /// Import page - supports Alipay, WeChat, and generic CSV
 class ImportPage extends ConsumerStatefulWidget {
@@ -1653,10 +1659,11 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         try {
           final amountCents = (t.amount * 100).round();
           final catId = t.matchedCategoryId ?? _defaultCategory?.id ?? '';
+          final localId = uuid.v4();
 
           await database.into(database.transactions).insert(
             db.TransactionsCompanion.insert(
-              id: uuid.v4(),
+              id: localId,
               userId: userId,
               accountId: defaultAccId,
               categoryId: catId,
@@ -1667,6 +1674,46 @@ class _ImportPageState extends ConsumerState<ImportPage> {
               note: Value(t.note),
             ),
           );
+
+          // Push to server for family imports
+          if (_importToFamily) {
+            try {
+              final txnClient = ref.read(transactionClientProvider);
+              final req = pb_txn.CreateTransactionRequest()
+                ..accountId = defaultAccId
+                ..categoryId = catId
+                ..amount = Int64(amountCents)
+                ..currency = 'CNY'
+                ..amountCny = Int64(amountCents)
+                ..exchangeRate = 1.0
+                ..type = t.type == 'income'
+                    ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
+                    : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE
+                ..note = t.note
+                ..txnDate = _toProtoTimestamp(t.date);
+              final resp = await txnClient.createTransaction(req,
+                  options: CallOptions(timeout: const Duration(seconds: 5)));
+              // Replace local id with server id
+              if (resp.hasTransaction() && resp.transaction.id.isNotEmpty && resp.transaction.id != localId) {
+                await database.hardDeleteTransaction(localId);
+                await database.into(database.transactions).insert(
+                  db.TransactionsCompanion.insert(
+                    id: resp.transaction.id,
+                    userId: userId,
+                    accountId: defaultAccId,
+                    categoryId: catId,
+                    amount: amountCents,
+                    amountCny: amountCents,
+                    type: t.type,
+                    txnDate: t.date,
+                    note: Value(t.note),
+                  ),
+                );
+              }
+            } catch (_) {
+              // Server push failed, local data still saved
+            }
+          }
 
           // Update account balance
           final delta = t.type == 'income' ? amountCents : -amountCents;
@@ -1702,4 +1749,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       });
     }
   }
+}
+
+proto_ts.Timestamp _toProtoTimestamp(DateTime dt) {
+  final seconds = dt.millisecondsSinceEpoch ~/ 1000;
+  final nanos = (dt.millisecondsSinceEpoch % 1000) * 1000000;
+  return proto_ts.Timestamp()
+    ..seconds = Int64(seconds)
+    ..nanos = nanos;
 }
