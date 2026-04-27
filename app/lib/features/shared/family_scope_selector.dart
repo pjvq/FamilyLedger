@@ -49,9 +49,7 @@ class _FamilyScopeSelectorState extends ConsumerState<FamilyScopeSelector> {
             selected: {_isFamily},
             onSelectionChanged: (v) {
               setState(() => _isFamily = v.first);
-              final selectedId = _isFamily ? familyId : null;
-              debugPrint('[FamilyScopeSelector] changed: isFamily=$_isFamily familyId=$familyId selectedId=$selectedId');
-              widget.onChanged(selectedId);
+              widget.onChanged(_isFamily ? familyId : null);
             },
           ),
         ],

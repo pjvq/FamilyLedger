@@ -977,10 +977,6 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
       _showError('请输入贷款名称');
       return;
     }
-    debugPrint('[AddLoan] _submit: _scopeFamilyId=$_scopeFamilyId');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('DEBUG familyId: $_scopeFamilyId'), duration: const Duration(seconds: 3)),
-    );
 
     setState(() => _isSubmitting = true);
 

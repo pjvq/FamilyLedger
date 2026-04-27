@@ -105,7 +105,7 @@ func (s *Service) CreateLoan(ctx context.Context, req *pb.CreateLoanRequest) (*p
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
 
-	log.Printf("loan: created %s (%s) for user %s, %d items", loanID, req.Name, userID, len(schedule))
+	log.Printf("loan: created %s (%s) for user %s, %d items, familyId=%q", loanID, req.Name, userID, len(schedule), req.FamilyId)
 	return buildLoanProto(loanID.String(), userID, req.Name, req.LoanType,
 		req.Principal, req.Principal, req.AnnualRate, req.TotalMonths, 0,
 		req.RepaymentMethod, req.PaymentDay, startDate, createdAt, updatedAt, req.AccountId, req.FamilyId), nil
@@ -178,6 +178,9 @@ func (s *Service) ListLoans(ctx context.Context, req *pb.ListLoansRequest) (*pb.
 	}
 	if loans == nil {
 		loans = []*pb.Loan{}
+	}
+	for _, l := range loans {
+		log.Printf("loan: ListLoans returning id=%s name=%s familyId=%s", l.Id, l.Name, l.FamilyId)
 	}
 	return &pb.ListLoansResponse{Loans: loans}, nil
 }
