@@ -155,23 +155,38 @@ func (s *Service) ListBudgets(ctx context.Context, req *pb.ListBudgetsRequest) (
 		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
-	query := `SELECT b.id, b.user_id, b.family_id, b.year, b.month, b.total_amount, b.created_at
-		 FROM budgets b
-		 WHERE b.user_id = $1
-		 AND ($2::uuid IS NULL OR b.family_id = $2)
-		 AND ($3::int = 0 OR b.year = $3)
-		 ORDER BY b.year DESC, b.month DESC`
-
-	var familyID *uuid.UUID
+	var rows pgx.Rows
 	if req.FamilyId != "" {
 		fid, err := uuid.Parse(req.FamilyId)
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, "invalid family_id")
 		}
-		familyID = &fid
+		// Verify user is a member of this family
+		var isMember bool
+		err = s.pool.QueryRow(ctx,
+			`SELECT EXISTS(SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2)`,
+			fid, uid,
+		).Scan(&isMember)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to verify family membership")
+		}
+		if !isMember {
+			return nil, status.Error(codes.PermissionDenied, "not a member of this family")
+		}
+		query := `SELECT b.id, b.user_id, b.family_id, b.year, b.month, b.total_amount, b.created_at
+			 FROM budgets b
+			 WHERE b.family_id = $1
+			 AND ($2::int = 0 OR b.year = $2)
+			 ORDER BY b.year DESC, b.month DESC`
+		rows, err = s.pool.Query(ctx, query, fid, req.Year)
+	} else {
+		query := `SELECT b.id, b.user_id, b.family_id, b.year, b.month, b.total_amount, b.created_at
+			 FROM budgets b
+			 WHERE b.user_id = $1 AND b.family_id IS NULL
+			 AND ($2::int = 0 OR b.year = $2)
+			 ORDER BY b.year DESC, b.month DESC`
+		rows, err = s.pool.Query(ctx, query, uid, req.Year)
 	}
-
-	rows, err := s.pool.Query(ctx, query, uid, familyID, req.Year)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to query budgets")
 	}

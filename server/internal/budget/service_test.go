@@ -163,7 +163,7 @@ func TestListBudgets_Success(t *testing.T) {
 	now := time.Now()
 
 	mock.ExpectQuery("SELECT b.id, b.user_id, b.family_id, b.year, b.month, b.total_amount, b.created_at").
-		WithArgs(testUserUUID, (*uuid.UUID)(nil), int32(0)).
+		WithArgs(testUserUUID, int32(0)).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "user_id", "family_id", "year", "month", "total_amount", "created_at"}).
 			AddRow(bid1, testUserUUID, (*uuid.UUID)(nil), int32(2026), int32(4), int64(500000), now).
 			AddRow(bid2, testUserUUID, (*uuid.UUID)(nil), int32(2026), int32(3), int64(400000), now))
@@ -194,7 +194,7 @@ func TestListBudgets_Empty(t *testing.T) {
 	svc := NewService(mock)
 
 	mock.ExpectQuery("SELECT b.id, b.user_id, b.family_id, b.year, b.month, b.total_amount, b.created_at").
-		WithArgs(testUserUUID, (*uuid.UUID)(nil), int32(0)).
+		WithArgs(testUserUUID, int32(0)).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "user_id", "family_id", "year", "month", "total_amount", "created_at"}))
 
 	resp, err := svc.ListBudgets(authedCtx(), &pb.ListBudgetsRequest{})

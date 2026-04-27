@@ -99,9 +99,16 @@ func main() {
 	exportService := export.NewService(pool)
 	importService := importcsv.NewService(pool)
 
+	// Rate limiter
+	rateLimiter := middleware.NewRateLimiter(middleware.DefaultRateLimiterConfig())
+	defer rateLimiter.Stop()
+
 	// gRPC Server
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(middleware.UnaryAuthInterceptor(jwtManager)),
+		grpc.ChainUnaryInterceptor(
+			middleware.UnaryRateLimitInterceptor(rateLimiter),
+			middleware.UnaryAuthInterceptor(jwtManager),
+		),
 		grpc.StreamInterceptor(middleware.StreamAuthInterceptor(jwtManager)),
 	)
 
