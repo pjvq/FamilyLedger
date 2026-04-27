@@ -719,6 +719,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
   }) async {
     if (_userId == null) return;
     state = state.copyWith(isLoading: true, clearError: true);
+    developer.log('[Loan] createLoan: name=$name familyId=$familyId userId=$_userId');
 
     String loanId = const Uuid().v4();
 
