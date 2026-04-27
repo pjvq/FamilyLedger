@@ -148,7 +148,7 @@ cd app && flutter test test/perf_virtual_list_test.dart
 ## L4: gRPC Shell E2E
 
 ```bash
-bash scripts/e2e-grpc-test.sh
+bash tests/integration/e2e-grpc-test.sh
 ```
 
 **24 个断言**, 纯 `grpcurl` 调用，不需要模拟器。覆盖：
@@ -277,7 +277,7 @@ cd app && flutter test test/perf_virtual_list_test.dart  # 6 tests, ~2s
 
 # 4. 需要后端运行的测试
 docker-compose up -d  # 或手动启动 server
-bash scripts/e2e-grpc-test.sh              # 24 assertions, ~10s
+bash tests/integration/e2e-grpc-test.sh              # 24 assertions, ~10s
 for f in tests/integration/test_*.sh; do bash "$f"; done  # 6 scripts, ~30s
 
 # 5. 需要模拟器的测试
@@ -366,7 +366,7 @@ jobs:
           DB_HOST=localhost JWT_SECRET=test GRPC_PORT=50051 WS_PORT=8080 \
             ./bin/server &
           sleep 3
-      - run: bash scripts/e2e-grpc-test.sh
+      - run: bash tests/integration/e2e-grpc-test.sh
       - run: |
           for f in tests/integration/test_*.sh; do bash "$f"; done
 ```

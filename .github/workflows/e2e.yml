@@ -86,7 +86,7 @@ jobs:
 
       # Run shell E2E tests
       - name: E2E gRPC test (scripts/)
-        run: bash scripts/e2e-grpc-test.sh
+        run: bash tests/integration/e2e-grpc-test.sh
 
       # Run integration test scripts
       - name: Integration - Basic Services
