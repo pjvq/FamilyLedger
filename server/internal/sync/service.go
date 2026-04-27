@@ -126,7 +126,16 @@ func (s *Service) PushOperations(ctx context.Context, req *pb.PushOperationsRequ
 		OpType:     "push",
 		UserID:     userID,
 	})
-	s.hub.BroadcastToUser(userID, notification)
+
+	// Determine if any operation targets a family account; if so, broadcast to all family members
+	familyMembers := s.getFamilyMembersForOperations(ctx, req.Operations)
+	if len(familyMembers) > 0 {
+		for _, memberID := range familyMembers {
+			s.hub.BroadcastToUser(memberID, notification)
+		}
+	} else {
+		s.hub.BroadcastToUser(userID, notification)
+	}
 
 	return &pb.PushOperationsResponse{
 		AcceptedCount: accepted,
@@ -595,15 +604,71 @@ func (s *Service) PullChanges(ctx context.Context, req *pb.PullChangesRequest) (
 		clientID = "unknown"
 	}
 
-	rows, err := s.pool.Query(ctx,
-		`SELECT id, entity_type, entity_id, op_type, payload, client_id, timestamp
-		 FROM sync_operations
-		 WHERE user_id = $1 AND timestamp > $2 AND client_id != $3
-		 ORDER BY timestamp ASC`,
-		uid, since, clientID,
-	)
-	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to query sync operations")
+	var rows pgx.Rows
+
+	if req.FamilyId != "" {
+		// Family mode: verify membership, then pull ops from all family members
+		familyID, err := uuid.Parse(req.FamilyId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid family_id")
+		}
+
+		// Verify user is a member of this family
+		var isMember bool
+		err = s.pool.QueryRow(ctx,
+			"SELECT EXISTS(SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2)",
+			familyID, uid,
+		).Scan(&isMember)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to verify family membership")
+		}
+		if !isMember {
+			return nil, status.Error(codes.PermissionDenied, "user is not a member of this family")
+		}
+
+		// Pull operations from all family members that target family accounts.
+		// We JOIN with accounts to ensure only operations on family-owned entities are returned.
+		// For entity types without accounts (e.g. category), we include ops from family members directly.
+		rows, err = s.pool.Query(ctx,
+			`SELECT so.id, so.entity_type, so.entity_id, so.op_type, so.payload, so.client_id, so.timestamp
+			 FROM sync_operations so
+			 WHERE so.user_id IN (SELECT user_id FROM family_members WHERE family_id = $1)
+			   AND so.timestamp > $2
+			   AND so.client_id != $3
+			   AND (
+			     -- For transaction ops: entity must belong to a family account
+			     (so.entity_type = 'transaction' AND so.entity_id IN (
+			       SELECT t.id FROM transactions t
+			       JOIN accounts a ON t.account_id = a.id
+			       WHERE a.family_id = $1
+			     ))
+			     OR
+			     -- For account ops: entity must be a family account
+			     (so.entity_type = 'account' AND so.entity_id IN (
+			       SELECT id FROM accounts WHERE family_id = $1
+			     ))
+			     OR
+			     -- For other entity types (category, etc): include all from family members
+			     (so.entity_type NOT IN ('transaction', 'account'))
+			   )
+			 ORDER BY so.timestamp ASC`,
+			familyID, since, clientID,
+		)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to query family sync operations")
+		}
+	} else {
+		// Personal mode: only pull operations for this user
+		rows, err = s.pool.Query(ctx,
+			`SELECT id, entity_type, entity_id, op_type, payload, client_id, timestamp
+			 FROM sync_operations
+			 WHERE user_id = $1 AND timestamp > $2 AND client_id != $3
+			 ORDER BY timestamp ASC`,
+			uid, since, clientID,
+		)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to query sync operations")
+		}
 	}
 	defer rows.Close()
 
@@ -813,4 +878,93 @@ func (s *Service) applyCategoryDelete(ctx context.Context, tx pgx.Tx, userID uui
 	}
 
 	return nil
+}
+
+// getFamilyMembersForOperations checks if any of the pushed operations target a family account.
+// If so, it returns the user IDs of all family members (for broadcast). Returns nil if personal-only.
+func (s *Service) getFamilyMembersForOperations(ctx context.Context, operations []*pb.SyncOperation) []string {
+	// Collect entity IDs from operations that might reference family accounts
+	var accountIDs []string
+	var transactionIDs []string
+
+	for _, op := range operations {
+		switch op.EntityType {
+		case "account":
+			accountIDs = append(accountIDs, op.EntityId)
+		case "transaction":
+			transactionIDs = append(transactionIDs, op.EntityId)
+		}
+	}
+
+	if len(accountIDs) == 0 && len(transactionIDs) == 0 {
+		return nil
+	}
+
+	// Check if any referenced accounts have a family_id
+	// For transactions, look up their account_id first
+	var familyID *uuid.UUID
+
+	// Check direct account operations
+	for _, idStr := range accountIDs {
+		accID, err := uuid.Parse(idStr)
+		if err != nil {
+			continue
+		}
+		var fid *uuid.UUID
+		err = s.pool.QueryRow(ctx,
+			"SELECT family_id FROM accounts WHERE id = $1 AND family_id IS NOT NULL",
+			accID,
+		).Scan(&fid)
+		if err == nil && fid != nil {
+			familyID = fid
+			break
+		}
+	}
+
+	// If not found yet, check transaction operations
+	if familyID == nil {
+		for _, idStr := range transactionIDs {
+			txnID, err := uuid.Parse(idStr)
+			if err != nil {
+				continue
+			}
+			var fid *uuid.UUID
+			err = s.pool.QueryRow(ctx,
+				`SELECT a.family_id FROM transactions t
+				 JOIN accounts a ON t.account_id = a.id
+				 WHERE t.id = $1 AND a.family_id IS NOT NULL`,
+				txnID,
+			).Scan(&fid)
+			if err == nil && fid != nil {
+				familyID = fid
+				break
+			}
+		}
+	}
+
+	if familyID == nil {
+		return nil
+	}
+
+	// Get all family member user IDs
+	rows, err := s.pool.Query(ctx,
+		"SELECT user_id FROM family_members WHERE family_id = $1",
+		*familyID,
+	)
+	if err != nil {
+		log.Printf("sync: failed to query family members for broadcast: %v", err)
+		return nil
+	}
+	defer rows.Close()
+
+	var members []string
+	for rows.Next() {
+		var memberUID uuid.UUID
+		if err := rows.Scan(&memberUID); err != nil {
+			continue
+		}
+		members = append(members, memberUID.String())
+	}
+
+	return members
 }

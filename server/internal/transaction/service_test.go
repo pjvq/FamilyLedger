@@ -20,6 +20,8 @@ import (
 
 const testUserID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
 
+func strPtr(s string) *string { return &s }
+
 func authedCtx() context.Context {
 	return context.WithValue(context.Background(), middleware.UserIDKey, testUserID)
 }
@@ -43,16 +45,18 @@ func TestCreateTransaction_Success(t *testing.T) {
 	txnID := uuid.New()
 	now := time.Now()
 
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
 		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+
+	// permission.Check for personal account (no family) - no query needed
 
 	mock.ExpectBegin()
 
 	// Verify account ownership
-	mock.ExpectQuery(`SELECT user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
+	mock.ExpectQuery(`SELECT user_id, family_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"user_id"}).AddRow(userUUID))
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(userUUID, nil))
 
 	// Insert transaction
 	mock.ExpectQuery(`INSERT INTO transactions`).
@@ -321,10 +325,7 @@ func TestUpdateTransaction_Success(t *testing.T) {
 			"CNY", "old note", []string{}, float64(1.0), int64(5000),
 		))
 
-	// Permission check: getAccountFamilyID
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
-		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+	// ownerID == uid → no permission check needed
 
 	// Dynamic UPDATE
 	mock.ExpectExec(`UPDATE transactions SET`).
@@ -409,10 +410,7 @@ func TestDeleteTransaction_Success(t *testing.T) {
 		WillReturnRows(pgxmock.NewRows([]string{"user_id", "account_id", "amount_cny", "type"}).
 			AddRow(userUUID, accountID, int64(5000), "expense"))
 
-	// Permission check: getAccountFamilyID
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
-		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+	// ownerID == uid → no permission check needed
 
 	// Soft delete
 	mock.ExpectExec(`UPDATE transactions SET deleted_at = NOW\(\), updated_at = NOW\(\) WHERE id = \$1`).
@@ -478,5 +476,389 @@ func TestDeleteTransaction_NotFound(t *testing.T) {
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.NotFound, st.Code())
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// --------------- Family Permission Tests ---------------
+
+const otherUserID = "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22"
+
+func TestUpdateTransaction_FamilyMemberWithEditPermission(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	// The transaction belongs to otherUserID, but current user (testUserID) has edit permission
+	ownerUUID := uuid.MustParse(otherUserID)
+	txnID := uuid.New()
+	accountID := uuid.New()
+	categoryID := uuid.New()
+	familyID := uuid.New()
+	now := time.Now()
+
+	mock.ExpectBegin()
+
+	// Fetch existing transaction (owned by other user)
+	mock.ExpectQuery(`SELECT user_id, account_id, category_id, amount, type, currency, note, tags, exchange_rate, amount_cny`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"user_id", "account_id", "category_id", "amount", "type",
+			"currency", "note", "tags", "exchange_rate", "amount_cny",
+		}).AddRow(
+			ownerUUID, accountID, categoryID, int64(5000), "expense",
+			"CNY", "old note", []string{}, float64(1.0), int64(5000),
+		))
+
+	// getAccountFamilyID returns the family
+	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(strPtr(familyID.String())))
+
+	// permission.Check: query family_members for current user's role/permissions
+	mock.ExpectQuery(`SELECT role, permissions FROM family_members WHERE family_id = \$1 AND user_id = \$2`).
+		WithArgs(familyID, uuid.MustParse(testUserID)).
+		WillReturnRows(pgxmock.NewRows([]string{"role", "permissions"}).
+			AddRow("member", []byte(`{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false,"can_manage_accounts":false}`)))
+
+	// Dynamic UPDATE
+	mock.ExpectExec(`UPDATE transactions SET`).
+		WithArgs(pgxmock.AnyArg(), txnID).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	mock.ExpectCommit()
+
+	// Fetch updated transaction
+	mock.ExpectQuery(`SELECT id, user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, created_at, updated_at, tags, image_urls`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"id", "user_id", "account_id", "category_id", "amount",
+			"currency", "amount_cny", "exchange_rate", "type", "note",
+			"txn_date", "created_at", "updated_at", "tags", "image_urls",
+		}).AddRow(
+			txnID, ownerUUID, accountID, categoryID, int64(5000),
+			"CNY", int64(5000), float64(1.0), "expense", "updated by family member",
+			now, now, now, []string{}, []string{},
+		))
+
+	newNote := "updated by family member"
+	resp, err := svc.UpdateTransaction(authedCtx(), &pb.UpdateTransactionRequest{
+		TransactionId: txnID.String(),
+		Note:          &newNote,
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, "updated by family member", resp.Transaction.Note)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateTransaction_FamilyAdminCanEdit(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	ownerUUID := uuid.MustParse(otherUserID)
+	txnID := uuid.New()
+	accountID := uuid.New()
+	categoryID := uuid.New()
+	familyID := uuid.New()
+	now := time.Now()
+
+	mock.ExpectBegin()
+
+	mock.ExpectQuery(`SELECT user_id, account_id, category_id, amount, type, currency, note, tags, exchange_rate, amount_cny`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"user_id", "account_id", "category_id", "amount", "type",
+			"currency", "note", "tags", "exchange_rate", "amount_cny",
+		}).AddRow(
+			ownerUUID, accountID, categoryID, int64(3000), "income",
+			"CNY", "salary", []string{}, float64(1.0), int64(3000),
+		))
+
+	// getAccountFamilyID
+	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(strPtr(familyID.String())))
+
+	// permission.Check: admin bypasses permission checks
+	mock.ExpectQuery(`SELECT role, permissions FROM family_members WHERE family_id = \$1 AND user_id = \$2`).
+		WithArgs(familyID, uuid.MustParse(testUserID)).
+		WillReturnRows(pgxmock.NewRows([]string{"role", "permissions"}).
+			AddRow("admin", []byte(`{"can_view":true,"can_create":true,"can_edit":true,"can_delete":true,"can_manage_accounts":true}`)))
+
+	mock.ExpectExec(`UPDATE transactions SET`).
+		WithArgs(pgxmock.AnyArg(), txnID).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	mock.ExpectCommit()
+
+	mock.ExpectQuery(`SELECT id, user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, created_at, updated_at, tags, image_urls`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"id", "user_id", "account_id", "category_id", "amount",
+			"currency", "amount_cny", "exchange_rate", "type", "note",
+			"txn_date", "created_at", "updated_at", "tags", "image_urls",
+		}).AddRow(
+			txnID, ownerUUID, accountID, categoryID, int64(3000),
+			"CNY", int64(3000), float64(1.0), "income", "updated",
+			now, now, now, []string{}, []string{},
+		))
+
+	newNote := "updated"
+	resp, err := svc.UpdateTransaction(authedCtx(), &pb.UpdateTransactionRequest{
+		TransactionId: txnID.String(),
+		Note:          &newNote,
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateTransaction_FamilyMemberWithoutEditPermission(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	ownerUUID := uuid.MustParse(otherUserID)
+	txnID := uuid.New()
+	accountID := uuid.New()
+	categoryID := uuid.New()
+	familyID := uuid.New()
+
+	mock.ExpectBegin()
+
+	mock.ExpectQuery(`SELECT user_id, account_id, category_id, amount, type, currency, note, tags, exchange_rate, amount_cny`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"user_id", "account_id", "category_id", "amount", "type",
+			"currency", "note", "tags", "exchange_rate", "amount_cny",
+		}).AddRow(
+			ownerUUID, accountID, categoryID, int64(5000), "expense",
+			"CNY", "note", []string{}, float64(1.0), int64(5000),
+		))
+
+	// getAccountFamilyID
+	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(strPtr(familyID.String())))
+
+	// permission.Check: member without edit permission
+	mock.ExpectQuery(`SELECT role, permissions FROM family_members WHERE family_id = \$1 AND user_id = \$2`).
+		WithArgs(familyID, uuid.MustParse(testUserID)).
+		WillReturnRows(pgxmock.NewRows([]string{"role", "permissions"}).
+			AddRow("member", []byte(`{"can_view":true,"can_create":true,"can_edit":false,"can_delete":false,"can_manage_accounts":false}`)))
+
+	mock.ExpectRollback()
+
+	newNote := "should fail"
+	resp, err := svc.UpdateTransaction(authedCtx(), &pb.UpdateTransactionRequest{
+		TransactionId: txnID.String(),
+		Note:          &newNote,
+	})
+
+	require.Nil(t, resp)
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateTransaction_NonFamilyMemberCannotEdit(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	ownerUUID := uuid.MustParse(otherUserID)
+	txnID := uuid.New()
+	accountID := uuid.New()
+	categoryID := uuid.New()
+	familyID := uuid.New()
+
+	mock.ExpectBegin()
+
+	mock.ExpectQuery(`SELECT user_id, account_id, category_id, amount, type, currency, note, tags, exchange_rate, amount_cny`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"user_id", "account_id", "category_id", "amount", "type",
+			"currency", "note", "tags", "exchange_rate", "amount_cny",
+		}).AddRow(
+			ownerUUID, accountID, categoryID, int64(5000), "expense",
+			"CNY", "note", []string{}, float64(1.0), int64(5000),
+		))
+
+	// getAccountFamilyID
+	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(strPtr(familyID.String())))
+
+	// permission.Check: user not found in family_members
+	mock.ExpectQuery(`SELECT role, permissions FROM family_members WHERE family_id = \$1 AND user_id = \$2`).
+		WithArgs(familyID, uuid.MustParse(testUserID)).
+		WillReturnError(pgx.ErrNoRows)
+
+	mock.ExpectRollback()
+
+	newNote := "should fail"
+	resp, err := svc.UpdateTransaction(authedCtx(), &pb.UpdateTransactionRequest{
+		TransactionId: txnID.String(),
+		Note:          &newNote,
+	})
+
+	require.Nil(t, resp)
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestUpdateTransaction_PersonalAccountOtherUserBlocked(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	ownerUUID := uuid.MustParse(otherUserID)
+	txnID := uuid.New()
+	accountID := uuid.New()
+	categoryID := uuid.New()
+
+	mock.ExpectBegin()
+
+	mock.ExpectQuery(`SELECT user_id, account_id, category_id, amount, type, currency, note, tags, exchange_rate, amount_cny`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"user_id", "account_id", "category_id", "amount", "type",
+			"currency", "note", "tags", "exchange_rate", "amount_cny",
+		}).AddRow(
+			ownerUUID, accountID, categoryID, int64(5000), "expense",
+			"CNY", "note", []string{}, float64(1.0), int64(5000),
+		))
+
+	// getAccountFamilyID returns empty (personal account)
+	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+
+	mock.ExpectRollback()
+
+	newNote := "should fail"
+	resp, err := svc.UpdateTransaction(authedCtx(), &pb.UpdateTransactionRequest{
+		TransactionId: txnID.String(),
+		Note:          &newNote,
+	})
+
+	require.Nil(t, resp)
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDeleteTransaction_FamilyMemberWithDeletePermission(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	ownerUUID := uuid.MustParse(otherUserID)
+	txnID := uuid.New()
+	accountID := uuid.New()
+	familyID := uuid.New()
+
+	mock.ExpectBegin()
+
+	mock.ExpectQuery(`SELECT user_id, account_id, amount_cny, type`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "account_id", "amount_cny", "type"}).
+			AddRow(ownerUUID, accountID, int64(3000), "expense"))
+
+	// getAccountFamilyID
+	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(strPtr(familyID.String())))
+
+	// permission.Check: member with delete permission
+	mock.ExpectQuery(`SELECT role, permissions FROM family_members WHERE family_id = \$1 AND user_id = \$2`).
+		WithArgs(familyID, uuid.MustParse(testUserID)).
+		WillReturnRows(pgxmock.NewRows([]string{"role", "permissions"}).
+			AddRow("member", []byte(`{"can_view":true,"can_create":true,"can_edit":true,"can_delete":true,"can_manage_accounts":false}`)))
+
+	// Soft delete
+	mock.ExpectExec(`UPDATE transactions SET deleted_at = NOW\(\), updated_at = NOW\(\) WHERE id = \$1`).
+		WithArgs(txnID).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	// Revert balance
+	mock.ExpectExec(`UPDATE accounts SET balance = balance \+ \$1`).
+		WithArgs(int64(3000), accountID).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	mock.ExpectCommit()
+
+	resp, err := svc.DeleteTransaction(authedCtx(), &pb.DeleteTransactionRequest{
+		TransactionId: txnID.String(),
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDeleteTransaction_FamilyMemberWithoutDeletePermission(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	ownerUUID := uuid.MustParse(otherUserID)
+	txnID := uuid.New()
+	accountID := uuid.New()
+	familyID := uuid.New()
+
+	mock.ExpectBegin()
+
+	mock.ExpectQuery(`SELECT user_id, account_id, amount_cny, type`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "account_id", "amount_cny", "type"}).
+			AddRow(ownerUUID, accountID, int64(3000), "expense"))
+
+	// getAccountFamilyID
+	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(strPtr(familyID.String())))
+
+	// permission.Check: member without delete permission
+	mock.ExpectQuery(`SELECT role, permissions FROM family_members WHERE family_id = \$1 AND user_id = \$2`).
+		WithArgs(familyID, uuid.MustParse(testUserID)).
+		WillReturnRows(pgxmock.NewRows([]string{"role", "permissions"}).
+			AddRow("member", []byte(`{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false,"can_manage_accounts":false}`)))
+
+	mock.ExpectRollback()
+
+	resp, err := svc.DeleteTransaction(authedCtx(), &pb.DeleteTransactionRequest{
+		TransactionId: txnID.String(),
+	})
+
+	require.Nil(t, resp)
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.PermissionDenied, st.Code())
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

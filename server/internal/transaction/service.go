@@ -52,10 +52,15 @@ func WithBaseURL(url string) ServiceOption {
 	return func(s *Service) { s.baseURL = url }
 }
 
+// querier is satisfied by both db.Pool and pgx.Tx.
+type querier interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 // getAccountFamilyID returns the family_id for an account (empty string if personal).
-func (s *Service) getAccountFamilyID(ctx context.Context, accountID uuid.UUID) (string, error) {
+func getAccountFamilyIDFrom(ctx context.Context, q querier, accountID uuid.UUID) (string, error) {
 	var familyID *string
-	err := s.pool.QueryRow(ctx,
+	err := q.QueryRow(ctx,
 		"SELECT family_id::text FROM accounts WHERE id = $1 AND deleted_at IS NULL",
 		accountID,
 	).Scan(&familyID)
@@ -69,6 +74,11 @@ func (s *Service) getAccountFamilyID(ctx context.Context, accountID uuid.UUID) (
 		return "", nil
 	}
 	return *familyID, nil
+}
+
+// getAccountFamilyID returns the family_id for an account (empty string if personal).
+func (s *Service) getAccountFamilyID(ctx context.Context, accountID uuid.UUID) (string, error) {
+	return getAccountFamilyIDFrom(ctx, s.pool, accountID)
 }
 
 func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransactionRequest) (*pb.CreateTransactionResponse, error) {
@@ -269,17 +279,18 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 		return nil, status.Error(codes.Internal, "failed to query transaction")
 	}
 
+	// Permission check: owner can always edit; family members need edit permission
 	if ownerID != uid {
-		return nil, status.Error(codes.PermissionDenied, "transaction does not belong to user")
-	}
-
-	// Permission check: verify user can edit transactions in this account's family
-	familyID, err := s.getAccountFamilyID(ctx, accountID)
-	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to check account family")
-	}
-	if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanEdit); err != nil {
-		return nil, err
+		familyID, err := getAccountFamilyIDFrom(ctx, tx, accountID)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to check account family")
+		}
+		if familyID == "" {
+			return nil, status.Error(codes.PermissionDenied, "transaction does not belong to user")
+		}
+		if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanEdit); err != nil {
+			return nil, err
+		}
 	}
 
 	// Build dynamic UPDATE
@@ -495,17 +506,18 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 		return nil, status.Error(codes.Internal, "failed to query transaction")
 	}
 
+	// Permission check: owner can always delete; family members need delete permission
 	if ownerID != uid {
-		return nil, status.Error(codes.PermissionDenied, "transaction does not belong to user")
-	}
-
-	// Permission check: verify user can delete transactions in this account's family
-	familyID, err := s.getAccountFamilyID(ctx, accountID)
-	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to check account family")
-	}
-	if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanDelete); err != nil {
-		return nil, err
+		familyID, err := getAccountFamilyIDFrom(ctx, tx, accountID)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to check account family")
+		}
+		if familyID == "" {
+			return nil, status.Error(codes.PermissionDenied, "transaction does not belong to user")
+		}
+		if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanDelete); err != nil {
+			return nil, err
+		}
 	}
 
 	// Soft delete
