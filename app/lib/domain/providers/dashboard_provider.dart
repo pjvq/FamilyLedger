@@ -212,8 +212,9 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         pb.GetNetWorthRequest()..familyId = _familyId ?? '',
         options: _callOpts,
       );
-      // Only override if local net worth is zero (local is source of truth)
-      if (state.netWorth.total == 0) {
+      // Only override if local net worth is zero AND we're in family mode
+      // (server doesn't properly filter by familyId in personal mode)
+      if (state.netWorth.total == 0 && _familyId != null && _familyId.isNotEmpty) {
         state = state.copyWith(
           netWorth: NetWorthData(
             total: resp.total.toInt(),
@@ -323,11 +324,11 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..count = count,
         options: _callOpts,
       );
-      // Only override if local has no data — local is source of truth
-      // (CSV imports and offline txns exist only locally until synced)
+      // Only override if local has no data AND we're in family mode
+      // (server doesn't properly filter by familyId in personal mode)
       final localHasData = state.incomeExpenseTrend
           .any((p) => p.income > 0 || p.expense > 0);
-      if (!localHasData) {
+      if (!localHasData && _familyId != null && _familyId.isNotEmpty) {
         state = state.copyWith(
           incomeExpenseTrend: resp.points
               .map((p) => TrendPointData(
@@ -424,9 +425,9 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..type = type,
         options: _callOpts,
       );
-      // Only override if local has no data
+      // Only override if local has no data AND in family mode
       final localHasData = state.categoryBreakdown.isNotEmpty;
-      if (!localHasData) {
+      if (!localHasData && _familyId != null && _familyId.isNotEmpty) {
         state = state.copyWith(
           categoryBreakdown: resp.items
               .map((c) => CategoryBreakdownItem(
@@ -571,8 +572,8 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..month = now.month,
         options: _callOpts,
       );
-      // Only override if local budget summary has no data
-      if (state.budgetSummary.totalBudget == 0 && state.budgetSummary.totalSpent == 0) {
+      // Only override if local budget summary has no data AND in family mode
+      if (state.budgetSummary.totalBudget == 0 && state.budgetSummary.totalSpent == 0 && _familyId != null && _familyId.isNotEmpty) {
         state = state.copyWith(
           budgetSummary: BudgetSummaryData(
             totalBudget: resp.totalBudget.toInt(),
@@ -624,9 +625,9 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..count = months,
         options: _callOpts,
       );
-      // Only override if local has no data
+      // Only override if local has no data AND in family mode
       final localHasData = state.netWorthTrend.any((p) => p.net != 0);
-      if (!localHasData) {
+      if (!localHasData && _familyId != null && _familyId.isNotEmpty) {
         state = state.copyWith(
           netWorthTrend: resp.points
               .map((p) => TrendPointData(
