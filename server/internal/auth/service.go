@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/middleware"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -48,12 +49,11 @@ func WithOAuthProviders(providers OAuthProviders) ServiceOption {
 }
 
 func (s *Service) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
-	if req.Email == "" || req.Password == "" {
-		return nil, status.Error(codes.InvalidArgument, "email and password are required")
+	if err := middleware.ValidateEmail(req.Email); err != nil {
+		return nil, err
 	}
-
-	if len(req.Password) < 6 {
-		return nil, status.Error(codes.InvalidArgument, "password must be at least 6 characters")
+	if err := middleware.ValidatePassword(req.Password); err != nil {
+		return nil, err
 	}
 
 	// Check if user already exists

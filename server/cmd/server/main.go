@@ -31,6 +31,7 @@ import (
 	"github.com/familyledger/server/pkg/config"
 	"github.com/familyledger/server/pkg/db"
 	jwtpkg "github.com/familyledger/server/pkg/jwt"
+	"github.com/familyledger/server/pkg/logger"
 	"github.com/familyledger/server/pkg/middleware"
 	"github.com/familyledger/server/pkg/ws"
 
@@ -52,6 +53,9 @@ import (
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// Initialize structured logging
+	logger.Setup(getEnv("APP_ENV", "development"))
 
 	// Config from environment
 	dbCfg := db.Config{
@@ -107,6 +111,7 @@ func main() {
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			middleware.UnaryRateLimitInterceptor(rateLimiter),
+			middleware.UnaryValidationInterceptor(),
 			middleware.UnaryAuthInterceptor(jwtManager),
 		),
 		grpc.StreamInterceptor(middleware.StreamAuthInterceptor(jwtManager)),
@@ -175,7 +180,21 @@ func main() {
 
 	log.Println("shutting down...")
 	cancel() // signal scheduled tasks to stop
-	grpcServer.GracefulStop()
+
+	// Graceful stop with timeout
+	stopped := make(chan struct{})
+	go func() {
+		grpcServer.GracefulStop()
+		close(stopped)
+	}()
+	select {
+	case <-stopped:
+		log.Println("gRPC server stopped gracefully")
+	case <-time.After(10 * time.Second):
+		log.Println("gRPC graceful stop timed out, forcing...")
+		grpcServer.Stop()
+	}
+
 	wsServer.Shutdown(context.Background())
 	log.Println("server stopped")
 }

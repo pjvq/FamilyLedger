@@ -80,6 +80,16 @@ bench-flutter-startup: ## Run Flutter startup benchmark only
 	cd app && flutter test integration_test/app_performance_test.dart --profile
 
 # ─── Helpers ───────────────────────────────────────────────────
+db-migrate: ## Run database migrations (needs Docker)
+	@docker exec familyledger-db psql -U familyledger -d familyledger -c "SELECT 1" > /dev/null 2>&1 || \
+		(echo "❌ familyledger-db container not running" && exit 1)
+	@echo "🔄 Running migrations..."
+	@for f in server/migrations/*.up.sql; do \
+		echo "  → $$(basename $$f)"; \
+		docker exec -i familyledger-db psql -U familyledger -d familyledger < "$$f" 2>&1 | grep -v "already exists" || true; \
+	done
+	@echo "✅ Migrations complete"
+
 clean: ## Remove test artifacts
 	rm -f server/coverage.out server/benchmark-results.txt server/benchmark-latest.txt
 	rm -rf app/coverage/

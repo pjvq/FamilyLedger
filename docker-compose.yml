@@ -1,7 +1,7 @@
 version: '3.9'
 
 services:
-  postgres:
+  db:
     image: postgres:16-alpine
     container_name: familyledger-db
     environment:
@@ -15,30 +15,45 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U familyledger"]
       interval: 5s
-      timeout: 5s
+      timeout: 3s
       retries: 5
+
+  migrate:
+    image: migrate/migrate:v4.17.0
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./server/migrations:/migrations
+    command: >
+      -path=/migrations
+      -database=postgres://familyledger:familyledger@db:5432/familyledger?sslmode=disable
+      up
+    restart: "no"
 
   server:
     build:
-      context: ./server
+      context: .
       dockerfile: Dockerfile
     container_name: familyledger-server
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
-      DB_HOST: postgres
+      APP_ENV: production
+      DB_HOST: db
       DB_PORT: "5432"
       DB_USER: familyledger
       DB_PASSWORD: familyledger
       DB_NAME: familyledger
       DB_SSLMODE: disable
-      JWT_SECRET: familyledger-dev-secret-change-in-production
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-at-least-32-chars}
       GRPC_PORT: "50051"
       WS_PORT: "8080"
     ports:
       - "50051:50051"
       - "8080:8080"
+    restart: unless-stopped
 
 volumes:
   pgdata:
