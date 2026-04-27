@@ -106,7 +106,7 @@ func (s *Service) CreateLoan(ctx context.Context, req *pb.CreateLoanRequest) (*p
 	log.Printf("loan: created %s (%s) for user %s, %d items", loanID, req.Name, userID, len(schedule))
 	return buildLoanProto(loanID.String(), userID, req.Name, req.LoanType,
 		req.Principal, req.Principal, req.AnnualRate, req.TotalMonths, 0,
-		req.RepaymentMethod, req.PaymentDay, startDate, createdAt, updatedAt, req.AccountId), nil
+		req.RepaymentMethod, req.PaymentDay, startDate, createdAt, updatedAt, req.AccountId, req.FamilyId), nil
 }
 
 // ── GetLoan ─────────────────────────────────────────────────────────────────
@@ -989,7 +989,7 @@ type loanFields struct {
 func buildLoanProto(id, userID, name string, loanType pb.LoanType,
 	principal, remainingPrincipal int64, annualRate float64,
 	totalMonths, paidMonths int32, method pb.RepaymentMethod, paymentDay int32,
-	startDate, createdAt, updatedAt time.Time, accountID string) *pb.Loan {
+	startDate, createdAt, updatedAt time.Time, accountID, familyID string) *pb.Loan {
 	return &pb.Loan{
 		Id:                 id,
 		UserId:             userID,
@@ -1006,14 +1006,15 @@ func buildLoanProto(id, userID, name string, loanType pb.LoanType,
 		CreatedAt:          timestamppb.New(createdAt),
 		UpdatedAt:          timestamppb.New(updatedAt),
 		AccountId:          accountID,
+		FamilyId:           familyID,
 	}
 }
 
 func buildLoanProtoFull(f loanFields) *pb.Loan {
-	loan := buildLoanProto(f.id, f.userID, f.name, f.loanType,
+		loan := buildLoanProto(f.id, f.userID, f.name, f.loanType,
 		f.principal, f.remainingPrinc, f.annualRate,
 		f.totalMonths, f.paidMonths, f.method, f.paymentDay,
-		f.startDate, f.createdAt, f.updatedAt, f.accountID)
+		f.startDate, f.createdAt, f.updatedAt, f.accountID, f.familyID)
 	loan.GroupId = f.groupID
 	loan.SubType = f.subType
 	loan.RateType = f.rateType
