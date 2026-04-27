@@ -17,6 +17,8 @@ import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
 import '../../data/remote/grpc_clients.dart';
+import '../../generated/proto/account.pb.dart' as pb_acc;
+import '../../generated/proto/account.pbenum.dart' as pb_acc_enum;
 import '../../generated/proto/transaction.pbgrpc.dart' as pb_txn;
 import '../../generated/proto/transaction.pbenum.dart' as pb_enum;
 import '../../generated/proto/google/protobuf/timestamp.pb.dart' as proto_ts;
@@ -1652,21 +1654,56 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           } catch (_) {}
         }
         if (defaultAccId == null) {
-          // Auto-create a default family account directly via DB
+          // Auto-create a default family account via gRPC + local
           try {
             if (familyId != null && familyId.isNotEmpty) {
               final newAccId = const Uuid().v4();
-              await database.insertAccount(db.AccountsCompanion.insert(
-                id: newAccId,
-                userId: userId,
-                name: '家庭共享账户',
-                icon: Value('🏠'),
-                balance: Value(0),
-                familyId: Value(familyId),
-                accountType: Value('cash'),
-              ));
-              defaultAccId = newAccId;
-              debugPrint('Import: auto-created family account $newAccId for family $familyId');
+              // Try gRPC first so other family members can see this account
+              bool serverCreated = false;
+              try {
+                final accClient = ref.read(accountClientProvider);
+                final resp = await accClient.createAccount(
+                  pb_acc.CreateAccountRequest()
+                    ..name = '家庭共享账户'
+                    ..type = pb_acc_enum.AccountType.ACCOUNT_TYPE_CASH
+                    ..currency = 'CNY'
+                    ..icon = '🏠'
+                    ..initialBalance = Int64.ZERO
+                    ..familyId = familyId,
+                  options: CallOptions(timeout: const Duration(seconds: 5)),
+                );
+                if (resp.hasAccount() && resp.account.id.isNotEmpty) {
+                  // Use server-assigned id
+                  await database.insertAccount(db.AccountsCompanion.insert(
+                    id: resp.account.id,
+                    userId: userId,
+                    name: '家庭共享账户',
+                    icon: Value('🏠'),
+                    balance: Value(0),
+                    familyId: Value(familyId),
+                    accountType: Value('cash'),
+                  ));
+                  defaultAccId = resp.account.id;
+                  serverCreated = true;
+                  debugPrint('Import: created family account on server: ${resp.account.id}');
+                }
+              } catch (e) {
+                debugPrint('Import: gRPC createAccount failed: $e');
+              }
+              // Local-only fallback
+              if (!serverCreated) {
+                await database.insertAccount(db.AccountsCompanion.insert(
+                  id: newAccId,
+                  userId: userId,
+                  name: '家庭共享账户',
+                  icon: Value('🏠'),
+                  balance: Value(0),
+                  familyId: Value(familyId),
+                  accountType: Value('cash'),
+                ));
+                defaultAccId = newAccId;
+                debugPrint('Import: created family account locally only: $newAccId');
+              }
             }
           } catch (e) {
             debugPrint('Import: failed to auto-create family account: $e');
