@@ -161,7 +161,9 @@ message ListTradesResponse {
     repeated InvestmentTrade trades = 1;
 }
 
-message GetPortfolioSummaryRequest {}
+message GetPortfolioSummaryRequest {
+  string family_id = 1;
+}
 
 // MarketDataService
 message GetQuoteRequest {

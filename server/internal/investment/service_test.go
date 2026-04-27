@@ -466,3 +466,105 @@ func TestIsDuplicateError(t *testing.T) {
 	assert.False(t, isDuplicateError(status.Error(codes.Internal, "something else")))
 	assert.False(t, isDuplicateError(nil))
 }
+
+// ─── GetPortfolioSummary ────────────────────────────────────────────────────
+
+func portfolioCols() []string {
+	return []string{"id", "symbol", "name", "market_type", "quantity", "cost_basis", "created_at", "current_price"}
+}
+
+func TestGetPortfolioSummary_PersonalMode(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	now := time.Now()
+	id1 := uuid.New()
+	var price int64 = 15000
+
+	mock.ExpectQuery(`SELECT i.id, i.symbol, i.name, i.market_type, i.quantity, i.cost_basis`).
+		WithArgs(testUserID).
+		WillReturnRows(pgxmock.NewRows(portfolioCols()).
+			AddRow(id1, "AAPL", "Apple Inc", "us_stock", float64(10), int64(100000), now, &price))
+
+	resp, err := svc.GetPortfolioSummary(authedCtx(), &pb.GetPortfolioSummaryRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, int64(150000), resp.TotalValue) // 10 * 15000
+	assert.Equal(t, int64(100000), resp.TotalCost)
+	assert.Equal(t, int64(50000), resp.TotalProfit)
+	assert.Len(t, resp.Holdings, 1)
+	assert.Equal(t, "AAPL", resp.Holdings[0].Symbol)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetPortfolioSummary_FamilyMode(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	now := time.Now()
+	familyID := uuid.New()
+	id1 := uuid.New()
+	id2 := uuid.New()
+	var price1 int64 = 20000
+	var price2 int64 = 5000
+
+	// Verify membership
+	mock.ExpectQuery(`SELECT EXISTS`).WithArgs(familyID, testUserID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+
+	// Query investments for family members
+	mock.ExpectQuery(`SELECT i.id, i.symbol, i.name, i.market_type, i.quantity, i.cost_basis`).
+		WithArgs(familyID).
+		WillReturnRows(pgxmock.NewRows(portfolioCols()).
+			AddRow(id1, "AAPL", "Apple Inc", "us_stock", float64(10), int64(100000), now, &price1).
+			AddRow(id2, "GOOGL", "Google", "us_stock", float64(5), int64(50000), now, &price2))
+
+	resp, err := svc.GetPortfolioSummary(authedCtx(), &pb.GetPortfolioSummaryRequest{FamilyId: familyID.String()})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, int64(225000), resp.TotalValue) // 10*20000 + 5*5000
+	assert.Equal(t, int64(150000), resp.TotalCost)  // 100000 + 50000
+	assert.Len(t, resp.Holdings, 2)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetPortfolioSummary_FamilyMode_NotMember(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	familyID := uuid.New()
+
+	// Verify membership — not a member
+	mock.ExpectQuery(`SELECT EXISTS`).WithArgs(familyID, testUserID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
+
+	_, err = svc.GetPortfolioSummary(authedCtx(), &pb.GetPortfolioSummaryRequest{FamilyId: familyID.String()})
+	require.Error(t, err)
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetPortfolioSummary_Empty(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	mock.ExpectQuery(`SELECT i.id, i.symbol, i.name, i.market_type, i.quantity, i.cost_basis`).
+		WithArgs(testUserID).
+		WillReturnRows(pgxmock.NewRows(portfolioCols()))
+
+	resp, err := svc.GetPortfolioSummary(authedCtx(), &pb.GetPortfolioSummaryRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, int64(0), resp.TotalValue)
+	assert.Len(t, resp.Holdings, 0)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}

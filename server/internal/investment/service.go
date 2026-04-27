@@ -426,21 +426,50 @@ func (s *Service) ListTrades(ctx context.Context, req *pb.ListTradesRequest) (*p
 
 // ── GetPortfolioSummary ─────────────────────────────────────────────────────
 
-func (s *Service) GetPortfolioSummary(ctx context.Context, _ *pb.GetPortfolioSummaryRequest) (*pb.PortfolioSummary, error) {
+func (s *Service) GetPortfolioSummary(ctx context.Context, req *pb.GetPortfolioSummaryRequest) (*pb.PortfolioSummary, error) {
 	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := s.pool.Query(ctx,
-		`SELECT i.id, i.symbol, i.name, i.market_type, i.quantity, i.cost_basis,
-		        i.created_at, mq.current_price
-		 FROM investments i
-		 LEFT JOIN market_quotes mq ON i.symbol = mq.symbol AND i.market_type = mq.market_type
-		 WHERE i.user_id = $1 AND i.deleted_at IS NULL AND i.quantity > 0
-		 ORDER BY i.created_at`,
-		userID,
-	)
+	// Determine query mode: personal vs family
+	var query string
+	var args []interface{}
+
+	if req.FamilyId != "" {
+		// Family mode: verify membership, then query all family members' investments
+		fid, err := uuid.Parse(req.FamilyId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid family_id")
+		}
+		var isMember bool
+		err = s.pool.QueryRow(ctx,
+			`SELECT EXISTS(SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2)`,
+			fid, userID,
+		).Scan(&isMember)
+		if err != nil || !isMember {
+			return nil, status.Error(codes.PermissionDenied, "not a member of this family")
+		}
+		query = `SELECT i.id, i.symbol, i.name, i.market_type, i.quantity, i.cost_basis,
+						i.created_at, mq.current_price
+				 FROM investments i
+				 LEFT JOIN market_quotes mq ON i.symbol = mq.symbol AND i.market_type = mq.market_type
+				 WHERE i.user_id IN (SELECT user_id FROM family_members WHERE family_id = $1)
+				   AND i.deleted_at IS NULL AND i.quantity > 0
+				 ORDER BY i.created_at`
+		args = []interface{}{fid}
+	} else {
+		// Personal mode: only current user's investments
+		query = `SELECT i.id, i.symbol, i.name, i.market_type, i.quantity, i.cost_basis,
+						i.created_at, mq.current_price
+				 FROM investments i
+				 LEFT JOIN market_quotes mq ON i.symbol = mq.symbol AND i.market_type = mq.market_type
+				 WHERE i.user_id = $1 AND i.deleted_at IS NULL AND i.quantity > 0
+				 ORDER BY i.created_at`
+		args = []interface{}{userID}
+	}
+
+	rows, err := s.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "portfolio query: %v", err)
 	}
