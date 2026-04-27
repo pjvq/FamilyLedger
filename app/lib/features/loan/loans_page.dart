@@ -195,6 +195,40 @@ class _LoanGroupCard extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 6),
+                              Builder(builder: (_) {
+                                final isFamily = group.subLoans.isNotEmpty &&
+                                    group.subLoans.first.familyId.isNotEmpty;
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isFamily
+                                        ? Colors.blue.withValues(alpha: 0.12)
+                                        : Colors.grey.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        isFamily ? Icons.family_restroom : Icons.person,
+                                        size: 11,
+                                        color: isFamily ? Colors.blue : Colors.grey,
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        isFamily ? '家庭' : '个人',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                          color: isFamily ? Colors.blue : Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                              const SizedBox(width: 6),
                               Flexible(
                                 child: Text(
                                   '商贷 $comPrincipalWan万 + 公积金 $pvdPrincipalWan万',
@@ -406,21 +440,63 @@ class _LoanCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 2),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: typeInfo.color.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              typeInfo.label,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: typeInfo.color,
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: typeInfo.color.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  typeInfo.label,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: typeInfo.color,
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: loan.familyId.isNotEmpty
+                                      ? Colors.blue.withValues(alpha: 0.12)
+                                      : Colors.grey.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      loan.familyId.isNotEmpty
+                                          ? Icons.family_restroom
+                                          : Icons.person,
+                                      size: 11,
+                                      color: loan.familyId.isNotEmpty
+                                          ? Colors.blue
+                                          : Colors.grey,
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      loan.familyId.isNotEmpty
+                                          ? '家庭'
+                                          : '个人',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                        color: loan.familyId.isNotEmpty
+                                            ? Colors.blue
+                                            : Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
