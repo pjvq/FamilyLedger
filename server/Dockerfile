@@ -1,7 +1,7 @@
 # Build stage
 FROM golang:1.25-alpine AS builder
 
-RUN apk add --no-cache git protobuf protobuf-dev
+RUN apk add --no-cache git
 
 ENV GOPROXY=https://goproxy.cn,direct
 
@@ -15,10 +15,10 @@ RUN go mod download
 COPY . .
 
 # Build
-RUN CGO_ENABLED=0 go build -o /server ./cmd/server
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /server ./cmd/server
 
 # Run stage
-FROM alpine:3.19
+FROM alpine:3.20
 
 RUN apk add --no-cache ca-certificates tzdata
 
@@ -42,6 +42,7 @@ RUN ARCH=$(uname -m) && \
 COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
+ENV APP_ENV=production
 EXPOSE 50051 8080
 
 ENTRYPOINT ["./entrypoint.sh"]

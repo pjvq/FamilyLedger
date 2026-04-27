@@ -18,27 +18,14 @@ services:
       timeout: 3s
       retries: 5
 
-  migrate:
-    image: migrate/migrate:v4.17.0
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - ./server/migrations:/migrations
-    command: >
-      -path=/migrations
-      -database=postgres://familyledger:familyledger@db:5432/familyledger?sslmode=disable
-      up
-    restart: "no"
-
   server:
     build:
-      context: .
+      context: ./server
       dockerfile: Dockerfile
     container_name: familyledger-server
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      db:
+        condition: service_healthy
     environment:
       APP_ENV: production
       DB_HOST: db
