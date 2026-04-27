@@ -28,7 +28,7 @@ class SyncEngine {
   final AppDatabase? _db;
   final SyncServiceClient? _syncClient;
   final SharedPreferences? _prefs;
-  final Connectivity _connectivity = Connectivity();
+  final Connectivity _connectivity;
 
   Timer? _syncTimer;
   StreamSubscription? _connectivitySub;
@@ -41,16 +41,19 @@ class SyncEngine {
   /// 最后一次成功拉取的服务端时间戳（毫秒）
   static const _lastSyncTsKey = 'sync_last_pull_ts';
 
-  SyncEngine(AppDatabase db, SyncServiceClient syncClient, SharedPreferences prefs)
+  SyncEngine(AppDatabase db, SyncServiceClient syncClient, SharedPreferences prefs,
+      {Connectivity? connectivity})
       : _db = db,
         _syncClient = syncClient,
-        _prefs = prefs;
+        _prefs = prefs,
+        _connectivity = connectivity ?? Connectivity();
 
   /// @visibleForTesting — stub constructor, all methods become no-ops
   SyncEngine.forTesting()
       : _db = null,
         _syncClient = null,
-        _prefs = null;
+        _prefs = null,
+        _connectivity = Connectivity();
 
   void start() {
     if (_disposed) return;
