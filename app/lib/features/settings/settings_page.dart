@@ -5,6 +5,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/auth_provider.dart';
+import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/theme_provider.dart';
@@ -150,6 +151,12 @@ class SettingsPage extends ConsumerWidget {
                   ref.read(currentFamilyIdProvider.notifier).state = familyId;
                   ref.read(sharedPreferencesProvider)
                       .setString(AppConstants.familyIdKey, familyId);
+                  // Auto-create default family account
+                  await ref.read(accountProvider.notifier).createAccount(
+                    name: '家庭共享账户',
+                    accountType: 'cash',
+                    familyId: familyId,
+                  );
                 }
               }
             },
@@ -192,6 +199,16 @@ class SettingsPage extends ConsumerWidget {
                   ref.read(currentFamilyIdProvider.notifier).state = familyId;
                   ref.read(sharedPreferencesProvider)
                       .setString(AppConstants.familyIdKey, familyId);
+                  // Ensure family has at least one account locally
+                  final db = ref.read(databaseProvider);
+                  final existingAccounts = await db.getAccountsByFamily(familyId);
+                  if (existingAccounts.isEmpty) {
+                    await ref.read(accountProvider.notifier).createAccount(
+                      name: '家庭共享账户',
+                      accountType: 'cash',
+                      familyId: familyId,
+                    );
+                  }
                 }
               }
             },

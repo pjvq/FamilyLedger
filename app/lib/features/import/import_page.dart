@@ -1646,7 +1646,22 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           } catch (_) {}
         }
         if (defaultAccId == null) {
-          setState(() { _isImporting = false; _importDone = true; _importErrors = ['没有家庭账户，请先创建']; });
+          // Auto-create a default family account instead of failing
+          try {
+            final fid = ref.read(currentFamilyIdProvider);
+            if (fid != null && fid.isNotEmpty) {
+              await ref.read(accountProvider.notifier).createAccount(
+                name: '家庭共享账户',
+                accountType: 'cash',
+                familyId: fid,
+              );
+              final newAccounts = await database.getAccountsByFamily(fid);
+              defaultAccId = newAccounts.isNotEmpty ? newAccounts.first.id : null;
+            }
+          } catch (_) {}
+        }
+        if (defaultAccId == null) {
+          setState(() { _isImporting = false; _importDone = true; _importErrors = ['创建家庭账户失败，请手动在账户页创建']; });
           return;
         }
       } else {
