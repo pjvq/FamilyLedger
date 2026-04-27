@@ -101,7 +101,7 @@ func (s *Service) queryTransactions(ctx context.Context, userID string, req *pb.
 		          LEFT JOIN categories c ON c.id = t.category_id
 		          LEFT JOIN accounts a ON a.id = t.account_id
 		          WHERE t.user_id = $1 AND t.deleted_at IS NULL
-		            AND (a.family_id IS NULL OR a.family_id = '')`
+		            AND a.family_id IS NULL`
 		args = append(args, userID)
 		argIdx = 2
 	}
@@ -407,13 +407,13 @@ func (s *Service) FullBackup(ctx context.Context, req *pb.FullBackupRequest) (*p
 	// Transactions
 	var txnQuery string
 	if req.FamilyId != "" {
-		txnQuery = `SELECT t.id, t.user_id, t.account_id, t.type, t.amount_cny, t.currency, t.original_amount,
+		txnQuery = `SELECT t.id, t.user_id, t.account_id, t.type, t.amount_cny, t.currency, t.amount,
 					   t.category_id, t.note, t.txn_date, t.created_at
 				FROM transactions t
 				JOIN accounts a ON a.id = t.account_id
 				WHERE a.family_id = $1 AND t.deleted_at IS NULL`
 	} else {
-		txnQuery = `SELECT id, user_id, account_id, type, amount_cny, currency, original_amount,
+		txnQuery = `SELECT id, user_id, account_id, type, amount_cny, currency, amount,
 					   category_id, note, txn_date, created_at
 				FROM transactions WHERE user_id = $1 AND deleted_at IS NULL`
 	}
@@ -434,8 +434,8 @@ func (s *Service) FullBackup(ctx context.Context, req *pb.FullBackupRequest) (*p
 
 	// Loans
 	backup.Loans, err = s.queryTableRows(ctx,
-		fmt.Sprintf(`SELECT id, user_id, family_id, name, principal, annual_rate, term_months, start_date,
-					   repayment_type, remaining_principal, created_at, updated_at
+		fmt.Sprintf(`SELECT id, user_id, family_id, name, principal, annual_rate, total_months, start_date,
+					   repayment_method, remaining_principal, created_at, updated_at
 		 FROM loans WHERE %s = $1 AND deleted_at IS NULL`, filterCol), filterVal)
 	if err != nil {
 		log.Printf("export: backup loans error: %v", err)

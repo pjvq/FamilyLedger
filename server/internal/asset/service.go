@@ -136,6 +136,18 @@ func (s *Service) ListAssets(ctx context.Context, req *pb.ListAssetsRequest) (*p
 
 	var rows pgx.Rows
 	if req.FamilyId != "" {
+		// Verify user is a member of this family
+		var isMember bool
+		err = s.pool.QueryRow(ctx,
+			`SELECT EXISTS(SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2)`,
+			req.FamilyId, userID,
+		).Scan(&isMember)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to verify family membership")
+		}
+		if !isMember {
+			return nil, status.Error(codes.PermissionDenied, "not a member of this family")
+		}
 		rows, err = s.pool.Query(ctx,
 			`SELECT id, user_id, name, asset_type, purchase_price, current_value,
 			        purchase_date, description, created_at, updated_at

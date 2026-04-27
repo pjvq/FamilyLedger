@@ -202,12 +202,12 @@ echo "  交易跨设备同步测试"
 echo "============================================================"
 
 TXN_NOTE="sync_test_txn_${UNIQUE}"
-TXN_DATE_SECONDS=$(date +%s)
+TXN_DATE_RFC3339=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # --- 1.1 Device A: 创建交易 ---
 run_test "Device A: 创建交易 (50元餐饮)"
 RESP=$(grpc_call_auth transaction.proto "$TOKEN_A" \
-  -d "{\"account_id\":\"$DEFAULT_ACCOUNT_ID\",\"category_id\":\"$CATEGORY_ID\",\"amount\":5000,\"currency\":\"CNY\",\"amount_cny\":5000,\"exchange_rate\":1.0,\"type\":\"TRANSACTION_TYPE_EXPENSE\",\"note\":\"$TXN_NOTE\",\"txn_date\":{\"seconds\":$TXN_DATE_SECONDS}}" \
+  -d "{\"account_id\":\"$DEFAULT_ACCOUNT_ID\",\"category_id\":\"$CATEGORY_ID\",\"amount\":5000,\"currency\":\"CNY\",\"amount_cny\":5000,\"exchange_rate\":1.0,\"type\":\"TRANSACTION_TYPE_EXPENSE\",\"note\":\"$TXN_NOTE\",\"txn_date\":\"$TXN_DATE_RFC3339\"}" \
   "familyledger.transaction.v1.TransactionService/CreateTransaction")
 TXN_ID=$(json_nested "$RESP" "transaction.id")
 if [[ -n "$TXN_ID" ]]; then
@@ -231,7 +231,7 @@ fi
 # --- 1.3 Device A: 更新交易金额 (50元 → 80元) ---
 run_test "Device A: 更新交易金额 → 8000 (80元)"
 RESP=$(grpc_call_auth transaction.proto "$TOKEN_A" \
-  -d "{\"transaction_id\":\"$TXN_ID\",\"amount\":8000,\"amount_cny\":8000}" \
+  -d "{\"transaction_id\":\"$TXN_ID\",\"amount\":8000}" \
   "familyledger.transaction.v1.TransactionService/UpdateTransaction")
 UPD_AMOUNT=$(json_nested "$RESP" "transaction.amount")
 if [[ "$UPD_AMOUNT" == "8000" ]]; then
@@ -290,7 +290,7 @@ ACCT_NAME="sync_test_account_${UNIQUE}"
 # --- 2.1 Device A: 创建账户 ---
 run_test "Device A: 创建现金账户"
 RESP=$(grpc_call_auth account.proto "$TOKEN_A" \
-  -d "{\"name\":\"$ACCT_NAME\",\"account_type\":\"ACCOUNT_TYPE_CASH\",\"currency\":\"CNY\"}" \
+  -d "{\"name\":\"$ACCT_NAME\",\"type\":\"ACCOUNT_TYPE_CASH\",\"currency\":\"CNY\"}" \
   "familyledger.account.v1.AccountService/CreateAccount")
 NEW_ACCT_ID=$(json_nested "$RESP" "account.id")
 if [[ -n "$NEW_ACCT_ID" ]]; then

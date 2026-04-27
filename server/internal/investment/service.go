@@ -112,6 +112,18 @@ func (s *Service) ListInvestments(ctx context.Context, req *pb.ListInvestmentsRe
 
 	var rows pgx.Rows
 	if req.FamilyId != "" {
+		// Verify user is a member of this family
+		var isMember bool
+		err = s.pool.QueryRow(ctx,
+			`SELECT EXISTS(SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2)`,
+			req.FamilyId, userID,
+		).Scan(&isMember)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to verify family membership")
+		}
+		if !isMember {
+			return nil, status.Error(codes.PermissionDenied, "not a member of this family")
+		}
 		rows, err = s.pool.Query(ctx,
 			`SELECT i.id, i.user_id, i.symbol, i.name, i.market_type, i.quantity, i.cost_basis,
 			        i.created_at, i.updated_at,

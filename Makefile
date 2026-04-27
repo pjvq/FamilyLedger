@@ -1,7 +1,7 @@
 # FamilyLedger — Unified Test Runner
 # Usage: make <target>
 
-.PHONY: test test-backend test-frontend test-all test-integration bench bench-grpc clean help
+.PHONY: test test-backend test-frontend test-all test-integration test-e2e bench bench-grpc clean help
 
 # ─── Quick (daily dev) ─────────────────────────────────────────
 test: test-backend test-frontend ## Run unit tests (no Docker needed)
@@ -13,12 +13,31 @@ test-frontend: ## Flutter widget + unit tests
 	cd app && flutter test --reporter compact
 
 # ─── Full (pre-merge) ──────────────────────────────────────────
-test-all: test test-integration ## Run everything (needs Docker)
+test-all: test test-integration test-e2e ## Run everything (needs Docker)
 
 test-integration: ## Go integration tests (testcontainers + real PostgreSQL)
 	@docker info > /dev/null 2>&1 || (echo "❌ Docker not running" && exit 1)
 	cd server && go test ./internal/integration/... ./internal/benchmark/... \
 		-tags=integration -count=1 -timeout=120s -v
+
+test-e2e: ## gRPC end-to-end bash tests (needs running server + Docker)
+	@grpcurl -plaintext localhost:50051 list >/dev/null 2>&1 || \
+		grpcurl -plaintext localhost:50051 list 2>&1 | grep -q "Unauthenticated" || \
+		(echo "❌ gRPC server not running on localhost:50051" && exit 1)
+	@echo "\n🧪 Running E2E bash test suites..."
+	@PASS=0; FAIL=0; \
+	for f in tests/integration/test_*.sh; do \
+		echo "\n━━━ $$(basename $$f) ━━━"; \
+		if bash "$$f"; then \
+			PASS=$$((PASS+1)); \
+		else \
+			FAIL=$$((FAIL+1)); \
+		fi; \
+	done; \
+	echo "\n══════════════════════════════════════"; \
+	echo "  E2E Summary: $$PASS passed, $$FAIL failed"; \
+	echo "══════════════════════════════════════"; \
+	test $$FAIL -eq 0
 
 # ─── Benchmark ─────────────────────────────────────────────────
 bench: ## Run Go benchmarks (needs Docker for real DB)
