@@ -62,10 +62,12 @@ func (s *Service) CreateLoan(ctx context.Context, req *pb.CreateLoanRequest) (*p
 	if req.FamilyId != "" {
 		fid, err := uuid.Parse(req.FamilyId)
 		if err != nil {
+			log.Printf("loan: create: invalid family_id %q: %v", req.FamilyId, err)
 			return nil, status.Error(codes.InvalidArgument, "invalid family_id")
 		}
 		familyID = &fid
 		if err := permission.Check(ctx, s.pool, userID, req.FamilyId, permission.CanEdit); err != nil {
+			log.Printf("loan: create: permission denied for user %s on family %s: %v", userID, req.FamilyId, err)
 			return nil, err
 		}
 	}
@@ -145,7 +147,7 @@ func (s *Service) ListLoans(ctx context.Context, req *pb.ListLoansRequest) (*pb.
 			`SELECT id, user_id, name, loan_type, principal, remaining_principal,
 			        annual_rate, total_months, paid_months, repayment_method, payment_day,
 			        start_date, created_at, updated_at, account_id,
-			        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month
+			        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month, family_id
 			 FROM loans WHERE family_id = $1 AND deleted_at IS NULL
 			 ORDER BY created_at DESC`,
 			req.FamilyId,
@@ -155,7 +157,7 @@ func (s *Service) ListLoans(ctx context.Context, req *pb.ListLoansRequest) (*pb.
 			`SELECT id, user_id, name, loan_type, principal, remaining_principal,
 			        annual_rate, total_months, paid_months, repayment_method, payment_day,
 			        start_date, created_at, updated_at, account_id,
-			        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month
+			        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month, family_id
 			 FROM loans WHERE user_id = $1 AND deleted_at IS NULL
 			 ORDER BY created_at DESC`,
 			userID,
@@ -923,11 +925,12 @@ func scanLoan(rows pgx.Rows) (*pb.Loan, error) {
 	var subType, rateType *string
 	var lprBase, lprSpread *float64
 	var rateAdjustMonth *int32
+	var familyID *uuid.UUID
 
 	if err := rows.Scan(&id, &uid, &name, &loanType, &principal, &remainingPrincipal,
 		&annualRate, &totalMonths, &paidMonths, &method, &paymentDay,
 		&startDate, &createdAt, &updatedAt, &accountID,
-		&groupID, &subType, &rateType, &lprBase, &lprSpread, &rateAdjustMonth); err != nil {
+		&groupID, &subType, &rateType, &lprBase, &lprSpread, &rateAdjustMonth, &familyID); err != nil {
 		return nil, status.Error(codes.Internal, "failed to scan loan")
 	}
 
@@ -959,6 +962,9 @@ func scanLoan(rows pgx.Rows) (*pb.Loan, error) {
 	}
 	if rateAdjustMonth != nil {
 		f.rateAdjustMonth = *rateAdjustMonth
+	}
+	if familyID != nil {
+		f.familyID = familyID.String()
 	}
 	return buildLoanProtoFull(f), nil
 }
@@ -1551,7 +1557,7 @@ func (s *Service) loadSubLoans(ctx context.Context, groupID, userID string) ([]*
 		`SELECT id, user_id, name, loan_type, principal, remaining_principal,
 		        annual_rate, total_months, paid_months, repayment_method, payment_day,
 		        start_date, created_at, updated_at, account_id,
-		        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month
+		        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month, family_id
 		 FROM loans WHERE group_id = $1 AND user_id = $2 AND deleted_at IS NULL
 		 ORDER BY sub_type`,
 		groupID, userID,

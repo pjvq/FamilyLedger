@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -582,6 +583,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
   Future<void> listLoans() async {
     if (_userId == null) return;
     state = state.copyWith(isLoading: true, clearError: true);
+    developer.log('[Loan] listLoans: userId=$_userId familyId=$_familyId');
 
     try {
       // gRPC first
@@ -590,10 +592,12 @@ class LoanNotifier extends StateNotifier<LoanState> {
         req.familyId = _familyId;
       }
       final resp = await _client.listLoans(req);
+      developer.log('[Loan] listLoans: gRPC returned ${resp.loans.length} loans');
       for (final loan in resp.loans) {
         await _db.upsertLoan(_loanFromProto(loan));
       }
-    } catch (_) {
+    } catch (e) {
+      developer.log('[Loan] listLoans: gRPC error: $e');
       // Offline fallback — use local DB
     }
 
@@ -732,7 +736,9 @@ class LoanNotifier extends StateNotifier<LoanState> {
         ..familyId = familyId ?? '');
       loanId = resp.id;
       await _db.upsertLoan(_loanFromProto(resp));
-    } catch (_) {
+      developer.log('[Loan] createLoan: gRPC success, id=${resp.id} familyId=${resp.familyId}');
+    } catch (e, st) {
+      developer.log('[Loan] createLoan: catch error: $e\n$st');
       // Offline: save locally
       await _db.upsertLoan(db.LoansCompanion.insert(
         id: loanId,
