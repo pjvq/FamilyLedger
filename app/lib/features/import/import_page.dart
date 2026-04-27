@@ -1624,7 +1624,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       // Get accounts for default
       String? defaultAccId;
       if (_importToFamily) {
-        final familyId = ref.read(currentFamilyIdProvider);
+        var familyId = ref.read(currentFamilyIdProvider);
+        // Fallback: get familyId from family provider state
+        if (familyId == null || familyId.isEmpty) {
+          final familyState = ref.read(familyProvider);
+          if (familyState.families.isNotEmpty) {
+            familyId = familyState.families.first.id;
+          }
+        }
         debugPrint('Import: familyId=$familyId');
         if (familyId != null && familyId.isNotEmpty) {
           final familyAccounts = await database.getAccountsByFamily(familyId);
@@ -1638,27 +1645,32 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           // Try refreshing accounts from server first
           try {
             await ref.read(accountProvider.notifier).refresh();
-            final fid = ref.read(currentFamilyIdProvider);
-            if (fid != null && fid.isNotEmpty) {
-              final refreshedAccounts = await database.getAccountsByFamily(fid);
+            if (familyId != null && familyId.isNotEmpty) {
+              final refreshedAccounts = await database.getAccountsByFamily(familyId);
               defaultAccId = refreshedAccounts.isNotEmpty ? refreshedAccounts.first.id : null;
             }
           } catch (_) {}
         }
         if (defaultAccId == null) {
-          // Auto-create a default family account instead of failing
+          // Auto-create a default family account directly via DB
           try {
-            final fid = ref.read(currentFamilyIdProvider);
-            if (fid != null && fid.isNotEmpty) {
-              await ref.read(accountProvider.notifier).createAccount(
+            if (familyId != null && familyId.isNotEmpty) {
+              final newAccId = const Uuid().v4();
+              await database.insertAccount(db.AccountsCompanion.insert(
+                id: newAccId,
+                userId: userId,
                 name: '家庭共享账户',
-                accountType: 'cash',
-                familyId: fid,
-              );
-              final newAccounts = await database.getAccountsByFamily(fid);
-              defaultAccId = newAccounts.isNotEmpty ? newAccounts.first.id : null;
+                icon: Value('🏠'),
+                balance: Value(0),
+                familyId: Value(familyId),
+                accountType: Value('cash'),
+              ));
+              defaultAccId = newAccId;
+              debugPrint('Import: auto-created family account $newAccId for family $familyId');
             }
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('Import: failed to auto-create family account: $e');
+          }
         }
         if (defaultAccId == null) {
           setState(() { _isImporting = false; _importDone = true; _importErrors = ['创建家庭账户失败，请手动在账户页创建']; });
