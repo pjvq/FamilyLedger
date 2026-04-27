@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
 
 /// A SegmentedButton that lets the user choose between personal and family scope.
@@ -29,7 +28,7 @@ class _FamilyScopeSelectorState extends ConsumerState<FamilyScopeSelector> {
     final family = familyState.currentFamily;
     if (family == null) return const SizedBox.shrink();
 
-    final familyId = ref.read(currentFamilyIdProvider);
+    final familyId = family.id;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
