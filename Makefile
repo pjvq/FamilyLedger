@@ -1,7 +1,7 @@
 # FamilyLedger — Unified Test Runner
 # Usage: make <target>
 
-.PHONY: test test-backend test-frontend test-all test-integration bench clean help
+.PHONY: test test-backend test-frontend test-all test-integration bench bench-grpc clean help
 
 # ─── Quick (daily dev) ─────────────────────────────────────────
 test: test-backend test-frontend ## Run unit tests (no Docker needed)
@@ -40,6 +40,9 @@ bench-save: bench ## Save current benchmark as baseline
 	cp server/benchmark-results.txt server/benchmark-baseline.txt
 	@echo "✅ Baseline saved"
 
+bench-grpc: ## Run gRPC end-to-end load tests with ghz
+	bash server/bench/grpc-load-test.sh
+
 # ─── Coverage ──────────────────────────────────────────────────
 coverage-backend: ## Go coverage report
 	cd server && go test ./... -coverprofile=coverage.out -covermode=atomic
@@ -49,6 +52,13 @@ coverage-backend: ## Go coverage report
 coverage-frontend: ## Flutter coverage report
 	cd app && flutter test --coverage
 	@echo "📄 Coverage: app/coverage/lcov.info"
+
+# ─── Flutter Performance ───────────────────────────────────────
+bench-flutter: ## Run Flutter performance tests (needs device/simulator)
+	cd app && flutter test integration_test/ --profile
+
+bench-flutter-startup: ## Run Flutter startup benchmark only
+	cd app && flutter test integration_test/app_performance_test.dart --profile
 
 # ─── Helpers ───────────────────────────────────────────────────
 clean: ## Remove test artifacts

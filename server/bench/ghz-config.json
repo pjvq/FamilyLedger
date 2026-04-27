@@ -1,0 +1,22 @@
+{
+  "proto": "../../proto/transaction.proto",
+  "import-paths": "../../proto,/opt/homebrew/include",
+  "host": "localhost:50051",
+  "insecure": true,
+  "total": 1000,
+  "concurrency": 10,
+  "connections": 5,
+  "call": "familyledger.transaction.v1.TransactionService/ListTransactions",
+  "data": {
+    "page_size": 20
+  },
+  "metadata": {
+    "authorization": "Bearer <YOUR_TOKEN>"
+  },
+  "load-schedule": "const",
+  "load-start": 10,
+  "timeout": "30s",
+  "dial-timeout": "10s",
+  "keepalive": "10s",
+  "format": "pretty"
+}

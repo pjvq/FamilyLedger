@@ -1,0 +1,6 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/familyledger/server/internal/benchmark
+BenchmarkListTransactions_100-8      160000     22500 ns/op
+BenchmarkListTransactions_1000-8      51014     68622 ns/op
+BenchmarkDashboard_Aggregation-8      35853     99933 ns/op
