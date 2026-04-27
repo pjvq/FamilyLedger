@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.34.1
-// source: dashboard.proto
+// source: proto/dashboard.proto
 
 package dashboard
 
@@ -30,7 +30,7 @@ type GetNetWorthRequest struct {
 
 func (x *GetNetWorthRequest) Reset() {
 	*x = GetNetWorthRequest{}
-	mi := &file_dashboard_proto_msgTypes[0]
+	mi := &file_proto_dashboard_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +42,7 @@ func (x *GetNetWorthRequest) String() string {
 func (*GetNetWorthRequest) ProtoMessage() {}
 
 func (x *GetNetWorthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_proto_msgTypes[0]
+	mi := &file_proto_dashboard_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,7 +55,7 @@ func (x *GetNetWorthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNetWorthRequest.ProtoReflect.Descriptor instead.
 func (*GetNetWorthRequest) Descriptor() ([]byte, []int) {
-	return file_dashboard_proto_rawDescGZIP(), []int{0}
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GetNetWorthRequest) GetFamilyId() string {
@@ -81,7 +81,7 @@ type NetWorth struct {
 
 func (x *NetWorth) Reset() {
 	*x = NetWorth{}
-	mi := &file_dashboard_proto_msgTypes[1]
+	mi := &file_proto_dashboard_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -93,7 +93,7 @@ func (x *NetWorth) String() string {
 func (*NetWorth) ProtoMessage() {}
 
 func (x *NetWorth) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_proto_msgTypes[1]
+	mi := &file_proto_dashboard_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -106,7 +106,7 @@ func (x *NetWorth) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NetWorth.ProtoReflect.Descriptor instead.
 func (*NetWorth) Descriptor() ([]byte, []int) {
-	return file_dashboard_proto_rawDescGZIP(), []int{1}
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *NetWorth) GetTotal() int64 {
@@ -177,7 +177,7 @@ type AssetComposition struct {
 
 func (x *AssetComposition) Reset() {
 	*x = AssetComposition{}
-	mi := &file_dashboard_proto_msgTypes[2]
+	mi := &file_proto_dashboard_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -189,7 +189,7 @@ func (x *AssetComposition) String() string {
 func (*AssetComposition) ProtoMessage() {}
 
 func (x *AssetComposition) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_proto_msgTypes[2]
+	mi := &file_proto_dashboard_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -202,7 +202,7 @@ func (x *AssetComposition) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AssetComposition.ProtoReflect.Descriptor instead.
 func (*AssetComposition) Descriptor() ([]byte, []int) {
-	return file_dashboard_proto_rawDescGZIP(), []int{2}
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *AssetComposition) GetCategory() string {
@@ -245,7 +245,7 @@ type TrendRequest struct {
 
 func (x *TrendRequest) Reset() {
 	*x = TrendRequest{}
-	mi := &file_dashboard_proto_msgTypes[3]
+	mi := &file_proto_dashboard_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -257,7 +257,7 @@ func (x *TrendRequest) String() string {
 func (*TrendRequest) ProtoMessage() {}
 
 func (x *TrendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_proto_msgTypes[3]
+	mi := &file_proto_dashboard_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -270,7 +270,7 @@ func (x *TrendRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrendRequest.ProtoReflect.Descriptor instead.
 func (*TrendRequest) Descriptor() ([]byte, []int) {
-	return file_dashboard_proto_rawDescGZIP(), []int{3}
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *TrendRequest) GetUserId() string {
@@ -310,7 +310,7 @@ type TrendResponse struct {
 
 func (x *TrendResponse) Reset() {
 	*x = TrendResponse{}
-	mi := &file_dashboard_proto_msgTypes[4]
+	mi := &file_proto_dashboard_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -322,7 +322,7 @@ func (x *TrendResponse) String() string {
 func (*TrendResponse) ProtoMessage() {}
 
 func (x *TrendResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_proto_msgTypes[4]
+	mi := &file_proto_dashboard_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -335,7 +335,7 @@ func (x *TrendResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrendResponse.ProtoReflect.Descriptor instead.
 func (*TrendResponse) Descriptor() ([]byte, []int) {
-	return file_dashboard_proto_rawDescGZIP(), []int{4}
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *TrendResponse) GetPoints() []*TrendPoint {
@@ -357,7 +357,7 @@ type TrendPoint struct {
 
 func (x *TrendPoint) Reset() {
 	*x = TrendPoint{}
-	mi := &file_dashboard_proto_msgTypes[5]
+	mi := &file_proto_dashboard_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -369,7 +369,7 @@ func (x *TrendPoint) String() string {
 func (*TrendPoint) ProtoMessage() {}
 
 func (x *TrendPoint) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_proto_msgTypes[5]
+	mi := &file_proto_dashboard_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -382,7 +382,7 @@ func (x *TrendPoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrendPoint.ProtoReflect.Descriptor instead.
 func (*TrendPoint) Descriptor() ([]byte, []int) {
-	return file_dashboard_proto_rawDescGZIP(), []int{5}
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *TrendPoint) GetLabel() string {
@@ -426,7 +426,7 @@ type CategoryBreakdownRequest struct {
 
 func (x *CategoryBreakdownRequest) Reset() {
 	*x = CategoryBreakdownRequest{}
-	mi := &file_dashboard_proto_msgTypes[6]
+	mi := &file_proto_dashboard_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -438,7 +438,7 @@ func (x *CategoryBreakdownRequest) String() string {
 func (*CategoryBreakdownRequest) ProtoMessage() {}
 
 func (x *CategoryBreakdownRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_proto_msgTypes[6]
+	mi := &file_proto_dashboard_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -451,7 +451,7 @@ func (x *CategoryBreakdownRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CategoryBreakdownRequest.ProtoReflect.Descriptor instead.
 func (*CategoryBreakdownRequest) Descriptor() ([]byte, []int) {
-	return file_dashboard_proto_rawDescGZIP(), []int{6}
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CategoryBreakdownRequest) GetUserId() string {
@@ -499,7 +499,7 @@ type CategoryBreakdownResponse struct {
 
 func (x *CategoryBreakdownResponse) Reset() {
 	*x = CategoryBreakdownResponse{}
-	mi := &file_dashboard_proto_msgTypes[7]
+	mi := &file_proto_dashboard_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -511,7 +511,7 @@ func (x *CategoryBreakdownResponse) String() string {
 func (*CategoryBreakdownResponse) ProtoMessage() {}
 
 func (x *CategoryBreakdownResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_proto_msgTypes[7]
+	mi := &file_proto_dashboard_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -524,7 +524,7 @@ func (x *CategoryBreakdownResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CategoryBreakdownResponse.ProtoReflect.Descriptor instead.
 func (*CategoryBreakdownResponse) Descriptor() ([]byte, []int) {
-	return file_dashboard_proto_rawDescGZIP(), []int{7}
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CategoryBreakdownResponse) GetTotal() int64 {
@@ -556,7 +556,7 @@ type CategoryItem struct {
 
 func (x *CategoryItem) Reset() {
 	*x = CategoryItem{}
-	mi := &file_dashboard_proto_msgTypes[8]
+	mi := &file_proto_dashboard_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -568,7 +568,7 @@ func (x *CategoryItem) String() string {
 func (*CategoryItem) ProtoMessage() {}
 
 func (x *CategoryItem) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_proto_msgTypes[8]
+	mi := &file_proto_dashboard_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -581,7 +581,7 @@ func (x *CategoryItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CategoryItem.ProtoReflect.Descriptor instead.
 func (*CategoryItem) Descriptor() ([]byte, []int) {
-	return file_dashboard_proto_rawDescGZIP(), []int{8}
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CategoryItem) GetCategoryId() string {
@@ -644,7 +644,7 @@ type BudgetSummaryRequest struct {
 
 func (x *BudgetSummaryRequest) Reset() {
 	*x = BudgetSummaryRequest{}
-	mi := &file_dashboard_proto_msgTypes[9]
+	mi := &file_proto_dashboard_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -656,7 +656,7 @@ func (x *BudgetSummaryRequest) String() string {
 func (*BudgetSummaryRequest) ProtoMessage() {}
 
 func (x *BudgetSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_proto_msgTypes[9]
+	mi := &file_proto_dashboard_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -669,7 +669,7 @@ func (x *BudgetSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BudgetSummaryRequest.ProtoReflect.Descriptor instead.
 func (*BudgetSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_dashboard_proto_rawDescGZIP(), []int{9}
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *BudgetSummaryRequest) GetFamilyId() string {
@@ -705,7 +705,7 @@ type BudgetSummaryResponse struct {
 
 func (x *BudgetSummaryResponse) Reset() {
 	*x = BudgetSummaryResponse{}
-	mi := &file_dashboard_proto_msgTypes[10]
+	mi := &file_proto_dashboard_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -717,7 +717,7 @@ func (x *BudgetSummaryResponse) String() string {
 func (*BudgetSummaryResponse) ProtoMessage() {}
 
 func (x *BudgetSummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_proto_msgTypes[10]
+	mi := &file_proto_dashboard_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -730,7 +730,7 @@ func (x *BudgetSummaryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BudgetSummaryResponse.ProtoReflect.Descriptor instead.
 func (*BudgetSummaryResponse) Descriptor() ([]byte, []int) {
-	return file_dashboard_proto_rawDescGZIP(), []int{10}
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *BudgetSummaryResponse) GetTotalBudget() int64 {
@@ -775,7 +775,7 @@ type CategoryBudgetItem struct {
 
 func (x *CategoryBudgetItem) Reset() {
 	*x = CategoryBudgetItem{}
-	mi := &file_dashboard_proto_msgTypes[11]
+	mi := &file_proto_dashboard_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -787,7 +787,7 @@ func (x *CategoryBudgetItem) String() string {
 func (*CategoryBudgetItem) ProtoMessage() {}
 
 func (x *CategoryBudgetItem) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_proto_msgTypes[11]
+	mi := &file_proto_dashboard_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -800,7 +800,7 @@ func (x *CategoryBudgetItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CategoryBudgetItem.ProtoReflect.Descriptor instead.
 func (*CategoryBudgetItem) Descriptor() ([]byte, []int) {
-	return file_dashboard_proto_rawDescGZIP(), []int{11}
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CategoryBudgetItem) GetCategoryId() string {
@@ -845,11 +845,339 @@ func (x *CategoryBudgetItem) GetChildren() []*CategoryBudgetItem {
 	return nil
 }
 
-var File_dashboard_proto protoreflect.FileDescriptor
+type GetExchangeRatesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BaseCurrency  string                 `protobuf:"bytes,1,opt,name=base_currency,json=baseCurrency,proto3" json:"base_currency,omitempty"` // 基准币种，默认 CNY
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_dashboard_proto_rawDesc = "" +
+func (x *GetExchangeRatesRequest) Reset() {
+	*x = GetExchangeRatesRequest{}
+	mi := &file_proto_dashboard_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetExchangeRatesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetExchangeRatesRequest) ProtoMessage() {}
+
+func (x *GetExchangeRatesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_dashboard_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetExchangeRatesRequest.ProtoReflect.Descriptor instead.
+func (*GetExchangeRatesRequest) Descriptor() ([]byte, []int) {
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetExchangeRatesRequest) GetBaseCurrency() string {
+	if x != nil {
+		return x.BaseCurrency
+	}
+	return ""
+}
+
+type ExchangeRatesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rates         []*ExchangeRateItem    `protobuf:"bytes,1,rep,name=rates,proto3" json:"rates,omitempty"`
+	BaseCurrency  string                 `protobuf:"bytes,2,opt,name=base_currency,json=baseCurrency,proto3" json:"base_currency,omitempty"`
+	UpdatedAt     int64                  `protobuf:"varint,3,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"` // Unix timestamp (seconds)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExchangeRatesResponse) Reset() {
+	*x = ExchangeRatesResponse{}
+	mi := &file_proto_dashboard_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExchangeRatesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExchangeRatesResponse) ProtoMessage() {}
+
+func (x *ExchangeRatesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_dashboard_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExchangeRatesResponse.ProtoReflect.Descriptor instead.
+func (*ExchangeRatesResponse) Descriptor() ([]byte, []int) {
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ExchangeRatesResponse) GetRates() []*ExchangeRateItem {
+	if x != nil {
+		return x.Rates
+	}
+	return nil
+}
+
+func (x *ExchangeRatesResponse) GetBaseCurrency() string {
+	if x != nil {
+		return x.BaseCurrency
+	}
+	return ""
+}
+
+func (x *ExchangeRatesResponse) GetUpdatedAt() int64 {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return 0
+}
+
+type ExchangeRateItem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Currency      string                 `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency,omitempty"` // e.g. "USD"
+	Rate          float64                `protobuf:"fixed64,2,opt,name=rate,proto3" json:"rate,omitempty"`       // 1 base_currency = rate target_currency
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`         // display name, e.g. "美元"
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExchangeRateItem) Reset() {
+	*x = ExchangeRateItem{}
+	mi := &file_proto_dashboard_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExchangeRateItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExchangeRateItem) ProtoMessage() {}
+
+func (x *ExchangeRateItem) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_dashboard_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExchangeRateItem.ProtoReflect.Descriptor instead.
+func (*ExchangeRateItem) Descriptor() ([]byte, []int) {
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ExchangeRateItem) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *ExchangeRateItem) GetRate() float64 {
+	if x != nil {
+		return x.Rate
+	}
+	return 0
+}
+
+func (x *ExchangeRateItem) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type InvestmentTrendRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FamilyId      string                 `protobuf:"bytes,1,opt,name=family_id,json=familyId,proto3" json:"family_id,omitempty"` // optional: empty = personal
+	Months        int32                  `protobuf:"varint,2,opt,name=months,proto3" json:"months,omitempty"`                    // default 12
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InvestmentTrendRequest) Reset() {
+	*x = InvestmentTrendRequest{}
+	mi := &file_proto_dashboard_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InvestmentTrendRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InvestmentTrendRequest) ProtoMessage() {}
+
+func (x *InvestmentTrendRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_dashboard_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InvestmentTrendRequest.ProtoReflect.Descriptor instead.
+func (*InvestmentTrendRequest) Descriptor() ([]byte, []int) {
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *InvestmentTrendRequest) GetFamilyId() string {
+	if x != nil {
+		return x.FamilyId
+	}
+	return ""
+}
+
+func (x *InvestmentTrendRequest) GetMonths() int32 {
+	if x != nil {
+		return x.Months
+	}
+	return 0
+}
+
+type InvestmentTrendResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Points        []*InvestmentTrendPoint `protobuf:"bytes,1,rep,name=points,proto3" json:"points,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InvestmentTrendResponse) Reset() {
+	*x = InvestmentTrendResponse{}
+	mi := &file_proto_dashboard_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InvestmentTrendResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InvestmentTrendResponse) ProtoMessage() {}
+
+func (x *InvestmentTrendResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_dashboard_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InvestmentTrendResponse.ProtoReflect.Descriptor instead.
+func (*InvestmentTrendResponse) Descriptor() ([]byte, []int) {
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *InvestmentTrendResponse) GetPoints() []*InvestmentTrendPoint {
+	if x != nil {
+		return x.Points
+	}
+	return nil
+}
+
+type InvestmentTrendPoint struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Month         string                 `protobuf:"bytes,1,opt,name=month,proto3" json:"month,omitempty"`                               // "2026-01"
+	TotalValue    int64                  `protobuf:"varint,2,opt,name=total_value,json=totalValue,proto3" json:"total_value,omitempty"`  // 总市值（分）
+	TotalCost     int64                  `protobuf:"varint,3,opt,name=total_cost,json=totalCost,proto3" json:"total_cost,omitempty"`     // 总成本（分）
+	ReturnRate    float64                `protobuf:"fixed64,4,opt,name=return_rate,json=returnRate,proto3" json:"return_rate,omitempty"` // 收益率
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InvestmentTrendPoint) Reset() {
+	*x = InvestmentTrendPoint{}
+	mi := &file_proto_dashboard_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InvestmentTrendPoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InvestmentTrendPoint) ProtoMessage() {}
+
+func (x *InvestmentTrendPoint) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_dashboard_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InvestmentTrendPoint.ProtoReflect.Descriptor instead.
+func (*InvestmentTrendPoint) Descriptor() ([]byte, []int) {
+	return file_proto_dashboard_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *InvestmentTrendPoint) GetMonth() string {
+	if x != nil {
+		return x.Month
+	}
+	return ""
+}
+
+func (x *InvestmentTrendPoint) GetTotalValue() int64 {
+	if x != nil {
+		return x.TotalValue
+	}
+	return 0
+}
+
+func (x *InvestmentTrendPoint) GetTotalCost() int64 {
+	if x != nil {
+		return x.TotalCost
+	}
+	return 0
+}
+
+func (x *InvestmentTrendPoint) GetReturnRate() float64 {
+	if x != nil {
+		return x.ReturnRate
+	}
+	return 0
+}
+
+var File_proto_dashboard_proto protoreflect.FileDescriptor
+
+const file_proto_dashboard_proto_rawDesc = "" +
 	"\n" +
-	"\x0fdashboard.proto\x12\x19familyledger.dashboard.v1\"1\n" +
+	"\x15proto/dashboard.proto\x12\x19familyledger.dashboard.v1\"1\n" +
 	"\x12GetNetWorthRequest\x12\x1b\n" +
 	"\tfamily_id\x18\x01 \x01(\tR\bfamilyId\"\xe9\x02\n" +
 	"\bNetWorth\x12\x14\n" +
@@ -916,28 +1244,54 @@ const file_dashboard_proto_rawDesc = "" +
 	"\rbudget_amount\x18\x03 \x01(\x03R\fbudgetAmount\x12!\n" +
 	"\fspent_amount\x18\x04 \x01(\x03R\vspentAmount\x12%\n" +
 	"\x0eexecution_rate\x18\x05 \x01(\x01R\rexecutionRate\x12I\n" +
-	"\bchildren\x18\x06 \x03(\v2-.familyledger.dashboard.v1.CategoryBudgetItemR\bchildren2\xc3\x04\n" +
+	"\bchildren\x18\x06 \x03(\v2-.familyledger.dashboard.v1.CategoryBudgetItemR\bchildren\">\n" +
+	"\x17GetExchangeRatesRequest\x12#\n" +
+	"\rbase_currency\x18\x01 \x01(\tR\fbaseCurrency\"\x9e\x01\n" +
+	"\x15ExchangeRatesResponse\x12A\n" +
+	"\x05rates\x18\x01 \x03(\v2+.familyledger.dashboard.v1.ExchangeRateItemR\x05rates\x12#\n" +
+	"\rbase_currency\x18\x02 \x01(\tR\fbaseCurrency\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x03 \x01(\x03R\tupdatedAt\"V\n" +
+	"\x10ExchangeRateItem\x12\x1a\n" +
+	"\bcurrency\x18\x01 \x01(\tR\bcurrency\x12\x12\n" +
+	"\x04rate\x18\x02 \x01(\x01R\x04rate\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"M\n" +
+	"\x16InvestmentTrendRequest\x12\x1b\n" +
+	"\tfamily_id\x18\x01 \x01(\tR\bfamilyId\x12\x16\n" +
+	"\x06months\x18\x02 \x01(\x05R\x06months\"b\n" +
+	"\x17InvestmentTrendResponse\x12G\n" +
+	"\x06points\x18\x01 \x03(\v2/.familyledger.dashboard.v1.InvestmentTrendPointR\x06points\"\x8d\x01\n" +
+	"\x14InvestmentTrendPoint\x12\x14\n" +
+	"\x05month\x18\x01 \x01(\tR\x05month\x12\x1f\n" +
+	"\vtotal_value\x18\x02 \x01(\x03R\n" +
+	"totalValue\x12\x1d\n" +
+	"\n" +
+	"total_cost\x18\x03 \x01(\x03R\ttotalCost\x12\x1f\n" +
+	"\vreturn_rate\x18\x04 \x01(\x01R\n" +
+	"returnRate2\xba\x06\n" +
 	"\x10DashboardService\x12a\n" +
 	"\vGetNetWorth\x12-.familyledger.dashboard.v1.GetNetWorthRequest\x1a#.familyledger.dashboard.v1.NetWorth\x12j\n" +
 	"\x15GetIncomeExpenseTrend\x12'.familyledger.dashboard.v1.TrendRequest\x1a(.familyledger.dashboard.v1.TrendResponse\x12\x81\x01\n" +
 	"\x14GetCategoryBreakdown\x123.familyledger.dashboard.v1.CategoryBreakdownRequest\x1a4.familyledger.dashboard.v1.CategoryBreakdownResponse\x12u\n" +
 	"\x10GetBudgetSummary\x12/.familyledger.dashboard.v1.BudgetSummaryRequest\x1a0.familyledger.dashboard.v1.BudgetSummaryResponse\x12e\n" +
-	"\x10GetNetWorthTrend\x12'.familyledger.dashboard.v1.TrendRequest\x1a(.familyledger.dashboard.v1.TrendResponseB0Z.github.com/familyledger/server/proto/dashboardb\x06proto3"
+	"\x10GetNetWorthTrend\x12'.familyledger.dashboard.v1.TrendRequest\x1a(.familyledger.dashboard.v1.TrendResponse\x12{\n" +
+	"\x12GetInvestmentTrend\x121.familyledger.dashboard.v1.InvestmentTrendRequest\x1a2.familyledger.dashboard.v1.InvestmentTrendResponse\x12x\n" +
+	"\x10GetExchangeRates\x122.familyledger.dashboard.v1.GetExchangeRatesRequest\x1a0.familyledger.dashboard.v1.ExchangeRatesResponseB0Z.github.com/familyledger/server/proto/dashboardb\x06proto3"
 
 var (
-	file_dashboard_proto_rawDescOnce sync.Once
-	file_dashboard_proto_rawDescData []byte
+	file_proto_dashboard_proto_rawDescOnce sync.Once
+	file_proto_dashboard_proto_rawDescData []byte
 )
 
-func file_dashboard_proto_rawDescGZIP() []byte {
-	file_dashboard_proto_rawDescOnce.Do(func() {
-		file_dashboard_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_dashboard_proto_rawDesc), len(file_dashboard_proto_rawDesc)))
+func file_proto_dashboard_proto_rawDescGZIP() []byte {
+	file_proto_dashboard_proto_rawDescOnce.Do(func() {
+		file_proto_dashboard_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_dashboard_proto_rawDesc), len(file_proto_dashboard_proto_rawDesc)))
 	})
-	return file_dashboard_proto_rawDescData
+	return file_proto_dashboard_proto_rawDescData
 }
 
-var file_dashboard_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
-var file_dashboard_proto_goTypes = []any{
+var file_proto_dashboard_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_proto_dashboard_proto_goTypes = []any{
 	(*GetNetWorthRequest)(nil),        // 0: familyledger.dashboard.v1.GetNetWorthRequest
 	(*NetWorth)(nil),                  // 1: familyledger.dashboard.v1.NetWorth
 	(*AssetComposition)(nil),          // 2: familyledger.dashboard.v1.AssetComposition
@@ -950,51 +1304,63 @@ var file_dashboard_proto_goTypes = []any{
 	(*BudgetSummaryRequest)(nil),      // 9: familyledger.dashboard.v1.BudgetSummaryRequest
 	(*BudgetSummaryResponse)(nil),     // 10: familyledger.dashboard.v1.BudgetSummaryResponse
 	(*CategoryBudgetItem)(nil),        // 11: familyledger.dashboard.v1.CategoryBudgetItem
+	(*GetExchangeRatesRequest)(nil),   // 12: familyledger.dashboard.v1.GetExchangeRatesRequest
+	(*ExchangeRatesResponse)(nil),     // 13: familyledger.dashboard.v1.ExchangeRatesResponse
+	(*ExchangeRateItem)(nil),          // 14: familyledger.dashboard.v1.ExchangeRateItem
+	(*InvestmentTrendRequest)(nil),    // 15: familyledger.dashboard.v1.InvestmentTrendRequest
+	(*InvestmentTrendResponse)(nil),   // 16: familyledger.dashboard.v1.InvestmentTrendResponse
+	(*InvestmentTrendPoint)(nil),      // 17: familyledger.dashboard.v1.InvestmentTrendPoint
 }
-var file_dashboard_proto_depIdxs = []int32{
+var file_proto_dashboard_proto_depIdxs = []int32{
 	2,  // 0: familyledger.dashboard.v1.NetWorth.composition:type_name -> familyledger.dashboard.v1.AssetComposition
 	5,  // 1: familyledger.dashboard.v1.TrendResponse.points:type_name -> familyledger.dashboard.v1.TrendPoint
 	8,  // 2: familyledger.dashboard.v1.CategoryBreakdownResponse.items:type_name -> familyledger.dashboard.v1.CategoryItem
 	8,  // 3: familyledger.dashboard.v1.CategoryItem.children:type_name -> familyledger.dashboard.v1.CategoryItem
 	11, // 4: familyledger.dashboard.v1.BudgetSummaryResponse.categories:type_name -> familyledger.dashboard.v1.CategoryBudgetItem
 	11, // 5: familyledger.dashboard.v1.CategoryBudgetItem.children:type_name -> familyledger.dashboard.v1.CategoryBudgetItem
-	0,  // 6: familyledger.dashboard.v1.DashboardService.GetNetWorth:input_type -> familyledger.dashboard.v1.GetNetWorthRequest
-	3,  // 7: familyledger.dashboard.v1.DashboardService.GetIncomeExpenseTrend:input_type -> familyledger.dashboard.v1.TrendRequest
-	6,  // 8: familyledger.dashboard.v1.DashboardService.GetCategoryBreakdown:input_type -> familyledger.dashboard.v1.CategoryBreakdownRequest
-	9,  // 9: familyledger.dashboard.v1.DashboardService.GetBudgetSummary:input_type -> familyledger.dashboard.v1.BudgetSummaryRequest
-	3,  // 10: familyledger.dashboard.v1.DashboardService.GetNetWorthTrend:input_type -> familyledger.dashboard.v1.TrendRequest
-	1,  // 11: familyledger.dashboard.v1.DashboardService.GetNetWorth:output_type -> familyledger.dashboard.v1.NetWorth
-	4,  // 12: familyledger.dashboard.v1.DashboardService.GetIncomeExpenseTrend:output_type -> familyledger.dashboard.v1.TrendResponse
-	7,  // 13: familyledger.dashboard.v1.DashboardService.GetCategoryBreakdown:output_type -> familyledger.dashboard.v1.CategoryBreakdownResponse
-	10, // 14: familyledger.dashboard.v1.DashboardService.GetBudgetSummary:output_type -> familyledger.dashboard.v1.BudgetSummaryResponse
-	4,  // 15: familyledger.dashboard.v1.DashboardService.GetNetWorthTrend:output_type -> familyledger.dashboard.v1.TrendResponse
-	11, // [11:16] is the sub-list for method output_type
-	6,  // [6:11] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	14, // 6: familyledger.dashboard.v1.ExchangeRatesResponse.rates:type_name -> familyledger.dashboard.v1.ExchangeRateItem
+	17, // 7: familyledger.dashboard.v1.InvestmentTrendResponse.points:type_name -> familyledger.dashboard.v1.InvestmentTrendPoint
+	0,  // 8: familyledger.dashboard.v1.DashboardService.GetNetWorth:input_type -> familyledger.dashboard.v1.GetNetWorthRequest
+	3,  // 9: familyledger.dashboard.v1.DashboardService.GetIncomeExpenseTrend:input_type -> familyledger.dashboard.v1.TrendRequest
+	6,  // 10: familyledger.dashboard.v1.DashboardService.GetCategoryBreakdown:input_type -> familyledger.dashboard.v1.CategoryBreakdownRequest
+	9,  // 11: familyledger.dashboard.v1.DashboardService.GetBudgetSummary:input_type -> familyledger.dashboard.v1.BudgetSummaryRequest
+	3,  // 12: familyledger.dashboard.v1.DashboardService.GetNetWorthTrend:input_type -> familyledger.dashboard.v1.TrendRequest
+	15, // 13: familyledger.dashboard.v1.DashboardService.GetInvestmentTrend:input_type -> familyledger.dashboard.v1.InvestmentTrendRequest
+	12, // 14: familyledger.dashboard.v1.DashboardService.GetExchangeRates:input_type -> familyledger.dashboard.v1.GetExchangeRatesRequest
+	1,  // 15: familyledger.dashboard.v1.DashboardService.GetNetWorth:output_type -> familyledger.dashboard.v1.NetWorth
+	4,  // 16: familyledger.dashboard.v1.DashboardService.GetIncomeExpenseTrend:output_type -> familyledger.dashboard.v1.TrendResponse
+	7,  // 17: familyledger.dashboard.v1.DashboardService.GetCategoryBreakdown:output_type -> familyledger.dashboard.v1.CategoryBreakdownResponse
+	10, // 18: familyledger.dashboard.v1.DashboardService.GetBudgetSummary:output_type -> familyledger.dashboard.v1.BudgetSummaryResponse
+	4,  // 19: familyledger.dashboard.v1.DashboardService.GetNetWorthTrend:output_type -> familyledger.dashboard.v1.TrendResponse
+	16, // 20: familyledger.dashboard.v1.DashboardService.GetInvestmentTrend:output_type -> familyledger.dashboard.v1.InvestmentTrendResponse
+	13, // 21: familyledger.dashboard.v1.DashboardService.GetExchangeRates:output_type -> familyledger.dashboard.v1.ExchangeRatesResponse
+	15, // [15:22] is the sub-list for method output_type
+	8,  // [8:15] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
-func init() { file_dashboard_proto_init() }
-func file_dashboard_proto_init() {
-	if File_dashboard_proto != nil {
+func init() { file_proto_dashboard_proto_init() }
+func file_proto_dashboard_proto_init() {
+	if File_proto_dashboard_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_dashboard_proto_rawDesc), len(file_dashboard_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_dashboard_proto_rawDesc), len(file_proto_dashboard_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_dashboard_proto_goTypes,
-		DependencyIndexes: file_dashboard_proto_depIdxs,
-		MessageInfos:      file_dashboard_proto_msgTypes,
+		GoTypes:           file_proto_dashboard_proto_goTypes,
+		DependencyIndexes: file_proto_dashboard_proto_depIdxs,
+		MessageInfos:      file_proto_dashboard_proto_msgTypes,
 	}.Build()
-	File_dashboard_proto = out.File
-	file_dashboard_proto_goTypes = nil
-	file_dashboard_proto_depIdxs = nil
+	File_proto_dashboard_proto = out.File
+	file_proto_dashboard_proto_goTypes = nil
+	file_proto_dashboard_proto_depIdxs = nil
 }

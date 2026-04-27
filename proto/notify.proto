@@ -6,6 +6,8 @@ option go_package = "github.com/familyledger/server/proto/notify";
 
 import "google/protobuf/timestamp.proto";
 
+import "google/protobuf/empty.proto";
+
 service NotifyService {
   rpc RegisterDevice(RegisterDeviceRequest) returns (RegisterDeviceResponse);
   rpc UnregisterDevice(UnregisterDeviceRequest) returns (UnregisterDeviceResponse);
@@ -13,6 +15,11 @@ service NotifyService {
   rpc UpdateNotificationSettings(UpdateNotificationSettingsRequest) returns (UpdateNotificationSettingsResponse);
   rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse);
   rpc MarkAsRead(MarkAsReadRequest) returns (MarkAsReadResponse);
+  // Custom Reminder CRUD
+  rpc CreateReminder(CreateReminderRequest) returns (Reminder);
+  rpc ListReminders(ListRemindersRequest) returns (ListRemindersResponse);
+  rpc UpdateReminder(UpdateReminderRequest) returns (Reminder);
+  rpc DeleteReminder(DeleteReminderRequest) returns (google.protobuf.Empty);
 }
 
 message NotificationSettings {
@@ -79,3 +86,51 @@ message MarkAsReadRequest {
 }
 
 message MarkAsReadResponse {}
+
+// ── Custom Reminders ────────────────────────────────────────────────────────
+
+message Reminder {
+  string id = 1;
+  string user_id = 2;
+  string family_id = 3;
+  string title = 4;
+  string description = 5;
+  google.protobuf.Timestamp remind_at = 6;
+  string repeat_rule = 7;  // none, daily, weekly, monthly, yearly
+  google.protobuf.Timestamp repeat_end_at = 8;
+  bool is_active = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message CreateReminderRequest {
+  string title = 1;
+  string description = 2;
+  google.protobuf.Timestamp remind_at = 3;
+  string repeat_rule = 4;    // none, daily, weekly, monthly, yearly
+  google.protobuf.Timestamp repeat_end_at = 5;
+  string family_id = 6;      // optional
+}
+
+message ListRemindersRequest {
+  string family_id = 1;      // optional: empty = personal reminders only
+  bool include_inactive = 2;
+}
+
+message ListRemindersResponse {
+  repeated Reminder reminders = 1;
+}
+
+message UpdateReminderRequest {
+  string reminder_id = 1;
+  string title = 2;
+  string description = 3;
+  google.protobuf.Timestamp remind_at = 4;
+  string repeat_rule = 5;
+  google.protobuf.Timestamp repeat_end_at = 6;
+  bool is_active = 7;
+}
+
+message DeleteReminderRequest {
+  string reminder_id = 1;
+}

@@ -91,14 +91,16 @@ func (s *Service) ParseCSV(ctx context.Context, req *pb.ParseCSVRequest) (*pb.Pa
 		return nil, status.Error(codes.Unauthenticated, "authentication required for CSV import")
 	}
 	sessionID := uuid.New()
+	expiresAt := time.Now().Add(30 * time.Minute)
 	_, err = s.pool.Exec(ctx,
-		`INSERT INTO import_sessions (id, user_id, csv_data, headers, total_rows)
-		 VALUES ($1, $2, $3, $4, $5)`,
+		`INSERT INTO import_sessions (id, user_id, csv_data, headers, total_rows, expires_at)
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
 		sessionID,
 		userID,
 		req.CsvData,
 		headers,
 		int32(totalRows),
+		expiresAt,
 	)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "store import session: %v", err)

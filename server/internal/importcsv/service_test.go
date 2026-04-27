@@ -2,6 +2,7 @@ package importcsv
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -33,7 +34,7 @@ func TestParseCSV_Success(t *testing.T) {
 	csvData := []byte("日期,金额,类型,分类,备注\n2026-01-01,100.50,expense,餐饮,午餐\n2026-01-02,50,income,工资,\n")
 
 	mock.ExpectExec("INSERT INTO import_sessions").
-		WithArgs(pgxmock.AnyArg(), testUserID, csvData, pgxmock.AnyArg(), int32(2)).
+		WithArgs(pgxmock.AnyArg(), testUserID, csvData, pgxmock.AnyArg(), int32(2), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 	resp, err := svc.ParseCSV(authedCtx(), &pb.ParseCSVRequest{CsvData: csvData})
@@ -62,7 +63,7 @@ func TestParseCSV_GBKEncoding(t *testing.T) {
 	// Simple ASCII CSV, encoding=gbk should still work
 	csvData := []byte("date,amount\n2026-01-01,100\n")
 	mock.ExpectExec("INSERT INTO import_sessions").
-		WithArgs(pgxmock.AnyArg(), testUserID, csvData, pgxmock.AnyArg(), int32(1)).
+		WithArgs(pgxmock.AnyArg(), testUserID, csvData, pgxmock.AnyArg(), int32(1), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 	resp, err := svc.ParseCSV(authedCtx(), &pb.ParseCSVRequest{CsvData: csvData, Encoding: "gbk"})
@@ -104,6 +105,47 @@ func TestConfirmImport_NoMappings(t *testing.T) {
 		Mappings:  nil,
 	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestConfirmImport_SessionNotFound(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	sessionID := uuid.New()
+	mock.ExpectQuery("SELECT .+ FROM import_sessions").
+		WithArgs(sessionID).
+		WillReturnError(fmt.Errorf("no rows in result set"))
+
+	_, err = svc.ConfirmImport(authedCtx(), &pb.ConfirmImportRequest{
+		SessionId: sessionID.String(),
+		UserId:    testUserID,
+		Mappings:  []*pb.FieldMapping{{CsvColumn: "date", TargetField: "date"}},
+	})
+	assert.Equal(t, codes.NotFound, status.Code(err))
+}
+
+func TestConfirmImport_SessionExpired(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	sessionID := uuid.New()
+	expiredTime := time.Now().Add(-1 * time.Hour) // expired 1 hour ago
+
+	mock.ExpectQuery("SELECT .+ FROM import_sessions").
+		WithArgs(sessionID).
+		WillReturnRows(pgxmock.NewRows([]string{"csv_data", "headers", "expires_at"}).
+			AddRow([]byte("date,amount\n2026-01-01,100\n"), []string{"date", "amount"}, expiredTime))
+
+	_, err = svc.ConfirmImport(authedCtx(), &pb.ConfirmImportRequest{
+		SessionId: sessionID.String(),
+		UserId:    testUserID,
+		Mappings:  []*pb.FieldMapping{{CsvColumn: "date", TargetField: "date"}},
+	})
+	assert.Equal(t, codes.FailedPrecondition, status.Code(err))
 }
 
 // ─── CleanupExpiredSessions ─────────────────────────────────────────────────

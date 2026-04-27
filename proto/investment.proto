@@ -16,6 +16,7 @@ service InvestmentService {
     rpc RecordTrade(RecordTradeRequest) returns (InvestmentTrade);
     rpc ListTrades(ListTradesRequest) returns (ListTradesResponse);
     rpc GetPortfolioSummary(GetPortfolioSummaryRequest) returns (PortfolioSummary);
+    rpc GetInvestmentIRR(GetIRRRequest) returns (IRRResponse);
 }
 
 service MarketDataService {
@@ -199,4 +200,21 @@ message PriceHistoryResponse {
     string symbol = 1;
     MarketType market_type = 2;
     repeated PricePoint points = 3;
+}
+
+// ── IRR ───────────────────────────────────────────────────────────────────────
+
+message GetIRRRequest {
+    string investment_id = 1;     // specific investment; empty = portfolio-level
+    string family_id = 2;        // optional: for family portfolio IRR
+}
+
+message CashFlow {
+    google.protobuf.Timestamp date = 1;
+    int64 amount = 2;            // positive = inflow (sell), negative = outflow (buy)
+}
+
+message IRRResponse {
+    double annualized_irr = 1;
+    repeated CashFlow cash_flows = 2;
 }

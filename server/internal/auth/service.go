@@ -18,14 +18,32 @@ import (
 
 type Service struct {
 	pb.UnimplementedAuthServiceServer
-	pool db.Pool
-	jwtManager *jwt.Manager
+	pool           db.Pool
+	jwtManager     *jwt.Manager
+	oauthProviders OAuthProviders
 }
 
-func NewService(pool db.Pool, jwtManager *jwt.Manager) *Service {
-	return &Service{
+func NewService(pool db.Pool, jwtManager *jwt.Manager, opts ...ServiceOption) *Service {
+	s := &Service{
 		pool:       pool,
 		jwtManager: jwtManager,
+	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	if s.oauthProviders == nil {
+		s.oauthProviders = NewOAuthProviders()
+	}
+	return s
+}
+
+// ServiceOption configures the auth Service.
+type ServiceOption func(*Service)
+
+// WithOAuthProviders sets custom OAuth providers (useful for testing).
+func WithOAuthProviders(providers OAuthProviders) ServiceOption {
+	return func(s *Service) {
+		s.oauthProviders = providers
 	}
 }
 
@@ -253,22 +271,17 @@ func (s *Service) OAuthLogin(ctx context.Context, req *pb.OAuthLoginRequest) (*p
 	}, nil
 }
 
-// exchangeOAuthCode exchanges an OAuth code for user info.
-// This is a mock implementation. In production:
-// - wechat: POST https://api.weixin.qq.com/sns/oauth2/access_token → GET userinfo
-// - apple: Verify the JWT identity token with Apple's public keys
-func (s *Service) exchangeOAuthCode(_ context.Context, provider, code, _ string) (oauthID, displayName, avatarURL string, err error) {
-	// Mock: code="test" returns a deterministic test user
-	if code == "test" {
-		switch provider {
-		case "wechat":
-			return "wx_mock_openid_001", "微信测试用户", "https://example.com/avatar/wechat.png", nil
-		case "apple":
-			return "apple_mock_sub_001", "Apple Test User", "", nil
-		}
+// exchangeOAuthCode exchanges an OAuth code for user info using the configured provider.
+func (s *Service) exchangeOAuthCode(ctx context.Context, provider, code, _ string) (oauthID, displayName, avatarURL string, err error) {
+	p, ok := s.oauthProviders[provider]
+	if !ok {
+		return "", "", "", status.Errorf(codes.InvalidArgument, "no oauth provider configured for: %s", provider)
 	}
 
-	// TODO: Implement real OAuth exchange
-	// For now, treat any code as a mock user with the code as the oauth_id
-	return fmt.Sprintf("%s_%s", provider, code), "OAuth User", "", nil
+	info, err := p.ExchangeCode(ctx, code)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	return info.OAuthID, info.DisplayName, info.AvatarURL, nil
 }

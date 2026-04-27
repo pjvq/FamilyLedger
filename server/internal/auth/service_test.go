@@ -35,7 +35,12 @@ func newTestService(t *testing.T) (*Service, pgxmock.PgxPoolIface) {
 	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
 	jwtManager := jwt.NewManager("test-secret-key")
-	svc := NewService(mock, jwtManager)
+	// Use mock providers for testing
+	providers := OAuthProviders{
+		"wechat": NewMockProvider("wechat"),
+		"apple":  NewMockProvider("apple"),
+	}
+	svc := NewService(mock, jwtManager, WithOAuthProviders(providers))
 	return svc, mock
 }
 

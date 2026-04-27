@@ -277,3 +277,111 @@ func TestOwnerPermissions(t *testing.T) {
 	assert.True(t, p.CanDelete)
 	assert.True(t, p.CanManageAccounts)
 }
+
+// ─── GetAuditLog ────────────────────────────────────────────────────────────
+
+func TestGetAuditLog_Success(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+	famID := uuid.New()
+	auditID := uuid.New()
+	now := time.Now()
+
+	// Verify membership
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(famID, testUID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+
+	// Query audit logs (no entity_type filter)
+	mock.ExpectQuery("SELECT al.id").
+		WithArgs(famID, int32(21), int32(0)).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "user_id", "email", "action", "entity_type", "entity_id", "changes", "created_at"}).
+			AddRow(auditID, testUID, "user@test.com", "create", "transaction", uuid.New().String(), "{}", now))
+
+	resp, err := svc.GetAuditLog(authedCtx(), &pb.GetAuditLogRequest{
+		FamilyId: famID.String(),
+	})
+	require.NoError(t, err)
+	assert.Len(t, resp.Entries, 1)
+	assert.Equal(t, "create", resp.Entries[0].Action)
+	assert.Equal(t, "transaction", resp.Entries[0].EntityType)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetAuditLog_FilterByEntityType(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+	famID := uuid.New()
+
+	// Verify membership
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(famID, testUID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+
+	// Query audit logs with entity_type filter
+	mock.ExpectQuery("SELECT al.id").
+		WithArgs(famID, "account", int32(21), int32(0)).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "user_id", "email", "action", "entity_type", "entity_id", "changes", "created_at"}))
+
+	resp, err := svc.GetAuditLog(authedCtx(), &pb.GetAuditLogRequest{
+		FamilyId:   famID.String(),
+		EntityType: "account",
+	})
+	require.NoError(t, err)
+	assert.Empty(t, resp.Entries)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetAuditLog_Pagination(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+	famID := uuid.New()
+	now := time.Now()
+
+	// Verify membership
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(famID, testUID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+
+	// Return page_size+1 rows to trigger next_page_token
+	rows := pgxmock.NewRows([]string{"id", "user_id", "email", "action", "entity_type", "entity_id", "changes", "created_at"})
+	for i := 0; i < 6; i++ {
+		rows.AddRow(uuid.New(), testUID, "user@test.com", "create", "transaction", uuid.New().String(), "{}", now)
+	}
+	mock.ExpectQuery("SELECT al.id").
+		WithArgs(famID, int32(6), int32(0)).
+		WillReturnRows(rows)
+
+	resp, err := svc.GetAuditLog(authedCtx(), &pb.GetAuditLogRequest{
+		FamilyId: famID.String(),
+		PageSize: 5,
+	})
+	require.NoError(t, err)
+	assert.Len(t, resp.Entries, 5)
+	assert.Equal(t, "5", resp.NextPageToken)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetAuditLog_NotMember(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+	famID := uuid.New()
+
+	// Verify membership: NOT a member
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(famID, testUID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
+
+	_, err = svc.GetAuditLog(authedCtx(), &pb.GetAuditLogRequest{
+		FamilyId: famID.String(),
+	})
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
+}

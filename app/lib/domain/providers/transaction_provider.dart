@@ -164,7 +164,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     );
   }
 
-  /// 添加交易 — 先写本地，然后尝试推服务端
+  /// 添加交易 — 在线时先获取服务端 ID，避免 delete+re-insert 闪烁
   Future<void> addTransaction({
     required String categoryId,
     required int amount, // 分
@@ -177,38 +177,20 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     String imageUrls = '',
   }) async {
     final now = DateTime.now();
-    final id = _uuid.v4();
     final account = await _db.getDefaultAccount(_userId, familyId: _familyId);
     if (account == null) {
       throw StateError('无默认账户，请先创建账户');
     }
 
     final effectiveAmountCny = amountCny ?? amount;
+    final effectiveTxnDate = txnDate ?? now;
 
-    // 1. 写本地 DB
-    final companion = TransactionsCompanion.insert(
-      id: id,
-      userId: _userId,
-      accountId: account.id,
-      categoryId: categoryId,
-      amount: amount,
-      amountCny: effectiveAmountCny,
-      type: type,
-      note: Value(note),
-      tags: Value(tags),
-      imageUrls: Value(imageUrls),
-      txnDate: txnDate ?? now,
-    );
-    await _db.insertTransaction(companion);
+    // Try server-first approach to avoid ID mismatch flicker
+    String transactionId;
+    bool syncedToServer = false;
 
-    // 2. 更新账户余额（始终用人民币计）
-    final delta = type == 'income' ? effectiveAmountCny : -effectiveAmountCny;
-    await _db.updateAccountBalance(account.id, delta);
-
-    // 3. 尝试推服务端
-    try {
-      if (_txnClient != null) {
-        final txnDate0 = txnDate ?? now;
+    if (_txnClient != null) {
+      try {
         final req = pb.CreateTransactionRequest()
           ..accountId = account.id
           ..categoryId = categoryId
@@ -220,36 +202,49 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
               ? pbe.TransactionType.TRANSACTION_TYPE_INCOME
               : pbe.TransactionType.TRANSACTION_TYPE_EXPENSE
           ..note = note
-          ..txnDate = _toTimestamp(txnDate0);
-        final resp = await _txnClient.createTransaction(req);
-        // Replace local id with server-assigned id to avoid duplicates
-        if (resp.hasTransaction() && resp.transaction.id.isNotEmpty && resp.transaction.id != id) {
-          await _db.hardDeleteTransaction(id);
-          await _db.insertTransaction(TransactionsCompanion.insert(
-            id: resp.transaction.id,
-            userId: _userId,
-            accountId: account.id,
-            categoryId: categoryId,
-            amount: amount,
-            amountCny: effectiveAmountCny,
-            type: type,
-            note: Value(note),
-            tags: Value(tags),
-            imageUrls: Value(imageUrls),
-            txnDate: txnDate ?? now,
-          ));
-        }
+          ..txnDate = _toTimestamp(effectiveTxnDate);
+        final resp = await _txnClient.createTransaction(req, options: _callOpts);
+        // Use server-assigned ID directly — no delete+re-insert needed
+        transactionId = resp.transaction.id;
+        syncedToServer = true;
+      } catch (e) {
+        // Server unavailable — fall through to offline mode
+        dev.log('TransactionNotifier: server-first create failed, using local ID: $e', name: 'txn');
+        transactionId = _uuid.v4();
       }
-    } catch (e) {
-      // 服务端推送失败，加入同步队列
-      dev.log('TransactionNotifier: createTransaction failed: $e', name: 'txn');
+    } else {
+      transactionId = _uuid.v4();
+    }
+
+    // Insert into local DB with the final ID (either server-assigned or local UUID)
+    final companion = TransactionsCompanion.insert(
+      id: transactionId,
+      userId: _userId,
+      accountId: account.id,
+      categoryId: categoryId,
+      amount: amount,
+      amountCny: effectiveAmountCny,
+      type: type,
+      note: Value(note),
+      tags: Value(tags),
+      imageUrls: Value(imageUrls),
+      txnDate: effectiveTxnDate,
+    );
+    await _db.insertTransaction(companion);
+
+    // Update account balance (始终用人民币计)
+    final delta = type == 'income' ? effectiveAmountCny : -effectiveAmountCny;
+    await _db.updateAccountBalance(account.id, delta);
+
+    // If offline, queue for later sync
+    if (!syncedToServer) {
       await _db.insertSyncOp(SyncQueueCompanion.insert(
         id: _uuid.v4(),
         entityType: 'transaction',
-        entityId: id,
+        entityId: transactionId,
         opType: 'create',
         payload: jsonEncode({
-          'id': id,
+          'id': transactionId,
           'account_id': account.id,
           'category_id': categoryId,
           'amount': amount,
@@ -258,7 +253,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           'exchange_rate': amount > 0 ? effectiveAmountCny / amount : 1.0,
           'type': type,
           'note': note,
-          'txn_date': (txnDate ?? now).toIso8601String(),
+          'txn_date': effectiveTxnDate.toIso8601String(),
         }),
         clientId: 'client_$_userId',
         timestamp: now,

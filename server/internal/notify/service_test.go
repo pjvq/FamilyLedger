@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/familyledger/server/pkg/middleware"
 	pb "github.com/familyledger/server/proto/notify"
@@ -459,4 +460,281 @@ func TestCheckBudgets_FamilyBudget_SkipsMemberWithAlertDisabled(t *testing.T) {
 	err = svc.CheckBudgets(context.Background())
 	require.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// ─── CheckCreditCardReminders ───────────────────────────────────────────────
+
+func TestCheckCreditCardReminders_BillingDay(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	accountID := uuid.New()
+	today := time.Now().Day()
+
+	// Query credit card accounts: returns one account with billing_day = today
+	mock.ExpectQuery("SELECT id, user_id, family_id, name, billing_day, payment_due_day").
+		WillReturnRows(pgxmock.NewRows([]string{"id", "user_id", "family_id", "name", "billing_day", "payment_due_day"}).
+			AddRow(accountID, testUID, nil, "招商信用卡", &today, nil))
+
+	// hasCreditCardNotification check
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(testUserID, "billing_day_reminder", accountID.String(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
+
+	// CreateNotification
+	mock.ExpectExec("INSERT INTO notifications").
+		WithArgs(testUserID, "billing_day_reminder", pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+	err = svc.CheckCreditCardReminders(context.Background())
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCheckCreditCardReminders_PaymentDueDay(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	accountID := uuid.New()
+	today := time.Now().Day()
+	// Set due day to today (0 days until due, within 3-day window)
+	dueDay := today
+	if dueDay > 28 {
+		dueDay = 28
+	}
+
+	// Query credit card accounts
+	mock.ExpectQuery("SELECT id, user_id, family_id, name, billing_day, payment_due_day").
+		WillReturnRows(pgxmock.NewRows([]string{"id", "user_id", "family_id", "name", "billing_day", "payment_due_day"}).
+			AddRow(accountID, testUID, nil, "工行信用卡", nil, &dueDay))
+
+	// hasCreditCardNotification check
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(testUserID, "payment_due_reminder", accountID.String(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
+
+	// CreateNotification
+	mock.ExpectExec("INSERT INTO notifications").
+		WithArgs(testUserID, "payment_due_reminder", pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+	err = svc.CheckCreditCardReminders(context.Background())
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCheckCreditCardReminders_NonCreditCard_NoNotification(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	// Query returns empty set (no credit card accounts)
+	mock.ExpectQuery("SELECT id, user_id, family_id, name, billing_day, payment_due_day").
+		WillReturnRows(pgxmock.NewRows([]string{"id", "user_id", "family_id", "name", "billing_day", "payment_due_day"}))
+
+	err = svc.CheckCreditCardReminders(context.Background())
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCheckCreditCardReminders_FamilyAccount_NotifiesAllMembers(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	accountID := uuid.New()
+	familyID := uuid.New()
+	today := time.Now().Day()
+	member2ID := "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22"
+	member2UID := uuid.MustParse(member2ID)
+
+	// Query credit card accounts: family account with billing_day = today
+	mock.ExpectQuery("SELECT id, user_id, family_id, name, billing_day, payment_due_day").
+		WillReturnRows(pgxmock.NewRows([]string{"id", "user_id", "family_id", "name", "billing_day", "payment_due_day"}).
+			AddRow(accountID, testUID, &familyID, "家庭信用卡", &today, nil))
+
+	// getCreditCardRecipients: query family members
+	mock.ExpectQuery("SELECT user_id FROM family_members").
+		WithArgs(familyID.String()).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id"}).AddRow(testUID).AddRow(member2UID))
+
+	// hasCreditCardNotification for member 1
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(testUserID, "billing_day_reminder", accountID.String(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
+	// CreateNotification for member 1
+	mock.ExpectExec("INSERT INTO notifications").
+		WithArgs(testUserID, "billing_day_reminder", pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+	// hasCreditCardNotification for member 2
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(member2ID, "billing_day_reminder", accountID.String(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
+	// CreateNotification for member 2
+	mock.ExpectExec("INSERT INTO notifications").
+		WithArgs(member2ID, "billing_day_reminder", pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+	err = svc.CheckCreditCardReminders(context.Background())
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// ─── CreateReminder ────────────────────────────────────────────────────────────────
+
+func TestCreateReminder_Success(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	id := uuid.New()
+	now := time.Now()
+
+	mock.ExpectQuery("INSERT INTO custom_reminders").
+		WithArgs(testUserID, pgxmock.AnyArg(), "账单日提醒", "每月账单日", pgxmock.AnyArg(), "monthly", pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(id, now, now))
+
+	resp, err := svc.CreateReminder(authedCtx(), &pb.CreateReminderRequest{
+		Title:       "账单日提醒",
+		Description: "每月账单日",
+		RemindAt:    timestamppb.New(now.Add(24 * time.Hour)),
+		RepeatRule:  "monthly",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, id.String(), resp.Id)
+	assert.Equal(t, "账单日提醒", resp.Title)
+	assert.Equal(t, "monthly", resp.RepeatRule)
+	assert.True(t, resp.IsActive)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateReminder_MissingTitle(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	_, err = svc.CreateReminder(authedCtx(), &pb.CreateReminderRequest{
+		RemindAt: timestamppb.Now(),
+	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestCreateReminder_InvalidRepeatRule(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	_, err = svc.CreateReminder(authedCtx(), &pb.CreateReminderRequest{
+		Title:      "test",
+		RemindAt:   timestamppb.Now(),
+		RepeatRule: "biweekly",
+	})
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+// ─── ListReminders ─────────────────────────────────────────────────────────────────
+
+func TestListReminders_Empty(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	mock.ExpectQuery("SELECT .+ FROM custom_reminders").
+		WithArgs(testUserID).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "user_id", "family_id", "title", "description", "remind_at", "repeat_rule", "repeat_end_at", "is_active", "created_at", "updated_at"}))
+
+	resp, err := svc.ListReminders(authedCtx(), &pb.ListRemindersRequest{})
+	require.NoError(t, err)
+	assert.Len(t, resp.Reminders, 0)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestListReminders_WithData(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	id := uuid.New()
+	now := time.Now()
+
+	mock.ExpectQuery("SELECT .+ FROM custom_reminders").
+		WithArgs(testUserID).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "user_id", "family_id", "title", "description", "remind_at", "repeat_rule", "repeat_end_at", "is_active", "created_at", "updated_at"}).
+			AddRow(id, testUserID, nil, "测试提醒", "描述", now, "daily", nil, true, now, now))
+
+	resp, err := svc.ListReminders(authedCtx(), &pb.ListRemindersRequest{})
+	require.NoError(t, err)
+	assert.Len(t, resp.Reminders, 1)
+	assert.Equal(t, "测试提醒", resp.Reminders[0].Title)
+	assert.Equal(t, "daily", resp.Reminders[0].RepeatRule)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// ─── DeleteReminder ────────────────────────────────────────────────────────────────
+
+func TestDeleteReminder_Success(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+	id := uuid.New()
+
+	mock.ExpectExec("DELETE FROM custom_reminders").
+		WithArgs(id.String(), testUserID).
+		WillReturnResult(pgxmock.NewResult("DELETE", 1))
+
+	_, err = svc.DeleteReminder(authedCtx(), &pb.DeleteReminderRequest{ReminderId: id.String()})
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestDeleteReminder_NotFound(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+	id := uuid.New()
+
+	mock.ExpectExec("DELETE FROM custom_reminders").
+		WithArgs(id.String(), testUserID).
+		WillReturnResult(pgxmock.NewResult("DELETE", 0))
+
+	_, err = svc.DeleteReminder(authedCtx(), &pb.DeleteReminderRequest{ReminderId: id.String()})
+	assert.Equal(t, codes.NotFound, status.Code(err))
+}
+
+// ─── nextOccurrence ────────────────────────────────────────────────────────────────
+
+func TestNextOccurrence(t *testing.T) {
+	base := time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		rule     string
+		expected time.Time
+	}{
+		{"daily", time.Date(2026, 1, 16, 10, 0, 0, 0, time.UTC)},
+		{"weekly", time.Date(2026, 1, 22, 10, 0, 0, 0, time.UTC)},
+		{"monthly", time.Date(2026, 2, 15, 10, 0, 0, 0, time.UTC)},
+		{"yearly", time.Date(2027, 1, 15, 10, 0, 0, 0, time.UTC)},
+		{"none", base},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.rule, func(t *testing.T) {
+			result := nextOccurrence(base, tt.rule)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
 }

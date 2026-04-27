@@ -774,3 +774,104 @@ func TestGetIncomeExpenseTrend_SingleMonth(t *testing.T) {
 	assert.Equal(t, int64(40000), resp.Points[0].Net)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GetExchangeRates
+// ═══════════════════════════════════════════════════════════════════════════════
+
+func TestGetExchangeRates_DefaultCNY(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	now := time.Now()
+
+	mock.ExpectQuery("SELECT currency_pair, rate, updated_at FROM exchange_rates").
+		WillReturnRows(pgxmock.NewRows([]string{"currency_pair", "rate", "updated_at"}).
+			AddRow("USD_CNY", 7.25, now).
+			AddRow("EUR_CNY", 7.89, now))
+
+	resp, err := svc.GetExchangeRates(authedCtx(), &pb.GetExchangeRatesRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, "CNY", resp.BaseCurrency)
+	assert.Len(t, resp.Rates, 2)
+	assert.Equal(t, now.Unix(), resp.UpdatedAt)
+
+	// Verify rates are inverted (1 CNY = ? USD)
+	for _, r := range resp.Rates {
+		if r.Currency == "USD" {
+			assert.InDelta(t, 1.0/7.25, r.Rate, 0.001)
+			assert.Equal(t, "美元", r.Name)
+		}
+		if r.Currency == "EUR" {
+			assert.InDelta(t, 1.0/7.89, r.Rate, 0.001)
+			assert.Equal(t, "欧元", r.Name)
+		}
+	}
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetExchangeRates_EmptyRates(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	mock.ExpectQuery("SELECT currency_pair, rate, updated_at FROM exchange_rates").
+		WillReturnRows(pgxmock.NewRows([]string{"currency_pair", "rate", "updated_at"}))
+
+	resp, err := svc.GetExchangeRates(authedCtx(), &pb.GetExchangeRatesRequest{BaseCurrency: "CNY"})
+	require.NoError(t, err)
+	assert.Equal(t, "CNY", resp.BaseCurrency)
+	assert.Empty(t, resp.Rates)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetExchangeRates_NoAuth(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	_, err = svc.GetExchangeRates(context.Background(), &pb.GetExchangeRatesRequest{})
+	require.Error(t, err)
+	assert.Equal(t, codes.Unauthenticated, status.Code(err))
+}
+
+// ─── GetInvestmentTrend ───────────────────────────────────────────────────────────
+
+func TestGetInvestmentTrend_NoAuth(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	_, err = svc.GetInvestmentTrend(context.Background(), &pb.InvestmentTrendRequest{})
+	require.Error(t, err)
+	assert.Equal(t, codes.Unauthenticated, status.Code(err))
+}
+
+func TestGetInvestmentTrend_PersonalEmpty(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	// For each month (default 12), expect cost+value query
+	for i := 0; i < 12; i++ {
+		mock.ExpectQuery("SELECT COALESCE").
+			WillReturnRows(pgxmock.NewRows([]string{"cost", "value"}).AddRow(int64(0), int64(0)))
+	}
+
+	resp, err := svc.GetInvestmentTrend(authedCtx(), &pb.InvestmentTrendRequest{})
+	require.NoError(t, err)
+	assert.Len(t, resp.Points, 12)
+	for _, p := range resp.Points {
+		assert.Equal(t, int64(0), p.TotalValue)
+		assert.Equal(t, int64(0), p.TotalCost)
+		assert.Equal(t, 0.0, p.ReturnRate)
+	}
+}

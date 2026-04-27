@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -344,4 +345,177 @@ func truncateStr(s string, maxLen int) string {
 		return s
 	}
 	return string(runes[:maxLen-1]) + "…"
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Full Backup
+// ══════════════════════════════════════════════════════════════════════════════
+
+// BackupData is the top-level structure for full backup JSON.
+type BackupData struct {
+	ExportedAt   string                   `json:"exported_at"`
+	UserID       string                   `json:"user_id"`
+	FamilyID     string                   `json:"family_id,omitempty"`
+	Accounts     []map[string]interface{} `json:"accounts"`
+	Transactions []map[string]interface{} `json:"transactions"`
+	Budgets      []map[string]interface{} `json:"budgets"`
+	Loans        []map[string]interface{} `json:"loans"`
+	Investments  []map[string]interface{} `json:"investments"`
+	FixedAssets  []map[string]interface{} `json:"fixed_assets"`
+	Categories   []map[string]interface{} `json:"categories"`
+	Reminders    []map[string]interface{} `json:"custom_reminders"`
+}
+
+func (s *Service) FullBackup(ctx context.Context, req *pb.FullBackupRequest) (*pb.FullBackupResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Permission check for family backup
+	if req.FamilyId != "" {
+		if err := permission.Check(ctx, s.pool, userID, req.FamilyId, permission.CanView); err != nil {
+			return nil, err
+		}
+	}
+
+	backup := BackupData{
+		ExportedAt: time.Now().UTC().Format(time.RFC3339),
+		UserID:     userID,
+		FamilyID:   req.FamilyId,
+	}
+
+	// Gather all data
+	var filterCol, filterVal string
+	if req.FamilyId != "" {
+		filterCol = "family_id"
+		filterVal = req.FamilyId
+	} else {
+		filterCol = "user_id"
+		filterVal = userID
+	}
+
+	// Accounts
+	backup.Accounts, err = s.queryTableRows(ctx,
+		fmt.Sprintf(`SELECT id, user_id, family_id, name, type, balance, currency, is_active, created_at, updated_at
+		 FROM accounts WHERE %s = $1 AND deleted_at IS NULL`, filterCol), filterVal)
+	if err != nil {
+		log.Printf("export: backup accounts error: %v", err)
+		return nil, status.Error(codes.Internal, "failed to backup accounts")
+	}
+
+	// Transactions
+	var txnQuery string
+	if req.FamilyId != "" {
+		txnQuery = `SELECT t.id, t.user_id, t.account_id, t.type, t.amount_cny, t.currency, t.original_amount,
+					   t.category_id, t.note, t.txn_date, t.created_at
+				FROM transactions t
+				JOIN accounts a ON a.id = t.account_id
+				WHERE a.family_id = $1 AND t.deleted_at IS NULL`
+	} else {
+		txnQuery = `SELECT id, user_id, account_id, type, amount_cny, currency, original_amount,
+					   category_id, note, txn_date, created_at
+				FROM transactions WHERE user_id = $1 AND deleted_at IS NULL`
+	}
+	backup.Transactions, err = s.queryTableRows(ctx, txnQuery, filterVal)
+	if err != nil {
+		log.Printf("export: backup transactions error: %v", err)
+		return nil, status.Error(codes.Internal, "failed to backup transactions")
+	}
+
+	// Budgets
+	backup.Budgets, err = s.queryTableRows(ctx,
+		fmt.Sprintf(`SELECT id, user_id, family_id, year, month, total_amount, created_at, updated_at
+		 FROM budgets WHERE %s = $1`, filterCol), filterVal)
+	if err != nil {
+		log.Printf("export: backup budgets error: %v", err)
+		return nil, status.Error(codes.Internal, "failed to backup budgets")
+	}
+
+	// Loans
+	backup.Loans, err = s.queryTableRows(ctx,
+		fmt.Sprintf(`SELECT id, user_id, family_id, name, principal, annual_rate, term_months, start_date,
+					   repayment_type, remaining_principal, created_at, updated_at
+		 FROM loans WHERE %s = $1 AND deleted_at IS NULL`, filterCol), filterVal)
+	if err != nil {
+		log.Printf("export: backup loans error: %v", err)
+		return nil, status.Error(codes.Internal, "failed to backup loans")
+	}
+
+	// Investments
+	backup.Investments, err = s.queryTableRows(ctx,
+		fmt.Sprintf(`SELECT id, user_id, family_id, symbol, name, market_type, quantity, cost_basis, created_at, updated_at
+		 FROM investments WHERE %s = $1 AND deleted_at IS NULL`, filterCol), filterVal)
+	if err != nil {
+		log.Printf("export: backup investments error: %v", err)
+		return nil, status.Error(codes.Internal, "failed to backup investments")
+	}
+
+	// Fixed Assets
+	backup.FixedAssets, err = s.queryTableRows(ctx,
+		fmt.Sprintf(`SELECT id, user_id, family_id, name, purchase_price, current_value, purchase_date, created_at, updated_at
+		 FROM fixed_assets WHERE %s = $1 AND deleted_at IS NULL`, filterCol), filterVal)
+	if err != nil {
+		log.Printf("export: backup fixed_assets error: %v", err)
+		return nil, status.Error(codes.Internal, "failed to backup fixed assets")
+	}
+
+	// Categories (user categories)
+	backup.Categories, err = s.queryTableRows(ctx,
+		`SELECT id, name, type, icon, icon_key, parent_id FROM categories WHERE user_id = $1 OR user_id IS NULL`, userID)
+	if err != nil {
+		log.Printf("export: backup categories error: %v", err)
+		return nil, status.Error(codes.Internal, "failed to backup categories")
+	}
+
+	// Custom Reminders
+	backup.Reminders, err = s.queryTableRows(ctx,
+		fmt.Sprintf(`SELECT id, user_id, family_id, title, description, remind_at, repeat_rule, repeat_end_at, is_active, created_at, updated_at
+		 FROM custom_reminders WHERE %s = $1`, filterCol), filterVal)
+	if err != nil {
+		log.Printf("export: backup custom_reminders error: %v", err)
+		// Non-fatal: custom_reminders table might not exist in older deployments
+		backup.Reminders = []map[string]interface{}{}
+	}
+
+	// Serialize to JSON
+	data, err := json.MarshalIndent(backup, "", "  ")
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to serialize backup data")
+	}
+
+	return &pb.FullBackupResponse{
+		Data:   data,
+		Format: "json",
+	}, nil
+}
+
+// queryTableRows executes a query and returns all rows as generic maps.
+func (s *Service) queryTableRows(ctx context.Context, query string, args ...interface{}) ([]map[string]interface{}, error) {
+	rows, err := s.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	fields := rows.FieldDescriptions()
+	var result []map[string]interface{}
+
+	for rows.Next() {
+		values, err := rows.Values()
+		if err != nil {
+			return nil, err
+		}
+
+		row := make(map[string]interface{}, len(fields))
+		for i, fd := range fields {
+			row[string(fd.Name)] = values[i]
+		}
+		result = append(result, row)
+	}
+
+	if result == nil {
+		result = []map[string]interface{}{}
+	}
+	return result, nil
 }

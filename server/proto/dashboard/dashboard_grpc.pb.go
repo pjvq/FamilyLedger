@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v7.34.1
-// source: dashboard.proto
+// source: proto/dashboard.proto
 
 package dashboard
 
@@ -24,6 +24,8 @@ const (
 	DashboardService_GetCategoryBreakdown_FullMethodName  = "/familyledger.dashboard.v1.DashboardService/GetCategoryBreakdown"
 	DashboardService_GetBudgetSummary_FullMethodName      = "/familyledger.dashboard.v1.DashboardService/GetBudgetSummary"
 	DashboardService_GetNetWorthTrend_FullMethodName      = "/familyledger.dashboard.v1.DashboardService/GetNetWorthTrend"
+	DashboardService_GetInvestmentTrend_FullMethodName    = "/familyledger.dashboard.v1.DashboardService/GetInvestmentTrend"
+	DashboardService_GetExchangeRates_FullMethodName      = "/familyledger.dashboard.v1.DashboardService/GetExchangeRates"
 )
 
 // DashboardServiceClient is the client API for DashboardService service.
@@ -35,6 +37,8 @@ type DashboardServiceClient interface {
 	GetCategoryBreakdown(ctx context.Context, in *CategoryBreakdownRequest, opts ...grpc.CallOption) (*CategoryBreakdownResponse, error)
 	GetBudgetSummary(ctx context.Context, in *BudgetSummaryRequest, opts ...grpc.CallOption) (*BudgetSummaryResponse, error)
 	GetNetWorthTrend(ctx context.Context, in *TrendRequest, opts ...grpc.CallOption) (*TrendResponse, error)
+	GetInvestmentTrend(ctx context.Context, in *InvestmentTrendRequest, opts ...grpc.CallOption) (*InvestmentTrendResponse, error)
+	GetExchangeRates(ctx context.Context, in *GetExchangeRatesRequest, opts ...grpc.CallOption) (*ExchangeRatesResponse, error)
 }
 
 type dashboardServiceClient struct {
@@ -95,6 +99,26 @@ func (c *dashboardServiceClient) GetNetWorthTrend(ctx context.Context, in *Trend
 	return out, nil
 }
 
+func (c *dashboardServiceClient) GetInvestmentTrend(ctx context.Context, in *InvestmentTrendRequest, opts ...grpc.CallOption) (*InvestmentTrendResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InvestmentTrendResponse)
+	err := c.cc.Invoke(ctx, DashboardService_GetInvestmentTrend_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dashboardServiceClient) GetExchangeRates(ctx context.Context, in *GetExchangeRatesRequest, opts ...grpc.CallOption) (*ExchangeRatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExchangeRatesResponse)
+	err := c.cc.Invoke(ctx, DashboardService_GetExchangeRates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DashboardServiceServer is the server API for DashboardService service.
 // All implementations must embed UnimplementedDashboardServiceServer
 // for forward compatibility.
@@ -104,6 +128,8 @@ type DashboardServiceServer interface {
 	GetCategoryBreakdown(context.Context, *CategoryBreakdownRequest) (*CategoryBreakdownResponse, error)
 	GetBudgetSummary(context.Context, *BudgetSummaryRequest) (*BudgetSummaryResponse, error)
 	GetNetWorthTrend(context.Context, *TrendRequest) (*TrendResponse, error)
+	GetInvestmentTrend(context.Context, *InvestmentTrendRequest) (*InvestmentTrendResponse, error)
+	GetExchangeRates(context.Context, *GetExchangeRatesRequest) (*ExchangeRatesResponse, error)
 	mustEmbedUnimplementedDashboardServiceServer()
 }
 
@@ -128,6 +154,12 @@ func (UnimplementedDashboardServiceServer) GetBudgetSummary(context.Context, *Bu
 }
 func (UnimplementedDashboardServiceServer) GetNetWorthTrend(context.Context, *TrendRequest) (*TrendResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetNetWorthTrend not implemented")
+}
+func (UnimplementedDashboardServiceServer) GetInvestmentTrend(context.Context, *InvestmentTrendRequest) (*InvestmentTrendResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetInvestmentTrend not implemented")
+}
+func (UnimplementedDashboardServiceServer) GetExchangeRates(context.Context, *GetExchangeRatesRequest) (*ExchangeRatesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetExchangeRates not implemented")
 }
 func (UnimplementedDashboardServiceServer) mustEmbedUnimplementedDashboardServiceServer() {}
 func (UnimplementedDashboardServiceServer) testEmbeddedByValue()                          {}
@@ -240,6 +272,42 @@ func _DashboardService_GetNetWorthTrend_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DashboardService_GetInvestmentTrend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InvestmentTrendRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DashboardServiceServer).GetInvestmentTrend(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DashboardService_GetInvestmentTrend_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DashboardServiceServer).GetInvestmentTrend(ctx, req.(*InvestmentTrendRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DashboardService_GetExchangeRates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetExchangeRatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DashboardServiceServer).GetExchangeRates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DashboardService_GetExchangeRates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DashboardServiceServer).GetExchangeRates(ctx, req.(*GetExchangeRatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DashboardService_ServiceDesc is the grpc.ServiceDesc for DashboardService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -267,7 +335,15 @@ var DashboardService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetNetWorthTrend",
 			Handler:    _DashboardService_GetNetWorthTrend_Handler,
 		},
+		{
+			MethodName: "GetInvestmentTrend",
+			Handler:    _DashboardService_GetInvestmentTrend_Handler,
+		},
+		{
+			MethodName: "GetExchangeRates",
+			Handler:    _DashboardService_GetExchangeRates_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "dashboard.proto",
+	Metadata: "proto/dashboard.proto",
 }

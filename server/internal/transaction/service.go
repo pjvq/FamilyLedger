@@ -13,8 +13,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/familyledger/server/pkg/audit"
 	"github.com/familyledger/server/pkg/db"
 	"github.com/familyledger/server/pkg/permission"
+	"github.com/familyledger/server/pkg/storage"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -25,9 +27,10 @@ import (
 
 type Service struct {
 	pb.UnimplementedTransactionServiceServer
-	pool      db.Pool
-	uploadDir string // 图片上传目录
-	baseURL   string // 图片访问基础 URL
+	pool        db.Pool
+	uploadDir   string // 图片上传目录 (kept for quota check)
+	baseURL     string // 图片访问基础 URL
+	fileStorage storage.FileStorage
 }
 
 func NewService(pool db.Pool, opts ...ServiceOption) *Service {
@@ -39,7 +42,30 @@ func NewService(pool db.Pool, opts ...ServiceOption) *Service {
 	for _, opt := range opts {
 		opt(s)
 	}
+	// Initialize file storage if not set via options
+	if s.fileStorage == nil {
+		s.fileStorage = newFileStorageFromEnv(s.uploadDir, s.baseURL)
+	}
 	return s
+}
+
+// newFileStorageFromEnv creates the appropriate FileStorage based on FILE_STORAGE env var.
+func newFileStorageFromEnv(uploadDir, baseURL string) storage.FileStorage {
+	mode := os.Getenv("FILE_STORAGE")
+	switch mode {
+	case "s3":
+		bucket := os.Getenv("S3_BUCKET")
+		region := os.Getenv("S3_REGION")
+		if bucket == "" {
+			log.Printf("transaction: WARNING: FILE_STORAGE=s3 but S3_BUCKET not set, falling back to local")
+			return storage.NewLocalFileStorage(uploadDir, baseURL)
+		}
+		log.Printf("transaction: using S3 storage (bucket=%s, region=%s)", bucket, region)
+		return storage.NewS3Storage(bucket, region)
+	default:
+		log.Printf("transaction: using local file storage (dir=%s)", uploadDir)
+		return storage.NewLocalFileStorage(uploadDir, baseURL)
+	}
 }
 
 type ServiceOption func(*Service)
@@ -50,6 +76,11 @@ func WithUploadDir(dir string) ServiceOption {
 
 func WithBaseURL(url string) ServiceOption {
 	return func(s *Service) { s.baseURL = url }
+}
+
+// WithFileStorage sets a custom FileStorage implementation (useful for testing).
+func WithFileStorage(fs storage.FileStorage) ServiceOption {
+	return func(s *Service) { s.fileStorage = fs }
 }
 
 // querier is satisfied by both db.Pool and pgx.Tx.
@@ -209,6 +240,11 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 
 	if err := tx.Commit(ctx); err != nil {
 		return nil, status.Error(codes.Internal, "failed to commit transaction")
+	}
+
+	// Audit log: only for family accounts
+	if acctFamilyID != nil {
+		audit.LogAudit(ctx, s.pool, acctFamilyID.String(), userID, "create", "transaction", txnID.String(), nil)
 	}
 
 	pbType := pb.TransactionType_TRANSACTION_TYPE_EXPENSE
@@ -548,6 +584,12 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 		return nil, status.Error(codes.Internal, "failed to commit transaction")
 	}
 
+	// Audit log: for family accounts
+	familyID, _ := s.getAccountFamilyID(ctx, accountID)
+	if familyID != "" {
+		audit.LogAudit(ctx, s.pool, familyID, userID, "delete", "transaction", txnID.String(), nil)
+	}
+
 	return &pb.DeleteTransactionResponse{}, nil
 }
 
@@ -743,7 +785,7 @@ func (s *Service) UploadTransactionImage(ctx context.Context, req *pb.UploadTran
 		return nil, status.Error(codes.InvalidArgument, "file content does not match declared content type")
 	}
 
-	// Per-user quota check
+	// Per-user quota check (local filesystem only)
 	userDir := filepath.Join(s.uploadDir, userID)
 	if entries, err := os.ReadDir(userDir); err == nil {
 		if len(entries) >= maxImagesPerUser {
@@ -751,22 +793,15 @@ func (s *Service) UploadTransactionImage(ctx context.Context, req *pb.UploadTran
 		}
 	}
 
-	// Create upload directory (clean path to prevent traversal)
-	userDir = filepath.Clean(userDir)
-	if err := os.MkdirAll(userDir, 0o755); err != nil {
-		return nil, status.Errorf(codes.Internal, "create upload dir: %v", err)
-	}
-
 	// Generate unique filename (server-controlled, ignores client filename)
 	fileName := fmt.Sprintf("%d_%s%s", time.Now().UnixMilli(), uuid.New().String()[:8], ext)
-	filePath := filepath.Join(userDir, fileName)
+	key := fmt.Sprintf("%s/%s", userID, fileName)
 
-	if err := os.WriteFile(filePath, req.Data, 0o644); err != nil {
-		return nil, status.Errorf(codes.Internal, "write image: %v", err)
+	// Upload via storage interface
+	imageURL, err := s.fileStorage.Upload(ctx, key, req.Data, contentType)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "upload image: %v", err)
 	}
-
-	// Build URL
-	imageURL := fmt.Sprintf("%s/%s/%s", s.baseURL, userID, fileName)
 
 	// If transaction_id is provided, verify ownership then append
 	if req.TransactionId != "" {

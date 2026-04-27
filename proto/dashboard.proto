@@ -10,6 +10,8 @@ service DashboardService {
     rpc GetCategoryBreakdown(CategoryBreakdownRequest) returns (CategoryBreakdownResponse);
     rpc GetBudgetSummary(BudgetSummaryRequest) returns (BudgetSummaryResponse);
     rpc GetNetWorthTrend(TrendRequest) returns (TrendResponse);
+    rpc GetInvestmentTrend(InvestmentTrendRequest) returns (InvestmentTrendResponse);
+    rpc GetExchangeRates(GetExchangeRatesRequest) returns (ExchangeRatesResponse);
 }
 
 message GetNetWorthRequest {
@@ -95,4 +97,40 @@ message CategoryBudgetItem {
     int64 spent_amount = 4;
     double execution_rate = 5;
     repeated CategoryBudgetItem children = 6;  // subcategory budget breakdown
+}
+
+// ── Exchange Rates ──────────────────────────────────────────────────────────
+
+message GetExchangeRatesRequest {
+    string base_currency = 1;  // 基准币种，默认 CNY
+}
+
+message ExchangeRatesResponse {
+    repeated ExchangeRateItem rates = 1;
+    string base_currency = 2;
+    int64 updated_at = 3;  // Unix timestamp (seconds)
+}
+
+message ExchangeRateItem {
+    string currency = 1;     // e.g. "USD"
+    double rate = 2;         // 1 base_currency = rate target_currency
+    string name = 3;         // display name, e.g. "美元"
+}
+
+// ── Investment Trend ────────────────────────────────────────────────────────
+
+message InvestmentTrendRequest {
+    string family_id = 1;      // optional: empty = personal
+    int32 months = 2;          // default 12
+}
+
+message InvestmentTrendResponse {
+    repeated InvestmentTrendPoint points = 1;
+}
+
+message InvestmentTrendPoint {
+    string month = 1;          // "2026-01"
+    int64 total_value = 2;     // 总市值（分）
+    int64 total_cost = 3;      // 总成本（分）
+    double return_rate = 4;    // 收益率
 }

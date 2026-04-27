@@ -642,6 +642,112 @@ func (s *Service) DeleteFamily(ctx context.Context, req *pb.DeleteFamilyRequest)
 	return &pb.DeleteFamilyResponse{}, nil
 }
 
+// ── GetAuditLog ─────────────────────────────────────────────────────────────────
+
+func (s *Service) GetAuditLog(ctx context.Context, req *pb.GetAuditLogRequest) (*pb.GetAuditLogResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.FamilyId == "" {
+		return nil, status.Error(codes.InvalidArgument, "family_id is required")
+	}
+
+	familyID, err := uuid.Parse(req.FamilyId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid family_id")
+	}
+
+	// Verify membership
+	if err := s.requireMembership(ctx, familyID, userID); err != nil {
+		return nil, err
+	}
+
+	pageSize := int32(20)
+	if req.PageSize > 0 && req.PageSize <= 100 {
+		pageSize = req.PageSize
+	}
+
+	// Parse page_token as offset
+	offset := int32(0)
+	if req.PageToken != "" {
+		if parsed, err := parseOffset(req.PageToken); err == nil {
+			offset = parsed
+		}
+	}
+
+	var rows pgx.Rows
+	if req.EntityType != "" {
+		rows, err = s.pool.Query(ctx,
+			`SELECT al.id, al.user_id, COALESCE(u.email, ''), al.action, al.entity_type, al.entity_id, COALESCE(al.changes::text, ''), al.created_at
+			 FROM audit_logs al
+			 LEFT JOIN users u ON u.id = al.user_id
+			 WHERE al.family_id = $1 AND al.entity_type = $2
+			 ORDER BY al.created_at DESC
+			 LIMIT $3 OFFSET $4`,
+			familyID, req.EntityType, pageSize+1, offset,
+		)
+	} else {
+		rows, err = s.pool.Query(ctx,
+			`SELECT al.id, al.user_id, COALESCE(u.email, ''), al.action, al.entity_type, al.entity_id, COALESCE(al.changes::text, ''), al.created_at
+			 FROM audit_logs al
+			 LEFT JOIN users u ON u.id = al.user_id
+			 WHERE al.family_id = $1
+			 ORDER BY al.created_at DESC
+			 LIMIT $2 OFFSET $3`,
+			familyID, pageSize+1, offset,
+		)
+	}
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "query audit logs: %v", err)
+	}
+	defer rows.Close()
+
+	var entries []*pb.AuditEntry
+	for rows.Next() {
+		var id, uid uuid.UUID
+		var userName, action, entityType, entityID, changesJSON string
+		var createdAt time.Time
+
+		if err := rows.Scan(&id, &uid, &userName, &action, &entityType, &entityID, &changesJSON, &createdAt); err != nil {
+			return nil, status.Errorf(codes.Internal, "scan audit log: %v", err)
+		}
+
+		entries = append(entries, &pb.AuditEntry{
+			Id:          id.String(),
+			UserId:      uid.String(),
+			UserName:    userName,
+			Action:      action,
+			EntityType:  entityType,
+			EntityId:    entityID,
+			ChangesJson: changesJSON,
+			CreatedAt:   createdAt.Unix(),
+		})
+	}
+
+	var nextPageToken string
+	if int32(len(entries)) > pageSize {
+		entries = entries[:pageSize]
+		nextPageToken = fmt.Sprintf("%d", offset+pageSize)
+	}
+
+	if entries == nil {
+		entries = []*pb.AuditEntry{}
+	}
+
+	return &pb.GetAuditLogResponse{
+		Entries:       entries,
+		NextPageToken: nextPageToken,
+	}, nil
+}
+
+func parseOffset(s string) (int32, error) {
+	var n int32
+	_, err := fmt.Sscanf(s, "%d", &n)
+	return n, err
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 func (s *Service) requireMembership(ctx context.Context, familyID uuid.UUID, userID string) error {

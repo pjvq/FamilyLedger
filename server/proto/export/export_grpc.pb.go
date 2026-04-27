@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v7.34.1
-// source: export.proto
+// source: proto/export.proto
 
 package export
 
@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	ExportService_ExportTransactions_FullMethodName = "/familyledger.export.v1.ExportService/ExportTransactions"
+	ExportService_FullBackup_FullMethodName         = "/familyledger.export.v1.ExportService/FullBackup"
 )
 
 // ExportServiceClient is the client API for ExportService service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ExportServiceClient interface {
 	ExportTransactions(ctx context.Context, in *ExportRequest, opts ...grpc.CallOption) (*ExportResponse, error)
+	FullBackup(ctx context.Context, in *FullBackupRequest, opts ...grpc.CallOption) (*FullBackupResponse, error)
 }
 
 type exportServiceClient struct {
@@ -47,11 +49,22 @@ func (c *exportServiceClient) ExportTransactions(ctx context.Context, in *Export
 	return out, nil
 }
 
+func (c *exportServiceClient) FullBackup(ctx context.Context, in *FullBackupRequest, opts ...grpc.CallOption) (*FullBackupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FullBackupResponse)
+	err := c.cc.Invoke(ctx, ExportService_FullBackup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ExportServiceServer is the server API for ExportService service.
 // All implementations must embed UnimplementedExportServiceServer
 // for forward compatibility.
 type ExportServiceServer interface {
 	ExportTransactions(context.Context, *ExportRequest) (*ExportResponse, error)
+	FullBackup(context.Context, *FullBackupRequest) (*FullBackupResponse, error)
 	mustEmbedUnimplementedExportServiceServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedExportServiceServer struct{}
 
 func (UnimplementedExportServiceServer) ExportTransactions(context.Context, *ExportRequest) (*ExportResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ExportTransactions not implemented")
+}
+func (UnimplementedExportServiceServer) FullBackup(context.Context, *FullBackupRequest) (*FullBackupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method FullBackup not implemented")
 }
 func (UnimplementedExportServiceServer) mustEmbedUnimplementedExportServiceServer() {}
 func (UnimplementedExportServiceServer) testEmbeddedByValue()                       {}
@@ -104,6 +120,24 @@ func _ExportService_ExportTransactions_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ExportService_FullBackup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FullBackupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExportServiceServer).FullBackup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ExportService_FullBackup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExportServiceServer).FullBackup(ctx, req.(*FullBackupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ExportService_ServiceDesc is the grpc.ServiceDesc for ExportService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -115,7 +149,11 @@ var ExportService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ExportTransactions",
 			Handler:    _ExportService_ExportTransactions_Handler,
 		},
+		{
+			MethodName: "FullBackup",
+			Handler:    _ExportService_FullBackup_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "export.proto",
+	Metadata: "proto/export.proto",
 }

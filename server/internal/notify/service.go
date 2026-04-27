@@ -12,6 +12,7 @@ import (
 	"github.com/familyledger/server/pkg/db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/familyledger/server/pkg/middleware"
@@ -495,6 +496,183 @@ func (s *Service) hasNotification(ctx context.Context, userID, budgetID, nType s
 	return exists
 }
 
+// hasCreditCardNotification checks if a credit card notification already exists today.
+func (s *Service) hasCreditCardNotification(ctx context.Context, userID, accountID, nType string) bool {
+	now := time.Now()
+	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	endOfDay := startOfDay.Add(24 * time.Hour)
+
+	var exists bool
+	err := s.pool.QueryRow(ctx,
+		`SELECT EXISTS(
+			SELECT 1 FROM notifications
+			WHERE user_id = $1 AND type = $2
+			  AND data_json->>'account_id' = $3
+			  AND created_at >= $4 AND created_at < $5
+		)`,
+		userID, nType, accountID, startOfDay, endOfDay,
+	).Scan(&exists)
+	if err != nil {
+		log.Printf("notify: hasCreditCardNotification check error: %v", err)
+		return false
+	}
+	return exists
+}
+
+// CheckCreditCardReminders checks all credit card accounts for billing day and
+// payment due day reminders. Notifications are sent to the account owner and,
+// for family accounts, to all family members.
+func (s *Service) CheckCreditCardReminders(ctx context.Context) error {
+	now := time.Now()
+	today := now.Day()
+
+	log.Printf("notify: checking credit card reminders for day %d", today)
+
+	// Query all credit card accounts with billing_day or payment_due_day set
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, user_id, family_id, name, billing_day, payment_due_day
+		 FROM accounts
+		 WHERE type = 'credit_card' AND deleted_at IS NULL
+		   AND (billing_day IS NOT NULL OR payment_due_day IS NOT NULL)`,
+	)
+	if err != nil {
+		return fmt.Errorf("query credit card accounts: %w", err)
+	}
+	defer rows.Close()
+
+	type ccAccount struct {
+		ID            uuid.UUID
+		UserID        string
+		FamilyID      string
+		Name          string
+		BillingDay    *int
+		PaymentDueDay *int
+	}
+
+	var accounts []ccAccount
+	for rows.Next() {
+		var a ccAccount
+		var uid uuid.UUID
+		var familyID *uuid.UUID
+		var billingDay, paymentDueDay *int
+		if err := rows.Scan(&a.ID, &uid, &familyID, &a.Name, &billingDay, &paymentDueDay); err != nil {
+			log.Printf("notify: scan credit card account error: %v", err)
+			continue
+		}
+		a.UserID = uid.String()
+		if familyID != nil {
+			a.FamilyID = familyID.String()
+		}
+		a.BillingDay = billingDay
+		a.PaymentDueDay = paymentDueDay
+		accounts = append(accounts, a)
+	}
+	rows.Close()
+
+	created := 0
+	for _, a := range accounts {
+		recipients := s.getCreditCardRecipients(ctx, a.UserID, a.FamilyID)
+
+		// Check billing day
+		if a.BillingDay != nil && today == *a.BillingDay {
+			for _, recipientID := range recipients {
+				if s.hasCreditCardNotification(ctx, recipientID, a.ID.String(), "billing_day_reminder") {
+					continue
+				}
+				err := s.CreateNotification(ctx, recipientID, "billing_day_reminder",
+					"信用卡账单日提醒",
+					fmt.Sprintf("您的信用卡「%s」今天是账单日，请查看本期账单", a.Name),
+					map[string]interface{}{"account_id": a.ID.String(), "billing_day": *a.BillingDay},
+				)
+				if err != nil {
+					log.Printf("notify: failed to create billing_day_reminder: %v", err)
+				} else {
+					created++
+				}
+			}
+		}
+
+		// Check payment due day (remind 3 days before)
+		if a.PaymentDueDay != nil {
+			reminderDaysBefore := 3
+			// Calculate days until due
+			dueDay := *a.PaymentDueDay
+			daysUntilDue := dueDay - today
+			if daysUntilDue < 0 {
+				// Due day is next month
+				daysUntilDue += daysInMonth(now)
+			}
+
+			if daysUntilDue >= 0 && daysUntilDue <= reminderDaysBefore {
+				for _, recipientID := range recipients {
+					if s.hasCreditCardNotification(ctx, recipientID, a.ID.String(), "payment_due_reminder") {
+						continue
+					}
+
+					var body string
+					if daysUntilDue == 0 {
+						body = fmt.Sprintf("您的信用卡「%s」今天是还款日，请及时还款", a.Name)
+					} else {
+						body = fmt.Sprintf("您的信用卡「%s」还有 %d 天到还款日（每月%d日），请及时还款", a.Name, daysUntilDue, dueDay)
+					}
+
+					err := s.CreateNotification(ctx, recipientID, "payment_due_reminder",
+						"信用卡还款日提醒",
+						body,
+						map[string]interface{}{"account_id": a.ID.String(), "payment_due_day": dueDay, "days_until_due": daysUntilDue},
+					)
+					if err != nil {
+						log.Printf("notify: failed to create payment_due_reminder: %v", err)
+					} else {
+						created++
+					}
+				}
+			}
+		}
+	}
+
+	log.Printf("notify: credit card reminder check complete, created %d reminders", created)
+	return nil
+}
+
+// getCreditCardRecipients returns user IDs who should receive credit card notifications.
+// For personal accounts: only the account owner.
+// For family accounts: all family members.
+func (s *Service) getCreditCardRecipients(ctx context.Context, ownerUserID, familyID string) []string {
+	if familyID == "" {
+		return []string{ownerUserID}
+	}
+
+	rows, err := s.pool.Query(ctx,
+		`SELECT user_id FROM family_members WHERE family_id = $1`,
+		familyID,
+	)
+	if err != nil {
+		return []string{ownerUserID}
+	}
+	defer rows.Close()
+
+	var members []string
+	for rows.Next() {
+		var uid uuid.UUID
+		if err := rows.Scan(&uid); err != nil {
+			continue
+		}
+		members = append(members, uid.String())
+	}
+
+	if len(members) == 0 {
+		return []string{ownerUserID}
+	}
+	return members
+}
+
+// daysInMonth returns the number of days in the current month.
+func daysInMonth(t time.Time) int {
+	y, m, _ := t.Date()
+	return time.Date(y, m+1, 0, 0, 0, 0, 0, t.Location()).Day()
+}
+
 // hasLoanNotification checks if a loan_reminder notification already exists for a
 // specific loan and due_date (to avoid duplicate reminders).
 func (s *Service) hasLoanNotification(ctx context.Context, userID, loanID, dueDateStr string) bool {
@@ -631,4 +809,397 @@ func (s *Service) CheckLoanReminders(ctx context.Context) error {
 
 	log.Printf("notify: loan reminder check complete, created %d reminders", created)
 	return nil
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Custom Reminder CRUD
+// ══════════════════════════════════════════════════════════════════════════════
+
+var validRepeatRules = map[string]bool{
+	"none": true, "daily": true, "weekly": true, "monthly": true, "yearly": true,
+}
+
+func (s *Service) CreateReminder(ctx context.Context, req *pb.CreateReminderRequest) (*pb.Reminder, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if req.Title == "" {
+		return nil, status.Error(codes.InvalidArgument, "title is required")
+	}
+	if req.RemindAt == nil {
+		return nil, status.Error(codes.InvalidArgument, "remind_at is required")
+	}
+	repeatRule := req.RepeatRule
+	if repeatRule == "" {
+		repeatRule = "none"
+	}
+	if !validRepeatRules[repeatRule] {
+		return nil, status.Error(codes.InvalidArgument, "repeat_rule must be none, daily, weekly, monthly, or yearly")
+	}
+
+	var familyID *uuid.UUID
+	if req.FamilyId != "" {
+		fid, err := uuid.Parse(req.FamilyId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid family_id")
+		}
+		familyID = &fid
+	}
+
+	var repeatEndAt *time.Time
+	if req.RepeatEndAt != nil {
+		t := req.RepeatEndAt.AsTime()
+		repeatEndAt = &t
+	}
+
+	var id uuid.UUID
+	var createdAt, updatedAt time.Time
+	err = s.pool.QueryRow(ctx,
+		`INSERT INTO custom_reminders (user_id, family_id, title, description, remind_at, repeat_rule, repeat_end_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		 RETURNING id, created_at, updated_at`,
+		userID, familyID, req.Title, req.Description, req.RemindAt.AsTime(), repeatRule, repeatEndAt,
+	).Scan(&id, &createdAt, &updatedAt)
+	if err != nil {
+		log.Printf("notify: create reminder error: %v", err)
+		return nil, status.Error(codes.Internal, "failed to create reminder")
+	}
+
+	reminder := &pb.Reminder{
+		Id:         id.String(),
+		UserId:     userID,
+		Title:      req.Title,
+		Description: req.Description,
+		RemindAt:   req.RemindAt,
+		RepeatRule: repeatRule,
+		IsActive:   true,
+		CreatedAt:  timestamppb.New(createdAt),
+		UpdatedAt:  timestamppb.New(updatedAt),
+	}
+	if familyID != nil {
+		reminder.FamilyId = familyID.String()
+	}
+	if req.RepeatEndAt != nil {
+		reminder.RepeatEndAt = req.RepeatEndAt
+	}
+
+	log.Printf("notify: created reminder %s for user %s", id, userID)
+	return reminder, nil
+}
+
+func (s *Service) ListReminders(ctx context.Context, req *pb.ListRemindersRequest) (*pb.ListRemindersResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var query string
+	var args []interface{}
+
+	if req.FamilyId != "" {
+		query = `SELECT id, user_id, family_id, title, description, remind_at, repeat_rule, repeat_end_at, is_active, created_at, updated_at
+				 FROM custom_reminders WHERE family_id = $1`
+		args = []interface{}{req.FamilyId}
+	} else {
+		query = `SELECT id, user_id, family_id, title, description, remind_at, repeat_rule, repeat_end_at, is_active, created_at, updated_at
+				 FROM custom_reminders WHERE user_id = $1 AND family_id IS NULL`
+		args = []interface{}{userID}
+	}
+
+	if !req.IncludeInactive {
+		query += " AND is_active = true"
+	}
+	query += " ORDER BY remind_at ASC"
+
+	rows, err := s.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to query reminders")
+	}
+	defer rows.Close()
+
+	var reminders []*pb.Reminder
+	for rows.Next() {
+		r, err := scanReminderRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		reminders = append(reminders, r)
+	}
+	if reminders == nil {
+		reminders = []*pb.Reminder{}
+	}
+
+	return &pb.ListRemindersResponse{Reminders: reminders}, nil
+}
+
+func (s *Service) UpdateReminder(ctx context.Context, req *pb.UpdateReminderRequest) (*pb.Reminder, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if req.ReminderId == "" {
+		return nil, status.Error(codes.InvalidArgument, "reminder_id is required")
+	}
+	if req.Title == "" {
+		return nil, status.Error(codes.InvalidArgument, "title is required")
+	}
+	if req.RemindAt == nil {
+		return nil, status.Error(codes.InvalidArgument, "remind_at is required")
+	}
+	repeatRule := req.RepeatRule
+	if repeatRule == "" {
+		repeatRule = "none"
+	}
+	if !validRepeatRules[repeatRule] {
+		return nil, status.Error(codes.InvalidArgument, "repeat_rule must be none, daily, weekly, monthly, or yearly")
+	}
+
+	// Verify ownership
+	var ownerID string
+	err = s.pool.QueryRow(ctx,
+		"SELECT user_id FROM custom_reminders WHERE id = $1",
+		req.ReminderId,
+	).Scan(&ownerID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "reminder not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to query reminder")
+	}
+	if ownerID != userID {
+		return nil, status.Error(codes.PermissionDenied, "not your reminder")
+	}
+
+	var repeatEndAt *time.Time
+	if req.RepeatEndAt != nil {
+		t := req.RepeatEndAt.AsTime()
+		repeatEndAt = &t
+	}
+
+	_, err = s.pool.Exec(ctx,
+		`UPDATE custom_reminders SET title = $1, description = $2, remind_at = $3,
+			repeat_rule = $4, repeat_end_at = $5, is_active = $6, updated_at = NOW()
+		 WHERE id = $7`,
+		req.Title, req.Description, req.RemindAt.AsTime(), repeatRule, repeatEndAt, req.IsActive, req.ReminderId,
+	)
+	if err != nil {
+		log.Printf("notify: update reminder error: %v", err)
+		return nil, status.Error(codes.Internal, "failed to update reminder")
+	}
+
+	// Return updated reminder
+	row := s.pool.QueryRow(ctx,
+		`SELECT id, user_id, family_id, title, description, remind_at, repeat_rule, repeat_end_at, is_active, created_at, updated_at
+		 FROM custom_reminders WHERE id = $1`,
+		req.ReminderId,
+	)
+	return scanSingleReminderRow(row)
+}
+
+func (s *Service) DeleteReminder(ctx context.Context, req *pb.DeleteReminderRequest) (*emptypb.Empty, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if req.ReminderId == "" {
+		return nil, status.Error(codes.InvalidArgument, "reminder_id is required")
+	}
+
+	tag, err := s.pool.Exec(ctx,
+		"DELETE FROM custom_reminders WHERE id = $1 AND user_id = $2",
+		req.ReminderId, userID,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to delete reminder")
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, status.Error(codes.NotFound, "reminder not found")
+	}
+
+	log.Printf("notify: deleted reminder %s by user %s", req.ReminderId, userID)
+	return &emptypb.Empty{}, nil
+}
+
+// CheckCustomReminders checks all active custom reminders that are due and creates notifications.
+func (s *Service) CheckCustomReminders(ctx context.Context) error {
+	now := time.Now()
+
+	log.Println("notify: checking custom reminders...")
+
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, user_id, family_id, title, description, remind_at, repeat_rule, repeat_end_at
+		 FROM custom_reminders
+		 WHERE is_active = true AND remind_at <= $1`,
+		now,
+	)
+	if err != nil {
+		return fmt.Errorf("query custom reminders: %w", err)
+	}
+	defer rows.Close()
+
+	type reminderRow struct {
+		ID          uuid.UUID
+		UserID      string
+		FamilyID    string
+		Title       string
+		Description string
+		RemindAt    time.Time
+		RepeatRule  string
+		RepeatEndAt *time.Time
+	}
+
+	var dueReminders []reminderRow
+	for rows.Next() {
+		var r reminderRow
+		var uid uuid.UUID
+		var familyID *uuid.UUID
+		var repeatEndAt *time.Time
+		if err := rows.Scan(&r.ID, &uid, &familyID, &r.Title, &r.Description, &r.RemindAt, &r.RepeatRule, &repeatEndAt); err != nil {
+			log.Printf("notify: scan custom reminder error: %v", err)
+			continue
+		}
+		r.UserID = uid.String()
+		if familyID != nil {
+			r.FamilyID = familyID.String()
+		}
+		r.RepeatEndAt = repeatEndAt
+		dueReminders = append(dueReminders, r)
+	}
+	rows.Close()
+
+	created := 0
+	for _, r := range dueReminders {
+		// Create notification
+		body := r.Title
+		if r.Description != "" {
+			body = r.Title + ": " + r.Description
+		}
+
+		err := s.CreateNotification(ctx, r.UserID, "custom_reminder",
+			"自定义提醒", body,
+			map[string]interface{}{"reminder_id": r.ID.String()},
+		)
+		if err != nil {
+			log.Printf("notify: failed to create custom_reminder notification: %v", err)
+			continue
+		}
+		created++
+
+		// Handle repeat: advance remind_at or deactivate
+		if r.RepeatRule == "none" {
+			// One-time reminder: deactivate
+			_, _ = s.pool.Exec(ctx,
+				"UPDATE custom_reminders SET is_active = false, updated_at = NOW() WHERE id = $1",
+				r.ID,
+			)
+		} else {
+			// Advance to next occurrence
+			nextRemindAt := nextOccurrence(r.RemindAt, r.RepeatRule)
+			if r.RepeatEndAt != nil && nextRemindAt.After(*r.RepeatEndAt) {
+				// Past repeat_end_at: deactivate
+				_, _ = s.pool.Exec(ctx,
+					"UPDATE custom_reminders SET is_active = false, updated_at = NOW() WHERE id = $1",
+					r.ID,
+				)
+			} else {
+				_, _ = s.pool.Exec(ctx,
+					"UPDATE custom_reminders SET remind_at = $1, updated_at = NOW() WHERE id = $2",
+					nextRemindAt, r.ID,
+				)
+			}
+		}
+	}
+
+	log.Printf("notify: custom reminder check complete, triggered %d reminders", created)
+	return nil
+}
+
+// nextOccurrence computes the next reminder time based on the repeat rule.
+func nextOccurrence(current time.Time, rule string) time.Time {
+	switch rule {
+	case "daily":
+		return current.AddDate(0, 0, 1)
+	case "weekly":
+		return current.AddDate(0, 0, 7)
+	case "monthly":
+		return current.AddDate(0, 1, 0)
+	case "yearly":
+		return current.AddDate(1, 0, 0)
+	default:
+		return current
+	}
+}
+
+// scanReminderRow scans a reminder row from pgx.Rows.
+func scanReminderRow(rows pgx.Rows) (*pb.Reminder, error) {
+	var id uuid.UUID
+	var userID string
+	var familyID *uuid.UUID
+	var title, description, repeatRule string
+	var remindAt time.Time
+	var repeatEndAt *time.Time
+	var isActive bool
+	var createdAt, updatedAt time.Time
+
+	if err := rows.Scan(&id, &userID, &familyID, &title, &description, &remindAt, &repeatRule, &repeatEndAt, &isActive, &createdAt, &updatedAt); err != nil {
+		return nil, status.Error(codes.Internal, "failed to scan reminder")
+	}
+
+	r := &pb.Reminder{
+		Id:          id.String(),
+		UserId:      userID,
+		Title:       title,
+		Description: description,
+		RemindAt:    timestamppb.New(remindAt),
+		RepeatRule:  repeatRule,
+		IsActive:    isActive,
+		CreatedAt:   timestamppb.New(createdAt),
+		UpdatedAt:   timestamppb.New(updatedAt),
+	}
+	if familyID != nil {
+		r.FamilyId = familyID.String()
+	}
+	if repeatEndAt != nil {
+		r.RepeatEndAt = timestamppb.New(*repeatEndAt)
+	}
+	return r, nil
+}
+
+// scanSingleReminderRow scans a single reminder from pgx.Row.
+func scanSingleReminderRow(row pgx.Row) (*pb.Reminder, error) {
+	var id uuid.UUID
+	var userID string
+	var familyID *uuid.UUID
+	var title, description, repeatRule string
+	var remindAt time.Time
+	var repeatEndAt *time.Time
+	var isActive bool
+	var createdAt, updatedAt time.Time
+
+	if err := row.Scan(&id, &userID, &familyID, &title, &description, &remindAt, &repeatRule, &repeatEndAt, &isActive, &createdAt, &updatedAt); err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "reminder not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to scan reminder")
+	}
+
+	r := &pb.Reminder{
+		Id:          id.String(),
+		UserId:      userID,
+		Title:       title,
+		Description: description,
+		RemindAt:    timestamppb.New(remindAt),
+		RepeatRule:  repeatRule,
+		IsActive:    isActive,
+		CreatedAt:   timestamppb.New(createdAt),
+		UpdatedAt:   timestamppb.New(updatedAt),
+	}
+	if familyID != nil {
+		r.FamilyId = familyID.String()
+	}
+	if repeatEndAt != nil {
+		r.RepeatEndAt = timestamppb.New(*repeatEndAt)
+	}
+	return r, nil
 }

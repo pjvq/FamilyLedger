@@ -960,3 +960,227 @@ func sortCategoryItems(items []*pb.CategoryItem) {
 		}
 	}
 }
+
+// ── GetExchangeRates ─────────────────────────────────────────────────────────
+
+var currencyNames = map[string]string{
+	"USD": "美元",
+	"EUR": "欧元",
+	"GBP": "英镑",
+	"JPY": "日元",
+	"HKD": "港币",
+	"BTC": "比特币",
+	"CNY": "人民币",
+	"AUD": "澳元",
+	"CAD": "加元",
+	"CHF": "瑞士法郎",
+	"SGD": "新加坡元",
+	"KRW": "韩元",
+	"TWD": "新台币",
+}
+
+func (s *Service) GetExchangeRates(ctx context.Context, req *pb.GetExchangeRatesRequest) (*pb.ExchangeRatesResponse, error) {
+	_, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	baseCurrency := req.BaseCurrency
+	if baseCurrency == "" {
+		baseCurrency = "CNY"
+	}
+
+	// Query all exchange rates from DB
+	rows, err := s.pool.Query(ctx,
+		`SELECT currency_pair, rate, updated_at FROM exchange_rates WHERE currency_pair != 'CNY_CNY'`,
+	)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "query exchange rates: %v", err)
+	}
+	defer rows.Close()
+
+	var rates []*pb.ExchangeRateItem
+	var latestUpdate time.Time
+
+	for rows.Next() {
+		var pair string
+		var rate float64
+		var updatedAt time.Time
+		if err := rows.Scan(&pair, &rate, &updatedAt); err != nil {
+			continue
+		}
+		if updatedAt.After(latestUpdate) {
+			latestUpdate = updatedAt
+		}
+
+		// Parse pair: "USD_CNY" → from="USD", to="CNY"
+		if len(pair) < 7 {
+			continue
+		}
+		from := pair[:3]
+		to := pair[4:]
+
+		// We store rates as X_CNY (how many CNY per 1 X).
+		// If baseCurrency is CNY, we want "1 CNY = ? X", so invert.
+		// If baseCurrency matches `from`, we report the rate directly.
+		var targetCurrency string
+		var displayRate float64
+
+		if baseCurrency == to {
+			// Pair is X_CNY and base is CNY → report X with rate 1/rate
+			targetCurrency = from
+			if rate != 0 {
+				displayRate = 1.0 / rate
+			}
+		} else if baseCurrency == from {
+			// Pair is CNY_X (unlikely given our data) → report X with rate directly
+			targetCurrency = to
+			displayRate = rate
+		} else {
+			// Skip pairs that don't involve baseCurrency
+			continue
+		}
+
+		name := currencyNames[targetCurrency]
+		if name == "" {
+			name = targetCurrency
+		}
+
+		rates = append(rates, &pb.ExchangeRateItem{
+			Currency: targetCurrency,
+			Rate:     displayRate,
+			Name:     name,
+		})
+	}
+
+	if rates == nil {
+		rates = []*pb.ExchangeRateItem{}
+	}
+
+	return &pb.ExchangeRatesResponse{
+		Rates:        rates,
+		BaseCurrency: baseCurrency,
+		UpdatedAt:    latestUpdate.Unix(),
+	}, nil
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GetInvestmentTrend
+// ══════════════════════════════════════════════════════════════════════════════
+
+func (s *Service) GetInvestmentTrend(ctx context.Context, req *pb.InvestmentTrendRequest) (*pb.InvestmentTrendResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ff, err := s.resolveFamilyFilter(ctx, userID, req.FamilyId)
+	if err != nil {
+		return nil, err
+	}
+
+	months := int(req.Months)
+	if months <= 0 {
+		months = 12
+	}
+	if months > 60 {
+		months = 60
+	}
+
+	now := time.Now()
+	var points []*pb.InvestmentTrendPoint
+
+	for i := months - 1; i >= 0; i-- {
+		// End of month i months ago
+		refDate := time.Date(now.Year(), now.Month()-time.Month(i), 1, 0, 0, 0, 0, time.UTC)
+		monthEnd := refDate.AddDate(0, 1, 0).Add(-time.Second)
+		monthLabel := refDate.Format("2006-01")
+
+		var totalCost, totalValue int64
+
+		if i == 0 {
+			// Current month: use live market prices
+			if ff.isFamilyMode {
+				_ = s.pool.QueryRow(ctx,
+					`SELECT COALESCE(SUM(i.cost_basis), 0),
+							COALESCE(SUM(
+								CASE WHEN mq.current_price > 0 THEN CAST(i.quantity * mq.current_price AS BIGINT)
+								ELSE i.cost_basis END
+							), 0)
+					 FROM investments i
+					 LEFT JOIN market_quotes mq ON i.symbol = mq.symbol AND i.market_type = mq.market_type
+					 WHERE i.family_id = $1 AND i.deleted_at IS NULL AND i.quantity > 0`,
+					ff.familyID,
+				).Scan(&totalCost, &totalValue)
+			} else {
+				_ = s.pool.QueryRow(ctx,
+					`SELECT COALESCE(SUM(i.cost_basis), 0),
+							COALESCE(SUM(
+								CASE WHEN mq.current_price > 0 THEN CAST(i.quantity * mq.current_price AS BIGINT)
+								ELSE i.cost_basis END
+							), 0)
+					 FROM investments i
+					 LEFT JOIN market_quotes mq ON i.symbol = mq.symbol AND i.market_type = mq.market_type
+					 WHERE i.user_id = $1 AND i.deleted_at IS NULL AND i.family_id IS NULL AND i.quantity > 0`,
+					ff.userID,
+				).Scan(&totalCost, &totalValue)
+			}
+		} else {
+			// Historical month: use price_history for valuation
+			if ff.isFamilyMode {
+				_ = s.pool.QueryRow(ctx,
+					`SELECT COALESCE(SUM(i.cost_basis), 0),
+							COALESCE(SUM(
+								CASE WHEN ph.price > 0 THEN CAST(i.quantity * ph.price AS BIGINT)
+								ELSE i.cost_basis END
+							), 0)
+					 FROM investments i
+					 LEFT JOIN LATERAL (
+						SELECT price FROM price_history
+						WHERE symbol = i.symbol AND market_type = i.market_type
+						  AND timestamp <= $2
+						ORDER BY timestamp DESC LIMIT 1
+					 ) ph ON true
+					 WHERE i.family_id = $1 AND i.deleted_at IS NULL AND i.quantity > 0`,
+					ff.familyID, monthEnd,
+				).Scan(&totalCost, &totalValue)
+			} else {
+				_ = s.pool.QueryRow(ctx,
+					`SELECT COALESCE(SUM(i.cost_basis), 0),
+							COALESCE(SUM(
+								CASE WHEN ph.price > 0 THEN CAST(i.quantity * ph.price AS BIGINT)
+								ELSE i.cost_basis END
+							), 0)
+					 FROM investments i
+					 LEFT JOIN LATERAL (
+						SELECT price FROM price_history
+						WHERE symbol = i.symbol AND market_type = i.market_type
+						  AND timestamp <= $2
+						ORDER BY timestamp DESC LIMIT 1
+					 ) ph ON true
+					 WHERE i.user_id = $1 AND i.deleted_at IS NULL AND i.family_id IS NULL AND i.quantity > 0`,
+					ff.userID, monthEnd,
+				).Scan(&totalCost, &totalValue)
+			}
+		}
+
+		var returnRate float64
+		if totalCost > 0 {
+			returnRate = float64(totalValue-totalCost) / float64(totalCost)
+			returnRate = math.Round(returnRate*10000) / 10000
+		}
+
+		points = append(points, &pb.InvestmentTrendPoint{
+			Month:      monthLabel,
+			TotalValue: totalValue,
+			TotalCost:  totalCost,
+			ReturnRate: returnRate,
+		})
+	}
+
+	if points == nil {
+		points = []*pb.InvestmentTrendPoint{}
+	}
+
+	return &pb.InvestmentTrendResponse{Points: points}, nil
+}

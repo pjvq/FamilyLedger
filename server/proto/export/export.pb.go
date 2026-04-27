@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.34.1
-// source: export.proto
+// source: proto/export.proto
 
 package export
 
@@ -35,7 +35,7 @@ type ExportRequest struct {
 
 func (x *ExportRequest) Reset() {
 	*x = ExportRequest{}
-	mi := &file_export_proto_msgTypes[0]
+	mi := &file_proto_export_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -47,7 +47,7 @@ func (x *ExportRequest) String() string {
 func (*ExportRequest) ProtoMessage() {}
 
 func (x *ExportRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_export_proto_msgTypes[0]
+	mi := &file_proto_export_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -60,7 +60,7 @@ func (x *ExportRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportRequest.ProtoReflect.Descriptor instead.
 func (*ExportRequest) Descriptor() ([]byte, []int) {
-	return file_export_proto_rawDescGZIP(), []int{0}
+	return file_proto_export_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ExportRequest) GetUserId() string {
@@ -116,7 +116,7 @@ type ExportResponse struct {
 
 func (x *ExportResponse) Reset() {
 	*x = ExportResponse{}
-	mi := &file_export_proto_msgTypes[1]
+	mi := &file_proto_export_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -128,7 +128,7 @@ func (x *ExportResponse) String() string {
 func (*ExportResponse) ProtoMessage() {}
 
 func (x *ExportResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_export_proto_msgTypes[1]
+	mi := &file_proto_export_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -141,7 +141,7 @@ func (x *ExportResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportResponse.ProtoReflect.Descriptor instead.
 func (*ExportResponse) Descriptor() ([]byte, []int) {
-	return file_export_proto_rawDescGZIP(), []int{1}
+	return file_proto_export_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ExportResponse) GetData() []byte {
@@ -165,11 +165,107 @@ func (x *ExportResponse) GetContentType() string {
 	return ""
 }
 
-var File_export_proto protoreflect.FileDescriptor
+type FullBackupRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FamilyId      string                 `protobuf:"bytes,1,opt,name=family_id,json=familyId,proto3" json:"family_id,omitempty"` // optional: empty = personal backup
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_export_proto_rawDesc = "" +
+func (x *FullBackupRequest) Reset() {
+	*x = FullBackupRequest{}
+	mi := &file_proto_export_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FullBackupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FullBackupRequest) ProtoMessage() {}
+
+func (x *FullBackupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_export_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FullBackupRequest.ProtoReflect.Descriptor instead.
+func (*FullBackupRequest) Descriptor() ([]byte, []int) {
+	return file_proto_export_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *FullBackupRequest) GetFamilyId() string {
+	if x != nil {
+		return x.FamilyId
+	}
+	return ""
+}
+
+type FullBackupResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Data          []byte                 `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`     // JSON encoded full backup
+	Format        string                 `protobuf:"bytes,2,opt,name=format,proto3" json:"format,omitempty"` // "json"
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FullBackupResponse) Reset() {
+	*x = FullBackupResponse{}
+	mi := &file_proto_export_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FullBackupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FullBackupResponse) ProtoMessage() {}
+
+func (x *FullBackupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_export_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FullBackupResponse.ProtoReflect.Descriptor instead.
+func (*FullBackupResponse) Descriptor() ([]byte, []int) {
+	return file_proto_export_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *FullBackupResponse) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *FullBackupResponse) GetFormat() string {
+	if x != nil {
+		return x.Format
+	}
+	return ""
+}
+
+var File_proto_export_proto protoreflect.FileDescriptor
+
+const file_proto_export_proto_rawDesc = "" +
 	"\n" +
-	"\fexport.proto\x12\x16familyledger.export.v1\"\xba\x01\n" +
+	"\x12proto/export.proto\x12\x16familyledger.export.v1\"\xba\x01\n" +
 	"\rExportRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
 	"\tfamily_id\x18\x02 \x01(\tR\bfamilyId\x12\x16\n" +
@@ -181,57 +277,68 @@ const file_export_proto_rawDesc = "" +
 	"\x0eExportResponse\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\fR\x04data\x12\x1a\n" +
 	"\bfilename\x18\x02 \x01(\tR\bfilename\x12!\n" +
-	"\fcontent_type\x18\x03 \x01(\tR\vcontentType2t\n" +
+	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\"0\n" +
+	"\x11FullBackupRequest\x12\x1b\n" +
+	"\tfamily_id\x18\x01 \x01(\tR\bfamilyId\"@\n" +
+	"\x12FullBackupResponse\x12\x12\n" +
+	"\x04data\x18\x01 \x01(\fR\x04data\x12\x16\n" +
+	"\x06format\x18\x02 \x01(\tR\x06format2\xd9\x01\n" +
 	"\rExportService\x12c\n" +
-	"\x12ExportTransactions\x12%.familyledger.export.v1.ExportRequest\x1a&.familyledger.export.v1.ExportResponseB-Z+github.com/familyledger/server/proto/exportb\x06proto3"
+	"\x12ExportTransactions\x12%.familyledger.export.v1.ExportRequest\x1a&.familyledger.export.v1.ExportResponse\x12c\n" +
+	"\n" +
+	"FullBackup\x12).familyledger.export.v1.FullBackupRequest\x1a*.familyledger.export.v1.FullBackupResponseB-Z+github.com/familyledger/server/proto/exportb\x06proto3"
 
 var (
-	file_export_proto_rawDescOnce sync.Once
-	file_export_proto_rawDescData []byte
+	file_proto_export_proto_rawDescOnce sync.Once
+	file_proto_export_proto_rawDescData []byte
 )
 
-func file_export_proto_rawDescGZIP() []byte {
-	file_export_proto_rawDescOnce.Do(func() {
-		file_export_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_export_proto_rawDesc), len(file_export_proto_rawDesc)))
+func file_proto_export_proto_rawDescGZIP() []byte {
+	file_proto_export_proto_rawDescOnce.Do(func() {
+		file_proto_export_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_export_proto_rawDesc), len(file_proto_export_proto_rawDesc)))
 	})
-	return file_export_proto_rawDescData
+	return file_proto_export_proto_rawDescData
 }
 
-var file_export_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_export_proto_goTypes = []any{
-	(*ExportRequest)(nil),  // 0: familyledger.export.v1.ExportRequest
-	(*ExportResponse)(nil), // 1: familyledger.export.v1.ExportResponse
+var file_proto_export_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_proto_export_proto_goTypes = []any{
+	(*ExportRequest)(nil),      // 0: familyledger.export.v1.ExportRequest
+	(*ExportResponse)(nil),     // 1: familyledger.export.v1.ExportResponse
+	(*FullBackupRequest)(nil),  // 2: familyledger.export.v1.FullBackupRequest
+	(*FullBackupResponse)(nil), // 3: familyledger.export.v1.FullBackupResponse
 }
-var file_export_proto_depIdxs = []int32{
+var file_proto_export_proto_depIdxs = []int32{
 	0, // 0: familyledger.export.v1.ExportService.ExportTransactions:input_type -> familyledger.export.v1.ExportRequest
-	1, // 1: familyledger.export.v1.ExportService.ExportTransactions:output_type -> familyledger.export.v1.ExportResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: familyledger.export.v1.ExportService.FullBackup:input_type -> familyledger.export.v1.FullBackupRequest
+	1, // 2: familyledger.export.v1.ExportService.ExportTransactions:output_type -> familyledger.export.v1.ExportResponse
+	3, // 3: familyledger.export.v1.ExportService.FullBackup:output_type -> familyledger.export.v1.FullBackupResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_export_proto_init() }
-func file_export_proto_init() {
-	if File_export_proto != nil {
+func init() { file_proto_export_proto_init() }
+func file_proto_export_proto_init() {
+	if File_proto_export_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_export_proto_rawDesc), len(file_export_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_export_proto_rawDesc), len(file_proto_export_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_export_proto_goTypes,
-		DependencyIndexes: file_export_proto_depIdxs,
-		MessageInfos:      file_export_proto_msgTypes,
+		GoTypes:           file_proto_export_proto_goTypes,
+		DependencyIndexes: file_proto_export_proto_depIdxs,
+		MessageInfos:      file_proto_export_proto_msgTypes,
 	}.Build()
-	File_export_proto = out.File
-	file_export_proto_goTypes = nil
-	file_export_proto_depIdxs = nil
+	File_proto_export_proto = out.File
+	file_proto_export_proto_goTypes = nil
+	file_proto_export_proto_depIdxs = nil
 }

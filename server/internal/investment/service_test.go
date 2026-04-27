@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/familyledger/server/pkg/middleware"
 	pb "github.com/familyledger/server/proto/investment"
@@ -567,4 +568,54 @@ func TestGetPortfolioSummary_Empty(t *testing.T) {
 	assert.Equal(t, int64(0), resp.TotalValue)
 	assert.Len(t, resp.Holdings, 0)
 	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// ─── calculateXIRR ────────────────────────────────────────────────────────────────
+
+func TestCalculateXIRR_SimpleBuyAndSell(t *testing.T) {
+	// Buy 100 shares at $10 on day 0, sell at $11 on day 365 => 10% annual
+	base := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	cashFlows := []*pb.CashFlow{
+		{Date: timestamppb.New(base), Amount: -100000},                               // buy: $1000
+		{Date: timestamppb.New(base.AddDate(1, 0, 0)), Amount: 110000}, // sell: $1100
+	}
+
+	irr := calculateXIRR(cashFlows)
+	// Should be approximately 0.10 (10%)
+	assert.InDelta(t, 0.10, irr, 0.001)
+}
+
+func TestCalculateXIRR_EmptyCashFlows(t *testing.T) {
+	irr := calculateXIRR([]*pb.CashFlow{})
+	assert.Equal(t, 0.0, irr)
+}
+
+func TestCalculateXIRR_SingleCashFlow(t *testing.T) {
+	irr := calculateXIRR([]*pb.CashFlow{
+		{Date: timestamppb.Now(), Amount: -10000},
+	})
+	assert.Equal(t, 0.0, irr)
+}
+
+func TestCalculateXIRR_HighReturn(t *testing.T) {
+	// Buy $1000 on Jan 1, worth $2000 on Jul 1 (~182 days) => ~100% annualized
+	base := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	cashFlows := []*pb.CashFlow{
+		{Date: timestamppb.New(base), Amount: -100000},
+		{Date: timestamppb.New(base.AddDate(0, 6, 0)), Amount: 200000},
+	}
+
+	irr := calculateXIRR(cashFlows)
+	// Should be > 100% annualized (approximately 300% for doubling in 6 months)
+	assert.Greater(t, irr, 1.0)
+}
+
+func TestGetInvestmentIRR_NoAuth(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	_, err = svc.GetInvestmentIRR(context.Background(), &pb.GetIRRRequest{InvestmentId: "test"})
+	assert.Equal(t, codes.Unauthenticated, status.Code(err))
 }

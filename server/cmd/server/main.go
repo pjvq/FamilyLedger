@@ -28,6 +28,7 @@ import (
 	"github.com/familyledger/server/internal/notify"
 	syncsvc "github.com/familyledger/server/internal/sync"
 	"github.com/familyledger/server/internal/transaction"
+	"github.com/familyledger/server/pkg/config"
 	"github.com/familyledger/server/pkg/db"
 	jwtpkg "github.com/familyledger/server/pkg/jwt"
 	"github.com/familyledger/server/pkg/middleware"
@@ -62,7 +63,7 @@ func main() {
 		SSLMode:  getEnv("DB_SSLMODE", "disable"),
 	}
 
-	jwtSecret := getEnv("JWT_SECRET", "familyledger-dev-secret-change-in-production")
+	jwtSecret := config.ValidateJWTSecret()
 	grpcPort := getEnv("GRPC_PORT", "50051")
 	wsPort := getEnv("WS_PORT", "8080")
 
@@ -211,50 +212,62 @@ func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 			}
 			loanCancel()
 
+			log.Println("scheduler: running custom reminder check...")
+			reminderCtx, reminderCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			if err := notifyService.CheckCustomReminders(reminderCtx); err != nil {
+				log.Printf("scheduler: custom reminder check error: %v", err)
+			}
+			reminderCancel()
+
 			// TODO: Push notifications via FCM/APNs (placeholder — just logged for now)
 			log.Println("scheduler: all checks complete")
 		}
 	}
 }
 
-// runMarketRefreshTasks refreshes market quotes on a schedule:
-// - A-share/HK: trading hours (9:30-15:00 CST weekdays) every 15 min, else hourly
-// - Crypto: 24/7 every 15 min
+// runMarketRefreshTasks refreshes market quotes on a schedule.
+// Uses market.IsTradingHours to determine per-market refresh:
+// - Trading hours: every 15 min
+// - Off-hours: every 4 hours (stocks), crypto always 15 min
 func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
-	cst, err := time.LoadLocation("Asia/Shanghai")
-	if err != nil {
-		log.Printf("market-scheduler: failed to load CST timezone, falling back to UTC+8: %v", err)
-		cst = time.FixedZone("CST", 8*60*60)
-	}
-
 	log.Println("market-scheduler: started")
 
 	for {
-		now := time.Now().In(cst)
-		interval := computeMarketInterval(now)
+		now := time.Now()
+
+		// Determine interval based on what markets are active
+		// Crypto is always active → always 15 min base interval
+		interval := market.ComputeMarketIntervalForTypes(now, []string{"crypto"})
 
 		select {
 		case <-ctx.Done():
 			log.Println("market-scheduler: stopped")
 			return
 		case <-time.After(interval):
-			now = time.Now().In(cst)
+			now = time.Now()
 			refreshCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 
-			// Always refresh crypto
+			// Always refresh crypto (24/7)
 			if err := marketService.RefreshQuotes(refreshCtx, []string{"crypto"}); err != nil {
 				log.Printf("market-scheduler: crypto refresh error: %v", err)
 			}
 
-			// Refresh stocks during trading hours or hourly
-			stockTypes := []string{"a_share", "hk_stock", "fund"}
-			if err := marketService.RefreshQuotes(refreshCtx, stockTypes); err != nil {
-				log.Printf("market-scheduler: stock refresh error: %v", err)
+			// Refresh A-share/fund only during CN trading hours
+			if market.IsTradingHours(now, "a_share") {
+				if err := marketService.RefreshQuotes(refreshCtx, []string{"a_share", "fund"}); err != nil {
+					log.Printf("market-scheduler: a_share/fund refresh error: %v", err)
+				}
 			}
 
-			// US stocks — check if within US trading hours (roughly 21:30-04:00 CST)
-			hour := now.Hour()
-			if hour >= 21 || hour < 5 {
+			// Refresh HK stocks only during HK trading hours
+			if market.IsTradingHours(now, "hk_stock") {
+				if err := marketService.RefreshQuotes(refreshCtx, []string{"hk_stock"}); err != nil {
+					log.Printf("market-scheduler: hk_stock refresh error: %v", err)
+				}
+			}
+
+			// Refresh US stocks only during US trading hours
+			if market.IsTradingHours(now, "us_stock") {
 				if err := marketService.RefreshQuotes(refreshCtx, []string{"us_stock"}); err != nil {
 					log.Printf("market-scheduler: us_stock refresh error: %v", err)
 				}
@@ -263,25 +276,6 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 			cancel()
 		}
 	}
-}
-
-// computeMarketInterval returns the sleep duration until the next refresh.
-func computeMarketInterval(now time.Time) time.Duration {
-	weekday := now.Weekday()
-	hour := now.Hour()
-	minute := now.Minute()
-	hhmm := hour*60 + minute
-
-	isWeekday := weekday >= time.Monday && weekday <= time.Friday
-	// CN/HK trading: 9:30 - 15:00 → 570 - 900 in minutes
-	isTradingHours := isWeekday && hhmm >= 570 && hhmm < 900
-
-	if isTradingHours {
-		return 15 * time.Minute
-	}
-	// Off-hours: still 15 min for crypto, but since we batch, use 15 min
-	// (stock refresh is also fine hourly, but the crypto branch runs anyway)
-	return 15 * time.Minute
 }
 
 // runDepreciationTask runs monthly depreciation on the 1st of each month at 00:05 CST.

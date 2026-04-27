@@ -6,6 +6,7 @@ option go_package = "github.com/familyledger/server/proto/export";
 
 service ExportService {
     rpc ExportTransactions(ExportRequest) returns (ExportResponse);
+    rpc FullBackup(FullBackupRequest) returns (FullBackupResponse);
 }
 
 message ExportRequest {
@@ -21,4 +22,13 @@ message ExportResponse {
     bytes data = 1;
     string filename = 2;
     string content_type = 3;
+}
+
+message FullBackupRequest {
+    string family_id = 1;  // optional: empty = personal backup
+}
+
+message FullBackupResponse {
+    bytes data = 1;        // JSON encoded full backup
+    string format = 2;     // "json"
 }

@@ -4,10 +4,25 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 
 	jwtpkg "github.com/familyledger/server/pkg/jwt"
+)
+
+const (
+	// Time allowed to write a message to the peer.
+	writeWait = 10 * time.Second
+
+	// Time allowed to read the next pong message from the peer.
+	pongWait = 60 * time.Second
+
+	// Send pings to peer with this period. Must be less than pongWait.
+	pingPeriod = 30 * time.Second
+
+	// Maximum message size allowed from peer.
+	maxMessageSize = 512
 )
 
 var upgrader = websocket.Upgrader{
@@ -29,6 +44,7 @@ type Client struct {
 	conn   *websocket.Conn
 	userID string
 	send   chan []byte
+	once   sync.Once // ensures unregister logic runs only once
 }
 
 type ChangeNotification struct {
@@ -93,18 +109,20 @@ func (h *Hub) register(client *Client) {
 }
 
 func (h *Hub) unregister(client *Client) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
+	client.once.Do(func() {
+		h.mu.Lock()
+		defer h.mu.Unlock()
 
-	if clients, ok := h.clients[client.userID]; ok {
-		delete(clients, client)
-		if len(clients) == 0 {
-			delete(h.clients, client.userID)
+		if clients, ok := h.clients[client.userID]; ok {
+			delete(clients, client)
+			if len(clients) == 0 {
+				delete(h.clients, client.userID)
+			}
 		}
-	}
-	close(client.send)
-	client.conn.Close()
-	log.Printf("ws: client disconnected for user %s", client.userID)
+		close(client.send)
+		client.conn.Close()
+		log.Printf("ws: client disconnected for user %s", client.userID)
+	})
 }
 
 // BroadcastToUser sends a message to all connections of a specific user.
@@ -124,17 +142,45 @@ func (h *Hub) BroadcastToUser(userID string, message []byte) {
 }
 
 func (c *Client) writePump() {
-	defer c.conn.Close()
-	for message := range c.send {
-		if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-			log.Printf("ws: write error: %v", err)
-			return
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		ticker.Stop()
+		c.conn.Close()
+	}()
+
+	for {
+		select {
+		case message, ok := <-c.send:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if !ok {
+				// Hub closed the channel.
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
+				log.Printf("ws: write error: %v", err)
+				return
+			}
+		case <-ticker.C:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Printf("ws: ping error: %v", err)
+				return
+			}
 		}
 	}
 }
 
 func (c *Client) readPump(h *Hub) {
 	defer h.unregister(c)
+
+	c.conn.SetReadLimit(maxMessageSize)
+	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.conn.SetPongHandler(func(string) error {
+		c.conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
 	for {
 		_, _, err := c.conn.ReadMessage()
 		if err != nil {

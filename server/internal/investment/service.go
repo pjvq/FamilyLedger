@@ -747,3 +747,230 @@ func stringToTradeType(s string) pb.TradeType {
 	}
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// IRR Calculation
+// ══════════════════════════════════════════════════════════════════════════════
+
+func (s *Service) GetInvestmentIRR(ctx context.Context, req *pb.GetIRRRequest) (*pb.IRRResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build cash flow list from trades
+	var cashFlows []*pb.CashFlow
+	var currentValue int64
+
+	if req.InvestmentId != "" {
+		// Single investment IRR
+		var ownerID string
+		var quantity float64
+		var curPrice *int64
+		err = s.pool.QueryRow(ctx,
+			`SELECT i.user_id, i.quantity, mq.current_price
+			 FROM investments i
+			 LEFT JOIN market_quotes mq ON i.symbol = mq.symbol AND i.market_type = mq.market_type
+			 WHERE i.id = $1 AND i.deleted_at IS NULL`,
+			req.InvestmentId,
+		).Scan(&ownerID, &quantity, &curPrice)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				return nil, status.Error(codes.NotFound, "investment not found")
+			}
+			return nil, status.Errorf(codes.Internal, "query investment: %v", err)
+		}
+		if ownerID != userID {
+			return nil, status.Error(codes.PermissionDenied, "not your investment")
+		}
+
+		// Get all trades
+		rows, err := s.pool.Query(ctx,
+			`SELECT trade_type, total_amount, fee, trade_date
+			 FROM investment_trades WHERE investment_id = $1
+			 ORDER BY trade_date ASC`,
+			req.InvestmentId,
+		)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "query trades: %v", err)
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var tradeType string
+			var totalAmount, fee int64
+			var tradeDate time.Time
+			if err := rows.Scan(&tradeType, &totalAmount, &fee, &tradeDate); err != nil {
+				return nil, status.Errorf(codes.Internal, "scan trade: %v", err)
+			}
+
+			var amount int64
+			if tradeType == "buy" {
+				amount = -(totalAmount + fee) // outflow
+			} else {
+				amount = totalAmount - fee // inflow
+			}
+			cashFlows = append(cashFlows, &pb.CashFlow{
+				Date:   timestamppb.New(tradeDate),
+				Amount: amount,
+			})
+		}
+
+		// Current market value as terminal cash flow
+		if curPrice != nil && quantity > 0 {
+			currentValue = int64(math.Round(float64(*curPrice) * quantity))
+		}
+	} else {
+		// Portfolio-level IRR
+		var query string
+		var args []interface{}
+
+		if req.FamilyId != "" {
+			query = `SELECT it.trade_type, it.total_amount, it.fee, it.trade_date
+					 FROM investment_trades it
+					 JOIN investments i ON i.id = it.investment_id
+					 WHERE i.family_id = $1 AND i.deleted_at IS NULL
+					 ORDER BY it.trade_date ASC`
+			args = []interface{}{req.FamilyId}
+		} else {
+			query = `SELECT it.trade_type, it.total_amount, it.fee, it.trade_date
+					 FROM investment_trades it
+					 JOIN investments i ON i.id = it.investment_id
+					 WHERE i.user_id = $1 AND i.deleted_at IS NULL AND i.family_id IS NULL
+					 ORDER BY it.trade_date ASC`
+			args = []interface{}{userID}
+		}
+
+		rows, err := s.pool.Query(ctx, query, args...)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "query trades: %v", err)
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var tradeType string
+			var totalAmount, fee int64
+			var tradeDate time.Time
+			if err := rows.Scan(&tradeType, &totalAmount, &fee, &tradeDate); err != nil {
+				return nil, status.Errorf(codes.Internal, "scan trade: %v", err)
+			}
+
+			var amount int64
+			if tradeType == "buy" {
+				amount = -(totalAmount + fee)
+			} else {
+				amount = totalAmount - fee
+			}
+			cashFlows = append(cashFlows, &pb.CashFlow{
+				Date:   timestamppb.New(tradeDate),
+				Amount: amount,
+			})
+		}
+
+		// Get current portfolio value as terminal cash flow
+		var valQuery string
+		var valArgs []interface{}
+		if req.FamilyId != "" {
+			valQuery = `SELECT COALESCE(SUM(
+							CASE WHEN mq.current_price > 0 THEN CAST(i.quantity * mq.current_price AS BIGINT)
+							ELSE i.cost_basis END
+						), 0)
+						FROM investments i
+						LEFT JOIN market_quotes mq ON i.symbol = mq.symbol AND i.market_type = mq.market_type
+						WHERE i.family_id = $1 AND i.deleted_at IS NULL AND i.quantity > 0`
+			valArgs = []interface{}{req.FamilyId}
+		} else {
+			valQuery = `SELECT COALESCE(SUM(
+							CASE WHEN mq.current_price > 0 THEN CAST(i.quantity * mq.current_price AS BIGINT)
+							ELSE i.cost_basis END
+						), 0)
+						FROM investments i
+						LEFT JOIN market_quotes mq ON i.symbol = mq.symbol AND i.market_type = mq.market_type
+						WHERE i.user_id = $1 AND i.deleted_at IS NULL AND i.family_id IS NULL AND i.quantity > 0`
+			valArgs = []interface{}{userID}
+		}
+		_ = s.pool.QueryRow(ctx, valQuery, valArgs...).Scan(&currentValue)
+	}
+
+	// No cash flows => IRR = 0
+	if len(cashFlows) == 0 {
+		return &pb.IRRResponse{
+			AnnualizedIrr: 0,
+			CashFlows:     []*pb.CashFlow{},
+		}, nil
+	}
+
+	// Add current value as final cash flow (today)
+	if currentValue > 0 {
+		cashFlows = append(cashFlows, &pb.CashFlow{
+			Date:   timestamppb.Now(),
+			Amount: currentValue,
+		})
+	}
+
+	// Calculate XIRR using Newton-Raphson
+	irr := calculateXIRR(cashFlows)
+
+	return &pb.IRRResponse{
+		AnnualizedIrr: math.Round(irr*10000) / 10000,
+		CashFlows:     cashFlows,
+	}, nil
+}
+
+// calculateXIRR computes the annualized internal rate of return using Newton-Raphson.
+// Cash flows have dates and amounts (negative = outflow, positive = inflow).
+func calculateXIRR(cashFlows []*pb.CashFlow) float64 {
+	if len(cashFlows) < 2 {
+		return 0
+	}
+
+	// Convert to day-fractions relative to first cash flow
+	type cf struct {
+		years  float64
+		amount float64
+	}
+
+	base := cashFlows[0].Date.AsTime()
+	cfs := make([]cf, len(cashFlows))
+	for i, c := range cashFlows {
+		days := c.Date.AsTime().Sub(base).Hours() / 24.0
+		cfs[i] = cf{
+			years:  days / 365.0,
+			amount: float64(c.Amount),
+		}
+	}
+
+	// Newton-Raphson: find rate where NPV(rate) = 0
+	rate := 0.1 // initial guess: 10%
+	for iter := 0; iter < 100; iter++ {
+		npv := 0.0
+		dnpv := 0.0
+		for _, c := range cfs {
+			denom := math.Pow(1+rate, c.years)
+			if denom == 0 {
+				continue
+			}
+			npv += c.amount / denom
+			dnpv -= c.years * c.amount / math.Pow(1+rate, c.years+1)
+		}
+
+		if math.Abs(dnpv) < 1e-12 {
+			break
+		}
+
+		newRate := rate - npv/dnpv
+		if math.Abs(newRate-rate) < 1e-9 {
+			return newRate
+		}
+
+		// Clamp to prevent divergence
+		if newRate < -0.99 {
+			newRate = -0.99
+		} else if newRate > 100 {
+			newRate = 100
+		}
+		rate = newRate
+	}
+
+	return rate
+}
+

@@ -152,6 +152,16 @@ func (s *Service) applyOperation(ctx context.Context, tx pgx.Tx, userID uuid.UUI
 		return s.applyAccountOp(ctx, tx, userID, entityID, opType, payload)
 	case "category":
 		return s.applyCategoryOp(ctx, tx, userID, entityID, opType, payload)
+	case "loan":
+		return s.applyLoanOp(ctx, tx, userID, entityID, opType, payload)
+	case "loan_group":
+		return s.applyLoanGroupOp(ctx, tx, userID, entityID, opType, payload)
+	case "investment":
+		return s.applyInvestmentOp(ctx, tx, userID, entityID, opType, payload)
+	case "fixed_asset":
+		return s.applyFixedAssetOp(ctx, tx, userID, entityID, opType, payload)
+	case "budget":
+		return s.applyBudgetOp(ctx, tx, userID, entityID, opType, payload)
 	default:
 		log.Printf("sync: unknown entity_type %q, skipping apply", entityType)
 		return nil
