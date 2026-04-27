@@ -744,9 +744,14 @@ fi
 
 # --- 35. 用户 A 删除家庭 ---
 run_test "用户 A 删除家庭"
-# NOTE: DeleteFamily RPC 尚未实现，跳过
-echo "  [SKIP] DeleteFamily RPC 未实现"
-SKIP_COUNT=$((SKIP_COUNT + 1))
+RESP=$(grpc_call_auth family.proto "$TOKEN_A" \
+  -d "{\"family_id\":\"$FAMILY_ID\"}" \
+  "familyledger.family.v1.FamilyService/DeleteFamily")
+if ! contains_error "$RESP"; then
+  pass "A 删除家庭成功"
+else
+  fail "A 删除家庭" "$RESP"
+fi
 
 ##############################################################################
 # Phase 10: 边界场景
@@ -812,9 +817,14 @@ fi
 
 # --- 39. 转让 ownership 给 B ---
 run_test "转让 ownership 给 B → A 不再是 owner"
-# NOTE: TransferOwnership RPC 尚未实现，跳过
-echo "  [SKIP] TransferOwnership RPC 未实现"
-SKIP_COUNT=$((SKIP_COUNT + 1))
+RESP=$(grpc_call_auth family.proto "$TOKEN_A" \
+  -d "{\"family_id\":\"$EDGE_FAMILY_ID\",\"new_owner_id\":\"$USER_B_ID\"}" \
+  "familyledger.family.v1.FamilyService/TransferOwnership")
+if ! contains_error "$RESP"; then
+  pass "TransferOwnership 成功"
+else
+  fail "TransferOwnership" "$RESP"
+fi
 
 # --- 40. 重复加入 → 合理处理 ---
 run_test "用户 B 重复加入已在的家庭 → 合理处理"
@@ -843,10 +853,10 @@ else
   skip "重复加入测试" "无法生成邀请码"
 fi
 
-# 清理边界测试家庭 (DeleteFamily 未实现，跳过)
-# RESP=$(grpc_call_auth family.proto "$TOKEN_B" \
-#   -d "{\"family_id\":\"$EDGE_FAMILY_ID\"}" \
-#   "familyledger.family.v1.FamilyService/DeleteFamily" 2>/dev/null)
+# 清理边界测试家庭
+grpc_call_auth family.proto "$TOKEN_B" \
+  -d "{\"family_id\":\"$EDGE_FAMILY_ID\"}" \
+  "familyledger.family.v1.FamilyService/DeleteFamily" >/dev/null 2>&1
 
 ##############################################################################
 # 测试报告

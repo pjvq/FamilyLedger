@@ -624,11 +624,37 @@ func (s *Service) DeleteFamily(ctx context.Context, req *pb.DeleteFamilyRequest)
 	}
 	defer tx.Rollback(ctx)
 
+	// Delete related data in correct order (foreign key constraints)
+	// 1. Delete transactions on family accounts
+	_, err = tx.Exec(ctx,
+		`DELETE FROM transactions WHERE account_id IN (SELECT id FROM accounts WHERE family_id = $1)`,
+		familyID,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to delete family transactions")
+	}
+
+	// 2. Delete family accounts
+	_, err = tx.Exec(ctx, `DELETE FROM accounts WHERE family_id = $1`, familyID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to delete family accounts")
+	}
+
+	// 3. Delete other family-scoped entities
+	_, _ = tx.Exec(ctx, `DELETE FROM budgets WHERE family_id = $1`, familyID)
+	_, _ = tx.Exec(ctx, `DELETE FROM loans WHERE family_id = $1`, familyID)
+	_, _ = tx.Exec(ctx, `DELETE FROM investments WHERE family_id = $1`, familyID)
+	_, _ = tx.Exec(ctx, `DELETE FROM fixed_assets WHERE family_id = $1`, familyID)
+
+	// 4. Delete invite codes (stored in families table, no separate table)
+
+	// 5. Delete family members
 	_, err = tx.Exec(ctx, `DELETE FROM family_members WHERE family_id = $1`, familyID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to delete members")
 	}
 
+	// 6. Delete family itself
 	_, err = tx.Exec(ctx, `DELETE FROM families WHERE id = $1`, familyID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to delete family")
