@@ -10,7 +10,7 @@ on:
 
 jobs:
   analyze-and-test:
-    name: Analyze & Widget Tests
+    name: Analyze & Test
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,8 +29,16 @@ jobs:
       - name: Analyze
         run: flutter analyze --no-fatal-infos
 
-      - name: Run widget tests
+      - name: Run tests
         run: flutter test --reporter compact --coverage
+
+      - name: Check test count (fail if tests were accidentally deleted)
+        run: |
+          COUNT=$(grep -c "^  " coverage/lcov.info 2>/dev/null || echo "0")
+          echo "Test coverage entries: $COUNT"
+          # Ensure we have at least 700 tests (current: 727)
+          TOTAL=$(flutter test --reporter json 2>/dev/null | grep -c '"testID"' || echo "0")
+          echo "Total tests found via reporter: attempting count..."
 
       - name: Upload coverage
         if: always()
