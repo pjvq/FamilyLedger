@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -178,4 +179,109 @@ func TestCellName(t *testing.T) {
 	assert.Equal(t, "A1", cellName(1, 1))
 	assert.Equal(t, "B2", cellName(2, 2))
 	assert.Equal(t, "F10", cellName(6, 10))
+}
+
+// ─── Family mode export ─────────────────────────────────────────────────────
+
+const testFamilyID = "f1234567-9c0b-4ef8-bb6d-6bb9bd380a22"
+
+func expectFamilyMembershipCheck(mock pgxmock.PgxPoolIface, familyID, userID string, isMember bool) {
+	mock.ExpectQuery("SELECT role, permissions FROM family_members").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"role", "permissions"}).AddRow("owner", []byte(`{}`)))
+}
+
+func expectFamilyTxnQuery(mock pgxmock.PgxPoolIface, familyID string, rows ...transactionRow) {
+	cols := []string{"txn_date", "type", "category_name", "amount_cny", "account_name", "note"}
+	mockRows := pgxmock.NewRows(cols)
+	for _, r := range rows {
+		d, _ := time.Parse("2006-01-02", r.Date)
+		txnType := "expense"
+		if r.Type == "收入" {
+			txnType = "income"
+		}
+		mockRows.AddRow(d, txnType, r.CategoryName, r.Amount, r.AccountName, r.Note)
+	}
+	mock.ExpectQuery("SELECT .+ FROM transactions").
+		WithArgs(familyID).
+		WillReturnRows(mockRows)
+}
+
+func TestExportCSV_FamilyMode_IncludesAllMemberTransactions(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	// Permission check for family
+	expectFamilyMembershipCheck(mock, testFamilyID, testUserID, true)
+
+	// Family query: includes transactions from all family members' accounts
+	familyRows := []transactionRow{
+		{Date: "2026-01-15", Type: "支出", CategoryName: "餐饮", Amount: 3500, AccountName: "爸爸现金", Note: "午餐"},
+		{Date: "2026-01-16", Type: "支出", CategoryName: "交通", Amount: 2000, AccountName: "妈妈信用卡", Note: "地铁"},
+		{Date: "2026-01-17", Type: "收入", CategoryName: "工资", Amount: 500000, AccountName: "爸爸工资卡", Note: "月薪"},
+	}
+	expectFamilyTxnQuery(mock, testFamilyID, familyRows...)
+
+	resp, err := svc.ExportTransactions(authedCtx(), &pb.ExportRequest{
+		Format:   "csv",
+		FamilyId: testFamilyID,
+	})
+	require.NoError(t, err)
+	data := string(resp.Data)
+	assert.Contains(t, data, "爸爸现金")
+	assert.Contains(t, data, "妈妈信用卡")
+	assert.Contains(t, data, "爸爸工资卡")
+	assert.Contains(t, data, "35.00")
+	assert.Contains(t, data, "20.00")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestExportCSV_PersonalMode_ExcludesFamilyData(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	// Personal mode query: only personal transactions (no family_id)
+	cols := []string{"txn_date", "type", "category_name", "amount_cny", "account_name", "note"}
+	d, _ := time.Parse("2006-01-02", "2026-01-15")
+	mockRows := pgxmock.NewRows(cols).
+		AddRow(d, "expense", "餐饮", int64(3500), "个人现金", "午餐")
+
+	// The personal mode query filters with (a.family_id IS NULL OR a.family_id = '')
+	mock.ExpectQuery("SELECT .+ FROM transactions").
+		WithArgs(testUserID).
+		WillReturnRows(mockRows)
+
+	resp, err := svc.ExportTransactions(authedCtx(), &pb.ExportRequest{
+		Format:   "csv",
+		FamilyId: "", // personal mode
+	})
+	require.NoError(t, err)
+	data := string(resp.Data)
+	assert.Contains(t, data, "个人现金")
+	assert.Contains(t, data, "35.00")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestExportCSV_FamilyMode_PermissionDenied(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	// Permission check: not a member
+	mock.ExpectQuery("SELECT role, permissions FROM family_members").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnError(pgx.ErrNoRows)
+
+	_, err = svc.ExportTransactions(authedCtx(), &pb.ExportRequest{
+		Format:   "csv",
+		FamilyId: testFamilyID,
+	})
+	require.Error(t, err)
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	assert.NoError(t, mock.ExpectationsWereMet())
 }

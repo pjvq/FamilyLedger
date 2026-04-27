@@ -194,9 +194,40 @@ class SyncEngine {
   }
 
   /// 将远程操作应用到本地数据库
+  ///
+  /// Implements Last-Writer-Wins (LWW) conflict resolution:
+  /// - DELETE operations are always applied (delete is a terminal state)
+  /// - For CREATE/UPDATE: compare remote op timestamp with local entity's
+  ///   updated_at. Only apply if remote timestamp >= local updated_at.
   Future<void> _applyRemoteOp(sync_pb.SyncOperation op) async {
     try {
       final payload = jsonDecode(op.payload) as Map<String, dynamic>;
+
+      // DELETE is always applied (terminal state)
+      final isDelete =
+          op.opType == sync_enum.OperationType.OPERATION_TYPE_DELETE;
+
+      if (!isDelete) {
+        // LWW check: skip if local data is newer
+        final remoteTimestampMs = op.hasTimestamp()
+            ? op.timestamp.seconds.toInt() * 1000 +
+                op.timestamp.nanos ~/ 1000000
+            : 0;
+        final localUpdatedAt =
+            await _getLocalEntityUpdatedAt(op.entityType, op.entityId);
+
+        if (localUpdatedAt != null &&
+            localUpdatedAt.millisecondsSinceEpoch > remoteTimestampMs) {
+          // Local is newer — skip this remote operation
+          dev.log(
+            'SyncEngine: LWW skip ${op.entityType}/${op.entityId} '
+            '(local=${localUpdatedAt.millisecondsSinceEpoch}, remote=$remoteTimestampMs)',
+            name: 'sync',
+          );
+          return;
+        }
+      }
+
       switch (op.entityType) {
         case 'transaction':
           await _applyTransactionOp(op.opType, op.entityId, payload);
@@ -210,6 +241,26 @@ class SyncEngine {
       }
     } catch (e) {
       dev.log('SyncEngine: apply op failed: $e', name: 'sync');
+    }
+  }
+
+  /// Get the local entity's updated_at timestamp for LWW comparison.
+  /// Returns null if the entity doesn't exist locally (new entity),
+  /// meaning remote op should always be applied.
+  Future<DateTime?> _getLocalEntityUpdatedAt(
+      String entityType, String entityId) async {
+    switch (entityType) {
+      case 'transaction':
+        final txn = await _db!.getTransactionById(entityId);
+        return txn?.updatedAt;
+      case 'account':
+        final acc = await _db!.getAccountById(entityId);
+        return acc?.updatedAt;
+      case 'category':
+        // Categories don't have updatedAt — always apply remote ops
+        return null;
+      default:
+        return null;
     }
   }
 

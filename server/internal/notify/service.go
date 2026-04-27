@@ -283,6 +283,7 @@ func (s *Service) CreateNotification(ctx context.Context, userID string, nType, 
 
 // CheckBudgets iterates all active budgets (current month), computes execution rates,
 // and creates warning/exceeded notifications. Deduplicates by budget_id + type + month.
+// For family budgets, notifications are sent to all family members with budget_alert enabled.
 func (s *Service) CheckBudgets(ctx context.Context) error {
 	now := time.Now()
 	year := int32(now.Year())
@@ -295,7 +296,7 @@ func (s *Service) CheckBudgets(ctx context.Context) error {
 
 	// Get all budgets for current month
 	rows, err := s.pool.Query(ctx,
-		`SELECT b.id, b.user_id, b.total_amount
+		`SELECT b.id, b.user_id, b.family_id, b.total_amount
 		 FROM budgets b
 		 WHERE b.year = $1 AND b.month = $2`,
 		year, month,
@@ -308,16 +309,21 @@ func (s *Service) CheckBudgets(ctx context.Context) error {
 	type budgetRow struct {
 		ID          uuid.UUID
 		UserID      string
+		FamilyID    string
 		TotalAmount int64
 	}
 	var budgets []budgetRow
 	for rows.Next() {
 		var b budgetRow
 		var uid uuid.UUID
-		if err := rows.Scan(&b.ID, &uid, &b.TotalAmount); err != nil {
+		var familyID *uuid.UUID
+		if err := rows.Scan(&b.ID, &uid, &familyID, &b.TotalAmount); err != nil {
 			return fmt.Errorf("scan budget: %w", err)
 		}
 		b.UserID = uid.String()
+		if familyID != nil {
+			b.FamilyID = familyID.String()
+		}
 		budgets = append(budgets, b)
 	}
 	rows.Close()
@@ -325,16 +331,33 @@ func (s *Service) CheckBudgets(ctx context.Context) error {
 	for _, b := range budgets {
 		// Compute total spent
 		var totalSpent int64
-		err := s.pool.QueryRow(ctx,
-			`SELECT COALESCE(SUM(amount_cny), 0)
-			 FROM transactions
-			 WHERE user_id = $1 AND type = 'expense' AND deleted_at IS NULL
-			   AND txn_date >= $2 AND txn_date < $3`,
-			b.UserID, startOfMonth, endOfMonth,
-		).Scan(&totalSpent)
-		if err != nil {
-			log.Printf("notify: failed to compute spent for budget %s: %v", b.ID, err)
-			continue
+		if b.FamilyID != "" {
+			// Family budget: sum expenses from all family accounts
+			err := s.pool.QueryRow(ctx,
+				`SELECT COALESCE(SUM(t.amount_cny), 0)
+				 FROM transactions t
+				 JOIN accounts a ON a.id = t.account_id
+				 WHERE a.family_id = $1 AND t.type = 'expense' AND t.deleted_at IS NULL
+				   AND t.txn_date >= $2 AND t.txn_date < $3`,
+				b.FamilyID, startOfMonth, endOfMonth,
+			).Scan(&totalSpent)
+			if err != nil {
+				log.Printf("notify: failed to compute spent for family budget %s: %v", b.ID, err)
+				continue
+			}
+		} else {
+			// Personal budget: only count user's own expenses
+			err := s.pool.QueryRow(ctx,
+				`SELECT COALESCE(SUM(amount_cny), 0)
+				 FROM transactions
+				 WHERE user_id = $1 AND type = 'expense' AND deleted_at IS NULL
+				   AND txn_date >= $2 AND txn_date < $3`,
+				b.UserID, startOfMonth, endOfMonth,
+			).Scan(&totalSpent)
+			if err != nil {
+				log.Printf("notify: failed to compute spent for budget %s: %v", b.ID, err)
+				continue
+			}
 		}
 
 		if b.TotalAmount <= 0 {
@@ -343,40 +366,110 @@ func (s *Service) CheckBudgets(ctx context.Context) error {
 
 		rate := float64(totalSpent) / float64(b.TotalAmount)
 
-		// Check if notification already sent this month for this budget
+		// Determine recipients: for family budgets, notify all family members with budget_alert enabled
+		recipients, err := s.getBudgetNotificationRecipients(ctx, b.UserID, b.FamilyID)
+		if err != nil {
+			log.Printf("notify: failed to get recipients for budget %s: %v", b.ID, err)
+			continue
+		}
+
 		if rate >= 1.0 {
-			if s.hasNotification(ctx, b.UserID, b.ID.String(), "budget_exceeded", year, month) {
-				continue
-			}
-			err := s.CreateNotification(ctx, b.UserID, "budget_exceeded",
-				"预算超支提醒",
-				fmt.Sprintf("您 %d年%d月 的预算已超支，执行率 %.0f%%", year, month, rate*100),
-				map[string]interface{}{"budget_id": b.ID.String(), "execution_rate": rate},
-			)
-			if err != nil {
-				log.Printf("notify: failed to create budget_exceeded notification: %v", err)
-			} else {
-				log.Printf("notify: budget_exceeded notification created for user %s budget %s (%.0f%%)", b.UserID, b.ID, rate*100)
+			for _, recipientID := range recipients {
+				if s.hasNotification(ctx, recipientID, b.ID.String(), "budget_exceeded", year, month) {
+					continue
+				}
+				err := s.CreateNotification(ctx, recipientID, "budget_exceeded",
+					"预算超支提醒",
+					fmt.Sprintf("您 %d年%d月 的预算已超支，执行率 %.0f%%", year, month, rate*100),
+					map[string]interface{}{"budget_id": b.ID.String(), "execution_rate": rate},
+				)
+				if err != nil {
+					log.Printf("notify: failed to create budget_exceeded notification: %v", err)
+				} else {
+					log.Printf("notify: budget_exceeded notification created for user %s budget %s (%.0f%%)", recipientID, b.ID, rate*100)
+				}
 			}
 		} else if rate >= 0.8 {
-			if s.hasNotification(ctx, b.UserID, b.ID.String(), "budget_warning", year, month) {
-				continue
-			}
-			err := s.CreateNotification(ctx, b.UserID, "budget_warning",
-				"预算预警提醒",
-				fmt.Sprintf("您 %d年%d月 的预算已使用 %.0f%%，请注意控制支出", year, month, rate*100),
-				map[string]interface{}{"budget_id": b.ID.String(), "execution_rate": rate},
-			)
-			if err != nil {
-				log.Printf("notify: failed to create budget_warning notification: %v", err)
-			} else {
-				log.Printf("notify: budget_warning notification created for user %s budget %s (%.0f%%)", b.UserID, b.ID, rate*100)
+			for _, recipientID := range recipients {
+				if s.hasNotification(ctx, recipientID, b.ID.String(), "budget_warning", year, month) {
+					continue
+				}
+				err := s.CreateNotification(ctx, recipientID, "budget_warning",
+					"预算预警提醒",
+					fmt.Sprintf("您 %d年%d月 的预算已使用 %.0f%%，请注意控制支出", year, month, rate*100),
+					map[string]interface{}{"budget_id": b.ID.String(), "execution_rate": rate},
+				)
+				if err != nil {
+					log.Printf("notify: failed to create budget_warning notification: %v", err)
+				} else {
+					log.Printf("notify: budget_warning notification created for user %s budget %s (%.0f%%)", recipientID, b.ID, rate*100)
+				}
 			}
 		}
 	}
 
 	log.Printf("notify: budget check complete, processed %d budgets", len(budgets))
 	return nil
+}
+
+// getBudgetNotificationRecipients returns the list of user IDs who should receive
+// budget notifications. For personal budgets, it returns only the budget owner.
+// For family budgets, it returns all family members who have budget_alert enabled.
+func (s *Service) getBudgetNotificationRecipients(ctx context.Context, ownerUserID, familyID string) ([]string, error) {
+	if familyID == "" {
+		// Personal budget: only notify the owner
+		return []string{ownerUserID}, nil
+	}
+
+	// Family budget: get all family members
+	rows, err := s.pool.Query(ctx,
+		`SELECT fm.user_id FROM family_members fm
+		 WHERE fm.family_id = $1`,
+		familyID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("query family members: %w", err)
+	}
+	defer rows.Close()
+
+	var memberIDs []string
+	for rows.Next() {
+		var uid uuid.UUID
+		if err := rows.Scan(&uid); err != nil {
+			return nil, fmt.Errorf("scan family member: %w", err)
+		}
+		memberIDs = append(memberIDs, uid.String())
+	}
+	rows.Close()
+
+	if len(memberIDs) == 0 {
+		// Fallback: notify budget owner
+		return []string{ownerUserID}, nil
+	}
+
+	// Filter members who have budget_alert enabled
+	var recipients []string
+	for _, memberID := range memberIDs {
+		var budgetAlert bool
+		err := s.pool.QueryRow(ctx,
+			`SELECT budget_alert FROM notification_settings WHERE user_id = $1`,
+			memberID,
+		).Scan(&budgetAlert)
+		if err != nil {
+			// If no settings row, default is budget_alert = true
+			budgetAlert = true
+		}
+		if budgetAlert {
+			recipients = append(recipients, memberID)
+		}
+	}
+
+	if len(recipients) == 0 {
+		// Edge case: no one has alerts enabled, still notify owner
+		return []string{ownerUserID}, nil
+	}
+
+	return recipients, nil
 }
 
 // hasNotification checks if a notification with matching budget_id, type, and month

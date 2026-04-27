@@ -76,34 +76,56 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     });
   }
 
+  /// Page size for paginated family transaction sync
+  static const _syncPageSize = 100;
+
+  /// Maximum pages to fetch to prevent infinite loops
+  static const _maxPages = 200;
+
   Future<void> _load() async {
     try {
-      // Sync family transactions from server
+      // Sync family transactions from server with pagination
       if (_familyId != null && _familyId.isNotEmpty && _txnClient != null) {
         try {
-          final resp = await _txnClient.listTransactions(
-            pb.ListTransactionsRequest()
+          String pageToken = '';
+          int pagesFetched = 0;
+
+          do {
+            final req = pb.ListTransactionsRequest()
               ..familyId = _familyId
-              ..pageSize = 10000,
-            options: _callOpts,
-          );
-          for (final t in resp.transactions) {
-            await _db.insertTransaction(TransactionsCompanion.insert(
-              id: t.id,
-              userId: t.userId,
-              accountId: t.accountId,
-              categoryId: t.categoryId,
-              amount: t.amount.toInt(),
-              currency: Value(t.currency),
-              amountCny: t.amountCny.toInt(),
-              exchangeRate: Value(t.exchangeRate),
-              type: t.type == pbe.TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
-              note: Value(t.note),
-              txnDate: t.txnDate.toDateTime().toLocal(),
-            ));
-          }
+              ..pageSize = _syncPageSize;
+            if (pageToken.isNotEmpty) {
+              req.pageToken = pageToken;
+            }
+
+            final resp = await _txnClient.listTransactions(
+              req,
+              options: _callOpts,
+            );
+
+            for (final t in resp.transactions) {
+              await _db.insertOrUpdateTransaction(
+                id: t.id,
+                userId: t.userId,
+                accountId: t.accountId,
+                categoryId: t.categoryId,
+                amount: t.amount.toInt(),
+                amountCny: t.amountCny.toInt(),
+                type: t.type == pbe.TransactionType.TRANSACTION_TYPE_INCOME
+                    ? 'income'
+                    : 'expense',
+                note: t.note,
+                txnDate: t.txnDate.toDateTime().toLocal(),
+              );
+            }
+
+            pageToken = resp.nextPageToken;
+            pagesFetched++;
+
+            // Safety: stop if no more pages or hit max page limit
+          } while (pageToken.isNotEmpty && pagesFetched < _maxPages);
         } catch (_) {
-          // Offline
+          // Offline or timeout — continue with local data
         }
       }
 

@@ -375,3 +375,88 @@ func TestGetBudgetExecution_NotFound(t *testing.T) {
 	assert.Equal(t, codes.NotFound, status.Code(err))
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+// ─── Family Budget Execution ─────────────────────────────────────────────
+
+const testFamilyID = "f1234567-9c0b-4ef8-bb6d-6bb9bd380a22"
+
+var testFamilyUUID = uuid.MustParse(testFamilyID)
+
+func TestGetBudgetExecution_FamilyBudget_AggregatesAllMemberSpending(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	budgetID := uuid.New()
+	catID := uuid.New()
+	now := time.Now()
+
+	// loadBudget - this is a family budget owned by testUser
+	mock.ExpectQuery("SELECT user_id, family_id, year, month, total_amount, created_at FROM budgets").
+		WithArgs(budgetID).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "year", "month", "total_amount", "created_at"}).
+			AddRow(testUserUUID, &testFamilyUUID, int32(2026), int32(4), int64(1000000), now))
+
+	// loadCategoryBudgets (owner == currentUser so no permission check)
+	mock.ExpectQuery("SELECT category_id, amount FROM category_budgets").
+		WithArgs(budgetID).
+		WillReturnRows(pgxmock.NewRows([]string{"category_id", "amount"}).
+			AddRow(catID, int64(200000)))
+
+	// computeExecution: family budget aggregates all family accounts' spending
+	mock.ExpectQuery("SELECT COALESCE\\(SUM\\(t.amount_cny\\), 0\\)").
+		WithArgs(testFamilyID, pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"coalesce"}).AddRow(int64(750000)))
+
+	// category spending with family join
+	mock.ExpectQuery("SELECT t.category_id, c.name, COALESCE").
+		WithArgs(testFamilyID, pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"category_id", "name", "spent"}).
+			AddRow(catID, "餐饮", int64(180000)))
+
+	resp, err := svc.GetBudgetExecution(authedCtx(), &pb.GetBudgetExecutionRequest{BudgetId: budgetID.String()})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1000000), resp.Execution.TotalBudget)
+	assert.Equal(t, int64(750000), resp.Execution.TotalSpent)
+	assert.InDelta(t, 0.75, resp.Execution.ExecutionRate, 0.01)
+	require.Len(t, resp.Execution.CategoryExecutions, 1)
+	assert.Equal(t, int64(180000), resp.Execution.CategoryExecutions[0].SpentAmount)
+	assert.InDelta(t, 0.9, resp.Execution.CategoryExecutions[0].ExecutionRate, 0.01)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGetBudgetExecution_PersonalBudget_OnlyCountsUserSpending(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	budgetID := uuid.New()
+	now := time.Now()
+
+	// loadBudget - personal budget (no family_id)
+	mock.ExpectQuery("SELECT user_id, family_id, year, month, total_amount, created_at FROM budgets").
+		WithArgs(budgetID).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "year", "month", "total_amount", "created_at"}).
+			AddRow(testUserUUID, (*uuid.UUID)(nil), int32(2026), int32(4), int64(500000), now))
+
+	// loadCategoryBudgets - none
+	mock.ExpectQuery("SELECT category_id, amount FROM category_budgets").
+		WithArgs(budgetID).
+		WillReturnRows(pgxmock.NewRows([]string{"category_id", "amount"}))
+
+	// computeExecution: personal budget uses WHERE user_id = $1
+	mock.ExpectQuery("SELECT COALESCE\\(SUM\\(amount_cny\\), 0\\)").
+		WithArgs(testUserID, pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"coalesce"}).AddRow(int64(200000)))
+
+	resp, err := svc.GetBudgetExecution(authedCtx(), &pb.GetBudgetExecutionRequest{BudgetId: budgetID.String()})
+	require.NoError(t, err)
+	assert.Equal(t, int64(500000), resp.Execution.TotalBudget)
+	assert.Equal(t, int64(200000), resp.Execution.TotalSpent)
+	assert.InDelta(t, 0.4, resp.Execution.ExecutionRate, 0.01)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}

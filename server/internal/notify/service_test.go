@@ -296,3 +296,167 @@ func TestCreateNotification_NilData(t *testing.T) {
 	err = svc.CreateNotification(context.Background(), testUserID, "info", "title", "body", nil)
 	assert.NoError(t, err)
 }
+
+// ─── CheckBudgets - Family budget notifications ─────────────────────────
+
+const testFamilyID = "f1234567-9c0b-4ef8-bb6d-6bb9bd380a22"
+
+var (
+	testFamilyUUID = uuid.MustParse(testFamilyID)
+	member2ID      = "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380b22"
+	member2UUID    = uuid.MustParse(member2ID)
+)
+
+func TestCheckBudgets_FamilyBudget_NotifiesAllMembers(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	now := time.Now()
+	year := int32(now.Year())
+	month := int32(now.Month())
+	budgetID := uuid.New()
+
+	// Query budgets for current month (includes family_id column)
+	mock.ExpectQuery("SELECT b.id, b.user_id, b.family_id, b.total_amount").
+		WithArgs(year, month).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "user_id", "family_id", "total_amount"}).
+			AddRow(budgetID, testUID, &testFamilyUUID, int64(100000)))
+
+	// Family budget: compute spent via JOIN accounts
+	mock.ExpectQuery("SELECT COALESCE\\(SUM\\(t.amount_cny\\), 0\\)").
+		WithArgs(testFamilyID, pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"coalesce"}).AddRow(int64(120000))) // 120% exceeded
+
+	// getBudgetNotificationRecipients: query family members
+	mock.ExpectQuery("SELECT fm.user_id FROM family_members").
+		WithArgs(testFamilyID).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id"}).
+			AddRow(testUID).
+			AddRow(member2UUID))
+
+	// Check notification settings for each member
+	// Member 1 (testUserID): budget_alert enabled
+	mock.ExpectQuery("SELECT budget_alert FROM notification_settings").
+		WithArgs(testUserID).
+		WillReturnRows(pgxmock.NewRows([]string{"budget_alert"}).AddRow(true))
+	// Member 2: budget_alert enabled
+	mock.ExpectQuery("SELECT budget_alert FROM notification_settings").
+		WithArgs(member2ID).
+		WillReturnRows(pgxmock.NewRows([]string{"budget_alert"}).AddRow(true))
+
+	// hasNotification check for member 1
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(testUserID, "budget_exceeded", budgetID.String(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
+	// CreateNotification for member 1
+	mock.ExpectExec("INSERT INTO notifications").
+		WithArgs(testUserID, "budget_exceeded", pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+	// hasNotification check for member 2
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(member2ID, "budget_exceeded", budgetID.String(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
+	// CreateNotification for member 2
+	mock.ExpectExec("INSERT INTO notifications").
+		WithArgs(member2ID, "budget_exceeded", pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+	err = svc.CheckBudgets(context.Background())
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCheckBudgets_PersonalBudget_OnlyNotifiesOwner(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	now := time.Now()
+	year := int32(now.Year())
+	month := int32(now.Month())
+	budgetID := uuid.New()
+
+	// Query budgets for current month (personal - no family_id)
+	mock.ExpectQuery("SELECT b.id, b.user_id, b.family_id, b.total_amount").
+		WithArgs(year, month).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "user_id", "family_id", "total_amount"}).
+			AddRow(budgetID, testUID, (*uuid.UUID)(nil), int64(100000)))
+
+	// Personal budget: compute spent with WHERE user_id = $1
+	mock.ExpectQuery("SELECT COALESCE\\(SUM\\(amount_cny\\), 0\\)").
+		WithArgs(testUserID, pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"coalesce"}).AddRow(int64(110000))) // exceeded
+
+	// getBudgetNotificationRecipients: personal budget -> only owner
+	// (no family members query needed)
+
+	// hasNotification check for owner
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(testUserID, "budget_exceeded", budgetID.String(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
+	// CreateNotification for owner
+	mock.ExpectExec("INSERT INTO notifications").
+		WithArgs(testUserID, "budget_exceeded", pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+	err = svc.CheckBudgets(context.Background())
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCheckBudgets_FamilyBudget_SkipsMemberWithAlertDisabled(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+
+	now := time.Now()
+	year := int32(now.Year())
+	month := int32(now.Month())
+	budgetID := uuid.New()
+
+	// Query budgets
+	mock.ExpectQuery("SELECT b.id, b.user_id, b.family_id, b.total_amount").
+		WithArgs(year, month).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "user_id", "family_id", "total_amount"}).
+			AddRow(budgetID, testUID, &testFamilyUUID, int64(100000)))
+
+	// Family budget: exceeded
+	mock.ExpectQuery("SELECT COALESCE\\(SUM\\(t.amount_cny\\), 0\\)").
+		WithArgs(testFamilyID, pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"coalesce"}).AddRow(int64(120000)))
+
+	// Query family members
+	mock.ExpectQuery("SELECT fm.user_id FROM family_members").
+		WithArgs(testFamilyID).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id"}).
+			AddRow(testUID).
+			AddRow(member2UUID))
+
+	// Member 1: budget_alert enabled
+	mock.ExpectQuery("SELECT budget_alert FROM notification_settings").
+		WithArgs(testUserID).
+		WillReturnRows(pgxmock.NewRows([]string{"budget_alert"}).AddRow(true))
+	// Member 2: budget_alert DISABLED
+	mock.ExpectQuery("SELECT budget_alert FROM notification_settings").
+		WithArgs(member2ID).
+		WillReturnRows(pgxmock.NewRows([]string{"budget_alert"}).AddRow(false))
+
+	// Only member 1 gets notification
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(testUserID, "budget_exceeded", budgetID.String(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
+	mock.ExpectExec("INSERT INTO notifications").
+		WithArgs(testUserID, "budget_exceeded", pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+	// Member 2 does NOT get notified (budget_alert = false)
+
+	err = svc.CheckBudgets(context.Background())
+	require.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}

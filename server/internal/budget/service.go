@@ -450,17 +450,34 @@ func (s *Service) computeExecution(ctx context.Context, budgetID uuid.UUID, budg
 	startOfMonth := time.Date(int(budget.Year), time.Month(budget.Month), 1, 0, 0, 0, 0, time.UTC)
 	endOfMonth := startOfMonth.AddDate(0, 1, 0)
 
-	// Query total expense for user in this month
+	// Query total expense: family budget aggregates all family members' spending,
+	// personal budget only counts user's own spending.
 	var totalSpent int64
-	err := s.pool.QueryRow(ctx,
-		`SELECT COALESCE(SUM(amount_cny), 0)
-		 FROM transactions
-		 WHERE user_id = $1 AND type = 'expense' AND deleted_at IS NULL
-		   AND txn_date >= $2 AND txn_date < $3`,
-		budget.UserId, startOfMonth, endOfMonth,
-	).Scan(&totalSpent)
-	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to compute total spent")
+	if budget.FamilyId != "" {
+		// Family budget: sum expenses from all accounts belonging to this family
+		err := s.pool.QueryRow(ctx,
+			`SELECT COALESCE(SUM(t.amount_cny), 0)
+			 FROM transactions t
+			 JOIN accounts a ON a.id = t.account_id
+			 WHERE a.family_id = $1 AND t.type = 'expense' AND t.deleted_at IS NULL
+			   AND t.txn_date >= $2 AND t.txn_date < $3`,
+			budget.FamilyId, startOfMonth, endOfMonth,
+		).Scan(&totalSpent)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to compute total spent")
+		}
+	} else {
+		// Personal budget: only count user's own expenses
+		err := s.pool.QueryRow(ctx,
+			`SELECT COALESCE(SUM(amount_cny), 0)
+			 FROM transactions
+			 WHERE user_id = $1 AND type = 'expense' AND deleted_at IS NULL
+			   AND txn_date >= $2 AND txn_date < $3`,
+			budget.UserId, startOfMonth, endOfMonth,
+		).Scan(&totalSpent)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to compute total spent")
+		}
 	}
 
 	execution := &pb.BudgetExecution{
@@ -473,15 +490,32 @@ func (s *Service) computeExecution(ctx context.Context, budgetID uuid.UUID, budg
 
 	// Per-category execution
 	if len(budget.CategoryBudgets) > 0 {
-		rows, err := s.pool.Query(ctx,
-			`SELECT t.category_id, c.name, COALESCE(SUM(t.amount_cny), 0) AS spent
-			 FROM transactions t
-			 JOIN categories c ON c.id = t.category_id
-			 WHERE t.user_id = $1 AND t.type = 'expense' AND t.deleted_at IS NULL
-			   AND t.txn_date >= $2 AND t.txn_date < $3
-			 GROUP BY t.category_id, c.name`,
-			budget.UserId, startOfMonth, endOfMonth,
-		)
+		var rows pgx.Rows
+		var err error
+		if budget.FamilyId != "" {
+			// Family budget: category spending across all family accounts
+			rows, err = s.pool.Query(ctx,
+				`SELECT t.category_id, c.name, COALESCE(SUM(t.amount_cny), 0) AS spent
+				 FROM transactions t
+				 JOIN categories c ON c.id = t.category_id
+				 JOIN accounts a ON a.id = t.account_id
+				 WHERE a.family_id = $1 AND t.type = 'expense' AND t.deleted_at IS NULL
+				   AND t.txn_date >= $2 AND t.txn_date < $3
+				 GROUP BY t.category_id, c.name`,
+				budget.FamilyId, startOfMonth, endOfMonth,
+			)
+		} else {
+			// Personal budget: only user's own category spending
+			rows, err = s.pool.Query(ctx,
+				`SELECT t.category_id, c.name, COALESCE(SUM(t.amount_cny), 0) AS spent
+				 FROM transactions t
+				 JOIN categories c ON c.id = t.category_id
+				 WHERE t.user_id = $1 AND t.type = 'expense' AND t.deleted_at IS NULL
+				   AND t.txn_date >= $2 AND t.txn_date < $3
+				 GROUP BY t.category_id, c.name`,
+				budget.UserId, startOfMonth, endOfMonth,
+			)
+		}
 		if err != nil {
 			return nil, status.Error(codes.Internal, "failed to compute category spending")
 		}

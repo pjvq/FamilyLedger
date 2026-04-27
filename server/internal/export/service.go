@@ -78,15 +78,32 @@ func (s *Service) ExportTransactions(ctx context.Context, req *pb.ExportRequest)
 }
 
 func (s *Service) queryTransactions(ctx context.Context, userID string, req *pb.ExportRequest) ([]transactionRow, error) {
-	query := `SELECT t.txn_date, t.type, COALESCE(c.name, '未分类'), t.amount_cny,
-	                 COALESCE(a.name, '未知账户'), COALESCE(t.note, '')
-	          FROM transactions t
-	          LEFT JOIN categories c ON c.id = t.category_id
-	          LEFT JOIN accounts a ON a.id = t.account_id
-	          WHERE t.user_id = $1 AND t.deleted_at IS NULL`
+	var query string
+	var args []interface{}
+	argIdx := 1
 
-	args := []interface{}{userID}
-	argIdx := 2
+	if req.FamilyId != "" {
+		// Family mode: query all transactions from accounts belonging to this family
+		query = `SELECT t.txn_date, t.type, COALESCE(c.name, '未分类'), t.amount_cny,
+		                 COALESCE(a.name, '未知账户'), COALESCE(t.note, '')
+		          FROM transactions t
+		          LEFT JOIN categories c ON c.id = t.category_id
+		          JOIN accounts a ON a.id = t.account_id
+		          WHERE a.family_id = $1 AND t.deleted_at IS NULL`
+		args = append(args, req.FamilyId)
+		argIdx = 2
+	} else {
+		// Personal mode: only query transactions from personal accounts (no family)
+		query = `SELECT t.txn_date, t.type, COALESCE(c.name, '未分类'), t.amount_cny,
+		                 COALESCE(a.name, '未知账户'), COALESCE(t.note, '')
+		          FROM transactions t
+		          LEFT JOIN categories c ON c.id = t.category_id
+		          LEFT JOIN accounts a ON a.id = t.account_id
+		          WHERE t.user_id = $1 AND t.deleted_at IS NULL
+		            AND (a.family_id IS NULL OR a.family_id = '')`
+		args = append(args, userID)
+		argIdx = 2
+	}
 
 	if req.StartDate != "" {
 		startDate, err := time.Parse("2006-01-02", req.StartDate)
