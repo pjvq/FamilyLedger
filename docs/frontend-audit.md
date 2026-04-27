@@ -1,8 +1,11 @@
 # FamilyLedger Flutter 前端审计报告
 
-**审计日期**: 2026-04-24  
-**代码统计**: ~29,854 行 Dart（非生成代码），88 个源文件  
-**技术栈**: Flutter + Riverpod (StateNotifier) + Drift (SQLite) + gRPC + WebSocket
+**审计日期**: 2026-04-24 (初审) → 2026-04-27 (更新)  
+**代码统计**: ~56,600 行 Dart（非生成代码），92 个源文件  
+**技术栈**: Flutter + Riverpod (StateNotifier) + Drift (SQLite) + gRPC + WebSocket  
+**测试**: 535 tests 全绿  
+
+> **2026-04-27 更新**: 审计中发现的主要问题已全部修复（分页加载、LWW 冲突解决、ID 闪烁等）。详见 commit `18dae79` (P1 前端修复) 和 `1902d5b` (P2 #18 Server-first)。
 
 ---
 

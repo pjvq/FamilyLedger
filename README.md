@@ -1,31 +1,35 @@
 # FamilyLedger 家庭资产管理
 
-全功能家庭资产管理系统，包含 **Flutter iOS 客户端** + **Go gRPC 后端**。
+全功能家庭资产管理系统：**Flutter 客户端 (iOS/Android)** + **Go gRPC 后端**。
+
+支持个人记账与家庭多人协作，涵盖记账、预算、贷款、投资、固定资产五大模块，一个 Dashboard 看清全部身家。
 
 ## 功能概览
 
 | 模块 | 功能 |
 |------|------|
-| 📊 Dashboard | 净资产卡片、资产构成饼图、收支趋势、可拖拽布局 |
-| 💳 记账 | 收入/支出、14 种分类、多币种(自动 CNY 换算)、标签、图片附件 |
+| 📊 Dashboard | 净资产卡片、资产构成饼图、收支趋势、投资收益曲线、可拖拽布局 |
+| 💳 记账 | 收入/支出、14 种预设分类+自定义、多币种(自动 CNY 换算)、标签、图片附件 |
 | 🏦 账户 | 7 种账户类型(银行卡/现金/支付宝/微信/信用卡/投资/其他) |
-| 💰 预算 | 月度预算、圆环进度、超支脉冲动画 |
-| 🏠 贷款 | 等额本息/等额本金、提前还款模拟、利率变动记录 |
-| 📈 投资 | 持仓管理、迷你走势 sparkline、fl_chart 触摸十字线、组合饼图 |
+| 💰 预算 | 月度总预算+分类子预算、圆环进度、超支脉冲动画+通知 |
+| 🏠 贷款 | 等额本息/等额本金、组合贷(商贷+公积金)、提前还款模拟、LPR 利率变动 |
+| 📈 投资 | 持仓管理、IRR 收益率、迷你走势 sparkline、组合饼图、A股/港股/美股/加密 |
 | 🏗 固定资产 | 直线法/双倍余额递减法折旧、估值折线图 |
-| 📑 报表导出 | CSV(UTF-8 BOM) / Excel(带样式) / PDF(横版 A4 斑马纹) |
+| 📑 导出 | CSV(UTF-8 BOM) / Excel(带样式) / PDF(横版 A4) / 全量 JSON 备份 |
 | 📥 CSV 导入 | 4 步向导、GBK/UTF-8 自动检测、9 种日期格式、模糊分类匹配 |
-| 🔔 通知 | 预算超支 + 贷款还款提醒、分组列表、滑动已读 |
-| 🔐 认证 | JWT + OAuth(微信/Apple mock)、gRPC 拦截器 |
-| 🔄 同步 | WebSocket 实时推送 + gRPC 增量同步 + Drift 本地数据库 |
+| 🔔 通知 | 预算超支 + 贷款还款 + 信用卡账单日 + 自定义提醒 |
+| 👨‍👩‍👧 家庭 | 创建家庭组、邀请成员、细粒度权限(5维)、操作审计日志、实时同步 |
+| 🔐 认证 | JWT + OAuth(微信/Apple) + Provider 接口抽象 |
+| 🔄 同步 | WebSocket 实时推送(Ping-Pong 心跳) + gRPC 增量同步 + LWW 冲突解决 + 分页拉取 |
 
 ## 技术栈
 
-- **后端**: Go 1.24 / gRPC / PostgreSQL 16 / golang-migrate
-- **客户端**: Flutter 3.41 / Dart 3.11 / Riverpod / Drift / Material 3
+- **后端**: Go 1.24 / gRPC / PostgreSQL 16 / golang-migrate / WebSocket
+- **客户端**: Flutter 3.41 / Dart 3.11 / Riverpod / Drift (SQLite) / Material 3
 - **协议**: Protocol Buffers 3 (13 个 proto 文件)
 - **部署**: Docker Compose (golang:1.24-alpine + postgres:16-alpine)
-- **数据库**: 29 个 migration 文件，软删除模式
+- **数据库**: 38 个 migration 文件，软删除模式
+- **测试**: Go 330 test functions (18 packages) + Flutter 535 tests
 
 ## 项目结构
 
@@ -45,40 +49,52 @@ FamilyLedger/
 │   ├── dashboard.proto
 │   ├── export.proto
 │   └── import.proto
-├── server/                   # Go 后端
-│   ├── cmd/server/           # 入口
+├── server/                   # Go 后端 (~43,700 行)
+│   ├── cmd/server/           # 入口 + 定时任务注册
 │   ├── internal/             # 业务逻辑 (14 packages)
-│   │   ├── auth/             # 认证 + OAuth
-│   │   ├── transaction/      # 交易记录
+│   │   ├── auth/             # 认证 + OAuth Provider 接口
+│   │   ├── transaction/      # 交易 CRUD + 家庭权限
 │   │   ├── account/          # 账户管理
-│   │   ├── family/           # 家庭组
-│   │   ├── sync/             # 增量同步
-│   │   ├── budget/           # 预算
-│   │   ├── notify/           # 通知
-│   │   ├── loan/             # 贷款(~1000行)
-│   │   ├── investment/       # 投资
-│   │   ├── market/           # 行情(fetcher + exchange)
+│   │   ├── family/           # 家庭组 + 审计日志
+│   │   ├── sync/             # 增量同步 + entity_ops (7 种实体)
+│   │   ├── budget/           # 预算 + 家庭执行率
+│   │   ├── notify/           # 通知 + 自定义提醒 + 信用卡提醒
+│   │   ├── loan/             # 贷款 + 组合贷
+│   │   ├── investment/       # 投资 + IRR 计算
+│   │   ├── market/           # 行情拉取 + 交易时段调度
 │   │   ├── asset/            # 固定资产 + 折旧
-│   │   ├── dashboard/        # 仪表盘聚合(609行)
-│   │   ├── export/           # 导出(CSV/Excel/PDF)
-│   │   └── importcsv/        # CSV 导入
-│   ├── pkg/                  # 公共包(db/jwt/middleware/ws)
-│   ├── migrations/           # 29 个 SQL migration
+│   │   ├── dashboard/        # 仪表盘聚合 + 汇率 API + 投资曲线
+│   │   ├── export/           # 导出(CSV/Excel/PDF/全量备份)
+│   │   └── importcsv/        # CSV 导入 (session 持久化)
+│   ├── pkg/                  # 公共包
+│   │   ├── audit/            # 审计日志 helper
+│   │   ├── config/           # JWT 配置校验
+│   │   ├── db/               # 数据库连接池
+│   │   ├── jwt/              # JWT 签发/验证
+│   │   ├── middleware/       # gRPC 拦截器
+│   │   ├── permission/       # 家庭权限检查
+│   │   ├── storage/          # FileStorage 接口 (Local + S3)
+│   │   ├── category/         # 预设分类 UUID
+│   │   └── ws/               # WebSocket Hub + Ping-Pong
+│   ├── migrations/           # 38 个 SQL migration
 │   ├── Makefile
 │   ├── Dockerfile
 │   └── entrypoint.sh
-├── app/                      # Flutter 客户端
+├── app/                      # Flutter 客户端 (~56,600 行)
 │   ├── lib/
 │   │   ├── core/             # 常量、主题、路由
 │   │   ├── data/             # Drift 数据库 + gRPC clients
-│   │   ├── domain/           # Providers
+│   │   ├── domain/           # Providers (StateNotifier)
 │   │   ├── features/         # 14 个功能页面
 │   │   ├── generated/        # Proto 生成代码
-│   │   ├── sync/             # SyncEngine
+│   │   ├── sync/             # SyncEngine (LWW + 分页)
 │   │   └── main.dart
-│   ├── integration_test/     # 集成测试
+│   ├── test/                 # 535 单元/Widget 测试
+│   ├── integration_test/     # E2E 集成测试
 │   └── pubspec.yaml
-└── docker-compose.yml
+├── docs/                     # 项目文档
+├── docker-compose.yml
+└── README.md
 ```
 
 ## 快速开始
@@ -101,7 +117,7 @@ docker compose up -d
 docker compose logs -f server
 
 # 服务端口:
-#   gRPC  → localhost:50051
+#   gRPC      → localhost:50051
 #   WebSocket → localhost:8080
 #   PostgreSQL → localhost:5432
 ```
@@ -111,12 +127,9 @@ docker compose logs -f server
 ```bash
 docker compose up -d postgres
 
-# 安装 migrate CLI
-go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-
 # 手动执行 migration
 cd server
-migrate -path migrations -database "postgres://familyledger:familyledger@localhost:5432/familyledger?sslmode=disable" up
+make migrate-up
 
 # 编译运行
 make run
@@ -126,33 +139,25 @@ make run
 
 ```bash
 cd app
-
-# 安装依赖
 flutter pub get
-
-# 在 iOS 模拟器上运行
-flutter run --device-id <SIMULATOR_UDID>
-
-# 查看可用设备
-flutter devices
+flutter run
 ```
 
-> **Tips**:
 > - 客户端默认连接 `localhost:50051` (gRPC) 和 `localhost:8080` (WebSocket)
-> - 后端未运行时客户端仍可启动（SyncEngine 会优雅降级），数据存在本地 Drift DB
-> - 修改服务器地址：编辑 `app/lib/core/constants/app_constants.dart`
+> - 后端未运行时客户端仍可启动（离线优先），数据存本地 Drift DB
+> - 修改服务器地址：`app/lib/core/constants/app_constants.dart`
 
-### 3. 运行集成测试
+### 3. 运行测试
 
 ```bash
-cd app
+# 后端 (18 packages, 330 test functions)
+cd server && go test ./... -count=1
 
-# 在 iOS 模拟器上运行集成测试 (无需后端)
-flutter test integration_test/app_test.dart \
-  --device-id <SIMULATOR_UDID> \
-  --no-pub
+# 前端 (535 tests)
+cd app && flutter test
 
-# 截图输出到 /tmp/e2e-phase9/
+# 集成测试 (需要 iOS 模拟器)
+cd app && flutter test integration_test/
 ```
 
 ## 后端开发
@@ -160,14 +165,11 @@ flutter test integration_test/app_test.dart \
 ### Proto 代码生成
 
 ```bash
-cd server
+# Go
+cd server && make proto
 
-# 生成 Go gRPC 代码
-make proto
-
-# 生成 Dart 客户端代码
-cd ../app
-# 需要: protoc-gen-dart 21.1.2, protobuf 4.2.0
+# Dart
+cd app
 protoc --proto_path=../proto \
   --proto_path=/opt/homebrew/Cellar/protobuf/34.1/include \
   --dart_out=grpc:lib/generated/proto \
@@ -182,33 +184,21 @@ cd server
 # 创建新 migration
 migrate create -ext sql -dir migrations -seq <name>
 
-# 执行
+# 执行 / 回滚
 make migrate-up
-
-# 回滚
 make migrate-down
-```
-
-### Makefile 命令
-
-```bash
-make proto         # 生成 Proto 代码
-make build         # 编译 server
-make run           # 编译 + 运行
-make test          # 运行测试
-make docker-up     # Docker 启动
-make docker-down   # Docker 停止
 ```
 
 ## 定时任务
 
 | 任务 | 周期 | 说明 |
 |------|------|------|
-| 预算 + 贷款提醒 | 每日 21:00 CST | 检查预算超支 + 贷款即将到期 |
+| 预算 + 贷款 + 信用卡提醒 | 每日 21:00 CST | 检查超支 + 还款到期 + 账单日 |
+| 自定义提醒检查 | 每小时 | 触发到期的自定义提醒 |
 | 自动折旧 | 每月 1 日 00:05 CST | 固定资产按规则计提折旧 |
 | 汇率刷新 | 每小时 | 更新 exchange_rates 表 |
-| 行情刷新 | 每 15 分钟 | crypto 24/7, 股票按交易时段 |
-| 导入会话清理 | 每小时 | 清理过期的 import_sessions |
+| 行情刷新 | 动态 (15min / 4h) | 交易时段 15min，非交易时段 4h |
+| 导入会话清理 | 每小时 | 清理过期的 import_sessions (30min TTL) |
 
 ## 环境变量
 
@@ -219,10 +209,12 @@ make docker-down   # Docker 停止
 | `DB_USER` | familyledger | 数据库用户 |
 | `DB_PASSWORD` | familyledger | 数据库密码 |
 | `DB_NAME` | familyledger | 数据库名 |
-| `DB_SSLMODE` | disable | SSL 模式 |
-| `JWT_SECRET` | (必填) | JWT 签名密钥 |
+| `JWT_SECRET` | **(生产必填)** | JWT 签名密钥 (≥32字符) |
+| `APP_ENV` | development | `production` 时强制校验 JWT_SECRET |
 | `GRPC_PORT` | 50051 | gRPC 服务端口 |
 | `WS_PORT` | 8080 | WebSocket 服务端口 |
+| `OAUTH_MODE` | mock | `mock` / `production` |
+| `FILE_STORAGE` | local | `local` / `s3` |
 
 ## 中国大陆开发注意
 
@@ -233,10 +225,24 @@ export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
 
 # Go 模块代理
 export GOPROXY=https://goproxy.cn,direct
-
-# Flutter 编译时清除代理
-export http_proxy="" https_proxy="" no_proxy="*"
 ```
+
+## 文档
+
+所有项目文档在 [`docs/`](docs/) 目录：
+
+| 文档 | 内容 |
+|------|------|
+| [progress-report.md](docs/progress-report.md) | 项目进展报告 |
+| [implementation-checklist.md](docs/implementation-checklist.md) | 实施 Checklist |
+| [family-finance-prd.md](docs/family-finance-prd.md) | PRD 本地副本 |
+| [family-finance-implementation-plan.md](docs/family-finance-implementation-plan.md) | 实施计划 |
+| [e2e-testing.md](docs/e2e-testing.md) | 测试体系 |
+| [frontend-audit.md](docs/frontend-audit.md) | 前端审计 |
+| [import-export-design.md](docs/import-export-design.md) | 导入导出设计 |
+| [loan-enhancement-research.md](docs/loan-enhancement-research.md) | 贷款增强研究 |
+
+> PRD 最新版以飞书文档为准：[在线 PRD](https://www.feishu.cn/docx/N507dBSDZoTDgzxyXUYctfFonZw)
 
 ## License
 

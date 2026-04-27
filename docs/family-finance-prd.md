@@ -1,8 +1,9 @@
-<!-- 同步自飞书文档: https://my.feishu.cn/docx/N507dBSDZoTDgzxyXUYctfFonZw -->
+<!-- 同步自飞书文档: https://www.feishu.cn/docx/N507dBSDZoTDgzxyXUYctfFonZw -->
+<!-- ❗本文件为本地副本，最新版以飞书文档为准（含 2026-04-27 补充需求章节） -->
 
 # PRD: 家庭资产管理系统（FamilyLedger）
 
-> 版本: 1.0 | 日期: 2026-04-21 | 作者: Claw & 小Q
+> 版本: 1.1 | 日期: 2026-04-27 | 作者: Claw & 小Q
 
 ---
 
