@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -67,6 +68,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// 注册 — 调用 gRPC，失败时降级到本地
   Future<void> register(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
+    developer.log('[Auth] register: attempting gRPC to ${AppConstants.serverHost}:${AppConstants.grpcPort}');
     try {
       final resp = await _authClient.register(
         RegisterRequest()
@@ -74,6 +76,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           ..password = password,
         options: CallOptions(timeout: const Duration(seconds: 5)),
       );
+      developer.log('[Auth] register: gRPC SUCCESS, userId=${resp.userId}');
 
       // 保存 tokens
       await _prefs.setString(AppConstants.accessTokenKey, resp.accessToken);
@@ -118,6 +121,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       _ref.read(currentUserIdProvider.notifier).state = resp.userId;
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
     } on GrpcError catch (e) {
+      developer.log('[Auth] register: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}');
       if (e.code == StatusCode.alreadyExists) {
         // 邮箱已注册，自动尝试登录
         try {
@@ -127,11 +131,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
           // 登录也失败，降级本地
           await _registerLocal(email, password);
         }
-      } else {
-        // 其他 gRPC 错误（网络不通等），降级本地注册
+      } else if (e.code == StatusCode.unavailable || e.code == StatusCode.deadlineExceeded) {
+        // 网络不通或超时，降级本地注册
         await _registerLocal(email, password);
+      } else {
+        // 业务错误（InvalidArgument 等），直接显示错误信息
+        state = AuthState(
+          status: AuthStatus.error,
+          errorMessage: e.message ?? '注册失败: ${e.codeName}',
+        );
       }
-    } catch (e) {
+    } catch (e, st) {
+      developer.log('[Auth] register: non-gRPC error: $e\n$st');
       // 非 gRPC 异常，降级本地注册
       await _registerLocal(email, password);
     }
@@ -164,6 +175,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// 登录 — 调用 gRPC，失败时降级到本地
   Future<void> login(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
+    developer.log('[Auth] login: attempting gRPC to ${AppConstants.serverHost}:${AppConstants.grpcPort}');
     try {
       final resp = await _authClient.login(
         LoginRequest()
@@ -171,6 +183,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           ..password = password,
         options: CallOptions(timeout: const Duration(seconds: 5)),
       );
+      developer.log('[Auth] login: gRPC SUCCESS, userId=${resp.userId}');
 
       await _prefs.setString(AppConstants.accessTokenKey, resp.accessToken);
       await _prefs.setString(AppConstants.refreshTokenKey, resp.refreshToken);
@@ -211,10 +224,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // 最后设置 userId 触发 UI rebuild
       _ref.read(currentUserIdProvider.notifier).state = resp.userId;
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
-    } on GrpcError {
-      // gRPC 失败，降级本地
-      await _loginLocal(email, password);
-    } catch (e) {
+    } on GrpcError catch (e) {
+      developer.log('[Auth] login: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}');
+      if (e.code == StatusCode.unavailable || e.code == StatusCode.deadlineExceeded) {
+        // 网络不通，降级本地
+        await _loginLocal(email, password);
+      } else {
+        // 业务错误（密码错误等），显示实际错误
+        state = AuthState(
+          status: AuthStatus.error,
+          errorMessage: e.message ?? '登录失败: ${e.codeName}',
+        );
+      }
+    } catch (e, st) {
+      developer.log('[Auth] login: non-gRPC error: $e\n$st');
       await _loginLocal(email, password);
     }
   }
