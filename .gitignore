@@ -22,8 +22,7 @@ app/macos/Pods/
 *.iml
 .DS_Store
 
-# Generated
-server/proto/**/*.pb.go
+# Generated (proto .pb.go files are committed per Go convention)
 
 # Docker
 pgdata/
