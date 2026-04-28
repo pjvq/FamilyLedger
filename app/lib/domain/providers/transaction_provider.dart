@@ -113,6 +113,9 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   /// Includes tombstones (deleted records) so local DB stays consistent.
   Future<void> _syncFamilyTransactionsIncremental() async {
     try {
+      // Refresh categories first — other members may have created new ones
+      await _syncCategoriesFromServer();
+
       final lastSync = await _db.getFamilySyncTime(_familyId!);
       String pageToken = '';
       int pagesFetched = 0;
@@ -169,6 +172,48 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     } catch (e) {
       // Offline or timeout — no-op, local data is still shown
       dev.log('TransactionNotifier: incremental sync failed: $e', name: 'txn');
+    }
+  }
+
+  /// Refresh categories from server (all levels)
+  Future<void> _syncCategoriesFromServer() async {
+    try {
+      if (_txnClient == null) return;
+      final resp = await _txnClient.getCategories(
+        pb.GetCategoriesRequest(),
+        options: _callOpts,
+      );
+      for (final c in resp.categories) {
+        await _insertCategoryRecursive(c, null);
+      }
+      // Refresh local state
+      final expCats = await _db.getCategoriesByType('expense');
+      final incCats = await _db.getCategoriesByType('income');
+      state = state.copyWith(
+        expenseCategories: expCats,
+        incomeCategories: incCats,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _insertCategoryRecursive(pb.Category c, String? parentId) async {
+    final typeStr = c.type == pbe.TransactionType.TRANSACTION_TYPE_INCOME
+        ? 'income'
+        : 'expense';
+    await _db.into(_db.categories).insertOnConflictUpdate(
+      CategoriesCompanion.insert(
+        id: c.id,
+        name: c.name,
+        icon: c.icon,
+        type: typeStr,
+        isPreset: const Value(true),
+        sortOrder: Value(c.sortOrder),
+        parentId: Value(parentId ?? (c.parentId.isNotEmpty ? c.parentId : null)),
+        iconKey: Value(c.iconKey),
+      ),
+    );
+    for (final child in c.children) {
+      await _insertCategoryRecursive(child, c.id);
     }
   }
 
