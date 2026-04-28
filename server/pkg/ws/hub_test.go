@@ -14,9 +14,18 @@ import (
 	jwtpkg "github.com/familyledger/server/pkg/jwt"
 )
 
+// fastConfig returns a HubConfig with short timeouts for tests.
+func fastConfig() HubConfig {
+	return HubConfig{
+		WriteWait:  2 * time.Second,
+		PongWait:   3 * time.Second,
+		PingPeriod: 1 * time.Second,
+	}
+}
+
 func setupTestHub() (*Hub, *httptest.Server) {
 	jwtManager := jwtpkg.NewManager("test-secret-key-for-ws-tests-12345")
-	hub := NewHub(jwtManager)
+	hub := NewHub(jwtManager, fastConfig())
 
 	server := httptest.NewServer(http.HandlerFunc(hub.HandleWebSocket))
 	return hub, server
@@ -48,7 +57,7 @@ func TestHub_PingPong_KeepsConnectionAlive(t *testing.T) {
 		default:
 		}
 		// Send pong back (default behavior)
-		return conn.WriteControl(websocket.PongMessage, []byte(appData), time.Now().Add(writeWait))
+		return conn.WriteControl(websocket.PongMessage, []byte(appData), time.Now().Add(hub.config.WriteWait))
 	})
 
 	// Start a goroutine to read messages (required to process control frames)
@@ -67,7 +76,7 @@ func TestHub_PingPong_KeepsConnectionAlive(t *testing.T) {
 	select {
 	case <-pingReceived:
 		// Success: received ping from server
-	case <-time.After(pingPeriod + 5*time.Second):
+	case <-time.After(hub.config.PingPeriod + 5*time.Second):
 		t.Fatal("did not receive ping within expected time")
 	}
 
@@ -108,25 +117,23 @@ func TestHub_ReadDeadline_ClosesOnNoPong(t *testing.T) {
 		}
 	}()
 
-	// The server should close the connection after pongWait (60s).
-	// For the test, we check that the connection closes.
-	// Since pongWait is 60s, this test verifies the mechanism exists.
-	// We reduce the timeout for CI — the important thing is the handler is set.
+	// The server should close the connection after pongWait (3s in test config).
 	select {
 	case <-disconnected:
 		// Connection was closed as expected
-	case <-time.After(pongWait + 10*time.Second):
+	case <-time.After(hub.config.PongWait + 5*time.Second):
 		t.Fatal("connection was not closed after pong timeout")
 	}
 }
 
 func TestHub_PongHandler_ResetsReadDeadline(t *testing.T) {
 	// This test verifies the pong handler is properly installed
-	// by checking that constants are correctly defined.
-	assert.True(t, pingPeriod < pongWait, "pingPeriod must be less than pongWait")
-	assert.Equal(t, 30*time.Second, pingPeriod)
-	assert.Equal(t, 60*time.Second, pongWait)
-	assert.Equal(t, 10*time.Second, writeWait)
+	// by checking that default constants are correctly defined.
+	defaults := DefaultHubConfig()
+	assert.True(t, defaults.PingPeriod < defaults.PongWait, "pingPeriod must be less than pongWait")
+	assert.Equal(t, 30*time.Second, defaults.PingPeriod)
+	assert.Equal(t, 60*time.Second, defaults.PongWait)
+	assert.Equal(t, 10*time.Second, defaults.WriteWait)
 }
 
 func TestHub_HandleWebSocket_NoToken(t *testing.T) {

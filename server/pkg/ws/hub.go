@@ -12,13 +12,13 @@ import (
 )
 
 const (
-	// Time allowed to write a message to the peer.
+	// Default time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
 
-	// Time allowed to read the next pong message from the peer.
+	// Default time allowed to read the next pong message from the peer.
 	pongWait = 60 * time.Second
 
-	// Send pings to peer with this period. Must be less than pongWait.
+	// Default ping period. Must be less than pongWait.
 	pingPeriod = 30 * time.Second
 
 	// Maximum message size allowed from peer.
@@ -33,11 +33,28 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+// HubConfig holds configurable timeouts for the Hub.
+type HubConfig struct {
+	WriteWait  time.Duration
+	PongWait   time.Duration
+	PingPeriod time.Duration
+}
+
+// DefaultHubConfig returns production defaults.
+func DefaultHubConfig() HubConfig {
+	return HubConfig{
+		WriteWait:  writeWait,
+		PongWait:   pongWait,
+		PingPeriod: pingPeriod,
+	}
+}
+
 // Hub manages all WebSocket connections.
 type Hub struct {
 	mu         sync.RWMutex
 	clients    map[string]map[*Client]bool // userID -> clients
 	jwtManager *jwtpkg.Manager
+	config     HubConfig
 }
 
 type Client struct {
@@ -45,6 +62,7 @@ type Client struct {
 	userID string
 	send   chan []byte
 	once   sync.Once // ensures unregister logic runs only once
+	hub    *Hub      // back-reference for config access
 }
 
 type ChangeNotification struct {
@@ -54,10 +72,15 @@ type ChangeNotification struct {
 	UserID     string `json:"user_id"`
 }
 
-func NewHub(jwtManager *jwtpkg.Manager) *Hub {
+func NewHub(jwtManager *jwtpkg.Manager, configs ...HubConfig) *Hub {
+	cfg := DefaultHubConfig()
+	if len(configs) > 0 {
+		cfg = configs[0]
+	}
 	return &Hub{
 		clients:    make(map[string]map[*Client]bool),
 		jwtManager: jwtManager,
+		config:     cfg,
 	}
 }
 
@@ -90,6 +113,7 @@ func (h *Hub) upgradeAndRegister(w http.ResponseWriter, r *http.Request, userID 
 		conn:   conn,
 		userID: userID,
 		send:   make(chan []byte, 256),
+		hub:    h,
 	}
 
 	h.register(client)
@@ -142,7 +166,7 @@ func (h *Hub) BroadcastToUser(userID string, message []byte) {
 }
 
 func (c *Client) writePump() {
-	ticker := time.NewTicker(pingPeriod)
+	ticker := time.NewTicker(c.hub.config.PingPeriod)
 	defer func() {
 		ticker.Stop()
 		c.conn.Close()
@@ -151,7 +175,7 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			c.conn.SetWriteDeadline(time.Now().Add(c.hub.config.WriteWait))
 			if !ok {
 				// Hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
@@ -162,7 +186,7 @@ func (c *Client) writePump() {
 				return
 			}
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			c.conn.SetWriteDeadline(time.Now().Add(c.hub.config.WriteWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				log.Printf("ws: ping error: %v", err)
 				return
@@ -175,9 +199,9 @@ func (c *Client) readPump(h *Hub) {
 	defer h.unregister(c)
 
 	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.conn.SetReadDeadline(time.Now().Add(c.hub.config.PongWait))
 	c.conn.SetPongHandler(func(string) error {
-		c.conn.SetReadDeadline(time.Now().Add(pongWait))
+		c.conn.SetReadDeadline(time.Now().Add(c.hub.config.PongWait))
 		return nil
 	})
 
