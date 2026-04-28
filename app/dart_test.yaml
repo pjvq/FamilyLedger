@@ -1,0 +1,10 @@
+tags:
+  flaky:
+    # Flaky tests run separately, non-blocking
+    # Must have linked issue + fix deadline (1 sprint)
+  integration:
+    # Requires running Go server + PostgreSQL
+    # Run with: flutter test test/integration_test/ --timeout 30s
+  e2e:
+    # Full end-to-end with real server
+    # Run via CI flutter-e2e.yml workflow
