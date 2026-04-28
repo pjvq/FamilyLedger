@@ -1,3 +1,6 @@
+@Timeout(Duration(seconds: 30))
+library;
+
 import 'dart:async';
 import 'dart:convert';
 
