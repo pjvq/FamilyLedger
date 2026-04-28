@@ -852,22 +852,6 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 		pageSize = req.PageSize
 	}
 
-	// Parse cursor from page_token: "txn_date_unix_nano|id"
-	var cursorDate *time.Time
-	var cursorID *uuid.UUID
-	if req.PageToken != "" {
-		parts := strings.SplitN(req.PageToken, "|", 2)
-		if len(parts) == 2 {
-			if ns, err := strconv.ParseInt(parts[0], 10, 64); err == nil {
-				t := time.Unix(0, ns)
-				cursorDate = &t
-			}
-			if cid, err := uuid.Parse(parts[1]); err == nil {
-				cursorID = &cid
-			}
-		}
-	}
-
 	var accountID *uuid.UUID
 	if req.AccountId != "" {
 		aid, err := uuid.Parse(req.AccountId)
@@ -889,7 +873,8 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 
 	// Family filter: empty = personal accounts only, non-empty = family accounts
 	var familyID *uuid.UUID
-	log.Printf("ListTransactions: user=%s familyId=%q pageSize=%d", userID, req.FamilyId, req.PageSize)
+	log.Printf("ListTransactions: user=%s familyId=%q pageSize=%d updatedSince=%v includeDeleted=%v",
+		userID, req.FamilyId, req.PageSize, req.UpdatedSince, req.IncludeDeleted)
 	if req.FamilyId != "" {
 		fid, err := uuid.Parse(req.FamilyId)
 		if err != nil {
@@ -905,6 +890,28 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 		).Scan(&isMember)
 		if err != nil || !isMember {
 			return nil, status.Error(codes.PermissionDenied, "not a member of this family")
+		}
+	}
+
+	// ── Incremental sync mode (updated_since is set) ──
+	if req.UpdatedSince != nil {
+		return s.listTransactionsIncremental(ctx, req, uid, familyID, accountID, pageSize)
+	}
+
+	// ── Legacy full-list mode ──
+	// Parse cursor from page_token: "txn_date_unix_nano|id"
+	var cursorDate *time.Time
+	var cursorID *uuid.UUID
+	if req.PageToken != "" {
+		parts := strings.SplitN(req.PageToken, "|", 2)
+		if len(parts) == 2 {
+			if ns, err := strconv.ParseInt(parts[0], 10, 64); err == nil {
+				t := time.Unix(0, ns)
+				cursorDate = &t
+			}
+			if cid, err := uuid.Parse(parts[1]); err == nil {
+				cursorID = &cid
+			}
 		}
 	}
 
@@ -1012,6 +1019,120 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 		Transactions:  transactions,
 		NextPageToken: nextPageToken,
 		TotalCount:    totalCount,
+	}, nil
+}
+
+// listTransactionsIncremental handles incremental sync mode.
+// Returns all transactions where updated_at > updated_since, ordered by updated_at ASC.
+// When include_deleted=true, also returns soft-deleted records (with deleted_at populated).
+// Cursor format for incremental mode: "updated_at_unix_nano|id"
+func (s *Service) listTransactionsIncremental(
+	ctx context.Context,
+	req *pb.ListTransactionsRequest,
+	uid uuid.UUID,
+	familyID, accountID *uuid.UUID,
+	pageSize int32,
+) (*pb.ListTransactionsResponse, error) {
+	updatedSince := req.UpdatedSince.AsTime()
+	includeDeleted := req.IncludeDeleted
+
+	// Parse cursor for incremental mode: "updated_at_unix_nano|id"
+	var cursorUpdatedAt *time.Time
+	var cursorID *uuid.UUID
+	if req.PageToken != "" {
+		parts := strings.SplitN(req.PageToken, "|", 2)
+		if len(parts) == 2 {
+			if ns, err := strconv.ParseInt(parts[0], 10, 64); err == nil {
+				t := time.Unix(0, ns)
+				cursorUpdatedAt = &t
+			}
+			if cid, err := uuid.Parse(parts[1]); err == nil {
+				cursorID = &cid
+			}
+		}
+	}
+
+	// Build the deleted_at filter clause
+	// include_deleted=true: no filter on deleted_at (return both alive and tombstones)
+	// include_deleted=false: only alive records (deleted_at IS NULL)
+	var deletedFilter string
+	if !includeDeleted {
+		deletedFilter = "AND t.deleted_at IS NULL"
+	}
+
+	var rows pgx.Rows
+	var err error
+
+	if familyID != nil {
+		query := fmt.Sprintf(
+			`SELECT t.id, t.user_id, t.account_id, t.category_id, t.amount, t.currency, t.amount_cny, t.exchange_rate, t.type, t.note, t.txn_date, t.created_at, t.updated_at, t.tags, t.image_urls, t.deleted_at
+			 FROM transactions t
+			 JOIN accounts a ON a.id = t.account_id
+			 WHERE a.family_id = $1
+			 %s
+			 AND t.updated_at > $2
+			 AND ($3::uuid IS NULL OR t.account_id = $3)
+			 AND (
+			   $4::timestamptz IS NULL
+			   OR (t.updated_at, t.id) > ($4, $5)
+			 )
+			 ORDER BY t.updated_at ASC, t.id ASC
+			 LIMIT $6`, deletedFilter)
+		rows, err = s.pool.Query(ctx, query,
+			familyID, updatedSince, accountID, cursorUpdatedAt, cursorID, pageSize+1,
+		)
+	} else {
+		query := fmt.Sprintf(
+			`SELECT t.id, t.user_id, t.account_id, t.category_id, t.amount, t.currency, t.amount_cny, t.exchange_rate, t.type, t.note, t.txn_date, t.created_at, t.updated_at, t.tags, t.image_urls, t.deleted_at
+			 FROM transactions t
+			 JOIN accounts a ON a.id = t.account_id
+			 WHERE t.user_id = $1
+			 %s
+			 AND a.family_id IS NULL
+			 AND t.updated_at > $2
+			 AND ($3::uuid IS NULL OR t.account_id = $3)
+			 AND (
+			   $4::timestamptz IS NULL
+			   OR (t.updated_at, t.id) > ($4, $5)
+			 )
+			 ORDER BY t.updated_at ASC, t.id ASC
+			 LIMIT $6`, deletedFilter)
+		rows, err = s.pool.Query(ctx, query,
+			uid, updatedSince, accountID, cursorUpdatedAt, cursorID, pageSize+1,
+		)
+	}
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to query transactions (incremental)")
+	}
+	defer rows.Close()
+
+	var transactions []*pb.Transaction
+	for rows.Next() {
+		txn, err := scanTransactionWithDeleted(rows)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to scan transaction (incremental)")
+		}
+		transactions = append(transactions, txn)
+	}
+
+	if transactions == nil {
+		transactions = []*pb.Transaction{}
+	}
+
+	// Build next_page_token from last item if there are more results
+	nextPageToken := ""
+	if int32(len(transactions)) > pageSize {
+		transactions = transactions[:pageSize]
+		last := transactions[pageSize-1]
+		lastUpdated := last.UpdatedAt.AsTime()
+		nextPageToken = fmt.Sprintf("%d|%s", lastUpdated.UnixNano(), last.Id)
+	}
+
+	log.Printf("ListTransactions(incremental): returning %d transactions (since=%v)",
+		len(transactions), updatedSince.Format(time.RFC3339))
+	return &pb.ListTransactionsResponse{
+		Transactions:  transactions,
+		NextPageToken: nextPageToken,
 	}, nil
 }
 
@@ -1351,6 +1472,56 @@ func scanTransaction(rows pgx.Rows) (*pb.Transaction, error) {
 		Tags:         tags,
 		ImageUrls:    imageURLs,
 	}, nil
+}
+
+// scanTransactionWithDeleted scans a row that includes deleted_at (16th column, nullable).
+func scanTransactionWithDeleted(rows pgx.Rows) (*pb.Transaction, error) {
+	var id, userID, accountID, categoryID uuid.UUID
+	var amount, amountCny int64
+	var currency, txnType, note string
+	var exchangeRate float64
+	var txnDate, createdAt, updatedAt time.Time
+	var tags, imageURLs []string
+	var deletedAt *time.Time
+
+	err := rows.Scan(&id, &userID, &accountID, &categoryID, &amount, &currency, &amountCny, &exchangeRate, &txnType, &note, &txnDate, &createdAt, &updatedAt, &tags, &imageURLs, &deletedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	pbType := pb.TransactionType_TRANSACTION_TYPE_EXPENSE
+	if txnType == "income" {
+		pbType = pb.TransactionType_TRANSACTION_TYPE_INCOME
+	}
+
+	if tags == nil {
+		tags = []string{}
+	}
+	if imageURLs == nil {
+		imageURLs = []string{}
+	}
+
+	txn := &pb.Transaction{
+		Id:           id.String(),
+		UserId:       userID.String(),
+		AccountId:    accountID.String(),
+		CategoryId:   categoryID.String(),
+		Amount:       amount,
+		Currency:     currency,
+		AmountCny:    amountCny,
+		ExchangeRate: exchangeRate,
+		Type:         pbType,
+		Note:         note,
+		TxnDate:      timestamppb.New(txnDate),
+		CreatedAt:    timestamppb.New(createdAt),
+		UpdatedAt:    timestamppb.New(updatedAt),
+		Tags:         tags,
+		ImageUrls:    imageURLs,
+	}
+	if deletedAt != nil {
+		txn.DeletedAt = timestamppb.New(*deletedAt)
+	}
+	return txn, nil
 }
 
 

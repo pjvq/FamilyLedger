@@ -47,6 +47,7 @@ const Transaction$json = {
     {'1': 'updated_at', '3': 13, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
     {'1': 'tags', '3': 14, '4': 3, '5': 9, '10': 'tags'},
     {'1': 'image_urls', '3': 15, '4': 3, '5': 9, '10': 'imageUrls'},
+    {'1': 'deleted_at', '3': 16, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'deletedAt'},
   ],
 };
 
@@ -61,7 +62,8 @@ final $typed_data.Uint8List transactionDescriptor = $convert.base64Decode(
     'YXRlGAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIHdHhuRGF0ZRI5CgpjcmVhdG'
     'VkX2F0GAwgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3JlYXRlZEF0EjkKCnVw'
     'ZGF0ZWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUgl1cGRhdGVkQXQSEg'
-    'oEdGFncxgOIAMoCVIEdGFncxIdCgppbWFnZV91cmxzGA8gAygJUglpbWFnZVVybHM=');
+    'oEdGFncxgOIAMoCVIEdGFncxIdCgppbWFnZV91cmxzGA8gAygJUglpbWFnZVVybHMSOQoKZGVs'
+    'ZXRlZF9hdBgQIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCWRlbGV0ZWRBdA==');
 
 @$core.Deprecated('Use categoryDescriptor instead')
 const Category$json = {
@@ -140,6 +142,8 @@ const ListTransactionsRequest$json = {
     {'1': 'page_size', '3': 4, '4': 1, '5': 5, '10': 'pageSize'},
     {'1': 'page_token', '3': 5, '4': 1, '5': 9, '10': 'pageToken'},
     {'1': 'family_id', '3': 6, '4': 1, '5': 9, '10': 'familyId'},
+    {'1': 'updated_since', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedSince'},
+    {'1': 'include_deleted', '3': 8, '4': 1, '5': 8, '10': 'includeDeleted'},
   ],
 };
 
@@ -149,7 +153,9 @@ final $typed_data.Uint8List listTransactionsRequestDescriptor = $convert.base64D
     'QSOQoKc3RhcnRfZGF0ZRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSCXN0YXJ0'
     'RGF0ZRI1CghlbmRfZGF0ZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBSB2VuZE'
     'RhdGUSGwoJcGFnZV9zaXplGAQgASgFUghwYWdlU2l6ZRIdCgpwYWdlX3Rva2VuGAUgASgJUglw'
-    'YWdlVG9rZW4SGwoJZmFtaWx5X2lkGAYgASgJUghmYW1pbHlJZA==');
+    'YWdlVG9rZW4SGwoJZmFtaWx5X2lkGAYgASgJUghmYW1pbHlJZBI/Cg11cGRhdGVkX3NpbmNlGA'
+    'cgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIMdXBkYXRlZFNpbmNlEicKD2luY2x1'
+    'ZGVfZGVsZXRlZBgIIAEoCFIOaW5jbHVkZURlbGV0ZWQ=');
 
 @$core.Deprecated('Use listTransactionsResponseDescriptor instead')
 const ListTransactionsResponse$json = {

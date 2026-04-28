@@ -543,6 +543,90 @@ class AppDatabase extends _$AppDatabase {
   Future<int> hardDeleteTransaction(String id) =>
       (delete(transactions)..where((t) => t.id.equals(id))).go();
 
+  /// 批量硬删除交易记录（用于增量同步墓碑处理）
+  Future<void> batchHardDeleteTransactions(List<String> ids) async {
+    if (ids.isEmpty) return;
+    await batch((b) {
+      for (final id in ids) {
+        b.deleteWhere(transactions, (t) => t.id.equals(id));
+      }
+    });
+  }
+
+  /// 批量 upsert 交易记录（用于增量同步，一个事务内完成）
+  Future<void> batchUpsertTransactions(List<dynamic> params) async {
+    if (params.isEmpty) return;
+    await batch((b) {
+      for (final p in params) {
+        b.insert(
+          transactions,
+          TransactionsCompanion.insert(
+            id: p.id as String,
+            userId: p.userId as String,
+            accountId: p.accountId as String,
+            categoryId: p.categoryId as String,
+            amount: p.amount as int,
+            amountCny: p.amountCny as int,
+            type: p.type as String,
+            note: Value(p.note as String),
+            txnDate: p.txnDate as DateTime,
+          ),
+          onConflict: DoUpdate(
+            (old) => TransactionsCompanion(
+              userId: Value(p.userId as String),
+              accountId: Value(p.accountId as String),
+              categoryId: Value(p.categoryId as String),
+              amount: Value(p.amount as int),
+              amountCny: Value(p.amountCny as int),
+              type: Value(p.type as String),
+              note: Value(p.note as String),
+              txnDate: Value(p.txnDate as DateTime),
+              updatedAt: Value(DateTime.now()),
+            ),
+          ),
+        );
+      }
+    });
+  }
+
+  // ── Family sync time management (uses a simple key-value in exchange_rates table trick) ──
+  // We store sync time as a custom row in a simple key-value style using customStatement.
+  // Key format: "_sync_family_{familyId}"
+
+  /// Get last successful sync time for a family
+  Future<DateTime?> getFamilySyncTime(String familyId) async {
+    final key = '_sync_family_$familyId';
+    final result = await customSelect(
+      'SELECT rate FROM exchange_rates WHERE currency_pair = ?',
+      variables: [Variable.withString(key)],
+      readsFrom: {exchangeRates},
+    ).getSingleOrNull();
+    if (result == null) return null;
+    final ms = (result.data['rate'] as num?)?.toInt();
+    if (ms == null || ms == 0) return null;
+    return DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
+  /// Set last successful sync time for a family
+  Future<void> setFamilySyncTime(String familyId, DateTime time) async {
+    final key = '_sync_family_$familyId';
+    final ms = time.millisecondsSinceEpoch.toDouble();
+    await into(exchangeRates).insertOnConflictUpdate(
+      ExchangeRatesCompanion.insert(
+        currencyPair: key,
+        rate: ms,
+      ),
+    );
+  }
+
+  /// Clear sync time (forces full re-sync on next load)
+  Future<void> clearFamilySyncTime(String familyId) async {
+    final key = '_sync_family_$familyId';
+    await (delete(exchangeRates)
+          ..where((e) => e.currencyPair.equals(key)))
+        .go();
+  }
+
   /// 根据 ID 查找单条交易
   Future<Transaction?> getTransactionById(String id) =>
       (select(transactions)..where((t) => t.id.equals(id))).getSingleOrNull();

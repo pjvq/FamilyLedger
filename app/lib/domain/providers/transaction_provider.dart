@@ -84,51 +84,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
   Future<void> _load() async {
     try {
-      // Sync family transactions from server with pagination
-      if (_familyId != null && _familyId.isNotEmpty && _txnClient != null) {
-        try {
-          String pageToken = '';
-          int pagesFetched = 0;
-
-          do {
-            final req = pb.ListTransactionsRequest()
-              ..familyId = _familyId
-              ..pageSize = _syncPageSize;
-            if (pageToken.isNotEmpty) {
-              req.pageToken = pageToken;
-            }
-
-            final resp = await _txnClient.listTransactions(
-              req,
-              options: _callOpts,
-            );
-
-            for (final t in resp.transactions) {
-              await _db.insertOrUpdateTransaction(
-                id: t.id,
-                userId: t.userId,
-                accountId: t.accountId,
-                categoryId: t.categoryId,
-                amount: t.amount.toInt(),
-                amountCny: t.amountCny.toInt(),
-                type: t.type == pbe.TransactionType.TRANSACTION_TYPE_INCOME
-                    ? 'income'
-                    : 'expense',
-                note: t.note,
-                txnDate: t.txnDate.toDateTime().toLocal(),
-              );
-            }
-
-            pageToken = resp.nextPageToken;
-            pagesFetched++;
-
-            // Safety: stop if no more pages or hit max page limit
-          } while (pageToken.isNotEmpty && pagesFetched < _maxPages);
-        } catch (_) {
-          // Offline or timeout — continue with local data
-        }
-      }
-
+      // Load categories first (fast, local only)
       final expCats = await _db.getCategoriesByType('expense');
       final incCats = await _db.getCategoriesByType('income');
       state = state.copyWith(
@@ -137,7 +93,13 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         clearError: true,
       );
       await _refreshSummary();
+      // Show local data immediately — don't block on network
       state = state.copyWith(isLoading: false);
+
+      // Background incremental sync for family mode
+      if (_familyId != null && _familyId.isNotEmpty && _txnClient != null) {
+        _syncFamilyTransactionsIncremental();
+      }
     } catch (e) {
       dev.log('TransactionNotifier: _load failed: $e', name: 'txn');
       state = state.copyWith(
@@ -147,10 +109,99 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     }
   }
 
-  /// Public reload — for retry on error or pull-to-refresh
+  /// Incremental sync: only fetch records updated after last sync time.
+  /// Includes tombstones (deleted records) so local DB stays consistent.
+  Future<void> _syncFamilyTransactionsIncremental() async {
+    try {
+      final lastSync = await _db.getFamilySyncTime(_familyId!);
+      String pageToken = '';
+      int pagesFetched = 0;
+
+      do {
+        final req = pb.ListTransactionsRequest()
+          ..familyId = _familyId
+          ..pageSize = _syncPageSize
+          ..includeDeleted = true;
+        if (lastSync != null) {
+          req.updatedSince = _toTimestamp(lastSync);
+        }
+        if (pageToken.isNotEmpty) {
+          req.pageToken = pageToken;
+        }
+
+        final resp = await _txnClient!.listTransactions(
+          req,
+          options: _callOpts,
+        );
+
+        // Separate alive records from tombstones
+        final toUpsert = <pb.Transaction>[];
+        final toDelete = <String>[];
+
+        for (final t in resp.transactions) {
+          if (t.hasDeletedAt()) {
+            toDelete.add(t.id);
+          } else {
+            toUpsert.add(t);
+          }
+        }
+
+        // Batch upsert alive records
+        if (toUpsert.isNotEmpty) {
+          await _db.batchUpsertTransactions(
+            toUpsert.map((t) => _protoToUpsertParams(t)).toList(),
+          );
+        }
+
+        // Batch hard-delete tombstones locally
+        if (toDelete.isNotEmpty) {
+          await _db.batchHardDeleteTransactions(toDelete);
+        }
+
+        pageToken = resp.nextPageToken;
+        pagesFetched++;
+      } while (pageToken.isNotEmpty && pagesFetched < _maxPages);
+
+      // Record sync timestamp
+      await _db.setFamilySyncTime(_familyId, DateTime.now());
+      dev.log('TransactionNotifier: incremental sync done (pages=$pagesFetched)',
+          name: 'txn');
+    } catch (e) {
+      // Offline or timeout — no-op, local data is still shown
+      dev.log('TransactionNotifier: incremental sync failed: $e', name: 'txn');
+    }
+  }
+
+  /// Convert a proto Transaction to upsert parameters
+  _TransactionUpsertParams _protoToUpsertParams(pb.Transaction t) {
+    return _TransactionUpsertParams(
+      id: t.id,
+      userId: t.userId,
+      accountId: t.accountId,
+      categoryId: t.categoryId,
+      amount: t.amount.toInt(),
+      amountCny: t.amountCny.toInt(),
+      type: t.type == pbe.TransactionType.TRANSACTION_TYPE_INCOME
+          ? 'income'
+          : 'expense',
+      note: t.note,
+      txnDate: t.txnDate.toDateTime().toLocal(),
+    );
+  }
+
+  /// Public reload — for retry on error or pull-to-refresh.
+  /// Does full sync (updatedSince=null) to guarantee consistency.
   Future<void> reload() async {
     state = state.copyWith(isLoading: true, clearError: true);
-    await _load();
+    try {
+      // Reset sync time to force full re-sync
+      if (_familyId != null && _familyId.isNotEmpty) {
+        await _db.clearFamilySyncTime(_familyId);
+      }
+      await _load();
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: '刷新失败');
+    }
   }
 
   Future<void> _refreshSummary() async {
@@ -456,6 +507,31 @@ proto_ts.Timestamp _toTimestamp(DateTime dt) {
   return proto_ts.Timestamp()
     ..seconds = Int64(seconds)
     ..nanos = nanos;
+}
+
+/// Parameters for batch upserting transactions from server.
+class _TransactionUpsertParams {
+  final String id;
+  final String userId;
+  final String accountId;
+  final String categoryId;
+  final int amount;
+  final int amountCny;
+  final String type;
+  final String note;
+  final DateTime txnDate;
+
+  const _TransactionUpsertParams({
+    required this.id,
+    required this.userId,
+    required this.accountId,
+    required this.categoryId,
+    required this.amount,
+    required this.amountCny,
+    required this.type,
+    required this.note,
+    required this.txnDate,
+  });
 }
 
 final transactionProvider =

@@ -36,6 +36,7 @@ class Transaction extends $pb.GeneratedMessage {
     $1.Timestamp? updatedAt,
     $core.Iterable<$core.String>? tags,
     $core.Iterable<$core.String>? imageUrls,
+    $1.Timestamp? deletedAt,
   }) {
     final $result = create();
     if (id != null) {
@@ -83,6 +84,9 @@ class Transaction extends $pb.GeneratedMessage {
     if (imageUrls != null) {
       $result.imageUrls.addAll(imageUrls);
     }
+    if (deletedAt != null) {
+      $result.deletedAt = deletedAt;
+    }
     return $result;
   }
   Transaction._() : super();
@@ -105,6 +109,7 @@ class Transaction extends $pb.GeneratedMessage {
     ..aOM<$1.Timestamp>(13, _omitFieldNames ? '' : 'updatedAt', subBuilder: $1.Timestamp.create)
     ..pPS(14, _omitFieldNames ? '' : 'tags')
     ..pPS(15, _omitFieldNames ? '' : 'imageUrls')
+    ..aOM<$1.Timestamp>(16, _omitFieldNames ? '' : 'deletedAt', subBuilder: $1.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -257,6 +262,17 @@ class Transaction extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(15)
   $core.List<$core.String> get imageUrls => $_getList(14);
+
+  @$pb.TagNumber(16)
+  $1.Timestamp get deletedAt => $_getN(15);
+  @$pb.TagNumber(16)
+  set deletedAt($1.Timestamp v) { setField(16, v); }
+  @$pb.TagNumber(16)
+  $core.bool hasDeletedAt() => $_has(15);
+  @$pb.TagNumber(16)
+  void clearDeletedAt() => clearField(16);
+  @$pb.TagNumber(16)
+  $1.Timestamp ensureDeletedAt() => $_ensure(15);
 }
 
 class Category extends $pb.GeneratedMessage {
@@ -655,6 +671,8 @@ class ListTransactionsRequest extends $pb.GeneratedMessage {
     $core.int? pageSize,
     $core.String? pageToken,
     $core.String? familyId,
+    $1.Timestamp? updatedSince,
+    $core.bool? includeDeleted,
   }) {
     final $result = create();
     if (accountId != null) {
@@ -675,6 +693,12 @@ class ListTransactionsRequest extends $pb.GeneratedMessage {
     if (familyId != null) {
       $result.familyId = familyId;
     }
+    if (updatedSince != null) {
+      $result.updatedSince = updatedSince;
+    }
+    if (includeDeleted != null) {
+      $result.includeDeleted = includeDeleted;
+    }
     return $result;
   }
   ListTransactionsRequest._() : super();
@@ -688,6 +712,8 @@ class ListTransactionsRequest extends $pb.GeneratedMessage {
     ..a<$core.int>(4, _omitFieldNames ? '' : 'pageSize', $pb.PbFieldType.O3)
     ..aOS(5, _omitFieldNames ? '' : 'pageToken')
     ..aOS(6, _omitFieldNames ? '' : 'familyId')
+    ..aOM<$1.Timestamp>(7, _omitFieldNames ? '' : 'updatedSince', subBuilder: $1.Timestamp.create)
+    ..aOB(8, _omitFieldNames ? '' : 'includeDeleted')
     ..hasRequiredFields = false
   ;
 
@@ -769,6 +795,26 @@ class ListTransactionsRequest extends $pb.GeneratedMessage {
   $core.bool hasFamilyId() => $_has(5);
   @$pb.TagNumber(6)
   void clearFamilyId() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $1.Timestamp get updatedSince => $_getN(6);
+  @$pb.TagNumber(7)
+  set updatedSince($1.Timestamp v) { setField(7, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasUpdatedSince() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearUpdatedSince() => clearField(7);
+  @$pb.TagNumber(7)
+  $1.Timestamp ensureUpdatedSince() => $_ensure(6);
+
+  @$pb.TagNumber(8)
+  $core.bool get includeDeleted => $_getBF(7);
+  @$pb.TagNumber(8)
+  set includeDeleted($core.bool v) { $_setBool(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasIncludeDeleted() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearIncludeDeleted() => clearField(8);
 }
 
 class ListTransactionsResponse extends $pb.GeneratedMessage {

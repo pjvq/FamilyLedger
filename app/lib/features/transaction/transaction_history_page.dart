@@ -35,13 +35,8 @@ class _TransactionHistoryPageState
   void initState() {
     super.initState();
     _scrollController = ScrollController()..addListener(_onScroll);
-    // In family mode, pull fresh data from server on page open
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final familyId = ref.read(currentFamilyIdProvider);
-      if (familyId != null && familyId.isNotEmpty) {
-        ref.read(transactionProvider.notifier).reload();
-      }
-    });
+    // Incremental sync is handled by TransactionNotifier._load() automatically.
+    // No need to call reload() here — it would reset sync time and force full re-fetch.
   }
 
   @override

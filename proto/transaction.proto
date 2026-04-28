@@ -43,6 +43,7 @@ message Transaction {
   google.protobuf.Timestamp updated_at = 13;
   repeated string tags = 14;
   repeated string image_urls = 15;
+  google.protobuf.Timestamp deleted_at = 16;  // 非空=已删除（墓碑），用于增量同步
 }
 
 message Category {
@@ -82,6 +83,8 @@ message ListTransactionsRequest {
   int32 page_size = 4;
   string page_token = 5;               // 上一页最后一条的 id
   string family_id = 6;                // 可选，空=个人账户交易，有值=家庭账户交易
+  google.protobuf.Timestamp updated_since = 7;  // 增量同步：只返回 updated_at > 此时间的记录
+  bool include_deleted = 8;            // true=包含已软删除记录（墓碑），用于增量同步
 }
 
 message ListTransactionsResponse {
