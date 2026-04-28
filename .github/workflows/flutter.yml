@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - 'app/**'
+      - '.github/workflows/flutter.yml'
 
 jobs:
   analyze-and-test:
