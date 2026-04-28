@@ -123,6 +123,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _syncFamiliesToLocal();
 
       _ref.read(currentUserIdProvider.notifier).state = resp.userId;
+      final savedFamId = _prefs.getString(AppConstants.familyIdKey);
+      if (savedFamId != null) {
+        _ref.read(currentFamilyIdProvider.notifier).state = savedFamId;
+      }
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
     } on GrpcError catch (e) {
       developer.log('[Auth] register: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}');
@@ -230,6 +234,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       // 最后设置 userId 触发 UI rebuild
       _ref.read(currentUserIdProvider.notifier).state = resp.userId;
+      // Restore family mode AFTER userId (so transactionProvider rebuild has both)
+      final savedFamId = _prefs.getString(AppConstants.familyIdKey);
+      if (savedFamId != null) {
+        _ref.read(currentFamilyIdProvider.notifier).state = savedFamId;
+      }
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
     } on GrpcError catch (e) {
       developer.log('[Auth] login: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}');
@@ -347,6 +356,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _syncFamiliesToLocal();
 
       // 最后设置 userId 触发 UI rebuild
+      _ref.read(currentUserIdProvider.notifier).state = resp.userId;
+      final savedFamId3 = _prefs.getString(AppConstants.familyIdKey);
+      if (savedFamId3 != null) {
+        _ref.read(currentFamilyIdProvider.notifier).state = savedFamId3;
+      }
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
     } on GrpcError catch (e) {
       state = AuthState(
@@ -366,11 +380,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final txnClient = _ref.read(transactionClientProvider);
       final catResp = await txnClient.getCategories(txn_pb.GetCategoriesRequest());
+      developer.log('[Auth] _syncCategoriesToLocal: got ${catResp.categories.length} root categories');
       await (_db.delete(_db.categories)..where((c) => c.isPreset.equals(true))).go();
       for (final c in catResp.categories) {
         await _insertCategoryRecursive(c, null);
       }
-    } catch (_) {}
+      developer.log('[Auth] _syncCategoriesToLocal: done');
+    } catch (e) {
+      developer.log('[Auth] _syncCategoriesToLocal FAILED: $e');
+    }
   }
 
   Future<void> _insertCategoryRecursive(txn_pb.Category c, String? parentId) async {
@@ -458,6 +476,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
             ));
           }
         } catch (_) {}
+      }
+
+      // Restore family mode: save first family's ID to prefs + set provider
+      if (resp.families.isNotEmpty) {
+        final firstFamilyId = resp.families.first.id;
+        await _prefs.setString(AppConstants.familyIdKey, firstFamilyId);
+        // Note: set currentFamilyIdProvider AFTER currentUserIdProvider below
+        // to avoid transactionProvider rebuilding with null userId
       }
     } catch (e) {
       developer.log('[Auth] _syncFamiliesToLocal failed: $e');

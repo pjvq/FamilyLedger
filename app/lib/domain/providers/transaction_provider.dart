@@ -85,8 +85,16 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   Future<void> _load() async {
     try {
       // Load categories first (fast, local only)
-      final expCats = await _db.getCategoriesByType('expense');
-      final incCats = await _db.getCategoriesByType('income');
+      var expCats = await _db.getCategoriesByType('expense');
+      var incCats = await _db.getCategoriesByType('income');
+
+      // If local categories are empty, fetch from server before showing UI
+      if (expCats.isEmpty && incCats.isEmpty && _txnClient != null) {
+        await _syncCategoriesFromServer();
+        expCats = await _db.getCategoriesByType('expense');
+        incCats = await _db.getCategoriesByType('income');
+      }
+
       state = state.copyWith(
         expenseCategories: expCats,
         incomeCategories: incCats,
