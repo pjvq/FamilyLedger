@@ -9,6 +9,7 @@ on:
     paths:
       - 'server/**'
       - 'proto/**'
+      - '.github/workflows/go.yml'
 
 jobs:
   unit:
