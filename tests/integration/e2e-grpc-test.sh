@@ -2,7 +2,7 @@
 # FamilyLedger — E2E gRPC Test Script (Phase 1b focused)
 set -uo pipefail
 
-PROTO_PATH="$(cd "$(dirname "$0")/../proto" && pwd)"
+PROTO_PATH="$(cd "$(dirname "$0")/../../proto" && pwd)"
 HOST="localhost:50051"
 PASS=0; FAIL=0; ERRORS=()
 TOKEN=""

@@ -414,7 +414,7 @@ CSV_CONTENT="日期,金额,类型,分类,备注
 2026-04-05,200.00,支出,日用,超市采购
 2026-04-06,500.00,收入,兼职,项目收入"
 
-CSV_B64=$(echo -n "$CSV_CONTENT" | base64)
+CSV_B64=$(echo -n "$CSV_CONTENT" | base64 | tr -d '\n')
 
 PARSE_RESP=$(grpc_auth "import.proto" \
     "{\"csv_data\":\"${CSV_B64}\",\"encoding\":\"utf8\"}" \
