@@ -10,6 +10,7 @@ service FamilyService {
   rpc CreateFamily(CreateFamilyRequest) returns (CreateFamilyResponse);
   rpc JoinFamily(JoinFamilyRequest) returns (JoinFamilyResponse);
   rpc GetFamily(GetFamilyRequest) returns (GetFamilyResponse);
+  rpc ListMyFamilies(ListMyFamiliesRequest) returns (ListMyFamiliesResponse);
   rpc GenerateInviteCode(GenerateInviteCodeRequest) returns (GenerateInviteCodeResponse);
   rpc SetMemberRole(SetMemberRoleRequest) returns (SetMemberRoleResponse);
   rpc SetMemberPermissions(SetMemberPermissionsRequest) returns (SetMemberPermissionsResponse);
@@ -163,4 +164,12 @@ message AuditEntry {
   string entity_id = 6;
   string changes_json = 7; // JSON: {"field": {"old": x, "new": y}}
   int64 created_at = 8;    // Unix timestamp (seconds)
+}
+
+// ListMyFamilies — returns all families the current user belongs to
+message ListMyFamiliesRequest {}
+
+message ListMyFamiliesResponse {
+  repeated Family families = 1;
+  repeated FamilyMember memberships = 2; // user's membership info for each family
 }

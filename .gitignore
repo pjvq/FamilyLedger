@@ -28,3 +28,4 @@ server/proto/**/*.pb.go
 # Docker
 pgdata/
 server/bin/
+familyledger-bin

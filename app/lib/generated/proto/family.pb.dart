@@ -11,6 +11,7 @@
 
 import 'dart:core' as $core;
 
+import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import 'family.pbenum.dart';
@@ -1402,6 +1403,390 @@ class DeleteFamilyResponse extends $pb.GeneratedMessage {
   @$core.pragma('dart2js:noInline')
   static DeleteFamilyResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteFamilyResponse>(create);
   static DeleteFamilyResponse? _defaultInstance;
+}
+
+/// GetAuditLog
+class GetAuditLogRequest extends $pb.GeneratedMessage {
+  factory GetAuditLogRequest({
+    $core.String? familyId,
+    $core.int? pageSize,
+    $core.String? pageToken,
+    $core.String? entityType,
+  }) {
+    final $result = create();
+    if (familyId != null) {
+      $result.familyId = familyId;
+    }
+    if (pageSize != null) {
+      $result.pageSize = pageSize;
+    }
+    if (pageToken != null) {
+      $result.pageToken = pageToken;
+    }
+    if (entityType != null) {
+      $result.entityType = entityType;
+    }
+    return $result;
+  }
+  GetAuditLogRequest._() : super();
+  factory GetAuditLogRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetAuditLogRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetAuditLogRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'familyId')
+    ..a<$core.int>(2, _omitFieldNames ? '' : 'pageSize', $pb.PbFieldType.O3)
+    ..aOS(3, _omitFieldNames ? '' : 'pageToken')
+    ..aOS(4, _omitFieldNames ? '' : 'entityType')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetAuditLogRequest clone() => GetAuditLogRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetAuditLogRequest copyWith(void Function(GetAuditLogRequest) updates) => super.copyWith((message) => updates(message as GetAuditLogRequest)) as GetAuditLogRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetAuditLogRequest create() => GetAuditLogRequest._();
+  GetAuditLogRequest createEmptyInstance() => create();
+  static $pb.PbList<GetAuditLogRequest> createRepeated() => $pb.PbList<GetAuditLogRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetAuditLogRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetAuditLogRequest>(create);
+  static GetAuditLogRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get familyId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set familyId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasFamilyId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFamilyId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get pageSize => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set pageSize($core.int v) { $_setSignedInt32(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPageSize() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPageSize() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get pageToken => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set pageToken($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasPageToken() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearPageToken() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get entityType => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set entityType($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasEntityType() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearEntityType() => clearField(4);
+}
+
+class GetAuditLogResponse extends $pb.GeneratedMessage {
+  factory GetAuditLogResponse({
+    $core.Iterable<AuditEntry>? entries,
+    $core.String? nextPageToken,
+  }) {
+    final $result = create();
+    if (entries != null) {
+      $result.entries.addAll(entries);
+    }
+    if (nextPageToken != null) {
+      $result.nextPageToken = nextPageToken;
+    }
+    return $result;
+  }
+  GetAuditLogResponse._() : super();
+  factory GetAuditLogResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetAuditLogResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetAuditLogResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+    ..pc<AuditEntry>(1, _omitFieldNames ? '' : 'entries', $pb.PbFieldType.PM, subBuilder: AuditEntry.create)
+    ..aOS(2, _omitFieldNames ? '' : 'nextPageToken')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetAuditLogResponse clone() => GetAuditLogResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetAuditLogResponse copyWith(void Function(GetAuditLogResponse) updates) => super.copyWith((message) => updates(message as GetAuditLogResponse)) as GetAuditLogResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetAuditLogResponse create() => GetAuditLogResponse._();
+  GetAuditLogResponse createEmptyInstance() => create();
+  static $pb.PbList<GetAuditLogResponse> createRepeated() => $pb.PbList<GetAuditLogResponse>();
+  @$core.pragma('dart2js:noInline')
+  static GetAuditLogResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetAuditLogResponse>(create);
+  static GetAuditLogResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<AuditEntry> get entries => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.String get nextPageToken => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set nextPageToken($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasNextPageToken() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearNextPageToken() => clearField(2);
+}
+
+class AuditEntry extends $pb.GeneratedMessage {
+  factory AuditEntry({
+    $core.String? id,
+    $core.String? userId,
+    $core.String? userName,
+    $core.String? action,
+    $core.String? entityType,
+    $core.String? entityId,
+    $core.String? changesJson,
+    $fixnum.Int64? createdAt,
+  }) {
+    final $result = create();
+    if (id != null) {
+      $result.id = id;
+    }
+    if (userId != null) {
+      $result.userId = userId;
+    }
+    if (userName != null) {
+      $result.userName = userName;
+    }
+    if (action != null) {
+      $result.action = action;
+    }
+    if (entityType != null) {
+      $result.entityType = entityType;
+    }
+    if (entityId != null) {
+      $result.entityId = entityId;
+    }
+    if (changesJson != null) {
+      $result.changesJson = changesJson;
+    }
+    if (createdAt != null) {
+      $result.createdAt = createdAt;
+    }
+    return $result;
+  }
+  AuditEntry._() : super();
+  factory AuditEntry.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory AuditEntry.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'AuditEntry', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'userId')
+    ..aOS(3, _omitFieldNames ? '' : 'userName')
+    ..aOS(4, _omitFieldNames ? '' : 'action')
+    ..aOS(5, _omitFieldNames ? '' : 'entityType')
+    ..aOS(6, _omitFieldNames ? '' : 'entityId')
+    ..aOS(7, _omitFieldNames ? '' : 'changesJson')
+    ..aInt64(8, _omitFieldNames ? '' : 'createdAt')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  AuditEntry clone() => AuditEntry()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  AuditEntry copyWith(void Function(AuditEntry) updates) => super.copyWith((message) => updates(message as AuditEntry)) as AuditEntry;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AuditEntry create() => AuditEntry._();
+  AuditEntry createEmptyInstance() => create();
+  static $pb.PbList<AuditEntry> createRepeated() => $pb.PbList<AuditEntry>();
+  @$core.pragma('dart2js:noInline')
+  static AuditEntry getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<AuditEntry>(create);
+  static AuditEntry? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get userId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set userId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasUserId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearUserId() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get userName => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set userName($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasUserName() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearUserName() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get action => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set action($core.String v) { $_setString(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasAction() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAction() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get entityType => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set entityType($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasEntityType() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearEntityType() => clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get entityId => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set entityId($core.String v) { $_setString(5, v); }
+  @$pb.TagNumber(6)
+  $core.bool hasEntityId() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearEntityId() => clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get changesJson => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set changesJson($core.String v) { $_setString(6, v); }
+  @$pb.TagNumber(7)
+  $core.bool hasChangesJson() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearChangesJson() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $fixnum.Int64 get createdAt => $_getI64(7);
+  @$pb.TagNumber(8)
+  set createdAt($fixnum.Int64 v) { $_setInt64(7, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasCreatedAt() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearCreatedAt() => clearField(8);
+}
+
+/// ListMyFamilies — returns all families the current user belongs to
+class ListMyFamiliesRequest extends $pb.GeneratedMessage {
+  factory ListMyFamiliesRequest() => create();
+  ListMyFamiliesRequest._() : super();
+  factory ListMyFamiliesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListMyFamiliesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListMyFamiliesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListMyFamiliesRequest clone() => ListMyFamiliesRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListMyFamiliesRequest copyWith(void Function(ListMyFamiliesRequest) updates) => super.copyWith((message) => updates(message as ListMyFamiliesRequest)) as ListMyFamiliesRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListMyFamiliesRequest create() => ListMyFamiliesRequest._();
+  ListMyFamiliesRequest createEmptyInstance() => create();
+  static $pb.PbList<ListMyFamiliesRequest> createRepeated() => $pb.PbList<ListMyFamiliesRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ListMyFamiliesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListMyFamiliesRequest>(create);
+  static ListMyFamiliesRequest? _defaultInstance;
+}
+
+class ListMyFamiliesResponse extends $pb.GeneratedMessage {
+  factory ListMyFamiliesResponse({
+    $core.Iterable<Family>? families,
+    $core.Iterable<FamilyMember>? memberships,
+  }) {
+    final $result = create();
+    if (families != null) {
+      $result.families.addAll(families);
+    }
+    if (memberships != null) {
+      $result.memberships.addAll(memberships);
+    }
+    return $result;
+  }
+  ListMyFamiliesResponse._() : super();
+  factory ListMyFamiliesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ListMyFamiliesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListMyFamiliesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+    ..pc<Family>(1, _omitFieldNames ? '' : 'families', $pb.PbFieldType.PM, subBuilder: Family.create)
+    ..pc<FamilyMember>(2, _omitFieldNames ? '' : 'memberships', $pb.PbFieldType.PM, subBuilder: FamilyMember.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ListMyFamiliesResponse clone() => ListMyFamiliesResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ListMyFamiliesResponse copyWith(void Function(ListMyFamiliesResponse) updates) => super.copyWith((message) => updates(message as ListMyFamiliesResponse)) as ListMyFamiliesResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListMyFamiliesResponse create() => ListMyFamiliesResponse._();
+  ListMyFamiliesResponse createEmptyInstance() => create();
+  static $pb.PbList<ListMyFamiliesResponse> createRepeated() => $pb.PbList<ListMyFamiliesResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ListMyFamiliesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListMyFamiliesResponse>(create);
+  static ListMyFamiliesResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<Family> get families => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.List<FamilyMember> get memberships => $_getList(1);
 }
 
 

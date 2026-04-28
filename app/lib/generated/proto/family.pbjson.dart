@@ -338,3 +338,82 @@ const DeleteFamilyResponse$json = {
 final $typed_data.Uint8List deleteFamilyResponseDescriptor = $convert.base64Decode(
     'ChREZWxldGVGYW1pbHlSZXNwb25zZQ==');
 
+@$core.Deprecated('Use getAuditLogRequestDescriptor instead')
+const GetAuditLogRequest$json = {
+  '1': 'GetAuditLogRequest',
+  '2': [
+    {'1': 'family_id', '3': 1, '4': 1, '5': 9, '10': 'familyId'},
+    {'1': 'page_size', '3': 2, '4': 1, '5': 5, '10': 'pageSize'},
+    {'1': 'page_token', '3': 3, '4': 1, '5': 9, '10': 'pageToken'},
+    {'1': 'entity_type', '3': 4, '4': 1, '5': 9, '10': 'entityType'},
+  ],
+};
+
+/// Descriptor for `GetAuditLogRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getAuditLogRequestDescriptor = $convert.base64Decode(
+    'ChJHZXRBdWRpdExvZ1JlcXVlc3QSGwoJZmFtaWx5X2lkGAEgASgJUghmYW1pbHlJZBIbCglwYW'
+    'dlX3NpemUYAiABKAVSCHBhZ2VTaXplEh0KCnBhZ2VfdG9rZW4YAyABKAlSCXBhZ2VUb2tlbhIf'
+    'CgtlbnRpdHlfdHlwZRgEIAEoCVIKZW50aXR5VHlwZQ==');
+
+@$core.Deprecated('Use getAuditLogResponseDescriptor instead')
+const GetAuditLogResponse$json = {
+  '1': 'GetAuditLogResponse',
+  '2': [
+    {'1': 'entries', '3': 1, '4': 3, '5': 11, '6': '.familyledger.family.v1.AuditEntry', '10': 'entries'},
+    {'1': 'next_page_token', '3': 2, '4': 1, '5': 9, '10': 'nextPageToken'},
+  ],
+};
+
+/// Descriptor for `GetAuditLogResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getAuditLogResponseDescriptor = $convert.base64Decode(
+    'ChNHZXRBdWRpdExvZ1Jlc3BvbnNlEjwKB2VudHJpZXMYASADKAsyIi5mYW1pbHlsZWRnZXIuZm'
+    'FtaWx5LnYxLkF1ZGl0RW50cnlSB2VudHJpZXMSJgoPbmV4dF9wYWdlX3Rva2VuGAIgASgJUg1u'
+    'ZXh0UGFnZVRva2Vu');
+
+@$core.Deprecated('Use auditEntryDescriptor instead')
+const AuditEntry$json = {
+  '1': 'AuditEntry',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'user_id', '3': 2, '4': 1, '5': 9, '10': 'userId'},
+    {'1': 'user_name', '3': 3, '4': 1, '5': 9, '10': 'userName'},
+    {'1': 'action', '3': 4, '4': 1, '5': 9, '10': 'action'},
+    {'1': 'entity_type', '3': 5, '4': 1, '5': 9, '10': 'entityType'},
+    {'1': 'entity_id', '3': 6, '4': 1, '5': 9, '10': 'entityId'},
+    {'1': 'changes_json', '3': 7, '4': 1, '5': 9, '10': 'changesJson'},
+    {'1': 'created_at', '3': 8, '4': 1, '5': 3, '10': 'createdAt'},
+  ],
+};
+
+/// Descriptor for `AuditEntry`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List auditEntryDescriptor = $convert.base64Decode(
+    'CgpBdWRpdEVudHJ5Eg4KAmlkGAEgASgJUgJpZBIXCgd1c2VyX2lkGAIgASgJUgZ1c2VySWQSGw'
+    'oJdXNlcl9uYW1lGAMgASgJUgh1c2VyTmFtZRIWCgZhY3Rpb24YBCABKAlSBmFjdGlvbhIfCgtl'
+    'bnRpdHlfdHlwZRgFIAEoCVIKZW50aXR5VHlwZRIbCgllbnRpdHlfaWQYBiABKAlSCGVudGl0eU'
+    'lkEiEKDGNoYW5nZXNfanNvbhgHIAEoCVILY2hhbmdlc0pzb24SHQoKY3JlYXRlZF9hdBgIIAEo'
+    'A1IJY3JlYXRlZEF0');
+
+@$core.Deprecated('Use listMyFamiliesRequestDescriptor instead')
+const ListMyFamiliesRequest$json = {
+  '1': 'ListMyFamiliesRequest',
+};
+
+/// Descriptor for `ListMyFamiliesRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listMyFamiliesRequestDescriptor = $convert.base64Decode(
+    'ChVMaXN0TXlGYW1pbGllc1JlcXVlc3Q=');
+
+@$core.Deprecated('Use listMyFamiliesResponseDescriptor instead')
+const ListMyFamiliesResponse$json = {
+  '1': 'ListMyFamiliesResponse',
+  '2': [
+    {'1': 'families', '3': 1, '4': 3, '5': 11, '6': '.familyledger.family.v1.Family', '10': 'families'},
+    {'1': 'memberships', '3': 2, '4': 3, '5': 11, '6': '.familyledger.family.v1.FamilyMember', '10': 'memberships'},
+  ],
+};
+
+/// Descriptor for `ListMyFamiliesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listMyFamiliesResponseDescriptor = $convert.base64Decode(
+    'ChZMaXN0TXlGYW1pbGllc1Jlc3BvbnNlEjoKCGZhbWlsaWVzGAEgAygLMh4uZmFtaWx5bGVkZ2'
+    'VyLmZhbWlseS52MS5GYW1pbHlSCGZhbWlsaWVzEkYKC21lbWJlcnNoaXBzGAIgAygLMiQuZmFt'
+    'aWx5bGVkZ2VyLmZhbWlseS52MS5GYW1pbHlNZW1iZXJSC21lbWJlcnNoaXBz');
+

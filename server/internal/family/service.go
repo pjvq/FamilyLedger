@@ -285,6 +285,82 @@ func (s *Service) GetFamily(ctx context.Context, req *pb.GetFamilyRequest) (*pb.
 	}, nil
 }
 
+func (s *Service) ListMyFamilies(ctx context.Context, req *pb.ListMyFamiliesRequest) (*pb.ListMyFamiliesResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := s.pool.Query(ctx,
+		`SELECT f.id, f.name, f.owner_id, f.invite_code, f.invite_expires_at, f.created_at, f.updated_at,
+		        fm.role, fm.permissions
+		 FROM families f
+		 JOIN family_members fm ON fm.family_id = f.id
+		 WHERE fm.user_id = $1
+		 ORDER BY f.created_at ASC`,
+		userID,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to list families")
+	}
+	defer rows.Close()
+
+	var families []*pb.Family
+	var memberships []*pb.FamilyMember
+
+	for rows.Next() {
+		var famID, name, ownerID string
+		var inviteCode *string
+		var inviteExpiresAt *time.Time
+		var createdAt, updatedAt time.Time
+		var role string
+		var permsJSON []byte
+
+		if err := rows.Scan(&famID, &name, &ownerID, &inviteCode, &inviteExpiresAt, &createdAt, &updatedAt, &role, &permsJSON); err != nil {
+			return nil, status.Error(codes.Internal, "failed to scan family row")
+		}
+
+		fam := &pb.Family{
+			Id:        famID,
+			Name:      name,
+			OwnerId:   ownerID,
+			CreatedAt: timestamppb.New(createdAt),
+			UpdatedAt: timestamppb.New(updatedAt),
+		}
+		if inviteCode != nil {
+			fam.InviteCode = *inviteCode
+		}
+		if inviteExpiresAt != nil {
+			fam.InviteExpiresAt = timestamppb.New(*inviteExpiresAt)
+		}
+		families = append(families, fam)
+
+		membership := &pb.FamilyMember{
+			UserId: userID,
+		}
+		switch role {
+		case "owner":
+			membership.Role = pb.FamilyRole_FAMILY_ROLE_OWNER
+		case "admin":
+			membership.Role = pb.FamilyRole_FAMILY_ROLE_ADMIN
+		default:
+			membership.Role = pb.FamilyRole_FAMILY_ROLE_MEMBER
+		}
+		if permsJSON != nil {
+			var perms pb.MemberPermissions
+			if err := json.Unmarshal(permsJSON, &perms); err == nil {
+				membership.Permissions = &perms
+			}
+		}
+		memberships = append(memberships, membership)
+	}
+
+	return &pb.ListMyFamiliesResponse{
+		Families:    families,
+		Memberships: memberships,
+	}, nil
+}
+
 func (s *Service) GenerateInviteCode(ctx context.Context, req *pb.GenerateInviteCodeRequest) (*pb.GenerateInviteCodeResponse, error) {
 	userID, err := middleware.GetUserID(ctx)
 	if err != nil {

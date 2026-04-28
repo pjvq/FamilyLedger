@@ -10,6 +10,7 @@ import '../../data/local/database.dart';
 import '../../data/remote/grpc_clients.dart';
 import '../../generated/proto/auth.pbgrpc.dart';
 import '../../generated/proto/account.pb.dart' as acc_pb;
+import '../../generated/proto/family.pbgrpc.dart' as fam_pb;
 import 'account_provider.dart' show AccountTypeHelper;
 import '../../generated/proto/transaction.pb.dart' as txn_pb;
 import '../../generated/proto/transaction.pbenum.dart' as txn_enum;
@@ -118,6 +119,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // 同步服务端分类（含子分类）
       await _syncCategoriesToLocal();
 
+      // 同步服务端家庭信息到本地
+      await _syncFamiliesToLocal();
+
       _ref.read(currentUserIdProvider.notifier).state = resp.userId;
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
     } on GrpcError catch (e) {
@@ -220,6 +224,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       // 同步服务端分类到本地（含子分类）
       await _syncCategoriesToLocal();
+
+      // 同步服务端家庭信息到本地
+      await _syncFamiliesToLocal();
 
       // 最后设置 userId 触发 UI rebuild
       _ref.read(currentUserIdProvider.notifier).state = resp.userId;
@@ -336,6 +343,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // 同步服务端分类到本地（含子分类）
       await _syncCategoriesToLocal();
 
+      // 同步服务端家庭信息到本地
+      await _syncFamiliesToLocal();
+
       // 最后设置 userId 触发 UI rebuild
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
     } on GrpcError catch (e) {
@@ -380,6 +390,77 @@ class AuthNotifier extends StateNotifier<AuthState> {
     // Recursively insert children
     for (final child in c.children) {
       await _insertCategoryRecursive(child, c.id);
+    }
+  }
+
+  /// 登录后同步服务端家庭信息到本地
+  Future<void> _syncFamiliesToLocal() async {
+    try {
+      final famClient = _ref.read(familyClientProvider);
+      final resp = await famClient.listMyFamilies(
+        fam_pb.ListMyFamiliesRequest(),
+        options: CallOptions(timeout: const Duration(seconds: 5)),
+      );
+
+      for (int i = 0; i < resp.families.length; i++) {
+        final f = resp.families[i];
+        await _db.insertFamily(FamiliesCompanion.insert(
+          id: f.id,
+          name: f.name,
+          ownerId: f.ownerId,
+          inviteCode: Value(f.inviteCode),
+        ));
+
+        // Insert user's own membership
+        if (i < resp.memberships.length) {
+          final m = resp.memberships[i];
+          final role = switch (m.role) {
+            fam_pb.FamilyRole.FAMILY_ROLE_OWNER => 'owner',
+            fam_pb.FamilyRole.FAMILY_ROLE_ADMIN => 'admin',
+            _ => 'member',
+          };
+          await _db.insertFamilyMember(FamilyMembersCompanion.insert(
+            id: '${f.id}_${m.userId}',
+            familyId: f.id,
+            userId: m.userId,
+            role: Value(role),
+            canView: Value(m.permissions.canView),
+            canCreate: Value(m.permissions.canCreate),
+            canEdit: Value(m.permissions.canEdit),
+            canDelete: Value(m.permissions.canDelete),
+            canManageAccounts: Value(m.permissions.canManageAccounts),
+          ));
+        }
+
+        // Also sync all family members via GetFamily
+        try {
+          final famResp = await famClient.getFamily(
+            fam_pb.GetFamilyRequest()..familyId = f.id,
+            options: CallOptions(timeout: const Duration(seconds: 5)),
+          );
+          for (final member in famResp.members) {
+            final memberRole = switch (member.role) {
+              fam_pb.FamilyRole.FAMILY_ROLE_OWNER => 'owner',
+              fam_pb.FamilyRole.FAMILY_ROLE_ADMIN => 'admin',
+              _ => 'member',
+            };
+            await _db.insertFamilyMember(FamilyMembersCompanion.insert(
+              id: member.id.isNotEmpty ? member.id : '${f.id}_${member.userId}',
+              familyId: f.id,
+              userId: member.userId,
+              email: Value(member.email),
+              role: Value(memberRole),
+              canView: Value(member.permissions.canView),
+              canCreate: Value(member.permissions.canCreate),
+              canEdit: Value(member.permissions.canEdit),
+              canDelete: Value(member.permissions.canDelete),
+              canManageAccounts: Value(member.permissions.canManageAccounts),
+            ));
+          }
+        } catch (_) {}
+      }
+    } catch (e) {
+      developer.log('[Auth] _syncFamiliesToLocal failed: $e');
     }
   }
 }

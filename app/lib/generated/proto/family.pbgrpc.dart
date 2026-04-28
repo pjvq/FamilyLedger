@@ -33,6 +33,10 @@ class FamilyServiceClient extends $grpc.Client {
       '/familyledger.family.v1.FamilyService/GetFamily',
       ($0.GetFamilyRequest value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $0.GetFamilyResponse.fromBuffer(value));
+  static final _$listMyFamilies = $grpc.ClientMethod<$0.ListMyFamiliesRequest, $0.ListMyFamiliesResponse>(
+      '/familyledger.family.v1.FamilyService/ListMyFamilies',
+      ($0.ListMyFamiliesRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.ListMyFamiliesResponse.fromBuffer(value));
   static final _$generateInviteCode = $grpc.ClientMethod<$0.GenerateInviteCodeRequest, $0.GenerateInviteCodeResponse>(
       '/familyledger.family.v1.FamilyService/GenerateInviteCode',
       ($0.GenerateInviteCodeRequest value) => value.writeToBuffer(),
@@ -61,6 +65,10 @@ class FamilyServiceClient extends $grpc.Client {
       '/familyledger.family.v1.FamilyService/DeleteFamily',
       ($0.DeleteFamilyRequest value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $0.DeleteFamilyResponse.fromBuffer(value));
+  static final _$getAuditLog = $grpc.ClientMethod<$0.GetAuditLogRequest, $0.GetAuditLogResponse>(
+      '/familyledger.family.v1.FamilyService/GetAuditLog',
+      ($0.GetAuditLogRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.GetAuditLogResponse.fromBuffer(value));
 
   FamilyServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -78,6 +86,10 @@ class FamilyServiceClient extends $grpc.Client {
 
   $grpc.ResponseFuture<$0.GetFamilyResponse> getFamily($0.GetFamilyRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$getFamily, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.ListMyFamiliesResponse> listMyFamilies($0.ListMyFamiliesRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$listMyFamilies, request, options: options);
   }
 
   $grpc.ResponseFuture<$0.GenerateInviteCodeResponse> generateInviteCode($0.GenerateInviteCodeRequest request, {$grpc.CallOptions? options}) {
@@ -107,6 +119,10 @@ class FamilyServiceClient extends $grpc.Client {
   $grpc.ResponseFuture<$0.DeleteFamilyResponse> deleteFamily($0.DeleteFamilyRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$deleteFamily, request, options: options);
   }
+
+  $grpc.ResponseFuture<$0.GetAuditLogResponse> getAuditLog($0.GetAuditLogRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$getAuditLog, request, options: options);
+  }
 }
 
 @$pb.GrpcServiceName('familyledger.family.v1.FamilyService')
@@ -135,6 +151,13 @@ abstract class FamilyServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.GetFamilyRequest.fromBuffer(value),
         ($0.GetFamilyResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ListMyFamiliesRequest, $0.ListMyFamiliesResponse>(
+        'ListMyFamilies',
+        listMyFamilies_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.ListMyFamiliesRequest.fromBuffer(value),
+        ($0.ListMyFamiliesResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.GenerateInviteCodeRequest, $0.GenerateInviteCodeResponse>(
         'GenerateInviteCode',
         generateInviteCode_Pre,
@@ -184,6 +207,13 @@ abstract class FamilyServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.DeleteFamilyRequest.fromBuffer(value),
         ($0.DeleteFamilyResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetAuditLogRequest, $0.GetAuditLogResponse>(
+        'GetAuditLog',
+        getAuditLog_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.GetAuditLogRequest.fromBuffer(value),
+        ($0.GetAuditLogResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.CreateFamilyResponse> createFamily_Pre($grpc.ServiceCall call, $async.Future<$0.CreateFamilyRequest> request) async {
@@ -196,6 +226,10 @@ abstract class FamilyServiceBase extends $grpc.Service {
 
   $async.Future<$0.GetFamilyResponse> getFamily_Pre($grpc.ServiceCall call, $async.Future<$0.GetFamilyRequest> request) async {
     return getFamily(call, await request);
+  }
+
+  $async.Future<$0.ListMyFamiliesResponse> listMyFamilies_Pre($grpc.ServiceCall call, $async.Future<$0.ListMyFamiliesRequest> request) async {
+    return listMyFamilies(call, await request);
   }
 
   $async.Future<$0.GenerateInviteCodeResponse> generateInviteCode_Pre($grpc.ServiceCall call, $async.Future<$0.GenerateInviteCodeRequest> request) async {
@@ -226,9 +260,14 @@ abstract class FamilyServiceBase extends $grpc.Service {
     return deleteFamily(call, await request);
   }
 
+  $async.Future<$0.GetAuditLogResponse> getAuditLog_Pre($grpc.ServiceCall call, $async.Future<$0.GetAuditLogRequest> request) async {
+    return getAuditLog(call, await request);
+  }
+
   $async.Future<$0.CreateFamilyResponse> createFamily($grpc.ServiceCall call, $0.CreateFamilyRequest request);
   $async.Future<$0.JoinFamilyResponse> joinFamily($grpc.ServiceCall call, $0.JoinFamilyRequest request);
   $async.Future<$0.GetFamilyResponse> getFamily($grpc.ServiceCall call, $0.GetFamilyRequest request);
+  $async.Future<$0.ListMyFamiliesResponse> listMyFamilies($grpc.ServiceCall call, $0.ListMyFamiliesRequest request);
   $async.Future<$0.GenerateInviteCodeResponse> generateInviteCode($grpc.ServiceCall call, $0.GenerateInviteCodeRequest request);
   $async.Future<$0.SetMemberRoleResponse> setMemberRole($grpc.ServiceCall call, $0.SetMemberRoleRequest request);
   $async.Future<$0.SetMemberPermissionsResponse> setMemberPermissions($grpc.ServiceCall call, $0.SetMemberPermissionsRequest request);
@@ -236,4 +275,5 @@ abstract class FamilyServiceBase extends $grpc.Service {
   $async.Future<$0.LeaveFamilyResponse> leaveFamily($grpc.ServiceCall call, $0.LeaveFamilyRequest request);
   $async.Future<$0.TransferOwnershipResponse> transferOwnership($grpc.ServiceCall call, $0.TransferOwnershipRequest request);
   $async.Future<$0.DeleteFamilyResponse> deleteFamily($grpc.ServiceCall call, $0.DeleteFamilyRequest request);
+  $async.Future<$0.GetAuditLogResponse> getAuditLog($grpc.ServiceCall call, $0.GetAuditLogRequest request);
 }
