@@ -1,8 +1,8 @@
 package family
 
 import (
-	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,5 +39,10 @@ func TestW3_GenerateInviteCode_Format(t *testing.T) {
 	}
 }
 
-// suppress unused import warning
-var _ context.Context
+// ─── TTL: invite code expires in exactly 7 days ─────────────────────────────
+
+func TestW3_InviteCodeTTL_Is7Days(t *testing.T) {
+	// Verify the constant is 7 days (168 hours)
+	expected := 7 * 24 * time.Hour
+	assert.Equal(t, expected, inviteCodeTTL, "invite code TTL must be 7 days")
+}

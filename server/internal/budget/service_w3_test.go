@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	pgxmock "github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,9 +32,19 @@ func TestW3_CreateBudget_DuplicateMonthReject(t *testing.T) {
 
 	svc := NewService(mock)
 
-	// INSERT that returns unique constraint violation
+	// permission.Check skipped (no family_id)
+	// Begin transaction
+	mock.ExpectBegin()
+
+	// INSERT returns unique_violation (23505)
 	mock.ExpectQuery(`INSERT INTO budgets`).
-		WillReturnError(assert.AnError)
+		WillReturnError(&pgconn.PgError{
+			Code:    "23505",
+			Message: "duplicate key value violates unique constraint",
+		})
+
+	// Rollback after error (deferred)
+	mock.ExpectRollback()
 
 	_, err = svc.CreateBudget(authedCtx(), &pb.CreateBudgetRequest{
 		Year:        2026,
@@ -42,9 +53,7 @@ func TestW3_CreateBudget_DuplicateMonthReject(t *testing.T) {
 	})
 
 	require.Error(t, err)
-	// Should return AlreadyExists or Internal depending on error detection
-	st := status.Code(err)
-	assert.Contains(t, []codes.Code{codes.AlreadyExists, codes.Internal}, st)
+	assert.Equal(t, codes.AlreadyExists, status.Code(err))
 }
 
 // ─── CreateBudget: zero amount rejected ─────────────────────────────────────
