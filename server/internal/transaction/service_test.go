@@ -45,9 +45,9 @@ func TestCreateTransaction_Success(t *testing.T) {
 	txnID := uuid.New()
 	now := time.Now()
 
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, userUUID))
 
 	// permission.Check for personal account (no family) - no query needed
 
@@ -149,9 +149,9 @@ func TestCreateTransaction_MissingFields(t *testing.T) {
 	assert.Equal(t, codes.InvalidArgument, st.Code())
 
 	// Zero amount — needs family_id mock since parse succeeds
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(pgxmock.AnyArg()).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, userUUID))
 	resp, err = svc.CreateTransaction(authedCtx(), &pb.CreateTransactionRequest{
 		AccountId:  uuid.New().String(),
 		CategoryId: uuid.New().String(),
@@ -512,9 +512,9 @@ func TestUpdateTransaction_FamilyMemberWithEditPermission(t *testing.T) {
 		))
 
 	// getAccountFamilyID returns the family
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(strPtr(familyID.String())))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(strPtr(familyID.String()), ownerUUID))
 
 	// permission.Check: query family_members for current user's role/permissions
 	mock.ExpectQuery(`SELECT role, permissions FROM family_members WHERE family_id = \$1 AND user_id = \$2`).
@@ -581,9 +581,9 @@ func TestUpdateTransaction_FamilyAdminCanEdit(t *testing.T) {
 		))
 
 	// getAccountFamilyID
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(strPtr(familyID.String())))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(strPtr(familyID.String()), ownerUUID))
 
 	// permission.Check: admin bypasses permission checks
 	mock.ExpectQuery(`SELECT role, permissions FROM family_members WHERE family_id = \$1 AND user_id = \$2`).
@@ -646,9 +646,9 @@ func TestUpdateTransaction_FamilyMemberWithoutEditPermission(t *testing.T) {
 		))
 
 	// getAccountFamilyID
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(strPtr(familyID.String())))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(strPtr(familyID.String()), ownerUUID))
 
 	// permission.Check: member without edit permission
 	mock.ExpectQuery(`SELECT role, permissions FROM family_members WHERE family_id = \$1 AND user_id = \$2`).
@@ -698,9 +698,9 @@ func TestUpdateTransaction_NonFamilyMemberCannotEdit(t *testing.T) {
 		))
 
 	// getAccountFamilyID
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(strPtr(familyID.String())))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(strPtr(familyID.String()), ownerUUID))
 
 	// permission.Check: user not found in family_members
 	mock.ExpectQuery(`SELECT role, permissions FROM family_members WHERE family_id = \$1 AND user_id = \$2`).
@@ -748,9 +748,9 @@ func TestUpdateTransaction_PersonalAccountOtherUserBlocked(t *testing.T) {
 		))
 
 	// getAccountFamilyID returns empty (personal account)
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, ownerUUID))
 
 	mock.ExpectRollback()
 
@@ -788,9 +788,9 @@ func TestDeleteTransaction_FamilyMemberWithDeletePermission(t *testing.T) {
 			AddRow(ownerUUID, accountID, int64(3000), "expense"))
 
 	// getAccountFamilyID
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(strPtr(familyID.String())))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(strPtr(familyID.String()), ownerUUID))
 
 	// permission.Check: member with delete permission
 	mock.ExpectQuery(`SELECT role, permissions FROM family_members WHERE family_id = \$1 AND user_id = \$2`).
@@ -839,9 +839,9 @@ func TestDeleteTransaction_FamilyMemberWithoutDeletePermission(t *testing.T) {
 			AddRow(ownerUUID, accountID, int64(3000), "expense"))
 
 	// getAccountFamilyID
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(strPtr(familyID.String())))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(strPtr(familyID.String()), ownerUUID))
 
 	// permission.Check: member without delete permission
 	mock.ExpectQuery(`SELECT role, permissions FROM family_members WHERE family_id = \$1 AND user_id = \$2`).

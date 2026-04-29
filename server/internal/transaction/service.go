@@ -88,23 +88,43 @@ type querier interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
+// accountOwnership holds the family_id and owner user_id for an account.
+type accountOwnership struct {
+	familyID string
+	ownerID  uuid.UUID
+}
+
+// getAccountOwnership returns the family_id and owner user_id for an account.
+func getAccountOwnershipFrom(ctx context.Context, q querier, accountID uuid.UUID) (accountOwnership, error) {
+	var familyID *string
+	var ownerID uuid.UUID
+	err := q.QueryRow(ctx,
+		"SELECT family_id::text, user_id FROM accounts WHERE id = $1 AND deleted_at IS NULL",
+		accountID,
+	).Scan(&familyID, &ownerID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return accountOwnership{}, err
+		}
+		return accountOwnership{}, err
+	}
+	fid := ""
+	if familyID != nil {
+		fid = *familyID
+	}
+	return accountOwnership{familyID: fid, ownerID: ownerID}, nil
+}
+
 // getAccountFamilyID returns the family_id for an account (empty string if personal).
 func getAccountFamilyIDFrom(ctx context.Context, q querier, accountID uuid.UUID) (string, error) {
-	var familyID *string
-	err := q.QueryRow(ctx,
-		"SELECT family_id::text FROM accounts WHERE id = $1 AND deleted_at IS NULL",
-		accountID,
-	).Scan(&familyID)
+	own, err := getAccountOwnershipFrom(ctx, q, accountID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return "", nil
 		}
 		return "", err
 	}
-	if familyID == nil {
-		return "", nil
-	}
-	return *familyID, nil
+	return own.familyID, nil
 }
 
 // getAccountFamilyID returns the family_id for an account (empty string if personal).
@@ -133,13 +153,24 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		return nil, status.Error(codes.InvalidArgument, "invalid category_id")
 	}
 
-	// Permission check: verify user can create transactions in this account's family
-	familyID, err := s.getAccountFamilyID(ctx, accountID)
+	// Ownership + Permission check
+	own, err := getAccountOwnershipFrom(ctx, s.pool, accountID)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to check account family")
+		if err == pgx.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "account not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to check account ownership")
 	}
-	if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanCreate); err != nil {
-		return nil, err
+	if own.familyID == "" {
+		// Personal account: only the owner can create transactions
+		if own.ownerID != uid {
+			return nil, status.Error(codes.PermissionDenied, "account does not belong to user")
+		}
+	} else {
+		// Family account: check family membership + permissions
+		if err := permission.Check(ctx, s.pool, userID, own.familyID, permission.CanCreate); err != nil {
+			return nil, err
+		}
 	}
 
 	if req.Amount <= 0 {

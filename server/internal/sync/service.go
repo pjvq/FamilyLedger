@@ -88,11 +88,21 @@ func (s *Service) PushOperations(ctx context.Context, req *pb.PushOperationsRequ
 
 		opFailed := false
 
-		_, err = tx.Exec(ctx,
+		var inserted bool
+		err = tx.QueryRow(ctx,
 			`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
-			 VALUES ($1, $2, $3, $4::sync_op_type, $5, $6, $7)`,
+			 VALUES ($1, $2, $3, $4::sync_op_type, $5, $6, $7)
+			 ON CONFLICT (client_id) WHERE client_id IS NOT NULL AND client_id != ''
+			 DO NOTHING
+			 RETURNING true`,
 			uid, op.EntityType, entityID, opType, op.Payload, op.ClientId, ts,
-		)
+		).Scan(&inserted)
+		if err == pgx.ErrNoRows {
+			// Duplicate client_id — idempotent success (skip applying again)
+			accepted++
+			_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT "+spName)
+			continue
+		}
 		if err != nil {
 			log.Printf("sync: push op error for %s: %v", op.Id, err)
 			opFailed = true

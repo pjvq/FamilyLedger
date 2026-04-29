@@ -60,9 +60,9 @@ func TestCreateTransaction_SQLInjection_Note(t *testing.T) {
 			now := time.Now()
 
 			// Setup mock expectations
-			mock.ExpectQuery("SELECT family_id::text FROM accounts").
+			mock.ExpectQuery("SELECT family_id::text, user_id FROM accounts").
 				WithArgs(accountID).
-				WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+				WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, userUUID))
 
 			mock.ExpectBegin()
 
