@@ -45,4 +45,4 @@ app.*.map.json
 /android/app/release
 
 # Test fixtures with sensitive data
-test/fixtures/
+test/fixtures/*.xlsx

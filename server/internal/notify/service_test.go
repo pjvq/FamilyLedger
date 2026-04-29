@@ -502,10 +502,10 @@ func TestCheckCreditCardReminders_PaymentDueDay(t *testing.T) {
 	accountID := uuid.New()
 	today := time.Now().Day()
 	// Set due day to today (0 days until due, within 3-day window)
+	// Note: don't cap at 28 — the service handles any valid day (1-31).
+	// Capping caused failures on days 29-31 because dueDay < today
+	// results in daysUntilDue wrapping to next month (outside 3-day window).
 	dueDay := today
-	if dueDay > 28 {
-		dueDay = 28
-	}
 
 	// Query credit card accounts
 	mock.ExpectQuery("SELECT id, user_id, family_id, name, billing_day, payment_due_day").

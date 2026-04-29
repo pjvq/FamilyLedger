@@ -9,6 +9,7 @@ on:
     paths:
       - 'server/**'
       - 'proto/**'
+      - '.github/workflows/go.yml'
 
 jobs:
   unit:
@@ -32,10 +33,20 @@ jobs:
         run: go build ./...
 
       - name: Run tests
-        run: go test ./... -count=1 -race -coverprofile=coverage.out
+        run: go test ./... -count=1 -race -coverprofile=coverage.out -timeout=60s
 
       - name: Vet
         run: go vet ./...
+
+      - name: Coverage report (target 85% by W15)
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Total coverage: ${COVERAGE}%"
+          echo "📈 Target: 85% by W15. Current gate: 20% (prevent regression)"
+          if (( $(echo "$COVERAGE < 20.0" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below 20% minimum threshold"
+            exit 1
+          fi
 
       - name: Upload coverage
         if: always()
