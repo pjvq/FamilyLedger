@@ -36,8 +36,12 @@ type TestDB struct {
 //
 // migrationsPath is relative to the test file, e.g. "../../migrations".
 func SetupPostgres(migrationsPath string) (*TestDB, error) {
-	// Check Docker is available
+	// Check Docker is available — in CI, Docker is mandatory.
 	if err := exec.Command("docker", "info").Run(); err != nil {
+		if os.Getenv("CI") != "" {
+			fmt.Println("FATAL: Docker is required in CI but not available")
+			os.Exit(1)
+		}
 		fmt.Println("SKIP: Docker is not available. Integration tests require a running Docker daemon.")
 		fmt.Println("Start Docker and run: go test ./... -tags=integration -count=1 -v")
 		os.Exit(0)
@@ -66,7 +70,7 @@ func SetupPostgres(migrationsPath string) (*TestDB, error) {
 		return nil, fmt.Errorf("failed to get connection string: %w", err)
 	}
 
-	// Run all 38 migrations
+	// Run all migrations
 	mig, err := migrate.New("file://"+migrationsPath, connStr)
 	if err != nil {
 		pgContainer.Terminate(ctx)
@@ -117,36 +121,46 @@ func (db *TestDB) TruncateTables(t *testing.T, tables ...string) {
 	}
 }
 
-// TruncateAllExceptSeeds truncates all user-data tables while preserving
-// seeded categories and other reference data.
+// TruncateAllExceptSeeds dynamically queries all public tables and truncates them,
+// excluding schema_migrations and seed data tables (categories).
+// This approach is resilient to new migrations adding tables.
 func (db *TestDB) TruncateAllExceptSeeds(t *testing.T) {
 	t.Helper()
-	tables := []string{
-		"audit_logs",
-		"budget_alerts",
-		"budgets",
-		"investment_transactions",
-		"investments",
-		"loan_groups",
-		"loans",
-		"loan_repayments",
-		"fixed_assets",
-		"asset_valuations",
-		"price_history",
-		"sync_operations",
-		"transactions",
-		"accounts",
-		"family_members",
-		"families",
-		"import_sessions",
-		"users",
-	}
 	ctx := context.Background()
+
+	// Dynamically discover tables, excluding system/seed tables
+	const q = `SELECT tablename FROM pg_tables
+	           WHERE schemaname = 'public'
+	           AND tablename NOT IN ('schema_migrations', 'categories')`
+
+	rows, err := db.Pool.Query(ctx, q)
+	if err != nil {
+		t.Fatalf("failed to query table list: %v", err)
+	}
+	defer rows.Close()
+
+	var tables []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			t.Fatalf("failed to scan table name: %v", err)
+		}
+		tables = append(tables, name)
+	}
+
 	for _, table := range tables {
 		_, err := db.Pool.Exec(ctx, fmt.Sprintf("TRUNCATE TABLE %s RESTART IDENTITY CASCADE", table))
 		if err != nil {
-			// Some tables may not exist in older migrations — skip gracefully
 			t.Logf("note: truncate %s: %v", table, err)
 		}
+	}
+}
+
+// MustExec executes SQL or fails the test.
+func MustExec(t *testing.T, pool *pgxpool.Pool, sql string, args ...any) {
+	t.Helper()
+	_, err := pool.Exec(context.Background(), sql, args...)
+	if err != nil {
+		t.Fatalf("MustExec failed: %v\nSQL: %s", err, sql)
 	}
 }
