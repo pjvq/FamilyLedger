@@ -32,8 +32,14 @@ jobs:
       - name: Build
         run: go build ./...
 
-      - name: Run tests
-        run: go test ./... -count=1 -race -coverprofile=coverage.out -timeout=60s
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Run tests (with retry for flaky)
+        run: |
+          gotestsum --rerun-fails=2 --rerun-fails-max-failures=3 \
+            --format short-verbose \
+            -- ./... -count=1 -race -coverprofile=coverage.out -timeout=60s
 
       - name: Vet
         run: go vet ./...

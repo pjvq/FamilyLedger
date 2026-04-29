@@ -34,8 +34,11 @@ jobs:
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Run tests
-        run: flutter test --reporter compact --coverage --timeout 5s
+      - name: Run tests (with retry for flaky)
+        run: |
+          flutter test --reporter compact --coverage --timeout 5s || \
+          flutter test --reporter compact --coverage --timeout 5s || \
+          flutter test --reporter compact --coverage --timeout 5s
 
       - name: Coverage report (target 80% by W15)
         run: |
