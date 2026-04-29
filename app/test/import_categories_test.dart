@@ -271,11 +271,11 @@ void main() {
     });
   });
 
-  group('Real Baishi AA import - full data', () {
+  group('Import category matching - synthetic data', () {
     late List<({String type, String parent, String tag})> importData;
 
     setUpAll(() {
-      final file = File('test/fixtures/baishi_import_data.json');
+      final file = File('test/fixtures/synthetic_import_data.json');
       final json = jsonDecode(file.readAsStringSync()) as List;
       importData = json
           .map((e) => (
@@ -286,8 +286,8 @@ void main() {
           .toList();
     });
 
-    test('loads 1724 transaction records', () {
-      expect(importData.length, 1724);
+    test('loads 100 synthetic transaction records', () {
+      expect(importData.length, 100);
     });
 
     test('single import produces no duplicate categories', () async {
