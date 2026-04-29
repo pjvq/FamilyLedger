@@ -609,9 +609,9 @@ func TestSync_PullChanges_SinceTimestamp(t *testing.T) {
 
 	_, err := db.pool.Exec(ctx,
 		`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
-		 VALUES ($1, 'transaction', $2, 'create', '{}', 'client-a', $5),
-		        ($1, 'transaction', $3, 'update', '{}', 'client-a', $6),
-		        ($1, 'transaction', $4, 'delete', '{}', 'client-a', $7)`,
+		 VALUES ($1, 'transaction', $2, 'create', '{}', 'client-a-1', $5),
+		        ($1, 'transaction', $3, 'update', '{}', 'client-a-2', $6),
+		        ($1, 'transaction', $4, 'delete', '{}', 'client-a-3', $7)`,
 		userID, entityID1, entityID2, entityID3, t1, t2, t3,
 	)
 	require.NoError(t, err)
@@ -639,12 +639,12 @@ func TestSync_PullChanges_SinceTimestamp(t *testing.T) {
 	}
 	assert.Equal(t, 2, count, "should get 2 operations after t1")
 
-	// Pull since t2 with same client_id (should filter out same client)
+	// Pull since t2 with same client_id prefix (should filter specific client op)
 	rows2, err := db.pool.Query(ctx,
 		`SELECT id FROM sync_operations
 		 WHERE user_id = $1 AND timestamp > $2 AND client_id != $3
 		 ORDER BY timestamp ASC`,
-		userID, t2, "client-a",
+		userID, t2, "client-a-3",
 	)
 	require.NoError(t, err)
 	defer rows2.Close()
@@ -655,7 +655,7 @@ func TestSync_PullChanges_SinceTimestamp(t *testing.T) {
 		require.NoError(t, rows2.Scan(&id))
 		countSameClient++
 	}
-	assert.Equal(t, 0, countSameClient, "same client_id should be filtered out")
+	assert.Equal(t, 0, countSameClient, "filtering by client_id-3 after t2 should return 0 (only op after t2 is client-a-3 itself)")
 }
 
 func TestSync_PushOperations(t *testing.T) {

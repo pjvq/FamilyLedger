@@ -25,9 +25,9 @@ func TestCreateTransaction_ZeroAmount(t *testing.T) {
 	accountID := uuid.New()
 	categoryID := uuid.New()
 
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, uuid.MustParse(testUserID)))
 
 	_, err = svc.CreateTransaction(authedCtx(), &pb.CreateTransactionRequest{
 		AccountId:  accountID.String(),
@@ -50,9 +50,9 @@ func TestCreateTransaction_NegativeAmount(t *testing.T) {
 	accountID := uuid.New()
 	categoryID := uuid.New()
 
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, uuid.MustParse(testUserID)))
 
 	_, err = svc.CreateTransaction(authedCtx(), &pb.CreateTransactionRequest{
 		AccountId:  accountID.String(),
@@ -74,9 +74,9 @@ func TestCreateTransaction_ForeignCurrency_MissingAmountCny(t *testing.T) {
 	accountID := uuid.New()
 	categoryID := uuid.New()
 
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, uuid.MustParse(testUserID)))
 
 	_, err = svc.CreateTransaction(authedCtx(), &pb.CreateTransactionRequest{
 		AccountId:  accountID.String(),
@@ -134,9 +134,9 @@ func TestCreateTransaction_DBBeginFailure(t *testing.T) {
 	accountID := uuid.New()
 	categoryID := uuid.New()
 
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, uuid.MustParse(testUserID)))
 
 	mock.ExpectBegin().WillReturnError(assert.AnError)
 

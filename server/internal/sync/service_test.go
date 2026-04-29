@@ -56,8 +56,8 @@ func TestPushOperations_Success(t *testing.T) {
 	// Savepoint for this operation
 	mock.ExpectExec(`SAVEPOINT sp_0`).WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
 
-	// Insert sync_operation
-	mock.ExpectExec(`INSERT INTO sync_operations`).
+	// Insert sync_operation (now uses QueryRow with ON CONFLICT ... RETURNING)
+	mock.ExpectQuery(`INSERT INTO sync_operations`).
 		WithArgs(
 			userUUID,
 			"transaction",
@@ -67,7 +67,7 @@ func TestPushOperations_Success(t *testing.T) {
 			pgxmock.AnyArg(), // client_id
 			pgxmock.AnyArg(), // timestamp
 		).
-		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+		WillReturnRows(pgxmock.NewRows([]string{""}).AddRow(true))
 
 	// applyOperation → applyTransactionCreate
 	// Verify account ownership (now includes family_id)
@@ -198,8 +198,8 @@ func TestPushOperations_FamilyBroadcast(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectExec(`SAVEPOINT sp_0`).WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
 
-	// Insert sync_operation
-	mock.ExpectExec(`INSERT INTO sync_operations`).
+	// Insert sync_operation (QueryRow with ON CONFLICT)
+	mock.ExpectQuery(`INSERT INTO sync_operations`).
 		WithArgs(
 			userUUID,
 			"transaction",
@@ -209,7 +209,7 @@ func TestPushOperations_FamilyBroadcast(t *testing.T) {
 			pgxmock.AnyArg(),
 			pgxmock.AnyArg(),
 		).
-		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+		WillReturnRows(pgxmock.NewRows([]string{""}).AddRow(true))
 
 	// applyTransactionCreate: account is a family account
 	familyIDPtr := &familyID

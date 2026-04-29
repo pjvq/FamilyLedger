@@ -27,9 +27,9 @@ func mockCreateTxnFlow(mock pgxmock.PgxPoolIface, accountID, categoryID, txnID u
 	now := time.Now()
 
 	// 1. getAccountFamilyID
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, userUUID))
 
 	// 2. BEGIN
 	mock.ExpectBegin()
@@ -152,9 +152,9 @@ func TestW3_CreateTransaction_ForeignCurrency_RequiresAmountCny(t *testing.T) {
 	svc := NewService(mock)
 
 	// getAccountFamilyID mock needed since validation comes after parsing
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(pgxmock.AnyArg()).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, userUUID))
 
 	_, err = svc.CreateTransaction(authedCtx(), &pb.CreateTransactionRequest{
 		AccountId:  uuid.New().String(),
@@ -407,9 +407,9 @@ func TestW3_CreateTransaction_UsesForUpdateLock(t *testing.T) {
 	now := time.Now()
 
 	// getAccountFamilyID
-	mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
+	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, userUUID))
 
 	mock.ExpectBegin()
 

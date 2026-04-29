@@ -54,9 +54,9 @@ func TestConcurrent_CreateTransaction_NoRace(t *testing.T) {
 			now := time.Now()
 
 			// Setup expectations
-			mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
+			mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 				WithArgs(accountID).
-				WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+				WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, userUUID))
 
 			mock.ExpectBegin()
 
@@ -212,9 +212,9 @@ func TestConcurrent_CreateAndList_NoRace(t *testing.T) {
 			txnID := uuid.New()
 			now := time.Now()
 
-			mock.ExpectQuery(`SELECT family_id::text FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
+			mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 				WithArgs(accountID).
-				WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(nil))
+				WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, userUUID))
 
 			mock.ExpectBegin()
 

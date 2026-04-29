@@ -2,10 +2,12 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/familyledger/server/pkg/db"
 	"github.com/familyledger/server/pkg/middleware"
 	"golang.org/x/crypto/bcrypt"
@@ -85,6 +87,10 @@ func (s *Service) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.Re
 		req.Email, string(hash),
 	).Scan(&userID)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, status.Error(codes.AlreadyExists, "email already registered")
+		}
 		return nil, status.Error(codes.Internal, "failed to create user")
 	}
 
