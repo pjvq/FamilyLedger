@@ -182,7 +182,9 @@ func TestPushOperations_AllEntityTypes_Reachable(t *testing.T) {
 			svc := NewService(mock, hub)
 			entityID := uuid.New()
 
-			// Allow any DB operations — we're just testing the routing
+			// Allow any DB operations — we're testing routing reachability only.
+			// NOTE: This test validates all 8 entity types are routable (R1 fix).
+			// Full CRUD per entity_type is covered in W5 integration tests.
 			mock.ExpectBegin()
 			mock.ExpectExec("SAVEPOINT").WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
 			mock.ExpectExec("INSERT INTO sync_operations").

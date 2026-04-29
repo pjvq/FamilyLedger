@@ -28,11 +28,13 @@ type TokenPair struct {
 type Option func(*Manager)
 
 // WithAccessTTL sets the access token duration.
+// ⚠️ Only use in tests — production should use the default (15min).
 func WithAccessTTL(d time.Duration) Option {
 	return func(m *Manager) { m.accessDuration = d }
 }
 
 // WithRefreshTTL sets the refresh token duration.
+// ⚠️ Only use in tests — production should use the default (7d).
 func WithRefreshTTL(d time.Duration) Option {
 	return func(m *Manager) { m.refreshDuration = d }
 }

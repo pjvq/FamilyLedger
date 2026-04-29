@@ -39,12 +39,12 @@ func TestCreateAccount_XSS_Name(t *testing.T) {
 		t.Run(payload[:min(len(payload), 20)], func(t *testing.T) {
 			accountID := uuid.New()
 
-			// Mock for getAccountFamilyID / CreateAccount flow
+			// Match the real INSERT INTO accounts ... RETURNING id, created_at, updated_at
 			mock.ExpectQuery(`INSERT INTO accounts`).
-				WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+				WithArgs(pgxmock.AnyArg(), payload, pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 				WillReturnRows(pgxmock.NewRows([]string{
-					"id", "user_id", "name", "type", "balance", "currency", "created_at", "updated_at",
-				}).AddRow(accountID, uuid.New(), payload, "cash", 0, "CNY", time.Now(), time.Now()))
+					"id", "created_at", "updated_at",
+				}).AddRow(accountID, time.Now(), time.Now()))
 
 			resp, err := svc.CreateAccount(authedCtx(), &accountpb.CreateAccountRequest{
 				Name:     payload,
@@ -52,12 +52,10 @@ func TestCreateAccount_XSS_Name(t *testing.T) {
 				Currency: "CNY",
 			})
 
-			// Should succeed — XSS prevention is a frontend concern
-			// The key is that parameterized queries prevent injection
-			if err == nil {
-				assert.Equal(t, payload, resp.Account.Name, "name should be stored verbatim (no mutation)")
-			}
-			// If error, it's because mock doesn't match — still no injection risk
+			// Verify parameterized queries store XSS payloads verbatim
+			require.NoError(t, err, "XSS payload should be stored verbatim via parameterized queries")
+			assert.Equal(t, payload, resp.Account.Name, "name should be stored verbatim (no mutation)")
+			assert.NoError(t, mock.ExpectationsWereMet(), "all expected DB calls should have been made")
 		})
 	}
 }
