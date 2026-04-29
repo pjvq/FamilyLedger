@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	pgxmock "github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -157,4 +158,169 @@ func TestW3_GenerateSchedule_FinalBalanceZero(t *testing.T) {
 				"final remaining principal should be 0 (±1 rounding)")
 		})
 	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Loan Prepayment Simulation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+func TestW3_SimulatePrepayment_ReduceMonths_Success(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	loanID := uuid.New()
+	startDate := time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC)
+
+	// loadLoan mock: 100万, 360月, 4.9%, equal_installment, 已还12期
+	mock.ExpectQuery(`SELECT .+ FROM loans WHERE id=\$1 AND deleted_at IS NULL`).
+		WithArgs(loanID.String()).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"id", "user_id", "name", "loan_type", "principal", "remaining_principal",
+			"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
+			"start_date", "created_at", "updated_at", "account_id",
+			"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
+			"family_id",
+		}).AddRow(
+			loanID, uuid.MustParse(testUserID), "房贷", "mortgage",
+			int64(1000000_00), int64(970000_00), // remaining after 12 months
+			4.9, int32(360), int32(12),
+			pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT, int32(15),
+			startDate, startDate, startDate, nil,
+			nil, nil, nil, nil, nil, nil, nil,
+		))
+
+	// loadSchedule: build 360 items (12 paid + 348 unpaid)
+	scheduleRows := pgxmock.NewRows([]string{
+		"month_number", "payment", "principal_part", "interest_part",
+		"remaining_principal", "is_paid", "due_date", "paid_date",
+	})
+	for i := 1; i <= 360; i++ {
+		isPaid := i <= 12
+		var paidDate *time.Time
+		if isPaid {
+			pd := startDate.AddDate(0, i, 0)
+			paidDate = &pd
+		}
+		dueDate := startDate.AddDate(0, i, 0)
+		scheduleRows.AddRow(
+			int32(i), int64(531300), int64(122500), int64(408800),
+			int64(1000000_00)-int64(i)*int64(122500), isPaid, dueDate, paidDate,
+		)
+	}
+	mock.ExpectQuery(`SELECT .+ FROM loan_schedules WHERE loan_id=\$1 ORDER BY month_number`).
+		WithArgs(loanID.String()).
+		WillReturnRows(scheduleRows)
+
+	resp, err := svc.SimulatePrepayment(extAuthedCtx(), &pb.SimulatePrepaymentRequest{
+		LoanId:           loanID.String(),
+		PrepaymentAmount: 200000_00, // 提前还20万
+		Strategy:         pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_MONTHS,
+	})
+
+	require.NoError(t, err)
+	// Reduce months: fewer months, interest saved > 0
+	assert.Positive(t, resp.InterestSaved, "prepayment should save interest")
+	assert.Positive(t, resp.MonthsReduced, "reduce_months strategy should reduce months")
+	assert.NotEmpty(t, resp.NewSchedule, "should generate new schedule")
+	assert.Less(t, int32(len(resp.NewSchedule)), int32(348), "new schedule should have fewer months than 348")
+}
+
+func TestW3_SimulatePrepayment_ReducePayment_Success(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	loanID := uuid.New()
+	startDate := time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC)
+
+	// Same loan setup
+	mock.ExpectQuery(`SELECT .+ FROM loans WHERE id=\$1 AND deleted_at IS NULL`).
+		WithArgs(loanID.String()).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"id", "user_id", "name", "loan_type", "principal", "remaining_principal",
+			"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
+			"start_date", "created_at", "updated_at", "account_id",
+			"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
+			"family_id",
+		}).AddRow(
+			loanID, uuid.MustParse(testUserID), "房贷", "mortgage",
+			int64(1000000_00), int64(970000_00),
+			4.9, int32(360), int32(12),
+			pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT, int32(15),
+			startDate, startDate, startDate, nil,
+			nil, nil, nil, nil, nil, nil, nil,
+		))
+
+	scheduleRows := pgxmock.NewRows([]string{
+		"month_number", "payment", "principal_part", "interest_part",
+		"remaining_principal", "is_paid", "due_date", "paid_date",
+	})
+	for i := 1; i <= 360; i++ {
+		isPaid := i <= 12
+		var paidDate *time.Time
+		if isPaid {
+			pd := startDate.AddDate(0, i, 0)
+			paidDate = &pd
+		}
+		dueDate := startDate.AddDate(0, i, 0)
+		scheduleRows.AddRow(
+			int32(i), int64(531300), int64(122500), int64(408800),
+			int64(1000000_00)-int64(i)*int64(122500), isPaid, dueDate, paidDate,
+		)
+	}
+	mock.ExpectQuery(`SELECT .+ FROM loan_schedules WHERE loan_id=\$1 ORDER BY month_number`).
+		WithArgs(loanID.String()).
+		WillReturnRows(scheduleRows)
+
+	resp, err := svc.SimulatePrepayment(extAuthedCtx(), &pb.SimulatePrepaymentRequest{
+		LoanId:           loanID.String(),
+		PrepaymentAmount: 200000_00,
+		Strategy:         pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_PAYMENT,
+	})
+
+	require.NoError(t, err)
+	// Reduce payment: same months, lower monthly payment, interest saved > 0
+	assert.Positive(t, resp.InterestSaved, "prepayment should save interest")
+	assert.Positive(t, resp.NewMonthlyPayment, "should have new monthly payment")
+	assert.Equal(t, int32(len(resp.NewSchedule)), int32(348), "reduce_payment keeps same number of months")
+}
+
+func TestW3_SimulatePrepayment_ExceedsRemaining_Rejected(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	loanID := uuid.New()
+	startDate := time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC)
+
+	mock.ExpectQuery(`SELECT .+ FROM loans WHERE id=\$1 AND deleted_at IS NULL`).
+		WithArgs(loanID.String()).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"id", "user_id", "name", "loan_type", "principal", "remaining_principal",
+			"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
+			"start_date", "created_at", "updated_at", "account_id",
+			"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
+			"family_id",
+		}).AddRow(
+			loanID, uuid.MustParse(testUserID), "房贷", "mortgage",
+			int64(1000000_00), int64(500000_00), // remaining 50万
+			4.9, int32(360), int32(180),
+			pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT, int32(15),
+			startDate, startDate, startDate, nil,
+			nil, nil, nil, nil, nil, nil, nil,
+		))
+
+	_, err = svc.SimulatePrepayment(extAuthedCtx(), &pb.SimulatePrepaymentRequest{
+		LoanId:           loanID.String(),
+		PrepaymentAmount: 600000_00, // 60万 > remaining 50万
+		Strategy:         pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_MONTHS,
+	})
+
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+	assert.Contains(t, err.Error(), "exceeds remaining principal")
 }

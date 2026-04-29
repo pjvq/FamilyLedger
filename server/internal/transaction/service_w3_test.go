@@ -279,3 +279,113 @@ func TestW3_DeleteTransaction_IncomeRevertsBalance(t *testing.T) {
 	require.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Consecutive operations: income + expense verify both update balance
+// ═══════════════════════════════════════════════════════════════════════════════
+
+func TestW3_ConsecutiveTransactions_IncomeAndExpense(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	accountID := uuid.New()
+	categoryID := uuid.New()
+	txnID1 := uuid.New()
+	txnID2 := uuid.New()
+
+	// First: income +30000
+	mockCreateTxnFlow(mock, accountID, categoryID, txnID1)
+
+	resp1, err := svc.CreateTransaction(authedCtx(), &pb.CreateTransactionRequest{
+		AccountId:  accountID.String(),
+		CategoryId: categoryID.String(),
+		Amount:     30000,
+		Type:       pb.TransactionType_TRANSACTION_TYPE_INCOME,
+		TxnDate:    timestamppb.New(time.Now()),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, txnID1.String(), resp1.Transaction.Id)
+
+	// Second: expense -12000
+	mockCreateTxnFlow(mock, accountID, categoryID, txnID2)
+
+	resp2, err := svc.CreateTransaction(authedCtx(), &pb.CreateTransactionRequest{
+		AccountId:  accountID.String(),
+		CategoryId: categoryID.String(),
+		Amount:     12000,
+		Type:       pb.TransactionType_TRANSACTION_TYPE_EXPENSE,
+		TxnDate:    timestamppb.New(time.Now()),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, txnID2.String(), resp2.Transaction.Id)
+
+	// Both succeeded — DB would have +30000 then -12000 = net +18000
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// ─── UpdateTransaction: amount change recalculates balance delta ─────────────
+
+func TestW3_UpdateTransaction_AmountChangeRebalance(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	txnID := uuid.New()
+	accountID := uuid.New()
+	categoryID := uuid.New()
+
+	mock.ExpectBegin()
+
+	// Fetch existing transaction (10 columns)
+	mock.ExpectQuery(`SELECT user_id, account_id, category_id, amount, type, currency, note, tags, exchange_rate, amount_cny`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"user_id", "account_id", "category_id", "amount", "type",
+			"currency", "note", "tags", "exchange_rate", "amount_cny",
+		}).AddRow(
+			userUUID, accountID, categoryID, int64(5000), "expense",
+			"CNY", "lunch", nil, 1.0, int64(5000),
+		))
+
+	// UPDATE transaction fields (dynamic SQL with various args)
+	mock.ExpectExec(`UPDATE transactions SET .+ WHERE id = `).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	// Balance revert old + apply new: net delta (2 args: amount, account_id)
+	mock.ExpectExec(`UPDATE accounts SET balance = balance \+`).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	mock.ExpectCommit()
+
+	// Refetch updated transaction (pool.Query after commit)
+	now := time.Now()
+	mock.ExpectQuery(`SELECT .+ FROM transactions WHERE id = \$1`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"id", "user_id", "account_id", "category_id", "amount", "currency",
+			"amount_cny", "exchange_rate", "type", "note", "txn_date",
+			"created_at", "updated_at", "tags", "image_urls",
+		}).AddRow(
+			txnID, testUserID, accountID, categoryID, int64(8000), "CNY",
+			int64(8000), 1.0, "expense", "lunch", now,
+			now, now, nil, nil,
+		))
+
+	resp, err := svc.UpdateTransaction(authedCtx(), &pb.UpdateTransactionRequest{
+		TransactionId: txnID.String(),
+		Amount:        int64Ptr(8000), // was 5000, now 8000
+		Type:          txnTypePtr(pb.TransactionType_TRANSACTION_TYPE_EXPENSE),
+	})
+
+	require.NoError(t, err)
+	assert.NotNil(t, resp.Transaction)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func int64Ptr(v int64) *int64                    { return &v }
+func txnTypePtr(v pb.TransactionType) *pb.TransactionType { return &v }

@@ -3,6 +3,7 @@ package budget
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	pgxmock "github.com/pashagolub/pgxmock/v4"
@@ -209,4 +210,150 @@ func TestW3_UpdateBudget_ZeroAmount(t *testing.T) {
 	// UpdateBudget may not validate 0 amount (goes to DB)
 	st := status.Code(err)
 	assert.Contains(t, []codes.Code{codes.InvalidArgument, codes.Internal}, st)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Budget Execution Rate Integration (mock DB queries → verify rate computation)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Execution rate: 50% spent ──────────────────────────────────────────────
+
+func TestW3_GetBudgetExecution_Rate50Percent(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	budgetID := uuid.New()
+	now := time.Now()
+
+	// loadBudget: personal budget, 100000 total, no family
+	mock.ExpectQuery(`SELECT user_id, family_id, year, month, total_amount, created_at FROM budgets WHERE id = \$1`).
+		WithArgs(budgetID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"user_id", "family_id", "year", "month", "total_amount", "created_at",
+		}).AddRow(testUserUUID, nil, int32(2026), int32(5), int64(100000), now))
+
+	// loadCategoryBudgets: no category budgets
+	mock.ExpectQuery(`SELECT category_id, amount FROM category_budgets WHERE budget_id = \$1`).
+		WithArgs(budgetID).
+		WillReturnRows(pgxmock.NewRows([]string{"category_id", "amount"}))
+
+	// computeExecution: personal budget expense sum = 50000 (50%)
+	mock.ExpectQuery(`SELECT COALESCE\(SUM\(amount_cny\), 0\)`).
+		WithArgs(testUserID, pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"sum"}).AddRow(int64(50000)))
+
+	resp, err := svc.GetBudgetExecution(authedCtx(), &pb.GetBudgetExecutionRequest{
+		BudgetId: budgetID.String(),
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, int64(100000), resp.Execution.TotalBudget)
+	assert.Equal(t, int64(50000), resp.Execution.TotalSpent)
+	assert.InDelta(t, 0.5, resp.Execution.ExecutionRate, 0.001, "50% execution rate")
+}
+
+// ─── Execution rate: 80% warning threshold ──────────────────────────────────
+
+func TestW3_GetBudgetExecution_Rate80PercentWarning(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	budgetID := uuid.New()
+	now := time.Now()
+
+	mock.ExpectQuery(`SELECT user_id, family_id, year, month, total_amount, created_at FROM budgets WHERE id = \$1`).
+		WithArgs(budgetID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"user_id", "family_id", "year", "month", "total_amount", "created_at",
+		}).AddRow(testUserUUID, nil, int32(2026), int32(5), int64(100000), now))
+
+	mock.ExpectQuery(`SELECT category_id, amount FROM category_budgets WHERE budget_id = \$1`).
+		WithArgs(budgetID).
+		WillReturnRows(pgxmock.NewRows([]string{"category_id", "amount"}))
+
+	// 80000 / 100000 = 0.80 → warning threshold
+	mock.ExpectQuery(`SELECT COALESCE\(SUM\(amount_cny\), 0\)`).
+		WithArgs(testUserID, pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"sum"}).AddRow(int64(80000)))
+
+	resp, err := svc.GetBudgetExecution(authedCtx(), &pb.GetBudgetExecutionRequest{
+		BudgetId: budgetID.String(),
+	})
+
+	require.NoError(t, err)
+	assert.InDelta(t, 0.8, resp.Execution.ExecutionRate, 0.001)
+	assert.True(t, resp.Execution.ExecutionRate >= 0.8, "should trigger warning threshold")
+}
+
+// ─── Execution rate: 100% exceeded ──────────────────────────────────────────
+
+func TestW3_GetBudgetExecution_Rate100PercentExceeded(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	budgetID := uuid.New()
+	now := time.Now()
+
+	mock.ExpectQuery(`SELECT user_id, family_id, year, month, total_amount, created_at FROM budgets WHERE id = \$1`).
+		WithArgs(budgetID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"user_id", "family_id", "year", "month", "total_amount", "created_at",
+		}).AddRow(testUserUUID, nil, int32(2026), int32(5), int64(100000), now))
+
+	mock.ExpectQuery(`SELECT category_id, amount FROM category_budgets WHERE budget_id = \$1`).
+		WithArgs(budgetID).
+		WillReturnRows(pgxmock.NewRows([]string{"category_id", "amount"}))
+
+	// 120000 / 100000 = 1.20 → exceeded
+	mock.ExpectQuery(`SELECT COALESCE\(SUM\(amount_cny\), 0\)`).
+		WithArgs(testUserID, pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"sum"}).AddRow(int64(120000)))
+
+	resp, err := svc.GetBudgetExecution(authedCtx(), &pb.GetBudgetExecutionRequest{
+		BudgetId: budgetID.String(),
+	})
+
+	require.NoError(t, err)
+	assert.InDelta(t, 1.2, resp.Execution.ExecutionRate, 0.001)
+	assert.True(t, resp.Execution.ExecutionRate >= 1.0, "should trigger exceeded alert")
+}
+
+// ─── Execution rate: zero spending ──────────────────────────────────────────
+
+func TestW3_GetBudgetExecution_ZeroSpending(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+	budgetID := uuid.New()
+	now := time.Now()
+
+	mock.ExpectQuery(`SELECT user_id, family_id, year, month, total_amount, created_at FROM budgets WHERE id = \$1`).
+		WithArgs(budgetID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"user_id", "family_id", "year", "month", "total_amount", "created_at",
+		}).AddRow(testUserUUID, nil, int32(2026), int32(5), int64(50000), now))
+
+	mock.ExpectQuery(`SELECT category_id, amount FROM category_budgets WHERE budget_id = \$1`).
+		WithArgs(budgetID).
+		WillReturnRows(pgxmock.NewRows([]string{"category_id", "amount"}))
+
+	mock.ExpectQuery(`SELECT COALESCE\(SUM\(amount_cny\), 0\)`).
+		WithArgs(testUserID, pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"sum"}).AddRow(int64(0)))
+
+	resp, err := svc.GetBudgetExecution(authedCtx(), &pb.GetBudgetExecutionRequest{
+		BudgetId: budgetID.String(),
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), resp.Execution.TotalSpent)
+	assert.Equal(t, float64(0), resp.Execution.ExecutionRate)
 }
