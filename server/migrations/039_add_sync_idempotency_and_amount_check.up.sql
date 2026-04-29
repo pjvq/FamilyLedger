@@ -6,4 +6,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_sync_operations_client_id
     ON sync_operations (client_id) WHERE client_id IS NOT NULL AND client_id != '';
 
 -- T-007/T-008: Defense-in-depth for transaction amount
-ALTER TABLE transactions ADD CONSTRAINT chk_transactions_amount_positive CHECK (amount > 0);
+-- Use NOT VALID to avoid failing on potential historical dirty data,
+-- then VALIDATE to enable full constraint checking for new rows.
+ALTER TABLE transactions ADD CONSTRAINT chk_transactions_amount_positive
+    CHECK (amount > 0) NOT VALID;
+ALTER TABLE transactions VALIDATE CONSTRAINT chk_transactions_amount_positive;
