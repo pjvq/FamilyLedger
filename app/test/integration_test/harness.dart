@@ -99,6 +99,16 @@ class E2EHarness {
 }
 
 /// Fault injection layer for E2E tests.
+///
+/// TODO(W9): Integrate with gRPC ClientInterceptor to:
+/// 1. Check isNetworkDisabled → throw GrpcError.unavailable()
+/// 2. Apply latency via Future.delayed before forwarding
+/// 3. Support partial failure (N-th call fails pattern)
+///
+/// Example integration:
+///   channel = ClientChannel(..., options: ChannelOptions(
+///     interceptors: [FaultInterceptor(injector)],
+///   ));
 class FaultInjector {
   bool _networkDisabled = false;
   Duration _latency = Duration.zero;
