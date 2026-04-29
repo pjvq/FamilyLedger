@@ -24,12 +24,31 @@ type TokenPair struct {
 	ExpiresAt    time.Time
 }
 
-func NewManager(secretKey string) *Manager {
-	return &Manager{
+// Option configures a Manager.
+type Option func(*Manager)
+
+// WithAccessTTL sets the access token duration.
+// ⚠️ Only use in tests — production should use the default (15min).
+func WithAccessTTL(d time.Duration) Option {
+	return func(m *Manager) { m.accessDuration = d }
+}
+
+// WithRefreshTTL sets the refresh token duration.
+// ⚠️ Only use in tests — production should use the default (7d).
+func WithRefreshTTL(d time.Duration) Option {
+	return func(m *Manager) { m.refreshDuration = d }
+}
+
+func NewManager(secretKey string, opts ...Option) *Manager {
+	m := &Manager{
 		secretKey:       secretKey,
 		accessDuration:  15 * time.Minute,
 		refreshDuration: 30 * 24 * time.Hour,
 	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
 }
 
 func (m *Manager) GenerateTokenPair(userID string) (*TokenPair, error) {
