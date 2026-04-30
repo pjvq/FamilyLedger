@@ -179,6 +179,14 @@ func TestW7_Loan_RateChange(t *testing.T) {
 	require.NoError(t, err)
 	origPayment := origSched.Items[0].Payment
 
+	// Pay first 12 months to establish paid/unpaid boundary
+	for i := int32(1); i <= 12; i++ {
+		_, err = loanSvc.RecordPayment(ctx, &pbLoan.RecordPaymentRequest{
+			LoanId: l.Id, MonthNumber: i,
+		})
+		require.NoError(t, err)
+	}
+
 	// Record rate change (LPR drop: 4.2% -> 3.8%)
 	_, err = loanSvc.RecordRateChange(ctx, &pbLoan.RecordRateChangeRequest{
 		LoanId:        l.Id,
@@ -187,14 +195,33 @@ func TestW7_Loan_RateChange(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Get new schedule - payment should decrease
+	// Get new schedule
 	newSched, err := loanSvc.GetLoanSchedule(ctx, &pbLoan.GetLoanScheduleRequest{LoanId: l.Id})
 	require.NoError(t, err)
-	// After rate change, remaining periods should have lower payment
-	lastItem := newSched.Items[len(newSched.Items)-1]
-	assert.Less(t, lastItem.Payment, origPayment,
-		"new rate payment should be less than original")
-	t.Logf("L-004 PASS: rate 4.2->3.8, payment %d->%d", origPayment, lastItem.Payment)
+
+	// Paid periods (1-12) should retain original payment (historical)
+	for i := 0; i < 12; i++ {
+		assert.Equal(t, origPayment, newSched.Items[i].Payment,
+			"period %d (paid) should keep original payment %d, got %d",
+			i+1, origPayment, newSched.Items[i].Payment)
+	}
+
+	// Unpaid periods (13+) should all have lower payment
+	newPayment := newSched.Items[12].Payment
+	assert.Less(t, newPayment, origPayment,
+		"unpaid periods should have lower payment: orig=%d new=%d", origPayment, newPayment)
+	for i := 12; i < len(newSched.Items); i++ {
+		diff := newSched.Items[i].Payment - newPayment
+		assert.LessOrEqual(t, abs(diff), int64(200),
+			"period %d: expected ~%d got %d", i+1, newPayment, newSched.Items[i].Payment)
+	}
+
+	// Verify loan reflects new rate
+	updatedLoan, err := loanSvc.GetLoan(ctx, &pbLoan.GetLoanRequest{LoanId: l.Id})
+	require.NoError(t, err)
+	assert.InDelta(t, 3.8, updatedLoan.AnnualRate, 0.001)
+
+	t.Logf("L-004 PASS: rate 4.2->3.8, paid keep %d, unpaid now %d", origPayment, newPayment)
 }
 
 // L-005: Prepayment simulation
@@ -322,7 +349,112 @@ func TestW7_LoanGroup_Prepayment(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Greater(t, sim.TotalInterestSaved, int64(0))
-	t.Logf("LG-002 PASS: group prepay 100000, saved=%d", sim.TotalInterestSaved)
+
+	// Should recommend prepaying the higher-rate commercial loan (4.5%) over provident (3.1%)
+	commercialID := grp.SubLoans[0].Id
+	assert.Equal(t, commercialID, sim.TargetLoanId,
+		"should target higher-rate commercial loan (4.5%%) over provident (3.1%%)")
+
+	// Compare: explicitly target provident and verify it saves less
+	simProvident, err := loanSvc.SimulateGroupPrepayment(ctx, &pbLoan.SimulateGroupPrepaymentRequest{
+		GroupId:          grp.Id,
+		TargetLoanId:     grp.SubLoans[1].Id, // force provident
+		PrepaymentAmount: 10000000,
+		Strategy:         pbLoan.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_MONTHS,
+	})
+	require.NoError(t, err)
+	assert.Greater(t, sim.TotalInterestSaved, simProvident.TotalInterestSaved,
+		"prepaying higher-rate loan should save more interest: commercial=%d > provident=%d",
+		sim.TotalInterestSaved, simProvident.TotalInterestSaved)
+
+	t.Logf("LG-002 PASS: auto-target commercial(4.5%%), saved=%d > provident saved=%d",
+		sim.TotalInterestSaved, simProvident.TotalInterestSaved)
+}
+
+// LG-003: LPR annual adjustment — commercial follows LPR, provident stays fixed
+func TestW7_LoanGroup_LPRAdjustment(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	loanSvc := loan.NewService(db.pool)
+
+	grp, err := loanSvc.CreateLoanGroup(ctx, &pbLoan.CreateLoanGroupRequest{
+		Name:       "LPR Adjust",
+		GroupType:  "combined",
+		PaymentDay: 15,
+		StartDate:  timestamppb.New(time.Date(2025, 6, 1, 0, 0, 0, 0, time.UTC)),
+		LoanType:   pbLoan.LoanType_LOAN_TYPE_MORTGAGE,
+		SubLoans: []*pbLoan.SubLoanSpec{
+			{
+				Name:            "Commercial",
+				SubType:         pbLoan.LoanSubType_LOAN_SUB_TYPE_COMMERCIAL,
+				Principal:       60000000,
+				AnnualRate:      4.2, // lprBase(3.85) + lprSpread(0.35) = 4.2
+				TotalMonths:     360,
+				RepaymentMethod: pbLoan.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT,
+				RateType:        pbLoan.RateType_RATE_TYPE_LPR_FLOATING,
+				LprBase:         3.85,
+				LprSpread:       0.35,
+				RateAdjustMonth: 1, // January adjustment
+			},
+			{
+				Name:            "Provident",
+				SubType:         pbLoan.LoanSubType_LOAN_SUB_TYPE_PROVIDENT,
+				Principal:       40000000,
+				AnnualRate:      3.1,
+				TotalMonths:     360,
+				RepaymentMethod: pbLoan.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT,
+				RateType:        pbLoan.RateType_RATE_TYPE_FIXED,
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, 2, len(grp.SubLoans))
+
+	commercialID := grp.SubLoans[0].Id
+	providentID := grp.SubLoans[1].Id
+
+	// Get original schedules
+	commOrig, err := loanSvc.GetLoanSchedule(ctx, &pbLoan.GetLoanScheduleRequest{LoanId: commercialID})
+	require.NoError(t, err)
+	provOrig, err := loanSvc.GetLoanSchedule(ctx, &pbLoan.GetLoanScheduleRequest{LoanId: providentID})
+	require.NoError(t, err)
+
+	// Simulate LPR drop: 3.85 → 3.65, so new rate = 3.65 + 0.35 = 4.0%
+	_, err = loanSvc.RecordRateChange(ctx, &pbLoan.RecordRateChangeRequest{
+		LoanId:        commercialID,
+		NewRate:       4.0, // lpr(3.65) + spread(0.35)
+		EffectiveDate: timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	// Commercial schedule should have lower payments after effective date
+	commNew, err := loanSvc.GetLoanSchedule(ctx, &pbLoan.GetLoanScheduleRequest{LoanId: commercialID})
+	require.NoError(t, err)
+	// Payments after month 7 (Jan 2026, 7th month from Jun 2025) should decrease
+	assert.Less(t, commNew.Items[len(commNew.Items)-1].Payment, commOrig.Items[0].Payment,
+		"commercial payment should decrease after LPR drop")
+
+	// Provident should be UNCHANGED
+	provNew, err := loanSvc.GetLoanSchedule(ctx, &pbLoan.GetLoanScheduleRequest{LoanId: providentID})
+	require.NoError(t, err)
+	assert.Equal(t, provOrig.Items[0].Payment, provNew.Items[0].Payment,
+		"provident (fixed rate) should be unaffected by LPR change")
+	assert.Equal(t, provOrig.Items[len(provOrig.Items)-1].Payment, provNew.Items[len(provNew.Items)-1].Payment,
+		"provident last payment should be unchanged")
+
+	// Verify commercial loan record shows updated rate
+	commLoan, err := loanSvc.GetLoan(ctx, &pbLoan.GetLoanRequest{LoanId: commercialID})
+	require.NoError(t, err)
+	assert.InDelta(t, 4.0, commLoan.AnnualRate, 0.001,
+		"commercial rate should be updated to 4.0%%")
+
+	// Provident loan rate unchanged
+	provLoan, err := loanSvc.GetLoan(ctx, &pbLoan.GetLoanRequest{LoanId: providentID})
+	require.NoError(t, err)
+	assert.InDelta(t, 3.1, provLoan.AnnualRate, 0.001,
+		"provident rate should remain 3.1%%")
+
+	t.Logf("LG-003 PASS: LPR 3.85→3.65, commercial rate 4.2%%→4.0%%, provident unchanged at 3.1%%")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -593,35 +725,44 @@ func TestW7_Asset_DepreciationDoubleDeclining(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Run 3 months of depreciation
-	var lastValue int64
-	for i := 0; i < 3; i++ {
+	// Run 4 months of depreciation, track each period's depreciation amount
+	var deps []int64
+	prevValue := int64(20000000)
+	for i := 0; i < 4; i++ {
 		updated, err := assetSvc.RunDepreciation(ctx, &pbAsset.RunDepreciationRequest{AssetId: a.Id})
 		require.NoError(t, err)
-		if i > 0 {
-			// Each month's depreciation should be based on current book value
-			// so absolute decrease gets smaller
-			monthlyDep := lastValue - updated.CurrentValue
-			assert.Greater(t, monthlyDep, int64(0), "depreciation must be positive")
-		}
-		lastValue = updated.CurrentValue
+		monthlyDep := prevValue - updated.CurrentValue
+		assert.Greater(t, monthlyDep, int64(0), "period %d depreciation must be positive", i+1)
+		deps = append(deps, monthlyDep)
+		prevValue = updated.CurrentValue
 	}
 
-	// Double-declining: rate = 2/life = 2/5 = 40%/year = 3.33%/month
-	// After 3 months value should be significantly less than straight-line
-	assert.Less(t, lastValue, int64(20000000),
-		"value should decrease after depreciation")
-	assert.Greater(t, lastValue, int64(0),
-		"value should not be negative")
-	t.Logf("AS-003 PASS: double-declining 3 months, value=%d", lastValue)
+	// Core property of double-declining: each period's depreciation DECREASES
+	// (because it's a fixed % applied to a shrinking book value)
+	for i := 1; i < len(deps); i++ {
+		assert.Less(t, deps[i], deps[i-1],
+			"double-declining: period %d dep (%d) must be < period %d dep (%d)",
+			i+1, deps[i], i, deps[i-1])
+	}
+
+	assert.Less(t, prevValue, int64(20000000), "value should decrease")
+	assert.Greater(t, prevValue, int64(0), "value should not be negative")
+	t.Logf("AS-003 PASS: double-declining 4 months, deps=%v, final=%d", deps, prevValue)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Transaction Atomicity: loan payment + account deduction
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// TestW7_LoanPayment_Atomicity verifies that RecordPayment atomically marks
-// the schedule item as paid AND updates loan counters in a single transaction.
+// TestW7_LoanPayment_Atomicity verifies RecordPayment transactional consistency:
+// - schedule item marked paid AND loan counters updated atomically
+// - remaining_principal on loan matches schedule item's value exactly
+// - double-pay is rejected without corrupting state
+//
+// NOTE: RecordPayment does NOT integrate account balance deduction.
+// Account deduction is handled separately by the client (CreateTransaction).
+// This is documented as intentional design — loan payment tracking is decoupled
+// from account balance management.
 func TestW7_LoanPayment_Atomicity(t *testing.T) {
 	db := getDB(t)
 	ctx, _ := w7Ctx(t, db)
@@ -639,39 +780,123 @@ func TestW7_LoanPayment_Atomicity(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Record payments 1-3
+	// Get full schedule to know expected remaining_principal per period
+	origSched, err := loanSvc.GetLoanSchedule(ctx, &pbLoan.GetLoanScheduleRequest{LoanId: l.Id})
+	require.NoError(t, err)
+
+	// Record payments 1-3 and verify consistency after EACH payment
 	for i := int32(1); i <= 3; i++ {
 		_, err := loanSvc.RecordPayment(ctx, &pbLoan.RecordPaymentRequest{
 			LoanId:      l.Id,
 			MonthNumber: i,
 		})
 		require.NoError(t, err)
-	}
 
-	// Verify loan state: paid_months=3, remaining_principal decremented
-	updatedLoan, err := loanSvc.GetLoan(ctx, &pbLoan.GetLoanRequest{LoanId: l.Id})
-	require.NoError(t, err)
-	assert.Equal(t, int32(3), updatedLoan.PaidMonths)
-	assert.Less(t, updatedLoan.RemainingPrincipal, int64(1200000),
-		"remaining principal should decrease after payments")
+		// After each payment, verify loan state is consistent
+		updatedLoan, err := loanSvc.GetLoan(ctx, &pbLoan.GetLoanRequest{LoanId: l.Id})
+		require.NoError(t, err)
+		assert.Equal(t, i, updatedLoan.PaidMonths,
+			"after paying period %d, paid_months should be %d", i, i)
+		// remaining_principal from loan must match the schedule item's value
+		expectedRP := origSched.Items[i-1].RemainingPrincipal
+		assert.Equal(t, expectedRP, updatedLoan.RemainingPrincipal,
+			"period %d: loan.remaining_principal=%d should match schedule item=%d",
+			i, updatedLoan.RemainingPrincipal, expectedRP)
+	}
 
 	// Verify schedule reflects paid status
 	sched, err := loanSvc.GetLoanSchedule(ctx, &pbLoan.GetLoanScheduleRequest{LoanId: l.Id})
 	require.NoError(t, err)
 	for i := 0; i < 3; i++ {
-		assert.True(t, sched.Items[i].IsPaid)
-		assert.NotNil(t, sched.Items[i].PaidDate)
+		assert.True(t, sched.Items[i].IsPaid, "period %d should be paid", i+1)
+		assert.NotNil(t, sched.Items[i].PaidDate, "period %d should have paid_date", i+1)
+	}
+	for i := 3; i < 12; i++ {
+		assert.False(t, sched.Items[i].IsPaid, "period %d should not be paid", i+1)
 	}
 
-	// Double-pay should fail
+	// Double-pay should fail without corrupting state
 	_, err = loanSvc.RecordPayment(ctx, &pbLoan.RecordPaymentRequest{
 		LoanId:      l.Id,
 		MonthNumber: 1,
 	})
 	require.Error(t, err, "double-paying same period should fail")
 
-	t.Logf("Atomicity PASS: 3 payments, paid_months=%d, remaining=%d",
-		updatedLoan.PaidMonths, updatedLoan.RemainingPrincipal)
+	// Verify state unchanged after failed double-pay
+	finalLoan, err := loanSvc.GetLoan(ctx, &pbLoan.GetLoanRequest{LoanId: l.Id})
+	require.NoError(t, err)
+	assert.Equal(t, int32(3), finalLoan.PaidMonths, "paid_months should not change after failed pay")
+
+	t.Logf("Atomicity PASS: 3 payments, each verified consistent. Double-pay rejected cleanly.")
+}
+
+// TestW7_Investment_SellAtomicity verifies that RecordTrade(SELL) atomically
+// updates both the trade log and the investment holding. If investment doesn't
+// exist, neither trade record nor holding change should persist.
+func TestW7_Investment_SellAtomicity(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	investSvc := investment.NewService(db.pool)
+
+	// Try to sell a non-existent investment — should fail completely
+	_, err := investSvc.RecordTrade(ctx, &pbInvest.RecordTradeRequest{
+		InvestmentId: "00000000-0000-0000-0000-000000000000",
+		TradeType:    pbInvest.TradeType_TRADE_TYPE_SELL,
+		Quantity:     10,
+		Price:        10000,
+		Fee:          0,
+		TradeDate:    timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.Error(t, err, "sell non-existent investment should fail")
+
+	// Create investment, buy shares, then verify sell atomicity
+	inv, err := investSvc.CreateInvestment(ctx, &pbInvest.CreateInvestmentRequest{
+		Symbol:     "ATOMIC",
+		Name:       "Atomicity Test",
+		MarketType: pbInvest.MarketType_MARKET_TYPE_A_SHARE,
+	})
+	require.NoError(t, err)
+
+	_, err = investSvc.RecordTrade(ctx, &pbInvest.RecordTradeRequest{
+		InvestmentId: inv.Id,
+		TradeType:    pbInvest.TradeType_TRADE_TYPE_BUY,
+		Quantity:     100,
+		Price:        10000,
+		Fee:          0,
+		TradeDate:    timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	// Attempt oversell — should fail AND leave holding unchanged
+	_, err = investSvc.RecordTrade(ctx, &pbInvest.RecordTradeRequest{
+		InvestmentId: inv.Id,
+		TradeType:    pbInvest.TradeType_TRADE_TYPE_SELL,
+		Quantity:     200, // more than held
+		Price:        12000,
+		Fee:          0,
+		TradeDate:    timestamppb.New(time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.Error(t, err)
+
+	// Verify holding is still 100 (no partial write)
+	portfolio, err := investSvc.GetPortfolioSummary(ctx, &pbInvest.GetPortfolioSummaryRequest{})
+	require.NoError(t, err)
+	var found bool
+	for _, h := range portfolio.Holdings {
+		if h.Symbol == "ATOMIC" {
+			found = true
+			assert.InDelta(t, 100.0, h.Quantity, 0.01,
+				"holding should remain 100 after failed oversell")
+		}
+	}
+	assert.True(t, found)
+
+	// Also verify trade list: the failed sell should NOT have a trade record
+	trades, err := investSvc.ListTrades(ctx, &pbInvest.ListTradesRequest{InvestmentId: inv.Id})
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(trades.Trades), "only the BUY trade should exist")
+
+	t.Log("Investment atomicity PASS: failed sell leaves no trace")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
