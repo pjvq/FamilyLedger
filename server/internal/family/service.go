@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/familyledger/server/pkg/audit"
 	"github.com/familyledger/server/pkg/db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -122,6 +123,8 @@ func (s *Service) CreateFamily(ctx context.Context, req *pb.CreateFamilyRequest)
 
 	log.Printf("family: created family %s by user %s", familyID, userID)
 
+	audit.LogAudit(ctx, s.pool, familyID.String(), userID, "create_family", "family", familyID.String(), map[string]interface{}{"name": req.Name})
+
 	return &pb.CreateFamilyResponse{
 		Family: &pb.Family{
 			Id:              familyID.String(),
@@ -209,6 +212,8 @@ func (s *Service) JoinFamily(ctx context.Context, req *pb.JoinFamilyRequest) (*p
 	}
 
 	log.Printf("family: user %s joined family %s", userID, familyID)
+
+	audit.LogAudit(ctx, s.pool, familyID.String(), userID, "join_family", "family_member", userID, map[string]interface{}{"invite_code": req.InviteCode})
 
 	return &pb.JoinFamilyResponse{
 		Family: &pb.Family{
@@ -465,6 +470,8 @@ func (s *Service) SetMemberRole(ctx context.Context, req *pb.SetMemberRoleReques
 
 	log.Printf("family: set role %s for user %s in family %s by %s", roleStr, req.UserId, req.FamilyId, callerID)
 
+	audit.LogAudit(ctx, s.pool, req.FamilyId, callerID, "set_member_role", "family_member", req.UserId, map[string]interface{}{"new_role": roleStr})
+
 	return &pb.SetMemberRoleResponse{}, nil
 }
 
@@ -517,6 +524,8 @@ func (s *Service) SetMemberPermissions(ctx context.Context, req *pb.SetMemberPer
 	}
 
 	log.Printf("family: set permissions for user %s in family %s by %s", req.UserId, req.FamilyId, callerID)
+
+	audit.LogAudit(ctx, s.pool, req.FamilyId, callerID, "set_member_permissions", "family_member", req.UserId, map[string]interface{}{"permissions": req.Permissions})
 
 	return &pb.SetMemberPermissionsResponse{}, nil
 }
@@ -597,6 +606,8 @@ func (s *Service) LeaveFamily(ctx context.Context, req *pb.LeaveFamilyRequest) (
 
 	log.Printf("family: user %s left family %s", userID, familyID)
 
+	audit.LogAudit(ctx, s.pool, familyID.String(), userID, "leave_family", "family_member", userID, nil)
+
 	return &pb.LeaveFamilyResponse{}, nil
 }
 
@@ -672,6 +683,8 @@ func (s *Service) TransferOwnership(ctx context.Context, req *pb.TransferOwnersh
 	}
 
 	log.Printf("family: ownership transferred from %s to %s in family %s", callerID, req.NewOwnerId, req.FamilyId)
+
+	audit.LogAudit(ctx, s.pool, req.FamilyId, callerID, "transfer_ownership", "family", req.FamilyId, map[string]interface{}{"new_owner": req.NewOwnerId})
 	return &pb.TransferOwnershipResponse{}, nil
 }
 
@@ -752,6 +765,9 @@ func (s *Service) DeleteFamily(ctx context.Context, req *pb.DeleteFamilyRequest)
 	}
 
 	log.Printf("family: deleted family %s by owner %s", req.FamilyId, callerID)
+
+	// Note: audit log for delete_family is NOT written because the family (and its audit_logs)
+	// are already deleted in the transaction. The deletion event is captured by the log line above.
 	return &pb.DeleteFamilyResponse{}, nil
 }
 

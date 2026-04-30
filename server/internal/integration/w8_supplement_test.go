@@ -175,18 +175,12 @@ func TestW8_Notify_CreditCard_BillingDay(t *testing.T) {
 	user := createTestUser(t, db, "w8s_cc_user@test.com")
 	today := time.Now().Day()
 
-	// Use a fixed billing_day within valid range (1-28)
-	// If today > 28, we CAN'T trigger billing_day check (this is a real limitation)
+	// Use a fixed billing_day within valid range (1-31 after migration 040)
+	// For today > 28, the reminder should fire since we now support billing_day up to 31
 	billingDay := today
-	if billingDay > 28 {
-		// BUG-002: billing_day constraint 1-28 means no notification fires on day 29/30/31
-		t.Logf("N-007 DISCOVERY: today=%d > 28, billing_day check CANNOT fire (constraint limits to 1-28)", today)
-		t.Log("BUG-002: credit_card accounts with billing on 29th/30th/31st are impossible")
-		t.Skip("Cannot test billing_day trigger when today > 28")
-	}
-	paymentDay := billingDay + 10
-	if paymentDay > 28 {
-		paymentDay = 28
+	paymentDay := today + 10
+	if paymentDay > 31 {
+		paymentDay = 31
 	}
 
 	// Create a credit card with billing_day = billingDay
@@ -204,7 +198,7 @@ func TestW8_Notify_CreditCard_BillingDay(t *testing.T) {
 	// Should have created a billing day notification
 	var count int
 	err = db.pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND type LIKE '%credit%'`,
+		`SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND type IN ('billing_day_reminder', 'payment_due_reminder')`,
 		user.String(),
 	).Scan(&count)
 	require.NoError(t, err)

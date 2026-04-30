@@ -525,8 +525,10 @@ func (s *Service) hasCreditCardNotification(ctx context.Context, userID, account
 func (s *Service) CheckCreditCardReminders(ctx context.Context) error {
 	now := time.Now()
 	today := now.Day()
+	// Last day of current month (for billing days that exceed the month's length)
+	lastDayOfMonth := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, time.UTC).Day()
 
-	log.Printf("notify: checking credit card reminders for day %d", today)
+	log.Printf("notify: checking credit card reminders for day %d (last day=%d)", today, lastDayOfMonth)
 
 	// Query all credit card accounts with billing_day or payment_due_day set
 	rows, err := s.pool.Query(ctx,
@@ -574,7 +576,8 @@ func (s *Service) CheckCreditCardReminders(ctx context.Context) error {
 		recipients := s.getCreditCardRecipients(ctx, a.UserID, a.FamilyID)
 
 		// Check billing day
-		if a.BillingDay != nil && today == *a.BillingDay {
+		// If billing_day > last day of month, trigger on last day (e.g., 31st billing in Feb triggers on 28th)
+		if a.BillingDay != nil && (today == *a.BillingDay || (*a.BillingDay > lastDayOfMonth && today == lastDayOfMonth)) {
 			for _, recipientID := range recipients {
 				if s.hasCreditCardNotification(ctx, recipientID, a.ID.String(), "billing_day_reminder") {
 					continue
@@ -597,6 +600,10 @@ func (s *Service) CheckCreditCardReminders(ctx context.Context) error {
 			reminderDaysBefore := 3
 			// Calculate days until due
 			dueDay := *a.PaymentDueDay
+			// If dueDay exceeds month length, use last day of month
+			if dueDay > lastDayOfMonth {
+				dueDay = lastDayOfMonth
+			}
 			daysUntilDue := dueDay - today
 			if daysUntilDue < 0 {
 				// Due day is next month

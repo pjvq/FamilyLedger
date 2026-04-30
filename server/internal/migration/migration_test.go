@@ -15,7 +15,7 @@ import (
 )
 
 const migrationsDir = "../../migrations"
-const expectedMigrationCount = 39
+const expectedMigrationCount = 40
 
 // validSQLStartRegex matches common SQL statement starters.
 var validSQLStartRegex = regexp.MustCompile(`(?i)^\s*(CREATE|ALTER|DROP|INSERT|UPDATE|DELETE|SET|DO|BEGIN|COMMIT|WITH|--|\s*$)`)
@@ -226,7 +226,7 @@ func TestMigration_TotalCount(t *testing.T) {
 
 	// 39 up + 39 down = 76 total
 	assert.Equal(t, expectedMigrationCount*2, sqlFiles,
-		fmt.Sprintf("expected %d SQL files (39 up + 39 down)", expectedMigrationCount*2))
+		fmt.Sprintf("expected %d SQL files (40 up + 40 down)", expectedMigrationCount*2))
 }
 
 func min(a, b int) int {
