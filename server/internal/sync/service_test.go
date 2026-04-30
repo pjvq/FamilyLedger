@@ -288,7 +288,7 @@ func TestPullChanges_PersonalMode_Success(t *testing.T) {
 	since := time.Now().Add(-1 * time.Hour)
 
 	mock.ExpectQuery(`SELECT id, entity_type, entity_id, op_type, payload, client_id, timestamp`).
-		WithArgs(userUUID, pgxmock.AnyArg(), "other-client").
+		WithArgs(userUUID, pgxmock.AnyArg(), "other-client", 101).
 		WillReturnRows(pgxmock.NewRows([]string{
 			"id", "entity_type", "entity_id", "op_type", "payload", "client_id", "timestamp",
 		}).AddRow(
@@ -323,7 +323,7 @@ func TestPullChanges_PersonalMode_OnlyReturnsOwnOps(t *testing.T) {
 
 	// Personal mode only returns the user's own operations
 	mock.ExpectQuery(`SELECT id, entity_type, entity_id, op_type, payload, client_id, timestamp`).
-		WithArgs(userUUID, pgxmock.AnyArg(), "my-client").
+		WithArgs(userUUID, pgxmock.AnyArg(), "my-client", 101).
 		WillReturnRows(pgxmock.NewRows([]string{
 			"id", "entity_type", "entity_id", "op_type", "payload", "client_id", "timestamp",
 		}))
@@ -363,7 +363,7 @@ func TestPullChanges_FamilyMode_ReturnsFamilyMembersOps(t *testing.T) {
 
 	// Pull family operations (returns ops from both user1 and user2)
 	mock.ExpectQuery(`SELECT so.id, so.entity_type, so.entity_id, so.op_type, so.payload, so.client_id, so.timestamp`).
-		WithArgs(familyID, pgxmock.AnyArg(), "my-client").
+		WithArgs(familyID, pgxmock.AnyArg(), "my-client", 101).
 		WillReturnRows(pgxmock.NewRows([]string{
 			"id", "entity_type", "entity_id", "op_type", "payload", "client_id", "timestamp",
 		}).
@@ -468,7 +468,7 @@ func TestPullChanges_NoChanges(t *testing.T) {
 	userUUID := uuid.MustParse(testUserID)
 
 	mock.ExpectQuery(`SELECT id, entity_type, entity_id, op_type, payload, client_id, timestamp`).
-		WithArgs(userUUID, pgxmock.AnyArg(), "my-client").
+		WithArgs(userUUID, pgxmock.AnyArg(), "my-client", 101).
 		WillReturnRows(pgxmock.NewRows([]string{
 			"id", "entity_type", "entity_id", "op_type", "payload", "client_id", "timestamp",
 		}))

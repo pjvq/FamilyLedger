@@ -168,30 +168,46 @@ class SyncEngine {
       );
 
       final familyId = _prefs!.getString(AppConstants.familyIdKey) ?? '';
-      final request = sync_pb.PullChangesRequest(
-        since: since,
-        clientId: 'client_$userId',
-      );
-      if (familyId.isNotEmpty) {
-        request.familyId = familyId;
-      }
 
-      final response = await _syncClient!.pullChanges(request);
+      int totalPulled = 0;
+      String pageToken = '';
 
-      for (final op in response.operations) {
-        await _applyRemoteOp(op);
-      }
+      // Paginated pull loop
+      do {
+        if (_disposed) return;
 
-      // 保存服务端时间作为下次 pull 的起点
-      if (response.hasServerTime()) {
-        final serverMs =
-            response.serverTime.seconds.toInt() * 1000 +
-            response.serverTime.nanos ~/ 1000000;
-        await _prefs!.setInt(_lastSyncTsKey, serverMs);
-      }
+        final request = sync_pb.PullChangesRequest(
+          since: since,
+          clientId: 'client_$userId',
+        );
+        if (familyId.isNotEmpty) {
+          request.familyId = familyId;
+        }
+        request.pageSize = 100;
+        if (pageToken.isNotEmpty) {
+          request.pageToken = pageToken;
+        }
+
+        final response = await _syncClient!.pullChanges(request);
+
+        for (final op in response.operations) {
+          await _applyRemoteOp(op);
+        }
+        totalPulled += response.operations.length;
+
+        // Save server_time from LAST page response as next pull checkpoint
+        if (response.hasServerTime()) {
+          final serverMs =
+              response.serverTime.seconds.toInt() * 1000 +
+              response.serverTime.nanos ~/ 1000000;
+          await _prefs!.setInt(_lastSyncTsKey, serverMs);
+        }
+
+        pageToken = response.nextPageToken;
+      } while (pageToken.isNotEmpty);
 
       dev.log(
-        'SyncEngine: pulled ${response.operations.length} changes',
+        'SyncEngine: pulled $totalPulled changes',
         name: 'sync',
       );
     } catch (e) {

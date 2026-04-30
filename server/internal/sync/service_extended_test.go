@@ -100,7 +100,7 @@ func TestPullChanges_ZeroTimestamp_FullSync(t *testing.T) {
 
 	// PullChanges with epoch 0 → full sync (returns all ops)
 	mock.ExpectQuery(`SELECT id, entity_type, entity_id, op_type, payload, client_id, timestamp`).
-		WithArgs(userUUID, pgxmock.AnyArg(), "test-client").
+		WithArgs(userUUID, pgxmock.AnyArg(), "test-client", 101).
 		WillReturnRows(pgxmock.NewRows([]string{
 			"id", "entity_type", "entity_id", "op_type", "payload", "client_id", "timestamp",
 		}).AddRow(opID, "transaction", entityID, "create", `{"amount":100}`, "other-client", opTime))
@@ -128,7 +128,7 @@ func TestPullChanges_EmptyResult_NoError(t *testing.T) {
 	userUUID := uuid.MustParse(testUserID)
 
 	mock.ExpectQuery(`SELECT id, entity_type, entity_id, op_type, payload, client_id, timestamp`).
-		WithArgs(userUUID, pgxmock.AnyArg(), "my-client").
+		WithArgs(userUUID, pgxmock.AnyArg(), "my-client", 101).
 		WillReturnRows(pgxmock.NewRows([]string{
 			"id", "entity_type", "entity_id", "op_type", "payload", "client_id", "timestamp",
 		}))

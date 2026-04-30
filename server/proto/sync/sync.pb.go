@@ -266,7 +266,9 @@ type PullChangesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Since         *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=since,proto3" json:"since,omitempty"` // 上次同步时间
 	ClientId      string                 `protobuf:"bytes,2,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	FamilyId      string                 `protobuf:"bytes,3,opt,name=family_id,json=familyId,proto3" json:"family_id,omitempty"` // 可选：传入则拉取家庭模式下所有成员的操作
+	FamilyId      string                 `protobuf:"bytes,3,opt,name=family_id,json=familyId,proto3" json:"family_id,omitempty"`    // 可选：传入则拉取家庭模式下所有成员的操作
+	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`   // 每页数量，默认 100，最大 500
+	PageToken     string                 `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"` // 分页游标（上次响应的 next_page_token）
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -322,10 +324,26 @@ func (x *PullChangesRequest) GetFamilyId() string {
 	return ""
 }
 
+func (x *PullChangesRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *PullChangesRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
 type PullChangesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Operations    []*SyncOperation       `protobuf:"bytes,1,rep,name=operations,proto3" json:"operations,omitempty"`
 	ServerTime    *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=server_time,json=serverTime,proto3" json:"server_time,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"` // 非空则表示还有更多数据
+	HasMore       bool                   `protobuf:"varint,4,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -374,6 +392,20 @@ func (x *PullChangesResponse) GetServerTime() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *PullChangesResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *PullChangesResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
+}
+
 var File_sync_proto protoreflect.FileDescriptor
 
 const file_sync_proto_rawDesc = "" +
@@ -396,17 +428,22 @@ const file_sync_proto_rawDesc = "" +
 	"\x16PushOperationsResponse\x12%\n" +
 	"\x0eaccepted_count\x18\x01 \x01(\x05R\racceptedCount\x12\x1d\n" +
 	"\n" +
-	"failed_ids\x18\x02 \x03(\tR\tfailedIds\"\x80\x01\n" +
+	"failed_ids\x18\x02 \x03(\tR\tfailedIds\"\xbc\x01\n" +
 	"\x12PullChangesRequest\x120\n" +
 	"\x05since\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x05since\x12\x1b\n" +
 	"\tclient_id\x18\x02 \x01(\tR\bclientId\x12\x1b\n" +
-	"\tfamily_id\x18\x03 \x01(\tR\bfamilyId\"\x97\x01\n" +
+	"\tfamily_id\x18\x03 \x01(\tR\bfamilyId\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\"\xda\x01\n" +
 	"\x13PullChangesResponse\x12C\n" +
 	"\n" +
 	"operations\x18\x01 \x03(\v2#.familyledger.sync.v1.SyncOperationR\n" +
 	"operations\x12;\n" +
 	"\vserver_time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"serverTime*\x80\x01\n" +
+	"serverTime\x12&\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tR\rnextPageToken\x12\x19\n" +
+	"\bhas_more\x18\x04 \x01(\bR\ahasMore*\x80\x01\n" +
 	"\rOperationType\x12\x1e\n" +
 	"\x1aOPERATION_TYPE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15OPERATION_TYPE_CREATE\x10\x01\x12\x19\n" +

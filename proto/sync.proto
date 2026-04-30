@@ -41,9 +41,13 @@ message PullChangesRequest {
   google.protobuf.Timestamp since = 1;  // 上次同步时间
   string client_id = 2;
   string family_id = 3;  // 可选：传入则拉取家庭模式下所有成员的操作
+  int32 page_size = 4;   // 每页数量，默认 100，最大 500
+  string page_token = 5; // 分页游标（上次响应的 next_page_token）
 }
 
 message PullChangesResponse {
   repeated SyncOperation operations = 1;
   google.protobuf.Timestamp server_time = 2;
+  string next_page_token = 3;  // 非空则表示还有更多数据
+  bool has_more = 4;
 }
