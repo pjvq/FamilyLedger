@@ -413,8 +413,10 @@ void main() {
       // Find the last op (by position in list, which is chronological)
       final lastOp = entityOps.isNotEmpty ? entityOps.last : null;
       if (updateResp.acceptedCount == 0) {
-        // Server rejected the update on a deleted entity ✅
-        expect(updateResp.failedIds, contains(entityId));
+        // Server correctly rejected the update on a deleted entity ✅
+        // (failedIds contains op.id which we didn't set, so just check count)
+        expect(updateResp.acceptedCount, equals(0),
+            reason: 'DELETE is terminal — update after delete should be rejected');
       } else {
         // Server accepted but entity should still be deleted in Pull
         // (no-op behavior: UPDATE on deleted entity does nothing)

@@ -496,6 +496,8 @@ func (s *Service) applyAccountOp(ctx context.Context, tx pgx.Tx, userID uuid.UUI
 		return s.applyAccountCreate(ctx, tx, userID, entityID, payload)
 	case "update":
 		return s.applyAccountUpdate(ctx, tx, userID, entityID, payload)
+	case "delete":
+		return s.applyAccountDelete(ctx, tx, userID, entityID)
 	default:
 		log.Printf("sync: unknown op_type %q for account, skipping", opType)
 		return nil
@@ -601,6 +603,34 @@ func (s *Service) applyAccountUpdate(ctx context.Context, tx pgx.Tx, userID uuid
 		return fmt.Errorf("failed to update account: %w", err)
 	}
 
+	return nil
+}
+
+func (s *Service) applyAccountDelete(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID) error {
+	// Verify ownership and not already deleted
+	var ownerID uuid.UUID
+	err := tx.QueryRow(ctx,
+		"SELECT user_id FROM accounts WHERE id = $1 AND deleted_at IS NULL FOR UPDATE",
+		entityID,
+	).Scan(&ownerID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			log.Printf("sync: account %s already deleted, skipping", entityID)
+			return fmt.Errorf("account %s already deleted or not found", entityID)
+		}
+		return fmt.Errorf("failed to fetch account for delete: %w", err)
+	}
+	if ownerID != userID {
+		return fmt.Errorf("account %s does not belong to user", entityID)
+	}
+
+	_, err = tx.Exec(ctx,
+		"UPDATE accounts SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1",
+		entityID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to soft-delete account: %w", err)
+	}
 	return nil
 }
 
