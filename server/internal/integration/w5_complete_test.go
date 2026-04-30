@@ -1190,7 +1190,7 @@ func TestConcurrentBalanceUpdate_AC004(t *testing.T) {
 }
 
 // TestMigration_FullPath_001_to_Latest verifies that running migrations from scratch
-// (001→039) produces a valid schema by checking key tables, constraints, and indexes.
+// (001→040) produces a valid schema by checking key tables, constraints, and indexes.
 func TestMigration_FullPath_001_to_Latest(t *testing.T) {
 	db := getDB(t)
 	ctx := context.Background()
@@ -1216,14 +1216,14 @@ func TestMigration_FullPath_001_to_Latest(t *testing.T) {
 		assert.True(t, exists, "table %s should exist after full migration", table)
 	}
 
-	// 2. Verify migration version is at latest (039)
+	// 2. Verify migration version is at latest (040)
 	var version int
 	var dirty bool
 	err := db.pool.QueryRow(ctx,
 		`SELECT version, dirty FROM schema_migrations`,
 	).Scan(&version, &dirty)
 	require.NoError(t, err)
-	assert.Equal(t, 39, version, "migration should be at version 039")
+	assert.Equal(t, 40, version, "migration should be at version 040")
 	assert.False(t, dirty, "migration should not be dirty")
 
 	// 3. Verify CHECK constraints are active
@@ -1266,7 +1266,7 @@ func TestMigration_FullPath_001_to_Latest(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, hasFk, "categories should have parent_id FK constraint")
 
-	t.Logf("Full migration path (001→039) verified: %d tables, constraints active, version=%d",
+	t.Logf("Full migration path (001→040) verified: %d tables, constraints active, version=%d",
 		len(keyTables), version)
 }
 
