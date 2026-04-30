@@ -914,8 +914,7 @@ func (s *Service) applyCategoryUpdate(ctx context.Context, tx pgx.Tx, userID uui
 	).Scan(&catUserID, &isPreset)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			log.Printf("sync: category %s not found, skipping update", entityID)
-			return nil
+			return fmt.Errorf("category %s not found or deleted", entityID)
 		}
 		return fmt.Errorf("failed to fetch category for update: %w", err)
 	}

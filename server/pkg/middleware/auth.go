@@ -22,6 +22,7 @@ var publicMethods = map[string]bool{
 	"/familyledger.auth.v1.AuthService/Register":     true,
 	"/familyledger.auth.v1.AuthService/Login":        true,
 	"/familyledger.auth.v1.AuthService/RefreshToken": true,
+	"/familyledger.auth.v1.AuthService/OAuthLogin":   true,
 }
 
 func UnaryAuthInterceptor(jwtManager *jwt.Manager) grpc.UnaryServerInterceptor {
