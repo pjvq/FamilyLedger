@@ -546,6 +546,23 @@ func (s *Service) RecordPayment(ctx context.Context, req *pb.RecordPaymentReques
 		return nil, err
 	}
 
+	// Enforce sequential payment: only allow paying the next unpaid period
+	var nextUnpaid int32
+	err = s.pool.QueryRow(ctx,
+		`SELECT COALESCE(MIN(month_number), 0) FROM loan_schedules WHERE loan_id=$1 AND is_paid=false`,
+		req.LoanId,
+	).Scan(&nextUnpaid)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to check payment sequence")
+	}
+	if nextUnpaid == 0 {
+		return nil, status.Error(codes.FailedPrecondition, "all payments already completed")
+	}
+	if req.MonthNumber != nextUnpaid {
+		return nil, status.Errorf(codes.FailedPrecondition,
+			"must pay period %d before period %d (sequential payment required)", nextUnpaid, req.MonthNumber)
+	}
+
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to begin transaction")
