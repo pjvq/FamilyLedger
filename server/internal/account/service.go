@@ -433,12 +433,18 @@ func (s *Service) TransferBetween(ctx context.Context, req *pb.TransferBetweenRe
 		return nil, status.Errorf(codes.PermissionDenied, "no access to destination account")
 	}
 
-	// Deduct from source
-	_, err = tx.Exec(ctx,
-		`UPDATE accounts SET balance = balance - $1, updated_at = NOW() WHERE id = $2`,
+	// Deduct from source (with balance check to prevent overdraft)
+	var newBalance int64
+	err = tx.QueryRow(ctx,
+		`UPDATE accounts SET balance = balance - $1, updated_at = NOW()
+		 WHERE id = $2 AND balance >= $1
+		 RETURNING balance`,
 		req.Amount, fromID,
-	)
+	).Scan(&newBalance)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, status.Error(codes.FailedPrecondition, "insufficient balance")
+		}
 		return nil, status.Error(codes.Internal, "failed to update source balance")
 	}
 

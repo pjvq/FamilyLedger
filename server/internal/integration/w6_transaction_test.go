@@ -448,17 +448,14 @@ func TestW6_Transfer_ZeroAmount_Rejected(t *testing.T) {
 	t.Log("TF-004 PASS: zero amount rejected")
 }
 
-// TestW6_Transfer_ConcurrentFromSameSource verifies atomicity under concurrent transfers.
-// KNOWN BUG: TransferBetween does NOT check balance >= 0 before deducting.
-// This test documents the overdraft behavior and verifies atomicity (total conserved).
-// When balance check is implemented, the GreaterOrEqual assertion should be un-skipped.
+// TestW6_Transfer_ConcurrentFromSameSource verifies atomicity + no overdraft.
+// 5 goroutines * 300 CNY = 1500 > 1000 available. At most 3 can succeed.
 func TestW6_Transfer_ConcurrentFromSameSource(t *testing.T) {
 	db := getDB(t)
 	userCtx, _, acctSvc, _ := w6User(t, db, "w6_tf005@test.com")
 	acctA := w6CreateAccount(t, userCtx, acctSvc, "Source", 100000) // 1000 CNY
 	acctB := w6CreateAccount(t, userCtx, acctSvc, "Target", 0)
 
-	// 5 goroutines * 300 CNY = 1500 > 1000 available
 	const goroutines = 5
 	const transferAmount = int64(30000)
 	var wg sync.WaitGroup
@@ -486,20 +483,19 @@ func TestW6_Transfer_ConcurrentFromSameSource(t *testing.T) {
 	finalA := w6GetBalance(t, db, acctA)
 	finalB := w6GetBalance(t, db, acctB)
 
-	// Atomicity: total conserved (this MUST hold regardless of overdraft policy)
+	// Atomicity: total conserved
 	assert.Equal(t, int64(100000), finalA+finalB,
 		"total must be conserved: A(%d)+B(%d)=%d", finalA, finalB, finalA+finalB)
 	// Balance correctness
 	assert.Equal(t, int64(100000)-(int64(successCount)*transferAmount), finalA)
+	// No overdraft: balance must never go negative
+	assert.GreaterOrEqual(t, finalA, int64(0),
+		"overdraft detected: balance=%d", finalA)
+	// At most 3 can succeed (100000 / 30000 = 3.33)
+	assert.LessOrEqual(t, successCount, 3,
+		"at most 3 transfers should succeed with 100000 balance, got %d", successCount)
 
-	// KNOWN BUG: system allows overdraft (no balance >= 0 check in TransferBetween).
-	// When fixed, uncomment this assertion:
-	// assert.GreaterOrEqual(t, finalA, int64(0), "balance went negative")
-	if finalA < 0 {
-		t.Logf("TF-005 WARNING: overdraft detected (A=%d). TransferBetween lacks balance check.", finalA)
-	}
-
-	t.Logf("TF-005 PASS: %d/%d succeeded, A=%d B=%d, total conserved", successCount, goroutines, finalA, finalB)
+	t.Logf("TF-005 PASS: %d/%d succeeded, A=%d B=%d, no overdraft", successCount, goroutines, finalA, finalB)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
