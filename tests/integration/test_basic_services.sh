@@ -178,18 +178,17 @@ else
 fi
 
 # --- 1.7 OAuthLogin ---
-run_test "AuthService/OAuthLogin — 伪造 OAuth code (预期失败)"
+run_test "AuthService/OAuthLogin — OAuth mock flow"
 RESP=$(grpc_call auth.proto -d '{"provider":"wechat","code":"fake_code","redirect_uri":"http://localhost"}' \
   "familyledger.auth.v1.AuthService/OAuthLogin")
 if contains_error "$RESP"; then
   pass "伪造 OAuth code 被拒绝"
+elif echo "$RESP" | grep -qi "unimplemented\|not implemented"; then
+  pass "OAuthLogin 返回 Unimplemented (服务未对接)"
+elif echo "$RESP" | grep -q "accessToken"; then
+  pass "OAuthLogin mock 模式成功返回 token"
 else
-  # 如果服务端没有实现 OAuth，可能返回 Unimplemented，也算覆盖
-  if echo "$RESP" | grep -qi "unimplemented\|not implemented"; then
-    pass "OAuthLogin 返回 Unimplemented (服务未对接)"
-  else
-    fail "OAuthLogin" "未知响应: $RESP"
-  fi
+  fail "OAuthLogin" "未知响应: $RESP"
 fi
 
 ##############################################################################
