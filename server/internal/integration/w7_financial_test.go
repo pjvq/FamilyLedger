@@ -684,3 +684,516 @@ func abs(x int64) int64 {
 	}
 	return x
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// W7 Edge Cases — Boundary & Negative Testing
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── Loan Edge Cases ─────────────────────────────────────────────────────────
+
+// LE-001: Out-of-order payment (pay month 5 before 1-4) — should be rejected
+// or at minimum produce correct remaining_principal.
+func TestW7_Loan_OutOfOrderPayment(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	loanSvc := loan.NewService(db.pool)
+
+	l, err := loanSvc.CreateLoan(ctx, &pbLoan.CreateLoanRequest{
+		Name:            "OutOfOrder",
+		LoanType:        pbLoan.LoanType_LOAN_TYPE_CONSUMER,
+		Principal:       1200000,
+		AnnualRate:      6.0,
+		TotalMonths:     12,
+		RepaymentMethod: pbLoan.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT,
+		PaymentDay:      1,
+		StartDate:       timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	// Try paying month 5 directly (skipping 1-4)
+	_, err = loanSvc.RecordPayment(ctx, &pbLoan.RecordPaymentRequest{
+		LoanId:      l.Id,
+		MonthNumber: 5,
+	})
+	// Should fail: sequential payment required
+	require.Error(t, err, "LE-001: out-of-order payment should be rejected")
+	assert.Contains(t, err.Error(), "sequential",
+		"error should mention sequential requirement")
+
+	// Verify loan state is unchanged
+	updatedLoan, err := loanSvc.GetLoan(ctx, &pbLoan.GetLoanRequest{LoanId: l.Id})
+	require.NoError(t, err)
+	assert.Equal(t, int32(0), updatedLoan.PaidMonths, "no payments should have been recorded")
+	assert.Equal(t, int64(1200000), updatedLoan.RemainingPrincipal,
+		"remaining principal should be unchanged")
+
+	// Now pay sequentially: month 1 should work
+	_, err = loanSvc.RecordPayment(ctx, &pbLoan.RecordPaymentRequest{
+		LoanId:      l.Id,
+		MonthNumber: 1,
+	})
+	require.NoError(t, err, "sequential payment (month 1) should succeed")
+	t.Log("LE-001 PASS: out-of-order rejected, sequential payment enforced")
+}
+
+// LE-002: Payment with month_number exceeding total_months
+func TestW7_Loan_PaymentExceedsTotal(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	loanSvc := loan.NewService(db.pool)
+
+	l, err := loanSvc.CreateLoan(ctx, &pbLoan.CreateLoanRequest{
+		Name:            "ExceedTotal",
+		LoanType:        pbLoan.LoanType_LOAN_TYPE_CONSUMER,
+		Principal:       600000,
+		AnnualRate:      5.0,
+		TotalMonths:     6,
+		RepaymentMethod: pbLoan.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT,
+		PaymentDay:      1,
+		StartDate:       timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	// month_number 7 doesn't exist in a 6-month loan
+	_, err = loanSvc.RecordPayment(ctx, &pbLoan.RecordPaymentRequest{
+		LoanId:      l.Id,
+		MonthNumber: 7,
+	})
+	require.Error(t, err, "LE-002: payment for non-existent period should fail")
+	t.Logf("LE-002 PASS: month %d rejected for %d-month loan", 7, 6)
+}
+
+// LE-003: Create loan with AnnualRate=0 (interest-free)
+func TestW7_Loan_ZeroRate(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	loanSvc := loan.NewService(db.pool)
+
+	l, err := loanSvc.CreateLoan(ctx, &pbLoan.CreateLoanRequest{
+		Name:            "Zero Rate",
+		LoanType:        pbLoan.LoanType_LOAN_TYPE_CONSUMER,
+		Principal:       1200000,
+		AnnualRate:      0, // interest-free
+		TotalMonths:     12,
+		RepaymentMethod: pbLoan.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT,
+		PaymentDay:      1,
+		StartDate:       timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	sched, err := loanSvc.GetLoanSchedule(ctx, &pbLoan.GetLoanScheduleRequest{LoanId: l.Id})
+	require.NoError(t, err)
+
+	// With 0% rate: payment = principal / months = 100000 per month, interest = 0
+	for i, item := range sched.Items {
+		assert.Equal(t, int64(0), item.InterestPart,
+			"period %d: interest should be 0 with 0%% rate", i+1)
+		assert.Equal(t, item.Payment, item.PrincipalPart,
+			"period %d: payment should equal principal part with 0%% rate", i+1)
+	}
+
+	var totalPrincipal int64
+	for _, item := range sched.Items {
+		totalPrincipal += item.PrincipalPart
+	}
+	assert.Equal(t, int64(1200000), totalPrincipal,
+		"total principal repaid should equal loan amount")
+	t.Logf("LE-003 PASS: 0%% rate, payment=%d, all interest=0", sched.Items[0].Payment)
+}
+
+// LE-004: PaymentDay boundary (invalid values 0, 29, 31)
+func TestW7_Loan_InvalidPaymentDay(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	loanSvc := loan.NewService(db.pool)
+
+	for _, day := range []int32{0, 29, 31} {
+		_, err := loanSvc.CreateLoan(ctx, &pbLoan.CreateLoanRequest{
+			Name:            "BadDay",
+			LoanType:        pbLoan.LoanType_LOAN_TYPE_CONSUMER,
+			Principal:       100000,
+			AnnualRate:      5.0,
+			TotalMonths:     12,
+			RepaymentMethod: pbLoan.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT,
+			PaymentDay:      day,
+			StartDate:       timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+		})
+		require.Error(t, err, "LE-004: payment_day=%d should be rejected", day)
+	}
+	t.Log("LE-004 PASS: invalid payment_day values rejected")
+}
+
+// LE-005: Rate change — rate=0 should be rejected
+func TestW7_Loan_RateChangeToZero(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	loanSvc := loan.NewService(db.pool)
+
+	l, err := loanSvc.CreateLoan(ctx, &pbLoan.CreateLoanRequest{
+		Name:            "RateZero",
+		LoanType:        pbLoan.LoanType_LOAN_TYPE_MORTGAGE,
+		Principal:       50000000,
+		AnnualRate:      4.2,
+		TotalMonths:     120,
+		RepaymentMethod: pbLoan.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT,
+		PaymentDay:      15,
+		StartDate:       timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	// Rate change to 0 — should be rejected (validation requires rate > 0)
+	_, err = loanSvc.RecordRateChange(ctx, &pbLoan.RecordRateChangeRequest{
+		LoanId:        l.Id,
+		NewRate:       0,
+		EffectiveDate: timestamppb.New(time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.Error(t, err, "LE-005: rate change to 0 should be rejected")
+	t.Log("LE-005 PASS: rate change to 0 rejected")
+}
+
+// LE-006: Prepayment amount exceeds remaining principal
+func TestW7_Loan_PrepaymentExceedsPrincipal(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	loanSvc := loan.NewService(db.pool)
+
+	l, err := loanSvc.CreateLoan(ctx, &pbLoan.CreateLoanRequest{
+		Name:            "PrepayOver",
+		LoanType:        pbLoan.LoanType_LOAN_TYPE_CONSUMER,
+		Principal:       1000000, // 1万
+		AnnualRate:      5.0,
+		TotalMonths:     12,
+		RepaymentMethod: pbLoan.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT,
+		PaymentDay:      1,
+		StartDate:       timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	// Try prepaying more than the loan principal
+	sim, err := loanSvc.SimulatePrepayment(ctx, &pbLoan.SimulatePrepaymentRequest{
+		LoanId:           l.Id,
+		PrepaymentAmount: 5000000, // 5万 >> 1万 principal
+		Strategy:         pbLoan.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_MONTHS,
+	})
+	if err != nil {
+		// Good: rejected
+		t.Logf("LE-006 PASS: prepayment exceeding principal rejected: %v", err)
+	} else {
+		// If allowed, verify it at most pays off the entire loan
+		assert.GreaterOrEqual(t, sim.MonthsReduced, int32(11),
+			"LE-006: overpayment should effectively pay off entire loan")
+		t.Logf("LE-006 OK: overpayment handled gracefully, months_reduced=%d", sim.MonthsReduced)
+	}
+}
+
+// ── Investment Edge Cases ────────────────────────────────────────────────────
+
+// IE-001: Trade with price=0 (rejected)
+func TestW7_Investment_ZeroPrice(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	investSvc := investment.NewService(db.pool)
+
+	inv, err := investSvc.CreateInvestment(ctx, &pbInvest.CreateInvestmentRequest{
+		Symbol:     "ZERO",
+		Name:       "Zero Price Test",
+		MarketType: pbInvest.MarketType_MARKET_TYPE_A_SHARE,
+	})
+	require.NoError(t, err)
+
+	_, err = investSvc.RecordTrade(ctx, &pbInvest.RecordTradeRequest{
+		InvestmentId: inv.Id,
+		TradeType:    pbInvest.TradeType_TRADE_TYPE_BUY,
+		Quantity:     100,
+		Price:        0, // invalid
+		Fee:          0,
+		TradeDate:    timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.Error(t, err, "IE-001: price=0 should be rejected")
+	t.Log("IE-001 PASS: zero price rejected")
+}
+
+// IE-002: Trade with negative quantity
+func TestW7_Investment_NegativeQuantity(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	investSvc := investment.NewService(db.pool)
+
+	inv, err := investSvc.CreateInvestment(ctx, &pbInvest.CreateInvestmentRequest{
+		Symbol:     "NEG",
+		Name:       "Negative Qty",
+		MarketType: pbInvest.MarketType_MARKET_TYPE_A_SHARE,
+	})
+	require.NoError(t, err)
+
+	_, err = investSvc.RecordTrade(ctx, &pbInvest.RecordTradeRequest{
+		InvestmentId: inv.Id,
+		TradeType:    pbInvest.TradeType_TRADE_TYPE_BUY,
+		Quantity:     -10, // invalid
+		Price:        10000,
+		Fee:          0,
+		TradeDate:    timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.Error(t, err, "IE-002: negative quantity should be rejected")
+	t.Log("IE-002 PASS: negative quantity rejected")
+}
+
+// IE-003: Portfolio summary with zero holdings
+func TestW7_Investment_EmptyPortfolio(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	investSvc := investment.NewService(db.pool)
+
+	// Fresh user with no investments — should return empty, not crash
+	portfolio, err := investSvc.GetPortfolioSummary(ctx, &pbInvest.GetPortfolioSummaryRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), portfolio.TotalCost)
+	assert.Equal(t, int64(0), portfolio.TotalValue)
+	assert.Empty(t, portfolio.Holdings)
+	t.Log("IE-003 PASS: empty portfolio returns zeros")
+}
+
+// IE-004: Sell exactly all shares (position should become 0)
+func TestW7_Investment_SellAll(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	investSvc := investment.NewService(db.pool)
+
+	inv, err := investSvc.CreateInvestment(ctx, &pbInvest.CreateInvestmentRequest{
+		Symbol:     "SELLALL",
+		Name:       "Sell All",
+		MarketType: pbInvest.MarketType_MARKET_TYPE_FUND,
+	})
+	require.NoError(t, err)
+
+	_, err = investSvc.RecordTrade(ctx, &pbInvest.RecordTradeRequest{
+		InvestmentId: inv.Id,
+		TradeType:    pbInvest.TradeType_TRADE_TYPE_BUY,
+		Quantity:     50,
+		Price:        10000,
+		Fee:          100,
+		TradeDate:    timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	// Sell all 50
+	_, err = investSvc.RecordTrade(ctx, &pbInvest.RecordTradeRequest{
+		InvestmentId: inv.Id,
+		TradeType:    pbInvest.TradeType_TRADE_TYPE_SELL,
+		Quantity:     50,
+		Price:        12000,
+		Fee:          100,
+		TradeDate:    timestamppb.New(time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	// Portfolio should show 0 holding for this investment
+	portfolio, err := investSvc.GetPortfolioSummary(ctx, &pbInvest.GetPortfolioSummaryRequest{})
+	require.NoError(t, err)
+	for _, h := range portfolio.Holdings {
+		if h.Symbol == "SELLALL" {
+			assert.InDelta(t, 0.0, h.Quantity, 0.001,
+				"IE-004 BUG: sold all but holding still shows quantity")
+		}
+	}
+	t.Log("IE-004 PASS: sell all shares, position cleared")
+}
+
+// IE-005: Floating point precision — sell 33.333... of 100
+func TestW7_Investment_FloatingPointSell(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	investSvc := investment.NewService(db.pool)
+
+	inv, err := investSvc.CreateInvestment(ctx, &pbInvest.CreateInvestmentRequest{
+		Symbol:     "FLOAT",
+		Name:       "Float Test",
+		MarketType: pbInvest.MarketType_MARKET_TYPE_FUND,
+	})
+	require.NoError(t, err)
+
+	_, err = investSvc.RecordTrade(ctx, &pbInvest.RecordTradeRequest{
+		InvestmentId: inv.Id,
+		TradeType:    pbInvest.TradeType_TRADE_TYPE_BUY,
+		Quantity:     100,
+		Price:        10000,
+		Fee:          0,
+		TradeDate:    timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	// Sell 33.333333 (repeating decimal)
+	_, err = investSvc.RecordTrade(ctx, &pbInvest.RecordTradeRequest{
+		InvestmentId: inv.Id,
+		TradeType:    pbInvest.TradeType_TRADE_TYPE_SELL,
+		Quantity:     33.333333,
+		Price:        11000,
+		Fee:          0,
+		TradeDate:    timestamppb.New(time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	// Sell another 33.333333
+	_, err = investSvc.RecordTrade(ctx, &pbInvest.RecordTradeRequest{
+		InvestmentId: inv.Id,
+		TradeType:    pbInvest.TradeType_TRADE_TYPE_SELL,
+		Quantity:     33.333333,
+		Price:        11000,
+		Fee:          0,
+		TradeDate:    timestamppb.New(time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	// Remaining: 100 - 33.333333 - 33.333333 = 33.333334 (floating point)
+	// Selling exactly 33.333334 should work OR 33.333333+epsilon should work
+	portfolio, err := investSvc.GetPortfolioSummary(ctx, &pbInvest.GetPortfolioSummaryRequest{})
+	require.NoError(t, err)
+	for _, h := range portfolio.Holdings {
+		if h.Symbol == "FLOAT" {
+			assert.InDelta(t, 33.333334, h.Quantity, 0.001,
+				"IE-005: remaining should be ~33.33")
+			t.Logf("IE-005 PASS: remaining quantity=%.8f (floating point handled)", h.Quantity)
+			return
+		}
+	}
+	t.Error("IE-005: FLOAT not found in portfolio")
+}
+
+// ── Asset Edge Cases ─────────────────────────────────────────────────────────
+
+// AE-001: RunDepreciation without setting a rule
+func TestW7_Asset_DepreciationNoRule(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	assetSvc := asset.NewService(db.pool)
+
+	a, err := assetSvc.CreateAsset(ctx, &pbAsset.CreateAssetRequest{
+		Name:          "No Rule",
+		AssetType:     pbAsset.AssetType_ASSET_TYPE_ELECTRONICS,
+		PurchasePrice: 100000,
+		PurchaseDate:  timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	_, err = assetSvc.RunDepreciation(ctx, &pbAsset.RunDepreciationRequest{AssetId: a.Id})
+	require.Error(t, err, "AE-001: RunDepreciation without rule should fail")
+	t.Logf("AE-001 PASS: no rule → error: %v", err)
+}
+
+// AE-002: Depreciation stops at salvage value
+func TestW7_Asset_DepreciationStopsAtSalvage(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	assetSvc := asset.NewService(db.pool)
+
+	// Small asset, short life — can depreciate to salvage quickly
+	a, err := assetSvc.CreateAsset(ctx, &pbAsset.CreateAssetRequest{
+		Name:          "QuickDep",
+		AssetType:     pbAsset.AssetType_ASSET_TYPE_ELECTRONICS,
+		PurchasePrice: 120000, // 1200 CNY
+		PurchaseDate:  timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	// 1 year life, 10% salvage → salvage=12000, monthly_dep=9000, reaches salvage in ~12 months
+	_, err = assetSvc.SetDepreciationRule(ctx, &pbAsset.SetDepreciationRuleRequest{
+		AssetId:         a.Id,
+		Method:          pbAsset.DepreciationMethod_DEPRECIATION_METHOD_STRAIGHT_LINE,
+		UsefulLifeYears: 1,
+		SalvageRate:     0.10, // salvage = 12000
+	})
+	require.NoError(t, err)
+
+	// Run 15 months (more than useful life)
+	var lastValue int64
+	for i := 0; i < 15; i++ {
+		updated, err := assetSvc.RunDepreciation(ctx, &pbAsset.RunDepreciationRequest{AssetId: a.Id})
+		require.NoError(t, err)
+		lastValue = updated.CurrentValue
+	}
+
+	// Should stop at salvage value (12000), never go below
+	salvage := int64(12000)
+	assert.GreaterOrEqual(t, lastValue, salvage,
+		"AE-002 BUG: value %d dropped below salvage %d", lastValue, salvage)
+	assert.Equal(t, salvage, lastValue,
+		"AE-002: should be exactly at salvage after full depreciation")
+	t.Logf("AE-002 PASS: depreciated to salvage=%d, stopped", lastValue)
+}
+
+// AE-003: Override depreciation rule (set rule twice)
+func TestW7_Asset_OverrideDepreciationRule(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	assetSvc := asset.NewService(db.pool)
+
+	a, err := assetSvc.CreateAsset(ctx, &pbAsset.CreateAssetRequest{
+		Name:          "RuleOverride",
+		AssetType:     pbAsset.AssetType_ASSET_TYPE_VEHICLE,
+		PurchasePrice: 10000000,
+		PurchaseDate:  timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	// Set straight line
+	_, err = assetSvc.SetDepreciationRule(ctx, &pbAsset.SetDepreciationRuleRequest{
+		AssetId:         a.Id,
+		Method:          pbAsset.DepreciationMethod_DEPRECIATION_METHOD_STRAIGHT_LINE,
+		UsefulLifeYears: 10,
+		SalvageRate:     0.05,
+	})
+	require.NoError(t, err)
+
+	// Run once
+	after1, err := assetSvc.RunDepreciation(ctx, &pbAsset.RunDepreciationRequest{AssetId: a.Id})
+	require.NoError(t, err)
+
+	// Override to double declining
+	_, err = assetSvc.SetDepreciationRule(ctx, &pbAsset.SetDepreciationRuleRequest{
+		AssetId:         a.Id,
+		Method:          pbAsset.DepreciationMethod_DEPRECIATION_METHOD_DOUBLE_DECLINING,
+		UsefulLifeYears: 5,
+		SalvageRate:     0.10,
+	})
+	require.NoError(t, err)
+
+	// Run again with new rule — should use new method on current book value
+	after2, err := assetSvc.RunDepreciation(ctx, &pbAsset.RunDepreciationRequest{AssetId: a.Id})
+	require.NoError(t, err)
+
+	// Double-declining on shorter life → bigger monthly depreciation
+	dep1 := int64(10000000) - after1.CurrentValue     // straight-line monthly
+	dep2 := after1.CurrentValue - after2.CurrentValue // double-declining monthly
+	assert.Greater(t, dep2, dep1,
+		"AE-003: double-declining dep (%d) should exceed straight-line dep (%d)", dep2, dep1)
+	t.Logf("AE-003 PASS: rule override applied, dep1=%d(SL) dep2=%d(DD)", dep1, dep2)
+}
+
+// AE-004: Depreciation method=NONE should be rejected
+func TestW7_Asset_DepreciationMethodNone(t *testing.T) {
+	db := getDB(t)
+	ctx, _ := w7Ctx(t, db)
+	assetSvc := asset.NewService(db.pool)
+
+	a, err := assetSvc.CreateAsset(ctx, &pbAsset.CreateAssetRequest{
+		Name:          "NoDep",
+		AssetType:     pbAsset.AssetType_ASSET_TYPE_REAL_ESTATE,
+		PurchasePrice: 300000000,
+		PurchaseDate:  timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+
+	// Set method=NONE (e.g. real estate that appreciates)
+	_, err = assetSvc.SetDepreciationRule(ctx, &pbAsset.SetDepreciationRuleRequest{
+		AssetId:         a.Id,
+		Method:          pbAsset.DepreciationMethod_DEPRECIATION_METHOD_NONE,
+		UsefulLifeYears: 0,
+		SalvageRate:     0,
+	})
+	require.NoError(t, err)
+
+	// RunDepreciation on NONE method should fail
+	_, err = assetSvc.RunDepreciation(ctx, &pbAsset.RunDepreciationRequest{AssetId: a.Id})
+	require.Error(t, err, "AE-004: depreciation on NONE method should fail")
+	t.Logf("AE-004 PASS: NONE method → error: %v", err)
+}
