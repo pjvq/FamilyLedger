@@ -418,7 +418,7 @@ void main() {
     });
 
     group('push with partial failures', () {
-      test('all ops are marked uploaded (including failed ones to stop retry)',
+      test('only succeeded ops are marked uploaded; failed ops stay in queue for retry',
           () async {
         // Insert 2 pending ops
         await _insertPendingSyncOp(db, id: 'op_ok', entityId: 'txn_ok');
@@ -440,10 +440,10 @@ void main() {
         final engine = TestableSyncEngine(db, mockClient, prefs, connectivity: mockConnectivity);
         await engine.testSyncNow();
 
-        // Current implementation marks ALL processed ops as uploaded
-        // (to stop retrying permanently failed ops)
+        // R7 fix: Only succeeded ops marked uploaded; failed ops remain for retry
         final pending = await db.getPendingSyncOps(10);
-        expect(pending, isEmpty);
+        expect(pending, hasLength(1));
+        expect(pending.first.id, equals('op_bad'));
 
         engine.dispose();
       });

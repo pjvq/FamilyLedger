@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	pgxmock "github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,9 +29,50 @@ func TestPushOperations_DeleteTerminalState_BlocksSubsequentUpdate(t *testing.T)
 // Pushing the same operation twice should not create duplicates.
 
 func TestPushOperations_IdempotentPush_NoDuplicates(t *testing.T) {
-	t.Skip("EXPECTED_FAILURE: Server has no ON CONFLICT for sync_operations. " +
-		"Duplicate push creates duplicate rows. Needs server-side dedup by " +
-		"(user_id, entity_type, entity_id, op_type, client_id).")
+	// R11: Server has ON CONFLICT (client_id) DO NOTHING for dedup.
+	// This is fully tested in W5 integration test (TestSync_IdempotentPush).
+	// Unit test verifies the dedup path returns accepted (not failed) when
+	// INSERT returns ErrNoRows (ON CONFLICT DO NOTHING).
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	hub := newTestHub()
+	svc := NewService(mock, hub)
+
+	entityID := uuid.New()
+
+	mock.ExpectBegin()
+	// Savepoint for op
+	mock.ExpectExec("SAVEPOINT").WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
+	// INSERT INTO sync_operations ... ON CONFLICT (client_id) DO NOTHING
+	// Returns ErrNoRows when dedup hits (RETURNING gets no row)
+	mock.ExpectQuery("INSERT INTO sync_operations").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnError(pgx.ErrNoRows)
+	// Release savepoint (dedup path skips applyOperation)
+	mock.ExpectExec("RELEASE").WillReturnResult(pgxmock.NewResult("RELEASE", 0))
+	mock.ExpectCommit()
+
+	resp, err := svc.PushOperations(authedCtx(), &pb.PushOperationsRequest{
+		Operations: []*pb.SyncOperation{
+			{
+				Id:         "op-dedup",
+				EntityType: "transaction",
+				EntityId:   entityID.String(),
+				OpType:     pb.OperationType_OPERATION_TYPE_CREATE,
+				Payload:    `{"amount":100}`,
+				ClientId:   "already-pushed-client-id",
+				Timestamp:  timestamppb.Now(),
+			},
+		},
+	})
+
+	require.NoError(t, err)
+	// Dedup'd op counts as accepted (idempotent success, not failure)
+	assert.Equal(t, int32(1), resp.AcceptedCount)
+	assert.Empty(t, resp.FailedIds, "dedup'd op should not be in failedIds")
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 // ─── PullChanges pagination (R3) ─────────────────────────────────────────────

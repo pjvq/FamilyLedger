@@ -277,6 +277,7 @@ class PullChangesRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PullChangesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.sync.v1'), createEmptyInstance: create)
     ..aOM<$3.Timestamp>(1, _omitFieldNames ? '' : 'since', subBuilder: $3.Timestamp.create)
     ..aOS(2, _omitFieldNames ? '' : 'clientId')
+    ..aOS(3, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -320,6 +321,15 @@ class PullChangesRequest extends $pb.GeneratedMessage {
   $core.bool hasClientId() => $_has(1);
   @$pb.TagNumber(2)
   void clearClientId() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get familyId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set familyId($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFamilyId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFamilyId() => clearField(3);
 }
 
 class PullChangesResponse extends $pb.GeneratedMessage {
