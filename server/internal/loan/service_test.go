@@ -353,6 +353,11 @@ func TestRecordPayment_Success(t *testing.T) {
 		WithArgs(loanID.String()).
 		WillReturnRows(pgxmock.NewRows(loanColumns()).AddRow(loanRow(loanID, testUserUUID)...))
 
+	// Sequential payment check
+	mock.ExpectQuery("SELECT COALESCE").
+		WithArgs(loanID.String()).
+		WillReturnRows(pgxmock.NewRows([]string{"min"}).AddRow(int32(13)))
+
 	// Begin
 	mock.ExpectBegin()
 	// UPDATE loan_schedules ... RETURNING (QueryRow inside tx)
