@@ -23,6 +23,12 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+
+	syncpkg "github.com/familyledger/server/internal/sync"
+	"github.com/familyledger/server/pkg/middleware"
+	"github.com/familyledger/server/pkg/ws"
+	pb "github.com/familyledger/server/proto/sync"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // sharedDB is the single PostgreSQL container shared across all tests.
@@ -874,4 +880,81 @@ func TestAccount_PersonalNotVisibleInFamilyQuery(t *testing.T) {
 	}
 	assert.Equal(t, 1, len(personalNames))
 	assert.Equal(t, "Personal Wallet", personalNames[0])
+}
+
+// ─── R3: PullChanges Pagination ──────────────────────────────────────────────
+
+func TestSync_PullChanges_Pagination(t *testing.T) {
+	db := getDB(t)
+	ctx := context.Background()
+
+	userID := createTestUser(t, db, "sync_page_user@test.com")
+
+	// Insert 5 operations with distinct timestamps
+	baseTime := time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC)
+	for i := 0; i < 5; i++ {
+		ts := baseTime.Add(time.Duration(i) * time.Minute)
+		_, err := db.pool.Exec(ctx,
+			`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
+			 VALUES ($1, 'transaction', $2, 'create', '{}', $3, $4)`,
+			userID, uuid.New(), fmt.Sprintf("client-page-%d", i), ts,
+		)
+		require.NoError(t, err)
+	}
+
+	// Use the gRPC service to pull with page_size=2
+	hub := ws.NewHub(nil) // nil jwtManager is OK for sync service (no WS auth needed in test)
+	svc := syncpkg.NewService(db.pool, hub)
+
+	authedCtx := context.WithValue(ctx, middleware.UserIDKey, userID.String())
+
+	// Page 1: should return 2 ops + has_more=true
+	resp, err := svc.PullChanges(authedCtx, &pb.PullChangesRequest{
+		Since:    timestamppb.New(baseTime.Add(-1 * time.Second)),
+		ClientId: "other-client",
+		PageSize: 2,
+	})
+	require.NoError(t, err)
+	assert.Len(t, resp.Operations, 2)
+	assert.True(t, resp.HasMore)
+	assert.NotEmpty(t, resp.NextPageToken)
+
+	// Page 2: use next_page_token
+	resp2, err := svc.PullChanges(authedCtx, &pb.PullChangesRequest{
+		Since:     timestamppb.New(baseTime.Add(-1 * time.Second)),
+		ClientId:  "other-client",
+		PageSize:  2,
+		PageToken: resp.NextPageToken,
+	})
+	require.NoError(t, err)
+	assert.Len(t, resp2.Operations, 2)
+	assert.True(t, resp2.HasMore)
+	assert.NotEmpty(t, resp2.NextPageToken)
+
+	// Page 3: last page with 1 item
+	resp3, err := svc.PullChanges(authedCtx, &pb.PullChangesRequest{
+		Since:     timestamppb.New(baseTime.Add(-1 * time.Second)),
+		ClientId:  "other-client",
+		PageSize:  2,
+		PageToken: resp2.NextPageToken,
+	})
+	require.NoError(t, err)
+	assert.Len(t, resp3.Operations, 1)
+	assert.False(t, resp3.HasMore)
+	assert.Empty(t, resp3.NextPageToken)
+
+	// Verify no duplicates across pages
+	allIDs := make(map[string]bool)
+	for _, op := range resp.Operations {
+		allIDs[op.Id] = true
+	}
+	for _, op := range resp2.Operations {
+		assert.False(t, allIDs[op.Id], "duplicate op across pages: %s", op.Id)
+		allIDs[op.Id] = true
+	}
+	for _, op := range resp3.Operations {
+		assert.False(t, allIDs[op.Id], "duplicate op across pages: %s", op.Id)
+		allIDs[op.Id] = true
+	}
+	assert.Equal(t, 5, len(allIDs))
 }

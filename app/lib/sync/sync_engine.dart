@@ -4,6 +4,7 @@ import 'dart:developer' as dev;
 import 'dart:math';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -106,12 +107,10 @@ class SyncEngine {
           .map((op) => op.id)
           .toList();
 
-      // Also mark permanently failed ops as uploaded to stop retrying
-      // (e.g. invalid category_id format that will never succeed)
-      final allProcessedIds = pendingOps.map((op) => op.id).toList();
-
-      if (allProcessedIds.isNotEmpty) {
-        await _db!.markSyncOpsUploaded(allProcessedIds);
+      // Only mark succeeded ops as uploaded; failed ops remain in queue for retry.
+      // R7 fix: previously marked ALL ops (including failed) which caused data loss.
+      if (succeededIds.isNotEmpty) {
+        await _db!.markSyncOpsUploaded(succeededIds);
       }
 
       dev.log(
@@ -168,27 +167,48 @@ class SyncEngine {
         nanos: (lastTsMs % 1000) * 1000000,
       );
 
-      final request = sync_pb.PullChangesRequest(
-        since: since,
-        clientId: 'client_$userId',
-      );
+      final familyId = _prefs!.getString(AppConstants.familyIdKey) ?? '';
 
-      final response = await _syncClient!.pullChanges(request);
+      int totalPulled = 0;
+      String pageToken = '';
 
-      for (final op in response.operations) {
-        await _applyRemoteOp(op);
-      }
+      // Paginated pull loop
+      do {
+        if (_disposed) return;
 
-      // 保存服务端时间作为下次 pull 的起点
-      if (response.hasServerTime()) {
-        final serverMs =
-            response.serverTime.seconds.toInt() * 1000 +
-            response.serverTime.nanos ~/ 1000000;
-        await _prefs!.setInt(_lastSyncTsKey, serverMs);
-      }
+        final request = sync_pb.PullChangesRequest(
+          since: since,
+          clientId: 'client_$userId',
+        );
+        if (familyId.isNotEmpty) {
+          request.familyId = familyId;
+        }
+        request.pageSize = 100;
+        if (pageToken.isNotEmpty) {
+          request.pageToken = pageToken;
+        }
+
+        final response = await _syncClient!.pullChanges(request);
+
+        for (final op in response.operations) {
+          await _applyRemoteOp(op);
+        }
+        totalPulled += response.operations.length;
+
+        pageToken = response.nextPageToken;
+
+        // Only save server_time on the final page to avoid checkpoint
+        // advancing past un-applied ops if crash occurs mid-pagination.
+        if (pageToken.isEmpty && response.hasServerTime()) {
+          final serverMs =
+              response.serverTime.seconds.toInt() * 1000 +
+              response.serverTime.nanos ~/ 1000000;
+          await _prefs!.setInt(_lastSyncTsKey, serverMs);
+        }
+      } while (pageToken.isNotEmpty); // Use nextPageToken (not has_more) as loop guard — more reliable
 
       dev.log(
-        'SyncEngine: pulled ${response.operations.length} changes',
+        'SyncEngine: pulled $totalPulled changes',
         name: 'sync',
       );
     } catch (e) {
@@ -211,6 +231,18 @@ class SyncEngine {
           op.opType == sync_enum.OperationType.OPERATION_TYPE_DELETE;
 
       if (!isDelete) {
+        // R9 fix: DELETE is terminal — if entity is locally deleted, reject any
+        // subsequent CREATE/UPDATE even with later timestamp.
+        final isLocallyDeleted = await _isEntityDeleted(op.entityType, op.entityId);
+        if (isLocallyDeleted) {
+          dev.log(
+            'SyncEngine: R9 terminal skip ${op.entityType}/${op.entityId} '
+            '(locally deleted, ignoring ${op.opType})',
+            name: 'sync',
+          );
+          return;
+        }
+
         // LWW check: skip if local data is newer
         final remoteTimestampMs = op.hasTimestamp()
             ? op.timestamp.seconds.toInt() * 1000 +
@@ -241,6 +273,23 @@ class SyncEngine {
         case 'category':
           await _applyCategoryOp(op.opType, op.entityId, payload);
           break;
+        case 'loan':
+          await _applyLoanOp(op.opType, op.entityId, payload);
+          break;
+        case 'loan_group':
+          await _applyLoanGroupOp(op.opType, op.entityId, payload);
+          break;
+        case 'investment':
+          await _applyInvestmentOp(op.opType, op.entityId, payload);
+          break;
+        case 'fixed_asset':
+          await _applyFixedAssetOp(op.opType, op.entityId, payload);
+          break;
+        case 'budget':
+          await _applyBudgetOp(op.opType, op.entityId, payload);
+          break;
+        default:
+          dev.log('SyncEngine: unknown entity_type ${op.entityType}', name: 'sync');
       }
     } catch (e) {
       dev.log('SyncEngine: apply op failed: $e', name: 'sync');
@@ -262,8 +311,54 @@ class SyncEngine {
       case 'category':
         // Categories don't have updatedAt — always apply remote ops
         return null;
+      case 'loan':
+        final loan = await _db!.getLoanById(entityId);
+        return loan?.updatedAt;
+      case 'loan_group':
+        final group = await _db!.getLoanGroupById(entityId);
+        return group?.updatedAt;
+      case 'investment':
+        final inv = await _db!.getInvestmentById(entityId);
+        return inv?.updatedAt;
+      case 'fixed_asset':
+        final asset = await _db!.getFixedAssetById(entityId);
+        return asset?.updatedAt;
+      case 'budget':
+        final budget = await _db!.getBudgetById(entityId);
+        return budget?.updatedAt;
       default:
         return null;
+    }
+  }
+
+  /// R9: Check if entity has been locally deleted (terminal state).
+  /// Returns true if the entity exists with a non-null deleted_at.
+  Future<bool> _isEntityDeleted(String entityType, String entityId) async {
+    switch (entityType) {
+      case 'transaction':
+        final txn = await _db!.getTransactionById(entityId);
+        // getTransactionById returns null for non-existent, but we need to check
+        // if it exists WITH deleted_at set. Use raw query or check deletedAt.
+        return txn != null && txn.deletedAt != null;
+      case 'account':
+        final acc = await _db!.getAccountById(entityId);
+        return acc != null && !acc.isActive;
+      case 'loan':
+        final loan = await _db!.getLoanById(entityId);
+        return loan != null && loan.deletedAt != null;
+      case 'loan_group':
+        final group = await _db!.getLoanGroupById(entityId);
+        return group != null && group.deletedAt != null;
+      case 'investment':
+        final inv = await _db!.getInvestmentById(entityId);
+        return inv != null && inv.deletedAt != null;
+      case 'fixed_asset':
+        final asset = await _db!.getFixedAssetById(entityId);
+        return asset != null && asset.deletedAt != null;
+      default:
+        // category and budget don't have soft delete (hard delete only)
+        // TODO: add budget/category support here if soft-delete is ever added
+        return false;
     }
   }
 
@@ -348,6 +443,167 @@ class SyncEngine {
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
         // Soft delete: set deleted_at
         await _db!.softDeleteCategory(entityId);
+        break;
+      default:
+        break;
+    }
+  }
+
+  // ─────────── Loan ops ───────────
+
+  Future<void> _applyLoanOp(
+    sync_enum.OperationType opType,
+    String entityId,
+    Map<String, dynamic> payload,
+  ) async {
+    switch (opType) {
+      case sync_enum.OperationType.OPERATION_TYPE_CREATE:
+      case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
+        await _db!.upsertLoan(LoansCompanion(
+          id: Value(entityId),
+          userId: Value(payload['user_id'] ?? ''),
+          familyId: Value(payload['family_id'] ?? ''),
+          name: Value(payload['name'] ?? 'Unknown Loan'),
+          loanType: Value(payload['loan_type'] ?? 'other'),
+          principal: Value((payload['principal'] as num?)?.toInt() ?? 0),
+          remainingPrincipal: Value((payload['remaining_principal'] as num?)?.toInt() ?? 0),
+          annualRate: Value((payload['annual_rate'] as num?)?.toDouble() ?? 0.0),
+          totalMonths: Value((payload['total_months'] as num?)?.toInt() ?? 0),
+          paidMonths: Value((payload['paid_months'] as num?)?.toInt() ?? 0),
+          repaymentMethod: Value(payload['repayment_method'] ?? 'equal_installment'),
+          paymentDay: Value((payload['payment_day'] as num?)?.toInt() ?? 1),
+          startDate: Value(DateTime.tryParse(payload['start_date'] ?? '') ?? DateTime.now()),
+          accountId: Value(payload['account_id'] ?? ''),
+          groupId: Value(payload['group_id'] ?? ''),
+          subType: Value(payload['sub_type'] ?? ''),
+          rateType: Value(payload['rate_type'] ?? 'fixed'),
+          lprBase: Value((payload['lpr_base'] as num?)?.toDouble() ?? 0.0),
+          lprSpread: Value((payload['lpr_spread'] as num?)?.toDouble() ?? 0.0),
+          rateAdjustMonth: Value((payload['rate_adjust_month'] as num?)?.toInt() ?? 1),
+          updatedAt: Value(DateTime.now()),
+        ));
+        break;
+      case sync_enum.OperationType.OPERATION_TYPE_DELETE:
+        await _db!.softDeleteLoan(entityId);
+        break;
+      default:
+        break;
+    }
+  }
+
+  // ─────────── LoanGroup ops ───────────
+
+  Future<void> _applyLoanGroupOp(
+    sync_enum.OperationType opType,
+    String entityId,
+    Map<String, dynamic> payload,
+  ) async {
+    switch (opType) {
+      case sync_enum.OperationType.OPERATION_TYPE_CREATE:
+      case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
+        await _db!.upsertLoanGroup(LoanGroupsCompanion(
+          id: Value(entityId),
+          userId: Value(payload['user_id'] ?? ''),
+          familyId: Value(payload['family_id'] ?? ''),
+          name: Value(payload['name'] ?? 'Unknown Group'),
+          groupType: Value(payload['group_type'] ?? 'combined'),
+          totalPrincipal: Value((payload['total_principal'] as num?)?.toInt() ?? 0),
+          paymentDay: Value((payload['payment_day'] as num?)?.toInt() ?? 1),
+          startDate: Value(DateTime.tryParse(payload['start_date'] ?? '') ?? DateTime.now()),
+          loanType: Value(payload['loan_type'] ?? 'mortgage'),
+          updatedAt: Value(DateTime.now()),
+        ));
+        break;
+      case sync_enum.OperationType.OPERATION_TYPE_DELETE:
+        await _db!.softDeleteLoanGroup(entityId);
+        break;
+      default:
+        break;
+    }
+  }
+
+  // ─────────── Investment ops ───────────
+
+  Future<void> _applyInvestmentOp(
+    sync_enum.OperationType opType,
+    String entityId,
+    Map<String, dynamic> payload,
+  ) async {
+    switch (opType) {
+      case sync_enum.OperationType.OPERATION_TYPE_CREATE:
+      case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
+        await _db!.upsertInvestment(InvestmentsCompanion(
+          id: Value(entityId),
+          userId: Value(payload['user_id'] ?? ''),
+          familyId: Value(payload['family_id'] ?? ''),
+          symbol: Value(payload['symbol'] ?? ''),
+          name: Value(payload['name'] ?? 'Unknown'),
+          marketType: Value(payload['market_type'] ?? 'a_share'),
+          quantity: Value((payload['quantity'] as num?)?.toDouble() ?? 0.0),
+          costBasis: Value((payload['cost_basis'] as num?)?.toInt() ?? 0),
+          updatedAt: Value(DateTime.now()),
+        ));
+        break;
+      case sync_enum.OperationType.OPERATION_TYPE_DELETE:
+        await _db!.softDeleteInvestment(entityId);
+        break;
+      default:
+        break;
+    }
+  }
+
+  // ─────────── FixedAsset ops ───────────
+
+  Future<void> _applyFixedAssetOp(
+    sync_enum.OperationType opType,
+    String entityId,
+    Map<String, dynamic> payload,
+  ) async {
+    switch (opType) {
+      case sync_enum.OperationType.OPERATION_TYPE_CREATE:
+      case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
+        await _db!.upsertFixedAsset(FixedAssetsCompanion(
+          id: Value(entityId),
+          userId: Value(payload['user_id'] ?? ''),
+          familyId: Value(payload['family_id'] ?? ''),
+          name: Value(payload['name'] ?? 'Unknown Asset'),
+          assetType: Value(payload['asset_type'] ?? 'other'),
+          purchasePrice: Value((payload['purchase_price'] as num?)?.toInt() ?? 0),
+          currentValue: Value((payload['current_value'] as num?)?.toInt() ?? 0),
+          purchaseDate: Value(DateTime.tryParse(payload['purchase_date'] ?? '') ?? DateTime.now()),
+          updatedAt: Value(DateTime.now()),
+        ));
+        break;
+      case sync_enum.OperationType.OPERATION_TYPE_DELETE:
+        await _db!.softDeleteFixedAsset(entityId);
+        break;
+      default:
+        break;
+    }
+  }
+
+  // ─────────── Budget ops ───────────
+
+  Future<void> _applyBudgetOp(
+    sync_enum.OperationType opType,
+    String entityId,
+    Map<String, dynamic> payload,
+  ) async {
+    switch (opType) {
+      case sync_enum.OperationType.OPERATION_TYPE_CREATE:
+      case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
+        await _db!.insertBudget(BudgetsCompanion(
+          id: Value(entityId),
+          userId: Value(payload['user_id'] ?? ''),
+          familyId: Value(payload['family_id'] ?? ''),
+          year: Value((payload['year'] as num?)?.toInt() ?? DateTime.now().year),
+          month: Value((payload['month'] as num?)?.toInt() ?? DateTime.now().month),
+          totalAmount: Value((payload['total_amount'] as num?)?.toInt() ?? 0),
+          updatedAt: Value(DateTime.now()),
+        ));
+        break;
+      case sync_enum.OperationType.OPERATION_TYPE_DELETE:
+        await _db!.deleteBudget(entityId);
         break;
       default:
         break;

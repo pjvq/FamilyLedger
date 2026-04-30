@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -624,6 +625,32 @@ func (s *Service) PullChanges(ctx context.Context, req *pb.PullChangesRequest) (
 		clientID = "unknown"
 	}
 
+	// Pagination: default 100, max 500
+	pageSize := int(req.PageSize)
+	if pageSize <= 0 {
+		pageSize = 100
+	}
+	if pageSize > 500 {
+		pageSize = 500
+	}
+
+	// Decode page_token (format: "timestamp_nanos:uuid" of last seen item)
+	var cursorTime time.Time
+	var cursorID uuid.UUID
+	hasCursor := false
+	if req.PageToken != "" {
+		parts := strings.SplitN(req.PageToken, ":", 2)
+		if len(parts) == 2 {
+			if nanos, err := strconv.ParseInt(parts[0], 10, 64); err == nil {
+				cursorTime = time.Unix(0, nanos)
+				if id, err := uuid.Parse(parts[1]); err == nil {
+					cursorID = id
+					hasCursor = true
+				}
+			}
+		}
+	}
+
 	var rows pgx.Rows
 
 	if req.FamilyId != "" {
@@ -646,46 +673,81 @@ func (s *Service) PullChanges(ctx context.Context, req *pb.PullChangesRequest) (
 			return nil, status.Error(codes.PermissionDenied, "user is not a member of this family")
 		}
 
-		// Pull operations from all family members that target family accounts.
-		// We JOIN with accounts to ensure only operations on family-owned entities are returned.
-		// For entity types without accounts (e.g. category), we include ops from family members directly.
-		rows, err = s.pool.Query(ctx,
-			`SELECT so.id, so.entity_type, so.entity_id, so.op_type, so.payload, so.client_id, so.timestamp
-			 FROM sync_operations so
-			 WHERE so.user_id IN (SELECT user_id FROM family_members WHERE family_id = $1)
-			   AND so.timestamp > $2
-			   AND so.client_id != $3
-			   AND (
-			     -- For transaction ops: entity must belong to a family account
-			     (so.entity_type = 'transaction' AND so.entity_id IN (
-			       SELECT t.id FROM transactions t
-			       JOIN accounts a ON t.account_id = a.id
-			       WHERE a.family_id = $1
-			     ))
-			     OR
-			     -- For account ops: entity must be a family account
-			     (so.entity_type = 'account' AND so.entity_id IN (
-			       SELECT id FROM accounts WHERE family_id = $1
-			     ))
-			     OR
-			     -- For other entity types (category, etc): include all from family members
-			     (so.entity_type NOT IN ('transaction', 'account'))
-			   )
-			 ORDER BY so.timestamp ASC`,
-			familyID, since, clientID,
-		)
+		if hasCursor {
+			rows, err = s.pool.Query(ctx,
+				`SELECT so.id, so.entity_type, so.entity_id, so.op_type, so.payload, so.client_id, so.timestamp
+				 FROM sync_operations so
+				 WHERE so.user_id IN (SELECT user_id FROM family_members WHERE family_id = $1)
+				   AND so.timestamp > $2
+				   AND so.client_id != $3
+			   AND (so.timestamp, so.id) > ($5, $6)
+				   AND (
+				     (so.entity_type = 'transaction' AND so.entity_id IN (
+				       SELECT t.id FROM transactions t
+				       JOIN accounts a ON t.account_id = a.id
+				       WHERE a.family_id = $1
+				     ))
+				     OR
+				     (so.entity_type = 'account' AND so.entity_id IN (
+				       SELECT id FROM accounts WHERE family_id = $1
+				     ))
+				     OR
+				     (so.entity_type NOT IN ('transaction', 'account'))
+				   )
+				 ORDER BY so.timestamp ASC, so.id ASC
+				 LIMIT $4`,
+				familyID, since, clientID, pageSize+1, cursorTime, cursorID,
+			)
+		} else {
+			rows, err = s.pool.Query(ctx,
+				`SELECT so.id, so.entity_type, so.entity_id, so.op_type, so.payload, so.client_id, so.timestamp
+				 FROM sync_operations so
+				 WHERE so.user_id IN (SELECT user_id FROM family_members WHERE family_id = $1)
+				   AND so.timestamp > $2
+				   AND so.client_id != $3
+				   AND (
+				     (so.entity_type = 'transaction' AND so.entity_id IN (
+				       SELECT t.id FROM transactions t
+				       JOIN accounts a ON t.account_id = a.id
+				       WHERE a.family_id = $1
+				     ))
+				     OR
+				     (so.entity_type = 'account' AND so.entity_id IN (
+				       SELECT id FROM accounts WHERE family_id = $1
+				     ))
+				     OR
+				     (so.entity_type NOT IN ('transaction', 'account'))
+				   )
+				 ORDER BY so.timestamp ASC, so.id ASC
+				 LIMIT $4`,
+				familyID, since, clientID, pageSize+1,
+			)
+		}
 		if err != nil {
 			return nil, status.Error(codes.Internal, "failed to query family sync operations")
 		}
 	} else {
 		// Personal mode: only pull operations for this user
-		rows, err = s.pool.Query(ctx,
-			`SELECT id, entity_type, entity_id, op_type, payload, client_id, timestamp
-			 FROM sync_operations
-			 WHERE user_id = $1 AND timestamp > $2 AND client_id != $3
-			 ORDER BY timestamp ASC`,
-			uid, since, clientID,
-		)
+		if hasCursor {
+			rows, err = s.pool.Query(ctx,
+				`SELECT id, entity_type, entity_id, op_type, payload, client_id, timestamp
+				 FROM sync_operations
+				 WHERE user_id = $1 AND timestamp > $2 AND client_id != $3
+				   AND (timestamp, id) > ($5, $6)
+				 ORDER BY timestamp ASC, id ASC
+				 LIMIT $4`,
+				uid, since, clientID, pageSize+1, cursorTime, cursorID,
+			)
+		} else {
+			rows, err = s.pool.Query(ctx,
+				`SELECT id, entity_type, entity_id, op_type, payload, client_id, timestamp
+				 FROM sync_operations
+				 WHERE user_id = $1 AND timestamp > $2 AND client_id != $3
+				 ORDER BY timestamp ASC, id ASC
+				 LIMIT $4`,
+				uid, since, clientID, pageSize+1,
+			)
+		}
 		if err != nil {
 			return nil, status.Error(codes.Internal, "failed to query sync operations")
 		}
@@ -725,9 +787,22 @@ func (s *Service) PullChanges(ctx context.Context, req *pb.PullChangesRequest) (
 		operations = []*pb.SyncOperation{}
 	}
 
+	// Pagination: if we got pageSize+1 results, there are more pages
+	var nextPageToken string
+	hasMore := false
+	if len(operations) > pageSize {
+		hasMore = true
+		// Last item of current page is operations[pageSize-1]
+		lastOp := operations[pageSize-1]
+		nextPageToken = fmt.Sprintf("%d:%s", lastOp.Timestamp.AsTime().UnixNano(), lastOp.Id)
+		operations = operations[:pageSize]
+	}
+
 	return &pb.PullChangesResponse{
-		Operations: operations,
-		ServerTime: timestamppb.Now(),
+		Operations:    operations,
+		ServerTime:    timestamppb.Now(),
+		NextPageToken: nextPageToken,
+		HasMore:       hasMore,
 	}, nil
 }
 

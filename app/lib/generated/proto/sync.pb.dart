@@ -277,6 +277,9 @@ class PullChangesRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PullChangesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.sync.v1'), createEmptyInstance: create)
     ..aOM<$3.Timestamp>(1, _omitFieldNames ? '' : 'since', subBuilder: $3.Timestamp.create)
     ..aOS(2, _omitFieldNames ? '' : 'clientId')
+    ..aOS(3, _omitFieldNames ? '' : 'familyId')
+    ..a<$core.int>(4, _omitFieldNames ? '' : 'pageSize', $pb.PbFieldType.O3)
+    ..aOS(5, _omitFieldNames ? '' : 'pageToken')
     ..hasRequiredFields = false
   ;
 
@@ -320,6 +323,33 @@ class PullChangesRequest extends $pb.GeneratedMessage {
   $core.bool hasClientId() => $_has(1);
   @$pb.TagNumber(2)
   void clearClientId() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get familyId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set familyId($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasFamilyId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFamilyId() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get pageSize => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set pageSize($core.int v) { $_setSignedInt32(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasPageSize() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPageSize() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get pageToken => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set pageToken($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasPageToken() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearPageToken() => clearField(5);
 }
 
 class PullChangesResponse extends $pb.GeneratedMessage {
@@ -343,6 +373,8 @@ class PullChangesResponse extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PullChangesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.sync.v1'), createEmptyInstance: create)
     ..pc<SyncOperation>(1, _omitFieldNames ? '' : 'operations', $pb.PbFieldType.PM, subBuilder: SyncOperation.create)
     ..aOM<$3.Timestamp>(2, _omitFieldNames ? '' : 'serverTime', subBuilder: $3.Timestamp.create)
+    ..aOS(3, _omitFieldNames ? '' : 'nextPageToken')
+    ..aOB(4, _omitFieldNames ? '' : 'hasMore')
     ..hasRequiredFields = false
   ;
 
@@ -380,6 +412,24 @@ class PullChangesResponse extends $pb.GeneratedMessage {
   void clearServerTime() => clearField(2);
   @$pb.TagNumber(2)
   $3.Timestamp ensureServerTime() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  $core.String get nextPageToken => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set nextPageToken($core.String v) { $_setString(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasNextPageToken() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNextPageToken() => clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get hasMore_4 => $_getBF(3);
+  @$pb.TagNumber(4)
+  set hasMore_4($core.bool v) { $_setBool(3, v); }
+  @$pb.TagNumber(4)
+  $core.bool get hasHasMore => $_has(3);
+  @$pb.TagNumber(4)
+  void clearHasMore() => clearField(4);
 }
 
 
