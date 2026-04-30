@@ -195,16 +195,17 @@ class SyncEngine {
         }
         totalPulled += response.operations.length;
 
-        // Save server_time from LAST page response as next pull checkpoint
-        if (response.hasServerTime()) {
+        pageToken = response.nextPageToken;
+
+        // Only save server_time on the final page to avoid checkpoint
+        // advancing past un-applied ops if crash occurs mid-pagination.
+        if (pageToken.isEmpty && response.hasServerTime()) {
           final serverMs =
               response.serverTime.seconds.toInt() * 1000 +
               response.serverTime.nanos ~/ 1000000;
           await _prefs!.setInt(_lastSyncTsKey, serverMs);
         }
-
-        pageToken = response.nextPageToken;
-      } while (pageToken.isNotEmpty);
+      } while (pageToken.isNotEmpty); // Use nextPageToken (not has_more) as loop guard — more reliable
 
       dev.log(
         'SyncEngine: pulled $totalPulled changes',
@@ -355,7 +356,8 @@ class SyncEngine {
         final asset = await _db!.getFixedAssetById(entityId);
         return asset != null && asset.deletedAt != null;
       default:
-        // category and budget don't have soft delete
+        // category and budget don't have soft delete (hard delete only)
+        // TODO: add budget/category support here if soft-delete is ever added
         return false;
     }
   }
