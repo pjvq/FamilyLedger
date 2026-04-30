@@ -752,7 +752,7 @@ func TestW8_Security_SQLInjection_FamilyName(t *testing.T) {
 	t.Logf("S-001 VERIFIED: families table intact (%d rows)", count)
 }
 
-func TestW8_Security_JWTForged_InvalidSignature(t *testing.T) {
+func TestW8_Security_NonexistentUser_GracefulHandling(t *testing.T) {
 	db := getDB(t)
 	svc := family.NewService(db.pool)
 
