@@ -248,6 +248,22 @@ void main() {
         );
         expect(found, isNotEmpty,
             reason: '$entityType should appear in PullChanges');
+
+        // P1#2: Verify Pull payload content matches Push payload
+        final pulledPayload = found.first.payload;
+        if (entityType == 'transaction') {
+          expect(pulledPayload, contains('W9 E2E transaction'),
+              reason: '$entityType Pull payload should contain pushed note value');
+          expect(pulledPayload, contains('5000'),
+              reason: '$entityType Pull payload should contain pushed amount');
+        } else {
+          // All non-transaction entities have a 'name' field in _samplePayload
+          final expectedName = _samplePayload(entityType, entityId)['name'];
+          if (expectedName != null) {
+            expect(pulledPayload, contains(expectedName as String),
+                reason: '$entityType Pull payload should contain pushed name');
+          }
+        }
       });
     }
   });

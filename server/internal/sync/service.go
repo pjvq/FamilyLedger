@@ -488,6 +488,7 @@ type accountPayload struct {
 	Currency string `json:"currency"`
 	Icon     string `json:"icon"`
 	IsActive *bool  `json:"is_active"`
+	FamilyID string `json:"family_id"`
 }
 
 func (s *Service) applyAccountOp(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, opType string, payload string) error {
@@ -525,9 +526,9 @@ func (s *Service) applyAccountCreate(ctx context.Context, tx pgx.Tx, userID uuid
 	}
 
 	_, err := tx.Exec(ctx,
-		`INSERT INTO accounts (id, user_id, name, type, balance, currency, icon, is_active, is_default)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, true, false)`,
-		entityID, userID, p.Name, acctType, p.Balance, currency, p.Icon,
+		`INSERT INTO accounts (id, user_id, name, type, balance, currency, icon, is_active, is_default, family_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, true, false, $8)`,
+		entityID, userID, p.Name, acctType, p.Balance, currency, p.Icon, nilIfEmpty(p.FamilyID),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert account: %w", err)
@@ -1091,4 +1092,17 @@ func (s *Service) getFamilyMembersForOperations(ctx context.Context, operations 
 	}
 
 	return members
+}
+
+// nilIfEmpty returns nil if s is empty, otherwise a pointer to the UUID parsed from s.
+// Used for optional foreign key columns (e.g., family_id).
+func nilIfEmpty(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	id, err := uuid.Parse(s)
+	if err != nil {
+		return nil
+	}
+	return id
 }

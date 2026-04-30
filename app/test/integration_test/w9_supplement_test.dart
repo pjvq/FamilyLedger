@@ -433,6 +433,52 @@ void main() {
       );
       expect(resp.acceptedCount, equals(1));
     });
+
+    test('FS-006: Member can Pull and see owner\'s family-scoped op', () async {
+      final memberOptions = CallOptions(
+        metadata: {'authorization': 'Bearer $memberToken'},
+      );
+
+      // Member pulls with familyId filter
+      final pullResp = await syncClient.pullChanges(
+        sync_pb.PullChangesRequest()
+          ..since = ts_pb.Timestamp(seconds: Int64(0))
+          ..familyId = familyId,
+        options: memberOptions,
+      );
+
+      // Member should see owner's family-scoped account
+      final familyOps = pullResp.operations.where(
+        (op) => op.payload.contains('Family Shared Account'),
+      );
+      expect(familyOps, isNotEmpty,
+          reason: 'Member should see owner\'s family-scoped op via Pull');
+    });
+
+    test('FS-007: Non-member cannot see family-scoped ops', () async {
+      // Register a stranger
+      final strangerResp = await authClient.register(auth_pb.RegisterRequest()
+        ..email = 'w9_stranger_${DateTime.now().millisecondsSinceEpoch}@test.com'
+        ..password = 'StrangerTest123!');
+      final strangerOptions = CallOptions(
+        metadata: {'authorization': 'Bearer ${strangerResp.accessToken}'},
+      );
+
+      // Stranger pulls with the family's familyId → should be rejected
+      expect(
+        () => syncClient.pullChanges(
+          sync_pb.PullChangesRequest()
+            ..since = ts_pb.Timestamp(seconds: Int64(0))
+            ..familyId = familyId,
+          options: strangerOptions,
+        ),
+        throwsA(isA<GrpcError>().having(
+          (e) => e.code,
+          'code',
+          StatusCode.permissionDenied,
+        )),
+      );
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
