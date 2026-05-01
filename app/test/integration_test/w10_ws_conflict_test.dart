@@ -42,14 +42,13 @@ import 'package:familyledger/generated/proto/family.pbgrpc.dart' as family_grpc;
 import 'package:familyledger/generated/proto/google/protobuf/timestamp.pb.dart'
     as ts_pb;
 
-String _uuid() =>
-    '${_hex(8)}-${_hex(4)}-4${_hex(3)}-${_hex(4)}-${_hex(12)}';
-String _hex(int n) {
-  final r = StringBuffer();
-  for (var i = 0; i < n; i++) {
-    r.write('0123456789abcdef'[DateTime.now().microsecond % 16]);
-  }
-  return r.toString();
+import 'dart:math';
+
+final _rng = Random.secure();
+String _uuid() {
+  String hex(int n) =>
+      List.generate(n, (_) => _rng.nextInt(16).toRadixString(16)).join();
+  return '${hex(8)}-${hex(4)}-4${hex(3)}-${hex(4)}-${hex(12)}';
 }
 
 /// Helper: connect WS with token, returns dart:io WebSocket.
@@ -383,22 +382,53 @@ void main() {
 
   group('W10 Conflict Resolution (LWW) E2E', () {
     late String userAToken;
+    late String userBToken;
+    late String familyId;
 
-    test('LWW-001: Register user for conflict tests', () async {
+    test('LWW-001: Register two family members for conflict tests', () async {
       final aResp = await authClient.register(auth_pb.RegisterRequest()
         ..email = 'w10_lww_a_$ts@test.com'
         ..password = 'LWW_Test123!');
       userAToken = aResp.accessToken;
-    });
 
-    test('LWW-002: Two UPDATEs with different timestamps → both stored, latest last in Pull',
-        () async {
-      final entityId = _uuid();
-      final options = CallOptions(
+      final bResp = await authClient.register(auth_pb.RegisterRequest()
+        ..email = 'w10_lww_b_$ts@test.com'
+        ..password = 'LWW_Test123!');
+      userBToken = bResp.accessToken;
+
+      // Create a shared family so both can Push to the same entity
+      final ownerOpts = CallOptions(
         metadata: {'authorization': 'Bearer $userAToken'},
       );
+      final createResp = await familyClient.createFamily(
+        family_pb.CreateFamilyRequest()..name = 'LWW Family',
+        options: ownerOpts,
+      );
+      familyId = createResp.family.id;
 
-      // CREATE
+      final inviteResp = await familyClient.generateInviteCode(
+        family_pb.GenerateInviteCodeRequest()..familyId = familyId,
+        options: ownerOpts,
+      );
+      await familyClient.joinFamily(
+        family_pb.JoinFamilyRequest()..inviteCode = inviteResp.inviteCode,
+        options: CallOptions(
+          metadata: {'authorization': 'Bearer $userBToken'},
+        ),
+      );
+    });
+
+    test('LWW-002: Two clients concurrent Push → LWW → both Pull consistent',
+        () async {
+      final entityId = _uuid();
+      final optionsA = CallOptions(
+        metadata: {'authorization': 'Bearer $userAToken'},
+      );
+      final optionsB = CallOptions(
+        metadata: {'authorization': 'Bearer $userBToken'},
+      );
+
+      // User A creates the entity (family-scoped so both can see it)
       await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
           ..operations.add(sync_pb.SyncOperation()
@@ -411,61 +441,81 @@ void main() {
               'type': 'cash',
               'balance': 1000,
               'currency': 'CNY',
+              'family_id': familyId,
             })
             ..clientId = _uuid()),
-        options: options,
+        options: optionsA,
       );
 
-      // UPDATE with earlier timestamp
-      await syncClient.pushOperations(
-        sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = entityId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
-            ..payload = jsonEncode({
-              'id': entityId,
-              'name': 'LWW Early Update',
-              'balance': 2000,
-            })
-            ..clientId = _uuid()),
-        options: options,
-      );
+      // Simulate two-device concurrency: User A pushes two UPDATEs
+      // from different "devices" (different clientIds) concurrently
+      await Future.wait([
+        syncClient.pushOperations(
+          sync_pb.PushOperationsRequest()
+            ..operations.add(sync_pb.SyncOperation()
+              ..entityType = 'account'
+              ..entityId = entityId
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
+              ..payload = jsonEncode({
+                'id': entityId,
+                'name': 'Update from Device 1',
+                'balance': 2000,
+              })
+              ..clientId = 'device-1-${_uuid()}'),
+          options: optionsA,
+        ),
+        syncClient.pushOperations(
+          sync_pb.PushOperationsRequest()
+            ..operations.add(sync_pb.SyncOperation()
+              ..entityType = 'account'
+              ..entityId = entityId
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
+              ..payload = jsonEncode({
+                'id': entityId,
+                'name': 'Update from Device 2',
+                'balance': 3000,
+              })
+              ..clientId = 'device-2-${_uuid()}'),
+          options: optionsA,
+        ),
+      ]);
 
-      // UPDATE with later timestamp (LWW winner)
-      await Future.delayed(const Duration(milliseconds: 10));
-      await syncClient.pushOperations(
-        sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = entityId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
-            ..payload = jsonEncode({
-              'id': entityId,
-              'name': 'LWW Late Update',
-              'balance': 3000,
-            })
-            ..clientId = _uuid()),
-        options: options,
-      );
-
-      // Pull — both ops visible, latest timestamp last
-      final pullResp = await syncClient.pullChanges(
+      // Pull from User A (personal) and User B (family) — both should see the entity
+      final pullA = await syncClient.pullChanges(
         sync_pb.PullChangesRequest()
           ..since = ts_pb.Timestamp(seconds: Int64(0)),
-        options: options,
+        options: optionsA,
+      );
+      final pullB = await syncClient.pullChanges(
+        sync_pb.PullChangesRequest()
+          ..since = ts_pb.Timestamp(seconds: Int64(0))
+          ..familyId = familyId,
+        options: optionsB,
       );
 
-      final updates = pullResp.operations
+      // Extract UPDATEs for this entity
+      final updatesA = pullA.operations
+          .where((op) =>
+              op.entityId == entityId &&
+              op.opType == sync_enum.OperationType.OPERATION_TYPE_UPDATE)
+          .toList();
+      final updatesB = pullB.operations
           .where((op) =>
               op.entityId == entityId &&
               op.opType == sync_enum.OperationType.OPERATION_TYPE_UPDATE)
           .toList();
 
-      expect(updates.length, equals(2),
-          reason: 'Both updates should be stored');
-      expect(updates.last.payload, contains('LWW Late Update'),
-          reason: 'Latest UPDATE should be last (LWW winner for client)');
+      // User A should see both updates (they are the owner)
+      expect(updatesA.length, equals(2),
+          reason: 'Both concurrent updates from A should be stored');
+
+      // User B (family member) should also see both updates via family Pull
+      expect(updatesB.length, equals(2),
+          reason: 'Family member B should see both updates via family Pull');
+
+      // The last update must be the same for both (LWW consistency)
+      expect(updatesA.last.payload, equals(updatesB.last.payload),
+          reason: 'LWW: both clients must see the same latest update');
     });
 
     test('LWW-003: DELETE is terminal — subsequent UPDATE rejected', () async {
@@ -835,21 +885,24 @@ void main() {
       );
 
       // Wait up to 8s for server to kick us (token expires in 2s, check every 1s)
+      bool timedOut = false;
       await closedCompleter.future.timeout(
         const Duration(seconds: 8),
         onTimeout: () {
-          // If server doesn't have token-check enabled, skip gracefully
+          timedOut = true;
           ws.close();
         },
       );
 
-      // If server supports token-check, verify close code
-      if (closeCode != null) {
-        expect(closeCode, equals(4001),
-            reason: 'Server should send 4001 (token expired)');
+      if (timedOut) {
+        // Server doesn't have WS_TOKEN_CHECK_INTERVAL configured
+        markTestSkipped(
+            'Server not started with WS_TOKEN_CHECK_INTERVAL — skipping token expiry test');
+        return;
       }
-      // If closeCode is null, the server may not have WS_TOKEN_CHECK_INTERVAL
-      // configured — the test passes but with a note
+
+      expect(closeCode, equals(4001),
+          reason: 'Server should send 4001 (token expired)');
     });
 
     test('TE-003: After token-expiry kick → refresh → reconnect succeeds',

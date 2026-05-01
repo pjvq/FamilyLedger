@@ -81,6 +81,9 @@ func NewHub(jwtManager *jwtpkg.Manager, configs ...HubConfig) *Hub {
 	if len(configs) > 0 {
 		cfg = configs[0]
 	}
+	if cfg.PingPeriod >= cfg.PongWait {
+		log.Fatalf("ws: PingPeriod (%v) must be < PongWait (%v)", cfg.PingPeriod, cfg.PongWait)
+	}
 	return &Hub{
 		clients:    make(map[string]map[*Client]bool),
 		jwtManager: jwtManager,
@@ -250,6 +253,7 @@ func (c *Client) tokenCheckLoop(h *Hub) {
 					websocket.FormatCloseMessage(4001, "token expired"),
 					time.Now().Add(c.hub.config.WriteWait),
 				)
+				h.unregister(c) // explicit cleanup (sync.Once makes this safe even if readPump also calls it)
 				// Force close the connection so readPump and writePump exit
 				c.conn.Close()
 				return

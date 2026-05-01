@@ -31,7 +31,9 @@ class HarnessConfig {
     int? grpcPort,
     String? wsHost,
     int? wsPort,
-  })  : grpcHost = grpcHost ??
+  })  : // Use 127.0.0.1 instead of localhost to avoid macOS IPv6 (::1) resolution
+        // when Go server only binds IPv4. See BUG-007.
+        grpcHost = grpcHost ??
             Platform.environment['GRPC_HOST'] ??
             '127.0.0.1',
         grpcPort = grpcPort ??
@@ -39,7 +41,7 @@ class HarnessConfig {
             50051,
         wsHost = wsHost ??
             Platform.environment['WS_HOST'] ??
-            '127.0.0.1',
+            '127.0.0.1', // Same as grpcHost — avoid IPv6 resolution. See BUG-007.
         wsPort = wsPort ??
             int.tryParse(Platform.environment['WS_PORT'] ?? '') ??
             8080;
