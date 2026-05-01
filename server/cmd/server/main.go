@@ -83,7 +83,21 @@ func main() {
 	jwtManager := jwtpkg.NewManager(jwtSecret)
 
 	// WebSocket Hub
-	hub := ws.NewHub(jwtManager)
+	hubCfg := ws.DefaultHubConfig()
+	if v := os.Getenv("WS_TOKEN_CHECK_INTERVAL"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			hubCfg.TokenCheckInterval = d
+			log.Printf("ws: token check interval set to %v", d)
+		}
+	}
+	if v := os.Getenv("WS_PONG_WAIT"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			hubCfg.PongWait = d
+			hubCfg.PingPeriod = d / 2 // ping must be < pong wait
+			log.Printf("ws: pong wait set to %v, ping period %v", d, d/2)
+		}
+	}
+	hub := ws.NewHub(jwtManager, hubCfg)
 
 	// Services
 	authService := auth.NewService(pool, jwtManager)
