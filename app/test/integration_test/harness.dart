@@ -33,13 +33,13 @@ class HarnessConfig {
     int? wsPort,
   })  : grpcHost = grpcHost ??
             Platform.environment['GRPC_HOST'] ??
-            'localhost',
+            '127.0.0.1',
         grpcPort = grpcPort ??
             int.tryParse(Platform.environment['GRPC_PORT'] ?? '') ??
             50051,
         wsHost = wsHost ??
             Platform.environment['WS_HOST'] ??
-            'localhost',
+            '127.0.0.1',
         wsPort = wsPort ??
             int.tryParse(Platform.environment['WS_PORT'] ?? '') ??
             8080;

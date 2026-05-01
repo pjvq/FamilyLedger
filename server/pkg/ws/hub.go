@@ -35,17 +35,19 @@ var upgrader = websocket.Upgrader{
 
 // HubConfig holds configurable timeouts for the Hub.
 type HubConfig struct {
-	WriteWait  time.Duration
-	PongWait   time.Duration
-	PingPeriod time.Duration
+	WriteWait          time.Duration
+	PongWait           time.Duration
+	PingPeriod         time.Duration
+	TokenCheckInterval time.Duration // 0 = disabled (default); >0 = periodic JWT re-verification
 }
 
 // DefaultHubConfig returns production defaults.
 func DefaultHubConfig() HubConfig {
 	return HubConfig{
-		WriteWait:  writeWait,
-		PongWait:   pongWait,
-		PingPeriod: pingPeriod,
+		WriteWait:          writeWait,
+		PongWait:           pongWait,
+		PingPeriod:         pingPeriod,
+		TokenCheckInterval: 0, // disabled by default; enable in tests or prod as needed
 	}
 }
 
@@ -60,9 +62,11 @@ type Hub struct {
 type Client struct {
 	conn   *websocket.Conn
 	userID string
+	token  string    // original JWT — for periodic re-verification
 	send   chan []byte
-	once   sync.Once // ensures unregister logic runs only once
-	hub    *Hub      // back-reference for config access
+	done   chan struct{} // closed when client is unregistered
+	once   sync.Once    // ensures unregister logic runs only once
+	hub    *Hub         // back-reference for config access
 }
 
 type ChangeNotification struct {
@@ -98,10 +102,10 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.upgradeAndRegister(w, r, claims.UserID)
+	h.upgradeAndRegister(w, r, claims.UserID, token)
 }
 
-func (h *Hub) upgradeAndRegister(w http.ResponseWriter, r *http.Request, userID string) {
+func (h *Hub) upgradeAndRegister(w http.ResponseWriter, r *http.Request, userID string, token string) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -112,7 +116,9 @@ func (h *Hub) upgradeAndRegister(w http.ResponseWriter, r *http.Request, userID 
 	client := &Client{
 		conn:   conn,
 		userID: userID,
+		token:  token,
 		send:   make(chan []byte, 256),
+		done:   make(chan struct{}),
 		hub:    h,
 	}
 
@@ -143,6 +149,7 @@ func (h *Hub) unregister(client *Client) {
 				delete(h.clients, client.userID)
 			}
 		}
+		close(client.done)
 		close(client.send)
 		client.conn.Close()
 		log.Printf("ws: client disconnected for user %s", client.userID)
@@ -205,6 +212,11 @@ func (c *Client) readPump(h *Hub) {
 		return nil
 	})
 
+	// If token check is enabled, run a goroutine that periodically verifies the JWT.
+	if c.hub.config.TokenCheckInterval > 0 {
+		go c.tokenCheckLoop(h)
+	}
+
 	for {
 		_, _, err := c.conn.ReadMessage()
 		if err != nil {
@@ -215,5 +227,33 @@ func (c *Client) readPump(h *Hub) {
 		}
 		// For now, we just keep the connection alive by reading.
 		// Client messages can be handled here in the future.
+	}
+}
+
+// tokenCheckLoop periodically re-verifies the client's JWT token.
+// If the token has expired, it sends a close frame (4001 = token expired) and unregisters.
+func (c *Client) tokenCheckLoop(h *Hub) {
+	ticker := time.NewTicker(c.hub.config.TokenCheckInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-c.done:
+			return
+		case <-ticker.C:
+			_, err := h.jwtManager.Verify(c.token)
+			if err != nil {
+				log.Printf("ws: token expired for user %s, disconnecting", c.userID)
+				// Send close frame with custom code 4001 (token expired)
+				c.conn.WriteControl(
+					websocket.CloseMessage,
+					websocket.FormatCloseMessage(4001, "token expired"),
+					time.Now().Add(c.hub.config.WriteWait),
+				)
+				// Force close the connection so readPump and writePump exit
+				c.conn.Close()
+				return
+			}
+		}
 	}
 }
