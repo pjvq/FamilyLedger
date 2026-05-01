@@ -176,6 +176,14 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	if req.Amount <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "amount must be positive")
 	}
+	if req.Amount > 99999999999 {
+		return nil, status.Error(codes.InvalidArgument, "amount exceeds maximum allowed (10 billion CNY)")
+	}
+
+	// Note length limit
+	if len(req.Note) > 1000 {
+		return nil, status.Error(codes.InvalidArgument, "note exceeds maximum length of 1000 characters")
+	}
 
 	currency := req.Currency
 	if currency == "" {
@@ -212,10 +220,11 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	// Verify account belongs to user or user is a family member
 	var ownerID uuid.UUID
 	var acctFamilyID *uuid.UUID
+	var acctType string
 	err = tx.QueryRow(ctx,
-		"SELECT user_id, family_id FROM accounts WHERE id = $1 AND deleted_at IS NULL",
+		"SELECT user_id, family_id, type FROM accounts WHERE id = $1 AND deleted_at IS NULL",
 		accountID,
-	).Scan(&ownerID, &acctFamilyID)
+	).Scan(&ownerID, &acctFamilyID, &acctType)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "account not found")
 	}
@@ -267,6 +276,15 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to update account balance")
+	}
+
+	// Overdraft protection: non-credit-card accounts cannot go negative
+	if txnType == "expense" && acctType != "credit_card" {
+		var newBalance int64
+		err = tx.QueryRow(ctx, "SELECT balance FROM accounts WHERE id = $1", accountID).Scan(&newBalance)
+		if err == nil && newBalance < 0 {
+			return nil, status.Error(codes.FailedPrecondition, "insufficient balance: account does not allow overdraft")
+		}
 	}
 
 	// Write sync_operations record so PullChanges can discover this transaction
@@ -373,7 +391,7 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 		return nil, status.Error(codes.Internal, "failed to query transaction")
 	}
 
-	// Permission check: owner can always edit; family members need edit permission
+	// Permission check: on family accounts, always check permission (strict mode)
 	if ownerID != uid {
 		familyID, err := getAccountFamilyIDFrom(ctx, tx, accountID)
 		if err != nil {
@@ -384,6 +402,14 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 		}
 		if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanEdit); err != nil {
 			return nil, err
+		}
+	} else {
+		// Owner editing own txn — still check family permission if it's on a family account
+		familyID, _ := getAccountFamilyIDFrom(ctx, tx, accountID)
+		if familyID != "" {
+			if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanEdit); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -600,7 +626,7 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 		return nil, status.Error(codes.Internal, "failed to query transaction")
 	}
 
-	// Permission check: owner can always delete; family members need delete permission
+	// Permission check: on family accounts, always check permission (strict mode)
 	if ownerID != uid {
 		familyID, err := getAccountFamilyIDFrom(ctx, tx, accountID)
 		if err != nil {
@@ -611,6 +637,14 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 		}
 		if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanDelete); err != nil {
 			return nil, err
+		}
+	} else {
+		// Owner deleting own txn — still check family permission if it's on a family account
+		familyID, _ := getAccountFamilyIDFrom(ctx, tx, accountID)
+		if familyID != "" {
+			if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanDelete); err != nil {
+				return nil, err
+			}
 		}
 	}
 

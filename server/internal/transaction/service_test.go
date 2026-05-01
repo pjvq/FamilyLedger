@@ -54,9 +54,9 @@ func TestCreateTransaction_Success(t *testing.T) {
 	mock.ExpectBegin()
 
 	// Verify account ownership
-	mock.ExpectQuery(`SELECT user_id, family_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
+	mock.ExpectQuery(`SELECT user_id, family_id, type FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(userUUID, nil))
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "type"}).AddRow(userUUID, nil, "cash"))
 
 	// Insert transaction
 	mock.ExpectQuery(`INSERT INTO transactions`).
@@ -79,6 +79,18 @@ func TestCreateTransaction_Success(t *testing.T) {
 	mock.ExpectExec(`UPDATE accounts SET balance = balance \+ \$1`).
 		WithArgs(pgxmock.AnyArg(), accountID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	// Overdraft check (expense on cash account)
+	mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(5000)))
+
+	// Sync operations savepoint
+	mock.ExpectExec(`SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
+	mock.ExpectExec(`INSERT INTO sync_operations`).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	mock.ExpectExec(`RELEASE SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("RELEASE", 0))
 
 	mock.ExpectCommit()
 

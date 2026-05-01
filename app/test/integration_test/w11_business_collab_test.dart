@@ -106,14 +106,16 @@ void main() {
         metadata: {'authorization': 'Bearer $userToken'},
       );
 
-      // List accounts — should have a default one
-      final acctResp = await acctClient.listAccounts(
-        acct_pb.ListAccountsRequest(),
+      // Create account with sufficient balance
+      final acctResp = await acctClient.createAccount(
+        acct_pb.CreateAccountRequest()
+          ..name = 'W11 Test Account'
+          ..type = acct_pb.AccountType.ACCOUNT_TYPE_CASH
+          ..currency = 'CNY'
+          ..initialBalance = Int64(1000000),
         options: opts,
       );
-      expect(acctResp.accounts, isNotEmpty,
-          reason: 'Should have default account after registration');
-      accountId = acctResp.accounts.first.id;
+      accountId = acctResp.account.id;
 
       // Get a valid category ID
       final catResp = await txnClient.getCategories(
@@ -278,6 +280,7 @@ void main() {
           ..name = 'Family Shared Wallet'
           ..type = acct_pb.AccountType.ACCOUNT_TYPE_CASH
           ..currency = 'CNY'
+          ..initialBalance = Int64(1000000)
           ..familyId = familyId,
         options: ownerOpts,
       );
@@ -693,6 +696,7 @@ void main() {
           ..name = 'A Family Dinner Account'
           ..type = acct_pb.AccountType.ACCOUNT_TYPE_CASH
           ..currency = 'CNY'
+          ..initialBalance = Int64(1000000)
           ..familyId = visFamilyId,
         options: aOpts,
       );

@@ -104,12 +104,16 @@ void main() {
         metadata: {'authorization': 'Bearer $userAToken'},
       );
 
-      // Get A's account
-      final acctResp = await acctClient.listAccounts(
-        acct_pb.ListAccountsRequest(),
+      // Create account with sufficient balance for A
+      final newAcctResp = await acctClient.createAccount(
+        acct_pb.CreateAccountRequest()
+          ..name = 'Isolation Test Account'
+          ..type = acct_pb.AccountType.ACCOUNT_TYPE_CASH
+          ..currency = 'CNY'
+          ..initialBalance = Int64(100000),
         options: aOpts,
       );
-      userAAccountId = acctResp.accounts.first.id;
+      userAAccountId = newAcctResp.account.id;
 
       // Get category
       final catResp = await txnClient.getCategories(
@@ -308,7 +312,7 @@ void main() {
       );
 
       // Try to spend 50000 when balance is only 10000
-      // This reveals whether the system allows negative balances
+      // After fix: non-credit-card accounts reject overdraft
       try {
         await txnClient.createTransaction(
           txn_pb.CreateTransactionRequest()
@@ -322,28 +326,10 @@ void main() {
             ..note = 'Overdraft test',
           options: opts,
         );
-        // If it succeeds, check: is this by design or a bug?
-        // Record the finding: balance went negative
-        final acctResp = await acctClient.listAccounts(
-          acct_pb.ListAccountsRequest(),
-          options: opts,
-        );
-        final account =
-            acctResp.accounts.firstWhere((a) => a.id == accountId);
-        // FINDING: negative balance is allowed
-        // This is a design decision - document it
-        expect(account.balance, lessThan(Int64(0)),
-            reason:
-                'FINDING: System allows negative balance (overdraft). '
-                'Balance is now ${account.balance}. '
-                'This may be intended for credit cards but problematic for cash accounts.');
+        fail('BUG: Cash account allowed overdraft!');
       } on GrpcError catch (e) {
-        // If it rejects, that's good - cash accounts shouldn't go negative
-        expect(
-            e.code == StatusCode.failedPrecondition ||
-                e.code == StatusCode.invalidArgument,
-            isTrue,
-            reason: 'Overdraft rejection should use proper status code');
+        expect(e.code, equals(StatusCode.failedPrecondition),
+            reason: 'Cash account should reject overdraft with FailedPrecondition');
       }
     });
 
@@ -353,6 +339,7 @@ void main() {
       );
 
       // Try to create transaction with maximum int64 value
+      // After fix: amount > 99999999999 (10 billion) is rejected
       try {
         await txnClient.createTransaction(
           txn_pb.CreateTransactionRequest()
@@ -366,40 +353,10 @@ void main() {
             ..note = 'Overflow test',
           options: opts,
         );
-        // If this succeeds, then create another one to trigger overflow
-        try {
-          await txnClient.createTransaction(
-            txn_pb.CreateTransactionRequest()
-              ..accountId = accountId
-              ..categoryId = categoryId
-              ..amount = Int64(1)
-              ..currency = 'CNY'
-              ..amountCny = Int64(1)
-              ..exchangeRate = 1.0
-              ..type = txn_enum.TransactionType.TRANSACTION_TYPE_INCOME
-              ..note = 'Overflow trigger',
-            options: opts,
-          );
-          // Check if balance overflowed
-          final acctResp = await acctClient.listAccounts(
-            acct_pb.ListAccountsRequest(),
-            options: opts,
-          );
-          final account =
-              acctResp.accounts.firstWhere((a) => a.id == accountId);
-          expect(account.balance, greaterThan(Int64(0)),
-              reason:
-                  'BUG: Balance overflowed to negative after INT64_MAX + 1!');
-        } on GrpcError catch (_) {
-          // Second txn rejected is acceptable (overflow protection)
-        }
+        fail('BUG: INT64_MAX amount was accepted!');
       } on GrpcError catch (e) {
-        // Rejecting INT64_MAX amount is sensible
-        expect(
-            e.code == StatusCode.invalidArgument ||
-                e.code == StatusCode.internal,
-            isTrue,
-            reason: 'Should reject absurd amounts');
+        expect(e.code, equals(StatusCode.invalidArgument),
+            reason: 'Amount exceeding 10 billion should be rejected with InvalidArgument');
       }
     });
 
@@ -474,11 +431,15 @@ void main() {
         metadata: {'authorization': 'Bearer $token'},
       );
 
-      final acctResp = await acctClient.listAccounts(
-        acct_pb.ListAccountsRequest(),
+      final acctResp = await acctClient.createAccount(
+        acct_pb.CreateAccountRequest()
+          ..name = 'Sync Test Account'
+          ..type = acct_pb.AccountType.ACCOUNT_TYPE_CASH
+          ..currency = 'CNY'
+          ..initialBalance = Int64(100000),
         options: opts,
       );
-      accountId = acctResp.accounts.first.id;
+      accountId = acctResp.account.id;
 
       final catResp = await txnClient.getCategories(
         txn_pb.GetCategoriesRequest()
@@ -571,6 +532,7 @@ void main() {
           ..name = 'Sync Bug Family Account'
           ..type = acct_pb.AccountType.ACCOUNT_TYPE_CASH
           ..currency = 'CNY'
+          ..initialBalance = Int64(100000)
           ..familyId = familyId,
         options: ownerOpts,
       );
@@ -769,14 +731,10 @@ void main() {
             ..note = 'Member trying to edit',
           options: memberOpts,
         );
-        // If this succeeds, is it because member can edit OWN transactions?
-        // Or is it a permission bypass?
-        // The server checks: ownerID == uid → allowed, else check family permission
-        // Since member IS the owner of this transaction, it might pass!
-        // This is a DESIGN QUESTION, not necessarily a bug.
+        fail('BUG: Member without can_edit was able to edit transaction on family account!');
       } on GrpcError catch (e) {
         expect(e.code, equals(StatusCode.permissionDenied),
-            reason: 'Member without can_edit should be denied');
+            reason: 'Member without can_edit should be denied even for own transactions on family accounts');
       }
     });
 
@@ -791,13 +749,10 @@ void main() {
           txn_pb.DeleteTransactionRequest()..transactionId = memberTxnId,
           options: memberOpts,
         );
-        // Server logic: if ownerID == uid → allowed (regardless of permission)
-        // This is documented in server code: "owner can always delete"
-        // So this might actually succeed — which reveals a design issue:
-        // Family admins cannot prevent members from deleting their own transactions
+        fail('BUG: Member without can_delete was able to delete transaction on family account!');
       } on GrpcError catch (e) {
         expect(e.code, equals(StatusCode.permissionDenied),
-            reason: 'Member without can_delete should be denied');
+            reason: 'Member without can_delete should be denied even for own transactions on family accounts');
       }
     });
 
@@ -873,11 +828,15 @@ void main() {
         metadata: {'authorization': 'Bearer $token'},
       );
 
-      final acctResp = await acctClient.listAccounts(
-        acct_pb.ListAccountsRequest(),
+      final acctResp = await acctClient.createAccount(
+        acct_pb.CreateAccountRequest()
+          ..name = 'Input Test Account'
+          ..type = acct_pb.AccountType.ACCOUNT_TYPE_CASH
+          ..currency = 'CNY'
+          ..initialBalance = Int64(1000000),
         options: opts,
       );
-      accountId = acctResp.accounts.first.id;
+      accountId = acctResp.account.id;
 
       final catResp = await txnClient.getCategories(
         txn_pb.GetCategoriesRequest()
@@ -995,10 +954,10 @@ void main() {
         metadata: {'authorization': 'Bearer $token'},
       );
 
-      final longNote = 'A' * 10240; // 10KB note
+      final longNote = 'A' * 10240; // 10KB note — exceeds 1000 char limit
 
       try {
-        final resp = await txnClient.createTransaction(
+        await txnClient.createTransaction(
           txn_pb.CreateTransactionRequest()
             ..accountId = accountId
             ..categoryId = categoryId
@@ -1010,13 +969,10 @@ void main() {
             ..note = longNote,
           options: opts,
         );
-        // If accepted, that's fine — but is it stored fully?
-        expect(resp.transaction.note.length, greaterThanOrEqualTo(10240),
-            reason: 'Note should preserve full length or reject');
+        fail('BUG: 10KB note was accepted! Should reject notes > 1000 chars');
       } on GrpcError catch (e) {
-        // Also acceptable: rejecting oversized input
         expect(e.code, equals(StatusCode.invalidArgument),
-            reason: 'If rejecting long notes, use InvalidArgument');
+            reason: 'Notes exceeding 1000 chars should be rejected with InvalidArgument');
       }
     });
 

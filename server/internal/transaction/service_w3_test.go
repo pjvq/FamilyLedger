@@ -23,8 +23,12 @@ import (
 var userUUID = uuid.MustParse(testUserID)
 
 // helper: mock the standard CreateTransaction flow through DB
-func mockCreateTxnFlow(mock pgxmock.PgxPoolIface, accountID, categoryID, txnID uuid.UUID) {
+func mockCreateTxnFlow(mock pgxmock.PgxPoolIface, accountID, categoryID, txnID uuid.UUID, opts ...string) {
 	now := time.Now()
+	txnType := "expense"
+	if len(opts) > 0 {
+		txnType = opts[0]
+	}
 
 	// 1. getAccountFamilyID
 	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
@@ -35,9 +39,9 @@ func mockCreateTxnFlow(mock pgxmock.PgxPoolIface, accountID, categoryID, txnID u
 	mock.ExpectBegin()
 
 	// 3. Verify account ownership
-	mock.ExpectQuery(`SELECT user_id, family_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
+	mock.ExpectQuery(`SELECT user_id, family_id, type FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(userUUID, nil))
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "type"}).AddRow(userUUID, nil, "cash"))
 
 	// 4. INSERT transaction (12 args)
 	mock.ExpectQuery(`INSERT INTO transactions`).
@@ -55,7 +59,21 @@ func mockCreateTxnFlow(mock pgxmock.PgxPoolIface, accountID, categoryID, txnID u
 		WithArgs(pgxmock.AnyArg(), accountID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
-	// 6. COMMIT
+	// 6. Overdraft check (only for expense on non-credit-card)
+	if txnType == "expense" {
+		mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1`).
+			WithArgs(accountID).
+			WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
+	}
+
+	// 7. Sync operations savepoint
+	mock.ExpectExec(`SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
+	mock.ExpectExec(`INSERT INTO sync_operations`).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	mock.ExpectExec(`RELEASE SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("RELEASE", 0))
+
+	// 8. COMMIT
 	mock.ExpectCommit()
 }
 
@@ -71,7 +89,7 @@ func TestW3_CreateTransaction_IncomeIncreasesBalance(t *testing.T) {
 	accountID := uuid.New()
 	categoryID := uuid.New()
 
-	mockCreateTxnFlow(mock, accountID, categoryID, txnID)
+	mockCreateTxnFlow(mock, accountID, categoryID, txnID, "income")
 
 	resp, err := svc.CreateTransaction(authedCtx(), &pb.CreateTransactionRequest{
 		AccountId:  accountID.String(),
@@ -296,7 +314,7 @@ func TestW3_ConsecutiveTransactions_IncomeAndExpense(t *testing.T) {
 	txnID2 := uuid.New()
 
 	// First: income +30000
-	mockCreateTxnFlow(mock, accountID, categoryID, txnID1)
+	mockCreateTxnFlow(mock, accountID, categoryID, txnID1, "income")
 
 	resp1, err := svc.CreateTransaction(authedCtx(), &pb.CreateTransactionRequest{
 		AccountId:  accountID.String(),
@@ -415,9 +433,9 @@ func TestW3_CreateTransaction_UsesForUpdateLock(t *testing.T) {
 
 	// KEY: ownership check uses "FOR UPDATE" — this is what prevents concurrent
 	// balance races at the DB level
-	mock.ExpectQuery(`SELECT user_id, family_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
+	mock.ExpectQuery(`SELECT user_id, family_id, type FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(userUUID, nil))
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "type"}).AddRow(userUUID, nil, "cash"))
 
 	mock.ExpectQuery(`INSERT INTO transactions`).
 		WithArgs(
@@ -433,6 +451,18 @@ func TestW3_CreateTransaction_UsesForUpdateLock(t *testing.T) {
 	mock.ExpectExec(`UPDATE accounts SET balance = balance \+ \$1`).
 		WithArgs(pgxmock.AnyArg(), accountID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	// Overdraft check
+	mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
+
+	// Sync operations
+	mock.ExpectExec(`SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
+	mock.ExpectExec(`INSERT INTO sync_operations`).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	mock.ExpectExec(`RELEASE SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("RELEASE", 0))
 
 	mock.ExpectCommit()
 
