@@ -269,6 +269,33 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		return nil, status.Error(codes.Internal, "failed to update account balance")
 	}
 
+	// Write sync_operations record so PullChanges can discover this transaction
+	syncPayload, _ := json.Marshal(map[string]interface{}{
+		"id":            txnID.String(),
+		"account_id":    accountID.String(),
+		"category_id":   categoryID.String(),
+		"amount":        req.Amount,
+		"currency":      currency,
+		"amount_cny":    amountCny,
+		"exchange_rate":  exchangeRate,
+		"type":          txnType,
+		"note":          req.Note,
+		"txn_date":      txnDate.Format("2006-01-02"),
+	})
+	// Use savepoint so failure doesn't abort the main transaction
+	_, _ = tx.Exec(ctx, "SAVEPOINT sync_insert")
+	_, syncErr := tx.Exec(ctx,
+		`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
+		 VALUES ($1, 'transaction', $2, 'create'::sync_op_type, $3, $4, NOW())`,
+		uid, txnID, string(syncPayload), "grpc-"+txnID.String(),
+	)
+	if syncErr != nil {
+		log.Printf("transaction: sync_operations insert error (rolling back savepoint): %v", syncErr)
+		_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT sync_insert")
+	} else {
+		_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT sync_insert")
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, status.Error(codes.Internal, "failed to commit transaction")
 	}
