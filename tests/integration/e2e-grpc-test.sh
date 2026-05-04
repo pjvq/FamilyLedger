@@ -38,7 +38,8 @@ check_eq() {
 }
 get_balance() {
   local resp
-  resp=$(grpc "account.proto" "familyledger.account.v1.AccountService/ListAccounts" "{}" 2>&1)
+  resp=$(grpc "account.proto" "familyledger.account.v1.AccountService/GetAccount" \
+    "{\"account_id\":\"$ACCT_ID\"}" 2>&1)
   local bal
   bal=$(echo "$resp" | grep '"balance"' | head -1 | sed 's/.*"balance": *"\{0,1\}\(-\{0,1\}[0-9]*\)"\{0,1\}.*/\1/')
   # protobuf omits zero-value fields, so empty = 0
@@ -56,9 +57,10 @@ TOKEN=$(echo "$RESP" | grep '"accessToken"' | head -1 | sed 's/.*: *"\([^"]*\)".
 check "Register" "$RESP" "accessToken"
 echo "   email=$EMAIL"
 
-ACCTS=$(grpc "account.proto" "familyledger.account.v1.AccountService/ListAccounts" "{}" 2>&1)
+ACCTS=$(grpc "account.proto" "familyledger.account.v1.AccountService/CreateAccount" \
+  '{"name":"E2E Test Account","type":"ACCOUNT_TYPE_CASH","currency":"CNY","initial_balance":"10000000"}' 2>&1)
 ACCT_ID=$(echo "$ACCTS" | grep '"id"' | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
-check "Default account" "$ACCTS" "id"
+check "Create account with balance" "$ACCTS" "id"
 
 CATS=$(grpc "transaction.proto" "familyledger.transaction.v1.TransactionService/GetCategories" "{}" 2>&1)
 EXP_CAT=$(echo "$CATS" | grep -B5 "EXPENSE" | grep '"id"' | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
@@ -74,7 +76,7 @@ CR=$(grpc "transaction.proto" "familyledger.transaction.v1.TransactionService/Cr
 TXN_ID=$(echo "$CR" | grep '"id"' | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
 check "CreateTransaction ¥150" "$CR" "$TXN_ID"
 BAL=$(get_balance)
-check_eq "Balance = -15000" "$BAL" "-15000"
+check_eq "Balance = 9985000" "$BAL" "9985000"
 
 echo ""
 echo "📝 Phase 2: UpdateTransaction"
@@ -88,7 +90,7 @@ UCNY=$(echo "$UR" | grep '"amountCny"' | head -1 | sed 's/.*: *"\{0,1\}\([0-9]*\
 check_eq "amountCny synced to 25000" "$UCNY" "25000"
 
 BAL2=$(get_balance)
-check_eq "Balance = -25000 after update" "$BAL2" "-25000"
+check_eq "Balance = 9975000 after update" "$BAL2" "9975000"
 
 echo ""
 echo "  Change type: expense→income"
@@ -96,7 +98,7 @@ UR2=$(grpc "transaction.proto" "familyledger.transaction.v1.TransactionService/U
   "{\"transaction_id\":\"$TXN_ID\",\"category_id\":\"$INC_CAT\",\"type\":\"TRANSACTION_TYPE_INCOME\"}" 2>&1)
 check "Update type→income" "$UR2" "INCOME"
 BAL3=$(get_balance)
-check_eq "Balance = +25000 after type change" "$BAL3" "25000"
+check_eq "Balance = 10025000 after type change" "$BAL3" "10025000"
 
 echo ""
 echo "🔒 Phase 3: Permission Checks"
@@ -127,7 +129,7 @@ LIST=$(grpc "transaction.proto" "familyledger.transaction.v1.TransactionService/
 check_not "Deleted txn not in list" "$LIST" "$TXN_ID"
 
 BAL4=$(get_balance)
-check_eq "Balance = 0 after delete" "$BAL4" "0"
+check_eq "Balance = 10000000 after delete" "$BAL4" "10000000"
 
 echo ""
 echo "⚠️  Phase 5: Edge Cases"
@@ -150,13 +152,13 @@ FC_ID=$(echo "$FC" | jq -r '.transaction.id')
 check "CreateTransaction USD" "$FC" "id"
 
 BAL5=$(get_balance)
-check_eq "Balance uses amountCny for USD" "$BAL5" "-72500"
+check_eq "Balance uses amountCny for USD" "$BAL5" "9927500"
 
 # Delete and verify balance returns to 0
 grpc "transaction.proto" "familyledger.transaction.v1.TransactionService/DeleteTransaction" \
   "{\"transaction_id\":\"$FC_ID\"}" > /dev/null
 BAL6=$(get_balance)
-check_eq "Balance = 0 after deleting USD txn" "$BAL6" "0"
+check_eq "Balance = 10000000 after deleting USD txn" "$BAL6" "10000000"
 
 echo ""
 echo "═══════════════════════════════════════"

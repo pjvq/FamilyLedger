@@ -171,22 +171,19 @@ else
   exit 1
 fi
 
-# --- 获取默认账户 ID (首次登录自动创建) ---
-run_test "获取默认账户 (via Device A)"
+# --- 创建带初始余额的测试账户 ---
+run_test "创建测试账户 (via Device A)"
 RESP=$(grpc_call_auth account.proto "$TOKEN_A" \
-  -d '{}' \
-  "familyledger.account.v1.AccountService/ListAccounts")
+  -d '{"name":"同步测试账户","type":"ACCOUNT_TYPE_CASH","currency":"CNY","initial_balance":"10000000"}' \
+  "familyledger.account.v1.AccountService/CreateAccount")
 DEFAULT_ACCOUNT_ID=$(echo "$RESP" | python3 -c "
 import sys,json
 d=json.load(sys.stdin)
-accts=d.get('accounts',[])
-if accts:
-    print(accts[0]['id'])
-else:
-    print('')
+acct=d.get('account',{})
+print(acct.get('id',''))
 ")
 if [[ -n "$DEFAULT_ACCOUNT_ID" ]]; then
-  pass "默认账户 id=$DEFAULT_ACCOUNT_ID"
+  pass "测试账户 id=$DEFAULT_ACCOUNT_ID"
 else
   fail "GetDefaultAccount" "无账户: $RESP"
   echo "无法继续测试，退出"
