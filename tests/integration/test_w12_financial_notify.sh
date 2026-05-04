@@ -477,7 +477,7 @@ if [ -n "$INVESTMENT_ID" ]; then
     # Trade 1: BUY 100 shares @ 15000 cents/share, fee 500
     TRADE1_RESP=$(grpc_auth investment.proto \
         "familyledger.investment.v1.InvestmentService/RecordTrade" \
-        "{\"investment_id\":\"$INVESTMENT_ID\",\"trade_type\":\"TRADE_TYPE_BUY\",\"quantity\":100,\"price\":15000,\"fee\":500,\"trade_date\":{\"seconds\":1705276800}}")
+        "{\"investment_id\":\"$INVESTMENT_ID\",\"trade_type\":\"TRADE_TYPE_BUY\",\"quantity\":100,\"price\":15000,\"fee\":500,\"trade_date\":\"2024-01-15T00:00:00Z\"}")
     TRADE1_ID=$(echo "$TRADE1_RESP" | jq -r '.id // empty')
     if [ -n "$TRADE1_ID" ]; then
         pass "RecordTrade BUY 100@15000 (id=$TRADE1_ID)"
@@ -488,7 +488,7 @@ if [ -n "$INVESTMENT_ID" ]; then
     # Trade 2: BUY 50 shares @ 16000 cents/share, fee 300
     TRADE2_RESP=$(grpc_auth investment.proto \
         "familyledger.investment.v1.InvestmentService/RecordTrade" \
-        "{\"investment_id\":\"$INVESTMENT_ID\",\"trade_type\":\"TRADE_TYPE_BUY\",\"quantity\":50,\"price\":16000,\"fee\":300,\"trade_date\":{\"seconds\":1718409600}}")
+        "{\"investment_id\":\"$INVESTMENT_ID\",\"trade_type\":\"TRADE_TYPE_BUY\",\"quantity\":50,\"price\":16000,\"fee\":300,\"trade_date\":\"2024-06-15T00:00:00Z\"}")
     TRADE2_ID=$(echo "$TRADE2_RESP" | jq -r '.id // empty')
     if [ -n "$TRADE2_ID" ]; then
         pass "RecordTrade BUY 50@16000 (id=$TRADE2_ID)"
@@ -499,7 +499,7 @@ if [ -n "$INVESTMENT_ID" ]; then
     # Trade 3: SELL 30 shares @ 18000 cents/share, fee 400
     TRADE3_RESP=$(grpc_auth investment.proto \
         "familyledger.investment.v1.InvestmentService/RecordTrade" \
-        "{\"investment_id\":\"$INVESTMENT_ID\",\"trade_type\":\"TRADE_TYPE_SELL\",\"quantity\":30,\"price\":18000,\"fee\":400,\"trade_date\":{\"seconds\":1726358400}}")
+        "{\"investment_id\":\"$INVESTMENT_ID\",\"trade_type\":\"TRADE_TYPE_SELL\",\"quantity\":30,\"price\":18000,\"fee\":400,\"trade_date\":\"2024-09-15T00:00:00Z\"}")
     TRADE3_ID=$(echo "$TRADE3_RESP" | jq -r '.id // empty')
     if [ -n "$TRADE3_ID" ]; then
         pass "RecordTrade SELL 30@18000 (id=$TRADE3_ID)"
