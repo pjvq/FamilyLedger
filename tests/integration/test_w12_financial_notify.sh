@@ -253,6 +253,30 @@ if [ -n "$COMBO_ACCT_ID" ]; then
     fi
 fi
 
+    # Verify GetLoanGroup group-level summary after payment
+    if [ -n "$GROUP_ID" ]; then
+        GROUP_AFTER=$(grpc_auth loan.proto \
+            "familyledger.loan.v1.LoanService/GetLoanGroup" \
+            "{\"group_id\":\"$GROUP_ID\"}")
+        GROUP_TOTAL_PRINCIPAL=$(echo "$GROUP_AFTER" | jq -r '.totalPrincipal // 0')
+        GROUP_MONTHLY=$(echo "$GROUP_AFTER" | jq -r '.totalMonthlyPayment // 0')
+        GROUP_SUB_COUNT=$(echo "$GROUP_AFTER" | jq -r '.subLoans | length')
+        if [ "$GROUP_TOTAL_PRINCIPAL" = "150000" ] && [ "$GROUP_SUB_COUNT" = "2" ] && [ "$GROUP_MONTHLY" != "0" ]; then
+            pass "GetLoanGroup summary — totalPrincipal=$GROUP_TOTAL_PRINCIPAL, totalMonthlyPayment=$GROUP_MONTHLY, subLoans=$GROUP_SUB_COUNT"
+        else
+            fail "GetLoanGroup summary" "totalPrincipal=$GROUP_TOTAL_PRINCIPAL monthlyPayment=$GROUP_MONTHLY subs=$GROUP_SUB_COUNT"
+        fi
+
+        # Verify commercial sub-loan remainingPrincipal decreased after payment
+        COMM_RP=$(echo "$GROUP_AFTER" | jq -r '[.subLoans[] | select(.subType == "LOAN_SUB_TYPE_COMMERCIAL")][0].remainingPrincipal // 0')
+        PROV_RP=$(echo "$GROUP_AFTER" | jq -r '[.subLoans[] | select(.subType == "LOAN_SUB_TYPE_PROVIDENT")][0].remainingPrincipal // 0')
+        if [ "$COMM_RP" != "100000" ] && [ "$PROV_RP" = "50000" ]; then
+            pass "Group sub-loan detail — commercial RP=$COMM_RP (reduced), provident RP=$PROV_RP (unchanged)"
+        else
+            fail "Group sub-loan detail" "commercial RP=$COMM_RP, provident RP=$PROV_RP"
+        fi
+    fi
+
 echo ""
 
 ###############################################################################

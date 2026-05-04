@@ -257,6 +257,80 @@ void main() {
           reason:
               'Account balance should not change when loan has no account_id');
     });
+
+    test('LOAN-005: Combo loan group summary — totalPrincipal + sub-loan isolation',
+        () async {
+      final opts = CallOptions(
+        metadata: {'authorization': 'Bearer $userToken'},
+      );
+
+      // Create combo loan group (commercial 100000 + provident 50000)
+      final groupResp = await loanClient.createLoanGroup(
+        loan_pb.CreateLoanGroupRequest()
+          ..name = 'W12 Combo Loan'
+          ..groupType = 'combined'
+          ..paymentDay = 15
+          ..startDate = (ts_pb.Timestamp()..seconds = Int64(1704067200))
+          ..accountId = accountId
+          ..loanType = loan_enum.LoanType.LOAN_TYPE_MORTGAGE
+          ..subLoans.addAll([
+            loan_pb.SubLoanSpec()
+              ..name = 'W12 Commercial'
+              ..subType = loan_enum.LoanSubType.LOAN_SUB_TYPE_COMMERCIAL
+              ..principal = Int64(100000)
+              ..annualRate = 4.2
+              ..totalMonths = 12
+              ..repaymentMethod =
+                  loan_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_INSTALLMENT
+              ..rateType = loan_enum.RateType.RATE_TYPE_FIXED,
+            loan_pb.SubLoanSpec()
+              ..name = 'W12 Provident'
+              ..subType = loan_enum.LoanSubType.LOAN_SUB_TYPE_PROVIDENT
+              ..principal = Int64(50000)
+              ..annualRate = 3.1
+              ..totalMonths = 12
+              ..repaymentMethod =
+                  loan_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_INSTALLMENT
+              ..rateType = loan_enum.RateType.RATE_TYPE_FIXED,
+          ]),
+        options: opts,
+      );
+      final groupId = groupResp.id;
+      expect(groupResp.subLoans, hasLength(2));
+      expect(groupResp.totalPrincipal, equals(Int64(150000)));
+
+      // Find commercial sub-loan ID
+      final commercial = groupResp.subLoans
+          .firstWhere((s) => s.subType == loan_enum.LoanSubType.LOAN_SUB_TYPE_COMMERCIAL);
+      // ignore unused provident — just verify it exists in assertions below
+      groupResp.subLoans
+          .firstWhere((s) => s.subType == loan_enum.LoanSubType.LOAN_SUB_TYPE_PROVIDENT);
+
+      // Record payment on commercial sub-loan only
+      await loanClient.recordPayment(
+        loan_pb.RecordPaymentRequest()
+          ..loanId = commercial.id
+          ..monthNumber = 1,
+        options: opts,
+      );
+
+      // GetLoanGroup — verify group-level totals
+      final groupAfter = await loanClient.getLoanGroup(
+        loan_pb.GetLoanGroupRequest()..groupId = groupId,
+        options: opts,
+      );
+      expect(groupAfter.totalPrincipal, equals(Int64(150000)));
+      expect(groupAfter.totalMonthlyPayment, isNot(equals(Int64(0))));
+      expect(groupAfter.subLoans, hasLength(2));
+
+      // Commercial should have paidMonths=1, provident=0
+      final commAfter = groupAfter.subLoans
+          .firstWhere((s) => s.subType == loan_enum.LoanSubType.LOAN_SUB_TYPE_COMMERCIAL);
+      final provAfter = groupAfter.subLoans
+          .firstWhere((s) => s.subType == loan_enum.LoanSubType.LOAN_SUB_TYPE_PROVIDENT);
+      expect(commAfter.paidMonths, equals(1));
+      expect(provAfter.paidMonths, equals(0));
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────────
