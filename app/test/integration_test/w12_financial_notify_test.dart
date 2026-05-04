@@ -38,6 +38,14 @@ import 'package:familyledger/generated/proto/import.pbgrpc.dart'
 import 'package:familyledger/generated/proto/notify.pb.dart' as notify_pb;
 import 'package:familyledger/generated/proto/notify.pbgrpc.dart'
     as notify_grpc;
+import 'package:familyledger/generated/proto/investment.pb.dart' as inv_pb;
+import 'package:familyledger/generated/proto/investment.pbgrpc.dart'
+    as inv_grpc;
+import 'package:familyledger/generated/proto/investment.pbenum.dart'
+    as inv_enum;
+import 'package:familyledger/generated/proto/dashboard.pb.dart' as dash_pb;
+import 'package:familyledger/generated/proto/dashboard.pbgrpc.dart'
+    as dash_grpc;
 import 'package:familyledger/generated/proto/google/protobuf/timestamp.pb.dart'
     as ts_pb;
 
@@ -53,6 +61,8 @@ void main() {
   late txn_grpc.TransactionServiceClient txnClient;
   late import_grpc.ImportServiceClient importClient;
   late notify_grpc.NotifyServiceClient notifyClient;
+  late inv_grpc.InvestmentServiceClient investmentClient;
+  late dash_grpc.DashboardServiceClient dashboardClient;
 
   setUpAll(() {
     channel = ClientChannel(
@@ -69,6 +79,8 @@ void main() {
     txnClient = txn_grpc.TransactionServiceClient(channel);
     importClient = import_grpc.ImportServiceClient(channel);
     notifyClient = notify_grpc.NotifyServiceClient(channel);
+    investmentClient = inv_grpc.InvestmentServiceClient(channel);
+    dashboardClient = dash_grpc.DashboardServiceClient(channel);
   });
 
   tearDownAll(() async {
@@ -559,7 +571,212 @@ void main() {
   });
 
   // ─────────────────────────────────────────────────────────────────────
-  // Group 6: Notification Settings
+  // Group 6: Investment + XIRR
+  // ─────────────────────────────────────────────────────────────────────
+  group('W12 Investment + XIRR', () {
+    late String userToken;
+    late String investmentId;
+
+    test('INV-001: Create investment + buy trade + verify quantity/costBasis',
+        () async {
+      // Setup: register user
+      final resp = await authClient.register(auth_pb.RegisterRequest()
+        ..email = 'w12_invest_$ts@test.com'
+        ..password = 'W12_Invest_Test123!');
+      userToken = resp.accessToken;
+
+      final opts = CallOptions(
+        metadata: {'authorization': 'Bearer $userToken'},
+      );
+
+      // Create investment
+      final invResp = await investmentClient.createInvestment(
+        inv_pb.CreateInvestmentRequest()
+          ..symbol = 'TEST001'
+          ..name = '测试A股'
+          ..marketType = inv_enum.MarketType.MARKET_TYPE_A_SHARE,
+        options: opts,
+      );
+      investmentId = invResp.id;
+      expect(investmentId, isNotEmpty);
+      expect(invResp.symbol, equals('TEST001'));
+
+      // BUY 100 shares @ 15000 cents/share, fee 500
+      await investmentClient.recordTrade(
+        inv_pb.RecordTradeRequest()
+          ..investmentId = investmentId
+          ..tradeType = inv_enum.TradeType.TRADE_TYPE_BUY
+          ..quantity = 100
+          ..price = Int64(15000)
+          ..fee = Int64(500)
+          ..tradeDate =
+              (ts_pb.Timestamp()..seconds = Int64(1705276800)), // 2024-01-15
+        options: opts,
+      );
+
+      // Verify investment updated: quantity=100, costBasis > 0
+      final getResp = await investmentClient.getInvestment(
+        inv_pb.GetInvestmentRequest()..investmentId = investmentId,
+        options: opts,
+      );
+      expect(getResp.quantity, equals(100.0));
+      expect(getResp.costBasis, greaterThan(Int64(0)),
+          reason: 'costBasis should be positive after buy trade');
+    });
+
+    test('INV-002: Sell trade → verify quantity reduced', () async {
+      final opts = CallOptions(
+        metadata: {'authorization': 'Bearer $userToken'},
+      );
+
+      // BUY 50 more shares
+      await investmentClient.recordTrade(
+        inv_pb.RecordTradeRequest()
+          ..investmentId = investmentId
+          ..tradeType = inv_enum.TradeType.TRADE_TYPE_BUY
+          ..quantity = 50
+          ..price = Int64(16000)
+          ..fee = Int64(300)
+          ..tradeDate =
+              (ts_pb.Timestamp()..seconds = Int64(1718409600)), // 2024-06-15
+        options: opts,
+      );
+
+      // Now total = 150 shares. SELL 30
+      await investmentClient.recordTrade(
+        inv_pb.RecordTradeRequest()
+          ..investmentId = investmentId
+          ..tradeType = inv_enum.TradeType.TRADE_TYPE_SELL
+          ..quantity = 30
+          ..price = Int64(18000)
+          ..fee = Int64(400)
+          ..tradeDate =
+              (ts_pb.Timestamp()..seconds = Int64(1726358400)), // 2024-09-15
+        options: opts,
+      );
+
+      // Verify quantity reduced to 120
+      final getResp = await investmentClient.getInvestment(
+        inv_pb.GetInvestmentRequest()..investmentId = investmentId,
+        options: opts,
+      );
+      expect(getResp.quantity, equals(120.0),
+          reason: 'Quantity should be 150 - 30 = 120 after sell');
+
+      // Verify sell > holding is rejected
+      try {
+        await investmentClient.recordTrade(
+          inv_pb.RecordTradeRequest()
+            ..investmentId = investmentId
+            ..tradeType = inv_enum.TradeType.TRADE_TYPE_SELL
+            ..quantity = 200
+            ..price = Int64(18000)
+            ..fee = Int64(0)
+            ..tradeDate =
+                (ts_pb.Timestamp()..seconds = Int64(1726358400)),
+          options: opts,
+        );
+        fail('Should reject sell exceeding holdings');
+      } on GrpcError catch (e) {
+        expect(
+          e.code,
+          anyOf(
+            equals(StatusCode.invalidArgument),
+            equals(StatusCode.failedPrecondition),
+          ),
+          reason: 'Selling more than held should fail',
+        );
+      }
+    });
+
+    test('INV-003: GetPortfolioSummary → holdings list', () async {
+      final opts = CallOptions(
+        metadata: {'authorization': 'Bearer $userToken'},
+      );
+
+      final resp = await investmentClient.getPortfolioSummary(
+        inv_pb.GetPortfolioSummaryRequest(),
+        options: opts,
+      );
+      expect(resp.holdings, isNotEmpty,
+          reason: 'Portfolio should have at least one holding');
+      expect(resp.totalCost, greaterThan(Int64(0)),
+          reason: 'Total cost should be positive');
+    });
+
+    // INV-004: GetInvestmentIRR — skipped because the Dart proto was not
+    // regenerated to include GetInvestmentIRR/GetIRRRequest/IRRResponse.
+    // The shell script (TEST 8) covers this via grpcurl.
+    test('INV-004: GetInvestmentIRR (skipped — Dart proto not generated)',
+        () {
+      // TODO: Regenerate Dart protos with `protoc` and uncomment:
+      // final resp = await investmentClient.getInvestmentIRR(
+      //   inv_pb.GetIRRRequest()..investmentId = investmentId,
+      //   options: opts,
+      // );
+      // expect(resp.cashFlows, isNotEmpty);
+      // expect(resp.annualizedIrr, isNotNull);
+    }, skip: 'Dart proto not regenerated for GetInvestmentIRR');
+    // NOTE: GetInvestmentIRR is fully tested in the shell script via grpcurl.
+  });
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Group 7: Dashboard — Loan → GetNetWorth
+  // ─────────────────────────────────────────────────────────────────────
+  group('W12 Dashboard Net Worth', () {
+    test('DASH-001: After loan creation, GetNetWorth shows loan liability',
+        () async {
+      // Setup: register + create account + create loan
+      final resp = await authClient.register(auth_pb.RegisterRequest()
+        ..email = 'w12_dash_$ts@test.com'
+        ..password = 'W12_Dash_Test123!');
+      final userToken = resp.accessToken;
+
+      final opts = CallOptions(
+        metadata: {'authorization': 'Bearer $userToken'},
+      );
+
+      // Create account
+      final acctResp = await acctClient.createAccount(
+        acct_pb.CreateAccountRequest()
+          ..name = 'W12 Dashboard Account'
+          ..type = acct_pb.AccountType.ACCOUNT_TYPE_BANK_CARD
+          ..currency = 'CNY'
+          ..initialBalance = Int64(5000000),
+        options: opts,
+      );
+      final accountId = acctResp.account.id;
+
+      // Create loan
+      await loanClient.createLoan(
+        loan_pb.CreateLoanRequest()
+          ..name = 'W12 NetWorth Test Loan'
+          ..loanType = loan_enum.LoanType.LOAN_TYPE_CONSUMER
+          ..principal = Int64(300000) // 3,000 CNY
+          ..annualRate = 5.0
+          ..totalMonths = 12
+          ..repaymentMethod =
+              loan_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_INSTALLMENT
+          ..paymentDay = 15
+          ..startDate =
+              (ts_pb.Timestamp()..seconds = Int64(1704067200))
+          ..accountId = accountId,
+        options: opts,
+      );
+
+      // GetNetWorth should show loan liability
+      final nwResp = await dashboardClient.getNetWorth(
+        dash_pb.GetNetWorthRequest(),
+        options: opts,
+      );
+      expect(nwResp.loanBalance, isNot(equals(Int64(0))),
+          reason:
+              'Net worth should reflect loan balance after loan creation');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Group 8: Notification Settings
   // ─────────────────────────────────────────────────────────────────────
   group('W12 Notification Settings', () {
     late String userToken;

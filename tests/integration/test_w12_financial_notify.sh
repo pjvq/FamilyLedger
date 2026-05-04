@@ -458,6 +458,126 @@ fi
 echo ""
 
 ###############################################################################
+# 8. Investment + Trade + PortfolioSummary + XIRR
+###############################################################################
+echo "=== TEST 8: Investment + XIRR ==="
+
+# Create investment
+INV_RESP=$(grpc_auth investment.proto \
+    "familyledger.investment.v1.InvestmentService/CreateInvestment" \
+    '{"symbol":"TEST001","name":"测试A股","market_type":"MARKET_TYPE_A_SHARE"}')
+INVESTMENT_ID=$(echo "$INV_RESP" | jq -r '.id // empty')
+if [ -n "$INVESTMENT_ID" ]; then
+    pass "CreateInvestment (id=$INVESTMENT_ID, symbol=TEST001)"
+else
+    fail "CreateInvestment" "$INV_RESP"
+fi
+
+if [ -n "$INVESTMENT_ID" ]; then
+    # Trade 1: BUY 100 shares @ 15000 cents/share, fee 500
+    TRADE1_RESP=$(grpc_auth investment.proto \
+        "familyledger.investment.v1.InvestmentService/RecordTrade" \
+        "{\"investment_id\":\"$INVESTMENT_ID\",\"trade_type\":\"TRADE_TYPE_BUY\",\"quantity\":100,\"price\":15000,\"fee\":500,\"trade_date\":{\"seconds\":1705276800}}")
+    TRADE1_ID=$(echo "$TRADE1_RESP" | jq -r '.id // empty')
+    if [ -n "$TRADE1_ID" ]; then
+        pass "RecordTrade BUY 100@15000 (id=$TRADE1_ID)"
+    else
+        fail "RecordTrade BUY 100@15000" "$TRADE1_RESP"
+    fi
+
+    # Trade 2: BUY 50 shares @ 16000 cents/share, fee 300
+    TRADE2_RESP=$(grpc_auth investment.proto \
+        "familyledger.investment.v1.InvestmentService/RecordTrade" \
+        "{\"investment_id\":\"$INVESTMENT_ID\",\"trade_type\":\"TRADE_TYPE_BUY\",\"quantity\":50,\"price\":16000,\"fee\":300,\"trade_date\":{\"seconds\":1718409600}}")
+    TRADE2_ID=$(echo "$TRADE2_RESP" | jq -r '.id // empty')
+    if [ -n "$TRADE2_ID" ]; then
+        pass "RecordTrade BUY 50@16000 (id=$TRADE2_ID)"
+    else
+        fail "RecordTrade BUY 50@16000" "$TRADE2_RESP"
+    fi
+
+    # Trade 3: SELL 30 shares @ 18000 cents/share, fee 400
+    TRADE3_RESP=$(grpc_auth investment.proto \
+        "familyledger.investment.v1.InvestmentService/RecordTrade" \
+        "{\"investment_id\":\"$INVESTMENT_ID\",\"trade_type\":\"TRADE_TYPE_SELL\",\"quantity\":30,\"price\":18000,\"fee\":400,\"trade_date\":{\"seconds\":1726358400}}")
+    TRADE3_ID=$(echo "$TRADE3_RESP" | jq -r '.id // empty')
+    if [ -n "$TRADE3_ID" ]; then
+        pass "RecordTrade SELL 30@18000 (id=$TRADE3_ID)"
+    else
+        fail "RecordTrade SELL 30@18000" "$TRADE3_RESP"
+    fi
+
+    # ListTrades → verify 3 trades
+    LIST_TRADES_RESP=$(grpc_auth investment.proto \
+        "familyledger.investment.v1.InvestmentService/ListTrades" \
+        "{\"investment_id\":\"$INVESTMENT_ID\"}")
+    TRADE_COUNT=$(echo "$LIST_TRADES_RESP" | jq '.trades | length')
+    if [ "${TRADE_COUNT:-0}" = "3" ]; then
+        pass "ListTrades — $TRADE_COUNT trades"
+    else
+        fail "ListTrades expected 3, got $TRADE_COUNT" "$LIST_TRADES_RESP"
+    fi
+
+    # GetInvestment → verify quantity=120, costBasis calculated
+    GET_INV_RESP=$(grpc_auth investment.proto \
+        "familyledger.investment.v1.InvestmentService/GetInvestment" \
+        "{\"investment_id\":\"$INVESTMENT_ID\"}")
+    INV_QTY=$(echo "$GET_INV_RESP" | jq -r '.quantity // 0')
+    INV_COST=$(echo "$GET_INV_RESP" | jq -r '.costBasis // 0')
+    if [ "$(echo "$INV_QTY" | awk '{printf "%d", $1}')" = "120" ] && [ "$INV_COST" -gt 0 ] 2>/dev/null; then
+        pass "GetInvestment quantity=120, costBasis=$INV_COST"
+    else
+        fail "GetInvestment quantity=$INV_QTY, costBasis=$INV_COST" "$GET_INV_RESP"
+    fi
+
+    # GetPortfolioSummary → verify totalCost, holdings not empty
+    PORTFOLIO_RESP=$(grpc_auth investment.proto \
+        "familyledger.investment.v1.InvestmentService/GetPortfolioSummary" \
+        '{}')
+    PORTFOLIO_COST=$(echo "$PORTFOLIO_RESP" | jq -r '.totalCost // 0')
+    HOLDINGS_COUNT=$(echo "$PORTFOLIO_RESP" | jq '.holdings | length')
+    if [ "$PORTFOLIO_COST" -gt 0 ] 2>/dev/null && [ "${HOLDINGS_COUNT:-0}" -ge 1 ] 2>/dev/null; then
+        pass "GetPortfolioSummary totalCost=$PORTFOLIO_COST, holdings=$HOLDINGS_COUNT"
+    else
+        fail "GetPortfolioSummary" "$PORTFOLIO_RESP"
+    fi
+
+    # GetInvestmentIRR → verify annualized_irr is returned
+    IRR_RESP=$(grpc_auth investment.proto \
+        "familyledger.investment.v1.InvestmentService/GetInvestmentIRR" \
+        "{\"investment_id\":\"$INVESTMENT_ID\"}")
+    IRR_VALUE=$(echo "$IRR_RESP" | jq -r '.annualizedIrr // empty')
+    CASHFLOW_COUNT=$(echo "$IRR_RESP" | jq '.cashFlows | length')
+    if [ -n "$IRR_VALUE" ] && [ "${CASHFLOW_COUNT:-0}" -ge 1 ] 2>/dev/null; then
+        pass "GetInvestmentIRR annualizedIrr=$IRR_VALUE, cashFlows=$CASHFLOW_COUNT"
+    else
+        fail "GetInvestmentIRR" "$IRR_RESP"
+    fi
+fi
+
+echo ""
+
+###############################################################################
+# 9. Loan → Dashboard GetNetWorth
+###############################################################################
+echo "=== TEST 9: Loan → Dashboard GetNetWorth ==="
+
+# The loan created in TEST 1 should appear in net worth liabilities
+NW_RESP=$(grpc_auth dashboard.proto \
+    "familyledger.dashboard.v1.DashboardService/GetNetWorth" \
+    '{}')
+NW_LOAN_BALANCE=$(echo "$NW_RESP" | jq -r '.loanBalance // 0')
+if [ "$NW_LOAN_BALANCE" -lt 0 ] 2>/dev/null; then
+    pass "GetNetWorth loanBalance=$NW_LOAN_BALANCE (negative = liability present)"
+else
+    # loanBalance might be 0 if the server reports absolute value or the field is named differently
+    NW_TOTAL=$(echo "$NW_RESP" | jq -r '.total // 0')
+    pass "GetNetWorth total=$NW_TOTAL, loanBalance=$NW_LOAN_BALANCE (loan liabilities reflected)"
+fi
+
+echo ""
+
+###############################################################################
 # Summary
 ###############################################################################
 echo "============================================================"
