@@ -154,43 +154,19 @@ else
 fi
 
 ##############################################################################
-# 2. 获取默认账户 ID
+# 2. 创建带充足余额的测试账户
 ##############################################################################
-run_test "获取默认账户 ID"
+run_test "创建性能测试账户"
 RESP=$(grpc_call_auth account.proto "$TOKEN" \
-  -d '{}' \
-  "familyledger.account.v1.AccountService/ListAccounts")
-# 提取第一个账户 ID 作为默认账户
-ACCOUNT_ID=$(echo "$RESP" | python3 -c "
-import sys,json
-d=json.load(sys.stdin)
-accounts=d.get('accounts',[])
-# 优先取 is_default=true 的，否则取第一个
-default_id=''
-for a in accounts:
-    if a.get('isDefault'):
-        default_id=a['id']
-        break
-if not default_id and accounts:
-    default_id=accounts[0]['id']
-print(default_id)
-")
+  -d '{"name":"性能测试账户","type":"ACCOUNT_TYPE_BANK_CARD","currency":"CNY","icon":"bank","initial_balance":"100000000"}' \
+  "familyledger.account.v1.AccountService/CreateAccount")
+ACCOUNT_ID=$(json_nested "$RESP" "account.id")
 if [[ -n "$ACCOUNT_ID" ]]; then
-  pass "默认账户 id=$ACCOUNT_ID"
+  pass "测试账户 id=$ACCOUNT_ID (余额 ¥1,000,000)"
 else
-  # 如果没有账户，创建一个
-  echo "  没有默认账户，创建一个..."
-  RESP=$(grpc_call_auth account.proto "$TOKEN" \
-    -d '{"name":"性能测试账户","type":"ACCOUNT_TYPE_BANK_CARD","currency":"CNY","icon":"bank","initial_balance":100000000}' \
-    "familyledger.account.v1.AccountService/CreateAccount")
-  ACCOUNT_ID=$(json_nested "$RESP" "account.id")
-  if [[ -n "$ACCOUNT_ID" ]]; then
-    pass "创建账户 id=$ACCOUNT_ID"
-  else
-    fail "CreateAccount" "返回异常: $RESP"
-    echo "无法继续测试，退出"
-    exit 1
-  fi
+  fail "CreateAccount" "返回异常: $RESP"
+  echo "无法继续测试，退出"
+  exit 1
 fi
 
 ##############################################################################
