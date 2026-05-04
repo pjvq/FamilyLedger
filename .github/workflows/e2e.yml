@@ -107,6 +107,9 @@ jobs:
       - name: Integration - 1000 Transactions Perf
         run: bash tests/integration/test_perf_1000_transactions.sh
 
+      - name: Integration - W12 Financial + Notification
+        run: bash tests/integration/test_w12_financial_notify.sh
+
       # Cleanup
       - name: Stop server
         if: always()
