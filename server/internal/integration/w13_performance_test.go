@@ -143,6 +143,32 @@ func TestPerf_ConcurrentPush_50Clients(t *testing.T) {
 	assert.Equal(t, totalExpected, count,
 		"expected %d sync_operations in DB, got %d", totalExpected, count)
 
+	// Verify via PullChanges: each client should pull back their own 10 operations
+	var pullErrors int
+	for i := 0; i < numClients; i++ {
+		pullCtx := context.WithValue(ctx, middleware.UserIDKey, clients[i].userID.String())
+		pullResp, pullErr := syncSvc.PullChanges(pullCtx, &pb.PullChangesRequest{
+			ClientId: fmt.Sprintf("perf001-verifier-%d", i),
+			PageSize: 100,
+		})
+		if pullErr != nil {
+			pullErrors++
+			if pullErrors <= 3 {
+				t.Logf("PullChanges error for client %d: %v", i, pullErr)
+			}
+			continue
+		}
+		if len(pullResp.Operations) < opsPerClient {
+			pullErrors++
+			if pullErrors <= 3 {
+				t.Logf("PullChanges client %d: got %d ops, expected %d", i, len(pullResp.Operations), opsPerClient)
+			}
+		}
+	}
+	assert.Equal(t, 0, pullErrors,
+		"all %d clients should pull back %d operations each via PullChanges", numClients, opsPerClient)
+	t.Logf("PullChanges verification: %d/%d clients OK", numClients-pullErrors, numClients)
+
 	// Log pg_stat_activity wait_event info
 	rows, err := db.pool.Query(ctx,
 		`SELECT wait_event_type, wait_event, COUNT(*)
