@@ -175,7 +175,7 @@ fi
 ##############################################################################
 run_test "创建 W13 测试账户"
 RESP=$(grpc_call_auth account.proto "$TOKEN" \
-  -d '{"name":"W13性能账户","type":"ACCOUNT_TYPE_BANK_CARD","currency":"CNY","icon":"bank","initial_balance":"100000000"}' \
+  -d '{"name":"W13性能账户","type":"ACCOUNT_TYPE_BANK_CARD","currency":"CNY","icon":"bank","initial_balance":"10000000000"}' \
   "familyledger.account.v1.AccountService/CreateAccount")
 ACCOUNT_ID=$(json_nested "$RESP" "account.id")
 if [[ -n "$ACCOUNT_ID" ]]; then
