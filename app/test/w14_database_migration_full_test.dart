@@ -87,9 +87,7 @@ void main() {
         amountCny: 5000,
         type: 'expense',
         note: const Value('migration test'),
-        date: DateTime.now(),
-        createdAt: Value(DateTime.now()),
-        updatedAt: Value(DateTime.now()),
+        txnDate: DateTime.now(),
       ));
 
       // Verify data
@@ -114,6 +112,7 @@ void main() {
       final presetsBefore = (await db.select(db.categories).get())
           .where((c) => c.isPreset)
           .length;
+      expect(presetsBefore, greaterThan(0));
 
       // Insert duplicate category with same name+type as a preset
       final presetCat = (await db.select(db.categories).get())
@@ -190,9 +189,7 @@ void main() {
         amount: 1000,
         amountCny: 1000,
         type: 'expense',
-        date: DateTime.now(),
-        createdAt: Value(DateTime.now()),
-        updatedAt: Value(DateTime.now()),
+        txnDate: DateTime.now(),
         deletedAt: Value(DateTime.now()), // v9 soft-delete column
       ));
 
@@ -216,7 +213,7 @@ void main() {
       // Verify parent categories have iconKey
       final parents = cats.where((c) => c.parentId == null && c.isPreset).toList();
       // At least some should have iconKey set
-      final withIcon = parents.where((c) => c.iconKey != null && c.iconKey!.isNotEmpty).toList();
+      final withIcon = parents.where((c) => c.iconKey.isNotEmpty).toList();
       expect(withIcon.length, greaterThan(0),
           reason: 'v11+ parent categories should have iconKey');
 
