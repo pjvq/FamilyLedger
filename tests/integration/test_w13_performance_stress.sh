@@ -299,6 +299,47 @@ for name_ms in "offset_0:$PAGE_MS_0" "offset_500:$PAGE_MS_500"; do
   fi
 done
 
+# Skip to offset ~9980 using page_size=500 (only 20 jumps instead of 499)
+echo "  跳页到 offset ~9980 (page_size=500)..."
+PAGE_TOKEN_TAIL=""
+RESP=$(grpc_call_auth transaction.proto "$TOKEN" \
+  -d '{"page_size":500}' \
+  "familyledger.transaction.v1.TransactionService/ListTransactions")
+PAGE_TOKEN_TAIL=$(json_field_from "$RESP" "nextPageToken")
+
+for p in $(seq 1 18); do
+  if [[ -z "$PAGE_TOKEN_TAIL" ]]; then break; fi
+  RESP=$(grpc_call_auth transaction.proto "$TOKEN" \
+    -d "{\"page_size\":500,\"page_token\":\"$PAGE_TOKEN_TAIL\"}" \
+    "familyledger.transaction.v1.TransactionService/ListTransactions")
+  PAGE_TOKEN_TAIL=$(json_field_from "$RESP" "nextPageToken")
+done
+
+# Now at offset ~9500, read last page with page_size=20
+if [[ -n "$PAGE_TOKEN_TAIL" ]]; then
+  PAGE_START=$(now_ns)
+  RESP=$(grpc_call_auth transaction.proto "$TOKEN" \
+    -d "{\"page_size\":20,\"page_token\":\"$PAGE_TOKEN_TAIL\"}" \
+    "familyledger.transaction.v1.TransactionService/ListTransactions")
+  PAGE_END=$(now_ns)
+  PAGE_MS_TAIL=$(delta_ms $PAGE_START $PAGE_END)
+  PAGE_COUNT_TAIL=$(json_array_len "$RESP" "transactions")
+
+  if [[ $PAGE_COUNT_TAIL -ge 1 ]]; then
+    pass "offset~9500+: 返回 $PAGE_COUNT_TAIL 条, 耗时 ${PAGE_MS_TAIL}ms"
+  else
+    fail "offset~9500+" "返回 0 条"
+  fi
+
+  if [[ $PAGE_MS_TAIL -lt 600 ]]; then
+    pass "offset_tail 延迟 ${PAGE_MS_TAIL}ms < 600ms 阈值"
+  else
+    fail "offset_tail 延迟" "${PAGE_MS_TAIL}ms ≥ 600ms 阈值"
+  fi
+else
+  echo "  [WARN] 跳页未到尾部 (page_token 为空), 跳过 offset~9980 测试"
+fi
+
 ##############################################################################
 # 5. Push P99 latency
 ##############################################################################
