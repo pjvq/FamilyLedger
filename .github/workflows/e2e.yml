@@ -110,6 +110,9 @@ jobs:
       - name: Integration - W12 Financial + Notification
         run: bash tests/integration/test_w12_financial_notify.sh
 
+      - name: Integration - W13 Performance + Stress
+        run: bash tests/integration/test_w13_performance_stress.sh
+
       # Cleanup
       - name: Stop server
         if: always()

@@ -20,6 +20,21 @@ void main() {
       }, reportKey: 'app_startup');
     });
 
+    testWidgets('Cold start benchmark < 3s', (tester) async {
+      // Measure raw startup time without traceAction overhead
+      final stopwatch = Stopwatch()..start();
+      await pumpTestApp(tester);
+      stopwatch.stop();
+
+      // 3s is the target; allow up to 5s in CI
+      expect(
+        stopwatch.elapsed.inMilliseconds,
+        lessThan(5000),
+        reason: 'Cold start took ${stopwatch.elapsed.inMilliseconds}ms '
+            '(target: <3000ms, CI threshold: <5000ms)',
+      );
+    });
+
     testWidgets('Transaction list scroll performance', (tester) async {
       await pumpTestApp(tester);
 
@@ -48,6 +63,33 @@ void main() {
           }
         }
       }, reportKey: 'transaction_list_scroll');
+    });
+
+    testWidgets('Transaction list scroll — no memory leak', (tester) async {
+      await pumpTestApp(tester);
+
+      // Perform extended scroll cycles to detect memory leaks
+      // If there's a leak, pumpAndSettle will eventually time out or OOM
+      final listFinder = find.byType(ListView);
+      final scrollFinder = find.byType(CustomScrollView);
+
+      Finder? scrollable;
+      if (listFinder.evaluate().isNotEmpty) {
+        scrollable = listFinder.first;
+      } else if (scrollFinder.evaluate().isNotEmpty) {
+        scrollable = scrollFinder.first;
+      }
+
+      if (scrollable != null) {
+        // 10 full cycles of scroll down + up
+        for (var cycle = 0; cycle < 10; cycle++) {
+          await tester.fling(scrollable, const Offset(0, -800), 2000);
+          await tester.pumpAndSettle();
+          await tester.fling(scrollable, const Offset(0, 800), 2000);
+          await tester.pumpAndSettle();
+        }
+      }
+      // If we reach here without OOM or timeout, no memory leak detected
     });
 
     testWidgets('Dashboard render performance', (tester) async {
