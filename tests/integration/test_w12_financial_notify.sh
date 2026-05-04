@@ -343,7 +343,7 @@ echo "=== TEST 5: Import CSV Lifecycle ==="
 # Create a test CSV
 CSV_DATA=$(echo -n "日期,金额,类型,分类,备注
 2024-01-15,50.00,expense,餐饮,午餐
-2024-01-16,30.00,expense,交通,地铁" | base64)
+2024-01-16,30.00,expense,交通,地铁" | base64 | tr -d '\n')
 
 PARSE_RESP=$(grpc_auth import.proto \
     "familyledger.import.v1.ImportService/ParseCSV" \
