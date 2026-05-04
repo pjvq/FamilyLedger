@@ -90,14 +90,14 @@ func TestCreateTransaction_SQLInjection_Note(t *testing.T) {
 					WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 						AddRow(txnID, now, now))
 
-				mock.ExpectExec("UPDATE accounts SET balance").
-					WithArgs(pgxmock.AnyArg(), accountID).
-					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-
-				// Overdraft check
+				// Overdraft check with FOR UPDATE lock
 				mock.ExpectQuery("SELECT balance FROM accounts WHERE id").
 					WithArgs(accountID).
 					WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
+
+				mock.ExpectExec("UPDATE accounts SET balance").
+					WithArgs(pgxmock.AnyArg(), accountID).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
 				// Sync operations
 				mock.ExpectExec("SAVEPOINT sync_insert").WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))

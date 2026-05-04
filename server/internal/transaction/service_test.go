@@ -75,15 +75,15 @@ func TestCreateTransaction_Success(t *testing.T) {
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 			AddRow(txnID, now, now))
 
+	// Overdraft check with FOR UPDATE lock (expense on cash account)
+	mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1 FOR UPDATE`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(5000)))
+
 	// Update account balance
 	mock.ExpectExec(`UPDATE accounts SET balance = balance \+ \$1`).
 		WithArgs(pgxmock.AnyArg(), accountID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-
-	// Overdraft check (expense on cash account)
-	mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1`).
-		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(5000)))
 
 	// Sync operations savepoint
 	mock.ExpectExec(`SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))

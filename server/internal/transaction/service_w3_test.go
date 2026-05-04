@@ -54,17 +54,17 @@ func mockCreateTxnFlow(mock pgxmock.PgxPoolIface, accountID, categoryID, txnID u
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 			AddRow(txnID, now, now))
 
-	// 5. UPDATE balance
-	mock.ExpectExec(`UPDATE accounts SET balance = balance \+ \$1`).
-		WithArgs(pgxmock.AnyArg(), accountID).
-		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-
-	// 6. Overdraft check (only for expense on non-credit-card)
+	// 5. Overdraft check with FOR UPDATE lock (only for expense on non-credit-card)
 	if txnType == "expense" {
-		mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1`).
+		mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1 FOR UPDATE`).
 			WithArgs(accountID).
 			WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
 	}
+
+	// 6. UPDATE balance
+	mock.ExpectExec(`UPDATE accounts SET balance = balance \+ \$1`).
+		WithArgs(pgxmock.AnyArg(), accountID).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
 	// 7. Sync operations savepoint
 	mock.ExpectExec(`SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
@@ -447,15 +447,15 @@ func TestW3_CreateTransaction_UsesForUpdateLock(t *testing.T) {
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 			AddRow(txnID, now, now))
 
+	// Overdraft check with FOR UPDATE lock
+	mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1 FOR UPDATE`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
+
 	// Balance update is atomic within the transaction
 	mock.ExpectExec(`UPDATE accounts SET balance = balance \+ \$1`).
 		WithArgs(pgxmock.AnyArg(), accountID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-
-	// Overdraft check
-	mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1`).
-		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
 
 	// Sync operations
 	mock.ExpectExec(`SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))

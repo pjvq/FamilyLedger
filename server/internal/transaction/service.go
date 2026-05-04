@@ -265,11 +265,25 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		return nil, status.Error(codes.Internal, "failed to create transaction")
 	}
 
-	// Update account balance (use amountCny — balance is always in CNY)
+	// Overdraft protection: lock row + check balance BEFORE deducting (prevents TOCTOU race)
 	balanceDelta := amountCny
 	if txnType == "expense" {
 		balanceDelta = -amountCny
 	}
+	if txnType == "expense" && acctType != "credit_card" {
+		var currentBalance int64
+		err = tx.QueryRow(ctx,
+			"SELECT balance FROM accounts WHERE id = $1 FOR UPDATE",
+			accountID).Scan(&currentBalance)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to lock account for balance check")
+		}
+		if currentBalance < amountCny {
+			return nil, status.Error(codes.FailedPrecondition, "insufficient balance: account does not allow overdraft")
+		}
+	}
+
+	// Update account balance (use amountCny — balance is always in CNY)
 	_, err = tx.Exec(ctx,
 		"UPDATE accounts SET balance = balance + $1, updated_at = NOW() WHERE id = $2",
 		balanceDelta, accountID,
@@ -278,16 +292,16 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		return nil, status.Error(codes.Internal, "failed to update account balance")
 	}
 
-	// Overdraft protection: non-credit-card accounts cannot go negative
-	if txnType == "expense" && acctType != "credit_card" {
-		var newBalance int64
-		err = tx.QueryRow(ctx, "SELECT balance FROM accounts WHERE id = $1", accountID).Scan(&newBalance)
-		if err == nil && newBalance < 0 {
-			return nil, status.Error(codes.FailedPrecondition, "insufficient balance: account does not allow overdraft")
-		}
-	}
-
-	// Write sync_operations record so PullChanges can discover this transaction
+	// Write sync_operations record so PullChanges can discover this transaction.
+	//
+	// DESIGN: Intentional degraded-sync strategy — if sync_operations INSERT fails,
+	// we still commit the main transaction. Rationale: "degraded sync > lost data".
+	// The transaction is created but won't appear in PullChanges until a repair job
+	// or manual re-sync. This is acceptable for gRPC-created transactions.
+	//
+	// WARNING: If sync_operations schema changes (e.g. column rename), ALL gRPC-created
+	// transactions will silently become invisible to PullChanges. Monitor the error
+	// counter below and alert on any non-zero rate.
 	syncPayload, _ := json.Marshal(map[string]interface{}{
 		"id":            txnID.String(),
 		"account_id":    accountID.String(),
@@ -300,7 +314,7 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		"note":          req.Note,
 		"txn_date":      txnDate.Format("2006-01-02"),
 	})
-	// Use savepoint so failure doesn't abort the main transaction
+	// Use savepoint so failure doesn't abort the main transaction (see DESIGN note above)
 	_, _ = tx.Exec(ctx, "SAVEPOINT sync_insert")
 	_, syncErr := tx.Exec(ctx,
 		`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
@@ -308,7 +322,8 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		uid, txnID, string(syncPayload), "grpc-"+txnID.String(),
 	)
 	if syncErr != nil {
-		log.Printf("transaction: sync_operations insert error (rolling back savepoint): %v", syncErr)
+		// TODO: increment metrics counter sync_operations_insert_failures_total
+		log.Printf("ERROR: transaction: sync_operations insert FAILED (transaction %s will NOT be visible via PullChanges): %v", txnID.String(), syncErr)
 		_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT sync_insert")
 	} else {
 		_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT sync_insert")

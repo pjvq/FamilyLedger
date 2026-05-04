@@ -74,12 +74,13 @@ func TestConcurrent_CreateTransaction_NoRace(t *testing.T) {
 				WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 					AddRow(txnID, now, now))
 
+			// Overdraft check with FOR UPDATE lock
+			mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1 FOR UPDATE`).WithArgs(accountID).WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
+
 			mock.ExpectExec(`UPDATE accounts SET balance = balance \+ \$1`).
 				WithArgs(pgxmock.AnyArg(), accountID).
 				WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
-			// Overdraft check
-			mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \\$1`).WithArgs(accountID).WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
 			mock.ExpectExec(`SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
 			mock.ExpectExec(`INSERT INTO sync_operations`).WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).WillReturnResult(pgxmock.NewResult("INSERT", 1))
 			mock.ExpectExec(`RELEASE SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("RELEASE", 0))

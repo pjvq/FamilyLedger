@@ -162,19 +162,12 @@ void main() {
         options: opts,
       );
       // The current month point should show expense >= 5000
-      if (trendResp.points.isNotEmpty) {
-        final currentMonth = trendResp.points.last;
-        expect(currentMonth.expense, greaterThanOrEqualTo(Int64(5000)),
-            reason: 'Dashboard should include the transaction we just created');
-      } else {
-        // Some dashboard implementations may require more data; verify net worth instead
-        final netWorth = await dashClient.getNetWorth(
-          dash_pb.GetNetWorthRequest(),
-          options: opts,
-        );
-        // After creating an expense, cash should decrease
-        expect(netWorth.total, isNotNull);
-      }
+      expect(trendResp.points, isNotEmpty,
+          reason:
+              'Dashboard should return at least one month data point after creating a transaction');
+      final currentMonth = trendResp.points.last;
+      expect(currentMonth.expense, greaterThanOrEqualTo(Int64(5000)),
+          reason: 'Dashboard should include the transaction we just created');
     });
 
     test('TXN-004: Sync Push + Pull round-trip for account entity', () async {
@@ -349,19 +342,12 @@ void main() {
           ..count = 1,
         options: ownerOpts,
       );
-      if (trendResp.points.isNotEmpty) {
-        final currentMonth = trendResp.points.last;
-        expect(currentMonth.expense, greaterThanOrEqualTo(Int64(8800)),
-            reason: 'Family dashboard should include member\'s 88.00 expense');
-      } else {
-        // Alternative: check net worth reflects family assets
-        final netWorth = await dashClient.getNetWorth(
-          dash_pb.GetNetWorthRequest()..familyId = familyId,
-          options: ownerOpts,
-        );
-        expect(netWorth.total, isNotNull,
-            reason: 'Family net worth should be accessible');
-      }
+      expect(trendResp.points, isNotEmpty,
+          reason:
+              'Family dashboard should return trend data after member created a transaction');
+      final currentMonth = trendResp.points.last;
+      expect(currentMonth.expense, greaterThanOrEqualTo(Int64(8800)),
+          reason: 'Family dashboard should include member\'s 88.00 expense');
     });
 
     test('FAM-004: Export with familyId includes all members\' transactions',
@@ -477,7 +463,7 @@ void main() {
       restrictedAccountId = acctResp.accounts.first.id;
     });
 
-    test('PERM-002: Restricted member cannot create family transaction',
+    test('PERM-002: Restricted member cannot create family account',
         () async {
       final restrictedOpts = CallOptions(
         metadata: {'authorization': 'Bearer $restrictedToken'},
@@ -493,36 +479,42 @@ void main() {
             ..familyId = permFamilyId,
           options: restrictedOpts,
         );
-        // If personal accounts pass through, try sync push with family scope
-        final entityId = _uuid();
-        try {
-          await syncClient.pushOperations(
-            sync_pb.PushOperationsRequest()
-              ..operations.add(sync_pb.SyncOperation()
-                ..entityType = 'account'
-                ..entityId = entityId
-                ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-                ..payload = jsonEncode({
-                  'id': entityId,
-                  'name': 'Restricted Push',
-                  'family_id': permFamilyId,
-                })
-                ..clientId = _uuid()),
-            options: restrictedOpts,
-          );
-          // Sync push might not enforce permissions (it's eventual)
-          // In that case, the test validates that restrictions exist at the API level
-        } on GrpcError catch (_) {
-          // Expected
-        }
+        fail('Should have thrown GrpcError for restricted member creating family account');
       } on GrpcError catch (e) {
-        // Either PermissionDenied or InvalidArgument is acceptable
-        // depending on where the check triggers
-        expect(
-            e.code == StatusCode.permissionDenied ||
-                e.code == StatusCode.invalidArgument,
-            isTrue,
-            reason: 'Restricted member should be denied creating family resources');
+        expect(e.code, equals(StatusCode.permissionDenied),
+            reason:
+                'Restricted member should get PERMISSION_DENIED when creating family account');
+      }
+    });
+
+    test('PERM-002b: Restricted member cannot push family-scoped sync operations',
+        () async {
+      final restrictedOpts = CallOptions(
+        metadata: {'authorization': 'Bearer $restrictedToken'},
+      );
+
+      final entityId = _uuid();
+      try {
+        await syncClient.pushOperations(
+          sync_pb.PushOperationsRequest()
+            ..operations.add(sync_pb.SyncOperation()
+              ..entityType = 'account'
+              ..entityId = entityId
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = jsonEncode({
+                'id': entityId,
+                'name': 'Restricted Push',
+                'family_id': permFamilyId,
+              })
+              ..clientId = _uuid()),
+          options: restrictedOpts,
+        );
+        // Sync push may not enforce permissions (eventual consistency design).
+        // If it succeeds, that's a known limitation — not a test failure.
+      } on GrpcError catch (e) {
+        expect(e.code, equals(StatusCode.permissionDenied),
+            reason:
+                'If sync enforces permissions, it should return PERMISSION_DENIED');
       }
     });
 
