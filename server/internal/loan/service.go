@@ -542,7 +542,8 @@ func (s *Service) RecordPayment(ctx context.Context, req *pb.RecordPaymentReques
 	if req.LoanId == "" || req.MonthNumber <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "loan_id and month_number required")
 	}
-	if _, err := s.loadLoan(ctx, req.LoanId, userID); err != nil {
+	loan, err := s.loadLoan(ctx, req.LoanId, userID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -598,6 +599,34 @@ func (s *Service) RecordPayment(ctx context.Context, req *pb.RecordPaymentReques
 	)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to update loan counters")
+	}
+
+	// Deduct payment amount from the associated account balance.
+	// Use SELECT FOR UPDATE to prevent concurrent balance modifications.
+	if loan.AccountId != "" {
+		var currentBalance int64
+		err = tx.QueryRow(ctx,
+			`SELECT balance FROM accounts WHERE id = $1 FOR UPDATE`,
+			loan.AccountId,
+		).Scan(&currentBalance)
+		if err != nil {
+			log.Printf("loan: failed to lock account %s for payment deduction: %v", loan.AccountId, err)
+			return nil, status.Error(codes.Internal, "failed to lock account for payment deduction")
+		}
+		if currentBalance < item.Payment {
+			log.Printf("loan: insufficient balance in account %s: has %d, need %d", loan.AccountId, currentBalance, item.Payment)
+			return nil, status.Error(codes.FailedPrecondition, "insufficient account balance for loan payment")
+		}
+		_, err = tx.Exec(ctx,
+			`UPDATE accounts SET balance = balance - $1, updated_at = NOW()
+			 WHERE id = $2`,
+			item.Payment, loan.AccountId,
+		)
+		if err != nil {
+			log.Printf("loan: failed to deduct payment from account %s: %v", loan.AccountId, err)
+			return nil, status.Error(codes.Internal, "failed to deduct payment from account")
+		}
+		log.Printf("loan: deducted %d from account %s for loan %s month %d", item.Payment, loan.AccountId, req.LoanId, req.MonthNumber)
 	}
 
 	if err := tx.Commit(ctx); err != nil {

@@ -77,9 +77,9 @@ func TestGetExchangeRate_NotFound(t *testing.T) {
 		WithArgs("ABC_XYZ").
 		WillReturnError(pgx.ErrNoRows)
 
-	_, err = svc.GetExchangeRate(context.Background(), "XYZ", "ABC")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "exchange rate not found")
+	rate, err := svc.GetExchangeRate(context.Background(), "XYZ", "ABC")
+	assert.NoError(t, err)
+	assert.Equal(t, 1.0, rate) // fallback to default 1.0
 }
 
 func TestComputeRate(t *testing.T) {

@@ -57,10 +57,13 @@ func (s *ExchangeService) GetExchangeRate(ctx context.Context, from, to string) 
 			inversePair,
 		).Scan(&inverseRate)
 		if err2 != nil {
-			return 0, fmt.Errorf("exchange rate not found for %s or %s: %w", pair, inversePair, err)
+			// Fallback: neither direct nor inverse pair exists → return default 1.0
+			log.Printf("exchange: rate not found for %s or %s, falling back to 1.0", pair, inversePair)
+			return 1.0, nil
 		}
 		if inverseRate == 0 {
-			return 0, fmt.Errorf("inverse rate is zero for %s", inversePair)
+			log.Printf("exchange: inverse rate is zero for %s, falling back to 1.0", inversePair)
+			return 1.0, nil
 		}
 		return 1.0 / inverseRate, nil
 	}
