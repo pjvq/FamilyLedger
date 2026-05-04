@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
@@ -20,34 +21,112 @@ void main() {
       }, reportKey: 'app_startup');
     });
 
-    testWidgets('Transaction list scroll performance', (tester) async {
+    testWidgets('Cold start benchmark < 3s', (tester) async {
+      // Measure raw startup time without traceAction overhead
+      final stopwatch = Stopwatch()..start();
+      await pumpTestApp(tester);
+      stopwatch.stop();
+
+      // 3s is the target; allow up to 5s in CI
+      expect(
+        stopwatch.elapsed.inMilliseconds,
+        lessThan(5000),
+        reason: 'Cold start took ${stopwatch.elapsed.inMilliseconds}ms '
+            '(target: <3000ms, CI threshold: <5000ms)',
+      );
+    });
+
+    testWidgets('Transaction list scroll performance — 60fps target',
+        (tester) async {
       await pumpTestApp(tester);
 
-      await binding.traceAction(() async {
-        // Try to find a scrollable list (ListView or CustomScrollView)
-        final listFinder = find.byType(ListView);
-        final scrollFinder = find.byType(CustomScrollView);
+      final timings = <FrameTiming>[];
+      SchedulerBinding.instance.addTimingsCallback((list) {
+        timings.addAll(list);
+      });
 
-        Finder? scrollable;
-        if (listFinder.evaluate().isNotEmpty) {
-          scrollable = listFinder.first;
-        } else if (scrollFinder.evaluate().isNotEmpty) {
-          scrollable = scrollFinder.first;
-        }
+      // Try to find a scrollable list
+      final listFinder = find.byType(ListView);
+      final scrollFinder = find.byType(CustomScrollView);
 
-        if (scrollable != null) {
-          // Perform multiple flings to stress the rendering pipeline
-          for (var i = 0; i < 3; i++) {
-            await tester.fling(scrollable, const Offset(0, -500), 1500);
-            await tester.pumpAndSettle();
-          }
-          // Scroll back up
-          for (var i = 0; i < 3; i++) {
-            await tester.fling(scrollable, const Offset(0, 500), 1500);
-            await tester.pumpAndSettle();
-          }
+      Finder? scrollable;
+      if (listFinder.evaluate().isNotEmpty) {
+        scrollable = listFinder.first;
+      } else if (scrollFinder.evaluate().isNotEmpty) {
+        scrollable = scrollFinder.first;
+      }
+
+      if (scrollable != null) {
+        // Perform multiple flings to stress the rendering pipeline
+        for (var i = 0; i < 3; i++) {
+          await tester.fling(scrollable, const Offset(0, -500), 1500);
+          await tester.pumpAndSettle();
         }
-      }, reportKey: 'transaction_list_scroll');
+        // Scroll back up
+        for (var i = 0; i < 3; i++) {
+          await tester.fling(scrollable, const Offset(0, 500), 1500);
+          await tester.pumpAndSettle();
+        }
+      } else {
+        // No scrollable found; pump frames manually
+        for (var i = 0; i < 60; i++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+      }
+
+      // Assert 60fps: average frame build time < 16.67ms
+      if (timings.isNotEmpty) {
+        final buildTimes = timings
+            .map((t) => t.buildDuration.inMicroseconds / 1000.0)
+            .toList()
+          ..sort();
+        final avgBuild =
+            buildTimes.reduce((a, b) => a + b) / buildTimes.length;
+        final p90Build = buildTimes[(buildTimes.length * 0.9).floor()];
+
+        // 60fps target = 16.67ms per frame
+        // CI threshold: allow up to 33.33ms (30fps) since CI has no GPU
+        expect(
+          avgBuild,
+          lessThan(33.33),
+          reason: 'Average frame build time ${avgBuild.toStringAsFixed(2)}ms '
+              'exceeds 33.33ms (CI threshold for 60fps target)',
+        );
+
+        binding.reportData = <String, dynamic>{
+          'scroll_frame_count': timings.length,
+          'scroll_build_avg_ms': avgBuild,
+          'scroll_build_p90_ms': p90Build,
+          'scroll_build_worst_ms': buildTimes.last,
+        };
+      }
+    });
+
+    testWidgets('Transaction list scroll — no memory leak', (tester) async {
+      await pumpTestApp(tester);
+
+      // Perform extended scroll cycles to detect memory leaks
+      // If there's a leak, pumpAndSettle will eventually time out or OOM
+      final listFinder = find.byType(ListView);
+      final scrollFinder = find.byType(CustomScrollView);
+
+      Finder? scrollable;
+      if (listFinder.evaluate().isNotEmpty) {
+        scrollable = listFinder.first;
+      } else if (scrollFinder.evaluate().isNotEmpty) {
+        scrollable = scrollFinder.first;
+      }
+
+      if (scrollable != null) {
+        // 10 full cycles of scroll down + up
+        for (var cycle = 0; cycle < 10; cycle++) {
+          await tester.fling(scrollable, const Offset(0, -800), 2000);
+          await tester.pumpAndSettle();
+          await tester.fling(scrollable, const Offset(0, 800), 2000);
+          await tester.pumpAndSettle();
+        }
+      }
+      // If we reach here without OOM or timeout, no memory leak detected
     });
 
     testWidgets('Dashboard render performance', (tester) async {

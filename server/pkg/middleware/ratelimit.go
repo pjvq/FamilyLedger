@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"context"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -27,12 +29,25 @@ type RateLimiterConfig struct {
 }
 
 // DefaultRateLimiterConfig returns sensible defaults.
+// Auth rate limits can be overridden via AUTH_RATE_RPS and AUTH_RATE_BURST env vars (useful for CI).
 func DefaultRateLimiterConfig() RateLimiterConfig {
+	authRPS := 5
+	authBurst := 10
+	if v := os.Getenv("AUTH_RATE_RPS"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			authRPS = n
+		}
+	}
+	if v := os.Getenv("AUTH_RATE_BURST"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			authBurst = n
+		}
+	}
 	return RateLimiterConfig{
 		GlobalRPS:       100,
 		GlobalBurst:     200,
-		AuthRPS:         5,
-		AuthBurst:       10,
+		AuthRPS:         authRPS,
+		AuthBurst:       authBurst,
 		CleanupInterval: 5 * time.Minute,
 		EntryTTL:        10 * time.Minute,
 	}

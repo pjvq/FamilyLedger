@@ -1,7 +1,9 @@
 package ws
 
 import (
+	"math/rand"
 	"net/http"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -335,4 +337,117 @@ func TestHub_Load_BroadcastToNonexistentUser_NoPanic(t *testing.T) {
 
 	wg.Wait()
 	// If we get here without panic, the test passes
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// W13: 100 Clients + 10% Random Disconnect During Broadcast
+// ═══════════════════════════════════════════════════════════════════════════════
+
+func TestHub_Load_100Clients_RandomDisconnect(t *testing.T) {
+	hub, server := setupTestHub()
+	defer server.Close()
+
+	const clientCount = 100
+	const disconnectCount = 10
+	const userID = "random-disconnect-user"
+
+	tokenPair, err := hub.jwtManager.GenerateTokenPair(userID)
+	require.NoError(t, err)
+
+	// Connect 100 clients
+	conns := make([]*websocket.Conn, clientCount)
+	for i := 0; i < clientCount; i++ {
+		dialer := websocket.Dialer{}
+		conn, _, err := dialer.Dial(wsURL(server, tokenPair.AccessToken), nil)
+		require.NoError(t, err)
+		conns[i] = conn
+	}
+
+	// Wait for all clients to be registered
+	time.Sleep(200 * time.Millisecond)
+
+	hub.mu.RLock()
+	initialCount := len(hub.clients[userID])
+	hub.mu.RUnlock()
+	assert.Equal(t, clientCount, initialCount, "all 100 clients should be registered")
+
+	// Record goroutine count before disconnect
+	goroutinesBefore := runtime.NumGoroutine()
+
+	// Randomly select 10 clients to disconnect
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	perm := rng.Perm(clientCount)
+	disconnectedSet := make(map[int]bool)
+	for i := 0; i < disconnectCount; i++ {
+		disconnectedSet[perm[i]] = true
+	}
+
+	// Disconnect the selected 10 clients
+	for idx := range disconnectedSet {
+		conns[idx].Close()
+	}
+
+	// Wait for server to process disconnections
+	time.Sleep(500 * time.Millisecond)
+
+	// Broadcast a message
+	message := []byte(`{"event":"sync","entity":"transaction","id":"w13-test"}`)
+	hub.BroadcastToUser(userID, message)
+
+	// Verify remaining 90 clients receive the broadcast
+	var received int32
+	var wg sync.WaitGroup
+
+	for i := 0; i < clientCount; i++ {
+		if disconnectedSet[i] {
+			continue // skip disconnected clients
+		}
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			conns[idx].SetReadDeadline(time.Now().Add(5 * time.Second))
+			_, msg, err := conns[idx].ReadMessage()
+			if err == nil && string(msg) == string(message) {
+				atomic.AddInt32(&received, 1)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	expectedReceived := int32(clientCount - disconnectCount)
+	assert.Equal(t, expectedReceived, received,
+		"expected %d clients to receive broadcast, got %d", expectedReceived, received)
+
+	// Verify disconnected clients are cleaned up
+	hub.mu.RLock()
+	remainingCount := len(hub.clients[userID])
+	hub.mu.RUnlock()
+	assert.Equal(t, clientCount-disconnectCount, remainingCount,
+		"expected %d remaining clients, got %d", clientCount-disconnectCount, remainingCount)
+
+	// Cleanup remaining connections
+	for i := 0; i < clientCount; i++ {
+		if !disconnectedSet[i] {
+			conns[i].Close()
+		}
+	}
+
+	// Wait for cleanup and check for goroutine leaks
+	time.Sleep(500 * time.Millisecond)
+
+	hub.mu.RLock()
+	finalCount := len(hub.clients[userID])
+	hub.mu.RUnlock()
+	assert.Equal(t, 0, finalCount, "all clients should be cleaned up")
+
+	// Check goroutine count didn't grow significantly
+	time.Sleep(200 * time.Millisecond)
+	goroutinesAfter := runtime.NumGoroutine()
+	// Allow some slack for background goroutines
+	assert.Less(t, goroutinesAfter, goroutinesBefore+10,
+		"goroutine leak detected: before=%d after=%d", goroutinesBefore, goroutinesAfter)
+
+	t.Logf("W13 WS PASS: %d/%d clients received broadcast, %d disconnected cleaned up, goroutines before=%d after=%d",
+		received, expectedReceived, disconnectCount, goroutinesBefore, goroutinesAfter)
 }

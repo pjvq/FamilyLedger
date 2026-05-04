@@ -16,6 +16,8 @@ env:
   JWT_SECRET: ci-test-secret-do-not-use-in-production
   GRPC_PORT: '50051'
   WS_PORT: '8080'
+  AUTH_RATE_RPS: '100'
+  AUTH_RATE_BURST: '200'
 
 jobs:
   e2e-grpc:
@@ -109,6 +111,9 @@ jobs:
 
       - name: Integration - W12 Financial + Notification
         run: bash tests/integration/test_w12_financial_notify.sh
+
+      - name: Integration - W13 Performance + Stress
+        run: bash tests/integration/test_w13_performance_stress.sh
 
       # Cleanup
       - name: Stop server

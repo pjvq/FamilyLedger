@@ -16,6 +16,8 @@ env:
   JWT_SECRET: ci-test-secret-do-not-use-in-production
   GRPC_PORT: '50051'
   WS_PORT: '8080'
+  AUTH_RATE_RPS: '100'
+  AUTH_RATE_BURST: '200'
 
 jobs:
   flutter-e2e:
