@@ -176,6 +176,14 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	if req.Amount <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "amount must be positive")
 	}
+	if req.Amount > 99999999999 {
+		return nil, status.Error(codes.InvalidArgument, "amount exceeds maximum allowed (10 billion CNY)")
+	}
+
+	// Note length limit
+	if len(req.Note) > 1000 {
+		return nil, status.Error(codes.InvalidArgument, "note exceeds maximum length of 1000 characters")
+	}
 
 	currency := req.Currency
 	if currency == "" {
@@ -212,10 +220,11 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	// Verify account belongs to user or user is a family member
 	var ownerID uuid.UUID
 	var acctFamilyID *uuid.UUID
+	var acctType string
 	err = tx.QueryRow(ctx,
-		"SELECT user_id, family_id FROM accounts WHERE id = $1 AND deleted_at IS NULL",
+		"SELECT user_id, family_id, type FROM accounts WHERE id = $1 AND deleted_at IS NULL",
 		accountID,
-	).Scan(&ownerID, &acctFamilyID)
+	).Scan(&ownerID, &acctFamilyID, &acctType)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "account not found")
 	}
@@ -256,17 +265,68 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		return nil, status.Error(codes.Internal, "failed to create transaction")
 	}
 
-	// Update account balance (use amountCny — balance is always in CNY)
+	// Overdraft protection: lock row + check balance BEFORE deducting (prevents TOCTOU race)
 	balanceDelta := amountCny
 	if txnType == "expense" {
 		balanceDelta = -amountCny
 	}
+	if txnType == "expense" && acctType != "credit_card" {
+		var currentBalance int64
+		err = tx.QueryRow(ctx,
+			"SELECT balance FROM accounts WHERE id = $1 FOR UPDATE",
+			accountID).Scan(&currentBalance)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to lock account for balance check")
+		}
+		if currentBalance < amountCny {
+			return nil, status.Error(codes.FailedPrecondition, "insufficient balance: account does not allow overdraft")
+		}
+	}
+
+	// Update account balance (use amountCny — balance is always in CNY)
 	_, err = tx.Exec(ctx,
 		"UPDATE accounts SET balance = balance + $1, updated_at = NOW() WHERE id = $2",
 		balanceDelta, accountID,
 	)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to update account balance")
+	}
+
+	// Write sync_operations record so PullChanges can discover this transaction.
+	//
+	// DESIGN: Intentional degraded-sync strategy — if sync_operations INSERT fails,
+	// we still commit the main transaction. Rationale: "degraded sync > lost data".
+	// The transaction is created but won't appear in PullChanges until a repair job
+	// or manual re-sync. This is acceptable for gRPC-created transactions.
+	//
+	// WARNING: If sync_operations schema changes (e.g. column rename), ALL gRPC-created
+	// transactions will silently become invisible to PullChanges. Monitor the error
+	// counter below and alert on any non-zero rate.
+	syncPayload, _ := json.Marshal(map[string]interface{}{
+		"id":            txnID.String(),
+		"account_id":    accountID.String(),
+		"category_id":   categoryID.String(),
+		"amount":        req.Amount,
+		"currency":      currency,
+		"amount_cny":    amountCny,
+		"exchange_rate":  exchangeRate,
+		"type":          txnType,
+		"note":          req.Note,
+		"txn_date":      txnDate.Format("2006-01-02"),
+	})
+	// Use savepoint so failure doesn't abort the main transaction (see DESIGN note above)
+	_, _ = tx.Exec(ctx, "SAVEPOINT sync_insert")
+	_, syncErr := tx.Exec(ctx,
+		`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
+		 VALUES ($1, 'transaction', $2, 'create'::sync_op_type, $3, $4, NOW())`,
+		uid, txnID, string(syncPayload), "grpc-"+txnID.String(),
+	)
+	if syncErr != nil {
+		// TODO: increment metrics counter sync_operations_insert_failures_total
+		log.Printf("ERROR: transaction: sync_operations insert FAILED (transaction %s will NOT be visible via PullChanges): %v", txnID.String(), syncErr)
+		_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT sync_insert")
+	} else {
+		_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT sync_insert")
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -346,7 +406,7 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 		return nil, status.Error(codes.Internal, "failed to query transaction")
 	}
 
-	// Permission check: owner can always edit; family members need edit permission
+	// Permission check: on family accounts, always check permission (strict mode)
 	if ownerID != uid {
 		familyID, err := getAccountFamilyIDFrom(ctx, tx, accountID)
 		if err != nil {
@@ -357,6 +417,14 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 		}
 		if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanEdit); err != nil {
 			return nil, err
+		}
+	} else {
+		// Owner editing own txn — still check family permission if it's on a family account
+		familyID, _ := getAccountFamilyIDFrom(ctx, tx, accountID)
+		if familyID != "" {
+			if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanEdit); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -573,7 +641,7 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 		return nil, status.Error(codes.Internal, "failed to query transaction")
 	}
 
-	// Permission check: owner can always delete; family members need delete permission
+	// Permission check: on family accounts, always check permission (strict mode)
 	if ownerID != uid {
 		familyID, err := getAccountFamilyIDFrom(ctx, tx, accountID)
 		if err != nil {
@@ -584,6 +652,14 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 		}
 		if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanDelete); err != nil {
 			return nil, err
+		}
+	} else {
+		// Owner deleting own txn — still check family permission if it's on a family account
+		familyID, _ := getAccountFamilyIDFrom(ctx, tx, accountID)
+		if familyID != "" {
+			if err := permission.Check(ctx, s.pool, userID, familyID, permission.CanDelete); err != nil {
+				return nil, err
+			}
 		}
 	}
 

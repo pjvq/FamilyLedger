@@ -60,39 +60,54 @@ func TestCreateTransaction_SQLInjection_Note(t *testing.T) {
 			now := time.Now()
 
 			// Setup mock expectations
+			// Note: for super_long_string, only the ownership check fires (validation rejects after)
 			mock.ExpectQuery("SELECT family_id::text, user_id FROM accounts").
 				WithArgs(accountID).
 				WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, userUUID))
 
-			mock.ExpectBegin()
+			if tc.name != "super_long_string" {
+				mock.ExpectBegin()
 
-			mock.ExpectQuery("SELECT user_id, family_id FROM accounts").
-				WithArgs(accountID).
-				WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(userUUID, nil))
+				mock.ExpectQuery("SELECT user_id, family_id, type FROM accounts").
+					WithArgs(accountID).
+					WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "type"}).AddRow(userUUID, nil, "cash"))
 
-			// Key assertion: the INSERT should receive the malicious string as a
-			// parameterized argument ($9 = note), NOT spliced into the SQL.
-			mock.ExpectQuery("INSERT INTO transactions").
-				WithArgs(
-					userUUID, accountID, categoryID,
-					pgxmock.AnyArg(), // amount
-					pgxmock.AnyArg(), // currency
-					pgxmock.AnyArg(), // amount_cny
-					pgxmock.AnyArg(), // exchange_rate
-					pgxmock.AnyArg(), // type
-					tc.value,         // note — exact malicious string as parameter
-					pgxmock.AnyArg(), // txn_date
-					pgxmock.AnyArg(), // tags
-					pgxmock.AnyArg(), // image_urls
-				).
-				WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
-					AddRow(txnID, now, now))
+				// Key assertion: the INSERT should receive the malicious string as a
+				// parameterized argument ($9 = note), NOT spliced into the SQL.
+				mock.ExpectQuery("INSERT INTO transactions").
+					WithArgs(
+						userUUID, accountID, categoryID,
+						pgxmock.AnyArg(), // amount
+						pgxmock.AnyArg(), // currency
+						pgxmock.AnyArg(), // amount_cny
+						pgxmock.AnyArg(), // exchange_rate
+						pgxmock.AnyArg(), // type
+						tc.value,         // note — exact malicious string as parameter
+						pgxmock.AnyArg(), // txn_date
+						pgxmock.AnyArg(), // tags
+						pgxmock.AnyArg(), // image_urls
+					).
+					WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
+						AddRow(txnID, now, now))
 
-			mock.ExpectExec("UPDATE accounts SET balance").
-				WithArgs(pgxmock.AnyArg(), accountID).
-				WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+				// Overdraft check with FOR UPDATE lock
+				mock.ExpectQuery("SELECT balance FROM accounts WHERE id").
+					WithArgs(accountID).
+					WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
 
-			mock.ExpectCommit()
+				mock.ExpectExec("UPDATE accounts SET balance").
+					WithArgs(pgxmock.AnyArg(), accountID).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+				// Sync operations
+				mock.ExpectExec("SAVEPOINT sync_insert").WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
+				mock.ExpectExec("INSERT INTO sync_operations").
+					WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				mock.ExpectExec("RELEASE SAVEPOINT sync_insert").WillReturnResult(pgxmock.NewResult("RELEASE", 0))
+
+				mock.ExpectCommit()
+			}
 
 			resp, err := svc.CreateTransaction(authedCtx(), &pb.CreateTransactionRequest{
 				AccountId:  accountID.String(),
@@ -104,10 +119,16 @@ func TestCreateTransaction_SQLInjection_Note(t *testing.T) {
 			})
 
 			// Should NOT panic and should succeed with parameterized queries
-			require.NoError(t, err, "CreateTransaction should not fail for input: %s", tc.name)
-			require.NotNil(t, resp)
-			assert.Equal(t, tc.value, resp.Transaction.Note)
-			assert.NoError(t, mock.ExpectationsWereMet())
+			// Exception: super_long_string is now rejected by note length validation
+			if tc.name == "super_long_string" {
+				require.Error(t, err, "super_long_string should be rejected by validation")
+				assert.Contains(t, err.Error(), "note exceeds maximum length")
+			} else {
+				require.NoError(t, err, "CreateTransaction should not fail for input: %s", tc.name)
+				require.NotNil(t, resp)
+				assert.Equal(t, tc.value, resp.Transaction.Note)
+				assert.NoError(t, mock.ExpectationsWereMet())
+			}
 		})
 	}
 }
