@@ -1,0 +1,319 @@
+name: CI Pipeline (Parallel)
+
+# Unified CI that runs unit, integration, and E2E tests in parallel.
+# Total wall time target: <15 min (3 jobs run concurrently).
+# Individual workflow files (go.yml, flutter.yml, e2e.yml, flutter-e2e.yml)
+# remain unchanged for path-specific triggers.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── Job A: Unit Tests (Go + Flutter) — target <5min ─────────────────────
+  unit-tests:
+    name: "A: Unit Tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Go Unit Tests ──
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: server/go.sum
+
+      - name: Go — download deps
+        working-directory: server
+        run: go mod download
+
+      - name: Go — build
+        working-directory: server
+        run: go build ./...
+
+      - name: Go — vet
+        working-directory: server
+        run: go vet ./...
+
+      - name: Go — unit tests
+        working-directory: server
+        run: |
+          go install gotest.tools/gotestsum@latest
+          gotestsum --rerun-fails=2 --rerun-fails-max-failures=3 \
+            --format short-verbose \
+            --packages ./... \
+            -- -count=1 -race -coverprofile=coverage.out -timeout=60s
+
+      - name: Go — coverage gate (≥20%)
+        working-directory: server
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Go coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 20.0" | bc -l) )); then
+            echo "::error::Go coverage ${COVERAGE}% below 20% threshold"
+            exit 1
+          fi
+
+      # ── Flutter Unit Tests ──
+      - name: Install system deps (SQLite)
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Flutter — install deps
+        working-directory: app
+        run: flutter pub get
+
+      - name: Flutter — analyze
+        working-directory: app
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Flutter — unit tests
+        working-directory: app
+        run: |
+          flutter test --reporter compact --coverage --timeout 5s 2>&1 | tee test_output.txt || {
+            FAILED=$(grep -oP '(?<=package:)[^ ]+_test.dart' test_output.txt | sort -u || true)
+            if [ -n "$FAILED" ]; then
+              echo "::notice::Retrying failed tests: $FAILED"
+              flutter test $FAILED --reporter compact --coverage --timeout 5s
+            else
+              exit 1
+            fi
+          }
+
+      - name: Flutter — coverage gate (≥20%)
+        working-directory: app
+        run: |
+          if [ ! -f coverage/lcov.info ]; then
+            echo "::warning::No coverage file found (skipping gate)"
+            exit 0
+          fi
+          read HIT TOTAL <<< $(awk -F, '/^DA:/{total++; if($2>0)hit++} END{print hit+0, total+0}' coverage/lcov.info)
+          if [ "$TOTAL" -eq 0 ]; then
+            echo "::warning::No coverage data"
+            exit 0
+          fi
+          COVERAGE=$(echo "scale=1; $HIT * 100 / $TOTAL" | bc)
+          echo "Dart coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 20.0" | bc -l) )); then
+            echo "::error::Dart coverage ${COVERAGE}% below 20% threshold"
+            exit 1
+          fi
+
+      # ── Upload Artifacts ──
+      - name: Upload Go coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage
+          path: server/coverage.out
+          retention-days: 7
+
+      - name: Upload Flutter coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-coverage
+          path: app/coverage/lcov.info
+          retention-days: 7
+
+  # ─── Job B: Integration Tests (Go + testcontainers PG) — target <8min ───
+  integration-tests:
+    name: "B: Integration Tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: server/go.sum
+
+      - name: Download dependencies
+        working-directory: server
+        run: go mod download
+
+      - name: Run integration tests (testcontainers)
+        working-directory: server
+        run: |
+          go test ./internal/integration/... -tags=integration -count=1 -timeout=300s -v 2>&1 | tee integration.log
+          echo "──────────────────────────────────────────"
+          echo "Integration test summary:"
+          grep -E "^(ok|FAIL|---)" integration.log || true
+
+      - name: Run benchmark tests
+        working-directory: server
+        run: |
+          go test ./internal/benchmark/... -tags=integration \
+            -bench=. -benchtime=2s -count=1 -timeout=120s | tee benchmark.txt || true
+
+      - name: Upload integration logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-logs
+          path: |
+            server/integration.log
+            server/benchmark.txt
+          retention-days: 7
+
+  # ─── Job C: E2E Tests (Flutter ↔ Go Server) — target <12min ─────────────
+  e2e-tests:
+    name: "C: E2E Tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: '5432'
+      DB_USER: familyledger
+      DB_PASSWORD: familyledger
+      DB_NAME: familyledger_e2e
+      DB_SSLMODE: disable
+      JWT_SECRET: ci-test-secret-do-not-use-in-production
+      GRPC_PORT: '50051'
+      WS_PORT: '8080'
+      AUTH_RATE_RPS: '100'
+      AUTH_RATE_BURST: '200'
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: familyledger
+          POSTGRES_PASSWORD: familyledger
+          POSTGRES_DB: familyledger_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U familyledger"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Build Go Server ──
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: server/go.sum
+
+      - name: Build Go server
+        working-directory: server
+        run: go build -o bin/server ./cmd/server
+
+      # ── Migrations ──
+      - name: Install migrate CLI
+        run: |
+          curl -sSL "https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz" | tar xz
+          sudo mv migrate /usr/local/bin/
+
+      - name: Run migrations
+        run: |
+          migrate -path server/migrations \
+            -database "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${DB_SSLMODE}" up
+
+      # ── Start Server ──
+      - name: Start Go server
+        run: |
+          server/bin/server &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          for i in $(seq 1 30); do
+            if nc -z localhost 50051 2>/dev/null; then
+              echo "gRPC ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+          for i in $(seq 1 10); do
+            if nc -z localhost 8080 2>/dev/null; then
+              echo "WebSocket ready"
+              break
+            fi
+            sleep 1
+          done
+
+      # ── Install grpcurl ──
+      - name: Install grpcurl
+        run: |
+          GRPCURL_VERSION="1.9.1"
+          curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v${GRPCURL_VERSION}/grpcurl_${GRPCURL_VERSION}_linux_x86_64.tar.gz" | tar xz
+          sudo mv grpcurl /usr/local/bin/
+
+      # ── Shell E2E Tests ──
+      - name: E2E — gRPC test
+        run: bash tests/integration/e2e-grpc-test.sh
+
+      - name: E2E — Basic Services
+        run: bash tests/integration/test_basic_services.sh
+
+      - name: E2E — Finance Services
+        run: bash tests/integration/test_finance_services.sh
+
+      - name: E2E — Finance Services v2
+        run: bash tests/integration/test_finance_services_v2.sh
+
+      - name: E2E — Analytics Services
+        run: bash tests/integration/test_analytics_services.sh
+
+      - name: E2E — Multi-device Sync
+        run: bash tests/integration/test_multi_device_sync.sh
+
+      - name: E2E — 1000 Transactions Perf
+        run: bash tests/integration/test_perf_1000_transactions.sh
+
+      - name: E2E — W12 Financial + Notification
+        run: bash tests/integration/test_w12_financial_notify.sh
+
+      - name: E2E — W13 Performance + Stress
+        run: bash tests/integration/test_w13_performance_stress.sh
+
+      # ── Flutter E2E ──
+      - name: Install system deps (SQLite)
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Flutter — install deps
+        working-directory: app
+        run: flutter pub get
+
+      - name: Flutter E2E integration tests
+        working-directory: app
+        run: |
+          TEST_FILES=$(find test/integration_test -name '*_test.dart' 2>/dev/null | wc -l | tr -d ' ')
+          if [ "$TEST_FILES" -eq 0 ]; then
+            echo "No E2E test files found. Skipping."
+            exit 0
+          fi
+          flutter test test/integration_test/ \
+            --reporter compact \
+            --timeout 30s \
+            --concurrency 1
+        env:
+          GRPC_HOST: localhost
+          GRPC_PORT: '50051'
+          WS_HOST: localhost
+          WS_PORT: '8080'
+
+      # ── Cleanup ──
+      - name: Stop server
+        if: always()
+        run: kill $SERVER_PID 2>/dev/null || true
