@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -167,6 +169,17 @@ func (s *Service) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest)
 		return nil, status.Error(codes.Unauthenticated, fmt.Sprintf("invalid refresh token: %v", err))
 	}
 
+	// Check if this token has been revoked (rotation check)
+	tokenHash := hashToken(req.RefreshToken)
+	var revoked bool
+	err = s.pool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM revoked_tokens WHERE token_hash = $1)", tokenHash).Scan(&revoked)
+	if err != nil {
+		log.Printf("auth: revoked_tokens check error: %v", err)
+		// If table doesn't exist yet (pre-migration), allow through
+	} else if revoked {
+		return nil, status.Error(codes.Unauthenticated, "refresh token has been revoked")
+	}
+
 	// Verify user still exists
 	var exists bool
 	err = s.pool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", claims.UserID).Scan(&exists)
@@ -179,11 +192,28 @@ func (s *Service) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest)
 		return nil, status.Error(codes.Internal, "failed to generate tokens")
 	}
 
+	// Revoke the old refresh token (rotation)
+	if claims.ExpiresAt != nil {
+		_, err = s.pool.Exec(ctx,
+			`INSERT INTO revoked_tokens (token_hash, user_id, expires_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+			tokenHash, claims.UserID, claims.ExpiresAt.Time)
+		if err != nil {
+			log.Printf("auth: failed to revoke old refresh token: %v", err)
+			// Non-fatal: new token is already issued, old token blacklist is best-effort
+		}
+	}
+
 	return &pb.RefreshTokenResponse{
 		AccessToken:  tokenPair.AccessToken,
 		RefreshToken: tokenPair.RefreshToken,
 		ExpiresAt:    timestamppb.New(tokenPair.ExpiresAt),
 	}, nil
+}
+
+// hashToken returns SHA-256 hex hash of a token string.
+func hashToken(token string) string {
+	h := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(h[:])
 }
 
 // OAuthLogin handles OAuth-based login for WeChat and Apple providers.

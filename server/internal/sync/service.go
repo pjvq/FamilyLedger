@@ -174,8 +174,7 @@ func (s *Service) applyOperation(ctx context.Context, tx pgx.Tx, userID uuid.UUI
 	case "budget":
 		return s.applyBudgetOp(ctx, tx, userID, entityID, opType, payload)
 	default:
-		log.Printf("sync: unknown entity_type %q, skipping apply", entityType)
-		return nil
+		return fmt.Errorf("unknown entity_type %q", entityType)
 	}
 }
 

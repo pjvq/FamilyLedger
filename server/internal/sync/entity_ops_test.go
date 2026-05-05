@@ -166,7 +166,8 @@ func TestApplyOperation_UnknownEntityType(t *testing.T) {
 	tx, err := mock.Begin(context.Background())
 	require.NoError(t, err)
 
-	// Unknown entity type should not error (returns nil, logs warning)
+	// Unknown entity type should return an error (not silently skip)
 	err = svc.applyOperation(context.Background(), tx, userUID, "unknown_type", entityID, "create", "{}")
-	assert.NoError(t, err)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "unknown entity_type")
 }

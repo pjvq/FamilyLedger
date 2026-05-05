@@ -145,7 +145,11 @@ func main() {
 	dashpb.RegisterDashboardServiceServer(grpcServer, dashboardService)
 	exportpb.RegisterExportServiceServer(grpcServer, exportService)
 	importpbpb.RegisterImportServiceServer(grpcServer, importService)
-	reflection.Register(grpcServer)
+	// Only enable gRPC reflection in dev/staging (default off for security)
+	if os.Getenv("ENABLE_GRPC_REFLECTION") == "true" {
+		reflection.Register(grpcServer)
+		log.Println("gRPC reflection enabled (ENABLE_GRPC_REFLECTION=true)")
+	}
 
 	// Start gRPC
 	grpcLis, err := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%s", grpcPort))
