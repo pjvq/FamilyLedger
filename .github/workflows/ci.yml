@@ -51,13 +51,13 @@ jobs:
             --packages ./... \
             -- -count=1 -race -coverprofile=coverage.out -timeout=60s
 
-      - name: Go — coverage gate (≥20%)
+      - name: Go — coverage gate (≥25%)
         working-directory: server
         run: |
           COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
           echo "Go coverage: ${COVERAGE}%"
-          if (( $(echo "$COVERAGE < 20.0" | bc -l) )); then
-            echo "::error::Go coverage ${COVERAGE}% below 20% threshold"
+          if (( $(echo "$COVERAGE < 25.0" | bc -l) )); then
+            echo "::error::Go coverage ${COVERAGE}% below 25% threshold"
             exit 1
           fi
 
@@ -91,7 +91,7 @@ jobs:
             fi
           }
 
-      - name: Flutter — coverage gate (≥20%)
+      - name: Flutter — coverage gate (≥25%)
         working-directory: app
         run: |
           if [ ! -f coverage/lcov.info ]; then
@@ -105,8 +105,8 @@ jobs:
           fi
           COVERAGE=$(echo "scale=1; $HIT * 100 / $TOTAL" | bc)
           echo "Dart coverage: ${COVERAGE}%"
-          if (( $(echo "$COVERAGE < 20.0" | bc -l) )); then
-            echo "::error::Dart coverage ${COVERAGE}% below 20% threshold"
+          if (( $(echo "$COVERAGE < 25.0" | bc -l) )); then
+            echo "::error::Dart coverage ${COVERAGE}% below 25% threshold"
             exit 1
           fi
 
@@ -186,6 +186,7 @@ jobs:
       WS_PORT: '8080'
       AUTH_RATE_RPS: '100'
       AUTH_RATE_BURST: '200'
+      ENABLE_GRPC_REFLECTION: 'true'
 
     services:
       postgres:

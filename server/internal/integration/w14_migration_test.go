@@ -32,7 +32,7 @@ import (
 // to test migration lifecycle: sequential up, skip-version, rollback, data integrity.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const totalMigrations = 40
+const totalMigrations = 41
 
 // migrationsDir returns the absolute path to the migrations directory.
 func migrationsDir(t *testing.T) string {

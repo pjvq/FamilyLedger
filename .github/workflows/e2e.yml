@@ -18,6 +18,7 @@ env:
   WS_PORT: '8080'
   AUTH_RATE_RPS: '100'
   AUTH_RATE_BURST: '200'
+  ENABLE_GRPC_REFLECTION: 'true'
 
 jobs:
   e2e-grpc:

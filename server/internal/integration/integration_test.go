@@ -114,7 +114,7 @@ func truncateAll(t *testing.T, db *testDB) {
 	t.Helper()
 	ctx := context.Background()
 	_, err := db.pool.Exec(ctx, `
-		TRUNCATE notifications, category_budgets, budgets, import_sessions, sync_operations, transactions, family_members, families, accounts CASCADE;
+		TRUNCATE notifications, category_budgets, budgets, import_sessions, sync_operations, transactions, family_members, families, accounts, revoked_tokens CASCADE;
 		DELETE FROM categories WHERE user_id IS NOT NULL;
 		DELETE FROM users;
 	`)
