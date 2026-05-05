@@ -1769,10 +1769,53 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           }
         }
 
-        // Sync parent categories first
-        for (final cat in [...parentCats, ...childCats]) {
+        // Round 1: sync ALL parent categories (no parentId)
+        final failedParentIds = <String>{};
+        for (final cat in parentCats) {
           if (syncedCatIds.contains(cat.id)) continue;
           syncedCatIds.add(cat.id);
+
+          try {
+            final catReq = pb_txn.CreateCategoryRequest()
+              ..name = cat.name
+              ..iconKey = cat.iconKey.isNotEmpty ? cat.iconKey : 'category'
+              ..type = cat.type == 'income'
+                  ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
+                  : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE;
+            await txnClient.createCategory(catReq,
+                options: CallOptions(timeout: const Duration(seconds: 10)));
+          } catch (e) {
+            failedParentIds.add(cat.id);
+            debugPrint('Import: ensure parent category ${cat.name} (${cat.id}) failed: $e');
+            // Retry once
+            try {
+              await Future.delayed(const Duration(milliseconds: 500));
+              final catReq = pb_txn.CreateCategoryRequest()
+                ..name = cat.name
+                ..iconKey = cat.iconKey.isNotEmpty ? cat.iconKey : 'category'
+                ..type = cat.type == 'income'
+                    ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
+                    : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE;
+              await txnClient.createCategory(catReq,
+                  options: CallOptions(timeout: const Duration(seconds: 10)));
+              failedParentIds.remove(cat.id);
+              debugPrint('Import: retry parent category ${cat.name} succeeded');
+            } catch (_) {
+              debugPrint('Import: retry parent category ${cat.name} also failed');
+            }
+          }
+        }
+
+        // Round 2: sync child categories (skip if parent failed)
+        for (final cat in childCats) {
+          if (syncedCatIds.contains(cat.id)) continue;
+          syncedCatIds.add(cat.id);
+
+          // Skip if parent sync failed
+          if (cat.parentId != null && failedParentIds.contains(cat.parentId!)) {
+            debugPrint('Import: skip child ${cat.name} — parent ${cat.parentId} failed');
+            continue;
+          }
 
           try {
             final catReq = pb_txn.CreateCategoryRequest()
@@ -1787,7 +1830,25 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             await txnClient.createCategory(catReq,
                 options: CallOptions(timeout: const Duration(seconds: 10)));
           } catch (e) {
-            debugPrint('Import: ensure category ${cat.name} (${cat.id}) failed: $e');
+            debugPrint('Import: ensure child category ${cat.name} (${cat.id}) failed: $e');
+            // Retry once
+            try {
+              await Future.delayed(const Duration(milliseconds: 500));
+              final catReq = pb_txn.CreateCategoryRequest()
+                ..name = cat.name
+                ..iconKey = cat.iconKey.isNotEmpty ? cat.iconKey : 'category'
+                ..type = cat.type == 'income'
+                    ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
+                    : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE;
+              if (cat.parentId != null && cat.parentId!.isNotEmpty) {
+                catReq.parentId = cat.parentId!;
+              }
+              await txnClient.createCategory(catReq,
+                  options: CallOptions(timeout: const Duration(seconds: 10)));
+              debugPrint('Import: retry child category ${cat.name} succeeded');
+            } catch (_) {
+              debugPrint('Import: retry child category ${cat.name} also failed');
+            }
           }
         }
       }
