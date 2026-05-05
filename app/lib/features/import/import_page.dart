@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
+import '../../core/utils/category_uuid.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/app_providers.dart';
@@ -1198,7 +1199,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       return dbExisting;
     }
 
-    final id = const Uuid().v4();
+    // Use deterministic UUIDv5 so client & server generate identical IDs
+    final id = CategoryUUID.generate(type, name);
     await database.upsertCategory(
       id: id,
       name: name,
@@ -1254,7 +1256,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       return dbExisting;
     }
 
-    final id = const Uuid().v4();
+    // Use deterministic UUIDv5 with parent context to avoid collisions
+    final id = CategoryUUID.generate(type, '$parentId:$name');
     await database.upsertCategory(
       id: id,
       name: name,
@@ -1731,6 +1734,40 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       }
 
       setState(() => _importTotal = toImport.length);
+
+      // Ensure all categories exist on server before creating transactions
+      if (_importToFamily) {
+        final syncedCatIds = <String>{};
+        final txnClient = ref.read(transactionClientProvider);
+        for (final t in toImport) {
+          final catId = t.matchedCategoryId ?? _defaultCategory?.id ?? '';
+          if (catId.isEmpty || syncedCatIds.contains(catId)) continue;
+          syncedCatIds.add(catId);
+
+          // Find category info from local cache
+          final cat = _allCategories.where((c) => c.id == catId).firstOrNull;
+          if (cat == null) continue;
+
+          // Skip preset categories (already on server)
+          if (cat.isPreset) continue;
+
+          try {
+            final catReq = pb_txn.CreateCategoryRequest()
+              ..name = cat.name
+              ..iconKey = cat.iconKey.isNotEmpty ? cat.iconKey : 'category'
+              ..type = cat.type == 'income'
+                  ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
+                  : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE;
+            if (cat.parentId != null && cat.parentId!.isNotEmpty) {
+              catReq.parentId = cat.parentId!;
+            }
+            await txnClient.createCategory(catReq,
+                options: CallOptions(timeout: const Duration(seconds: 5)));
+          } catch (_) {
+            // Server returns existing category or creates new — either is fine
+          }
+        }
+      }
 
       int imported = 0;
       final errors = <String>[];

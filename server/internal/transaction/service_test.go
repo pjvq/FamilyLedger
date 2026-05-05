@@ -58,6 +58,10 @@ func TestCreateTransaction_Success(t *testing.T) {
 		WithArgs(accountID).
 		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "type"}).AddRow(userUUID, nil, "cash"))
 
+	// Verify category exists
+	mock.ExpectQuery(`SELECT EXISTS`).WithArgs(categoryID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+
 	// Insert transaction
 	mock.ExpectQuery(`INSERT INTO transactions`).
 		WithArgs(

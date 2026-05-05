@@ -209,6 +209,8 @@ func TestBoost2_CreateTransaction_IncomeType(t *testing.T) {
 		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "type"}).
 			AddRow(userUID, nil, "savings"))
 	// Insert transaction
+	mock.ExpectQuery("SELECT EXISTS").WithArgs(catID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
 	mock.ExpectQuery("INSERT INTO transactions").
 		WithArgs(userUID, accID, catID, int64(5000), "CNY", int64(5000), float64(1), "income",
 			"salary", pgxmock.AnyArg(), []string{}, []string{}).
@@ -786,6 +788,8 @@ func TestBoost2_CreateTransaction_SyncOpFailure(t *testing.T) {
 		WithArgs(accID).
 		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "type"}).
 			AddRow(userUID, nil, "savings"))
+	mock.ExpectQuery("SELECT EXISTS").WithArgs(catID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
 	mock.ExpectQuery("INSERT INTO transactions").
 		WithArgs(userUID, accID, catID, int64(500), "CNY", int64(500), float64(1), "expense",
 			"", pgxmock.AnyArg(), []string{}, []string{}).
@@ -844,6 +848,8 @@ func TestBoost2_CreateTransaction_FamilyAccountWithAudit(t *testing.T) {
 		WithArgs(accID).
 		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "type"}).
 			AddRow(userUID, &famID, "savings"))
+	mock.ExpectQuery("SELECT EXISTS").WithArgs(catID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
 	mock.ExpectQuery("INSERT INTO transactions").
 		WithArgs(userUID, accID, catID, int64(200), "CNY", int64(200), float64(1), "expense",
 			"", pgxmock.AnyArg(), []string{}, []string{}).
@@ -895,6 +901,8 @@ func TestBoost2_CreateTransaction_InsufficientBalance(t *testing.T) {
 		WithArgs(accID).
 		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "type"}).
 			AddRow(userUID, nil, "savings"))
+	mock.ExpectQuery("SELECT EXISTS").WithArgs(catID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
 	mock.ExpectQuery("INSERT INTO transactions").
 		WithArgs(userUID, accID, catID, int64(5000), "CNY", int64(5000), float64(1), "expense",
 			"", pgxmock.AnyArg(), []string{}, []string{}).

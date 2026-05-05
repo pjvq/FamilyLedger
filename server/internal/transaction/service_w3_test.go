@@ -43,6 +43,10 @@ func mockCreateTxnFlow(mock pgxmock.PgxPoolIface, accountID, categoryID, txnID u
 		WithArgs(accountID).
 		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "type"}).AddRow(userUUID, nil, "cash"))
 
+	// 3.5 Verify category exists
+	mock.ExpectQuery(`SELECT EXISTS`).WithArgs(categoryID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+
 	// 4. INSERT transaction (12 args)
 	mock.ExpectQuery(`INSERT INTO transactions`).
 		WithArgs(
@@ -436,6 +440,10 @@ func TestW3_CreateTransaction_UsesForUpdateLock(t *testing.T) {
 	mock.ExpectQuery(`SELECT user_id, family_id, type FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 		WithArgs(accountID).
 		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "type"}).AddRow(userUUID, nil, "cash"))
+
+	// Verify category exists
+	mock.ExpectQuery(`SELECT EXISTS`).WithArgs(categoryID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
 
 	mock.ExpectQuery(`INSERT INTO transactions`).
 		WithArgs(

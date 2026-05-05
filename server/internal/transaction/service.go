@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/familyledger/server/pkg/audit"
+	catpkg "github.com/familyledger/server/pkg/category"
 	"github.com/familyledger/server/pkg/db"
 	"github.com/familyledger/server/pkg/permission"
 	"github.com/familyledger/server/pkg/storage"
@@ -241,6 +242,15 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		if err != nil || !isMember {
 			return nil, status.Error(codes.PermissionDenied, "account does not belong to user")
 		}
+	}
+
+	// Verify category exists
+	var catExists bool
+	err = tx.QueryRow(ctx,
+		"SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1 AND deleted_at IS NULL)", categoryID,
+	).Scan(&catExists)
+	if err != nil || !catExists {
+		return nil, status.Errorf(codes.InvalidArgument, "category %s not found", categoryID)
 	}
 
 	// Create transaction
@@ -1376,7 +1386,35 @@ func (s *Service) CreateCategory(ctx context.Context, req *pb.CreateCategoryRequ
 		_ = s.pool.QueryRow(ctx, "SELECT COALESCE(MAX(sort_order), 0) FROM categories WHERE parent_id IS NULL AND type = $1::category_type AND deleted_at IS NULL", catType).Scan(&maxSort)
 	}
 
-	newID := uuid.New()
+	// Use deterministic UUIDv5 for consistent IDs across client & server
+	var uuidInput string
+	if parentID != nil {
+		uuidInput = parentID.String() + ":" + req.Name
+	} else {
+		uuidInput = req.Name
+	}
+	newID := catpkg.UUID(catType, uuidInput)
+
+	// Upsert: if category already exists (same deterministic ID), return it
+	var existingName string
+	err = s.pool.QueryRow(ctx,
+		`SELECT name FROM categories WHERE id = $1 AND deleted_at IS NULL`, newID,
+	).Scan(&existingName)
+	if err == nil {
+		// Already exists — return existing category
+		cat := &pb.Category{
+			Id:       newID.String(),
+			Name:     existingName,
+			IconKey:  req.IconKey,
+			Type:     req.Type,
+			IsPreset: false,
+		}
+		if parentID != nil {
+			cat.ParentId = parentID.String()
+		}
+		return &pb.CreateCategoryResponse{Category: cat}, nil
+	}
+
 	_, err = s.pool.Exec(ctx,
 		`INSERT INTO categories (id, name, icon, icon_key, type, is_preset, sort_order, parent_id, user_id)
 		 VALUES ($1, $2, '', $3, $4::category_type, false, $5, $6, $7)`,

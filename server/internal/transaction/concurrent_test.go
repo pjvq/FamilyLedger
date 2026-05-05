@@ -63,6 +63,9 @@ func TestConcurrent_CreateTransaction_NoRace(t *testing.T) {
 			mock.ExpectQuery(`SELECT user_id, family_id, type FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 				WithArgs(accountID).
 				WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "type"}).AddRow(userUUID, nil, "cash"))
+			mock.ExpectQuery(`SELECT EXISTS`).WithArgs(categoryID).
+				WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+
 
 			mock.ExpectQuery(`INSERT INTO transactions`).
 				WithArgs(
@@ -227,6 +230,9 @@ func TestConcurrent_CreateAndList_NoRace(t *testing.T) {
 			mock.ExpectQuery(`SELECT user_id, family_id, type FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
 				WithArgs(accountID).
 				WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "type"}).AddRow(userUUID, nil, "cash"))
+			mock.ExpectQuery(`SELECT EXISTS`).WithArgs(categoryID).
+				WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+
 
 			mock.ExpectQuery(`INSERT INTO transactions`).
 				WithArgs(

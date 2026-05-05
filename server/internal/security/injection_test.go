@@ -74,6 +74,8 @@ func TestCreateTransaction_SQLInjection_Note(t *testing.T) {
 
 				// Key assertion: the INSERT should receive the malicious string as a
 				// parameterized argument ($9 = note), NOT spliced into the SQL.
+				mock.ExpectQuery("SELECT EXISTS").WithArgs(categoryID).
+					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
 				mock.ExpectQuery("INSERT INTO transactions").
 					WithArgs(
 						userUUID, accountID, categoryID,
