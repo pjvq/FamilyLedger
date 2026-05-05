@@ -97,9 +97,11 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
   // Step 3: import result
   bool _isImporting = false;
+  String _importPhase = ''; // 当前导入阶段描述
   bool _importDone = false;
   int _importedCount = 0;
   int _duplicateCount = 0;
+  int _syncedToServerCount = 0;
   int _importTotal = 0;
   int _importProgress = 0;
   List<String> _importErrors = [];
@@ -519,6 +521,15 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                 letterSpacing: 1,
               ),
             ),
+            if (_importPhase.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                _importPhase,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+              ),
+            ],
           ],
         ),
       );
@@ -538,6 +549,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         const SizedBox(height: 8),
         _resultRow('成功导入', '$_importedCount 条', Colors.green),
         _resultRow('重复跳过', '$_duplicateCount 条', Colors.orange),
+        if (_syncedToServerCount > 0)
+          _resultRow('已同步服务器', '$_syncedToServerCount 条', Colors.blue),
         if (_importErrors.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text('错误:', style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
@@ -1738,6 +1751,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       // Ensure all categories exist on server before creating transactions
       final failedCatIds = <String>{}; // Track failed category IDs globally
       if (_importToFamily) {
+        setState(() {
+          _importPhase = '同步分类到服务器...';
+          _importProgress = 0;
+        });
         final syncedCatIds = <String>{};
         final txnClient = ref.read(transactionClientProvider);
 
@@ -1769,6 +1786,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             parentCats.add(cat);
           }
         }
+
+        final totalCats = parentCats.length + childCats.length;
+        int catSynced = 0;
+        setState(() => _importTotal = totalCats);
 
         // Helper: sync a single category with up to 3 retries + exponential backoff
         Future<bool> syncCategory(db.Category cat, {String? parentId}) async {
@@ -1807,6 +1828,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             failedParentIds.add(cat.id);
             failedCatIds.add(cat.id);
           }
+          catSynced++;
+          setState(() => _importProgress = catSynced);
         }
 
         // Round 2: sync child categories (skip if parent failed)
@@ -1818,6 +1841,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           if (cat.parentId != null && failedParentIds.contains(cat.parentId!)) {
             debugPrint('Import: skip child ${cat.name} — parent ${cat.parentId} failed');
             failedCatIds.add(cat.id);
+            catSynced++;
+            setState(() => _importProgress = catSynced);
             continue;
           }
 
@@ -1825,6 +1850,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           if (!ok) {
             failedCatIds.add(cat.id);
           }
+          catSynced++;
+          setState(() => _importProgress = catSynced);
         }
 
         if (failedCatIds.isNotEmpty) {
@@ -1835,8 +1862,16 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       int imported = 0;
       int syncFailed = 0;
       final errors = <String>[];
+      if (failedCatIds.isNotEmpty) {
+        errors.add('⚠️ ${failedCatIds.length} 个分类同步失败，已用默认分类替代');
+      }
 
       // Phase 1: Write all transactions to local DB
+      setState(() {
+        _importPhase = '写入本地数据库...';
+        _importProgress = 0;
+        _importTotal = toImport.length;
+      });
       final localIds = <String>[];
       final batchReqs = <pb_txn.CreateTransactionRequest>[];
 
@@ -1897,8 +1932,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
       // Phase 2: Batch push to server (50 per batch)
       if (_importToFamily && batchReqs.isNotEmpty) {
+        setState(() {
+          _importPhase = '同步到服务器...';
+          _importProgress = 0;
+          _importTotal = batchReqs.length;
+        });
         final txnClient = ref.read(transactionClientProvider);
         const batchSize = 50;
+        int syncedCount = 0;
         for (int i = 0; i < batchReqs.length; i += batchSize) {
           final end = (i + batchSize).clamp(0, batchReqs.length);
           final chunk = batchReqs.sublist(i, end);
@@ -1933,14 +1974,17 @@ class _ImportPageState extends ConsumerState<ImportPage> {
               }
             }
             debugPrint('Import: batch ${i ~/ batchSize + 1} pushed ${batchResp.createdCount} txns');
+            syncedCount += chunk.length;
             if (batchResp.errors.isNotEmpty) {
               syncFailed += batchResp.errors.length;
+              syncedCount -= batchResp.errors.length;
               debugPrint('Import: batch errors: ${batchResp.errors}');
             }
           } catch (e) {
             syncFailed += chunk.length;
             debugPrint('Import: batch ${i ~/ batchSize + 1} failed: $e');
           }
+          setState(() => _importProgress = syncedCount + syncFailed);
         }
       }
 
@@ -1952,6 +1996,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         _isImporting = false;
         _importDone = true;
         _importedCount = imported;
+        _syncedToServerCount = _importToFamily ? (imported - syncFailed) : 0;
         _duplicateCount = _duplicates.length - _dupSelection.values.where((v) => v).length;
         _importErrors = [
           ...errors,
