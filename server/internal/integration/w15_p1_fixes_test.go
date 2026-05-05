@@ -54,6 +54,9 @@ func TestW15_P1_1_RefreshToken_Rotation(t *testing.T) {
 
 	originalRefreshToken := regResp.RefreshToken
 
+	// Small delay to ensure new token has different timestamp
+	time.Sleep(1100 * time.Millisecond)
+
 	// First refresh — should succeed
 	refreshResp, err := svc.RefreshToken(ctx, &pbAuth.RefreshTokenRequest{
 		RefreshToken: originalRefreshToken,

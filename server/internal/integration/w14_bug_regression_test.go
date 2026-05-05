@@ -54,14 +54,14 @@ func TestBUG001_Dashboard_FamilyId_Filter(t *testing.T) {
 
 	// Family transaction: ¥100
 	_, err := db.pool.Exec(ctx,
-		`INSERT INTO transactions (id, user_id, account_id, category_id, amount, amount_cny, type, note, date, family_id, created_at, updated_at)
+		`INSERT INTO transactions (id, user_id, account_id, category_id, amount, amount_cny, type, note, txn_date, family_id, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, 10000, 10000, 'expense', 'family expense', NOW(), $5, NOW(), NOW())`,
 		uuid.New(), owner, familyAcct, catID, familyID)
 	require.NoError(t, err)
 
 	// Outsider transaction: ¥200 — must NOT appear in family dashboard
 	_, err = db.pool.Exec(ctx,
-		`INSERT INTO transactions (id, user_id, account_id, category_id, amount, amount_cny, type, note, date, created_at, updated_at)
+		`INSERT INTO transactions (id, user_id, account_id, category_id, amount, amount_cny, type, note, txn_date, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, 20000, 20000, 'expense', 'outsider expense', NOW(), NOW(), NOW())`,
 		uuid.New(), outsider, outsiderAcct, catID)
 	require.NoError(t, err)
@@ -208,7 +208,7 @@ func TestBUG004_Transaction_Edit_Permission(t *testing.T) {
 	// Create a transaction owned by 'owner'
 	txnID := uuid.New()
 	_, err := db.pool.Exec(ctx,
-		`INSERT INTO transactions (id, user_id, account_id, category_id, amount, amount_cny, type, note, date, family_id, created_at, updated_at)
+		`INSERT INTO transactions (id, user_id, account_id, category_id, amount, amount_cny, type, note, txn_date, family_id, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, 5000, 5000, 'expense', 'original', NOW(), $5, NOW(), NOW())`,
 		txnID, owner, ownerAcct, catID, familyID)
 	require.NoError(t, err)
@@ -305,8 +305,8 @@ func TestBUG005_Sync_Timestamp_Monotonic(t *testing.T) {
 
 	// Query server-side timestamps from DB to verify monotonicity
 	rows, err := db.pool.Query(ctx,
-		`SELECT server_updated_at FROM sync_operations
-		 WHERE user_id = $1 ORDER BY server_updated_at ASC`, user)
+		`SELECT timestamp FROM sync_operations
+		 WHERE user_id = $1 ORDER BY timestamp ASC`, user)
 	require.NoError(t, err)
 	defer rows.Close()
 
@@ -363,14 +363,14 @@ func TestBUG007_Export_FamilyMode_IncludesAllMembers(t *testing.T) {
 
 	// Owner creates a transaction
 	_, err := db.pool.Exec(ctx,
-		`INSERT INTO transactions (id, user_id, account_id, category_id, amount, amount_cny, type, note, date, family_id, created_at, updated_at)
+		`INSERT INTO transactions (id, user_id, account_id, category_id, amount, amount_cny, type, note, txn_date, family_id, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, 10000, 10000, 'expense', 'owner tx', NOW(), $5, NOW(), NOW())`,
 		uuid.New(), owner, ownerAcct, catID, familyID)
 	require.NoError(t, err)
 
 	// Member creates a transaction
 	_, err = db.pool.Exec(ctx,
-		`INSERT INTO transactions (id, user_id, account_id, category_id, amount, amount_cny, type, note, date, family_id, created_at, updated_at)
+		`INSERT INTO transactions (id, user_id, account_id, category_id, amount, amount_cny, type, note, txn_date, family_id, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, 20000, 20000, 'income', 'member tx', NOW(), $5, NOW(), NOW())`,
 		uuid.New(), member, memberAcct, catID, familyID)
 	require.NoError(t, err)
