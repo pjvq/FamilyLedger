@@ -318,8 +318,8 @@ func TestW14_Migration_DataIntegrity(t *testing.T) {
 	// Insert a transaction
 	txnID := uuid.New()
 	_, err = pool.Exec(ctx,
-		`INSERT INTO transactions (id, user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, tags, image_urls, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, 50000, 'CNY', 50000, 1.0, 'expense', 'seed data test', NOW(), '{}', '{}', NOW(), NOW())`,
+		`INSERT INTO transactions (id, user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, 50000, 'CNY', 50000, 1.0, 'expense', 'seed data test', NOW(), NOW(), NOW())`,
 		txnID, userID, accountID, catID,
 	)
 	require.NoError(t, err)
