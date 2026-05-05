@@ -91,3 +91,19 @@ func TestDefaultRateLimiterConfig(t *testing.T) {
 	assert.Greater(t, cfg.GlobalBurst, 0)
 	assert.Greater(t, cfg.AuthRPS, 0)
 }
+
+func TestDefaultRateLimiterConfig_EnvOverride(t *testing.T) {
+	t.Setenv("AUTH_RATE_RPS", "20")
+	t.Setenv("AUTH_RATE_BURST", "50")
+	cfg := DefaultRateLimiterConfig()
+	assert.Equal(t, 20, cfg.AuthRPS)
+	assert.Equal(t, 50, cfg.AuthBurst)
+}
+
+func TestDefaultRateLimiterConfig_InvalidEnv(t *testing.T) {
+	t.Setenv("AUTH_RATE_RPS", "not-a-number")
+	t.Setenv("AUTH_RATE_BURST", "-1")
+	cfg := DefaultRateLimiterConfig()
+	assert.Equal(t, 5, cfg.AuthRPS)   // default
+	assert.Equal(t, 10, cfg.AuthBurst) // default
+}
