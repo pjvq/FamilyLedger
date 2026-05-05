@@ -710,6 +710,46 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 	return &pb.DeleteTransactionResponse{}, nil
 }
 
+// ── BatchCreateTransactions ─────────────────────────────────────────────────
+
+func (s *Service) BatchCreateTransactions(ctx context.Context, req *pb.BatchCreateTransactionsRequest) (*pb.BatchCreateTransactionsResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(req.Transactions) == 0 {
+		return &pb.BatchCreateTransactionsResponse{}, nil
+	}
+	if len(req.Transactions) > 100 {
+		return nil, status.Error(codes.InvalidArgument, "maximum 100 transactions per batch")
+	}
+
+	var created []*pb.Transaction
+	var errors []string
+
+	for i, txnReq := range req.Transactions {
+		// Use shared account_id if individual one is empty
+		if txnReq.AccountId == "" && req.AccountId != "" {
+			txnReq.AccountId = req.AccountId
+		}
+		resp, err := s.CreateTransaction(ctx, txnReq)
+		if err != nil {
+			errorMsg := fmt.Sprintf("[%d] %v", i, err)
+			errors = append(errors, errorMsg)
+			log.Printf("batch-create: item %d failed for user %s: %v", i, userID, err)
+			continue
+		}
+		created = append(created, resp.Transaction)
+	}
+
+	return &pb.BatchCreateTransactionsResponse{
+		CreatedCount:  int32(len(created)),
+		Transactions:  created,
+		Errors:        errors,
+	}, nil
+}
+
 // ── BatchDeleteTransactions ─────────────────────────────────────────────────
 
 func (s *Service) BatchDeleteTransactions(ctx context.Context, req *pb.BatchDeleteTransactionsRequest) (*pb.BatchDeleteTransactionsResponse, error) {

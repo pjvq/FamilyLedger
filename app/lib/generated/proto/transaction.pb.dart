@@ -1157,6 +1157,130 @@ class DeleteTransactionResponse extends $pb.GeneratedMessage {
   static DeleteTransactionResponse? _defaultInstance;
 }
 
+class BatchCreateTransactionsRequest extends $pb.GeneratedMessage {
+  factory BatchCreateTransactionsRequest({
+    $core.Iterable<CreateTransactionRequest>? transactions,
+    $core.String? accountId,
+  }) {
+    final $result = create();
+    if (transactions != null) {
+      $result.transactions.addAll(transactions);
+    }
+    if (accountId != null) {
+      $result.accountId = accountId;
+    }
+    return $result;
+  }
+  BatchCreateTransactionsRequest._() : super();
+  factory BatchCreateTransactionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BatchCreateTransactionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BatchCreateTransactionsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..pc<CreateTransactionRequest>(1, _omitFieldNames ? '' : 'transactions', $pb.PbFieldType.PM, subBuilder: CreateTransactionRequest.create)
+    ..aOS(2, _omitFieldNames ? '' : 'accountId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BatchCreateTransactionsRequest clone() => BatchCreateTransactionsRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BatchCreateTransactionsRequest copyWith(void Function(BatchCreateTransactionsRequest) updates) => super.copyWith((message) => updates(message as BatchCreateTransactionsRequest)) as BatchCreateTransactionsRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BatchCreateTransactionsRequest create() => BatchCreateTransactionsRequest._();
+  BatchCreateTransactionsRequest createEmptyInstance() => create();
+  static $pb.PbList<BatchCreateTransactionsRequest> createRepeated() => $pb.PbList<BatchCreateTransactionsRequest>();
+  @$core.pragma('dart2js:noInline')
+  static BatchCreateTransactionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BatchCreateTransactionsRequest>(create);
+  static BatchCreateTransactionsRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.List<CreateTransactionRequest> get transactions => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.String get accountId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set accountId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAccountId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAccountId() => clearField(2);
+}
+
+class BatchCreateTransactionsResponse extends $pb.GeneratedMessage {
+  factory BatchCreateTransactionsResponse({
+    $core.int? createdCount,
+    $core.Iterable<Transaction>? transactions,
+    $core.Iterable<$core.String>? errors,
+  }) {
+    final $result = create();
+    if (createdCount != null) {
+      $result.createdCount = createdCount;
+    }
+    if (transactions != null) {
+      $result.transactions.addAll(transactions);
+    }
+    if (errors != null) {
+      $result.errors.addAll(errors);
+    }
+    return $result;
+  }
+  BatchCreateTransactionsResponse._() : super();
+  factory BatchCreateTransactionsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory BatchCreateTransactionsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'BatchCreateTransactionsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.transaction.v1'), createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'createdCount', $pb.PbFieldType.O3)
+    ..pc<Transaction>(2, _omitFieldNames ? '' : 'transactions', $pb.PbFieldType.PM, subBuilder: Transaction.create)
+    ..pPS(3, _omitFieldNames ? '' : 'errors')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  BatchCreateTransactionsResponse clone() => BatchCreateTransactionsResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  BatchCreateTransactionsResponse copyWith(void Function(BatchCreateTransactionsResponse) updates) => super.copyWith((message) => updates(message as BatchCreateTransactionsResponse)) as BatchCreateTransactionsResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BatchCreateTransactionsResponse create() => BatchCreateTransactionsResponse._();
+  BatchCreateTransactionsResponse createEmptyInstance() => create();
+  static $pb.PbList<BatchCreateTransactionsResponse> createRepeated() => $pb.PbList<BatchCreateTransactionsResponse>();
+  @$core.pragma('dart2js:noInline')
+  static BatchCreateTransactionsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<BatchCreateTransactionsResponse>(create);
+  static BatchCreateTransactionsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get createdCount => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set createdCount($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasCreatedCount() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCreatedCount() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.List<Transaction> get transactions => $_getList(1);
+
+  @$pb.TagNumber(3)
+  $core.List<$core.String> get errors => $_getList(2);
+}
+
 class BatchDeleteTransactionsRequest extends $pb.GeneratedMessage {
   factory BatchDeleteTransactionsRequest({
     $core.Iterable<$core.String>? transactionIds,

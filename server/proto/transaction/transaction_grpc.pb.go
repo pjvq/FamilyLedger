@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	TransactionService_CreateTransaction_FullMethodName       = "/familyledger.transaction.v1.TransactionService/CreateTransaction"
+	TransactionService_BatchCreateTransactions_FullMethodName = "/familyledger.transaction.v1.TransactionService/BatchCreateTransactions"
 	TransactionService_UpdateTransaction_FullMethodName       = "/familyledger.transaction.v1.TransactionService/UpdateTransaction"
 	TransactionService_DeleteTransaction_FullMethodName       = "/familyledger.transaction.v1.TransactionService/DeleteTransaction"
 	TransactionService_BatchDeleteTransactions_FullMethodName = "/familyledger.transaction.v1.TransactionService/BatchDeleteTransactions"
@@ -37,6 +38,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TransactionServiceClient interface {
 	CreateTransaction(ctx context.Context, in *CreateTransactionRequest, opts ...grpc.CallOption) (*CreateTransactionResponse, error)
+	BatchCreateTransactions(ctx context.Context, in *BatchCreateTransactionsRequest, opts ...grpc.CallOption) (*BatchCreateTransactionsResponse, error)
 	UpdateTransaction(ctx context.Context, in *UpdateTransactionRequest, opts ...grpc.CallOption) (*UpdateTransactionResponse, error)
 	DeleteTransaction(ctx context.Context, in *DeleteTransactionRequest, opts ...grpc.CallOption) (*DeleteTransactionResponse, error)
 	BatchDeleteTransactions(ctx context.Context, in *BatchDeleteTransactionsRequest, opts ...grpc.CallOption) (*BatchDeleteTransactionsResponse, error)
@@ -62,6 +64,16 @@ func (c *transactionServiceClient) CreateTransaction(ctx context.Context, in *Cr
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateTransactionResponse)
 	err := c.cc.Invoke(ctx, TransactionService_CreateTransaction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *transactionServiceClient) BatchCreateTransactions(ctx context.Context, in *BatchCreateTransactionsRequest, opts ...grpc.CallOption) (*BatchCreateTransactionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchCreateTransactionsResponse)
+	err := c.cc.Invoke(ctx, TransactionService_BatchCreateTransactions_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -173,6 +185,7 @@ func (c *transactionServiceClient) ReorderCategories(ctx context.Context, in *Re
 // for forward compatibility.
 type TransactionServiceServer interface {
 	CreateTransaction(context.Context, *CreateTransactionRequest) (*CreateTransactionResponse, error)
+	BatchCreateTransactions(context.Context, *BatchCreateTransactionsRequest) (*BatchCreateTransactionsResponse, error)
 	UpdateTransaction(context.Context, *UpdateTransactionRequest) (*UpdateTransactionResponse, error)
 	DeleteTransaction(context.Context, *DeleteTransactionRequest) (*DeleteTransactionResponse, error)
 	BatchDeleteTransactions(context.Context, *BatchDeleteTransactionsRequest) (*BatchDeleteTransactionsResponse, error)
@@ -196,6 +209,9 @@ type UnimplementedTransactionServiceServer struct{}
 
 func (UnimplementedTransactionServiceServer) CreateTransaction(context.Context, *CreateTransactionRequest) (*CreateTransactionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateTransaction not implemented")
+}
+func (UnimplementedTransactionServiceServer) BatchCreateTransactions(context.Context, *BatchCreateTransactionsRequest) (*BatchCreateTransactionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BatchCreateTransactions not implemented")
 }
 func (UnimplementedTransactionServiceServer) UpdateTransaction(context.Context, *UpdateTransactionRequest) (*UpdateTransactionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateTransaction not implemented")
@@ -262,6 +278,24 @@ func _TransactionService_CreateTransaction_Handler(srv interface{}, ctx context.
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(TransactionServiceServer).CreateTransaction(ctx, req.(*CreateTransactionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TransactionService_BatchCreateTransactions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchCreateTransactionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TransactionServiceServer).BatchCreateTransactions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TransactionService_BatchCreateTransactions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TransactionServiceServer).BatchCreateTransactions(ctx, req.(*BatchCreateTransactionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -456,6 +490,10 @@ var TransactionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateTransaction",
 			Handler:    _TransactionService_CreateTransaction_Handler,
+		},
+		{
+			MethodName: "BatchCreateTransactions",
+			Handler:    _TransactionService_BatchCreateTransactions_Handler,
 		},
 		{
 			MethodName: "UpdateTransaction",

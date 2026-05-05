@@ -887,6 +887,118 @@ func (*DeleteTransactionResponse) Descriptor() ([]byte, []int) {
 	return file_transaction_proto_rawDescGZIP(), []int{9}
 }
 
+type BatchCreateTransactionsRequest struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Transactions  []*CreateTransactionRequest `protobuf:"bytes,1,rep,name=transactions,proto3" json:"transactions,omitempty"`            // 最多 100 条
+	AccountId     string                      `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"` // 共用 account_id
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchCreateTransactionsRequest) Reset() {
+	*x = BatchCreateTransactionsRequest{}
+	mi := &file_transaction_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchCreateTransactionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchCreateTransactionsRequest) ProtoMessage() {}
+
+func (x *BatchCreateTransactionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_transaction_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchCreateTransactionsRequest.ProtoReflect.Descriptor instead.
+func (*BatchCreateTransactionsRequest) Descriptor() ([]byte, []int) {
+	return file_transaction_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *BatchCreateTransactionsRequest) GetTransactions() []*CreateTransactionRequest {
+	if x != nil {
+		return x.Transactions
+	}
+	return nil
+}
+
+func (x *BatchCreateTransactionsRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+type BatchCreateTransactionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CreatedCount  int32                  `protobuf:"varint,1,opt,name=created_count,json=createdCount,proto3" json:"created_count,omitempty"`
+	Transactions  []*Transaction         `protobuf:"bytes,2,rep,name=transactions,proto3" json:"transactions,omitempty"`
+	Errors        []string               `protobuf:"bytes,3,rep,name=errors,proto3" json:"errors,omitempty"` // 失败的错误信息
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchCreateTransactionsResponse) Reset() {
+	*x = BatchCreateTransactionsResponse{}
+	mi := &file_transaction_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchCreateTransactionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchCreateTransactionsResponse) ProtoMessage() {}
+
+func (x *BatchCreateTransactionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_transaction_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchCreateTransactionsResponse.ProtoReflect.Descriptor instead.
+func (*BatchCreateTransactionsResponse) Descriptor() ([]byte, []int) {
+	return file_transaction_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *BatchCreateTransactionsResponse) GetCreatedCount() int32 {
+	if x != nil {
+		return x.CreatedCount
+	}
+	return 0
+}
+
+func (x *BatchCreateTransactionsResponse) GetTransactions() []*Transaction {
+	if x != nil {
+		return x.Transactions
+	}
+	return nil
+}
+
+func (x *BatchCreateTransactionsResponse) GetErrors() []string {
+	if x != nil {
+		return x.Errors
+	}
+	return nil
+}
+
 type BatchDeleteTransactionsRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	TransactionIds []string               `protobuf:"bytes,1,rep,name=transaction_ids,json=transactionIds,proto3" json:"transaction_ids,omitempty"` // 最多 100 条
@@ -896,7 +1008,7 @@ type BatchDeleteTransactionsRequest struct {
 
 func (x *BatchDeleteTransactionsRequest) Reset() {
 	*x = BatchDeleteTransactionsRequest{}
-	mi := &file_transaction_proto_msgTypes[10]
+	mi := &file_transaction_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -908,7 +1020,7 @@ func (x *BatchDeleteTransactionsRequest) String() string {
 func (*BatchDeleteTransactionsRequest) ProtoMessage() {}
 
 func (x *BatchDeleteTransactionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[10]
+	mi := &file_transaction_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -921,7 +1033,7 @@ func (x *BatchDeleteTransactionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchDeleteTransactionsRequest.ProtoReflect.Descriptor instead.
 func (*BatchDeleteTransactionsRequest) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{10}
+	return file_transaction_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *BatchDeleteTransactionsRequest) GetTransactionIds() []string {
@@ -940,7 +1052,7 @@ type BatchDeleteTransactionsResponse struct {
 
 func (x *BatchDeleteTransactionsResponse) Reset() {
 	*x = BatchDeleteTransactionsResponse{}
-	mi := &file_transaction_proto_msgTypes[11]
+	mi := &file_transaction_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -952,7 +1064,7 @@ func (x *BatchDeleteTransactionsResponse) String() string {
 func (*BatchDeleteTransactionsResponse) ProtoMessage() {}
 
 func (x *BatchDeleteTransactionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[11]
+	mi := &file_transaction_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -965,7 +1077,7 @@ func (x *BatchDeleteTransactionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchDeleteTransactionsResponse.ProtoReflect.Descriptor instead.
 func (*BatchDeleteTransactionsResponse) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{11}
+	return file_transaction_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *BatchDeleteTransactionsResponse) GetDeletedCount() int32 {
@@ -987,7 +1099,7 @@ type UploadTransactionImageRequest struct {
 
 func (x *UploadTransactionImageRequest) Reset() {
 	*x = UploadTransactionImageRequest{}
-	mi := &file_transaction_proto_msgTypes[12]
+	mi := &file_transaction_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -999,7 +1111,7 @@ func (x *UploadTransactionImageRequest) String() string {
 func (*UploadTransactionImageRequest) ProtoMessage() {}
 
 func (x *UploadTransactionImageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[12]
+	mi := &file_transaction_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1012,7 +1124,7 @@ func (x *UploadTransactionImageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadTransactionImageRequest.ProtoReflect.Descriptor instead.
 func (*UploadTransactionImageRequest) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{12}
+	return file_transaction_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UploadTransactionImageRequest) GetTransactionId() string {
@@ -1052,7 +1164,7 @@ type UploadTransactionImageResponse struct {
 
 func (x *UploadTransactionImageResponse) Reset() {
 	*x = UploadTransactionImageResponse{}
-	mi := &file_transaction_proto_msgTypes[13]
+	mi := &file_transaction_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1064,7 +1176,7 @@ func (x *UploadTransactionImageResponse) String() string {
 func (*UploadTransactionImageResponse) ProtoMessage() {}
 
 func (x *UploadTransactionImageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[13]
+	mi := &file_transaction_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1077,7 +1189,7 @@ func (x *UploadTransactionImageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadTransactionImageResponse.ProtoReflect.Descriptor instead.
 func (*UploadTransactionImageResponse) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{13}
+	return file_transaction_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *UploadTransactionImageResponse) GetImageUrl() string {
@@ -1096,7 +1208,7 @@ type GetCategoriesRequest struct {
 
 func (x *GetCategoriesRequest) Reset() {
 	*x = GetCategoriesRequest{}
-	mi := &file_transaction_proto_msgTypes[14]
+	mi := &file_transaction_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1108,7 +1220,7 @@ func (x *GetCategoriesRequest) String() string {
 func (*GetCategoriesRequest) ProtoMessage() {}
 
 func (x *GetCategoriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[14]
+	mi := &file_transaction_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1121,7 +1233,7 @@ func (x *GetCategoriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCategoriesRequest.ProtoReflect.Descriptor instead.
 func (*GetCategoriesRequest) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{14}
+	return file_transaction_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetCategoriesRequest) GetType() TransactionType {
@@ -1140,7 +1252,7 @@ type GetCategoriesResponse struct {
 
 func (x *GetCategoriesResponse) Reset() {
 	*x = GetCategoriesResponse{}
-	mi := &file_transaction_proto_msgTypes[15]
+	mi := &file_transaction_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1152,7 +1264,7 @@ func (x *GetCategoriesResponse) String() string {
 func (*GetCategoriesResponse) ProtoMessage() {}
 
 func (x *GetCategoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[15]
+	mi := &file_transaction_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1165,7 +1277,7 @@ func (x *GetCategoriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCategoriesResponse.ProtoReflect.Descriptor instead.
 func (*GetCategoriesResponse) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{15}
+	return file_transaction_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetCategoriesResponse) GetCategories() []*Category {
@@ -1187,7 +1299,7 @@ type CreateCategoryRequest struct {
 
 func (x *CreateCategoryRequest) Reset() {
 	*x = CreateCategoryRequest{}
-	mi := &file_transaction_proto_msgTypes[16]
+	mi := &file_transaction_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1199,7 +1311,7 @@ func (x *CreateCategoryRequest) String() string {
 func (*CreateCategoryRequest) ProtoMessage() {}
 
 func (x *CreateCategoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[16]
+	mi := &file_transaction_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1212,7 +1324,7 @@ func (x *CreateCategoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCategoryRequest.ProtoReflect.Descriptor instead.
 func (*CreateCategoryRequest) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{16}
+	return file_transaction_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CreateCategoryRequest) GetName() string {
@@ -1252,7 +1364,7 @@ type CreateCategoryResponse struct {
 
 func (x *CreateCategoryResponse) Reset() {
 	*x = CreateCategoryResponse{}
-	mi := &file_transaction_proto_msgTypes[17]
+	mi := &file_transaction_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1264,7 +1376,7 @@ func (x *CreateCategoryResponse) String() string {
 func (*CreateCategoryResponse) ProtoMessage() {}
 
 func (x *CreateCategoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[17]
+	mi := &file_transaction_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1277,7 +1389,7 @@ func (x *CreateCategoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCategoryResponse.ProtoReflect.Descriptor instead.
 func (*CreateCategoryResponse) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{17}
+	return file_transaction_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *CreateCategoryResponse) GetCategory() *Category {
@@ -1298,7 +1410,7 @@ type UpdateCategoryRequest struct {
 
 func (x *UpdateCategoryRequest) Reset() {
 	*x = UpdateCategoryRequest{}
-	mi := &file_transaction_proto_msgTypes[18]
+	mi := &file_transaction_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1310,7 +1422,7 @@ func (x *UpdateCategoryRequest) String() string {
 func (*UpdateCategoryRequest) ProtoMessage() {}
 
 func (x *UpdateCategoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[18]
+	mi := &file_transaction_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1323,7 +1435,7 @@ func (x *UpdateCategoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCategoryRequest.ProtoReflect.Descriptor instead.
 func (*UpdateCategoryRequest) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{18}
+	return file_transaction_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *UpdateCategoryRequest) GetCategoryId() string {
@@ -1356,7 +1468,7 @@ type UpdateCategoryResponse struct {
 
 func (x *UpdateCategoryResponse) Reset() {
 	*x = UpdateCategoryResponse{}
-	mi := &file_transaction_proto_msgTypes[19]
+	mi := &file_transaction_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1368,7 +1480,7 @@ func (x *UpdateCategoryResponse) String() string {
 func (*UpdateCategoryResponse) ProtoMessage() {}
 
 func (x *UpdateCategoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[19]
+	mi := &file_transaction_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1381,7 +1493,7 @@ func (x *UpdateCategoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCategoryResponse.ProtoReflect.Descriptor instead.
 func (*UpdateCategoryResponse) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{19}
+	return file_transaction_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *UpdateCategoryResponse) GetCategory() *Category {
@@ -1400,7 +1512,7 @@ type DeleteCategoryRequest struct {
 
 func (x *DeleteCategoryRequest) Reset() {
 	*x = DeleteCategoryRequest{}
-	mi := &file_transaction_proto_msgTypes[20]
+	mi := &file_transaction_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1412,7 +1524,7 @@ func (x *DeleteCategoryRequest) String() string {
 func (*DeleteCategoryRequest) ProtoMessage() {}
 
 func (x *DeleteCategoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[20]
+	mi := &file_transaction_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1425,7 +1537,7 @@ func (x *DeleteCategoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCategoryRequest.ProtoReflect.Descriptor instead.
 func (*DeleteCategoryRequest) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{20}
+	return file_transaction_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *DeleteCategoryRequest) GetCategoryId() string {
@@ -1443,7 +1555,7 @@ type DeleteCategoryResponse struct {
 
 func (x *DeleteCategoryResponse) Reset() {
 	*x = DeleteCategoryResponse{}
-	mi := &file_transaction_proto_msgTypes[21]
+	mi := &file_transaction_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1455,7 +1567,7 @@ func (x *DeleteCategoryResponse) String() string {
 func (*DeleteCategoryResponse) ProtoMessage() {}
 
 func (x *DeleteCategoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[21]
+	mi := &file_transaction_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1468,7 +1580,7 @@ func (x *DeleteCategoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCategoryResponse.ProtoReflect.Descriptor instead.
 func (*DeleteCategoryResponse) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{21}
+	return file_transaction_proto_rawDescGZIP(), []int{23}
 }
 
 type ReorderCategoriesRequest struct {
@@ -1480,7 +1592,7 @@ type ReorderCategoriesRequest struct {
 
 func (x *ReorderCategoriesRequest) Reset() {
 	*x = ReorderCategoriesRequest{}
-	mi := &file_transaction_proto_msgTypes[22]
+	mi := &file_transaction_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1492,7 +1604,7 @@ func (x *ReorderCategoriesRequest) String() string {
 func (*ReorderCategoriesRequest) ProtoMessage() {}
 
 func (x *ReorderCategoriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[22]
+	mi := &file_transaction_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1505,7 +1617,7 @@ func (x *ReorderCategoriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReorderCategoriesRequest.ProtoReflect.Descriptor instead.
 func (*ReorderCategoriesRequest) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{22}
+	return file_transaction_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ReorderCategoriesRequest) GetOrders() []*CategoryOrder {
@@ -1525,7 +1637,7 @@ type CategoryOrder struct {
 
 func (x *CategoryOrder) Reset() {
 	*x = CategoryOrder{}
-	mi := &file_transaction_proto_msgTypes[23]
+	mi := &file_transaction_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1537,7 +1649,7 @@ func (x *CategoryOrder) String() string {
 func (*CategoryOrder) ProtoMessage() {}
 
 func (x *CategoryOrder) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[23]
+	mi := &file_transaction_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1550,7 +1662,7 @@ func (x *CategoryOrder) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CategoryOrder.ProtoReflect.Descriptor instead.
 func (*CategoryOrder) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{23}
+	return file_transaction_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CategoryOrder) GetCategoryId() string {
@@ -1575,7 +1687,7 @@ type ReorderCategoriesResponse struct {
 
 func (x *ReorderCategoriesResponse) Reset() {
 	*x = ReorderCategoriesResponse{}
-	mi := &file_transaction_proto_msgTypes[24]
+	mi := &file_transaction_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1587,7 +1699,7 @@ func (x *ReorderCategoriesResponse) String() string {
 func (*ReorderCategoriesResponse) ProtoMessage() {}
 
 func (x *ReorderCategoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_transaction_proto_msgTypes[24]
+	mi := &file_transaction_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1600,7 +1712,7 @@ func (x *ReorderCategoriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReorderCategoriesResponse.ProtoReflect.Descriptor instead.
 func (*ReorderCategoriesResponse) Descriptor() ([]byte, []int) {
-	return file_transaction_proto_rawDescGZIP(), []int{24}
+	return file_transaction_proto_rawDescGZIP(), []int{26}
 }
 
 var File_transaction_proto protoreflect.FileDescriptor
@@ -1699,7 +1811,15 @@ const file_transaction_proto_rawDesc = "" +
 	"\vtransaction\x18\x01 \x01(\v2(.familyledger.transaction.v1.TransactionR\vtransaction\"A\n" +
 	"\x18DeleteTransactionRequest\x12%\n" +
 	"\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId\"\x1b\n" +
-	"\x19DeleteTransactionResponse\"I\n" +
+	"\x19DeleteTransactionResponse\"\x9a\x01\n" +
+	"\x1eBatchCreateTransactionsRequest\x12Y\n" +
+	"\ftransactions\x18\x01 \x03(\v25.familyledger.transaction.v1.CreateTransactionRequestR\ftransactions\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x02 \x01(\tR\taccountId\"\xac\x01\n" +
+	"\x1fBatchCreateTransactionsResponse\x12#\n" +
+	"\rcreated_count\x18\x01 \x01(\x05R\fcreatedCount\x12L\n" +
+	"\ftransactions\x18\x02 \x03(\v2(.familyledger.transaction.v1.TransactionR\ftransactions\x12\x16\n" +
+	"\x06errors\x18\x03 \x03(\tR\x06errors\"I\n" +
 	"\x1eBatchDeleteTransactionsRequest\x12'\n" +
 	"\x0ftransaction_ids\x18\x01 \x03(\tR\x0etransactionIds\"F\n" +
 	"\x1fBatchDeleteTransactionsResponse\x12#\n" +
@@ -1748,9 +1868,10 @@ const file_transaction_proto_rawDesc = "" +
 	"\x0fTransactionType\x12 \n" +
 	"\x1cTRANSACTION_TYPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17TRANSACTION_TYPE_INCOME\x10\x01\x12\x1c\n" +
-	"\x18TRANSACTION_TYPE_EXPENSE\x10\x022\xbd\v\n" +
+	"\x18TRANSACTION_TYPE_EXPENSE\x10\x022\xd4\f\n" +
 	"\x12TransactionService\x12\x82\x01\n" +
-	"\x11CreateTransaction\x125.familyledger.transaction.v1.CreateTransactionRequest\x1a6.familyledger.transaction.v1.CreateTransactionResponse\x12\x82\x01\n" +
+	"\x11CreateTransaction\x125.familyledger.transaction.v1.CreateTransactionRequest\x1a6.familyledger.transaction.v1.CreateTransactionResponse\x12\x94\x01\n" +
+	"\x17BatchCreateTransactions\x12;.familyledger.transaction.v1.BatchCreateTransactionsRequest\x1a<.familyledger.transaction.v1.BatchCreateTransactionsResponse\x12\x82\x01\n" +
 	"\x11UpdateTransaction\x125.familyledger.transaction.v1.UpdateTransactionRequest\x1a6.familyledger.transaction.v1.UpdateTransactionResponse\x12\x82\x01\n" +
 	"\x11DeleteTransaction\x125.familyledger.transaction.v1.DeleteTransactionRequest\x1a6.familyledger.transaction.v1.DeleteTransactionResponse\x12\x94\x01\n" +
 	"\x17BatchDeleteTransactions\x12;.familyledger.transaction.v1.BatchDeleteTransactionsRequest\x1a<.familyledger.transaction.v1.BatchDeleteTransactionsResponse\x12\x91\x01\n" +
@@ -1775,7 +1896,7 @@ func file_transaction_proto_rawDescGZIP() []byte {
 }
 
 var file_transaction_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_transaction_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_transaction_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_transaction_proto_goTypes = []any{
 	(TransactionType)(0),                    // 0: familyledger.transaction.v1.TransactionType
 	(*Transaction)(nil),                     // 1: familyledger.transaction.v1.Transaction
@@ -1788,73 +1909,79 @@ var file_transaction_proto_goTypes = []any{
 	(*UpdateTransactionResponse)(nil),       // 8: familyledger.transaction.v1.UpdateTransactionResponse
 	(*DeleteTransactionRequest)(nil),        // 9: familyledger.transaction.v1.DeleteTransactionRequest
 	(*DeleteTransactionResponse)(nil),       // 10: familyledger.transaction.v1.DeleteTransactionResponse
-	(*BatchDeleteTransactionsRequest)(nil),  // 11: familyledger.transaction.v1.BatchDeleteTransactionsRequest
-	(*BatchDeleteTransactionsResponse)(nil), // 12: familyledger.transaction.v1.BatchDeleteTransactionsResponse
-	(*UploadTransactionImageRequest)(nil),   // 13: familyledger.transaction.v1.UploadTransactionImageRequest
-	(*UploadTransactionImageResponse)(nil),  // 14: familyledger.transaction.v1.UploadTransactionImageResponse
-	(*GetCategoriesRequest)(nil),            // 15: familyledger.transaction.v1.GetCategoriesRequest
-	(*GetCategoriesResponse)(nil),           // 16: familyledger.transaction.v1.GetCategoriesResponse
-	(*CreateCategoryRequest)(nil),           // 17: familyledger.transaction.v1.CreateCategoryRequest
-	(*CreateCategoryResponse)(nil),          // 18: familyledger.transaction.v1.CreateCategoryResponse
-	(*UpdateCategoryRequest)(nil),           // 19: familyledger.transaction.v1.UpdateCategoryRequest
-	(*UpdateCategoryResponse)(nil),          // 20: familyledger.transaction.v1.UpdateCategoryResponse
-	(*DeleteCategoryRequest)(nil),           // 21: familyledger.transaction.v1.DeleteCategoryRequest
-	(*DeleteCategoryResponse)(nil),          // 22: familyledger.transaction.v1.DeleteCategoryResponse
-	(*ReorderCategoriesRequest)(nil),        // 23: familyledger.transaction.v1.ReorderCategoriesRequest
-	(*CategoryOrder)(nil),                   // 24: familyledger.transaction.v1.CategoryOrder
-	(*ReorderCategoriesResponse)(nil),       // 25: familyledger.transaction.v1.ReorderCategoriesResponse
-	(*timestamppb.Timestamp)(nil),           // 26: google.protobuf.Timestamp
+	(*BatchCreateTransactionsRequest)(nil),  // 11: familyledger.transaction.v1.BatchCreateTransactionsRequest
+	(*BatchCreateTransactionsResponse)(nil), // 12: familyledger.transaction.v1.BatchCreateTransactionsResponse
+	(*BatchDeleteTransactionsRequest)(nil),  // 13: familyledger.transaction.v1.BatchDeleteTransactionsRequest
+	(*BatchDeleteTransactionsResponse)(nil), // 14: familyledger.transaction.v1.BatchDeleteTransactionsResponse
+	(*UploadTransactionImageRequest)(nil),   // 15: familyledger.transaction.v1.UploadTransactionImageRequest
+	(*UploadTransactionImageResponse)(nil),  // 16: familyledger.transaction.v1.UploadTransactionImageResponse
+	(*GetCategoriesRequest)(nil),            // 17: familyledger.transaction.v1.GetCategoriesRequest
+	(*GetCategoriesResponse)(nil),           // 18: familyledger.transaction.v1.GetCategoriesResponse
+	(*CreateCategoryRequest)(nil),           // 19: familyledger.transaction.v1.CreateCategoryRequest
+	(*CreateCategoryResponse)(nil),          // 20: familyledger.transaction.v1.CreateCategoryResponse
+	(*UpdateCategoryRequest)(nil),           // 21: familyledger.transaction.v1.UpdateCategoryRequest
+	(*UpdateCategoryResponse)(nil),          // 22: familyledger.transaction.v1.UpdateCategoryResponse
+	(*DeleteCategoryRequest)(nil),           // 23: familyledger.transaction.v1.DeleteCategoryRequest
+	(*DeleteCategoryResponse)(nil),          // 24: familyledger.transaction.v1.DeleteCategoryResponse
+	(*ReorderCategoriesRequest)(nil),        // 25: familyledger.transaction.v1.ReorderCategoriesRequest
+	(*CategoryOrder)(nil),                   // 26: familyledger.transaction.v1.CategoryOrder
+	(*ReorderCategoriesResponse)(nil),       // 27: familyledger.transaction.v1.ReorderCategoriesResponse
+	(*timestamppb.Timestamp)(nil),           // 28: google.protobuf.Timestamp
 }
 var file_transaction_proto_depIdxs = []int32{
 	0,  // 0: familyledger.transaction.v1.Transaction.type:type_name -> familyledger.transaction.v1.TransactionType
-	26, // 1: familyledger.transaction.v1.Transaction.txn_date:type_name -> google.protobuf.Timestamp
-	26, // 2: familyledger.transaction.v1.Transaction.created_at:type_name -> google.protobuf.Timestamp
-	26, // 3: familyledger.transaction.v1.Transaction.updated_at:type_name -> google.protobuf.Timestamp
-	26, // 4: familyledger.transaction.v1.Transaction.deleted_at:type_name -> google.protobuf.Timestamp
+	28, // 1: familyledger.transaction.v1.Transaction.txn_date:type_name -> google.protobuf.Timestamp
+	28, // 2: familyledger.transaction.v1.Transaction.created_at:type_name -> google.protobuf.Timestamp
+	28, // 3: familyledger.transaction.v1.Transaction.updated_at:type_name -> google.protobuf.Timestamp
+	28, // 4: familyledger.transaction.v1.Transaction.deleted_at:type_name -> google.protobuf.Timestamp
 	0,  // 5: familyledger.transaction.v1.Category.type:type_name -> familyledger.transaction.v1.TransactionType
 	2,  // 6: familyledger.transaction.v1.Category.children:type_name -> familyledger.transaction.v1.Category
 	0,  // 7: familyledger.transaction.v1.CreateTransactionRequest.type:type_name -> familyledger.transaction.v1.TransactionType
-	26, // 8: familyledger.transaction.v1.CreateTransactionRequest.txn_date:type_name -> google.protobuf.Timestamp
+	28, // 8: familyledger.transaction.v1.CreateTransactionRequest.txn_date:type_name -> google.protobuf.Timestamp
 	1,  // 9: familyledger.transaction.v1.CreateTransactionResponse.transaction:type_name -> familyledger.transaction.v1.Transaction
-	26, // 10: familyledger.transaction.v1.ListTransactionsRequest.start_date:type_name -> google.protobuf.Timestamp
-	26, // 11: familyledger.transaction.v1.ListTransactionsRequest.end_date:type_name -> google.protobuf.Timestamp
-	26, // 12: familyledger.transaction.v1.ListTransactionsRequest.updated_since:type_name -> google.protobuf.Timestamp
+	28, // 10: familyledger.transaction.v1.ListTransactionsRequest.start_date:type_name -> google.protobuf.Timestamp
+	28, // 11: familyledger.transaction.v1.ListTransactionsRequest.end_date:type_name -> google.protobuf.Timestamp
+	28, // 12: familyledger.transaction.v1.ListTransactionsRequest.updated_since:type_name -> google.protobuf.Timestamp
 	1,  // 13: familyledger.transaction.v1.ListTransactionsResponse.transactions:type_name -> familyledger.transaction.v1.Transaction
 	0,  // 14: familyledger.transaction.v1.UpdateTransactionRequest.type:type_name -> familyledger.transaction.v1.TransactionType
 	1,  // 15: familyledger.transaction.v1.UpdateTransactionResponse.transaction:type_name -> familyledger.transaction.v1.Transaction
-	0,  // 16: familyledger.transaction.v1.GetCategoriesRequest.type:type_name -> familyledger.transaction.v1.TransactionType
-	2,  // 17: familyledger.transaction.v1.GetCategoriesResponse.categories:type_name -> familyledger.transaction.v1.Category
-	0,  // 18: familyledger.transaction.v1.CreateCategoryRequest.type:type_name -> familyledger.transaction.v1.TransactionType
-	2,  // 19: familyledger.transaction.v1.CreateCategoryResponse.category:type_name -> familyledger.transaction.v1.Category
-	2,  // 20: familyledger.transaction.v1.UpdateCategoryResponse.category:type_name -> familyledger.transaction.v1.Category
-	24, // 21: familyledger.transaction.v1.ReorderCategoriesRequest.orders:type_name -> familyledger.transaction.v1.CategoryOrder
-	3,  // 22: familyledger.transaction.v1.TransactionService.CreateTransaction:input_type -> familyledger.transaction.v1.CreateTransactionRequest
-	7,  // 23: familyledger.transaction.v1.TransactionService.UpdateTransaction:input_type -> familyledger.transaction.v1.UpdateTransactionRequest
-	9,  // 24: familyledger.transaction.v1.TransactionService.DeleteTransaction:input_type -> familyledger.transaction.v1.DeleteTransactionRequest
-	11, // 25: familyledger.transaction.v1.TransactionService.BatchDeleteTransactions:input_type -> familyledger.transaction.v1.BatchDeleteTransactionsRequest
-	13, // 26: familyledger.transaction.v1.TransactionService.UploadTransactionImage:input_type -> familyledger.transaction.v1.UploadTransactionImageRequest
-	5,  // 27: familyledger.transaction.v1.TransactionService.ListTransactions:input_type -> familyledger.transaction.v1.ListTransactionsRequest
-	15, // 28: familyledger.transaction.v1.TransactionService.GetCategories:input_type -> familyledger.transaction.v1.GetCategoriesRequest
-	17, // 29: familyledger.transaction.v1.TransactionService.CreateCategory:input_type -> familyledger.transaction.v1.CreateCategoryRequest
-	19, // 30: familyledger.transaction.v1.TransactionService.UpdateCategory:input_type -> familyledger.transaction.v1.UpdateCategoryRequest
-	21, // 31: familyledger.transaction.v1.TransactionService.DeleteCategory:input_type -> familyledger.transaction.v1.DeleteCategoryRequest
-	23, // 32: familyledger.transaction.v1.TransactionService.ReorderCategories:input_type -> familyledger.transaction.v1.ReorderCategoriesRequest
-	4,  // 33: familyledger.transaction.v1.TransactionService.CreateTransaction:output_type -> familyledger.transaction.v1.CreateTransactionResponse
-	8,  // 34: familyledger.transaction.v1.TransactionService.UpdateTransaction:output_type -> familyledger.transaction.v1.UpdateTransactionResponse
-	10, // 35: familyledger.transaction.v1.TransactionService.DeleteTransaction:output_type -> familyledger.transaction.v1.DeleteTransactionResponse
-	12, // 36: familyledger.transaction.v1.TransactionService.BatchDeleteTransactions:output_type -> familyledger.transaction.v1.BatchDeleteTransactionsResponse
-	14, // 37: familyledger.transaction.v1.TransactionService.UploadTransactionImage:output_type -> familyledger.transaction.v1.UploadTransactionImageResponse
-	6,  // 38: familyledger.transaction.v1.TransactionService.ListTransactions:output_type -> familyledger.transaction.v1.ListTransactionsResponse
-	16, // 39: familyledger.transaction.v1.TransactionService.GetCategories:output_type -> familyledger.transaction.v1.GetCategoriesResponse
-	18, // 40: familyledger.transaction.v1.TransactionService.CreateCategory:output_type -> familyledger.transaction.v1.CreateCategoryResponse
-	20, // 41: familyledger.transaction.v1.TransactionService.UpdateCategory:output_type -> familyledger.transaction.v1.UpdateCategoryResponse
-	22, // 42: familyledger.transaction.v1.TransactionService.DeleteCategory:output_type -> familyledger.transaction.v1.DeleteCategoryResponse
-	25, // 43: familyledger.transaction.v1.TransactionService.ReorderCategories:output_type -> familyledger.transaction.v1.ReorderCategoriesResponse
-	33, // [33:44] is the sub-list for method output_type
-	22, // [22:33] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	3,  // 16: familyledger.transaction.v1.BatchCreateTransactionsRequest.transactions:type_name -> familyledger.transaction.v1.CreateTransactionRequest
+	1,  // 17: familyledger.transaction.v1.BatchCreateTransactionsResponse.transactions:type_name -> familyledger.transaction.v1.Transaction
+	0,  // 18: familyledger.transaction.v1.GetCategoriesRequest.type:type_name -> familyledger.transaction.v1.TransactionType
+	2,  // 19: familyledger.transaction.v1.GetCategoriesResponse.categories:type_name -> familyledger.transaction.v1.Category
+	0,  // 20: familyledger.transaction.v1.CreateCategoryRequest.type:type_name -> familyledger.transaction.v1.TransactionType
+	2,  // 21: familyledger.transaction.v1.CreateCategoryResponse.category:type_name -> familyledger.transaction.v1.Category
+	2,  // 22: familyledger.transaction.v1.UpdateCategoryResponse.category:type_name -> familyledger.transaction.v1.Category
+	26, // 23: familyledger.transaction.v1.ReorderCategoriesRequest.orders:type_name -> familyledger.transaction.v1.CategoryOrder
+	3,  // 24: familyledger.transaction.v1.TransactionService.CreateTransaction:input_type -> familyledger.transaction.v1.CreateTransactionRequest
+	11, // 25: familyledger.transaction.v1.TransactionService.BatchCreateTransactions:input_type -> familyledger.transaction.v1.BatchCreateTransactionsRequest
+	7,  // 26: familyledger.transaction.v1.TransactionService.UpdateTransaction:input_type -> familyledger.transaction.v1.UpdateTransactionRequest
+	9,  // 27: familyledger.transaction.v1.TransactionService.DeleteTransaction:input_type -> familyledger.transaction.v1.DeleteTransactionRequest
+	13, // 28: familyledger.transaction.v1.TransactionService.BatchDeleteTransactions:input_type -> familyledger.transaction.v1.BatchDeleteTransactionsRequest
+	15, // 29: familyledger.transaction.v1.TransactionService.UploadTransactionImage:input_type -> familyledger.transaction.v1.UploadTransactionImageRequest
+	5,  // 30: familyledger.transaction.v1.TransactionService.ListTransactions:input_type -> familyledger.transaction.v1.ListTransactionsRequest
+	17, // 31: familyledger.transaction.v1.TransactionService.GetCategories:input_type -> familyledger.transaction.v1.GetCategoriesRequest
+	19, // 32: familyledger.transaction.v1.TransactionService.CreateCategory:input_type -> familyledger.transaction.v1.CreateCategoryRequest
+	21, // 33: familyledger.transaction.v1.TransactionService.UpdateCategory:input_type -> familyledger.transaction.v1.UpdateCategoryRequest
+	23, // 34: familyledger.transaction.v1.TransactionService.DeleteCategory:input_type -> familyledger.transaction.v1.DeleteCategoryRequest
+	25, // 35: familyledger.transaction.v1.TransactionService.ReorderCategories:input_type -> familyledger.transaction.v1.ReorderCategoriesRequest
+	4,  // 36: familyledger.transaction.v1.TransactionService.CreateTransaction:output_type -> familyledger.transaction.v1.CreateTransactionResponse
+	12, // 37: familyledger.transaction.v1.TransactionService.BatchCreateTransactions:output_type -> familyledger.transaction.v1.BatchCreateTransactionsResponse
+	8,  // 38: familyledger.transaction.v1.TransactionService.UpdateTransaction:output_type -> familyledger.transaction.v1.UpdateTransactionResponse
+	10, // 39: familyledger.transaction.v1.TransactionService.DeleteTransaction:output_type -> familyledger.transaction.v1.DeleteTransactionResponse
+	14, // 40: familyledger.transaction.v1.TransactionService.BatchDeleteTransactions:output_type -> familyledger.transaction.v1.BatchDeleteTransactionsResponse
+	16, // 41: familyledger.transaction.v1.TransactionService.UploadTransactionImage:output_type -> familyledger.transaction.v1.UploadTransactionImageResponse
+	6,  // 42: familyledger.transaction.v1.TransactionService.ListTransactions:output_type -> familyledger.transaction.v1.ListTransactionsResponse
+	18, // 43: familyledger.transaction.v1.TransactionService.GetCategories:output_type -> familyledger.transaction.v1.GetCategoriesResponse
+	20, // 44: familyledger.transaction.v1.TransactionService.CreateCategory:output_type -> familyledger.transaction.v1.CreateCategoryResponse
+	22, // 45: familyledger.transaction.v1.TransactionService.UpdateCategory:output_type -> familyledger.transaction.v1.UpdateCategoryResponse
+	24, // 46: familyledger.transaction.v1.TransactionService.DeleteCategory:output_type -> familyledger.transaction.v1.DeleteCategoryResponse
+	27, // 47: familyledger.transaction.v1.TransactionService.ReorderCategories:output_type -> familyledger.transaction.v1.ReorderCategoriesResponse
+	36, // [36:48] is the sub-list for method output_type
+	24, // [24:36] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_transaction_proto_init() }
@@ -1863,14 +1990,14 @@ func file_transaction_proto_init() {
 		return
 	}
 	file_transaction_proto_msgTypes[6].OneofWrappers = []any{}
-	file_transaction_proto_msgTypes[18].OneofWrappers = []any{}
+	file_transaction_proto_msgTypes[20].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_transaction_proto_rawDesc), len(file_transaction_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   25,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

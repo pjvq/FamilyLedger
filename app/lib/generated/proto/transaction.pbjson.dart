@@ -241,6 +241,38 @@ const DeleteTransactionResponse$json = {
 final $typed_data.Uint8List deleteTransactionResponseDescriptor = $convert.base64Decode(
     'ChlEZWxldGVUcmFuc2FjdGlvblJlc3BvbnNl');
 
+@$core.Deprecated('Use batchCreateTransactionsRequestDescriptor instead')
+const BatchCreateTransactionsRequest$json = {
+  '1': 'BatchCreateTransactionsRequest',
+  '2': [
+    {'1': 'transactions', '3': 1, '4': 3, '5': 11, '6': '.familyledger.transaction.v1.CreateTransactionRequest', '10': 'transactions'},
+    {'1': 'account_id', '3': 2, '4': 1, '5': 9, '10': 'accountId'},
+  ],
+};
+
+/// Descriptor for `BatchCreateTransactionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List batchCreateTransactionsRequestDescriptor = $convert.base64Decode(
+    'Ch5CYXRjaENyZWF0ZVRyYW5zYWN0aW9uc1JlcXVlc3QSWQoMdHJhbnNhY3Rpb25zGAEgAygLMj'
+    'UuZmFtaWx5bGVkZ2VyLnRyYW5zYWN0aW9uLnYxLkNyZWF0ZVRyYW5zYWN0aW9uUmVxdWVzdFIM'
+    'dHJhbnNhY3Rpb25zEh0KCmFjY291bnRfaWQYAiABKAlSCWFjY291bnRJZA==');
+
+@$core.Deprecated('Use batchCreateTransactionsResponseDescriptor instead')
+const BatchCreateTransactionsResponse$json = {
+  '1': 'BatchCreateTransactionsResponse',
+  '2': [
+    {'1': 'created_count', '3': 1, '4': 1, '5': 5, '10': 'createdCount'},
+    {'1': 'transactions', '3': 2, '4': 3, '5': 11, '6': '.familyledger.transaction.v1.Transaction', '10': 'transactions'},
+    {'1': 'errors', '3': 3, '4': 3, '5': 9, '10': 'errors'},
+  ],
+};
+
+/// Descriptor for `BatchCreateTransactionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List batchCreateTransactionsResponseDescriptor = $convert.base64Decode(
+    'Ch9CYXRjaENyZWF0ZVRyYW5zYWN0aW9uc1Jlc3BvbnNlEiMKDWNyZWF0ZWRfY291bnQYASABKA'
+    'VSDGNyZWF0ZWRDb3VudBJMCgx0cmFuc2FjdGlvbnMYAiADKAsyKC5mYW1pbHlsZWRnZXIudHJh'
+    'bnNhY3Rpb24udjEuVHJhbnNhY3Rpb25SDHRyYW5zYWN0aW9ucxIWCgZlcnJvcnMYAyADKAlSBm'
+    'Vycm9ycw==');
+
 @$core.Deprecated('Use batchDeleteTransactionsRequestDescriptor instead')
 const BatchDeleteTransactionsRequest$json = {
   '1': 'BatchDeleteTransactionsRequest',

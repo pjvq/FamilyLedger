@@ -25,6 +25,10 @@ class TransactionServiceClient extends $grpc.Client {
       '/familyledger.transaction.v1.TransactionService/CreateTransaction',
       ($0.CreateTransactionRequest value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $0.CreateTransactionResponse.fromBuffer(value));
+  static final _$batchCreateTransactions = $grpc.ClientMethod<$0.BatchCreateTransactionsRequest, $0.BatchCreateTransactionsResponse>(
+      '/familyledger.transaction.v1.TransactionService/BatchCreateTransactions',
+      ($0.BatchCreateTransactionsRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.BatchCreateTransactionsResponse.fromBuffer(value));
   static final _$updateTransaction = $grpc.ClientMethod<$0.UpdateTransactionRequest, $0.UpdateTransactionResponse>(
       '/familyledger.transaction.v1.TransactionService/UpdateTransaction',
       ($0.UpdateTransactionRequest value) => value.writeToBuffer(),
@@ -74,6 +78,10 @@ class TransactionServiceClient extends $grpc.Client {
 
   $grpc.ResponseFuture<$0.CreateTransactionResponse> createTransaction($0.CreateTransactionRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$createTransaction, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.BatchCreateTransactionsResponse> batchCreateTransactions($0.BatchCreateTransactionsRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$batchCreateTransactions, request, options: options);
   }
 
   $grpc.ResponseFuture<$0.UpdateTransactionResponse> updateTransaction($0.UpdateTransactionRequest request, {$grpc.CallOptions? options}) {
@@ -129,6 +137,13 @@ abstract class TransactionServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.CreateTransactionRequest.fromBuffer(value),
         ($0.CreateTransactionResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.BatchCreateTransactionsRequest, $0.BatchCreateTransactionsResponse>(
+        'BatchCreateTransactions',
+        batchCreateTransactions_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.BatchCreateTransactionsRequest.fromBuffer(value),
+        ($0.BatchCreateTransactionsResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.UpdateTransactionRequest, $0.UpdateTransactionResponse>(
         'UpdateTransaction',
         updateTransaction_Pre,
@@ -205,6 +220,10 @@ abstract class TransactionServiceBase extends $grpc.Service {
     return createTransaction(call, await request);
   }
 
+  $async.Future<$0.BatchCreateTransactionsResponse> batchCreateTransactions_Pre($grpc.ServiceCall call, $async.Future<$0.BatchCreateTransactionsRequest> request) async {
+    return batchCreateTransactions(call, await request);
+  }
+
   $async.Future<$0.UpdateTransactionResponse> updateTransaction_Pre($grpc.ServiceCall call, $async.Future<$0.UpdateTransactionRequest> request) async {
     return updateTransaction(call, await request);
   }
@@ -246,6 +265,7 @@ abstract class TransactionServiceBase extends $grpc.Service {
   }
 
   $async.Future<$0.CreateTransactionResponse> createTransaction($grpc.ServiceCall call, $0.CreateTransactionRequest request);
+  $async.Future<$0.BatchCreateTransactionsResponse> batchCreateTransactions($grpc.ServiceCall call, $0.BatchCreateTransactionsRequest request);
   $async.Future<$0.UpdateTransactionResponse> updateTransaction($grpc.ServiceCall call, $0.UpdateTransactionRequest request);
   $async.Future<$0.DeleteTransactionResponse> deleteTransaction($grpc.ServiceCall call, $0.DeleteTransactionRequest request);
   $async.Future<$0.BatchDeleteTransactionsResponse> batchDeleteTransactions($grpc.ServiceCall call, $0.BatchDeleteTransactionsRequest request);

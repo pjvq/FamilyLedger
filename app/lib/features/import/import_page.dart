@@ -1770,7 +1770,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       }
 
       int imported = 0;
+      int syncFailed = 0;
       final errors = <String>[];
+
+      // Phase 1: Write all transactions to local DB
+      final localIds = <String>[];
+      final batchReqs = <pb_txn.CreateTransactionRequest>[];
 
       for (int idx = 0; idx < toImport.length; idx++) {
         final t = toImport[idx];
@@ -1793,58 +1798,80 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             ),
           );
 
-          // Push to server for family imports
-          if (_importToFamily) {
-            try {
-              final txnClient = ref.read(transactionClientProvider);
-              final req = pb_txn.CreateTransactionRequest()
-                ..accountId = defaultAccId
-                ..categoryId = catId
-                ..amount = Int64(amountCents)
-                ..currency = 'CNY'
-                ..amountCny = Int64(amountCents)
-                ..exchangeRate = 1.0
-                ..type = t.type == 'income'
-                    ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
-                    : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE
-                ..note = t.note
-                ..txnDate = _toProtoTimestamp(t.date);
-              final resp = await txnClient.createTransaction(req,
-                  options: CallOptions(timeout: const Duration(seconds: 5)));
-              // Replace local id with server id
-              if (resp.hasTransaction() && resp.transaction.id.isNotEmpty && resp.transaction.id != localId) {
-                await database.hardDeleteTransaction(localId);
-                await database.into(database.transactions).insert(
-                  db.TransactionsCompanion.insert(
-                    id: resp.transaction.id,
-                    userId: userId,
-                    accountId: defaultAccId,
-                    categoryId: catId,
-                    amount: amountCents,
-                    amountCny: amountCents,
-                    type: t.type,
-                    txnDate: t.date,
-                    note: Value(t.note),
-                  ),
-                );
-              }
-            } catch (_) {
-              // Server push failed, local data still saved
-            }
-          }
-
-          // Update account balance
           final delta = t.type == 'income' ? amountCents : -amountCents;
           await database.updateAccountBalance(defaultAccId, delta);
           imported++;
+
+          if (_importToFamily) {
+            localIds.add(localId);
+            batchReqs.add(pb_txn.CreateTransactionRequest()
+              ..accountId = defaultAccId
+              ..categoryId = catId
+              ..amount = Int64(amountCents)
+              ..currency = 'CNY'
+              ..amountCny = Int64(amountCents)
+              ..exchangeRate = 1.0
+              ..type = t.type == 'income'
+                  ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
+                  : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE
+              ..note = t.note
+              ..txnDate = _toProtoTimestamp(t.date));
+          }
         } catch (e) {
           errors.add('行 ${t.note}: $e');
         }
-        // Update progress every 5 items or on last item
-        if (idx % 5 == 0 || idx == toImport.length - 1) {
+        if (idx % 10 == 0 || idx == toImport.length - 1) {
           setState(() => _importProgress = idx + 1);
-          // Yield to let UI repaint
           await Future<void>.delayed(Duration.zero);
+        }
+      }
+
+      // Phase 2: Batch push to server (50 per batch)
+      if (_importToFamily && batchReqs.isNotEmpty) {
+        final txnClient = ref.read(transactionClientProvider);
+        const batchSize = 50;
+        for (int i = 0; i < batchReqs.length; i += batchSize) {
+          final end = (i + batchSize).clamp(0, batchReqs.length);
+          final chunk = batchReqs.sublist(i, end);
+          final chunkLocalIds = localIds.sublist(i, end);
+          try {
+            final batchResp = await txnClient.batchCreateTransactions(
+              pb_txn.BatchCreateTransactionsRequest()
+                ..transactions.addAll(chunk)
+                ..accountId = defaultAccId,
+              options: CallOptions(timeout: const Duration(seconds: 60)),
+            );
+            for (int j = 0; j < batchResp.transactions.length && j < chunkLocalIds.length; j++) {
+              final serverTxn = batchResp.transactions[j];
+              final oldId = chunkLocalIds[j];
+              if (serverTxn.id.isNotEmpty && serverTxn.id != oldId) {
+                try {
+                  await database.hardDeleteTransaction(oldId);
+                  await database.into(database.transactions).insert(
+                    db.TransactionsCompanion.insert(
+                      id: serverTxn.id,
+                      userId: userId,
+                      accountId: defaultAccId,
+                      categoryId: chunk[j].categoryId,
+                      amount: chunk[j].amount.toInt(),
+                      amountCny: chunk[j].amountCny.toInt(),
+                      type: chunk[j].type == pb_enum.TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
+                      txnDate: DateTime.fromMillisecondsSinceEpoch(chunk[j].txnDate.seconds.toInt() * 1000),
+                      note: Value(chunk[j].note),
+                    ),
+                  );
+                } catch (_) {}
+              }
+            }
+            debugPrint('Import: batch ${i ~/ batchSize + 1} pushed ${batchResp.createdCount} txns');
+            if (batchResp.errors.isNotEmpty) {
+              syncFailed += batchResp.errors.length;
+              debugPrint('Import: batch errors: ${batchResp.errors}');
+            }
+          } catch (e) {
+            syncFailed += chunk.length;
+            debugPrint('Import: batch ${i ~/ batchSize + 1} failed: $e');
+          }
         }
       }
 
@@ -1857,7 +1884,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         _importDone = true;
         _importedCount = imported;
         _duplicateCount = _duplicates.length - _dupSelection.values.where((v) => v).length;
-        _importErrors = errors;
+        _importErrors = [
+          ...errors,
+          if (syncFailed > 0) '⚠️ $syncFailed 条未同步到服务端（已保存在本地）',
+        ];
       });
     } catch (e) {
       setState(() {
