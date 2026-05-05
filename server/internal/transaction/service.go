@@ -128,6 +128,11 @@ func getAccountFamilyIDFrom(ctx context.Context, q querier, accountID uuid.UUID)
 	return own.familyID, nil
 }
 
+// Context key to skip overdraft check in batch import mode.
+type ctxKey string
+
+const skipOverdraftKey ctxKey = "skipOverdraft"
+
 // getAccountFamilyID returns the family_id for an account (empty string if personal).
 func (s *Service) getAccountFamilyID(ctx context.Context, accountID uuid.UUID) (string, error) {
 	return getAccountFamilyIDFrom(ctx, s.pool, accountID)
@@ -280,7 +285,7 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	if txnType == "expense" {
 		balanceDelta = -amountCny
 	}
-	if txnType == "expense" && acctType != "credit_card" {
+	if txnType == "expense" && acctType != "credit_card" && ctx.Value(skipOverdraftKey) == nil {
 		var currentBalance int64
 		err = tx.QueryRow(ctx,
 			"SELECT balance FROM accounts WHERE id = $1 FOR UPDATE",
@@ -728,12 +733,15 @@ func (s *Service) BatchCreateTransactions(ctx context.Context, req *pb.BatchCrea
 	var created []*pb.Transaction
 	var errors []string
 
+	// Skip overdraft check in batch mode (import scenario)
+	batchCtx := context.WithValue(ctx, skipOverdraftKey, true)
+
 	for i, txnReq := range req.Transactions {
 		// Use shared account_id if individual one is empty
 		if txnReq.AccountId == "" && req.AccountId != "" {
 			txnReq.AccountId = req.AccountId
 		}
-		resp, err := s.CreateTransaction(ctx, txnReq)
+		resp, err := s.CreateTransaction(batchCtx, txnReq)
 		if err != nil {
 			errorMsg := fmt.Sprintf("[%d] %v", i, err)
 			errors = append(errors, errorMsg)

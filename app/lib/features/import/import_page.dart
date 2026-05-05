@@ -1739,17 +1739,40 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       if (_importToFamily) {
         final syncedCatIds = <String>{};
         final txnClient = ref.read(transactionClientProvider);
+
+        // Collect unique category IDs from import data
+        final catIdsToSync = <String>{};
         for (final t in toImport) {
           final catId = t.matchedCategoryId ?? _defaultCategory?.id ?? '';
-          if (catId.isEmpty || syncedCatIds.contains(catId)) continue;
-          syncedCatIds.add(catId);
+          if (catId.isNotEmpty) catIdsToSync.add(catId);
+        }
 
-          // Find category info from local cache
-          final cat = _allCategories.where((c) => c.id == catId).firstOrNull;
+        // Query all categories from local DB (not cache)
+        final allLocalCats = await database.select(database.categories).get();
+        final catMap = {for (final c in allLocalCats) c.id: c};
+
+        // Separate parent and child categories, sync parents first
+        final parentCats = <db.Category>[];
+        final childCats = <db.Category>[];
+        for (final catId in catIdsToSync) {
+          final cat = catMap[catId];
           if (cat == null) continue;
+          if (cat.parentId != null && cat.parentId!.isNotEmpty) {
+            childCats.add(cat);
+            // Also ensure the parent is synced
+            if (!catIdsToSync.contains(cat.parentId!)) {
+              final parent = catMap[cat.parentId!];
+              if (parent != null) parentCats.add(parent);
+            }
+          } else {
+            parentCats.add(cat);
+          }
+        }
 
-          // Skip preset categories (already on server)
-          if (cat.isPreset) continue;
+        // Sync parent categories first
+        for (final cat in [...parentCats, ...childCats]) {
+          if (syncedCatIds.contains(cat.id)) continue;
+          syncedCatIds.add(cat.id);
 
           try {
             final catReq = pb_txn.CreateCategoryRequest()
@@ -1762,9 +1785,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
               catReq.parentId = cat.parentId!;
             }
             await txnClient.createCategory(catReq,
-                options: CallOptions(timeout: const Duration(seconds: 5)));
-          } catch (_) {
-            // Server returns existing category or creates new — either is fine
+                options: CallOptions(timeout: const Duration(seconds: 10)));
+          } catch (e) {
+            debugPrint('Import: ensure category ${cat.name} (${cat.id}) failed: $e');
           }
         }
       }
