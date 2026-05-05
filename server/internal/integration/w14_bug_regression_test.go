@@ -117,7 +117,8 @@ func TestBUG002_PullChanges_Family_Data(t *testing.T) {
 	// Member pulls — should see owner's family transaction
 	memberCtx := context.WithValue(ctx, middleware.UserIDKey, member.String())
 	pullResp, err := syncSvc.PullChanges(memberCtx, &pb.PullChangesRequest{
-		Since: timestamppb.New(time.Now().Add(-1 * time.Hour)),
+		Since:    timestamppb.New(time.Now().Add(-1 * time.Hour)),
+		FamilyId: familyID.String(),
 	})
 	require.NoError(t, err)
 
