@@ -51,13 +51,15 @@ jobs:
             --packages ./... \
             -- -count=1 -race -coverprofile=coverage.out -timeout=60s
 
-      - name: Go — coverage gate (≥25%)
+      - name: Go — coverage gate (≥80%, excluding proto)
         working-directory: server
         run: |
-          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
-          echo "Go coverage: ${COVERAGE}%"
-          if (( $(echo "$COVERAGE < 25.0" | bc -l) )); then
-            echo "::error::Go coverage ${COVERAGE}% below 25% threshold"
+          # Filter out proto packages (auto-generated) and cmd/ (main entrypoint) from coverage
+          grep -v -E 'proto/|cmd/' coverage.out > coverage_filtered.out || cp coverage.out coverage_filtered.out
+          COVERAGE=$(go tool cover -func=coverage_filtered.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Go coverage (excl. proto): ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 80.0" | bc -l) )); then
+            echo "::error::Go coverage ${COVERAGE}% below 80% threshold (excluding proto packages)"
             exit 1
           fi
 
