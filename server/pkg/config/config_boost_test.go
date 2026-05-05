@@ -136,3 +136,17 @@ func TestIsSecretWeak_Boost(t *testing.T) {
 	assert.True(t, IsSecretWeak("short"))
 	assert.False(t, IsSecretWeak("this-is-a-very-long-secret-that-exceeds-32"))
 }
+
+func TestValidateJWTSecret_DevNoEnv(t *testing.T) {
+	t.Setenv("JWT_SECRET", "")
+	t.Setenv("APP_ENV", "development")
+	secret := ValidateJWTSecret()
+	assert.NotEmpty(t, secret, "should return default dev secret")
+}
+
+func TestValidateJWTSecret_DevWithSecret(t *testing.T) {
+	t.Setenv("JWT_SECRET", "my-dev-secret")
+	t.Setenv("APP_ENV", "development")
+	secret := ValidateJWTSecret()
+	assert.Equal(t, "my-dev-secret", secret)
+}
