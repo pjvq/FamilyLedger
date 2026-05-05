@@ -36,6 +36,28 @@ void main() {
       expect(incParents.length, 7);
     });
 
+    test('clearAllData re-seeds preset categories', () async {
+      // Verify initial seed
+      var cats = await db.getAllCategories();
+      var parents = cats.where((c) => c.parentId == null).toList();
+      expect(parents.length, 21);
+
+      // Clear all data
+      await db.clearAllData();
+
+      // Verify categories are re-seeded
+      cats = await db.getAllCategories();
+      parents = cats.where((c) => c.parentId == null).toList();
+      final subs = cats.where((c) => c.parentId != null).toList();
+      expect(parents.length, 21, reason: 'clearAllData should re-seed 21 parent categories');
+      expect(subs.length, greaterThan(0), reason: 'clearAllData should re-seed subcategories');
+
+      // Verify they are all preset
+      for (final cat in parents) {
+        expect(cat.isPreset, true, reason: '${cat.name} should be preset after re-seed');
+      }
+    });
+
     test('categories have correct fields', () async {
       final cats = await db.getCategoriesByType('expense');
       final food = cats.firstWhere((c) => c.id == _catFood);

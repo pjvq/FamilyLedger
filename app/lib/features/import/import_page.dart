@@ -1736,6 +1736,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       setState(() => _importTotal = toImport.length);
 
       // Ensure all categories exist on server before creating transactions
+      final failedCatIds = <String>{}; // Track failed category IDs globally
       if (_importToFamily) {
         final syncedCatIds = <String>{};
         final txnClient = ref.read(transactionClientProvider);
@@ -1769,40 +1770,42 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           }
         }
 
-        // Round 1: sync ALL parent categories (no parentId)
-        final failedParentIds = <String>{};
-        for (final cat in parentCats) {
-          if (syncedCatIds.contains(cat.id)) continue;
-          syncedCatIds.add(cat.id);
-
-          try {
-            final catReq = pb_txn.CreateCategoryRequest()
-              ..name = cat.name
-              ..iconKey = cat.iconKey.isNotEmpty ? cat.iconKey : 'category'
-              ..type = cat.type == 'income'
-                  ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
-                  : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE;
-            await txnClient.createCategory(catReq,
-                options: CallOptions(timeout: const Duration(seconds: 10)));
-          } catch (e) {
-            failedParentIds.add(cat.id);
-            debugPrint('Import: ensure parent category ${cat.name} (${cat.id}) failed: $e');
-            // Retry once
+        // Helper: sync a single category with up to 3 retries + exponential backoff
+        Future<bool> syncCategory(db.Category cat, {String? parentId}) async {
+          const maxRetries = 3;
+          for (int attempt = 0; attempt < maxRetries; attempt++) {
             try {
-              await Future.delayed(const Duration(milliseconds: 500));
+              if (attempt > 0) {
+                await Future.delayed(Duration(milliseconds: 500 * (1 << (attempt - 1))));
+              }
               final catReq = pb_txn.CreateCategoryRequest()
                 ..name = cat.name
                 ..iconKey = cat.iconKey.isNotEmpty ? cat.iconKey : 'category'
                 ..type = cat.type == 'income'
                     ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
                     : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE;
+              if (parentId != null && parentId.isNotEmpty) {
+                catReq.parentId = parentId;
+              }
               await txnClient.createCategory(catReq,
-                  options: CallOptions(timeout: const Duration(seconds: 10)));
-              failedParentIds.remove(cat.id);
-              debugPrint('Import: retry parent category ${cat.name} succeeded');
-            } catch (_) {
-              debugPrint('Import: retry parent category ${cat.name} also failed');
+                  options: CallOptions(timeout: const Duration(seconds: 15)));
+              return true;
+            } catch (e) {
+              debugPrint('Import: ensure category ${cat.name} (${cat.id}) attempt ${attempt + 1} failed: $e');
             }
+          }
+          return false;
+        }
+
+        // Round 1: sync ALL parent categories (no parentId)
+        final failedParentIds = <String>{};
+        for (final cat in parentCats) {
+          if (syncedCatIds.contains(cat.id)) continue;
+          syncedCatIds.add(cat.id);
+          final ok = await syncCategory(cat);
+          if (!ok) {
+            failedParentIds.add(cat.id);
+            failedCatIds.add(cat.id);
           }
         }
 
@@ -1811,45 +1814,21 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           if (syncedCatIds.contains(cat.id)) continue;
           syncedCatIds.add(cat.id);
 
-          // Skip if parent sync failed
+          // Skip if parent sync failed — mark child as failed too
           if (cat.parentId != null && failedParentIds.contains(cat.parentId!)) {
             debugPrint('Import: skip child ${cat.name} — parent ${cat.parentId} failed');
+            failedCatIds.add(cat.id);
             continue;
           }
 
-          try {
-            final catReq = pb_txn.CreateCategoryRequest()
-              ..name = cat.name
-              ..iconKey = cat.iconKey.isNotEmpty ? cat.iconKey : 'category'
-              ..type = cat.type == 'income'
-                  ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
-                  : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE;
-            if (cat.parentId != null && cat.parentId!.isNotEmpty) {
-              catReq.parentId = cat.parentId!;
-            }
-            await txnClient.createCategory(catReq,
-                options: CallOptions(timeout: const Duration(seconds: 10)));
-          } catch (e) {
-            debugPrint('Import: ensure child category ${cat.name} (${cat.id}) failed: $e');
-            // Retry once
-            try {
-              await Future.delayed(const Duration(milliseconds: 500));
-              final catReq = pb_txn.CreateCategoryRequest()
-                ..name = cat.name
-                ..iconKey = cat.iconKey.isNotEmpty ? cat.iconKey : 'category'
-                ..type = cat.type == 'income'
-                    ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
-                    : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE;
-              if (cat.parentId != null && cat.parentId!.isNotEmpty) {
-                catReq.parentId = cat.parentId!;
-              }
-              await txnClient.createCategory(catReq,
-                  options: CallOptions(timeout: const Duration(seconds: 10)));
-              debugPrint('Import: retry child category ${cat.name} succeeded');
-            } catch (_) {
-              debugPrint('Import: retry child category ${cat.name} also failed');
-            }
+          final ok = await syncCategory(cat, parentId: cat.parentId);
+          if (!ok) {
+            failedCatIds.add(cat.id);
           }
+        }
+
+        if (failedCatIds.isNotEmpty) {
+          debugPrint('Import: ${failedCatIds.length} categories failed to sync, will use default for those transactions');
         }
       }
 
@@ -1887,10 +1866,16 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           imported++;
 
           if (_importToFamily) {
+            // For categories that failed to sync to server, use default
+            // category to avoid server creating placeholder "未分类" entries
+            var serverCatId = catId;
+            if (failedCatIds.contains(catId)) {
+              serverCatId = _defaultCategory?.id ?? catId;
+            }
             localIds.add(localId);
             batchReqs.add(pb_txn.CreateTransactionRequest()
               ..accountId = defaultAccId
-              ..categoryId = catId
+              ..categoryId = serverCatId
               ..amount = Int64(amountCents)
               ..currency = 'CNY'
               ..amountCny = Int64(amountCents)

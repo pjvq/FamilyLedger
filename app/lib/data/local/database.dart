@@ -1342,6 +1342,11 @@ class AppDatabase extends _$AppDatabase {
         await delete(table).go();
       }
     });
+    // Re-seed preset categories after clearing all data.
+    // onCreate won't run again because the DB file still exists,
+    // so we must explicitly re-seed here.
+    await _seedCategories();
+    await _seedSubcategories();
   }
 }
 

@@ -255,18 +255,37 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		"SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1 AND deleted_at IS NULL)", categoryID,
 	).Scan(&catExists)
 	if err != nil || !catExists {
-		// In batch mode, auto-create a placeholder category to avoid FK violation
+		// In batch mode, auto-create a placeholder category to avoid FK violation.
+		// Try to find a default category of the same type first; only create
+		// a placeholder as last resort.
 		if ctx.Value(skipOverdraftKey) != nil {
-			_, autoErr := tx.Exec(ctx,
-				`INSERT INTO categories (id, name, icon, icon_key, type, is_preset, sort_order, user_id)
-				 VALUES ($1, $2, '', 'category', $3::category_type, false, 0, $4)
-				 ON CONFLICT (id) DO NOTHING`,
-				categoryID, "未分类-"+categoryID.String()[:8], txnType, uid,
-			)
-			if autoErr != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "category %s not found and auto-create failed: %v", categoryID, autoErr)
+			var fallbackID uuid.UUID
+			fallbackErr := tx.QueryRow(ctx,
+				`SELECT id FROM categories WHERE type = $1::category_type AND is_preset = true AND deleted_at IS NULL ORDER BY sort_order LIMIT 1`,
+				txnType,
+			).Scan(&fallbackID)
+			if fallbackErr == nil {
+				// Use the default preset category instead of auto-creating a placeholder
+				categoryID = fallbackID
+				log.Printf("batch-create: category not found, falling back to preset %s for user %s", fallbackID, userID)
+			} else {
+				// No preset found either — create placeholder as last resort
+				typeLabel := "支出"
+				if txnType == "income" {
+					typeLabel = "收入"
+				}
+				placeholderName := fmt.Sprintf("未分类-%s-%s", typeLabel, categoryID.String()[:8])
+				_, autoErr := tx.Exec(ctx,
+					`INSERT INTO categories (id, name, icon, icon_key, type, is_preset, sort_order, user_id)
+					 VALUES ($1, $2, '', 'category', $3::category_type, false, 0, $4)
+					 ON CONFLICT (id) DO NOTHING`,
+					categoryID, placeholderName, txnType, uid,
+				)
+				if autoErr != nil {
+					return nil, status.Errorf(codes.InvalidArgument, "category %s not found and auto-create failed: %v", categoryID, autoErr)
+				}
+				log.Printf("batch-create: auto-created placeholder category %s (%s) for user %s", categoryID, placeholderName, userID)
 			}
-			log.Printf("batch-create: auto-created placeholder category %s for user %s", categoryID, userID)
 		} else {
 			return nil, status.Errorf(codes.InvalidArgument, "category %s not found", categoryID)
 		}
