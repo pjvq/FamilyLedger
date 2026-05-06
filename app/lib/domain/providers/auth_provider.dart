@@ -22,12 +22,14 @@ enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 class AuthState {
   final AuthStatus status;
   final String? userId;
+  final String? email;
   final String? errorMessage;
   final bool isOfflineMode;
 
   const AuthState({
     this.status = AuthStatus.initial,
     this.userId,
+    this.email,
     this.errorMessage,
     this.isOfflineMode = false,
   });
@@ -35,12 +37,14 @@ class AuthState {
   AuthState copyWith({
     AuthStatus? status,
     String? userId,
+    String? email,
     String? errorMessage,
     bool? isOfflineMode,
   }) =>
       AuthState(
         status: status ?? this.status,
         userId: userId ?? this.userId,
+        email: email ?? this.email,
         errorMessage: errorMessage ?? this.errorMessage,
         isOfflineMode: isOfflineMode ?? this.isOfflineMode,
       );
@@ -61,9 +65,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final userId = _prefs.getString(AppConstants.userIdKey);
     if (userId != null) {
       state = AuthState(status: AuthStatus.authenticated, userId: userId);
+      // Load email from DB asynchronously
+      _loadEmail(userId);
     } else {
       state = const AuthState(status: AuthStatus.unauthenticated);
     }
+  }
+
+  Future<void> _loadEmail(String userId) async {
+    try {
+      final user = await (_db.select(_db.users)
+            ..where((u) => u.id.equals(userId)))
+          .getSingleOrNull();
+      if (user != null && user.email.isNotEmpty) {
+        state = state.copyWith(email: user.email);
+      }
+    } catch (_) {}
   }
 
   /// 注册 — 调用 gRPC，失败时降级到本地
@@ -127,7 +144,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (savedFamId != null) {
         _ref.read(currentFamilyIdProvider.notifier).state = savedFamId;
       }
-      state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
+      state = AuthState(status: AuthStatus.authenticated, userId: resp.userId, email: email);
     } on GrpcError catch (e) {
       developer.log('[Auth] register: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}');
       if (e.code == StatusCode.alreadyExists) {
@@ -171,7 +188,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       ));
       await _prefs.setString(AppConstants.userIdKey, userId);
       _ref.read(currentUserIdProvider.notifier).state = userId;
-      state = AuthState(status: AuthStatus.authenticated, userId: userId, isOfflineMode: true);
+      state = AuthState(status: AuthStatus.authenticated, userId: userId, email: email, isOfflineMode: true);
     } catch (e) {
       state = AuthState(
         status: AuthStatus.error,
@@ -239,7 +256,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (savedFamId != null) {
         _ref.read(currentFamilyIdProvider.notifier).state = savedFamId;
       }
-      state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
+      state = AuthState(status: AuthStatus.authenticated, userId: resp.userId, email: email);
     } on GrpcError catch (e) {
       developer.log('[Auth] login: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}');
       if (e.code == StatusCode.unavailable || e.code == StatusCode.deadlineExceeded) {
@@ -272,7 +289,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
       await _prefs.setString(AppConstants.userIdKey, user.id);
       _ref.read(currentUserIdProvider.notifier).state = user.id;
-      state = AuthState(status: AuthStatus.authenticated, userId: user.id, isOfflineMode: true);
+      state = AuthState(status: AuthStatus.authenticated, userId: user.id, email: user.email, isOfflineMode: true);
     } catch (e) {
       state = AuthState(
         status: AuthStatus.error,
@@ -361,7 +378,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (savedFamId3 != null) {
         _ref.read(currentFamilyIdProvider.notifier).state = savedFamId3;
       }
-      state = AuthState(status: AuthStatus.authenticated, userId: resp.userId);
+      state = AuthState(status: AuthStatus.authenticated, userId: resp.userId, email: '$provider@oauth');
     } on GrpcError catch (e) {
       state = AuthState(
         status: AuthStatus.error,

@@ -30,7 +30,7 @@ class SettingsPage extends ConsumerWidget {
         children: [
           // User info card
           _UserInfoCard(
-            email: authState.userId ?? '',
+            email: authState.email ?? authState.userId ?? '',
             theme: theme,
             isDark: isDark,
           ),

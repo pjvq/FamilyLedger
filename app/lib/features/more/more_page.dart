@@ -31,7 +31,7 @@ class MorePage extends ConsumerWidget {
           children: [
             // ── User info card ──
             _UserInfoCard(
-              email: authState.userId ?? '',
+              email: authState.email ?? authState.userId ?? '',
               familyName: familyState.currentFamily?.name,
               memberCount: familyState.members.length,
               theme: theme,
