@@ -1259,11 +1259,24 @@ func (s *Service) CreateLoanGroup(ctx context.Context, req *pb.CreateLoanGroupRe
 	// Create loan_group
 	var groupID uuid.UUID
 	var createdAt, updatedAt time.Time
+
+	var familyIDPtr *uuid.UUID
+	if req.FamilyId != "" {
+		fid, err := uuid.Parse(req.FamilyId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid family_id")
+		}
+		if err := permission.Check(ctx, s.pool, userID, req.FamilyId, permission.CanEdit); err != nil {
+			return nil, err
+		}
+		familyIDPtr = &fid
+	}
+
 	err = tx.QueryRow(ctx,
-		`INSERT INTO loan_groups (user_id, name, group_type, total_principal, payment_day, start_date, account_id)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`INSERT INTO loan_groups (user_id, name, group_type, total_principal, payment_day, start_date, account_id, family_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		 RETURNING id, created_at, updated_at`,
-		uid, req.Name, req.GroupType, totalPrincipal, req.PaymentDay, startDate, accountID,
+		uid, req.Name, req.GroupType, totalPrincipal, req.PaymentDay, startDate, accountID, familyIDPtr,
 	).Scan(&groupID, &createdAt, &updatedAt)
 	if err != nil {
 		log.Printf("loan: create group error: %v", err)
@@ -1312,13 +1325,13 @@ func (s *Service) CreateLoanGroup(ctx context.Context, req *pb.CreateLoanGroupRe
 		err = tx.QueryRow(ctx,
 			`INSERT INTO loans (user_id, name, loan_type, principal, remaining_principal,
 			 annual_rate, total_months, paid_months, repayment_method, payment_day,
-			 start_date, account_id, group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month)
-			 VALUES ($1,$2,$3,$4,$5,$6,$7,0,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+			 start_date, account_id, group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month, family_id)
+			 VALUES ($1,$2,$3,$4,$5,$6,$7,0,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
 			 RETURNING id, created_at, updated_at`,
 			uid, subName, loanTypeStr, sl.Principal, sl.Principal,
 			annualRate, sl.TotalMonths, methodStr, req.PaymentDay,
 			startDate, accountID, groupID, subTypeStr, rateTypeStr,
-			lprBasePtr, lprSpreadPtr, rateAdjustMonthPtr,
+			lprBasePtr, lprSpreadPtr, rateAdjustMonthPtr, familyIDPtr,
 		).Scan(&loanID, &lCreatedAt, &lUpdatedAt)
 		if err != nil {
 			log.Printf("loan: create sub-loan error: %v", err)
@@ -1350,6 +1363,7 @@ func (s *Service) CreateLoanGroup(ctx context.Context, req *pb.CreateLoanGroupRe
 			subType: sl.SubType, rateType: sl.RateType,
 			lprBase: sl.LprBase, lprSpread: sl.LprSpread,
 			rateAdjustMonth: sl.RateAdjustMonth,
+			familyID: req.FamilyId,
 		}
 		subLoanProtos = append(subLoanProtos, buildLoanProtoFull(f))
 	}
@@ -1363,7 +1377,7 @@ func (s *Service) CreateLoanGroup(ctx context.Context, req *pb.CreateLoanGroupRe
 		acctStr = accountID.String()
 	}
 
-	log.Printf("loan: created group %s (%s) with %d sub-loans for user %s", groupID, req.Name, len(subLoanProtos), userID)
+	log.Printf("loan: created group %s (%s) with %d sub-loans for user %s familyId=%q", groupID, req.Name, len(subLoanProtos), userID, req.FamilyId)
 	return &pb.LoanGroup{
 		Id:                 groupID.String(),
 		UserId:             userID,
@@ -1371,6 +1385,8 @@ func (s *Service) CreateLoanGroup(ctx context.Context, req *pb.CreateLoanGroupRe
 		GroupType:          req.GroupType,
 		TotalPrincipal:     totalPrincipal,
 		PaymentDay:         req.PaymentDay,
+		LoanType:           req.LoanType,
+		FamilyId:           req.FamilyId,
 		StartDate:          timestamppb.New(startDate),
 		AccountId:          acctStr,
 		SubLoans:           subLoanProtos,

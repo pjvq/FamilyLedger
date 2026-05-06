@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v7.34.1
-// source: proto/investment.proto
+// source: investment.proto
 
 package investment
 
@@ -422,7 +422,7 @@ var InvestmentService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/investment.proto",
+	Metadata: "investment.proto",
 }
 
 const (
@@ -638,5 +638,5 @@ var MarketDataService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/investment.proto",
+	Metadata: "investment.proto",
 }

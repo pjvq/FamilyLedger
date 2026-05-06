@@ -376,6 +376,8 @@ const LoanGroup$json = {
     {'1': 'total_monthly_payment', '3': 10, '4': 1, '5': 3, '10': 'totalMonthlyPayment'},
     {'1': 'created_at', '3': 11, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
     {'1': 'updated_at', '3': 12, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+    {'1': 'loan_type', '3': 13, '4': 1, '5': 14, '6': '.familyledger.loan.v1.LoanType', '10': 'loanType'},
+    {'1': 'family_id', '3': 14, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
 
@@ -389,7 +391,9 @@ final $typed_data.Uint8List loanGroupDescriptor = $convert.base64Decode(
     'FucxgJIAMoCzIaLmZhbWlseWxlZGdlci5sb2FuLnYxLkxvYW5SCHN1YkxvYW5zEjIKFXRvdGFs'
     'X21vbnRobHlfcGF5bWVudBgKIAEoA1ITdG90YWxNb250aGx5UGF5bWVudBI5CgpjcmVhdGVkX2'
     'F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3JlYXRlZEF0EjkKCnVwZGF0'
-    'ZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUgl1cGRhdGVkQXQ=');
+    'ZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUgl1cGRhdGVkQXQSOwoJbG'
+    '9hbl90eXBlGA0gASgOMh4uZmFtaWx5bGVkZ2VyLmxvYW4udjEuTG9hblR5cGVSCGxvYW5UeXBl'
+    'EhsKCWZhbWlseV9pZBgOIAEoCVIIZmFtaWx5SWQ=');
 
 @$core.Deprecated('Use subLoanSpecDescriptor instead')
 const SubLoanSpec$json = {

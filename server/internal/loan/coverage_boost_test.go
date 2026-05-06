@@ -78,7 +78,7 @@ func TestBoost_CreateLoanGroup_Success(t *testing.T) {
 
 	// Insert loan_group
 	mock.ExpectQuery("INSERT INTO loan_groups").
-		WithArgs(testUserUUID, "房贷组合", "combined", int64(150000000), int32(15), startDate, (*uuid.UUID)(nil)).
+		WithArgs(testUserUUID, "房贷组合", "combined", int64(150000000), int32(15), startDate, (*uuid.UUID)(nil), (*uuid.UUID)(nil)).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(groupID, now, now))
 
 	// Sub-loan insert
@@ -87,7 +87,7 @@ func TestBoost_CreateLoanGroup_Success(t *testing.T) {
 			testUserUUID, "房贷组合-商贷", "mortgage", int64(100000000), int64(100000000),
 			float64(3.85), int32(360), "equal_installment", int32(15),
 			startDate, (*uuid.UUID)(nil), groupID, "commercial", "fixed",
-			(*float64)(nil), (*float64)(nil), (*int32)(nil),
+			(*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil),
 		).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(loanID, now, now))
 
@@ -105,7 +105,7 @@ func TestBoost_CreateLoanGroup_Success(t *testing.T) {
 			testUserUUID, "房贷组合-公积金", "mortgage", int64(50000000), int64(50000000),
 			float64(2.85), int32(360), "equal_installment", int32(15),
 			startDate, (*uuid.UUID)(nil), groupID, "provident", "fixed",
-			(*float64)(nil), (*float64)(nil), (*int32)(nil),
+			(*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil),
 		).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(loanID2, now, now))
 
@@ -872,7 +872,7 @@ func TestBoost_CreateLoanGroup_LPRFloating(t *testing.T) {
 	mock.ExpectBegin()
 
 	mock.ExpectQuery("INSERT INTO loan_groups").
-		WithArgs(testUserUUID, "LPR贷", "commercial_only", int64(100000000), int32(15), startDate, (*uuid.UUID)(nil)).
+		WithArgs(testUserUUID, "LPR贷", "commercial_only", int64(100000000), int32(15), startDate, (*uuid.UUID)(nil), (*uuid.UUID)(nil)).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(groupID, now, now))
 
 	// Sub-loan with LPR type: effective rate = 3.85 + 0.30 = 4.15
@@ -881,7 +881,7 @@ func TestBoost_CreateLoanGroup_LPRFloating(t *testing.T) {
 			testUserUUID, "LPR贷-商贷", "mortgage", int64(100000000), int64(100000000),
 			float64(4.15), int32(12), "equal_installment", int32(15),
 			startDate, (*uuid.UUID)(nil), groupID, "commercial", "lpr_floating",
-			&lprBase, &lprSpread, &rateAdjustMonth,
+			&lprBase, &lprSpread, &rateAdjustMonth, (*uuid.UUID)(nil),
 		).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(loanID, now, now))
 

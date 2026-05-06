@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.34.1
-// source: proto/investment.proto
+// source: investment.proto
 
 package investment
 
@@ -65,11 +65,11 @@ func (x MarketType) String() string {
 }
 
 func (MarketType) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_investment_proto_enumTypes[0].Descriptor()
+	return file_investment_proto_enumTypes[0].Descriptor()
 }
 
 func (MarketType) Type() protoreflect.EnumType {
-	return &file_proto_investment_proto_enumTypes[0]
+	return &file_investment_proto_enumTypes[0]
 }
 
 func (x MarketType) Number() protoreflect.EnumNumber {
@@ -78,7 +78,7 @@ func (x MarketType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MarketType.Descriptor instead.
 func (MarketType) EnumDescriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{0}
+	return file_investment_proto_rawDescGZIP(), []int{0}
 }
 
 type TradeType int32
@@ -114,11 +114,11 @@ func (x TradeType) String() string {
 }
 
 func (TradeType) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_investment_proto_enumTypes[1].Descriptor()
+	return file_investment_proto_enumTypes[1].Descriptor()
 }
 
 func (TradeType) Type() protoreflect.EnumType {
-	return &file_proto_investment_proto_enumTypes[1]
+	return &file_investment_proto_enumTypes[1]
 }
 
 func (x TradeType) Number() protoreflect.EnumNumber {
@@ -127,7 +127,7 @@ func (x TradeType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TradeType.Descriptor instead.
 func (TradeType) EnumDescriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{1}
+	return file_investment_proto_rawDescGZIP(), []int{1}
 }
 
 type Investment struct {
@@ -151,7 +151,7 @@ type Investment struct {
 
 func (x *Investment) Reset() {
 	*x = Investment{}
-	mi := &file_proto_investment_proto_msgTypes[0]
+	mi := &file_investment_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -163,7 +163,7 @@ func (x *Investment) String() string {
 func (*Investment) ProtoMessage() {}
 
 func (x *Investment) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[0]
+	mi := &file_investment_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -176,7 +176,7 @@ func (x *Investment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Investment.ProtoReflect.Descriptor instead.
 func (*Investment) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{0}
+	return file_investment_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Investment) GetId() string {
@@ -286,7 +286,7 @@ type InvestmentTrade struct {
 
 func (x *InvestmentTrade) Reset() {
 	*x = InvestmentTrade{}
-	mi := &file_proto_investment_proto_msgTypes[1]
+	mi := &file_investment_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -298,7 +298,7 @@ func (x *InvestmentTrade) String() string {
 func (*InvestmentTrade) ProtoMessage() {}
 
 func (x *InvestmentTrade) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[1]
+	mi := &file_investment_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -311,7 +311,7 @@ func (x *InvestmentTrade) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvestmentTrade.ProtoReflect.Descriptor instead.
 func (*InvestmentTrade) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{1}
+	return file_investment_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *InvestmentTrade) GetId() string {
@@ -389,7 +389,7 @@ type MarketQuote struct {
 
 func (x *MarketQuote) Reset() {
 	*x = MarketQuote{}
-	mi := &file_proto_investment_proto_msgTypes[2]
+	mi := &file_investment_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -401,7 +401,7 @@ func (x *MarketQuote) String() string {
 func (*MarketQuote) ProtoMessage() {}
 
 func (x *MarketQuote) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[2]
+	mi := &file_investment_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -414,7 +414,7 @@ func (x *MarketQuote) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarketQuote.ProtoReflect.Descriptor instead.
 func (*MarketQuote) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{2}
+	return file_investment_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *MarketQuote) GetSymbol() string {
@@ -507,7 +507,7 @@ type PortfolioSummary struct {
 
 func (x *PortfolioSummary) Reset() {
 	*x = PortfolioSummary{}
-	mi := &file_proto_investment_proto_msgTypes[3]
+	mi := &file_investment_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -519,7 +519,7 @@ func (x *PortfolioSummary) String() string {
 func (*PortfolioSummary) ProtoMessage() {}
 
 func (x *PortfolioSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[3]
+	mi := &file_investment_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -532,7 +532,7 @@ func (x *PortfolioSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PortfolioSummary.ProtoReflect.Descriptor instead.
 func (*PortfolioSummary) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{3}
+	return file_investment_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *PortfolioSummary) GetTotalValue() int64 {
@@ -585,7 +585,7 @@ type HoldingItem struct {
 
 func (x *HoldingItem) Reset() {
 	*x = HoldingItem{}
-	mi := &file_proto_investment_proto_msgTypes[4]
+	mi := &file_investment_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -597,7 +597,7 @@ func (x *HoldingItem) String() string {
 func (*HoldingItem) ProtoMessage() {}
 
 func (x *HoldingItem) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[4]
+	mi := &file_investment_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -610,7 +610,7 @@ func (x *HoldingItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HoldingItem.ProtoReflect.Descriptor instead.
 func (*HoldingItem) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{4}
+	return file_investment_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *HoldingItem) GetInvestmentId() string {
@@ -672,7 +672,7 @@ type PricePoint struct {
 
 func (x *PricePoint) Reset() {
 	*x = PricePoint{}
-	mi := &file_proto_investment_proto_msgTypes[5]
+	mi := &file_investment_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -684,7 +684,7 @@ func (x *PricePoint) String() string {
 func (*PricePoint) ProtoMessage() {}
 
 func (x *PricePoint) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[5]
+	mi := &file_investment_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -697,7 +697,7 @@ func (x *PricePoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PricePoint.ProtoReflect.Descriptor instead.
 func (*PricePoint) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{5}
+	return file_investment_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *PricePoint) GetTimestamp() *timestamppb.Timestamp {
@@ -725,7 +725,7 @@ type SymbolInfo struct {
 
 func (x *SymbolInfo) Reset() {
 	*x = SymbolInfo{}
-	mi := &file_proto_investment_proto_msgTypes[6]
+	mi := &file_investment_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -737,7 +737,7 @@ func (x *SymbolInfo) String() string {
 func (*SymbolInfo) ProtoMessage() {}
 
 func (x *SymbolInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[6]
+	mi := &file_investment_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -750,7 +750,7 @@ func (x *SymbolInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SymbolInfo.ProtoReflect.Descriptor instead.
 func (*SymbolInfo) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{6}
+	return file_investment_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *SymbolInfo) GetSymbol() string {
@@ -787,7 +787,7 @@ type CreateInvestmentRequest struct {
 
 func (x *CreateInvestmentRequest) Reset() {
 	*x = CreateInvestmentRequest{}
-	mi := &file_proto_investment_proto_msgTypes[7]
+	mi := &file_investment_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -799,7 +799,7 @@ func (x *CreateInvestmentRequest) String() string {
 func (*CreateInvestmentRequest) ProtoMessage() {}
 
 func (x *CreateInvestmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[7]
+	mi := &file_investment_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -812,7 +812,7 @@ func (x *CreateInvestmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateInvestmentRequest.ProtoReflect.Descriptor instead.
 func (*CreateInvestmentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{7}
+	return file_investment_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateInvestmentRequest) GetSymbol() string {
@@ -852,7 +852,7 @@ type GetInvestmentRequest struct {
 
 func (x *GetInvestmentRequest) Reset() {
 	*x = GetInvestmentRequest{}
-	mi := &file_proto_investment_proto_msgTypes[8]
+	mi := &file_investment_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -864,7 +864,7 @@ func (x *GetInvestmentRequest) String() string {
 func (*GetInvestmentRequest) ProtoMessage() {}
 
 func (x *GetInvestmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[8]
+	mi := &file_investment_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -877,7 +877,7 @@ func (x *GetInvestmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvestmentRequest.ProtoReflect.Descriptor instead.
 func (*GetInvestmentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{8}
+	return file_investment_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetInvestmentRequest) GetInvestmentId() string {
@@ -897,7 +897,7 @@ type ListInvestmentsRequest struct {
 
 func (x *ListInvestmentsRequest) Reset() {
 	*x = ListInvestmentsRequest{}
-	mi := &file_proto_investment_proto_msgTypes[9]
+	mi := &file_investment_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -909,7 +909,7 @@ func (x *ListInvestmentsRequest) String() string {
 func (*ListInvestmentsRequest) ProtoMessage() {}
 
 func (x *ListInvestmentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[9]
+	mi := &file_investment_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -922,7 +922,7 @@ func (x *ListInvestmentsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInvestmentsRequest.ProtoReflect.Descriptor instead.
 func (*ListInvestmentsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{9}
+	return file_investment_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListInvestmentsRequest) GetMarketType() MarketType {
@@ -948,7 +948,7 @@ type ListInvestmentsResponse struct {
 
 func (x *ListInvestmentsResponse) Reset() {
 	*x = ListInvestmentsResponse{}
-	mi := &file_proto_investment_proto_msgTypes[10]
+	mi := &file_investment_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -960,7 +960,7 @@ func (x *ListInvestmentsResponse) String() string {
 func (*ListInvestmentsResponse) ProtoMessage() {}
 
 func (x *ListInvestmentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[10]
+	mi := &file_investment_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -973,7 +973,7 @@ func (x *ListInvestmentsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInvestmentsResponse.ProtoReflect.Descriptor instead.
 func (*ListInvestmentsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{10}
+	return file_investment_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListInvestmentsResponse) GetInvestments() []*Investment {
@@ -993,7 +993,7 @@ type UpdateInvestmentRequest struct {
 
 func (x *UpdateInvestmentRequest) Reset() {
 	*x = UpdateInvestmentRequest{}
-	mi := &file_proto_investment_proto_msgTypes[11]
+	mi := &file_investment_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1005,7 +1005,7 @@ func (x *UpdateInvestmentRequest) String() string {
 func (*UpdateInvestmentRequest) ProtoMessage() {}
 
 func (x *UpdateInvestmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[11]
+	mi := &file_investment_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1018,7 +1018,7 @@ func (x *UpdateInvestmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateInvestmentRequest.ProtoReflect.Descriptor instead.
 func (*UpdateInvestmentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{11}
+	return file_investment_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdateInvestmentRequest) GetInvestmentId() string {
@@ -1044,7 +1044,7 @@ type DeleteInvestmentRequest struct {
 
 func (x *DeleteInvestmentRequest) Reset() {
 	*x = DeleteInvestmentRequest{}
-	mi := &file_proto_investment_proto_msgTypes[12]
+	mi := &file_investment_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1056,7 +1056,7 @@ func (x *DeleteInvestmentRequest) String() string {
 func (*DeleteInvestmentRequest) ProtoMessage() {}
 
 func (x *DeleteInvestmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[12]
+	mi := &file_investment_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1069,7 +1069,7 @@ func (x *DeleteInvestmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteInvestmentRequest.ProtoReflect.Descriptor instead.
 func (*DeleteInvestmentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{12}
+	return file_investment_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DeleteInvestmentRequest) GetInvestmentId() string {
@@ -1093,7 +1093,7 @@ type RecordTradeRequest struct {
 
 func (x *RecordTradeRequest) Reset() {
 	*x = RecordTradeRequest{}
-	mi := &file_proto_investment_proto_msgTypes[13]
+	mi := &file_investment_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1105,7 +1105,7 @@ func (x *RecordTradeRequest) String() string {
 func (*RecordTradeRequest) ProtoMessage() {}
 
 func (x *RecordTradeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[13]
+	mi := &file_investment_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1118,7 +1118,7 @@ func (x *RecordTradeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecordTradeRequest.ProtoReflect.Descriptor instead.
 func (*RecordTradeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{13}
+	return file_investment_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RecordTradeRequest) GetInvestmentId() string {
@@ -1172,7 +1172,7 @@ type ListTradesRequest struct {
 
 func (x *ListTradesRequest) Reset() {
 	*x = ListTradesRequest{}
-	mi := &file_proto_investment_proto_msgTypes[14]
+	mi := &file_investment_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1184,7 +1184,7 @@ func (x *ListTradesRequest) String() string {
 func (*ListTradesRequest) ProtoMessage() {}
 
 func (x *ListTradesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[14]
+	mi := &file_investment_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1197,7 +1197,7 @@ func (x *ListTradesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTradesRequest.ProtoReflect.Descriptor instead.
 func (*ListTradesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{14}
+	return file_investment_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ListTradesRequest) GetInvestmentId() string {
@@ -1216,7 +1216,7 @@ type ListTradesResponse struct {
 
 func (x *ListTradesResponse) Reset() {
 	*x = ListTradesResponse{}
-	mi := &file_proto_investment_proto_msgTypes[15]
+	mi := &file_investment_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1228,7 +1228,7 @@ func (x *ListTradesResponse) String() string {
 func (*ListTradesResponse) ProtoMessage() {}
 
 func (x *ListTradesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[15]
+	mi := &file_investment_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1241,7 +1241,7 @@ func (x *ListTradesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTradesResponse.ProtoReflect.Descriptor instead.
 func (*ListTradesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{15}
+	return file_investment_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListTradesResponse) GetTrades() []*InvestmentTrade {
@@ -1260,7 +1260,7 @@ type GetPortfolioSummaryRequest struct {
 
 func (x *GetPortfolioSummaryRequest) Reset() {
 	*x = GetPortfolioSummaryRequest{}
-	mi := &file_proto_investment_proto_msgTypes[16]
+	mi := &file_investment_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1272,7 +1272,7 @@ func (x *GetPortfolioSummaryRequest) String() string {
 func (*GetPortfolioSummaryRequest) ProtoMessage() {}
 
 func (x *GetPortfolioSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[16]
+	mi := &file_investment_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1285,7 +1285,7 @@ func (x *GetPortfolioSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPortfolioSummaryRequest.ProtoReflect.Descriptor instead.
 func (*GetPortfolioSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{16}
+	return file_investment_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetPortfolioSummaryRequest) GetFamilyId() string {
@@ -1306,7 +1306,7 @@ type GetQuoteRequest struct {
 
 func (x *GetQuoteRequest) Reset() {
 	*x = GetQuoteRequest{}
-	mi := &file_proto_investment_proto_msgTypes[17]
+	mi := &file_investment_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1318,7 +1318,7 @@ func (x *GetQuoteRequest) String() string {
 func (*GetQuoteRequest) ProtoMessage() {}
 
 func (x *GetQuoteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[17]
+	mi := &file_investment_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1331,7 +1331,7 @@ func (x *GetQuoteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetQuoteRequest.ProtoReflect.Descriptor instead.
 func (*GetQuoteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{17}
+	return file_investment_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetQuoteRequest) GetSymbol() string {
@@ -1357,7 +1357,7 @@ type BatchGetQuotesRequest struct {
 
 func (x *BatchGetQuotesRequest) Reset() {
 	*x = BatchGetQuotesRequest{}
-	mi := &file_proto_investment_proto_msgTypes[18]
+	mi := &file_investment_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1369,7 +1369,7 @@ func (x *BatchGetQuotesRequest) String() string {
 func (*BatchGetQuotesRequest) ProtoMessage() {}
 
 func (x *BatchGetQuotesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[18]
+	mi := &file_investment_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1382,7 +1382,7 @@ func (x *BatchGetQuotesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchGetQuotesRequest.ProtoReflect.Descriptor instead.
 func (*BatchGetQuotesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{18}
+	return file_investment_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *BatchGetQuotesRequest) GetRequests() []*GetQuoteRequest {
@@ -1401,7 +1401,7 @@ type BatchGetQuotesResponse struct {
 
 func (x *BatchGetQuotesResponse) Reset() {
 	*x = BatchGetQuotesResponse{}
-	mi := &file_proto_investment_proto_msgTypes[19]
+	mi := &file_investment_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1413,7 +1413,7 @@ func (x *BatchGetQuotesResponse) String() string {
 func (*BatchGetQuotesResponse) ProtoMessage() {}
 
 func (x *BatchGetQuotesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[19]
+	mi := &file_investment_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1426,7 +1426,7 @@ func (x *BatchGetQuotesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchGetQuotesResponse.ProtoReflect.Descriptor instead.
 func (*BatchGetQuotesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{19}
+	return file_investment_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *BatchGetQuotesResponse) GetQuotes() []*MarketQuote {
@@ -1446,7 +1446,7 @@ type SearchSymbolRequest struct {
 
 func (x *SearchSymbolRequest) Reset() {
 	*x = SearchSymbolRequest{}
-	mi := &file_proto_investment_proto_msgTypes[20]
+	mi := &file_investment_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1458,7 +1458,7 @@ func (x *SearchSymbolRequest) String() string {
 func (*SearchSymbolRequest) ProtoMessage() {}
 
 func (x *SearchSymbolRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[20]
+	mi := &file_investment_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1471,7 +1471,7 @@ func (x *SearchSymbolRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchSymbolRequest.ProtoReflect.Descriptor instead.
 func (*SearchSymbolRequest) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{20}
+	return file_investment_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *SearchSymbolRequest) GetQuery() string {
@@ -1497,7 +1497,7 @@ type SearchSymbolResponse struct {
 
 func (x *SearchSymbolResponse) Reset() {
 	*x = SearchSymbolResponse{}
-	mi := &file_proto_investment_proto_msgTypes[21]
+	mi := &file_investment_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1509,7 +1509,7 @@ func (x *SearchSymbolResponse) String() string {
 func (*SearchSymbolResponse) ProtoMessage() {}
 
 func (x *SearchSymbolResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[21]
+	mi := &file_investment_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1522,7 +1522,7 @@ func (x *SearchSymbolResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchSymbolResponse.ProtoReflect.Descriptor instead.
 func (*SearchSymbolResponse) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{21}
+	return file_investment_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *SearchSymbolResponse) GetSymbols() []*SymbolInfo {
@@ -1544,7 +1544,7 @@ type GetPriceHistoryRequest struct {
 
 func (x *GetPriceHistoryRequest) Reset() {
 	*x = GetPriceHistoryRequest{}
-	mi := &file_proto_investment_proto_msgTypes[22]
+	mi := &file_investment_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1556,7 +1556,7 @@ func (x *GetPriceHistoryRequest) String() string {
 func (*GetPriceHistoryRequest) ProtoMessage() {}
 
 func (x *GetPriceHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[22]
+	mi := &file_investment_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1569,7 +1569,7 @@ func (x *GetPriceHistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPriceHistoryRequest.ProtoReflect.Descriptor instead.
 func (*GetPriceHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{22}
+	return file_investment_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetPriceHistoryRequest) GetSymbol() string {
@@ -1611,7 +1611,7 @@ type PriceHistoryResponse struct {
 
 func (x *PriceHistoryResponse) Reset() {
 	*x = PriceHistoryResponse{}
-	mi := &file_proto_investment_proto_msgTypes[23]
+	mi := &file_investment_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1623,7 +1623,7 @@ func (x *PriceHistoryResponse) String() string {
 func (*PriceHistoryResponse) ProtoMessage() {}
 
 func (x *PriceHistoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[23]
+	mi := &file_investment_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1636,7 +1636,7 @@ func (x *PriceHistoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PriceHistoryResponse.ProtoReflect.Descriptor instead.
 func (*PriceHistoryResponse) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{23}
+	return file_investment_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *PriceHistoryResponse) GetSymbol() string {
@@ -1670,7 +1670,7 @@ type GetIRRRequest struct {
 
 func (x *GetIRRRequest) Reset() {
 	*x = GetIRRRequest{}
-	mi := &file_proto_investment_proto_msgTypes[24]
+	mi := &file_investment_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1682,7 +1682,7 @@ func (x *GetIRRRequest) String() string {
 func (*GetIRRRequest) ProtoMessage() {}
 
 func (x *GetIRRRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[24]
+	mi := &file_investment_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1695,7 +1695,7 @@ func (x *GetIRRRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIRRRequest.ProtoReflect.Descriptor instead.
 func (*GetIRRRequest) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{24}
+	return file_investment_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *GetIRRRequest) GetInvestmentId() string {
@@ -1722,7 +1722,7 @@ type CashFlow struct {
 
 func (x *CashFlow) Reset() {
 	*x = CashFlow{}
-	mi := &file_proto_investment_proto_msgTypes[25]
+	mi := &file_investment_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1734,7 +1734,7 @@ func (x *CashFlow) String() string {
 func (*CashFlow) ProtoMessage() {}
 
 func (x *CashFlow) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[25]
+	mi := &file_investment_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1747,7 +1747,7 @@ func (x *CashFlow) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CashFlow.ProtoReflect.Descriptor instead.
 func (*CashFlow) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{25}
+	return file_investment_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CashFlow) GetDate() *timestamppb.Timestamp {
@@ -1774,7 +1774,7 @@ type IRRResponse struct {
 
 func (x *IRRResponse) Reset() {
 	*x = IRRResponse{}
-	mi := &file_proto_investment_proto_msgTypes[26]
+	mi := &file_investment_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1786,7 +1786,7 @@ func (x *IRRResponse) String() string {
 func (*IRRResponse) ProtoMessage() {}
 
 func (x *IRRResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_investment_proto_msgTypes[26]
+	mi := &file_investment_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1799,7 +1799,7 @@ func (x *IRRResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IRRResponse.ProtoReflect.Descriptor instead.
 func (*IRRResponse) Descriptor() ([]byte, []int) {
-	return file_proto_investment_proto_rawDescGZIP(), []int{26}
+	return file_investment_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *IRRResponse) GetAnnualizedIrr() float64 {
@@ -1816,11 +1816,11 @@ func (x *IRRResponse) GetCashFlows() []*CashFlow {
 	return nil
 }
 
-var File_proto_investment_proto protoreflect.FileDescriptor
+var File_investment_proto protoreflect.FileDescriptor
 
-const file_proto_investment_proto_rawDesc = "" +
+const file_investment_proto_rawDesc = "" +
 	"\n" +
-	"\x16proto/investment.proto\x12\x1afamilyledger.investment.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xed\x03\n" +
+	"\x10investment.proto\x12\x1afamilyledger.investment.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xed\x03\n" +
 	"\n" +
 	"Investment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
@@ -1995,20 +1995,20 @@ const file_proto_investment_proto_rawDesc = "" +
 	"\x0fGetPriceHistory\x122.familyledger.investment.v1.GetPriceHistoryRequest\x1a0.familyledger.investment.v1.PriceHistoryResponseB1Z/github.com/familyledger/server/proto/investmentb\x06proto3"
 
 var (
-	file_proto_investment_proto_rawDescOnce sync.Once
-	file_proto_investment_proto_rawDescData []byte
+	file_investment_proto_rawDescOnce sync.Once
+	file_investment_proto_rawDescData []byte
 )
 
-func file_proto_investment_proto_rawDescGZIP() []byte {
-	file_proto_investment_proto_rawDescOnce.Do(func() {
-		file_proto_investment_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_investment_proto_rawDesc), len(file_proto_investment_proto_rawDesc)))
+func file_investment_proto_rawDescGZIP() []byte {
+	file_investment_proto_rawDescOnce.Do(func() {
+		file_investment_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_investment_proto_rawDesc), len(file_investment_proto_rawDesc)))
 	})
-	return file_proto_investment_proto_rawDescData
+	return file_investment_proto_rawDescData
 }
 
-var file_proto_investment_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_proto_investment_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
-var file_proto_investment_proto_goTypes = []any{
+var file_investment_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_investment_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_investment_proto_goTypes = []any{
 	(MarketType)(0),                    // 0: familyledger.investment.v1.MarketType
 	(TradeType)(0),                     // 1: familyledger.investment.v1.TradeType
 	(*Investment)(nil),                 // 2: familyledger.investment.v1.Investment
@@ -2041,7 +2041,7 @@ var file_proto_investment_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil),      // 29: google.protobuf.Timestamp
 	(*emptypb.Empty)(nil),              // 30: google.protobuf.Empty
 }
-var file_proto_investment_proto_depIdxs = []int32{
+var file_investment_proto_depIdxs = []int32{
 	0,  // 0: familyledger.investment.v1.Investment.market_type:type_name -> familyledger.investment.v1.MarketType
 	29, // 1: familyledger.investment.v1.Investment.created_at:type_name -> google.protobuf.Timestamp
 	29, // 2: familyledger.investment.v1.Investment.updated_at:type_name -> google.protobuf.Timestamp
@@ -2103,27 +2103,27 @@ var file_proto_investment_proto_depIdxs = []int32{
 	0,  // [0:28] is the sub-list for field type_name
 }
 
-func init() { file_proto_investment_proto_init() }
-func file_proto_investment_proto_init() {
-	if File_proto_investment_proto != nil {
+func init() { file_investment_proto_init() }
+func file_investment_proto_init() {
+	if File_investment_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_investment_proto_rawDesc), len(file_proto_investment_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_investment_proto_rawDesc), len(file_investment_proto_rawDesc)),
 			NumEnums:      2,
 			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
-		GoTypes:           file_proto_investment_proto_goTypes,
-		DependencyIndexes: file_proto_investment_proto_depIdxs,
-		EnumInfos:         file_proto_investment_proto_enumTypes,
-		MessageInfos:      file_proto_investment_proto_msgTypes,
+		GoTypes:           file_investment_proto_goTypes,
+		DependencyIndexes: file_investment_proto_depIdxs,
+		EnumInfos:         file_investment_proto_enumTypes,
+		MessageInfos:      file_investment_proto_msgTypes,
 	}.Build()
-	File_proto_investment_proto = out.File
-	file_proto_investment_proto_goTypes = nil
-	file_proto_investment_proto_depIdxs = nil
+	File_investment_proto = out.File
+	file_investment_proto_goTypes = nil
+	file_investment_proto_depIdxs = nil
 }

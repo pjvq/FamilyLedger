@@ -183,6 +183,8 @@ message LoanGroup {
     int64 total_monthly_payment = 10; // 总月供（计算字段）
     google.protobuf.Timestamp created_at = 11;
     google.protobuf.Timestamp updated_at = 12;
+    LoanType loan_type = 13;       // 贷款类型
+    string family_id = 14;         // 家庭 ID（空=个人）
 }
 
 message SubLoanSpec {

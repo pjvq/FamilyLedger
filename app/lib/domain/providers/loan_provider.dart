@@ -842,6 +842,8 @@ class LoanNotifier extends StateNotifier<LoanState> {
         paymentDay: resp.paymentDay,
         startDate: _fromTimestamp(resp.startDate),
         accountId: Value(resp.accountId),
+        familyId: Value(resp.familyId),
+        loanType: Value(_loanTypeToString(resp.loanType)),
       ));
       for (final loan in resp.subLoans) {
         await _db.upsertLoan(_loanFromProto(loan));
@@ -862,6 +864,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
         startDate: startDate,
         accountId: Value(accountId ?? ''),
         loanType: Value(loanType),
+        familyId: Value(familyId ?? ''),
       ));
 
       for (final sub in subLoans) {
@@ -879,6 +882,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
           loanType: Value(loanType),
           repaymentMethod: Value(sub.repaymentMethod),
           accountId: Value(accountId ?? ''),
+          familyId: Value(familyId ?? ''),
           groupId: Value(groupId),
           subType: Value(sub.subType),
           rateType: Value(sub.rateType),
