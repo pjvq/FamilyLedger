@@ -1617,6 +1617,7 @@ class CreateCategoryRequest extends $pb.GeneratedMessage {
     $core.String? iconKey,
     TransactionType? type,
     $core.String? parentId,
+    $core.String? familyId,
   }) {
     final $result = create();
     if (name != null) {
@@ -1631,6 +1632,9 @@ class CreateCategoryRequest extends $pb.GeneratedMessage {
     if (parentId != null) {
       $result.parentId = parentId;
     }
+    if (familyId != null) {
+      $result.familyId = familyId;
+    }
     return $result;
   }
   CreateCategoryRequest._() : super();
@@ -1642,6 +1646,7 @@ class CreateCategoryRequest extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'iconKey')
     ..e<TransactionType>(3, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: TransactionType.TRANSACTION_TYPE_UNSPECIFIED, valueOf: TransactionType.valueOf, enumValues: TransactionType.values)
     ..aOS(4, _omitFieldNames ? '' : 'parentId')
+    ..aOS(5, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -1701,6 +1706,15 @@ class CreateCategoryRequest extends $pb.GeneratedMessage {
   $core.bool hasParentId() => $_has(3);
   @$pb.TagNumber(4)
   void clearParentId() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get familyId => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set familyId($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasFamilyId() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearFamilyId() => clearField(5);
 }
 
 class CreateCategoryResponse extends $pb.GeneratedMessage {

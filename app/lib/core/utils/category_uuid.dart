@@ -5,7 +5,10 @@ import 'package:uuid/uuid.dart';
 /// Both Flutter client and Go server use the same namespace + formula,
 /// guaranteeing identical UUIDs without network communication.
 ///
-/// Formula: UUIDv5("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "{type}:{name}")
+/// Formula: UUIDv5("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "{ownerID}:{type}:{name}")
+///
+/// [ownerID] is the userId (personal mode) or familyId (family mode).
+/// This ensures different users/families have unique UUIDs for same-named categories.
 class CategoryUUID {
   CategoryUUID._();
 
@@ -14,9 +17,11 @@ class CategoryUUID {
 
   /// Generate a deterministic UUID for a category.
   ///
+  /// [ownerID] is userId (personal) or familyId (family mode).
   /// [type] is "expense" or "income".
   /// [name] is the category name, e.g. "餐饮", "工资".
-  static String generate(String type, String name) {
-    return _uuid.v5(_namespace, '$type:$name');
+  /// For subcategories, [name] should be "$parentUUID:$childName".
+  static String generate(String ownerID, String type, String name) {
+    return _uuid.v5(_namespace, '$ownerID:$type:$name');
   }
 }

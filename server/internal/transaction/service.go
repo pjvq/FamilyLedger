@@ -1468,13 +1468,18 @@ func (s *Service) CreateCategory(ctx context.Context, req *pb.CreateCategoryRequ
 	}
 
 	// Use deterministic UUIDv5 for consistent IDs across client & server
+	// ownerID = familyId (family mode) or userId (personal mode)
+	ownerID := userID
+	if req.GetFamilyId() != "" {
+		ownerID = req.GetFamilyId()
+	}
 	var uuidInput string
 	if parentID != nil {
 		uuidInput = parentID.String() + ":" + req.Name
 	} else {
 		uuidInput = req.Name
 	}
-	newID := catpkg.UUID(catType, uuidInput)
+	newID := catpkg.UUID(ownerID, catType, uuidInput)
 
 	// Upsert: if category already exists (same deterministic ID), return it
 	var existingName string

@@ -1022,6 +1022,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Future<void> _matchBaishiCategories() async {
     final database = ref.read(databaseProvider);
     final userId = ref.read(currentUserIdProvider);
+    // ownerID: familyId in family mode, userId in personal mode
+    String ownerID = userId ?? '';
+    if (_importToFamily) {
+      final familyId = ref.read(currentFamilyIdProvider);
+      if (familyId != null && familyId.isNotEmpty) ownerID = familyId;
+    }
 
     for (final t in _parsed) {
       final tag = t._baishiTag;
@@ -1061,12 +1067,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           final parentCat = await _getOrCreateCategory(
             database: database,
             userId: userId,
+            ownerID: ownerID,
             name: parentName,
             type: t.type,
           );
           final childCat = await _getOrCreateChildCategory(
             database: database,
             userId: userId,
+            ownerID: ownerID,
             name: tag,
             type: t.type,
             parentId: parentCat.id,
@@ -1081,6 +1089,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         final parentCat = await _getOrCreateCategory(
           database: database,
           userId: userId,
+          ownerID: ownerID,
           name: parentName,
           type: t.type,
         );
@@ -1181,6 +1190,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Future<db.Category> _getOrCreateCategory({
     required db.AppDatabase database,
     required String? userId,
+    required String ownerID,
     required String name,
     required String type,
   }) async {
@@ -1213,7 +1223,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     }
 
     // Use deterministic UUIDv5 so client & server generate identical IDs
-    final id = CategoryUUID.generate(type, name);
+    final id = CategoryUUID.generate(ownerID, type, name);
     await database.upsertCategory(
       id: id,
       name: name,
@@ -1243,6 +1253,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Future<db.Category> _getOrCreateChildCategory({
     required db.AppDatabase database,
     required String? userId,
+    required String ownerID,
     required String name,
     required String type,
     required String parentId,
@@ -1270,7 +1281,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     }
 
     // Use deterministic UUIDv5 with parent context to avoid collisions
-    final id = CategoryUUID.generate(type, '$parentId:$name');
+    final id = CategoryUUID.generate(ownerID, type, '$parentId:$name');
     await database.upsertCategory(
       id: id,
       name: name,
@@ -1406,6 +1417,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Future<void> _matchCategories() async {
     final database = ref.read(databaseProvider);
     final userId = ref.read(currentUserIdProvider);
+    // ownerID: familyId in family mode, userId in personal mode
+    String ownerID = userId ?? '';
+    if (_importToFamily) {
+      final familyId = ref.read(currentFamilyIdProvider);
+      if (familyId != null && familyId.isNotEmpty) ownerID = familyId;
+    }
     final toRemove = <int>[];
     for (int i = 0; i < _parsed.length; i++) {
       final t = _parsed[i];
@@ -1439,6 +1456,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         final newCat = await _getOrCreateCategory(
           database: database,
           userId: userId,
+          ownerID: ownerID,
           name: t.rawCategory!,
           type: t.type,
         );
@@ -1751,6 +1769,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       // Ensure all categories exist on server before creating transactions
       final failedCatIds = <String>{}; // Track failed category IDs globally
       if (_importToFamily) {
+        final familyId = ref.read(currentFamilyIdProvider) ?? '';
         setState(() {
           _importPhase = '同步分类到服务器...';
           _importProgress = 0;
@@ -1804,7 +1823,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                 ..iconKey = cat.iconKey.isNotEmpty ? cat.iconKey : 'category'
                 ..type = cat.type == 'income'
                     ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
-                    : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE;
+                    : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE
+                ..familyId = familyId ?? '';
               if (parentId != null && parentId.isNotEmpty) {
                 catReq.parentId = parentId;
               }

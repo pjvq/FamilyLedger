@@ -55,7 +55,7 @@ Transaction _makeTransaction({
   bool synced = false,
 }) {
   final now = DateTime.now();
-  final effectiveCategoryId = categoryId ?? CategoryUUID.generate('expense', '餐饮');
+  final effectiveCategoryId = categoryId ?? CategoryUUID.generate('test-user', 'expense', '餐饮');
   return Transaction(
     id: id,
     userId: userId,
@@ -86,7 +86,7 @@ Category _makeCategory({
   int sortOrder = 1,
 }) {
   return Category(
-    id: id ?? CategoryUUID.generate(type, name),
+    id: id ?? CategoryUUID.generate('test-user', type, name),
     name: name,
     icon: icon,
     type: type,
@@ -337,12 +337,12 @@ void main() {
 
   group('CategoryGrid', () {
     final categories = [
-      _makeCategory(id: CategoryUUID.generate('expense', '餐饮'), name: '餐饮', icon: '🍜'),
-      _makeCategory(id: CategoryUUID.generate('expense', '交通'), name: '交通', icon: '🚗'),
-      _makeCategory(id: CategoryUUID.generate('expense', '购物'), name: '购物', icon: '🛍️'),
-      _makeCategory(id: CategoryUUID.generate('expense', '居住'), name: '居住', icon: '🏠'),
-      _makeCategory(id: CategoryUUID.generate('expense', '娱乐'), name: '娱乐', icon: '🎮'),
-      _makeCategory(id: CategoryUUID.generate('expense', '医疗'), name: '医疗', icon: '🏥'),
+      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '餐饮'), name: '餐饮', icon: '🍜'),
+      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '交通'), name: '交通', icon: '🚗'),
+      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '购物'), name: '购物', icon: '🛍️'),
+      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '居住'), name: '居住', icon: '🏠'),
+      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '娱乐'), name: '娱乐', icon: '🎮'),
+      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '医疗'), name: '医疗', icon: '🏥'),
     ];
 
     testWidgets('renders all categories', (tester) async {
@@ -376,7 +376,7 @@ void main() {
           height: 400,
           child: CategoryGrid(
             categories: categories,
-            selectedId: CategoryUUID.generate('expense', '餐饮'),
+            selectedId: CategoryUUID.generate('test-user', 'expense', '餐饮'),
             onSelect: (_) {},
           ),
         ),
@@ -403,7 +403,7 @@ void main() {
       ));
 
       await tester.tap(find.text('交通'));
-      expect(selectedId, CategoryUUID.generate('expense', '交通'));
+      expect(selectedId, CategoryUUID.generate('test-user', 'expense', '交通'));
     });
 
     testWidgets('renders empty grid for no categories', (tester) async {
@@ -446,7 +446,7 @@ void main() {
           height: 400,
           child: CategoryGrid(
             categories: categories,
-            selectedId: CategoryUUID.generate('expense', '餐饮'),
+            selectedId: CategoryUUID.generate('test-user', 'expense', '餐饮'),
             onSelect: (_) {},
           ),
         ),

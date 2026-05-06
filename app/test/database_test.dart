@@ -3,9 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:familyledger/core/utils/category_uuid.dart';
 import 'package:familyledger/data/local/database.dart';
 
-final _catFood = CategoryUUID.generate('expense', '餐饮');
-final _catTransport = CategoryUUID.generate('expense', '交通');
-final _catSalary = CategoryUUID.generate('income', '工资');
+final _catFood = CategoryUUID.generate('test-user', 'expense', '餐饮');
+final _catTransport = CategoryUUID.generate('test-user', 'expense', '交通');
+final _catSalary = CategoryUUID.generate('test-user', 'income', '工资');
 
 void main() {
   late AppDatabase db;

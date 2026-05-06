@@ -38,7 +38,7 @@ Transaction _makeTransaction({
   final cat = categories[index % categories.length];
   final type = cat.$1;
   final catName = cat.$2;
-  final categoryId = CategoryUUID.generate(type, catName);
+  final categoryId = CategoryUUID.generate('test-user', type, catName);
   // Random-ish amount based on index
   final amount = 100 + (index * 37 % 99900); // 100-100000 range
 

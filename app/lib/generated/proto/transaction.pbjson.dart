@@ -363,6 +363,7 @@ const CreateCategoryRequest$json = {
     {'1': 'icon_key', '3': 2, '4': 1, '5': 9, '10': 'iconKey'},
     {'1': 'type', '3': 3, '4': 1, '5': 14, '6': '.familyledger.transaction.v1.TransactionType', '10': 'type'},
     {'1': 'parent_id', '3': 4, '4': 1, '5': 9, '10': 'parentId'},
+    {'1': 'family_id', '3': 5, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
 
@@ -370,7 +371,8 @@ const CreateCategoryRequest$json = {
 final $typed_data.Uint8List createCategoryRequestDescriptor = $convert.base64Decode(
     'ChVDcmVhdGVDYXRlZ29yeVJlcXVlc3QSEgoEbmFtZRgBIAEoCVIEbmFtZRIZCghpY29uX2tleR'
     'gCIAEoCVIHaWNvbktleRJACgR0eXBlGAMgASgOMiwuZmFtaWx5bGVkZ2VyLnRyYW5zYWN0aW9u'
-    'LnYxLlRyYW5zYWN0aW9uVHlwZVIEdHlwZRIbCglwYXJlbnRfaWQYBCABKAlSCHBhcmVudElk');
+    'LnYxLlRyYW5zYWN0aW9uVHlwZVIEdHlwZRIbCglwYXJlbnRfaWQYBCABKAlSCHBhcmVudElkEh'
+    'sKCWZhbWlseV9pZBgFIAEoCVIIZmFtaWx5SWQ=');
 
 @$core.Deprecated('Use createCategoryResponseDescriptor instead')
 const CreateCategoryResponse$json = {

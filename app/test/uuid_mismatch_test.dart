@@ -3,13 +3,13 @@ import 'package:familyledger/core/utils/category_uuid.dart';
 
 void main() {
   test('Seed and server subcategory UUIDs now match', () {
-    final parentFood = CategoryUUID.generate('expense', '餐饮');
+    final parentFood = CategoryUUID.generate('test-user', 'expense', '餐饮');
     
     // New seed formula: parentUUID:childName (same as server)
-    final seedId = CategoryUUID.generate('expense', '$parentFood:早餐');
+    final seedId = CategoryUUID.generate('test-user', 'expense', '$parentFood:早餐');
     
     // Server formula: parentUUID:childName
-    final serverId = CategoryUUID.generate('expense', '$parentFood:早餐');
+    final serverId = CategoryUUID.generate('test-user', 'expense', '$parentFood:早餐');
     
     expect(seedId, equals(serverId),
         reason: 'Seed and server should use the same UUID formula');
@@ -17,11 +17,11 @@ void main() {
 
   test('Old seed formula was different (regression guard)', () {
     // Old formula used parentName/childName
-    final oldSeedId = CategoryUUID.generate('expense', '餐饮/早餐');
+    final oldSeedId = CategoryUUID.generate('test-user', 'expense', '餐饮/早餐');
     
     // New formula uses parentUUID:childName
-    final parentFood = CategoryUUID.generate('expense', '餐饮');
-    final newSeedId = CategoryUUID.generate('expense', '$parentFood:早餐');
+    final parentFood = CategoryUUID.generate('test-user', 'expense', '餐饮');
+    final newSeedId = CategoryUUID.generate('test-user', 'expense', '$parentFood:早餐');
     
     expect(oldSeedId, isNot(equals(newSeedId)),
         reason: 'Old and new formulas should produce different UUIDs');
@@ -40,11 +40,11 @@ void main() {
     ];
 
     for (final (type, parentName, childName) in subcats) {
-      final parentId = CategoryUUID.generate(type, parentName);
+      final parentId = CategoryUUID.generate('test-user', type, parentName);
       // Seed formula (new)
-      final seedId = CategoryUUID.generate(type, '$parentId:$childName');
+      final seedId = CategoryUUID.generate('test-user', type, '$parentId:$childName');
       // Server formula (CreateCategory RPC)
-      final serverId = CategoryUUID.generate(type, '$parentId:$childName');
+      final serverId = CategoryUUID.generate('test-user', type, '$parentId:$childName');
       
       expect(seedId, equals(serverId),
           reason: '$parentName/$childName: seed=$seedId server=$serverId');

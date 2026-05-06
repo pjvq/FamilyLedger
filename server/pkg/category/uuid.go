@@ -9,7 +9,10 @@ const NamespaceStr = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
 var Namespace = uuid.MustParse(NamespaceStr)
 
 // UUID generates a deterministic UUID v5 for a category.
-// Input format: "{type}:{name}", e.g. "expense:餐饮", "income:工资".
-func UUID(categoryType, name string) uuid.UUID {
-	return uuid.NewSHA1(Namespace, []byte(categoryType+":"+name))
+// ownerID is the user ID (personal mode) or family ID (family mode).
+// This ensures different users/families have different UUIDs for the same category name.
+//
+// Input format: "{ownerID}:{type}:{name}"
+func UUID(ownerID, categoryType, name string) uuid.UUID {
+	return uuid.NewSHA1(Namespace, []byte(ownerID+":"+categoryType+":"+name))
 }

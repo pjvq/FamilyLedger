@@ -105,25 +105,25 @@ List<TrendPointData> _makeTrendPoints({int count = 6}) {
 List<CategoryBreakdownItem> _makeCategoryBreakdown() {
   return [
     CategoryBreakdownItem(
-        categoryId: CategoryUUID.generate('expense', '餐饮'),
+        categoryId: CategoryUUID.generate('test-user', 'expense', '餐饮'),
         categoryName: '餐饮',
         icon: '🍜',
         amount: 300000,
         weight: 0.3),
     CategoryBreakdownItem(
-        categoryId: CategoryUUID.generate('expense', '交通'),
+        categoryId: CategoryUUID.generate('test-user', 'expense', '交通'),
         categoryName: '交通',
         icon: '🚗',
         amount: 200000,
         weight: 0.2),
     CategoryBreakdownItem(
-        categoryId: CategoryUUID.generate('expense', '购物'),
+        categoryId: CategoryUUID.generate('test-user', 'expense', '购物'),
         categoryName: '购物',
         icon: '🛍️',
         amount: 150000,
         weight: 0.15),
     CategoryBreakdownItem(
-        categoryId: CategoryUUID.generate('expense', '居住'),
+        categoryId: CategoryUUID.generate('test-user', 'expense', '居住'),
         categoryName: '居住',
         icon: '🏠',
         amount: 350000,
@@ -174,7 +174,7 @@ Category _makeCategory({
   int sortOrder = 1,
 }) {
   return Category(
-    id: id ?? CategoryUUID.generate(type, name),
+    id: id ?? CategoryUUID.generate('test-user', type, name),
     name: name,
     icon: icon,
     type: type,
@@ -192,13 +192,13 @@ TransactionState _makeTransactionState({
     transactions: const [],
     expenseCategories: expenseCategories ??
         [
-          _makeCategory(id: CategoryUUID.generate('expense', '餐饮'), name: '餐饮', icon: '🍜'),
-          _makeCategory(id: CategoryUUID.generate('expense', '交通'), name: '交通', icon: '🚗'),
+          _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '餐饮'), name: '餐饮', icon: '🍜'),
+          _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '交通'), name: '交通', icon: '🚗'),
         ],
     incomeCategories: incomeCategories ??
         [
           _makeCategory(
-              id: CategoryUUID.generate('income', '工资'), name: '工资', icon: '💰', type: 'income'),
+              id: CategoryUUID.generate('test-user', 'income', '工资'), name: '工资', icon: '💰', type: 'income'),
         ],
     isLoading: false,
   );

@@ -1293,6 +1293,7 @@ type CreateCategoryRequest struct {
 	IconKey       string                 `protobuf:"bytes,2,opt,name=icon_key,json=iconKey,proto3" json:"icon_key,omitempty"`                              // built-in icon key
 	Type          TransactionType        `protobuf:"varint,3,opt,name=type,proto3,enum=familyledger.transaction.v1.TransactionType" json:"type,omitempty"` // income or expense
 	ParentId      string                 `protobuf:"bytes,4,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`                           // empty = create main category; non-empty = create subcategory
+	FamilyId      string                 `protobuf:"bytes,5,opt,name=family_id,json=familyId,proto3" json:"family_id,omitempty"`                           // empty = personal category (use user_id as owner); non-empty = family category
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1351,6 +1352,13 @@ func (x *CreateCategoryRequest) GetType() TransactionType {
 func (x *CreateCategoryRequest) GetParentId() string {
 	if x != nil {
 		return x.ParentId
+	}
+	return ""
+}
+
+func (x *CreateCategoryRequest) GetFamilyId() string {
+	if x != nil {
+		return x.FamilyId
 	}
 	return ""
 }
@@ -1836,12 +1844,13 @@ const file_transaction_proto_rawDesc = "" +
 	"\x15GetCategoriesResponse\x12E\n" +
 	"\n" +
 	"categories\x18\x01 \x03(\v2%.familyledger.transaction.v1.CategoryR\n" +
-	"categories\"\xa5\x01\n" +
+	"categories\"\xc2\x01\n" +
 	"\x15CreateCategoryRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x19\n" +
 	"\bicon_key\x18\x02 \x01(\tR\aiconKey\x12@\n" +
 	"\x04type\x18\x03 \x01(\x0e2,.familyledger.transaction.v1.TransactionTypeR\x04type\x12\x1b\n" +
-	"\tparent_id\x18\x04 \x01(\tR\bparentId\"[\n" +
+	"\tparent_id\x18\x04 \x01(\tR\bparentId\x12\x1b\n" +
+	"\tfamily_id\x18\x05 \x01(\tR\bfamilyId\"[\n" +
 	"\x16CreateCategoryResponse\x12A\n" +
 	"\bcategory\x18\x01 \x01(\v2%.familyledger.transaction.v1.CategoryR\bcategory\"\x87\x01\n" +
 	"\x15UpdateCategoryRequest\x12\x1f\n" +

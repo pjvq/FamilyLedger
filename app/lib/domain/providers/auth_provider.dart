@@ -74,6 +74,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _loadEmail(String userId) async {
     try {
+      // Ensure preset categories exist for this user
+      await _db.seedCategoriesForOwner(userId);
       final user = await (_db.select(_db.users)
             ..where((u) => u.id.equals(userId)))
           .getSingleOrNull();
@@ -145,6 +147,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         _ref.read(currentFamilyIdProvider.notifier).state = savedFamId;
       }
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId, email: email);
+      _db.seedCategoriesForOwner(resp.userId); // fire-and-forget
     } on GrpcError catch (e) {
       developer.log('[Auth] register: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}');
       if (e.code == StatusCode.alreadyExists) {
@@ -257,6 +260,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         _ref.read(currentFamilyIdProvider.notifier).state = savedFamId;
       }
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId, email: email);
+      _db.seedCategoriesForOwner(resp.userId); // fire-and-forget
     } on GrpcError catch (e) {
       developer.log('[Auth] login: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}');
       if (e.code == StatusCode.unavailable || e.code == StatusCode.deadlineExceeded) {

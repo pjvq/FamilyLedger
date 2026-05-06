@@ -159,6 +159,7 @@ message CreateCategoryRequest {
   string icon_key = 2;          // built-in icon key
   TransactionType type = 3;     // income or expense
   string parent_id = 4;         // empty = create main category; non-empty = create subcategory
+  string family_id = 5;         // empty = personal category (use user_id as owner); non-empty = family category
 }
 
 message CreateCategoryResponse {
