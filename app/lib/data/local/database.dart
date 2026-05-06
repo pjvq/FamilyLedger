@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -124,6 +124,12 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(investments, investments.familyId);
             await m.addColumn(fixedAssets, fixedAssets.familyId);
             await m.addColumn(loanGroups, loanGroups.familyId);
+          }
+          if (from < 13) {
+            // v12 → v13: fix subcategory UUID formula
+            // Old: UUIDv5(type, "parentName/childName")
+            // New: UUIDv5(type, "parentUUID:childName") — matches server
+            await _migrateSubcategoryUUIDs();
           }
         },
         beforeOpen: (details) async {
@@ -289,8 +295,8 @@ class AppDatabase extends _$AppDatabase {
 
   CategoriesCompanion _subcat(
           String parentType, String parentName, String childName, String iconKey, int sort) {
-    final id = CategoryUUID.generate(parentType, '$parentName/$childName');
     final parentId = CategoryUUID.generate(parentType, parentName);
+    final id = CategoryUUID.generate(parentType, '$parentId:$childName');
     return CategoriesCompanion.insert(
       id: id,
       name: childName,
@@ -419,6 +425,77 @@ class AppDatabase extends _$AppDatabase {
       await customStatement(
           'UPDATE categories SET id = ? WHERE id = ?', [newId, oldId]);
     }
+  }
+
+  /// Migrate subcategory UUIDs from old formula (parentName/childName)
+  /// to new formula (parentUUID:childName) that matches the server.
+  Future<void> _migrateSubcategoryUUIDs() async {
+    // All preset subcategories that were seeded with old formula:
+    // Old: CategoryUUID.generate(type, '$parentName/$childName')
+    // New: CategoryUUID.generate(type, '$parentUUID:$childName')
+    const subcats = [
+      // (parentType, parentName, childName)
+      ('expense', '餐饮', '早餐'), ('expense', '餐饮', '午餐'),
+      ('expense', '餐饮', '晚餐'), ('expense', '餐饮', '夜宵'),
+      ('expense', '餐饮', '饮品'), ('expense', '餐饮', '水果零食'),
+      ('expense', '交通', '地铁公交'), ('expense', '交通', '打车'),
+      ('expense', '交通', '加油'), ('expense', '交通', '停车'),
+      ('expense', '购物', '电器数码'), ('expense', '购物', '日用百货'),
+      ('expense', '购物', '美妆护肤'),
+      ('expense', '居住', '房租'), ('expense', '居住', '物业'),
+      ('expense', '居住', '水电燃气'), ('expense', '居住', '家政服务'),
+      ('expense', '娱乐', '电影演出'), ('expense', '娱乐', '游戏'),
+      ('expense', '娱乐', '运动健身'), ('expense', '娱乐', '书籍'),
+      ('expense', '医疗', '门诊'), ('expense', '医疗', '住院'),
+      ('expense', '医疗', '买药'), ('expense', '医疗', '保健'),
+      ('expense', '教育', '培训课程'), ('expense', '教育', '书籍资料'),
+      ('expense', '教育', '学费'),
+      ('expense', '通讯', '话费'), ('expense', '通讯', '宽带'),
+      ('expense', '通讯', '会员订阅'),
+      ('expense', '人情', '红包礼金'), ('expense', '人情', '请客'),
+      ('expense', '人情', '份子钱'),
+      ('expense', '服饰', '衣服'), ('expense', '服饰', '鞋包'),
+      ('expense', '服饰', '配饰'),
+      ('expense', '日用', '清洁用品'), ('expense', '日用', '个人护理'),
+      ('expense', '旅行', '住宿'), ('expense', '旅行', '机票火车'),
+      ('expense', '旅行', '门票景点'),
+      ('expense', '宠物', '口粮用品'), ('expense', '宠物', '宠物医疗'),
+      ('income', '工资', '基本工资'), ('income', '工资', '年终奖'),
+    ];
+
+    for (final (type, parentName, childName) in subcats) {
+      final parentId = CategoryUUID.generate(type, parentName);
+      final oldId = CategoryUUID.generate(type, '$parentName/$childName');
+      final newId = CategoryUUID.generate(type, '$parentId:$childName');
+      if (oldId == newId) continue; // Just in case
+
+      // Update transactions referencing old subcategory ID
+      await customStatement(
+          'UPDATE transactions SET category_id = ? WHERE category_id = ?',
+          [newId, oldId]);
+      // Update category_budgets
+      await customStatement(
+          'UPDATE category_budgets SET category_id = ? WHERE category_id = ?',
+          [newId, oldId]);
+      // Update sync_queue
+      await customStatement(
+          'UPDATE sync_queue SET entity_id = ? WHERE entity_id = ? AND entity_type = ?',
+          [newId, oldId, 'category']);
+      // Update the category itself (handle conflict: new ID might already exist from server sync)
+      // If new ID already exists, just delete the old one
+      final existing = await customSelect(
+          'SELECT id FROM categories WHERE id = ?', variables: [Variable(newId)]).get();
+      if (existing.isNotEmpty) {
+        // New ID already exists (e.g. from server sync) — just remap transactions and delete old
+        await customStatement('DELETE FROM categories WHERE id = ?', [oldId]);
+      } else {
+        await customStatement(
+            'UPDATE categories SET id = ? WHERE id = ?', [newId, oldId]);
+      }
+    }
+
+    // Re-seed subcategories with new IDs to ensure completeness
+    await _seedSubcategories();
   }
 
   // ---- Queries ----
