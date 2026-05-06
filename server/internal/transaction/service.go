@@ -232,22 +232,7 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		accountID,
 	).Scan(&ownerID, &acctFamilyID, &acctType)
 	if err != nil {
-		// In batch mode, auto-create a placeholder account if not found
-		if ctx.Value(skipOverdraftKey) != nil {
-			_, err = tx.Exec(ctx,
-				`INSERT INTO accounts (id, user_id, name, type, currency, balance, icon, is_active)
-				 VALUES ($1, $2, '默认账户', 'cash', 'CNY', 0, '💰', true)
-				 ON CONFLICT (id) DO NOTHING`,
-				accountID, uid,
-			)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "failed to auto-create account: %v", err)
-			}
-			ownerID = uid
-			acctType = "cash"
-		} else {
-			return nil, status.Error(codes.NotFound, "account not found")
-		}
+		return nil, status.Error(codes.NotFound, "account not found")
 	}
 	if ownerID != uid {
 		// For family accounts, check membership instead of ownership
