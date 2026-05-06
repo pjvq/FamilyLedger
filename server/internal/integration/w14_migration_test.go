@@ -32,7 +32,7 @@ import (
 // to test migration lifecycle: sequential up, skip-version, rollback, data integrity.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const totalMigrations = 42
+const totalMigrations = 43
 
 // migrationsDir returns the absolute path to the migrations directory.
 func migrationsDir(t *testing.T) string {
@@ -83,7 +83,7 @@ func newMigrate(t *testing.T, connStr string) *migrate.Migrate {
 	return m
 }
 
-// ─── Test 1: Sequential Up (001→042) ─────────────────────────────────────────
+// ─── Test 1: Sequential Up (001→043) ─────────────────────────────────────────
 
 func TestW14_Migration_SequentialUp(t *testing.T) {
 	connStr, cleanup := startFreshPG(t)
@@ -164,10 +164,10 @@ func TestW14_Migration_SequentialUp(t *testing.T) {
 	// so we just log it
 	t.Logf("amount_cny check constraint exists: %v", constraintExists)
 
-	t.Log("✅ Sequential migration 001→042: all tables, indexes, constraints verified")
+	t.Log("✅ Sequential migration 001→043: all tables, indexes, constraints verified")
 }
 
-// ─── Test 2: Skip-Version Upgrade (025→042) ──────────────────────────────────
+// ─── Test 2: Skip-Version Upgrade (025→043) ──────────────────────────────────
 
 func TestW14_Migration_SkipVersion(t *testing.T) {
 	connStr, cleanup := startFreshPG(t)
@@ -186,7 +186,7 @@ func TestW14_Migration_SkipVersion(t *testing.T) {
 	assert.Equal(t, uint(25), version)
 	t.Log("Migrated to version 25")
 
-	// Now skip to version 40 (applying 026-042 in one shot)
+	// Now skip to version 40 (applying 026-043 in one shot)
 	err = m.Migrate(40)
 	require.NoError(t, err, "skip-version migration from 25→40 failed")
 
@@ -219,10 +219,10 @@ func TestW14_Migration_SkipVersion(t *testing.T) {
 		assert.True(t, exists, "table %q should exist after skip-version 25→40", table)
 	}
 
-	t.Log("✅ Skip-version migration 025→042: verified")
+	t.Log("✅ Skip-version migration 025→043: verified")
 }
 
-// ─── Test 3: Full Rollback (042→001) ─────────────────────────────────────────
+// ─── Test 3: Full Rollback (043→001) ─────────────────────────────────────────
 
 func TestW14_Migration_FullRollback(t *testing.T) {
 	connStr, cleanup := startFreshPG(t)
@@ -241,7 +241,7 @@ func TestW14_Migration_FullRollback(t *testing.T) {
 
 	// Roll back ALL migrations
 	err = m.Down()
-	require.NoError(t, err, "full rollback (042→001 down) failed")
+	require.NoError(t, err, "full rollback (043→001 down) failed")
 
 	// After full rollback, version should return ErrNilVersion
 	_, _, err = m.Version()
@@ -266,7 +266,7 @@ func TestW14_Migration_FullRollback(t *testing.T) {
 		assert.False(t, exists, "table %q should NOT exist after full rollback", table)
 	}
 
-	t.Log("✅ Full rollback 042→001: all tables removed")
+	t.Log("✅ Full rollback 043→001: all tables removed")
 }
 
 // ─── Test 4: Data Integrity Across Migrations ────────────────────────────────
