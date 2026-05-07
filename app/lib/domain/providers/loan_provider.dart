@@ -624,6 +624,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
         await _db.upsertLoanGroup(db.LoanGroupsCompanion.insert(
           id: group.id,
           userId: group.userId,
+          familyId: Value(group.familyId),
           name: group.name,
           groupType: group.groupType,
           totalPrincipal: group.totalPrincipal.toInt(),
