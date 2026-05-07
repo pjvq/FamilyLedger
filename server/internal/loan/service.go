@@ -615,6 +615,54 @@ func (s *Service) RecordPayment(ctx context.Context, req *pb.RecordPaymentReques
 		log.Printf("loan: deducted %d from account %s for loan %s month %d", item.Payment, loan.AccountId, req.LoanId, req.MonthNumber)
 	}
 
+	// Create a transaction record for the loan payment
+	{
+		// Find the "还款" category, fall back to a hardcoded UUID if not found
+		var categoryID string
+		err = tx.QueryRow(ctx,
+			`SELECT id FROM categories WHERE name = '还款' LIMIT 1`,
+		).Scan(&categoryID)
+		if err != nil {
+			// Fallback: try "房贷"
+			err = tx.QueryRow(ctx,
+				`SELECT id FROM categories WHERE name = '房贷' LIMIT 1`,
+			).Scan(&categoryID)
+			if err != nil {
+				log.Printf("loan: no repayment category found, skipping transaction record")
+				goto skipTransaction
+			}
+		}
+
+		accountID := loan.AccountId
+		if accountID == "" {
+			// If no account linked, try the user's default account
+			_ = tx.QueryRow(ctx,
+				`SELECT id FROM accounts WHERE user_id = $1 AND is_active = true AND deleted_at IS NULL ORDER BY created_at LIMIT 1`,
+				userID,
+			).Scan(&accountID)
+		}
+		if accountID == "" {
+			log.Printf("loan: no account for transaction record, skipping")
+			goto skipTransaction
+		}
+
+		note := fmt.Sprintf("%s 第%d期还款", loan.Name, req.MonthNumber)
+		var familyIDVal interface{}
+		if loan.FamilyId != "" {
+			familyIDVal = loan.FamilyId
+		}
+		_, err = tx.Exec(ctx,
+			`INSERT INTO transactions (user_id, account_id, category_id, amount, type, note, txn_date, family_id)
+			 VALUES ($1, $2, $3, $4, 'expense', $5, $6, $7)`,
+			userID, accountID, categoryID, item.Payment, note, now, familyIDVal,
+		)
+		if err != nil {
+			log.Printf("loan: failed to create transaction record: %v", err)
+			// Non-fatal: payment is still recorded, just no transaction entry
+		}
+	}
+skipTransaction:
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
