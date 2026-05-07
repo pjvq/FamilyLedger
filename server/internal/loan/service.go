@@ -602,21 +602,7 @@ func (s *Service) RecordPayment(ctx context.Context, req *pb.RecordPaymentReques
 	}
 
 	// Deduct payment amount from the associated account balance.
-	// Use SELECT FOR UPDATE to prevent concurrent balance modifications.
 	if loan.AccountId != "" {
-		var currentBalance int64
-		err = tx.QueryRow(ctx,
-			`SELECT balance FROM accounts WHERE id = $1 FOR UPDATE`,
-			loan.AccountId,
-		).Scan(&currentBalance)
-		if err != nil {
-			log.Printf("loan: failed to lock account %s for payment deduction: %v", loan.AccountId, err)
-			return nil, status.Error(codes.Internal, "failed to lock account for payment deduction")
-		}
-		if currentBalance < item.Payment {
-			log.Printf("loan: insufficient balance in account %s: has %d, need %d", loan.AccountId, currentBalance, item.Payment)
-			return nil, status.Error(codes.FailedPrecondition, "insufficient account balance for loan payment")
-		}
 		_, err = tx.Exec(ctx,
 			`UPDATE accounts SET balance = balance - $1, updated_at = NOW()
 			 WHERE id = $2`,
