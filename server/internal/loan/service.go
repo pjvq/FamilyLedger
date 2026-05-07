@@ -1417,7 +1417,7 @@ func (s *Service) ListLoanGroups(ctx context.Context, req *pb.ListLoanGroupsRequ
 	if req.FamilyId != "" {
 		rows, err = s.pool.Query(ctx,
 			`SELECT id, name, group_type, total_principal, payment_day, start_date,
-			        account_id, created_at, updated_at
+			        account_id, family_id, created_at, updated_at
 			 FROM loan_groups WHERE family_id = $1 AND deleted_at IS NULL
 			 ORDER BY created_at DESC`,
 			req.FamilyId,
@@ -1425,7 +1425,7 @@ func (s *Service) ListLoanGroups(ctx context.Context, req *pb.ListLoanGroupsRequ
 	} else {
 		rows, err = s.pool.Query(ctx,
 			`SELECT id, name, group_type, total_principal, payment_day, start_date,
-			        account_id, created_at, updated_at
+			        account_id, family_id, created_at, updated_at
 			 FROM loan_groups WHERE user_id = $1 AND deleted_at IS NULL
 			 ORDER BY created_at DESC`,
 			userID,
@@ -1444,9 +1444,10 @@ func (s *Service) ListLoanGroups(ctx context.Context, req *pb.ListLoanGroupsRequ
 		var paymentDay int32
 		var startDate, createdAt, updatedAt time.Time
 		var accountID *uuid.UUID
+		var familyID *uuid.UUID
 
 		if err := rows.Scan(&gID, &name, &groupType, &totalPrincipal, &paymentDay,
-			&startDate, &accountID, &createdAt, &updatedAt); err != nil {
+			&startDate, &accountID, &familyID, &createdAt, &updatedAt); err != nil {
 			return nil, status.Error(codes.Internal, "failed to scan loan group")
 		}
 
@@ -1474,10 +1475,15 @@ func (s *Service) ListLoanGroups(ctx context.Context, req *pb.ListLoanGroupsRequ
 		if accountID != nil {
 			acctStr = accountID.String()
 		}
+		famStr := ""
+		if familyID != nil {
+			famStr = familyID.String()
+		}
 
 		groups = append(groups, &pb.LoanGroup{
 			Id:                 gID.String(),
 			UserId:             userID,
+			FamilyId:           famStr,
 			Name:               name,
 			GroupType:          groupType,
 			TotalPrincipal:     totalPrincipal,
