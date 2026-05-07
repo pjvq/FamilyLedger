@@ -1,7 +1,7 @@
 # FamilyLedger — Unified Test Runner
 # Usage: make <target>
 
-.PHONY: test test-backend test-frontend test-all test-integration test-e2e bench bench-grpc clean help
+.PHONY: test test-backend test-frontend test-all test-integration test-e2e bench bench-grpc deploy clean help
 
 # ─── Quick (daily dev) ─────────────────────────────────────────
 test: test-backend test-frontend ## Run unit tests (no Docker needed)
@@ -78,6 +78,12 @@ bench-flutter: ## Run Flutter performance tests (needs device/simulator)
 
 bench-flutter-startup: ## Run Flutter startup benchmark only
 	cd app && flutter test integration_test/app_performance_test.dart --profile
+
+
+# ─── Deploy ─────────────────────────────────────────────────────
+deploy: ## Deploy to server: make deploy HOST=1.2.3.4 [USER=root] [PORT=22]
+	@test -n "$(HOST)" || (echo "❌ Usage: make deploy HOST=<ip> [USER=root] [PORT=22]" && exit 1)
+	./deploy.sh $(HOST) $(or $(USER),root) $(or $(PORT),22)
 
 # ─── Helpers ───────────────────────────────────────────────────
 db-migrate: ## Run database migrations (needs Docker)
