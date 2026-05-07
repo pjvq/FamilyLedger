@@ -1076,11 +1076,19 @@ class AppDatabase extends _$AppDatabase {
     await into(loans).insertOnConflictUpdate(entry);
   }
 
-  Future<List<Loan>> getLoans(String userId) =>
-      (select(loans)
-            ..where((l) => l.userId.equals(userId) & l.deletedAt.isNull())
+  Future<List<Loan>> getLoans(String userId, {String? familyId}) {
+    if (familyId != null && familyId.isNotEmpty) {
+      return (select(loans)
+            ..where((l) => l.familyId.equals(familyId) & l.deletedAt.isNull())
             ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
           .get();
+    }
+    return (select(loans)
+            ..where((l) => l.userId.equals(userId) & l.deletedAt.isNull() &
+                (l.familyId.equals('') | l.familyId.isNull()))
+            ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
+          .get();
+  }
 
   /// Get standalone loans (not in any group)
   Future<List<Loan>> getStandaloneLoans(String userId, {String? familyId}) {
@@ -1218,9 +1226,10 @@ class AppDatabase extends _$AppDatabase {
             ..orderBy([(i) => OrderingTerm.desc(i.createdAt)]))
           .get();
     }
-    // 个人模式：显示自己的所有投资（包括关联到家庭的）
+    // 个人模式：只显示个人投资（排除家庭投资）
     return (select(investments)
-            ..where((i) => i.userId.equals(userId) & i.deletedAt.isNull())
+            ..where((i) => i.userId.equals(userId) & i.deletedAt.isNull() &
+                (i.familyId.equals('') | i.familyId.isNull()))
             ..orderBy([(i) => OrderingTerm.desc(i.createdAt)]))
           .get();
   }
@@ -1276,9 +1285,10 @@ class AppDatabase extends _$AppDatabase {
             ..orderBy([(a) => OrderingTerm.desc(a.createdAt)]))
           .get();
     }
-    // 个人模式：显示自己的所有资产（包括关联到家庭的）
+    // 个人模式：只显示个人资产（排除家庭资产）
     return (select(fixedAssets)
-            ..where((a) => a.userId.equals(userId) & a.deletedAt.isNull())
+            ..where((a) => a.userId.equals(userId) & a.deletedAt.isNull() &
+                (a.familyId.equals('') | a.familyId.isNull()))
             ..orderBy([(a) => OrderingTerm.desc(a.createdAt)]))
           .get();
   }

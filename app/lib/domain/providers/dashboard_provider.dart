@@ -212,29 +212,26 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         pb.GetNetWorthRequest()..familyId = _familyId ?? '',
         options: _callOpts,
       );
-      // Only override if local net worth is zero AND we're in family mode
-      // (server doesn't properly filter by familyId in personal mode)
-      if (state.netWorth.total == 0 && _familyId != null && _familyId.isNotEmpty) {
-        state = state.copyWith(
-          netWorth: NetWorthData(
-            total: resp.total.toInt(),
-            cashAndBank: resp.cashAndBank.toInt(),
-            investmentValue: resp.investmentValue.toInt(),
-            fixedAssetValue: resp.fixedAssetValue.toInt(),
-            loanBalance: resp.loanBalance.toInt(),
-            changeFromLastMonth: resp.changeFromLastMonth.toInt(),
-            changePercent: resp.changePercent,
-            composition: resp.composition
-                .map((c) => AssetCompositionItem(
-                      category: c.category,
-                      label: c.label,
-                      value: c.value.toInt(),
-                      weight: c.weight,
-                    ))
-                .toList(),
-          ),
-        );
-      }
+      // Always use gRPC response (server properly filters by familyId)
+      state = state.copyWith(
+        netWorth: NetWorthData(
+          total: resp.total.toInt(),
+          cashAndBank: resp.cashAndBank.toInt(),
+          investmentValue: resp.investmentValue.toInt(),
+          fixedAssetValue: resp.fixedAssetValue.toInt(),
+          loanBalance: resp.loanBalance.toInt(),
+          changeFromLastMonth: resp.changeFromLastMonth.toInt(),
+          changePercent: resp.changePercent,
+          composition: resp.composition
+              .map((c) => AssetCompositionItem(
+                    category: c.category,
+                    label: c.label,
+                    value: c.value.toInt(),
+                    weight: c.weight,
+                  ))
+              .toList(),
+        ),
+      );
     } catch (_) {
       // Local data already displayed, silently ignore remote failure
     }
@@ -255,7 +252,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         accounts.fold<int>(0, (sum, a) => sum + a.balance);
 
     // Investment value
-    final investments = await _db.getInvestments(_userId);
+    final investments = await _db.getInvestments(_userId, familyId: _familyId);
     int investmentValue = 0;
     for (final inv in investments) {
       final quote = await _db.getMarketQuote(inv.symbol, inv.marketType);
@@ -264,12 +261,12 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     }
 
     // Fixed asset value
-    final assets = await _db.getFixedAssets(_userId);
+    final assets = await _db.getFixedAssets(_userId, familyId: _familyId);
     final fixedAssetValue =
         assets.fold<int>(0, (sum, a) => sum + a.currentValue);
 
     // Loan balance (negative)
-    final loans = await _db.getLoans(_userId);
+    final loans = await _db.getLoans(_userId, familyId: _familyId);
     final loanBalance =
         -loans.fold<int>(0, (sum, l) => sum + l.remainingPrincipal);
 
@@ -324,22 +321,17 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..count = count,
         options: _callOpts,
       );
-      // Only override if local has no data AND we're in family mode
-      // (server doesn't properly filter by familyId in personal mode)
-      final localHasData = state.incomeExpenseTrend
-          .any((p) => p.income > 0 || p.expense > 0);
-      if (!localHasData && _familyId != null && _familyId.isNotEmpty) {
-        state = state.copyWith(
-          incomeExpenseTrend: resp.points
-              .map((p) => TrendPointData(
-                    label: p.label,
-                    income: p.income.toInt(),
-                    expense: p.expense.toInt(),
-                    net: p.net.toInt(),
-                  ))
-              .toList(),
-        );
-      }
+      // Always use gRPC response (server properly filters by familyId)
+      state = state.copyWith(
+        incomeExpenseTrend: resp.points
+            .map((p) => TrendPointData(
+                  label: p.label,
+                  income: p.income.toInt(),
+                  expense: p.expense.toInt(),
+                  net: p.net.toInt(),
+                ))
+            .toList(),
+      );
     } catch (_) {}
   }
 
@@ -425,33 +417,30 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..type = type,
         options: _callOpts,
       );
-      // Only override if local has no data AND in family mode
-      final localHasData = state.categoryBreakdown.isNotEmpty;
-      if (!localHasData && _familyId != null && _familyId.isNotEmpty) {
-        state = state.copyWith(
-          categoryBreakdown: resp.items
-              .map((c) => CategoryBreakdownItem(
-                    categoryId: c.categoryId,
-                    categoryName: c.categoryName,
-                    icon: c.icon,
-                    iconKey: c.iconKey,
-                    amount: c.amount.toInt(),
-                    weight: c.weight,
-                    children: c.children
-                        .map((ch) => CategoryBreakdownItem(
-                              categoryId: ch.categoryId,
-                              categoryName: ch.categoryName,
-                              icon: ch.icon,
-                              iconKey: ch.iconKey,
-                              amount: ch.amount.toInt(),
-                              weight: ch.weight,
-                            ))
-                        .toList(),
-                  ))
-              .toList(),
-          categoryBreakdownTotal: resp.total.toInt(),
-        );
-      }
+      // Always use gRPC response (server properly filters by familyId)
+      state = state.copyWith(
+        categoryBreakdown: resp.items
+            .map((c) => CategoryBreakdownItem(
+                  categoryId: c.categoryId,
+                  categoryName: c.categoryName,
+                  icon: c.icon,
+                  iconKey: c.iconKey,
+                  amount: c.amount.toInt(),
+                  weight: c.weight,
+                  children: c.children
+                      .map((ch) => CategoryBreakdownItem(
+                            categoryId: ch.categoryId,
+                            categoryName: ch.categoryName,
+                            icon: ch.icon,
+                            iconKey: ch.iconKey,
+                            amount: ch.amount.toInt(),
+                            weight: ch.weight,
+                          ))
+                      .toList(),
+                ))
+            .toList(),
+        categoryBreakdownTotal: resp.total.toInt(),
+      );
     } catch (_) {}
   }
 
@@ -572,16 +561,14 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..month = now.month,
         options: _callOpts,
       );
-      // Only override if local budget summary has no data AND in family mode
-      if (state.budgetSummary.totalBudget == 0 && state.budgetSummary.totalSpent == 0 && _familyId != null && _familyId.isNotEmpty) {
-        state = state.copyWith(
-          budgetSummary: BudgetSummaryData(
-            totalBudget: resp.totalBudget.toInt(),
-            totalSpent: resp.totalSpent.toInt(),
-            executionRate: resp.executionRate,
-          ),
-        );
-      }
+      // Always use gRPC response (server properly filters by familyId)
+      state = state.copyWith(
+        budgetSummary: BudgetSummaryData(
+          totalBudget: resp.totalBudget.toInt(),
+          totalSpent: resp.totalSpent.toInt(),
+          executionRate: resp.executionRate,
+        ),
+      );
     } catch (_) {}
   }
 
@@ -625,20 +612,17 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..count = months,
         options: _callOpts,
       );
-      // Only override if local has no data AND in family mode
-      final localHasData = state.netWorthTrend.any((p) => p.net != 0);
-      if (!localHasData && _familyId != null && _familyId.isNotEmpty) {
-        state = state.copyWith(
-          netWorthTrend: resp.points
-              .map((p) => TrendPointData(
-                    label: p.label,
-                    income: p.income.toInt(),
-                    expense: p.expense.toInt(),
-                    net: p.net.toInt(),
-                  ))
-              .toList(),
-        );
-      }
+      // Always use gRPC response (server properly filters by familyId)
+      state = state.copyWith(
+        netWorthTrend: resp.points
+            .map((p) => TrendPointData(
+                  label: p.label,
+                  income: p.income.toInt(),
+                  expense: p.expense.toInt(),
+                  net: p.net.toInt(),
+                ))
+            .toList(),
+      );
     } catch (_) {
       // Fallback: approximate with current net worth
       final nw = state.netWorth.total;
