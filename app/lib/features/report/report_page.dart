@@ -80,10 +80,17 @@ class ReportPage extends ConsumerStatefulWidget {
 }
 
 class _ReportPageState extends ConsumerState<ReportPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController; // 支出 / 收入
   _DatePreset _preset = _DatePreset.thisMonth;
   DateTimeRange? _dateRange;
+
+  // Monthly trend state
+  int _trendTab = 0; // 0=支出, 1=收入, 2=结余
+  int? _trendTouchedMonth; // 0-indexed month for tooltip
+
+  // Top spending ranking state
+  int _rankingTab = 0; // 0=支出, 1=收入
   List<db.Transaction> _filteredTransactions = [];
   bool _isLoading = false;
 
@@ -331,6 +338,14 @@ class _ReportPageState extends ConsumerState<ReportPage>
                             ),
                           const SizedBox(height: 12),
 
+                          // ── Monthly trend chart ──
+                          _buildMonthlyTrend(isDark, theme),
+                          const SizedBox(height: 12),
+
+                          // ── Top spending/income ranking ──
+                          _buildTopRanking(catMap, isDark, theme),
+                          const SizedBox(height: 12),
+
                           // ── Category ranking ──
                           Text(
                             _filterParentCatId != null
@@ -414,6 +429,370 @@ class _ReportPageState extends ConsumerState<ReportPage>
                       ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── Monthly trend chart ──
+
+  Widget _buildMonthlyTrend(bool isDark, ThemeData theme) {
+    // Aggregate all transactions by month (full year)
+    final monthlyExpense = List.filled(12, 0);
+    final monthlyIncome = List.filled(12, 0);
+
+    for (final t in _filteredTransactions) {
+      final month = t.txnDate.month - 1;
+      if (month < 0 || month > 11) continue;
+      if (t.type == 'expense') {
+        monthlyExpense[month] += t.amountCny;
+      } else if (t.type == 'income') {
+        monthlyIncome[month] += t.amountCny;
+      }
+    }
+
+    final monthlyBalance = List.generate(
+        12, (i) => monthlyIncome[i] - monthlyExpense[i]);
+
+    List<int> data;
+    switch (_trendTab) {
+      case 1:
+        data = monthlyIncome;
+        break;
+      case 2:
+        data = monthlyBalance;
+        break;
+      default:
+        data = monthlyExpense;
+    }
+
+    final maxVal = data.fold(0, (int a, int b) => a > b.abs() ? a : b.abs());
+    final maxY = maxVal > 0 ? maxVal.toDouble() * 1.2 : 100.0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('每月支出趋势',
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w600)),
+              const Spacer(),
+              _buildSegment(['支出', '收入', '结余'], _trendTab, (i) {
+                setState(() {
+                  _trendTab = i;
+                  _trendTouchedMonth = null;
+                });
+              }, theme, isDark),
+            ],
+          ),
+          if (_trendTouchedMonth != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '${_trendTouchedMonth! + 1}月 ${_trendTab == 1 ? "收入" : _trendTab == 2 ? "结余" : "支出"} ¥${_fmtYuan(data[_trendTouchedMonth!].abs())}',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+            ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 160,
+            child: BarChart(
+              BarChartData(
+                maxY: maxY,
+                minY: _trendTab == 2 ? -maxY : 0,
+                barTouchData: BarTouchData(
+                  touchCallback: (event, response) {
+                    if (response?.spot != null) {
+                      setState(() => _trendTouchedMonth =
+                          response!.spot!.touchedBarGroupIndex);
+                    }
+                  },
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (_) => Colors.transparent,
+                    getTooltipItem: (_, __, ___, ____) => null,
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (val, _) => Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          '${val.toInt() + 1}月',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 10,
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxY > 0 ? maxY / 3 : 1,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color:
+                        theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                    strokeWidth: 1,
+                    dashArray: [4, 4],
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: List.generate(12, (i) {
+                  final val = data[i].toDouble();
+                  final color = _trendTab == 2
+                      ? (val >= 0
+                          ? (isDark
+                              ? AppColors.incomeDark
+                              : AppColors.income)
+                          : (isDark
+                              ? AppColors.expenseDark
+                              : AppColors.expense))
+                      : (_trendTab == 1
+                          ? (isDark
+                              ? AppColors.incomeDark
+                              : AppColors.income)
+                          : (isDark
+                              ? AppColors.expenseDark
+                              : AppColors.primary));
+                  return BarChartGroupData(
+                    x: i,
+                    barRods: [
+                      BarChartRodData(
+                        toY: _trendTab == 2 ? val : val.abs(),
+                        fromY: _trendTab == 2 && val < 0 ? val : 0,
+                        color: i == _trendTouchedMonth
+                            ? color.withValues(alpha: 0.9)
+                            : color.withValues(alpha: 0.7),
+                        width: 14,
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(4)),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Top ranking ──
+
+  Widget _buildTopRanking(
+      Map<String, db.Category> catMap, bool isDark, ThemeData theme) {
+    final type = _rankingTab == 0 ? 'expense' : 'income';
+    final typeTxns = _filteredTransactions
+        .where((t) => t.type == type)
+        .toList()
+      ..sort((a, b) => b.amountCny.compareTo(a.amountCny));
+
+    final top = typeTxns.take(20).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('单笔支出排行',
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w600)),
+              const Spacer(),
+              _buildSegment(['支出', '收入'], _rankingTab, (i) {
+                setState(() => _rankingTab = i);
+              }, theme, isDark),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (top.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Text('暂无数据',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface
+                          .withValues(alpha: 0.4),
+                    )),
+              ),
+            )
+          else
+            ...List.generate(top.length, (i) {
+              final t = top[i];
+              final cat = catMap[t.categoryId];
+              final parentCat = cat?.parentId != null &&
+                      cat!.parentId!.isNotEmpty
+                  ? catMap[cat.parentId!]
+                  : null;
+              final catName = parentCat != null
+                  ? parentCat.name
+                  : (cat?.name ?? '未知');
+              final firstChar = catName.isNotEmpty ? catName[0] : '?';
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 22,
+                      child: Text(
+                        '${i + 1}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: i < 3
+                              ? (isDark
+                                  ? AppColors.primaryDark
+                                  : AppColors.primary)
+                              : theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: _chartColors[i % _chartColors.length]
+                            .withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        firstChar,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: _chartColors[i % _chartColors.length],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            catName,
+                            style: theme.textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w500),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (t.note.isNotEmpty)
+                            Text(
+                              t.note,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.4),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '¥${_fmtYuan(t.amountCny)}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.chevron_right_rounded,
+                        size: 16,
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.3)),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  // ── Segment control helper ──
+
+  Widget _buildSegment(
+      List<String> labels, int selected, ValueChanged<int> onTap,
+      ThemeData theme, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(labels.length, (i) {
+          final isSelected = i == selected;
+          return GestureDetector(
+            onTap: () => onTap(i),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? (isDark ? AppColors.cardDark : Colors.white)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 2,
+                        )
+                      ]
+                    : null,
+              ),
+              child: Text(
+                labels[i],
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight:
+                      isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected
+                      ? theme.colorScheme.onSurface
+                      : theme.colorScheme.onSurface
+                          .withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }
