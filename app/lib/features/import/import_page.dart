@@ -1063,8 +1063,11 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         }
 
         // Tag not found — auto-create parent + child
+        // For 百事AA: if the found parent is already a subcategory (has parentId),
+        // create an independent top-level category with the same name to avoid
+        // creating a 3rd-level category (server only allows 2 levels).
         if (parentName != null && parentName.isNotEmpty) {
-          final parentCat = await _getOrCreateCategory(
+          final parentCat = await _getOrCreateRootCategory(
             database: database,
             userId: userId,
             ownerID: ownerID,
@@ -1184,6 +1187,64 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   // ── Auto-create categories ──
 
   static const _defaultIcon = '📌';
+
+  /// Get or create a ROOT (top-level) category. Used by 百事AA import to
+  /// guarantee the parent is always a first-level category.
+  /// If a same-name category exists but is a subcategory, we create a new
+  /// independent top-level one instead of reusing the subcategory.
+  Future<db.Category> _getOrCreateRootCategory({
+    required db.AppDatabase database,
+    required String? userId,
+    required String ownerID,
+    required String name,
+    required String type,
+  }) async {
+    // Check in-memory cache for a ROOT category with matching name+type
+    final cached = _allCategories.where(
+      (c) => c.name == name && c.type == type && (c.parentId == null || c.parentId!.isEmpty),
+    ).firstOrNull;
+    if (cached != null) return cached;
+
+    // Query DB for a top-level category (parentId IS NULL)
+    final dbExisting = await (database.select(database.categories)
+          ..where((c) => c.name.equals(name))
+          ..where((c) => c.type.equals(type))
+          ..where((c) => c.parentId.isNull())
+          ..limit(1))
+        .getSingleOrNull();
+    if (dbExisting != null) {
+      _catByName[name] = dbExisting;
+      _catByNameType['$name|${dbExisting.type}'] = dbExisting;
+      _allCategories.add(dbExisting);
+      return dbExisting;
+    }
+
+    // Create a new top-level category
+    final id = CategoryUUID.generate(ownerID, type, name);
+    await database.upsertCategory(
+      id: id,
+      name: name,
+      icon: _defaultIcon,
+      type: type,
+      userId: userId,
+    );
+    final newCat = db.Category(
+      id: id,
+      name: name,
+      icon: _defaultIcon,
+      iconKey: '',
+      type: type,
+      isPreset: false,
+      sortOrder: 999,
+      parentId: null,
+      userId: userId,
+      deletedAt: null,
+    );
+    _catByName[name] = newCat;
+    _catByNameType['$name|$type'] = newCat;
+    _allCategories.add(newCat);
+    return newCat;
+  }
 
   /// Get or create a top-level category by name.
   /// Looks up by name+type first, then name-only fallback, then creates.
