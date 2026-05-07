@@ -17,6 +17,7 @@ enum _DatePreset {
   last90('近90天'),
   thisQuarter('本季度'),
   thisYear('本年'),
+  all('所有'),
   custom('自定义');
 
   final String label;
@@ -45,6 +46,8 @@ DateTimeRange _presetRange(_DatePreset p) {
       return DateTimeRange(start: qStart, end: today);
     case _DatePreset.thisYear:
       return DateTimeRange(start: DateTime(now.year, 1, 1), end: today);
+    case _DatePreset.all:
+      return DateTimeRange(start: DateTime(2000, 1, 1), end: today);
     case _DatePreset.custom:
       return DateTimeRange(
           start: DateTime(now.year, now.month, 1), end: today);
