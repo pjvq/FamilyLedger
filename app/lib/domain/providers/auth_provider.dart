@@ -98,6 +98,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       developer.log('[Auth] register: gRPC SUCCESS, userId=${resp.userId}');
 
+      // If switching to a different user, clear local data first
+      final previousUserId = _prefs.getString(AppConstants.userIdKey);
+      if (previousUserId != null && previousUserId != resp.userId) {
+        developer.log('[Auth] register: user switched ($previousUserId → ${resp.userId}), clearing local data');
+        await _db.clearAllData();
+      }
+
       // 保存 tokens
       await _prefs.setString(AppConstants.accessTokenKey, resp.accessToken);
       await _prefs.setString(AppConstants.refreshTokenKey, resp.refreshToken);
@@ -212,6 +219,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         options: CallOptions(timeout: const Duration(seconds: 5)),
       );
       developer.log('[Auth] login: gRPC SUCCESS, userId=${resp.userId}');
+
+      // If switching to a different user, clear local data first
+      final previousUserId = _prefs.getString(AppConstants.userIdKey);
+      if (previousUserId != null && previousUserId != resp.userId) {
+        developer.log('[Auth] login: user switched ($previousUserId → ${resp.userId}), clearing local data');
+        await _db.clearAllData();
+      }
 
       await _prefs.setString(AppConstants.accessTokenKey, resp.accessToken);
       await _prefs.setString(AppConstants.refreshTokenKey, resp.refreshToken);
