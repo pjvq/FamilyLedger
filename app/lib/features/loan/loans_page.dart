@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -12,7 +13,9 @@ class LoansPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    developer.log('[LoansPage] build called');
     final loanState = ref.watch(loanProvider);
+    developer.log('[LoansPage] loanState: isLoading=${loanState.isLoading}, loans=${loanState.loans.length}, groups=${loanState.loanGroups.length}');
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
