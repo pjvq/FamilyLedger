@@ -604,14 +604,18 @@ class LoanNotifier extends StateNotifier<LoanState> {
 
     try {
       final loans = await _db.getStandaloneLoans(_userId, familyId: _familyId);
+      developer.log('[Loan] listLoans: local DB returned ${loans.length} standalone loans (userId=$_userId, familyId=$_familyId)');
       state = state.copyWith(loans: loans, isLoading: false);
     } catch (e) {
+      developer.log('[Loan] listLoans: local DB error: $e');
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
   Future<void> listLoanGroups() async {
     if (_userId == null) return;
+
+    developer.log('[Loan] listLoanGroups: userId=$_userId familyId=$_familyId');
 
     try {
       final grpReq = pb.ListLoanGroupsRequest();
@@ -620,7 +624,9 @@ class LoanNotifier extends StateNotifier<LoanState> {
       }
       final resp = await _client.listLoanGroups(grpReq,
           options: CallOptions(timeout: const Duration(seconds: 10)));
+      developer.log('[Loan] listLoanGroups: gRPC returned ${resp.groups.length} groups');
       for (final group in resp.groups) {
+        developer.log('[Loan] listLoanGroups: upserting group id=${group.id} name=${group.name} familyId="${group.familyId}" userId=${group.userId}');
         await _db.upsertLoanGroup(db.LoanGroupsCompanion.insert(
           id: group.id,
           userId: group.userId,
@@ -636,19 +642,25 @@ class LoanNotifier extends StateNotifier<LoanState> {
           await _db.upsertLoan(_loanFromProto(loan));
         }
       }
-    } catch (_) {
+    } catch (e) {
+      developer.log('[Loan] listLoanGroups: gRPC error: $e');
       // Offline fallback
     }
 
     try {
       final groups = await _db.getLoanGroups(_userId, familyId: _familyId);
+      developer.log('[Loan] listLoanGroups: local DB returned ${groups.length} groups (query: userId=$_userId, familyId=$_familyId)');
+      for (final g in groups) {
+        developer.log('[Loan] listLoanGroups: local group id=${g.id} name=${g.name} familyId="${g.familyId}"');
+      }
       final displayGroups = <LoanGroupDisplayItem>[];
       for (final group in groups) {
         final subLoans = await _db.getLoansByGroupId(group.id);
         displayGroups.add(_buildGroupDisplay(group, subLoans));
       }
       state = state.copyWith(loanGroups: displayGroups);
-    } catch (_) {
+    } catch (e) {
+      developer.log('[Loan] listLoanGroups: local DB error: $e');
       // ignore
     }
   }
