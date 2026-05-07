@@ -671,8 +671,8 @@ func (s *Service) RecordPayment(ctx context.Context, req *pb.RecordPaymentReques
 			familyIDVal = loan.FamilyId
 		}
 		_, err = tx.Exec(ctx,
-			`INSERT INTO transactions (user_id, account_id, category_id, amount, type, note, txn_date, family_id)
-			 VALUES ($1, $2, $3, $4, 'expense', $5, $6, $7)`,
+			`INSERT INTO transactions (user_id, account_id, category_id, amount, amount_cny, type, note, txn_date, family_id)
+			 VALUES ($1, $2, $3, $4, $4, 'expense', $5, $6, $7)`,
 			userID, accountID, categoryID, item.Payment, note, now, familyIDVal,
 		)
 		if err != nil {
