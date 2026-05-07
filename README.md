@@ -160,6 +160,44 @@ cd app && flutter test
 cd app && flutter test integration_test/
 ```
 
+### 4. 部署到服务器
+
+一键部署：本地构建 Docker 镜像 → 传输到服务器 → 启动服务。
+
+```bash
+# 基本用法（默认 root 用户，22 端口）
+./deploy.sh <HOST>
+
+# 指定用户和端口
+./deploy.sh <HOST> <USER> <PORT>
+
+# 或者用 make
+make deploy HOST=1.2.3.4
+make deploy HOST=1.2.3.4 USER=ubuntu PORT=2222
+```
+
+**前置条件：**
+- 本地已安装 Docker
+- 目标服务器已安装 docker + docker compose
+- 本地 SSH key 可免密登录目标服务器
+
+**生产环境配置：**
+
+创建 `.env.production` 放在项目根目录，脚本会自动传到服务器：
+
+```env
+JWT_SECRET=your-production-secret-at-least-32-chars
+DB_PASSWORD=your-secure-db-password
+APP_ENV=production
+```
+
+**部署流程：**
+1. 本地构建 `familyledger-server:<git-short-hash>` 镜像
+2. 压缩导出并 scp 到服务器 `/opt/familyledger/`
+3. 远端 `docker load` 加载镜像
+4. `docker compose up -d` 启动/重启服务（自动执行 migration）
+5. 验证容器运行状态
+
 ## 后端开发
 
 ### Proto 代码生成
