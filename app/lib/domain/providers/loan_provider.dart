@@ -571,6 +571,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
 
   LoanNotifier(this._db, this._client, this._userId, this._familyId)
       : super(const LoanState()) {
+    developer.log('[Loan] LoanNotifier created: userId=$_userId, familyId=$_familyId');
     if (_userId != null) {
       loadAll();
     }
