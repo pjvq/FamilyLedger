@@ -150,7 +150,7 @@ func (s *Service) ListAssets(ctx context.Context, req *pb.ListAssetsRequest) (*p
 		}
 		rows, err = s.pool.Query(ctx,
 			`SELECT id, user_id, name, asset_type, purchase_price, current_value,
-			        purchase_date, description, created_at, updated_at
+			        purchase_date, description, family_id, created_at, updated_at
 			 FROM fixed_assets
 			 WHERE family_id = $1 AND deleted_at IS NULL
 			 ORDER BY purchase_date DESC`,
@@ -160,7 +160,7 @@ func (s *Service) ListAssets(ctx context.Context, req *pb.ListAssetsRequest) (*p
 		at := assetTypeToString(req.AssetType)
 		rows, err = s.pool.Query(ctx,
 			`SELECT id, user_id, name, asset_type, purchase_price, current_value,
-			        purchase_date, description, created_at, updated_at
+			        purchase_date, description, family_id, created_at, updated_at
 			 FROM fixed_assets
 			 WHERE user_id = $1 AND deleted_at IS NULL AND asset_type = $2
 			 ORDER BY purchase_date DESC`,
@@ -169,7 +169,7 @@ func (s *Service) ListAssets(ctx context.Context, req *pb.ListAssetsRequest) (*p
 	} else {
 		rows, err = s.pool.Query(ctx,
 			`SELECT id, user_id, name, asset_type, purchase_price, current_value,
-			        purchase_date, description, created_at, updated_at
+			        purchase_date, description, family_id, created_at, updated_at
 			 FROM fixed_assets
 			 WHERE user_id = $1 AND deleted_at IS NULL
 			 ORDER BY purchase_date DESC`,
@@ -793,10 +793,11 @@ func scanAssetRow(rows pgx.Rows) (*pb.Asset, error) {
 	var purchasePrice, currentValue int64
 	var purchaseDate time.Time
 	var description *string
+	var familyID *uuid.UUID
 	var createdAt, updatedAt time.Time
 
 	if err := rows.Scan(&id, &uid, &name, &assetType, &purchasePrice, &currentValue,
-		&purchaseDate, &description, &createdAt, &updatedAt); err != nil {
+		&purchaseDate, &description, &familyID, &createdAt, &updatedAt); err != nil {
 		return nil, status.Errorf(codes.Internal, "scan asset: %v", err)
 	}
 
@@ -804,10 +805,15 @@ func scanAssetRow(rows pgx.Rows) (*pb.Asset, error) {
 	if description != nil {
 		desc = *description
 	}
+	famStr := ""
+	if familyID != nil {
+		famStr = familyID.String()
+	}
 
 	return &pb.Asset{
 		Id:            id.String(),
 		UserId:        uid,
+		FamilyId:      famStr,
 		Name:          name,
 		AssetType:     stringToAssetType(assetType),
 		PurchasePrice: purchasePrice,

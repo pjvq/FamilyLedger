@@ -127,7 +127,7 @@ func (s *Service) ListInvestments(ctx context.Context, req *pb.ListInvestmentsRe
 		rows, err = s.pool.Query(ctx,
 			`SELECT i.id, i.user_id, i.symbol, i.name, i.market_type, i.quantity, i.cost_basis,
 			        i.created_at, i.updated_at,
-			        mq.current_price
+			        mq.current_price, i.family_id
 			 FROM investments i
 			 LEFT JOIN market_quotes mq ON i.symbol = mq.symbol AND i.market_type = mq.market_type
 			 WHERE i.family_id = $1 AND i.deleted_at IS NULL
@@ -139,7 +139,7 @@ func (s *Service) ListInvestments(ctx context.Context, req *pb.ListInvestmentsRe
 		rows, err = s.pool.Query(ctx,
 			`SELECT i.id, i.user_id, i.symbol, i.name, i.market_type, i.quantity, i.cost_basis,
 			        i.created_at, i.updated_at,
-			        mq.current_price
+			        mq.current_price, i.family_id
 			 FROM investments i
 			 LEFT JOIN market_quotes mq ON i.symbol = mq.symbol AND i.market_type = mq.market_type
 			 WHERE i.user_id = $1 AND i.deleted_at IS NULL AND i.market_type = $2
@@ -150,7 +150,7 @@ func (s *Service) ListInvestments(ctx context.Context, req *pb.ListInvestmentsRe
 		rows, err = s.pool.Query(ctx,
 			`SELECT i.id, i.user_id, i.symbol, i.name, i.market_type, i.quantity, i.cost_basis,
 			        i.created_at, i.updated_at,
-			        mq.current_price
+			        mq.current_price, i.family_id
 			 FROM investments i
 			 LEFT JOIN market_quotes mq ON i.symbol = mq.symbol AND i.market_type = mq.market_type
 			 WHERE i.user_id = $1 AND i.deleted_at IS NULL
@@ -630,9 +630,10 @@ func scanInvestmentRow(rows pgx.Rows) (*pb.Investment, error) {
 	var costBasis int64
 	var createdAt, updatedAt time.Time
 	var currentPrice *int64
+	var familyID *uuid.UUID
 
 	if err := rows.Scan(&id, &uid, &symbol, &name, &marketType, &quantity, &costBasis,
-		&createdAt, &updatedAt, &currentPrice); err != nil {
+		&createdAt, &updatedAt, &currentPrice, &familyID); err != nil {
 		return nil, status.Errorf(codes.Internal, "scan investment: %v", err)
 	}
 
@@ -646,6 +647,9 @@ func scanInvestmentRow(rows pgx.Rows) (*pb.Investment, error) {
 		CostBasis:  costBasis,
 		CreatedAt:  timestamppb.New(createdAt),
 		UpdatedAt:  timestamppb.New(updatedAt),
+	}
+	if familyID != nil {
+		inv.FamilyId = familyID.String()
 	}
 
 	if currentPrice != nil && quantity > 0 {
