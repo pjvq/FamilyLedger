@@ -571,7 +571,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
 
   LoanNotifier(this._db, this._client, this._userId, this._familyId)
       : super(const LoanState()) {
-    developer.log('[Loan] LoanNotifier created: userId=$_userId, familyId=$_familyId');
+    print('[Loan] LoanNotifier created: userId=$_userId, familyId=$_familyId');
     if (_userId != null) {
       loadAll();
     }
@@ -585,7 +585,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
   Future<void> listLoans() async {
     if (_userId == null) return;
     state = state.copyWith(isLoading: true, clearError: true);
-    developer.log('[Loan] listLoans: userId=$_userId familyId=$_familyId');
+    print('[Loan] listLoans: userId=$_userId familyId=$_familyId');
 
     try {
       // gRPC first
@@ -595,7 +595,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
       }
       final resp = await _client.listLoans(req,
           options: CallOptions(timeout: const Duration(seconds: 10)));
-      developer.log('[Loan] listLoans: gRPC returned ${resp.loans.length} loans');
+      print('[Loan] listLoans: gRPC returned ${resp.loans.length} loans');
       for (final loan in resp.loans) {
         await _db.upsertLoan(_loanFromProto(loan));
       }
@@ -605,10 +605,10 @@ class LoanNotifier extends StateNotifier<LoanState> {
 
     try {
       final loans = await _db.getStandaloneLoans(_userId, familyId: _familyId);
-      developer.log('[Loan] listLoans: local DB returned ${loans.length} standalone loans (userId=$_userId, familyId=$_familyId)');
+      print('[Loan] listLoans: local DB returned ${loans.length} standalone loans (userId=$_userId, familyId=$_familyId)');
       state = state.copyWith(loans: loans, isLoading: false);
     } catch (e) {
-      developer.log('[Loan] listLoans: local DB error: $e');
+      print('[Loan] listLoans: local DB error: $e');
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
@@ -616,7 +616,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
   Future<void> listLoanGroups() async {
     if (_userId == null) return;
 
-    developer.log('[Loan] listLoanGroups: userId=$_userId familyId=$_familyId');
+    print('[Loan] listLoanGroups: userId=$_userId familyId=$_familyId');
 
     try {
       final grpReq = pb.ListLoanGroupsRequest();
@@ -625,9 +625,9 @@ class LoanNotifier extends StateNotifier<LoanState> {
       }
       final resp = await _client.listLoanGroups(grpReq,
           options: CallOptions(timeout: const Duration(seconds: 10)));
-      developer.log('[Loan] listLoanGroups: gRPC returned ${resp.groups.length} groups');
+      print('[Loan] listLoanGroups: gRPC returned ${resp.groups.length} groups');
       for (final group in resp.groups) {
-        developer.log('[Loan] listLoanGroups: upserting group id=${group.id} name=${group.name} familyId="${group.familyId}" userId=${group.userId}');
+        print('[Loan] listLoanGroups: upserting group id=${group.id} name=${group.name} familyId="${group.familyId}" userId=${group.userId}');
         await _db.upsertLoanGroup(db.LoanGroupsCompanion.insert(
           id: group.id,
           userId: group.userId,
@@ -644,15 +644,15 @@ class LoanNotifier extends StateNotifier<LoanState> {
         }
       }
     } catch (e) {
-      developer.log('[Loan] listLoanGroups: gRPC error: $e');
+      print('[Loan] listLoanGroups: gRPC error: $e');
       // Offline fallback
     }
 
     try {
       final groups = await _db.getLoanGroups(_userId, familyId: _familyId);
-      developer.log('[Loan] listLoanGroups: local DB returned ${groups.length} groups (query: userId=$_userId, familyId=$_familyId)');
+      print('[Loan] listLoanGroups: local DB returned ${groups.length} groups (query: userId=$_userId, familyId=$_familyId)');
       for (final g in groups) {
-        developer.log('[Loan] listLoanGroups: local group id=${g.id} name=${g.name} familyId="${g.familyId}"');
+        print('[Loan] listLoanGroups: local group id=${g.id} name=${g.name} familyId="${g.familyId}"');
       }
       final displayGroups = <LoanGroupDisplayItem>[];
       for (final group in groups) {
@@ -661,7 +661,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
       }
       state = state.copyWith(loanGroups: displayGroups);
     } catch (e) {
-      developer.log('[Loan] listLoanGroups: local DB error: $e');
+      print('[Loan] listLoanGroups: local DB error: $e');
       // ignore
     }
   }
@@ -735,7 +735,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
   }) async {
     if (_userId == null) return;
     state = state.copyWith(isLoading: true, clearError: true);
-    developer.log('[Loan] createLoan: name=$name familyId=$familyId userId=$_userId');
+    print('[Loan] createLoan: name=$name familyId=$familyId userId=$_userId');
 
     String loanId = const Uuid().v4();
 

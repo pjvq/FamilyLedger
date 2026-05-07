@@ -13,9 +13,9 @@ class LoansPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    developer.log('[LoansPage] build called');
+    print('[LoansPage] build called');
     final loanState = ref.watch(loanProvider);
-    developer.log('[LoansPage] loanState: isLoading=${loanState.isLoading}, loans=${loanState.loans.length}, groups=${loanState.loanGroups.length}');
+    print('[LoansPage] loanState: isLoading=${loanState.isLoading}, loans=${loanState.loans.length}, groups=${loanState.loanGroups.length}');
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
