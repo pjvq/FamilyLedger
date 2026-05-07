@@ -22,8 +22,9 @@ USER="${2:-root}"
 PORT="${3:-22}"
 
 SSH_OPTS="-o StrictHostKeyChecking=accept-new -p ${PORT}"
+SCP_OPTS="-o StrictHostKeyChecking=accept-new -P ${PORT}"
 SSH_CMD="ssh ${SSH_OPTS} ${USER}@${HOST}"
-SCP_CMD="scp ${SSH_OPTS}"
+SCP_CMD="scp ${SCP_OPTS}"
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 IMAGE_NAME="familyledger-server"
