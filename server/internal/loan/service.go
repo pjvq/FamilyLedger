@@ -226,10 +226,19 @@ func (s *Service) UpdateLoan(ctx context.Context, req *pb.UpdateLoanRequest) (*p
 		accountUUID = &aid
 	}
 
+	var repCatUUID *uuid.UUID
+	if req.RepaymentCategoryId != "" {
+		rcid, err := uuid.Parse(req.RepaymentCategoryId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid repayment_category_id")
+		}
+		repCatUUID = &rcid
+	}
+
 	_, err = s.pool.Exec(ctx,
-		`UPDATE loans SET name=$1, payment_day=$2, account_id=$3, updated_at=NOW()
+		`UPDATE loans SET name=$1, payment_day=$2, account_id=$3, repayment_category_id=$6, updated_at=NOW()
 		 WHERE id=$4 AND user_id=$5 AND deleted_at IS NULL`,
-		name, paymentDay, accountUUID, req.LoanId, userID,
+		name, paymentDay, accountUUID, req.LoanId, userID, repCatUUID,
 	)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to update loan")
@@ -617,19 +626,29 @@ func (s *Service) RecordPayment(ctx context.Context, req *pb.RecordPaymentReques
 
 	// Create a transaction record for the loan payment
 	{
-		// Find the "还款" category, fall back to a hardcoded UUID if not found
+		// First check if the loan has a custom repayment category
 		var categoryID string
+		var repCatID *uuid.UUID
 		err = tx.QueryRow(ctx,
-			`SELECT id FROM categories WHERE name = '还款' LIMIT 1`,
-		).Scan(&categoryID)
-		if err != nil {
-			// Fallback: try "房贷"
+			`SELECT repayment_category_id FROM loans WHERE id = $1`,
+			req.LoanId,
+		).Scan(&repCatID)
+		if err == nil && repCatID != nil {
+			categoryID = repCatID.String()
+		} else {
+			// Fallback: find the "还款" category
 			err = tx.QueryRow(ctx,
-				`SELECT id FROM categories WHERE name = '房贷' LIMIT 1`,
+				`SELECT id FROM categories WHERE name = '还款' LIMIT 1`,
 			).Scan(&categoryID)
 			if err != nil {
-				log.Printf("loan: no repayment category found, skipping transaction record")
-				goto skipTransaction
+				// Fallback: try "房贷"
+				err = tx.QueryRow(ctx,
+					`SELECT id FROM categories WHERE name = '房贷' LIMIT 1`,
+				).Scan(&categoryID)
+				if err != nil {
+					log.Printf("loan: no repayment category found, skipping transaction record")
+					goto skipTransaction
+				}
 			}
 		}
 
@@ -890,20 +909,21 @@ func (s *Service) loadLoan(ctx context.Context, loanID, userID string) (*pb.Loan
 	var lprBase, lprSpread *float64
 	var rateAdjustMonth *int32
 	var familyID *uuid.UUID
+	var repCatID *uuid.UUID
 
 	err := s.pool.QueryRow(ctx,
 		`SELECT id, user_id, name, loan_type, principal, remaining_principal,
 		        annual_rate, total_months, paid_months, repayment_method, payment_day,
 		        start_date, created_at, updated_at, account_id,
 		        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month,
-		        family_id
+		        family_id, repayment_category_id
 		 FROM loans WHERE id=$1 AND deleted_at IS NULL`,
 		loanID,
 	).Scan(&id, &uid, &name, &loanType, &principal, &remainingPrincipal,
 		&annualRate, &totalMonths, &paidMonths, &method, &paymentDay,
 		&startDate, &createdAt, &updatedAt, &accountID,
 		&groupID, &subType, &rateType, &lprBase, &lprSpread, &rateAdjustMonth,
-		&familyID)
+		&familyID, &repCatID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "loan not found")
@@ -952,6 +972,9 @@ func (s *Service) loadLoan(ctx context.Context, loanID, userID string) (*pb.Loan
 	}
 	if familyID != nil {
 		f.familyID = familyID.String()
+	}
+	if repCatID != nil {
+		f.repaymentCategoryID = repCatID.String()
 	}
 	return buildLoanProtoFull(f), nil
 }
@@ -1073,6 +1096,7 @@ type loanFields struct {
 	lprSpread        float64
 	rateAdjustMonth  int32
 	familyID         string
+	repaymentCategoryID string
 }
 
 func buildLoanProto(id, userID, name string, loanType pb.LoanType,
@@ -1111,6 +1135,7 @@ func buildLoanProtoFull(f loanFields) *pb.Loan {
 	loan.LprSpread = f.lprSpread
 	loan.RateAdjustMonth = f.rateAdjustMonth
 	loan.FamilyId = f.familyID
+	loan.RepaymentCategoryId = f.repaymentCategoryID
 	return loan
 }
 

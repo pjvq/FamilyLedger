@@ -122,6 +122,7 @@ const Loan$json = {
     {'1': 'lpr_spread', '3': 20, '4': 1, '5': 1, '10': 'lprSpread'},
     {'1': 'rate_adjust_month', '3': 21, '4': 1, '5': 5, '10': 'rateAdjustMonth'},
     {'1': 'family_id', '3': 22, '4': 1, '5': 9, '10': 'familyId'},
+    {'1': 'repayment_category_id', '3': 23, '4': 1, '5': 9, '10': 'repaymentCategoryId'},
   ],
 };
 
@@ -143,7 +144,8 @@ final $typed_data.Uint8List loanDescriptor = $convert.base64Decode(
     'sKCXJhdGVfdHlwZRgSIAEoDjIeLmZhbWlseWxlZGdlci5sb2FuLnYxLlJhdGVUeXBlUghyYXRl'
     'VHlwZRIZCghscHJfYmFzZRgTIAEoAVIHbHByQmFzZRIdCgpscHJfc3ByZWFkGBQgASgBUglscH'
     'JTcHJlYWQSKgoRcmF0ZV9hZGp1c3RfbW9udGgYFSABKAVSD3JhdGVBZGp1c3RNb250aBIbCglm'
-    'YW1pbHlfaWQYFiABKAlSCGZhbWlseUlk');
+    'YW1pbHlfaWQYFiABKAlSCGZhbWlseUlkEjIKFXJlcGF5bWVudF9jYXRlZ29yeV9pZBgXIAEoCV'
+    'ITcmVwYXltZW50Q2F0ZWdvcnlJZA==');
 
 @$core.Deprecated('Use loanScheduleItemDescriptor instead')
 const LoanScheduleItem$json = {
@@ -267,6 +269,7 @@ const UpdateLoanRequest$json = {
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
     {'1': 'payment_day', '3': 3, '4': 1, '5': 5, '10': 'paymentDay'},
     {'1': 'account_id', '3': 4, '4': 1, '5': 9, '10': 'accountId'},
+    {'1': 'repayment_category_id', '3': 5, '4': 1, '5': 9, '10': 'repaymentCategoryId'},
   ],
 };
 
@@ -274,7 +277,8 @@ const UpdateLoanRequest$json = {
 final $typed_data.Uint8List updateLoanRequestDescriptor = $convert.base64Decode(
     'ChFVcGRhdGVMb2FuUmVxdWVzdBIXCgdsb2FuX2lkGAEgASgJUgZsb2FuSWQSEgoEbmFtZRgCIA'
     'EoCVIEbmFtZRIfCgtwYXltZW50X2RheRgDIAEoBVIKcGF5bWVudERheRIdCgphY2NvdW50X2lk'
-    'GAQgASgJUglhY2NvdW50SWQ=');
+    'GAQgASgJUglhY2NvdW50SWQSMgoVcmVwYXltZW50X2NhdGVnb3J5X2lkGAUgASgJUhNyZXBheW'
+    '1lbnRDYXRlZ29yeUlk');
 
 @$core.Deprecated('Use deleteLoanRequestDescriptor instead')
 const DeleteLoanRequest$json = {
@@ -378,6 +382,7 @@ const LoanGroup$json = {
     {'1': 'updated_at', '3': 12, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
     {'1': 'loan_type', '3': 13, '4': 1, '5': 14, '6': '.familyledger.loan.v1.LoanType', '10': 'loanType'},
     {'1': 'family_id', '3': 14, '4': 1, '5': 9, '10': 'familyId'},
+    {'1': 'repayment_category_id', '3': 15, '4': 1, '5': 9, '10': 'repaymentCategoryId'},
   ],
 };
 
@@ -393,7 +398,8 @@ final $typed_data.Uint8List loanGroupDescriptor = $convert.base64Decode(
     'F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJY3JlYXRlZEF0EjkKCnVwZGF0'
     'ZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUgl1cGRhdGVkQXQSOwoJbG'
     '9hbl90eXBlGA0gASgOMh4uZmFtaWx5bGVkZ2VyLmxvYW4udjEuTG9hblR5cGVSCGxvYW5UeXBl'
-    'EhsKCWZhbWlseV9pZBgOIAEoCVIIZmFtaWx5SWQ=');
+    'EhsKCWZhbWlseV9pZBgOIAEoCVIIZmFtaWx5SWQSMgoVcmVwYXltZW50X2NhdGVnb3J5X2lkGA'
+    '8gASgJUhNyZXBheW1lbnRDYXRlZ29yeUlk');
 
 @$core.Deprecated('Use subLoanSpecDescriptor instead')
 const SubLoanSpec$json = {

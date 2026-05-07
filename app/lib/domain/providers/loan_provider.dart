@@ -688,6 +688,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
       lprBase: Value(loan.lprBase),
       lprSpread: Value(loan.lprSpread),
       rateAdjustMonth: Value(loan.rateAdjustMonth),
+      repaymentCategoryId: Value(loan.repaymentCategoryId),
     );
   }
 

@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -129,6 +129,10 @@ class AppDatabase extends _$AppDatabase {
             // Old: UUIDv5(type, "parentName/childName")
             // New: UUIDv5(type, "parentUUID:childName") — matches server
             await _migrateSubcategoryUUIDs();
+          }
+          if (from < 14) {
+            // v13 → v14: add repayment_category_id to loans
+            await m.addColumn(loans, loans.repaymentCategoryId);
           }
         },
         beforeOpen: (details) async {

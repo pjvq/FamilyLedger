@@ -82,6 +82,7 @@ message Loan {
     double lpr_spread = 20;        // 基点偏移
     int32 rate_adjust_month = 21;  // 利率调整月 (1=一月, 0=放款月)
     string family_id = 22;         // 家庭 ID（空 = 个人贷款）
+    string repayment_category_id = 23; // 默认还款分类 ID
 }
 
 message LoanScheduleItem {
@@ -137,6 +138,7 @@ message UpdateLoanRequest {
     string name = 2;               // 可更新
     int32 payment_day = 3;         // 可更新
     string account_id = 4;         // 可更新
+    string repayment_category_id = 5; // 默认还款分类
 }
 
 message DeleteLoanRequest {
@@ -185,6 +187,7 @@ message LoanGroup {
     google.protobuf.Timestamp updated_at = 12;
     LoanType loan_type = 13;       // 贷款类型
     string family_id = 14;         // 家庭 ID（空=个人）
+    string repayment_category_id = 15; // 默认还款分类 ID
 }
 
 message SubLoanSpec {

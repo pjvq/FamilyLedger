@@ -219,6 +219,7 @@ class Loans extends Table {
   RealColumn get lprBase => real().withDefault(const Constant(0.0))(); // LPR 基准利率
   RealColumn get lprSpread => real().withDefault(const Constant(0.0))(); // 基点偏移
   IntColumn get rateAdjustMonth => integer().withDefault(const Constant(1))(); // 利率调整月 (1=一月, 0=放款月)
+  TextColumn get repaymentCategoryId => text().withDefault(const Constant(''))(); // 默认还款分类 ID
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get deletedAt => dateTime().nullable()();

@@ -43,6 +43,7 @@ class Loan extends $pb.GeneratedMessage {
     $core.double? lprSpread,
     $core.int? rateAdjustMonth,
     $core.String? familyId,
+    $core.String? repaymentCategoryId,
   }) {
     final $result = create();
     if (id != null) {
@@ -111,6 +112,9 @@ class Loan extends $pb.GeneratedMessage {
     if (familyId != null) {
       $result.familyId = familyId;
     }
+    if (repaymentCategoryId != null) {
+      $result.repaymentCategoryId = repaymentCategoryId;
+    }
     return $result;
   }
   Loan._() : super();
@@ -140,6 +144,7 @@ class Loan extends $pb.GeneratedMessage {
     ..a<$core.double>(20, _omitFieldNames ? '' : 'lprSpread', $pb.PbFieldType.OD)
     ..a<$core.int>(21, _omitFieldNames ? '' : 'rateAdjustMonth', $pb.PbFieldType.O3)
     ..aOS(22, _omitFieldNames ? '' : 'familyId')
+    ..aOS(23, _omitFieldNames ? '' : 'repaymentCategoryId')
     ..hasRequiredFields = false
   ;
 
@@ -367,6 +372,15 @@ class Loan extends $pb.GeneratedMessage {
   $core.bool hasFamilyId() => $_has(21);
   @$pb.TagNumber(22)
   void clearFamilyId() => clearField(22);
+
+  @$pb.TagNumber(23)
+  $core.String get repaymentCategoryId => $_getSZ(22);
+  @$pb.TagNumber(23)
+  set repaymentCategoryId($core.String v) { $_setString(22, v); }
+  @$pb.TagNumber(23)
+  $core.bool hasRepaymentCategoryId() => $_has(22);
+  @$pb.TagNumber(23)
+  void clearRepaymentCategoryId() => clearField(23);
 }
 
 class LoanScheduleItem extends $pb.GeneratedMessage {
@@ -977,6 +991,7 @@ class UpdateLoanRequest extends $pb.GeneratedMessage {
     $core.String? name,
     $core.int? paymentDay,
     $core.String? accountId,
+    $core.String? repaymentCategoryId,
   }) {
     final $result = create();
     if (loanId != null) {
@@ -991,6 +1006,9 @@ class UpdateLoanRequest extends $pb.GeneratedMessage {
     if (accountId != null) {
       $result.accountId = accountId;
     }
+    if (repaymentCategoryId != null) {
+      $result.repaymentCategoryId = repaymentCategoryId;
+    }
     return $result;
   }
   UpdateLoanRequest._() : super();
@@ -1002,6 +1020,7 @@ class UpdateLoanRequest extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'name')
     ..a<$core.int>(3, _omitFieldNames ? '' : 'paymentDay', $pb.PbFieldType.O3)
     ..aOS(4, _omitFieldNames ? '' : 'accountId')
+    ..aOS(5, _omitFieldNames ? '' : 'repaymentCategoryId')
     ..hasRequiredFields = false
   ;
 
@@ -1061,6 +1080,15 @@ class UpdateLoanRequest extends $pb.GeneratedMessage {
   $core.bool hasAccountId() => $_has(3);
   @$pb.TagNumber(4)
   void clearAccountId() => clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get repaymentCategoryId => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set repaymentCategoryId($core.String v) { $_setString(4, v); }
+  @$pb.TagNumber(5)
+  $core.bool hasRepaymentCategoryId() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearRepaymentCategoryId() => clearField(5);
 }
 
 class DeleteLoanRequest extends $pb.GeneratedMessage {
@@ -1445,6 +1473,7 @@ class LoanGroup extends $pb.GeneratedMessage {
     $2.Timestamp? updatedAt,
     LoanType? loanType,
     $core.String? familyId,
+    $core.String? repaymentCategoryId,
   }) {
     final $result = create();
     if (id != null) {
@@ -1489,6 +1518,9 @@ class LoanGroup extends $pb.GeneratedMessage {
     if (familyId != null) {
       $result.familyId = familyId;
     }
+    if (repaymentCategoryId != null) {
+      $result.repaymentCategoryId = repaymentCategoryId;
+    }
     return $result;
   }
   LoanGroup._() : super();
@@ -1510,6 +1542,7 @@ class LoanGroup extends $pb.GeneratedMessage {
     ..aOM<$2.Timestamp>(12, _omitFieldNames ? '' : 'updatedAt', subBuilder: $2.Timestamp.create)
     ..e<LoanType>(13, _omitFieldNames ? '' : 'loanType', $pb.PbFieldType.OE, defaultOrMaker: LoanType.LOAN_TYPE_UNSPECIFIED, valueOf: LoanType.valueOf, enumValues: LoanType.values)
     ..aOS(14, _omitFieldNames ? '' : 'familyId')
+    ..aOS(15, _omitFieldNames ? '' : 'repaymentCategoryId')
     ..hasRequiredFields = false
   ;
 
@@ -1659,6 +1692,15 @@ class LoanGroup extends $pb.GeneratedMessage {
   $core.bool hasFamilyId() => $_has(13);
   @$pb.TagNumber(14)
   void clearFamilyId() => clearField(14);
+
+  @$pb.TagNumber(15)
+  $core.String get repaymentCategoryId => $_getSZ(14);
+  @$pb.TagNumber(15)
+  set repaymentCategoryId($core.String v) { $_setString(14, v); }
+  @$pb.TagNumber(15)
+  $core.bool hasRepaymentCategoryId() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearRepaymentCategoryId() => clearField(15);
 }
 
 class SubLoanSpec extends $pb.GeneratedMessage {

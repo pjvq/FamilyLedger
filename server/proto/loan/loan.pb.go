@@ -281,31 +281,32 @@ func (RateType) EnumDescriptor() ([]byte, []int) {
 }
 
 type Loan struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Id                 string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	UserId             string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Name               string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"` // 贷款名称
-	LoanType           LoanType               `protobuf:"varint,4,opt,name=loan_type,json=loanType,proto3,enum=familyledger.loan.v1.LoanType" json:"loan_type,omitempty"`
-	Principal          int64                  `protobuf:"varint,5,opt,name=principal,proto3" json:"principal,omitempty"`                                             // 贷款本金（分）
-	RemainingPrincipal int64                  `protobuf:"varint,6,opt,name=remaining_principal,json=remainingPrincipal,proto3" json:"remaining_principal,omitempty"` // 剩余本金（分）
-	AnnualRate         float64                `protobuf:"fixed64,7,opt,name=annual_rate,json=annualRate,proto3" json:"annual_rate,omitempty"`                        // 年利率（如 4.2 表示 4.2%）
-	TotalMonths        int32                  `protobuf:"varint,8,opt,name=total_months,json=totalMonths,proto3" json:"total_months,omitempty"`                      // 总期数
-	PaidMonths         int32                  `protobuf:"varint,9,opt,name=paid_months,json=paidMonths,proto3" json:"paid_months,omitempty"`                         // 已还期数
-	RepaymentMethod    RepaymentMethod        `protobuf:"varint,10,opt,name=repayment_method,json=repaymentMethod,proto3,enum=familyledger.loan.v1.RepaymentMethod" json:"repayment_method,omitempty"`
-	PaymentDay         int32                  `protobuf:"varint,11,opt,name=payment_day,json=paymentDay,proto3" json:"payment_day,omitempty"` // 每月还款日 1-28
-	StartDate          *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
-	CreatedAt          *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt          *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	AccountId          string                 `protobuf:"bytes,15,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`                                  // 关联还款账户
-	GroupId            string                 `protobuf:"bytes,16,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`                                        // 归属组合贷款（空 = 独立贷款）
-	SubType            LoanSubType            `protobuf:"varint,17,opt,name=sub_type,json=subType,proto3,enum=familyledger.loan.v1.LoanSubType" json:"sub_type,omitempty"` // 子贷款类型
-	RateType           RateType               `protobuf:"varint,18,opt,name=rate_type,json=rateType,proto3,enum=familyledger.loan.v1.RateType" json:"rate_type,omitempty"` // 利率类型
-	LprBase            float64                `protobuf:"fixed64,19,opt,name=lpr_base,json=lprBase,proto3" json:"lpr_base,omitempty"`                                      // LPR 基准利率
-	LprSpread          float64                `protobuf:"fixed64,20,opt,name=lpr_spread,json=lprSpread,proto3" json:"lpr_spread,omitempty"`                                // 基点偏移
-	RateAdjustMonth    int32                  `protobuf:"varint,21,opt,name=rate_adjust_month,json=rateAdjustMonth,proto3" json:"rate_adjust_month,omitempty"`             // 利率调整月 (1=一月, 0=放款月)
-	FamilyId           string                 `protobuf:"bytes,22,opt,name=family_id,json=familyId,proto3" json:"family_id,omitempty"`                                     // 家庭 ID（空 = 个人贷款）
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Id                  string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId              string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Name                string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"` // 贷款名称
+	LoanType            LoanType               `protobuf:"varint,4,opt,name=loan_type,json=loanType,proto3,enum=familyledger.loan.v1.LoanType" json:"loan_type,omitempty"`
+	Principal           int64                  `protobuf:"varint,5,opt,name=principal,proto3" json:"principal,omitempty"`                                             // 贷款本金（分）
+	RemainingPrincipal  int64                  `protobuf:"varint,6,opt,name=remaining_principal,json=remainingPrincipal,proto3" json:"remaining_principal,omitempty"` // 剩余本金（分）
+	AnnualRate          float64                `protobuf:"fixed64,7,opt,name=annual_rate,json=annualRate,proto3" json:"annual_rate,omitempty"`                        // 年利率（如 4.2 表示 4.2%）
+	TotalMonths         int32                  `protobuf:"varint,8,opt,name=total_months,json=totalMonths,proto3" json:"total_months,omitempty"`                      // 总期数
+	PaidMonths          int32                  `protobuf:"varint,9,opt,name=paid_months,json=paidMonths,proto3" json:"paid_months,omitempty"`                         // 已还期数
+	RepaymentMethod     RepaymentMethod        `protobuf:"varint,10,opt,name=repayment_method,json=repaymentMethod,proto3,enum=familyledger.loan.v1.RepaymentMethod" json:"repayment_method,omitempty"`
+	PaymentDay          int32                  `protobuf:"varint,11,opt,name=payment_day,json=paymentDay,proto3" json:"payment_day,omitempty"` // 每月还款日 1-28
+	StartDate           *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	CreatedAt           *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt           *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	AccountId           string                 `protobuf:"bytes,15,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`                                  // 关联还款账户
+	GroupId             string                 `protobuf:"bytes,16,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`                                        // 归属组合贷款（空 = 独立贷款）
+	SubType             LoanSubType            `protobuf:"varint,17,opt,name=sub_type,json=subType,proto3,enum=familyledger.loan.v1.LoanSubType" json:"sub_type,omitempty"` // 子贷款类型
+	RateType            RateType               `protobuf:"varint,18,opt,name=rate_type,json=rateType,proto3,enum=familyledger.loan.v1.RateType" json:"rate_type,omitempty"` // 利率类型
+	LprBase             float64                `protobuf:"fixed64,19,opt,name=lpr_base,json=lprBase,proto3" json:"lpr_base,omitempty"`                                      // LPR 基准利率
+	LprSpread           float64                `protobuf:"fixed64,20,opt,name=lpr_spread,json=lprSpread,proto3" json:"lpr_spread,omitempty"`                                // 基点偏移
+	RateAdjustMonth     int32                  `protobuf:"varint,21,opt,name=rate_adjust_month,json=rateAdjustMonth,proto3" json:"rate_adjust_month,omitempty"`             // 利率调整月 (1=一月, 0=放款月)
+	FamilyId            string                 `protobuf:"bytes,22,opt,name=family_id,json=familyId,proto3" json:"family_id,omitempty"`                                     // 家庭 ID（空 = 个人贷款）
+	RepaymentCategoryId string                 `protobuf:"bytes,23,opt,name=repayment_category_id,json=repaymentCategoryId,proto3" json:"repayment_category_id,omitempty"`  // 默认还款分类 ID
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Loan) Reset() {
@@ -488,6 +489,13 @@ func (x *Loan) GetRateAdjustMonth() int32 {
 func (x *Loan) GetFamilyId() string {
 	if x != nil {
 		return x.FamilyId
+	}
+	return ""
+}
+
+func (x *Loan) GetRepaymentCategoryId() string {
+	if x != nil {
+		return x.RepaymentCategoryId
 	}
 	return ""
 }
@@ -933,13 +941,14 @@ func (x *ListLoansResponse) GetLoans() []*Loan {
 }
 
 type UpdateLoanRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	LoanId        string                 `protobuf:"bytes,1,opt,name=loan_id,json=loanId,proto3" json:"loan_id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`                                // 可更新
-	PaymentDay    int32                  `protobuf:"varint,3,opt,name=payment_day,json=paymentDay,proto3" json:"payment_day,omitempty"` // 可更新
-	AccountId     string                 `protobuf:"bytes,4,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`     // 可更新
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	LoanId              string                 `protobuf:"bytes,1,opt,name=loan_id,json=loanId,proto3" json:"loan_id,omitempty"`
+	Name                string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`                                                            // 可更新
+	PaymentDay          int32                  `protobuf:"varint,3,opt,name=payment_day,json=paymentDay,proto3" json:"payment_day,omitempty"`                             // 可更新
+	AccountId           string                 `protobuf:"bytes,4,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`                                 // 可更新
+	RepaymentCategoryId string                 `protobuf:"bytes,5,opt,name=repayment_category_id,json=repaymentCategoryId,proto3" json:"repayment_category_id,omitempty"` // 默认还款分类
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *UpdateLoanRequest) Reset() {
@@ -996,6 +1005,13 @@ func (x *UpdateLoanRequest) GetPaymentDay() int32 {
 func (x *UpdateLoanRequest) GetAccountId() string {
 	if x != nil {
 		return x.AccountId
+	}
+	return ""
+}
+
+func (x *UpdateLoanRequest) GetRepaymentCategoryId() string {
+	if x != nil {
+		return x.RepaymentCategoryId
 	}
 	return ""
 }
@@ -1320,6 +1336,7 @@ type LoanGroup struct {
 	UpdatedAt           *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	LoanType            LoanType               `protobuf:"varint,13,opt,name=loan_type,json=loanType,proto3,enum=familyledger.loan.v1.LoanType" json:"loan_type,omitempty"` // 贷款类型
 	FamilyId            string                 `protobuf:"bytes,14,opt,name=family_id,json=familyId,proto3" json:"family_id,omitempty"`                                     // 家庭 ID（空=个人）
+	RepaymentCategoryId string                 `protobuf:"bytes,15,opt,name=repayment_category_id,json=repaymentCategoryId,proto3" json:"repayment_category_id,omitempty"`  // 默认还款分类 ID
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -1448,6 +1465,13 @@ func (x *LoanGroup) GetLoanType() LoanType {
 func (x *LoanGroup) GetFamilyId() string {
 	if x != nil {
 		return x.FamilyId
+	}
+	return ""
+}
+
+func (x *LoanGroup) GetRepaymentCategoryId() string {
+	if x != nil {
+		return x.RepaymentCategoryId
 	}
 	return ""
 }
@@ -1933,7 +1957,7 @@ var File_loan_proto protoreflect.FileDescriptor
 const file_loan_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"loan.proto\x12\x14familyledger.loan.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x90\a\n" +
+	"loan.proto\x12\x14familyledger.loan.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xc4\a\n" +
 	"\x04Loan\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
@@ -1965,7 +1989,8 @@ const file_loan_proto_rawDesc = "" +
 	"\n" +
 	"lpr_spread\x18\x14 \x01(\x01R\tlprSpread\x12*\n" +
 	"\x11rate_adjust_month\x18\x15 \x01(\x05R\x0frateAdjustMonth\x12\x1b\n" +
-	"\tfamily_id\x18\x16 \x01(\tR\bfamilyId\"\xd5\x02\n" +
+	"\tfamily_id\x18\x16 \x01(\tR\bfamilyId\x122\n" +
+	"\x15repayment_category_id\x18\x17 \x01(\tR\x13repaymentCategoryId\"\xd5\x02\n" +
 	"\x10LoanScheduleItem\x12!\n" +
 	"\fmonth_number\x18\x01 \x01(\x05R\vmonthNumber\x12\x18\n" +
 	"\apayment\x18\x02 \x01(\x03R\apayment\x12%\n" +
@@ -2004,14 +2029,15 @@ const file_loan_proto_rawDesc = "" +
 	"\x10ListLoansRequest\x12\x1b\n" +
 	"\tfamily_id\x18\x01 \x01(\tR\bfamilyId\"E\n" +
 	"\x11ListLoansResponse\x120\n" +
-	"\x05loans\x18\x01 \x03(\v2\x1a.familyledger.loan.v1.LoanR\x05loans\"\x80\x01\n" +
+	"\x05loans\x18\x01 \x03(\v2\x1a.familyledger.loan.v1.LoanR\x05loans\"\xb4\x01\n" +
 	"\x11UpdateLoanRequest\x12\x17\n" +
 	"\aloan_id\x18\x01 \x01(\tR\x06loanId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
 	"\vpayment_day\x18\x03 \x01(\x05R\n" +
 	"paymentDay\x12\x1d\n" +
 	"\n" +
-	"account_id\x18\x04 \x01(\tR\taccountId\",\n" +
+	"account_id\x18\x04 \x01(\tR\taccountId\x122\n" +
+	"\x15repayment_category_id\x18\x05 \x01(\tR\x13repaymentCategoryId\",\n" +
 	"\x11DeleteLoanRequest\x12\x17\n" +
 	"\aloan_id\x18\x01 \x01(\tR\x06loanId\"1\n" +
 	"\x16GetLoanScheduleRequest\x12\x17\n" +
@@ -2028,7 +2054,7 @@ const file_loan_proto_rawDesc = "" +
 	"\x0eeffective_date\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\reffectiveDate\"R\n" +
 	"\x14RecordPaymentRequest\x12\x17\n" +
 	"\aloan_id\x18\x01 \x01(\tR\x06loanId\x12!\n" +
-	"\fmonth_number\x18\x02 \x01(\x05R\vmonthNumber\"\xc8\x04\n" +
+	"\fmonth_number\x18\x02 \x01(\x05R\vmonthNumber\"\xfc\x04\n" +
 	"\tLoanGroup\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
@@ -2050,7 +2076,8 @@ const file_loan_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12;\n" +
 	"\tloan_type\x18\r \x01(\x0e2\x1e.familyledger.loan.v1.LoanTypeR\bloanType\x12\x1b\n" +
-	"\tfamily_id\x18\x0e \x01(\tR\bfamilyId\"\xb6\x03\n" +
+	"\tfamily_id\x18\x0e \x01(\tR\bfamilyId\x122\n" +
+	"\x15repayment_category_id\x18\x0f \x01(\tR\x13repaymentCategoryId\"\xb6\x03\n" +
 	"\vSubLoanSpec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12<\n" +
 	"\bsub_type\x18\x02 \x01(\x0e2!.familyledger.loan.v1.LoanSubTypeR\asubType\x12\x1c\n" +

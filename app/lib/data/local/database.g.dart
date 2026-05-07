@@ -6811,6 +6811,18 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, Loan> {
     requiredDuringInsert: false,
     defaultValue: const Constant(1),
   );
+  static const VerificationMeta _repaymentCategoryIdMeta =
+      const VerificationMeta('repaymentCategoryId');
+  @override
+  late final GeneratedColumn<String> repaymentCategoryId =
+      GeneratedColumn<String>(
+        'repayment_category_id',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -6868,6 +6880,7 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, Loan> {
     lprBase,
     lprSpread,
     rateAdjustMonth,
+    repaymentCategoryId,
     createdAt,
     updatedAt,
     deletedAt,
@@ -7031,6 +7044,15 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, Loan> {
         ),
       );
     }
+    if (data.containsKey('repayment_category_id')) {
+      context.handle(
+        _repaymentCategoryIdMeta,
+        repaymentCategoryId.isAcceptableOrUnknown(
+          data['repayment_category_id']!,
+          _repaymentCategoryIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -7138,6 +7160,10 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, Loan> {
         DriftSqlType.int,
         data['${effectivePrefix}rate_adjust_month'],
       )!,
+      repaymentCategoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}repayment_category_id'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -7180,6 +7206,7 @@ class Loan extends DataClass implements Insertable<Loan> {
   final double lprBase;
   final double lprSpread;
   final int rateAdjustMonth;
+  final String repaymentCategoryId;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -7204,6 +7231,7 @@ class Loan extends DataClass implements Insertable<Loan> {
     required this.lprBase,
     required this.lprSpread,
     required this.rateAdjustMonth,
+    required this.repaymentCategoryId,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -7231,6 +7259,7 @@ class Loan extends DataClass implements Insertable<Loan> {
     map['lpr_base'] = Variable<double>(lprBase);
     map['lpr_spread'] = Variable<double>(lprSpread);
     map['rate_adjust_month'] = Variable<int>(rateAdjustMonth);
+    map['repayment_category_id'] = Variable<String>(repaymentCategoryId);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
@@ -7261,6 +7290,7 @@ class Loan extends DataClass implements Insertable<Loan> {
       lprBase: Value(lprBase),
       lprSpread: Value(lprSpread),
       rateAdjustMonth: Value(rateAdjustMonth),
+      repaymentCategoryId: Value(repaymentCategoryId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
@@ -7295,6 +7325,9 @@ class Loan extends DataClass implements Insertable<Loan> {
       lprBase: serializer.fromJson<double>(json['lprBase']),
       lprSpread: serializer.fromJson<double>(json['lprSpread']),
       rateAdjustMonth: serializer.fromJson<int>(json['rateAdjustMonth']),
+      repaymentCategoryId: serializer.fromJson<String>(
+        json['repaymentCategoryId'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -7324,6 +7357,7 @@ class Loan extends DataClass implements Insertable<Loan> {
       'lprBase': serializer.toJson<double>(lprBase),
       'lprSpread': serializer.toJson<double>(lprSpread),
       'rateAdjustMonth': serializer.toJson<int>(rateAdjustMonth),
+      'repaymentCategoryId': serializer.toJson<String>(repaymentCategoryId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -7351,6 +7385,7 @@ class Loan extends DataClass implements Insertable<Loan> {
     double? lprBase,
     double? lprSpread,
     int? rateAdjustMonth,
+    String? repaymentCategoryId,
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
@@ -7375,6 +7410,7 @@ class Loan extends DataClass implements Insertable<Loan> {
     lprBase: lprBase ?? this.lprBase,
     lprSpread: lprSpread ?? this.lprSpread,
     rateAdjustMonth: rateAdjustMonth ?? this.rateAdjustMonth,
+    repaymentCategoryId: repaymentCategoryId ?? this.repaymentCategoryId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -7415,6 +7451,9 @@ class Loan extends DataClass implements Insertable<Loan> {
       rateAdjustMonth: data.rateAdjustMonth.present
           ? data.rateAdjustMonth.value
           : this.rateAdjustMonth,
+      repaymentCategoryId: data.repaymentCategoryId.present
+          ? data.repaymentCategoryId.value
+          : this.repaymentCategoryId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
@@ -7444,6 +7483,7 @@ class Loan extends DataClass implements Insertable<Loan> {
           ..write('lprBase: $lprBase, ')
           ..write('lprSpread: $lprSpread, ')
           ..write('rateAdjustMonth: $rateAdjustMonth, ')
+          ..write('repaymentCategoryId: $repaymentCategoryId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt')
@@ -7473,6 +7513,7 @@ class Loan extends DataClass implements Insertable<Loan> {
     lprBase,
     lprSpread,
     rateAdjustMonth,
+    repaymentCategoryId,
     createdAt,
     updatedAt,
     deletedAt,
@@ -7501,6 +7542,7 @@ class Loan extends DataClass implements Insertable<Loan> {
           other.lprBase == this.lprBase &&
           other.lprSpread == this.lprSpread &&
           other.rateAdjustMonth == this.rateAdjustMonth &&
+          other.repaymentCategoryId == this.repaymentCategoryId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt);
@@ -7527,6 +7569,7 @@ class LoansCompanion extends UpdateCompanion<Loan> {
   final Value<double> lprBase;
   final Value<double> lprSpread;
   final Value<int> rateAdjustMonth;
+  final Value<String> repaymentCategoryId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
@@ -7552,6 +7595,7 @@ class LoansCompanion extends UpdateCompanion<Loan> {
     this.lprBase = const Value.absent(),
     this.lprSpread = const Value.absent(),
     this.rateAdjustMonth = const Value.absent(),
+    this.repaymentCategoryId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -7578,6 +7622,7 @@ class LoansCompanion extends UpdateCompanion<Loan> {
     this.lprBase = const Value.absent(),
     this.lprSpread = const Value.absent(),
     this.rateAdjustMonth = const Value.absent(),
+    this.repaymentCategoryId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -7612,6 +7657,7 @@ class LoansCompanion extends UpdateCompanion<Loan> {
     Expression<double>? lprBase,
     Expression<double>? lprSpread,
     Expression<int>? rateAdjustMonth,
+    Expression<String>? repaymentCategoryId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -7638,6 +7684,8 @@ class LoansCompanion extends UpdateCompanion<Loan> {
       if (lprBase != null) 'lpr_base': lprBase,
       if (lprSpread != null) 'lpr_spread': lprSpread,
       if (rateAdjustMonth != null) 'rate_adjust_month': rateAdjustMonth,
+      if (repaymentCategoryId != null)
+        'repayment_category_id': repaymentCategoryId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -7666,6 +7714,7 @@ class LoansCompanion extends UpdateCompanion<Loan> {
     Value<double>? lprBase,
     Value<double>? lprSpread,
     Value<int>? rateAdjustMonth,
+    Value<String>? repaymentCategoryId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
@@ -7692,6 +7741,7 @@ class LoansCompanion extends UpdateCompanion<Loan> {
       lprBase: lprBase ?? this.lprBase,
       lprSpread: lprSpread ?? this.lprSpread,
       rateAdjustMonth: rateAdjustMonth ?? this.rateAdjustMonth,
+      repaymentCategoryId: repaymentCategoryId ?? this.repaymentCategoryId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -7762,6 +7812,11 @@ class LoansCompanion extends UpdateCompanion<Loan> {
     if (rateAdjustMonth.present) {
       map['rate_adjust_month'] = Variable<int>(rateAdjustMonth.value);
     }
+    if (repaymentCategoryId.present) {
+      map['repayment_category_id'] = Variable<String>(
+        repaymentCategoryId.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -7800,6 +7855,7 @@ class LoansCompanion extends UpdateCompanion<Loan> {
           ..write('lprBase: $lprBase, ')
           ..write('lprSpread: $lprSpread, ')
           ..write('rateAdjustMonth: $rateAdjustMonth, ')
+          ..write('repaymentCategoryId: $repaymentCategoryId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -18337,6 +18393,7 @@ typedef $$LoansTableCreateCompanionBuilder =
       Value<double> lprBase,
       Value<double> lprSpread,
       Value<int> rateAdjustMonth,
+      Value<String> repaymentCategoryId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
@@ -18364,6 +18421,7 @@ typedef $$LoansTableUpdateCompanionBuilder =
       Value<double> lprBase,
       Value<double> lprSpread,
       Value<int> rateAdjustMonth,
+      Value<String> repaymentCategoryId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
@@ -18530,6 +18588,11 @@ class $$LoansTableFilterComposer extends Composer<_$AppDatabase, $LoansTable> {
 
   ColumnFilters<int> get rateAdjustMonth => $composableBuilder(
     column: $table.rateAdjustMonth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get repaymentCategoryId => $composableBuilder(
+    column: $table.repaymentCategoryId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -18726,6 +18789,11 @@ class $$LoansTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get repaymentCategoryId => $composableBuilder(
+    column: $table.repaymentCategoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -18842,6 +18910,11 @@ class $$LoansTableAnnotationComposer
 
   GeneratedColumn<int> get rateAdjustMonth => $composableBuilder(
     column: $table.rateAdjustMonth,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get repaymentCategoryId => $composableBuilder(
+    column: $table.repaymentCategoryId,
     builder: (column) => column,
   );
 
@@ -18980,6 +19053,7 @@ class $$LoansTableTableManager
                 Value<double> lprBase = const Value.absent(),
                 Value<double> lprSpread = const Value.absent(),
                 Value<int> rateAdjustMonth = const Value.absent(),
+                Value<String> repaymentCategoryId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -19005,6 +19079,7 @@ class $$LoansTableTableManager
                 lprBase: lprBase,
                 lprSpread: lprSpread,
                 rateAdjustMonth: rateAdjustMonth,
+                repaymentCategoryId: repaymentCategoryId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -19032,6 +19107,7 @@ class $$LoansTableTableManager
                 Value<double> lprBase = const Value.absent(),
                 Value<double> lprSpread = const Value.absent(),
                 Value<int> rateAdjustMonth = const Value.absent(),
+                Value<String> repaymentCategoryId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -19057,6 +19133,7 @@ class $$LoansTableTableManager
                 lprBase: lprBase,
                 lprSpread: lprSpread,
                 rateAdjustMonth: rateAdjustMonth,
+                repaymentCategoryId: repaymentCategoryId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
