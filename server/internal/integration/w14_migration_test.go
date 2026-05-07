@@ -32,8 +32,6 @@ import (
 // to test migration lifecycle: sequential up, skip-version, rollback, data integrity.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const totalMigrations = 43
-
 // migrationsDir returns the absolute path to the migrations directory.
 func migrationsDir(t *testing.T) string {
 	t.Helper()
@@ -44,6 +42,22 @@ func migrationsDir(t *testing.T) string {
 	_, err = os.Stat(absPath)
 	require.NoError(t, err, "migrations directory not found at %s", absPath)
 	return absPath
+}
+
+// totalMigrations dynamically counts the number of .up.sql files in the migrations directory.
+func totalMigrations(t *testing.T) int {
+	t.Helper()
+	dir := migrationsDir(t)
+	entries, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	count := 0
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".up.sql") {
+			count++
+		}
+	}
+	require.Greater(t, count, 0, "no .up.sql migrations found in %s", dir)
+	return count
 }
 
 // startFreshPG creates a brand-new PostgreSQL container for migration testing.
@@ -93,7 +107,8 @@ func TestW14_Migration_SequentialUp(t *testing.T) {
 	defer m.Close()
 
 	// Apply all migrations one-by-one
-	for i := 1; i <= totalMigrations; i++ {
+	expected := totalMigrations(t)
+	for i := 1; i <= expected; i++ {
 		err := m.Steps(1)
 		require.NoError(t, err, "migration %03d up failed", i)
 	}
@@ -102,7 +117,7 @@ func TestW14_Migration_SequentialUp(t *testing.T) {
 	version, dirty, err := m.Version()
 	require.NoError(t, err)
 	assert.False(t, dirty)
-	assert.Equal(t, uint(totalMigrations), version)
+	assert.Equal(t, uint(expected), version)
 
 	// Verify key tables exist by querying information_schema
 	ctx := context.Background()
@@ -237,7 +252,7 @@ func TestW14_Migration_FullRollback(t *testing.T) {
 
 	version, _, err := m.Version()
 	require.NoError(t, err)
-	assert.Equal(t, uint(totalMigrations), version)
+	assert.Equal(t, uint(totalMigrations(t)), version)
 
 	// Roll back ALL migrations
 	err = m.Down()
@@ -409,8 +424,9 @@ func TestW14_Migration_FilesComplete(t *testing.T) {
 		}
 	}
 
-	// Verify 1-40 all have both up and down
-	for i := 1; i <= totalMigrations; i++ {
+	// Verify all have both up and down
+	expected := totalMigrations(t)
+	for i := 1; i <= expected; i++ {
 		assert.Contains(t, upFiles, i, "missing up migration for %03d", i)
 		assert.Contains(t, downFiles, i, "missing down migration for %03d", i)
 	}
@@ -421,10 +437,10 @@ func TestW14_Migration_FilesComplete(t *testing.T) {
 		nums = append(nums, n)
 	}
 	sort.Ints(nums)
-	assert.Equal(t, totalMigrations, len(nums), "expected %d up migrations", totalMigrations)
+	assert.Equal(t, expected, len(nums), "expected %d up migrations", expected)
 	for i, n := range nums {
 		assert.Equal(t, i+1, n, "migration numbering gap at %d", n)
 	}
 
-	t.Logf("✅ All %d migrations have both up and down files, sequential with no gaps", totalMigrations)
+	t.Logf("✅ All %d migrations have both up and down files, sequential with no gaps", expected)
 }

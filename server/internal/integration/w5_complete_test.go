@@ -1225,7 +1225,7 @@ func TestMigration_FullPath_001_to_Latest(t *testing.T) {
 		`SELECT version, dirty FROM schema_migrations`,
 	).Scan(&version, &dirty)
 	require.NoError(t, err)
-	assert.Equal(t, 43, version, "migration should be at version 043")
+	assert.Equal(t, totalMigrations(t), version, "migration should be at latest version")
 	assert.False(t, dirty, "migration should not be dirty")
 
 	// 3. Verify CHECK constraints are active
@@ -1268,7 +1268,7 @@ func TestMigration_FullPath_001_to_Latest(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, hasFk, "categories should have parent_id FK constraint")
 
-	t.Logf("Full migration path (001→043) verified: %d tables, constraints active, version=%d",
+	t.Logf("Full migration path (001→latest) verified: %d tables, constraints active, version=%d",
 		len(keyTables), version)
 }
 
