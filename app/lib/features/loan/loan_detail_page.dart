@@ -66,6 +66,10 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
             onSelected: (v) => _onMenuAction(v, loan.id),
             itemBuilder: (context) => [
               const PopupMenuItem(
+                value: 'repayment_category',
+                child: Text('还款分类设置'),
+              ),
+              const PopupMenuItem(
                 value: 'delete',
                 child: Text('删除贷款', style: TextStyle(color: AppColors.expense)),
               ),
@@ -187,7 +191,9 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
   }
 
   void _onMenuAction(String action, String loanId) async {
-    if (action == 'delete') {
+    if (action == 'repayment_category') {
+      _showRepaymentCategoryPicker(loanId);
+    } else if (action == 'delete') {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -211,6 +217,82 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
       if (confirmed == true && mounted) {
         await ref.read(loanProvider.notifier).deleteLoan(loanId);
         if (mounted) Navigator.of(context).pop();
+      }
+    }
+  }
+
+  void _showRepaymentCategoryPicker(String loanId) async {
+    final db = ref.read(loanProvider.notifier).database;
+    final categories = await db.getCategoriesByType('expense');
+    final loanState = ref.read(loanProvider);
+    final currentCatId = loanState.currentLoan?.repaymentCategoryId ?? '';
+
+    if (!mounted) return;
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          maxChildSize: 0.8,
+          minChildSize: 0.3,
+          expand: false,
+          builder: (_, controller) {
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    '选择还款分类',
+                    style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    controller: controller,
+                    itemCount: categories.length,
+                    itemBuilder: (_, i) {
+                      final cat = categories[i];
+                      final isSelected = cat.id == currentCatId;
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: isSelected
+                              ? Theme.of(ctx).colorScheme.primary
+                              : Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                          child: Text(
+                            cat.name.characters.first,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : null,
+                            ),
+                          ),
+                        ),
+                        title: Text(cat.name),
+                        trailing: isSelected
+                            ? Icon(Icons.check, color: Theme.of(ctx).colorScheme.primary)
+                            : null,
+                        onTap: () => Navigator.of(ctx).pop(cat.id),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (selected != null && mounted) {
+      await ref.read(loanProvider.notifier).updateLoanRepaymentCategory(
+            loanId,
+            selected,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('还款分类已更新')),
+        );
       }
     }
   }

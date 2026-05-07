@@ -1275,6 +1275,29 @@ class LoanNotifier extends StateNotifier<LoanState> {
     await getLoanDetail(loanId);
   }
 
+  /// Expose database for UI to query categories
+  db.AppDatabase get database => _db;
+
+  Future<void> updateLoanRepaymentCategory(String loanId, String categoryId) async {
+    try {
+      await _client.updateLoan(
+        pb.UpdateLoanRequest()
+          ..loanId = loanId
+          ..repaymentCategoryId = categoryId,
+      );
+    } catch (_) {
+      // Offline — still update locally
+    }
+    await (_db.update(_db.loans)
+          ..where((l) => l.id.equals(loanId)))
+        .write(db.LoansCompanion(
+      repaymentCategoryId: Value(categoryId),
+      updatedAt: Value(DateTime.now()),
+    ));
+    // Refresh current loan detail
+    await getLoanDetail(loanId);
+  }
+
   Future<void> deleteLoan(String loanId) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
