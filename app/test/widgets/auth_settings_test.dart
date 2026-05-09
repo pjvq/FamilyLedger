@@ -288,6 +288,12 @@ class _FakeSyncStatusNotifier extends StateNotifier<SyncState>
   Future<void> refresh() async {}
   @override
   void markSyncing() {}
+  @override
+  void markSynced() {}
+  @override
+  void markFailed(int failedCount) {}
+  @override
+  void updateWsConnected(bool connected) {}
 }
 
 class _FakeThemeModeNotifier extends StateNotifier<ThemeMode>

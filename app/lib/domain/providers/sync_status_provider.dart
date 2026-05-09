@@ -5,24 +5,41 @@ import '../../data/local/database.dart';
 import '../providers/app_providers.dart';
 
 enum SyncStatus {
-  synced,    // 全部同步完成
-  syncing,   // 正在同步
-  pending,   // 有待同步数据（离线）
-  offline,   // 无网络
+  synced,   // 全部同步完成 + WS 正常
+  syncing,  // 正在 push 或 pull
+  pending,  // 有待同步（等待网络或下个周期）
+  failed,   // 有操作多次失败
+  offline,  // 无网络
 }
 
 class SyncState {
   final SyncStatus status;
   final int pendingCount;
+  final int failedCount;
+  final DateTime? lastSyncTime;
+  final bool wsConnected;
 
   const SyncState({
     this.status = SyncStatus.synced,
     this.pendingCount = 0,
+    this.failedCount = 0,
+    this.lastSyncTime,
+    this.wsConnected = false,
   });
 
-  SyncState copyWith({SyncStatus? status, int? pendingCount}) => SyncState(
+  SyncState copyWith({
+    SyncStatus? status,
+    int? pendingCount,
+    int? failedCount,
+    DateTime? lastSyncTime,
+    bool? wsConnected,
+  }) =>
+      SyncState(
         status: status ?? this.status,
         pendingCount: pendingCount ?? this.pendingCount,
+        failedCount: failedCount ?? this.failedCount,
+        lastSyncTime: lastSyncTime ?? this.lastSyncTime,
+        wsConnected: wsConnected ?? this.wsConnected,
       );
 }
 
@@ -69,11 +86,16 @@ class SyncStatusNotifier extends StateNotifier<SyncState> {
       final count = pendingOps.length;
 
       if (isOffline) {
-        state = SyncState(status: SyncStatus.offline, pendingCount: count);
+        state = state.copyWith(status: SyncStatus.offline, pendingCount: count);
+      } else if (state.failedCount > 0) {
+        state = state.copyWith(status: SyncStatus.failed, pendingCount: count);
       } else if (count > 0) {
-        state = SyncState(status: SyncStatus.pending, pendingCount: count);
+        state = state.copyWith(status: SyncStatus.pending, pendingCount: count);
       } else {
-        state = const SyncState(status: SyncStatus.synced, pendingCount: 0);
+        state = state.copyWith(
+          status: SyncStatus.synced,
+          pendingCount: 0,
+        );
       }
     } catch (_) {
       // DB not ready yet
@@ -82,6 +104,25 @@ class SyncStatusNotifier extends StateNotifier<SyncState> {
 
   void markSyncing() {
     state = state.copyWith(status: SyncStatus.syncing);
+  }
+
+  void markSynced() {
+    state = state.copyWith(
+      status: SyncStatus.synced,
+      pendingCount: 0,
+      lastSyncTime: DateTime.now(),
+    );
+  }
+
+  void markFailed(int failedCount) {
+    state = state.copyWith(
+      status: SyncStatus.failed,
+      failedCount: failedCount,
+    );
+  }
+
+  void updateWsConnected(bool connected) {
+    state = state.copyWith(wsConnected: connected);
   }
 
   @override
