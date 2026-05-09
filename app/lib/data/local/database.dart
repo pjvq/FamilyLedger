@@ -135,7 +135,8 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(loans, loans.repaymentCategoryId);
           }
           if (from < 15) {
-            // v14 → v15: one-time category dedup + icon backfill (moved from beforeOpen)
+            // v14 → v15: one-time category dedup + icon backfill (moved from beforeOpen).
+            // Safe on fresh installs (empty tables → no-op).
             await _deduplicateCategories();
             await _backfillParentIconKeys();
           }

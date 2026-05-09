@@ -74,6 +74,8 @@ func (s *Service) CreateBudget(ctx context.Context, req *pb.CreateBudgetRequest)
 	// Use ON CONFLICT to make budget creation idempotent.
 	// Since family_id is nullable, we use different conflict targets
 	// based on whether it's a personal or family budget.
+	// NOTE: This is an upsert — duplicate requests update the existing budget
+	// instead of returning AlreadyExists. Client does not depend on error codes here.
 	var query string
 	if familyID == nil {
 		query = `INSERT INTO budgets (user_id, family_id, year, month, total_amount)
