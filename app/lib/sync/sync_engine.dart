@@ -14,6 +14,7 @@ import '../core/constants/app_constants.dart';
 import '../data/local/database.dart';
 import '../data/remote/grpc_clients.dart';
 import '../domain/providers/app_providers.dart';
+import '../domain/providers/sync_status_provider.dart';
 import '../generated/proto/google/protobuf/timestamp.pb.dart' as proto_ts;
 import '../generated/proto/sync.pb.dart' as sync_pb;
 import '../generated/proto/sync.pbgrpc.dart';
@@ -38,6 +39,10 @@ class SyncEngine {
   bool _isSyncing = false;
   bool _disposed = false;
   int _reconnectAttempts = 0;
+
+  /// Callback to update sync status UI. Set by the provider.
+  void Function({bool? syncing, bool? synced, bool? wsConnected, int? failedCount})?
+      onStatusChanged;
 
   /// 最后一次成功拉取的服务端时间戳（毫秒）
   static const _lastSyncTsKey = 'sync_last_pull_ts';
@@ -97,6 +102,7 @@ class SyncEngine {
   Future<void> _pushPendingOps() async {
     if (_isSyncing || _disposed) return;
     _isSyncing = true;
+    onStatusChanged?.call(syncing: true);
     try {
       final results = await _connectivity.checkConnectivity();
       if (results.every((r) => r == ConnectivityResult.none)) return;
@@ -123,6 +129,15 @@ class SyncEngine {
       // R7 fix: previously marked ALL ops (including failed) which caused data loss.
       if (succeededIds.isNotEmpty) {
         await _db!.markSyncOpsUploaded(succeededIds);
+
+        // Mark transaction entities as synced for UI display
+        final syncedTxnIds = pendingOps
+            .where((op) => !failedSet.contains(op.id) && op.entityType == 'transaction')
+            .map((op) => op.entityId)
+            .toList();
+        if (syncedTxnIds.isNotEmpty) {
+          await _db!.markTransactionsSynced(syncedTxnIds);
+        }
       }
 
       dev.log(
@@ -133,6 +148,7 @@ class SyncEngine {
       dev.log('SyncEngine: push failed: $e', name: 'sync');
     } finally {
       _isSyncing = false;
+      onStatusChanged?.call(syncing: false);
     }
   }
 
@@ -223,6 +239,7 @@ class SyncEngine {
         'SyncEngine: pulled $totalPulled changes',
         name: 'sync',
       );
+      onStatusChanged?.call(synced: true);
     } catch (e) {
       dev.log('SyncEngine: pull failed: $e', name: 'sync');
     }
@@ -712,6 +729,7 @@ class SyncEngine {
 
       dev.log('SyncEngine: ws connected', name: 'sync');
       _reconnectAttempts = 0;
+      onStatusChanged?.call(wsConnected: true);
 
       // Pull immediately after reconnect to catch up on changes
       // that were broadcast while we were disconnected.
@@ -743,6 +761,7 @@ class SyncEngine {
     _wsSub = null;
     _wsChannel?.sink.close();
     _wsChannel = null;
+    onStatusChanged?.call(wsConnected: false);
   }
 
   void _scheduleReconnect() {
@@ -786,6 +805,21 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
   final syncClient = ref.watch(syncClientProvider);
   final prefs = ref.watch(sharedPreferencesProvider);
   final engine = SyncEngine(db, syncClient, prefs);
+
+  // Wire status callbacks to SyncStatusNotifier
+  final statusNotifier = ref.read(syncStatusProvider.notifier);
+  engine.onStatusChanged = ({
+    bool? syncing,
+    bool? synced,
+    bool? wsConnected,
+    int? failedCount,
+  }) {
+    if (syncing == true) statusNotifier.markSyncing();
+    if (synced == true) statusNotifier.markSynced();
+    if (wsConnected != null) statusNotifier.updateWsConnected(wsConnected);
+    if (failedCount != null && failedCount > 0) statusNotifier.markFailed(failedCount);
+  };
+
   ref.onDispose(() => engine.dispose());
   return engine;
 });

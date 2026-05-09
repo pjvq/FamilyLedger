@@ -500,6 +500,18 @@ class _TransactionRow extends StatelessWidget {
                 ),
               ),
               ),
+              // Sync status indicator (only show if not synced)
+              if (transaction.syncStatus != 'synced') ...[                const SizedBox(width: 4),
+                Icon(
+                  transaction.syncStatus == 'failed'
+                      ? Icons.error_outline_rounded
+                      : Icons.cloud_upload_outlined,
+                  size: 14,
+                  color: transaction.syncStatus == 'failed'
+                      ? Colors.red
+                      : Colors.orange.shade300,
+                ),
+              ],
             ],
           ),
         ),

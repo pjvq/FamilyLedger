@@ -14,7 +14,7 @@ class TransactionModel {
   final DateTime txnDate;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final bool synced;
+  final String syncStatus; // 'synced' | 'pending' | 'failed'
 
   const TransactionModel({
     required this.id,
@@ -30,7 +30,7 @@ class TransactionModel {
     required this.txnDate,
     required this.createdAt,
     required this.updatedAt,
-    this.synced = false,
+    this.syncStatus = 'pending',
   });
 
   TransactionModel copyWith({
@@ -47,7 +47,7 @@ class TransactionModel {
     DateTime? txnDate,
     DateTime? createdAt,
     DateTime? updatedAt,
-    bool? synced,
+    String? syncStatus,
   }) =>
       TransactionModel(
         id: id ?? this.id,
@@ -63,12 +63,14 @@ class TransactionModel {
         txnDate: txnDate ?? this.txnDate,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
-        synced: synced ?? this.synced,
+        syncStatus: syncStatus ?? this.syncStatus,
       );
 
   /// 格式化金额展示（元）
   String get formattedAmount {
     final yuan = amountCny / 100;
-    return yuan.toStringAsFixed(2);
+    return yuan == yuan.truncateToDouble()
+        ? '${yuan.toInt()}'
+        : yuan.toStringAsFixed(2);
   }
 }

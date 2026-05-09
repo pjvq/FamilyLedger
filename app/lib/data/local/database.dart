@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -139,6 +139,14 @@ class AppDatabase extends _$AppDatabase {
             // Safe on fresh installs (empty tables → no-op).
             await _deduplicateCategories();
             await _backfillParentIconKeys();
+          }
+          if (from < 16) {
+            // v15 → v16: add syncStatus column to transactions
+            await m.addColumn(transactions, transactions.syncStatus);
+          }
+          if (from < 17) {
+            // v16 → v17: drop legacy 'synced' bool column (replaced by syncStatus text)
+            await customStatement('ALTER TABLE transactions DROP COLUMN synced');
           }
         },
         beforeOpen: (details) async {
@@ -509,6 +517,7 @@ class AppDatabase extends _$AppDatabase {
     required String type,
     required String note,
     required DateTime txnDate,
+    String syncStatus = 'synced',
   }) async {
     await into(transactions).insertOnConflictUpdate(
       TransactionsCompanion.insert(
@@ -521,6 +530,7 @@ class AppDatabase extends _$AppDatabase {
         type: type,
         note: Value(note),
         txnDate: txnDate,
+        syncStatus: Value(syncStatus),
       ),
     );
   }
@@ -671,6 +681,24 @@ class AppDatabase extends _$AppDatabase {
   Future<void> markSyncOpsUploaded(List<String> ids) async {
     await (update(syncQueue)..where((s) => s.id.isIn(ids)))
         .write(const SyncQueueCompanion(uploaded: Value(true)));
+  }
+
+  /// Mark transactions as synced (called after successful push).
+  Future<void> markTransactionsSynced(List<String> entityIds) async {
+    if (entityIds.isEmpty) return;
+    await (update(transactions)..where((t) => t.id.isIn(entityIds)))
+        .write(const TransactionsCompanion(
+          syncStatus: Value('synced'),
+        ));
+  }
+
+  /// Mark transactions as failed (called after push retries exhausted).
+  Future<void> markTransactionsFailed(List<String> entityIds) async {
+    if (entityIds.isEmpty) return;
+    await (update(transactions)..where((t) => t.id.isIn(entityIds)))
+        .write(const TransactionsCompanion(
+          syncStatus: Value('failed'),
+        ));
   }
 
   // Balance summary

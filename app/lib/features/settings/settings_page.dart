@@ -632,6 +632,12 @@ class _SyncStatusTile extends ConsumerWidget {
           '断网时可正常记账，联网后自动同步',
           Colors.grey,
         ),
+      SyncStatus.failed => (
+          Icons.error_outline_rounded,
+          '同步失败',
+          '${syncState.failedCount} 条操作上传失败，请检查网络',
+          Colors.red,
+        ),
     };
 
     return Card(

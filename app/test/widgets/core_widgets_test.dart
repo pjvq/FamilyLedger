@@ -894,9 +894,9 @@ void main() {
         ],
       ));
       await tester.pump();
-      // Should render SizedBox.shrink
-      expect(find.text('同步中...'), findsNothing);
-      expect(find.text('离线模式'), findsNothing);
+      // Now always visible — shows synced state
+      expect(find.text('同步中'), findsNothing);
+      expect(find.text('离线'), findsNothing);
     });
 
     testWidgets('syncing: shows spinner and text', (tester) async {
@@ -907,7 +907,7 @@ void main() {
         ],
       ));
       await tester.pump();
-      expect(find.text('同步中...'), findsOneWidget);
+      expect(find.text('同步中'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
@@ -921,7 +921,7 @@ void main() {
         ],
       ));
       await tester.pump();
-      expect(find.text('5 条待同步'), findsOneWidget);
+      expect(find.text('5 待上传'), findsOneWidget);
       expect(find.byIcon(Icons.cloud_upload_outlined), findsOneWidget);
     });
 
@@ -933,7 +933,7 @@ void main() {
         ],
       ));
       await tester.pump();
-      expect(find.text('离线模式'), findsOneWidget);
+      expect(find.text('离线'), findsOneWidget);
       expect(find.byIcon(Icons.cloud_off_rounded), findsOneWidget);
     });
 
@@ -959,7 +959,7 @@ void main() {
         theme: ThemeData.dark(useMaterial3: true),
       ));
       await tester.pump();
-      expect(find.text('2 条待同步'), findsOneWidget);
+      expect(find.text('2 待上传'), findsOneWidget);
     });
   });
 
