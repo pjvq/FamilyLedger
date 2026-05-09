@@ -380,6 +380,8 @@ class SyncQueue extends Table {
   TextColumn get clientId => text()();
   DateTimeColumn get timestamp => dateTime()();
   BoolColumn get uploaded => boolean().withDefault(const Constant(false))();
+  IntColumn get retryCount => integer().withDefault(const Constant(0))();
+  DateTimeColumn get nextRetryAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

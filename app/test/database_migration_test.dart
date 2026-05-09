@@ -22,7 +22,7 @@ void main() {
     });
 
     test('schemaVersion is 15', () {
-      expect(db.schemaVersion, 17);
+      expect(db.schemaVersion, 18);
     });
 
     test('fresh database creates all tables without error', () async {

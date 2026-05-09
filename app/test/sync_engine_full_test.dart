@@ -441,9 +441,16 @@ void main() {
         await engine.testSyncNow();
 
         // R7 fix: Only succeeded ops marked uploaded; failed ops remain for retry
-        final pending = await db.getPendingSyncOps(10);
-        expect(pending, hasLength(1));
-        expect(pending.first.id, equals('op_bad'));
+        // After failure, retryCount is incremented and nextRetryAt is set (exponential backoff).
+        // getPendingSyncOps respects nextRetryAt, so the op won't appear until backoff expires.
+        // Verify the op still exists (not uploaded) by querying without the time filter.
+        final allOps = await (db.select(db.syncQueue)
+              ..where((s) => s.uploaded.equals(false)))
+            .get();
+        expect(allOps, hasLength(1));
+        expect(allOps.first.id, equals('op_bad'));
+        expect(allOps.first.retryCount, equals(1));
+        expect(allOps.first.nextRetryAt, isNotNull);
 
         engine.dispose();
       });

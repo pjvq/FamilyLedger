@@ -10,6 +10,7 @@ import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/theme_provider.dart';
 import '../../domain/providers/sync_status_provider.dart';
+import '../../sync/sync_engine.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -635,7 +636,7 @@ class _SyncStatusTile extends ConsumerWidget {
       SyncStatus.failed => (
           Icons.error_outline_rounded,
           '同步失败',
-          '${syncState.failedCount} 条操作上传失败，请检查网络',
+          '${syncState.failedCount} 条操作上传失败',
           Colors.red,
         ),
     };
@@ -657,7 +658,21 @@ class _SyncStatusTile extends ConsumerWidget {
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : null,
+            : syncState.status == SyncStatus.failed
+                ? TextButton.icon(
+                    onPressed: () async {
+                      // Reset dead ops so they can be retried
+                      await ref.read(databaseProvider).resetDeadSyncOps();
+                      ref.read(syncEngineProvider).syncNow();
+                    },
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('重试'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                  )
+                : null,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );

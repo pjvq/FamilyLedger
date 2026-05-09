@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"encoding/json"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -285,11 +286,27 @@ func TestHub_Load_MultipleUsers_Isolation(t *testing.T) {
 	}
 
 	// Verify other users do NOT receive it (read should timeout)
+	// Note: heartbeat messages may arrive, so we read and discard those.
 	for u := 1; u < usersCount; u++ {
 		conn := users[u].conns[0]
 		conn.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
-		_, _, err := conn.ReadMessage()
-		assert.Error(t, err, "user %s should not have received the message", users[u].userID)
+		for {
+			_, msg, err := conn.ReadMessage()
+			if err != nil {
+				// Timeout or close — expected
+				break
+			}
+			// If it's a heartbeat, continue reading
+			if len(msg) > 0 && msg[0] == '{' {
+				var m map[string]interface{}
+				if json.Unmarshal(msg, &m) == nil && m["type"] == "heartbeat" {
+					continue
+				}
+			}
+			// Non-heartbeat message received — fail
+			t.Errorf("user %s should not have received the message: %s", users[u].userID, string(msg))
+			break
+		}
 	}
 }
 

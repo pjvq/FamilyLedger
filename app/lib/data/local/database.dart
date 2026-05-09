@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -147,6 +147,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 17) {
             // v16 → v17: drop legacy 'synced' bool column (replaced by syncStatus text)
             await customStatement('ALTER TABLE transactions DROP COLUMN synced');
+          }
+          if (from < 18) {
+            // v17 → v18: add retry columns to sync_queue
+            await m.addColumn(syncQueue, syncQueue.retryCount);
+            await m.addColumn(syncQueue, syncQueue.nextRetryAt);
           }
         },
         beforeOpen: (details) async {
@@ -670,7 +675,10 @@ class AppDatabase extends _$AppDatabase {
   // Sync queue
   Future<List<SyncQueueData>> getPendingSyncOps(int limit) =>
       (select(syncQueue)
-            ..where((s) => s.uploaded.equals(false))
+            ..where((s) =>
+                s.uploaded.equals(false) &
+                (s.nextRetryAt.isNull() |
+                    s.nextRetryAt.isSmallerOrEqualValue(DateTime.now())))
             ..orderBy([(s) => OrderingTerm.asc(s.timestamp)])
             ..limit(limit))
           .get();
@@ -681,6 +689,43 @@ class AppDatabase extends _$AppDatabase {
   Future<void> markSyncOpsUploaded(List<String> ids) async {
     await (update(syncQueue)..where((s) => s.id.isIn(ids)))
         .write(const SyncQueueCompanion(uploaded: Value(true)));
+  }
+
+  /// Increment retry count and set next retry time with exponential backoff.
+  /// Max backoff: 30 minutes. After 10 retries, ops are considered dead.
+  Future<void> incrementSyncOpRetry(List<String> ids) async {
+    if (ids.isEmpty) return;
+    for (final id in ids) {
+      final op = await (select(syncQueue)..where((s) => s.id.equals(id))).getSingleOrNull();
+      if (op == null) continue;
+      final newCount = op.retryCount + 1;
+      // Exponential backoff: 10s, 20s, 40s, 80s, 160s, 320s, 640s, 1280s, 1800s cap
+      final delaySec = (10 * (1 << (newCount - 1).clamp(0, 7))).clamp(10, 1800);
+      await (update(syncQueue)..where((s) => s.id.equals(id))).write(
+        SyncQueueCompanion(
+          retryCount: Value(newCount),
+          nextRetryAt: Value(DateTime.now().add(Duration(seconds: delaySec))),
+        ),
+      );
+    }
+  }
+
+  /// Get count of ops that have exceeded max retries (dead ops).
+  Future<int> getDeadSyncOpsCount() async {
+    final result = await (select(syncQueue)
+          ..where((s) => s.uploaded.equals(false) & s.retryCount.isBiggerOrEqualValue(10)))
+        .get();
+    return result.length;
+  }
+
+  /// Reset retry state for dead ops so they can be retried.
+  Future<void> resetDeadSyncOps() async {
+    await (update(syncQueue)
+          ..where((s) => s.uploaded.equals(false) & s.retryCount.isBiggerOrEqualValue(10)))
+        .write(const SyncQueueCompanion(
+          retryCount: Value(0),
+          nextRetryAt: Value(null),
+        ));
   }
 
   /// Mark transactions as synced (called after successful push).
