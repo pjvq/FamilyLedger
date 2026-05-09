@@ -87,6 +87,11 @@ func (r *RealFetcher) FetchQuote(ctx context.Context, symbol string, marketType 
 	}
 
 	if err != nil {
+		// For precious metals, don't fall back to mock (mock gives misleading fake prices)
+		if marketType == "precious_metal" {
+			log.Printf("market: FetchQuote(%s, %s) error: %v", symbol, marketType, err)
+			return nil, err
+		}
 		log.Printf("market: FetchQuote(%s, %s) error: %v, falling back to mock", symbol, marketType, err)
 		return r.mock.FetchQuote(ctx, symbol, marketType)
 	}
@@ -738,25 +743,99 @@ var preciousMetalList = []SymbolInfo{
 	{Symbol: "Pt99.95", Name: "铂金9995", MarketType: "precious_metal"},
 }
 
-// preciousMetalSecID maps symbol to 东方财富 secid for commodity API.
-// Note: SGE codes use UPPERCASE without dots (e.g. AU9999, not Au99.99)
+// preciousMetalSecID maps our display symbol to the SGE code (f12 field in clist API).
 var preciousMetalSecID = map[string]string{
-	"Au99.99":   "118.AU9999",
-	"Au99.95":   "118.AU9995",
-	"Au100g":    "118.AU100",
-	"Au(T+D)":  "118.AUTD",
-	"mAu(T+D)": "118.mAUTD",
-	"Ag99.99":  "118.AG9999",
-	"Ag(T+D)":  "118.AGTD",
-	"Pt99.95":  "118.PT9995",
+	"Au99.99":   "AU9999",
+	"Au99.95":   "AU9995",
+	"Au100g":    "AU100",
+	"Au(T+D)":  "AUTD",
+	"mAu(T+D)": "mAUTD",
+	"Ag99.99":  "AG9999",
+	"Ag(T+D)":  "AGTD",
+	"Pt99.95":  "PT9995",
 }
 
 func (r *RealFetcher) fetchPreciousMetal(ctx context.Context, symbol string) (*MarketQuote, error) {
-	secid, ok := preciousMetalSecID[symbol]
+	// SGE uses clist endpoint (qt/stock/get doesn't work for market 118)
+	// Fetch all SGE products in one call and filter by code
+	code, ok := preciousMetalSecID[symbol]
 	if !ok {
 		return nil, fmt.Errorf("unknown precious metal symbol: %s", symbol)
 	}
-	return r.fetchEastMoneyStock(ctx, secid, symbol, "precious_metal")
+
+	url := "https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=30&fs=m:118&fields=f2,f3,f4,f12,f14&fltt=2"
+
+	// Retry up to 3 times (SGE endpoint can be flaky)
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(attempt) * 500 * time.Millisecond)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return nil, fmt.Errorf("create request: %w", err)
+		}
+		req.Header.Set("Referer", "https://www.eastmoney.com/")
+		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible)")
+
+		resp, err := r.client.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("http get: %w", err)
+			continue
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			lastErr = fmt.Errorf("eastmoney returned status %d", resp.StatusCode)
+			continue
+		}
+
+		var result struct {
+			Data struct {
+				Diff map[string]struct {
+					F2  float64 `json:"f2"`  // current price (元/克)
+					F3  float64 `json:"f3"`  // change percent (%)
+					F4  float64 `json:"f4"`  // change amount (元)
+					F12 string  `json:"f12"` // code (AU9999)
+					F14 string  `json:"f14"` // name (黄金9999)
+				} `json:"diff"`
+			} `json:"data"`
+		}
+
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			resp.Body.Close()
+			lastErr = fmt.Errorf("decode json: %w", err)
+			continue
+		}
+		resp.Body.Close()
+
+		if result.Data.Diff == nil {
+			lastErr = fmt.Errorf("no data returned for SGE")
+			continue
+		}
+
+		for _, item := range result.Data.Diff {
+			if strings.EqualFold(item.F12, code) {
+				if item.F2 <= 0 {
+					return nil, fmt.Errorf("%s: no valid price (market may be closed)", symbol)
+				}
+				priceCents := int64(math.Round(item.F2 * 100))
+				changeCents := int64(math.Round(item.F4 * 100))
+				return &MarketQuote{
+					Symbol:        symbol,
+					Name:          item.F14,
+					MarketType:    "precious_metal",
+					CurrentPrice:  priceCents,
+					ChangeAmount:  changeCents,
+					ChangePercent: item.F3,
+				}, nil
+			}
+		}
+		return nil, fmt.Errorf("%s: not found in SGE listing", symbol)
+	}
+
+	return nil, fmt.Errorf("fetchPreciousMetal(%s) failed after 3 retries: %w", symbol, lastErr)
 }
 
 func (r *RealFetcher) searchPreciousMetal(_ context.Context, query string) ([]SymbolInfo, error) {
