@@ -583,14 +583,15 @@ class _ReportPageState extends ConsumerState<ReportPage>
                     x: i,
                     barRods: [
                       BarChartRodData(
-                        toY: _trendTab == 2 ? val : val.abs(),
+                        toY: _trendTab == 2 ? (val >= 0 ? val : 0) : val.abs(),
                         fromY: _trendTab == 2 && val < 0 ? val : 0,
                         color: i == _trendTouchedMonth
                             ? color.withValues(alpha: 0.9)
                             : color.withValues(alpha: 0.7),
                         width: 14,
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(4)),
+                        borderRadius: _trendTab == 2 && val < 0
+                            ? const BorderRadius.vertical(bottom: Radius.circular(4))
+                            : const BorderRadius.vertical(top: Radius.circular(4)),
                       ),
                     ],
                   );
