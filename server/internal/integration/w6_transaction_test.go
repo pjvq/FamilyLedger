@@ -526,28 +526,29 @@ func TestW6_Budget_UniqueConstraint(t *testing.T) {
 	userCtx, _, _, _ := w6User(t, db, "w6_b002@test.com")
 	budgetSvc := budget.NewService(db.pool)
 
-	_, err := budgetSvc.CreateBudget(userCtx, &pbBudget.CreateBudgetRequest{
+	resp1, err := budgetSvc.CreateBudget(userCtx, &pbBudget.CreateBudgetRequest{
 		Year:        2026,
 		Month:       6,
 		TotalAmount: 500000,
 	})
 	require.NoError(t, err)
 
-	// Duplicate same user+year+month -> rejected
-	_, err = budgetSvc.CreateBudget(userCtx, &pbBudget.CreateBudgetRequest{
+	// Duplicate same user+year+month -> upsert (idempotent, updates amount)
+	resp2, err := budgetSvc.CreateBudget(userCtx, &pbBudget.CreateBudgetRequest{
 		Year:        2026,
 		Month:       6,
 		TotalAmount: 800000,
 	})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "exist")
-	t.Log("B-002 PASS: duplicate budget rejected")
+	require.NoError(t, err, "upsert should succeed")
+	assert.Equal(t, resp1.Budget.Id, resp2.Budget.Id, "upsert should return same budget id")
+	assert.Equal(t, int64(800000), resp2.Budget.TotalAmount, "upsert should update amount")
+	t.Log("B-002 PASS: duplicate budget upserts (idempotent)")
 }
 
-// TestW6_Budget_UniqueConstraint_DifferentFamily documents that the unique constraint
-// is on (user_id, year, month) WITHOUT family_id dimension.
-// Same user cannot have both personal + family budget for the same month.
-// This may be intentional ("one budget per person per month") or a design gap.
+// TestW6_Budget_UniqueConstraint_DifferentFamily documents that with partial unique indexes,
+// a user can have both a personal budget and a family budget for the same month.
+// Personal constraint: (user_id, year, month) WHERE family_id IS NULL
+// Family constraint: (user_id, year, month, family_id) WHERE family_id IS NOT NULL
 func TestW6_Budget_UniqueConstraint_DifferentFamily(t *testing.T) {
 	db := getDB(t)
 	userCtx, userID, _, _ := w6User(t, db, "w6_b002b@test.com")
@@ -562,7 +563,7 @@ func TestW6_Budget_UniqueConstraint_DifferentFamily(t *testing.T) {
 	require.NoError(t, err)
 
 	// Family budget for same user+year+month but different familyId
-	// ACTUAL BEHAVIOR: this is ALSO rejected (unique on user_id+year+month, ignoring family_id)
+	// With partial indexes, this should SUCCEED (different constraint spaces)
 	familyID := createTestFamily(t, db, uuid.MustParse(userID), "DiffFamilyBudget")
 	addFamilyMember(t, db, familyID, uuid.MustParse(userID), "owner",
 		`{"can_view":true,"can_create":true,"can_edit":true,"can_delete":true,"can_manage_accounts":true}`)
@@ -573,10 +574,8 @@ func TestW6_Budget_UniqueConstraint_DifferentFamily(t *testing.T) {
 		Month:       9,
 		TotalAmount: 800000,
 	})
-	// Documents actual behavior: rejected because constraint is (user_id, year, month)
-	require.Error(t, err, "expected rejection: unique constraint is user+year+month without familyId")
-	assert.Contains(t, err.Error(), "exist")
-	t.Log("B-002b PASS: unique constraint is (user_id, year, month) without family_id dimension")
+	require.NoError(t, err, "personal + family budget for same month should both be allowed")
+	t.Log("B-002b PASS: personal and family budgets can coexist for same user+month")
 }
 
 func TestW6_Budget_CategoryBudget(t *testing.T) {

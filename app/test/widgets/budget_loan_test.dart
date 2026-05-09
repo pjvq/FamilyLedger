@@ -88,6 +88,7 @@ db.Loan makeLoan({
     lprBase: lprBase,
     lprSpread: lprSpread,
     rateAdjustMonth: rateAdjustMonth,
+    repaymentCategoryId: '',
     createdAt: DateTime(2024, 1, 1),
     updatedAt: DateTime(2024, 1, 1),
     deletedAt: null,

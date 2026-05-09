@@ -815,14 +815,16 @@ func TestW7_LoanPayment_Atomicity(t *testing.T) {
 		assert.False(t, sched.Items[i].IsPaid, "period %d should not be paid", i+1)
 	}
 
-	// Double-pay should fail without corrupting state
-	_, err = loanSvc.RecordPayment(ctx, &pbLoan.RecordPaymentRequest{
+	// Double-pay should be idempotent (returns existing data without error)
+	dupeResp, err := loanSvc.RecordPayment(ctx, &pbLoan.RecordPaymentRequest{
 		LoanId:      l.Id,
 		MonthNumber: 1,
 	})
-	require.Error(t, err, "double-paying same period should fail")
+	require.NoError(t, err, "double-paying same period should be idempotent")
+	assert.Equal(t, int32(1), dupeResp.MonthNumber, "should return existing period data")
+	assert.True(t, dupeResp.IsPaid, "should show as already paid")
 
-	// Verify state unchanged after failed double-pay
+	// Verify state unchanged after idempotent double-pay
 	finalLoan, err := loanSvc.GetLoan(ctx, &pbLoan.GetLoanRequest{LoanId: l.Id})
 	require.NoError(t, err)
 	assert.Equal(t, int32(3), finalLoan.PaidMonths, "paid_months should not change after failed pay")

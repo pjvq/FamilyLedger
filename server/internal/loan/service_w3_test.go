@@ -181,14 +181,14 @@ func TestW3_SimulatePrepayment_ReduceMonths_Success(t *testing.T) {
 			"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
 			"start_date", "created_at", "updated_at", "account_id",
 			"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
-			"family_id",
+			"family_id", "repayment_category_id",
 		}).AddRow(
 			loanID, uuid.MustParse(testUserID), "房贷", "mortgage",
 			int64(1000000_00), int64(970000_00), // remaining after 12 months
 			4.9, int32(360), int32(12),
 			pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT, int32(15),
 			startDate, startDate, startDate, nil,
-			nil, nil, nil, nil, nil, nil, nil,
+			nil, nil, nil, nil, nil, nil, nil, nil,
 		))
 
 	// loadSchedule: build 360 items (12 paid + 348 unpaid)
@@ -244,14 +244,14 @@ func TestW3_SimulatePrepayment_ReducePayment_Success(t *testing.T) {
 			"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
 			"start_date", "created_at", "updated_at", "account_id",
 			"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
-			"family_id",
+			"family_id", "repayment_category_id",
 		}).AddRow(
 			loanID, uuid.MustParse(testUserID), "房贷", "mortgage",
 			int64(1000000_00), int64(970000_00),
 			4.9, int32(360), int32(12),
 			pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT, int32(15),
 			startDate, startDate, startDate, nil,
-			nil, nil, nil, nil, nil, nil, nil,
+			nil, nil, nil, nil, nil, nil, nil, nil,
 		))
 
 	scheduleRows := pgxmock.NewRows([]string{
@@ -304,14 +304,14 @@ func TestW3_SimulatePrepayment_ExceedsRemaining_Rejected(t *testing.T) {
 			"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
 			"start_date", "created_at", "updated_at", "account_id",
 			"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
-			"family_id",
+			"family_id", "repayment_category_id",
 		}).AddRow(
 			loanID, uuid.MustParse(testUserID), "房贷", "mortgage",
 			int64(1000000_00), int64(500000_00), // remaining 50万
 			4.9, int32(360), int32(180),
 			pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT, int32(15),
 			startDate, startDate, startDate, nil,
-			nil, nil, nil, nil, nil, nil, nil,
+			nil, nil, nil, nil, nil, nil, nil, nil,
 		))
 
 	_, err = svc.SimulatePrepayment(extAuthedCtx(), &pb.SimulatePrepaymentRequest{

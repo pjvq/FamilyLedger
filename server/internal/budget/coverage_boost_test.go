@@ -81,7 +81,7 @@ func TestCB_CreateBudget_InsertError(t *testing.T) {
 	_, err := svc.CreateBudget(authedCtx(), &pb.CreateBudgetRequest{
 		Month: 1, Year: 2025, TotalAmount: 1000,
 	})
-	assert.Equal(t, codes.AlreadyExists, status.Code(err))
+	assert.Equal(t, codes.Internal, status.Code(err))
 }
 
 func TestCB_CreateBudget_CategoryInvalidID(t *testing.T) {
@@ -94,6 +94,9 @@ func TestCB_CreateBudget_CategoryInvalidID(t *testing.T) {
 	mock.ExpectQuery("INSERT INTO budgets").
 		WithArgs(testUserUUID, (*uuid.UUID)(nil), int32(2025), int32(1), int64(1000)).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at"}).AddRow(budgetID, now))
+	mock.ExpectExec("DELETE FROM category_budgets").
+		WithArgs(budgetID).
+		WillReturnResult(pgxmock.NewResult("DELETE", 0))
 	// Invalid category ID
 	_, err := svc.CreateBudget(authedCtx(), &pb.CreateBudgetRequest{
 		Month: 1, Year: 2025, TotalAmount: 1000,
@@ -113,6 +116,9 @@ func TestCB_CreateBudget_CategoryInsertError(t *testing.T) {
 	mock.ExpectQuery("INSERT INTO budgets").
 		WithArgs(testUserUUID, (*uuid.UUID)(nil), int32(2025), int32(1), int64(1000)).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at"}).AddRow(budgetID, now))
+	mock.ExpectExec("DELETE FROM category_budgets").
+		WithArgs(budgetID).
+		WillReturnResult(pgxmock.NewResult("DELETE", 0))
 	mock.ExpectExec("INSERT INTO category_budgets").
 		WithArgs(budgetID, catID, int64(500)).
 		WillReturnError(errors.New("insert fail"))
@@ -134,6 +140,9 @@ func TestCB_CreateBudget_CommitFail(t *testing.T) {
 	mock.ExpectQuery("INSERT INTO budgets").
 		WithArgs(testUserUUID, (*uuid.UUID)(nil), int32(2025), int32(1), int64(1000)).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at"}).AddRow(budgetID, now))
+	mock.ExpectExec("DELETE FROM category_budgets").
+		WithArgs(budgetID).
+		WillReturnResult(pgxmock.NewResult("DELETE", 0))
 	mock.ExpectCommit().WillReturnError(errors.New("commit fail"))
 	mock.ExpectRollback()
 	_, err := svc.CreateBudget(authedCtx(), &pb.CreateBudgetRequest{

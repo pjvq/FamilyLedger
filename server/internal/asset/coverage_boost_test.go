@@ -178,12 +178,12 @@ func TestCB_ListAssets_FamilyMode_Success(t *testing.T) {
 		WithArgs(familyID.String(), testUserID).
 		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
 	listCols := []string{"id", "user_id", "name", "asset_type", "purchase_price", "current_value",
-		"purchase_date", "description", "created_at", "updated_at"}
+		"purchase_date", "description", "family_id", "created_at", "updated_at"}
 	mock.ExpectQuery("SELECT id, user_id, name").
 		WithArgs(familyID.String()).
 		WillReturnRows(pgxmock.NewRows(listCols).AddRow(
 			assetID, testUserID, "Car", "vehicle", int64(100000), int64(80000),
-			now, (*string)(nil), now, now,
+			now, (*string)(nil), (*uuid.UUID)(nil), now, now,
 		))
 	resp, err := svc.ListAssets(authedCtx(), &pb.ListAssetsRequest{FamilyId: familyID.String()})
 	require.NoError(t, err)
@@ -294,7 +294,7 @@ func TestCB_UpdateAsset_NotOwner_FamilyPermCheck(t *testing.T) {
 		WithArgs("some-id").
 		WillReturnRows(pgxmock.NewRows(assetCols()).AddRow(
 			assetID, "other-user", "Updated", "vehicle", int64(100), int64(80),
-			now, (*string)(nil), now, now, &famUID,
+			now, (*string)(nil), &famUID, now, now,
 		))
 	// loadAsset permission.Check for family
 	mock.ExpectQuery("SELECT role, permissions FROM family_members").
@@ -500,7 +500,7 @@ func TestCB_RunDepreciation_StraightLine(t *testing.T) {
 		WithArgs("asset-1").
 		WillReturnRows(pgxmock.NewRows(assetCols()).AddRow(
 			assetID, testUserID, "MacBook", "electronics", int64(100000), int64(78417),
-			purchaseDate, (*string)(nil), now, now, (*uuid.UUID)(nil),
+			purchaseDate, (*string)(nil), (*uuid.UUID)(nil), now, now,
 		))
 	resp, err := svc.RunDepreciation(authedCtx(), &pb.RunDepreciationRequest{AssetId: "asset-1"})
 	require.NoError(t, err)
@@ -537,7 +537,7 @@ func TestCB_RunDepreciation_DoubleDeclining(t *testing.T) {
 		WithArgs("asset-1").
 		WillReturnRows(pgxmock.NewRows(assetCols()).AddRow(
 			assetID, testUserID, "MacBook", "electronics", int64(100000), int64(77333),
-			purchaseDate, (*string)(nil), now, now, (*uuid.UUID)(nil),
+			purchaseDate, (*string)(nil), (*uuid.UUID)(nil), now, now,
 		))
 	resp, err := svc.RunDepreciation(authedCtx(), &pb.RunDepreciationRequest{AssetId: "asset-1"})
 	require.NoError(t, err)
@@ -927,7 +927,7 @@ func TestCB_LoadAsset_WithDescription(t *testing.T) {
 		WithArgs(assetID.String()).
 		WillReturnRows(pgxmock.NewRows(assetCols()).AddRow(
 			assetID, testUserID, "Car", "vehicle", int64(200000), int64(150000),
-			now, &desc, now, now, (*uuid.UUID)(nil),
+			now, &desc, (*uuid.UUID)(nil), now, now,
 		))
 	resp, err := svc.loadAsset(context.Background(), assetID.String(), testUserID)
 	require.NoError(t, err)
@@ -945,7 +945,7 @@ func TestCB_LoadAsset_WithFamilyPermission(t *testing.T) {
 		WithArgs(assetID.String()).
 		WillReturnRows(pgxmock.NewRows(assetCols()).AddRow(
 			assetID, "other-user", "Car", "vehicle", int64(200000), int64(150000),
-			now, (*string)(nil), now, now, &familyID,
+			now, (*string)(nil), &familyID, now, now,
 		))
 	uid, _ := uuid.Parse(testUserID)
 	mock.ExpectQuery("SELECT role, permissions FROM family_members").

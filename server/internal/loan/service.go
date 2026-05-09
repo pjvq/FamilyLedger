@@ -147,7 +147,8 @@ func (s *Service) ListLoans(ctx context.Context, req *pb.ListLoansRequest) (*pb.
 			`SELECT id, user_id, name, loan_type, principal, remaining_principal,
 			        annual_rate, total_months, paid_months, repayment_method, payment_day,
 			        start_date, created_at, updated_at, account_id,
-			        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month, family_id
+			        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month,
+			        family_id, repayment_category_id
 			 FROM loans WHERE family_id = $1 AND deleted_at IS NULL
 			 ORDER BY created_at DESC`,
 			req.FamilyId,
@@ -157,7 +158,8 @@ func (s *Service) ListLoans(ctx context.Context, req *pb.ListLoansRequest) (*pb.
 			`SELECT id, user_id, name, loan_type, principal, remaining_principal,
 			        annual_rate, total_months, paid_months, repayment_method, payment_day,
 			        start_date, created_at, updated_at, account_id,
-			        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month, family_id
+			        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month,
+			        family_id, repayment_category_id
 			 FROM loans WHERE user_id = $1 AND deleted_at IS NULL
 			 ORDER BY created_at DESC`,
 			userID,
@@ -565,10 +567,31 @@ func (s *Service) RecordPayment(ctx context.Context, req *pb.RecordPaymentReques
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to check payment sequence")
 	}
-	if nextUnpaid == 0 {
-		return nil, status.Error(codes.FailedPrecondition, "all payments already completed")
-	}
-	if req.MonthNumber != nextUnpaid {
+	if nextUnpaid == 0 || req.MonthNumber != nextUnpaid {
+		// Idempotent: if the requested month is already paid, return its data
+		var existingItem pb.LoanScheduleItem
+		var existingDueDate time.Time
+		var existingPaidDate time.Time
+		err = s.pool.QueryRow(ctx,
+			`SELECT month_number, payment, principal_part, interest_part, remaining_principal, due_date, paid_date
+			 FROM loan_schedules WHERE loan_id=$1 AND month_number=$2 AND is_paid=true`,
+			req.LoanId, req.MonthNumber,
+		).Scan(&existingItem.MonthNumber, &existingItem.Payment, &existingItem.PrincipalPart,
+			&existingItem.InterestPart, &existingItem.RemainingPrincipal, &existingDueDate, &existingPaidDate)
+		if err == nil {
+			// Already paid — return idempotent success
+			existingItem.IsPaid = true
+			existingItem.DueDate = timestamppb.New(existingDueDate)
+			existingItem.PaidDate = timestamppb.New(existingPaidDate)
+			return &existingItem, nil
+		}
+		if err != pgx.ErrNoRows {
+			return nil, status.Error(codes.Internal, "failed to check existing payment")
+		}
+		// Not already paid — return the original error
+		if nextUnpaid == 0 {
+			return nil, status.Error(codes.FailedPrecondition, "all payments already completed")
+		}
 		return nil, status.Errorf(codes.FailedPrecondition,
 			"must pay period %d before period %d (sequential payment required)", nextUnpaid, req.MonthNumber)
 	}
@@ -1032,11 +1055,12 @@ func scanLoan(rows pgx.Rows) (*pb.Loan, error) {
 	var lprBase, lprSpread *float64
 	var rateAdjustMonth *int32
 	var familyID *uuid.UUID
+	var repCatID *uuid.UUID
 
 	if err := rows.Scan(&id, &uid, &name, &loanType, &principal, &remainingPrincipal,
 		&annualRate, &totalMonths, &paidMonths, &method, &paymentDay,
 		&startDate, &createdAt, &updatedAt, &accountID,
-		&groupID, &subType, &rateType, &lprBase, &lprSpread, &rateAdjustMonth, &familyID); err != nil {
+		&groupID, &subType, &rateType, &lprBase, &lprSpread, &rateAdjustMonth, &familyID, &repCatID); err != nil {
 		return nil, status.Error(codes.Internal, "failed to scan loan")
 	}
 
@@ -1687,7 +1711,8 @@ func (s *Service) loadSubLoans(ctx context.Context, groupID, userID string) ([]*
 		`SELECT id, user_id, name, loan_type, principal, remaining_principal,
 		        annual_rate, total_months, paid_months, repayment_method, payment_day,
 		        start_date, created_at, updated_at, account_id,
-		        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month, family_id
+		        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month,
+		        family_id, repayment_category_id
 		 FROM loans WHERE group_id = $1 AND user_id = $2 AND deleted_at IS NULL
 		 ORDER BY sub_type`,
 		groupID, userID,

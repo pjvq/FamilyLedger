@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -134,12 +134,16 @@ class AppDatabase extends _$AppDatabase {
             // v13 → v14: add repayment_category_id to loans
             await m.addColumn(loans, loans.repaymentCategoryId);
           }
+          if (from < 15) {
+            // v14 → v15: one-time category dedup + icon backfill (moved from beforeOpen).
+            // Safe on fresh installs (empty tables → no-op).
+            await _deduplicateCategories();
+            await _backfillParentIconKeys();
+          }
         },
         beforeOpen: (details) async {
-          // One-time cleanup: deduplicate categories created by import
-          await _deduplicateCategories();
-          // Backfill iconKey for preset parent categories that were seeded without it
-          await _backfillParentIconKeys();
+          // Category dedup and icon backfill moved to migration v15
+          // No longer needed here
         },
       );
 

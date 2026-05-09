@@ -15,8 +15,10 @@ import 'package:uuid/uuid.dart';
 void main() {
   late AppDatabase db;
 
-  setUp(() {
+  setUp(() async {
     db = AppDatabase.forTesting(NativeDatabase.memory());
+    // Since v13+, categories are seeded after auth
+    await db.seedCategoriesForOwner('test-user');
   });
 
   tearDown(() async {

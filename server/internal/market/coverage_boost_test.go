@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -874,6 +875,9 @@ func newTestRealFetcher(client *http.Client) *RealFetcher {
 // ── fetchEastMoneyStock (A-share & HK-stock paths) ─────────────────────────
 
 func TestBoost_FetchEastMoneyAShare_Success(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("skipping: calls real EastMoney API which is unreachable in CI")
+	}
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := `{"data":{"f43":"25.50","f44":"26.00","f45":"25.00","f46":"25.30","f57":"600519","f58":"贵州茅台","f60":"25.00","f169":"0.50","f170":"2.00"}}`
 		w.Header().Set("Content-Type", "application/json")

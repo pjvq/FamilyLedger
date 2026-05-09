@@ -70,18 +70,39 @@ func (s *Service) CreateBudget(ctx context.Context, req *pb.CreateBudgetRequest)
 
 	var budgetID uuid.UUID
 	var createdAt time.Time
-	err = tx.QueryRow(ctx,
-		`INSERT INTO budgets (user_id, family_id, year, month, total_amount)
-		 VALUES ($1, $2, $3, $4, $5)
-		 RETURNING id, created_at`,
-		uid, familyID, req.Year, req.Month, req.TotalAmount,
-	).Scan(&budgetID, &createdAt)
+
+	// Use ON CONFLICT to make budget creation idempotent.
+	// Since family_id is nullable, we use different conflict targets
+	// based on whether it's a personal or family budget.
+	// NOTE: This is an upsert — duplicate requests update the existing budget
+	// instead of returning AlreadyExists. Client does not depend on error codes here.
+	var query string
+	if familyID == nil {
+		query = `INSERT INTO budgets (user_id, family_id, year, month, total_amount)
+			VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (user_id, year, month) WHERE family_id IS NULL
+			DO UPDATE SET total_amount = EXCLUDED.total_amount, updated_at = NOW()
+			RETURNING id, created_at`
+	} else {
+		query = `INSERT INTO budgets (user_id, family_id, year, month, total_amount)
+			VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (user_id, year, month, family_id) WHERE family_id IS NOT NULL
+			DO UPDATE SET total_amount = EXCLUDED.total_amount, updated_at = NOW()
+			RETURNING id, created_at`
+	}
+	err = tx.QueryRow(ctx, query, uid, familyID, req.Year, req.Month, req.TotalAmount).Scan(&budgetID, &createdAt)
 	if err != nil {
 		log.Printf("budget: create error: %v", err)
-		return nil, status.Error(codes.AlreadyExists, "budget already exists for this user/month")
+		return nil, status.Error(codes.Internal, "failed to create budget")
 	}
 
-	// Insert category budgets
+	// Clear existing category budgets (in case of upsert) and re-insert
+	_, err = tx.Exec(ctx, `DELETE FROM category_budgets WHERE budget_id = $1`, budgetID)
+	if err != nil {
+		log.Printf("budget: clear category budgets error: %v", err)
+		return nil, status.Error(codes.Internal, "failed to clear category budgets")
+	}
+
 	for _, cb := range req.CategoryBudgets {
 		catID, err := uuid.Parse(cb.CategoryId)
 		if err != nil {

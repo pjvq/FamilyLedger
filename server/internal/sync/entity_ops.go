@@ -509,10 +509,20 @@ func (s *Service) applyBudgetCreate(ctx context.Context, tx pgx.Tx, userID uuid.
 		}
 	}
 
-	_, err := tx.Exec(ctx,
-		`INSERT INTO budgets (id, user_id, family_id, year, month, total_amount)
+	var query string
+	if familyID == nil {
+		query = `INSERT INTO budgets (id, user_id, family_id, year, month, total_amount)
 		 VALUES ($1, $2, $3, $4, $5, $6)
-		 ON CONFLICT (user_id, year, month) DO UPDATE SET total_amount = EXCLUDED.total_amount, family_id = EXCLUDED.family_id, updated_at = NOW()`,
+		 ON CONFLICT (user_id, year, month) WHERE family_id IS NULL
+		 DO UPDATE SET total_amount = EXCLUDED.total_amount, updated_at = NOW()`
+	} else {
+		query = `INSERT INTO budgets (id, user_id, family_id, year, month, total_amount)
+		 VALUES ($1, $2, $3, $4, $5, $6)
+		 ON CONFLICT (user_id, year, month, family_id) WHERE family_id IS NOT NULL
+		 DO UPDATE SET total_amount = EXCLUDED.total_amount, updated_at = NOW()`
+	}
+
+	_, err := tx.Exec(ctx, query,
 		entityID, userID, familyID, p.Year, p.Month, p.TotalAmount,
 	)
 	if err != nil {
