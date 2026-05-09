@@ -1185,12 +1185,13 @@ class AppDatabase extends _$AppDatabase {
             ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
           .get();
     }
-    // 个人模式：显示自己的所有贷款（包括关联到家庭的）
+    // 个人模式：显示自己的贷款（排除关联到家庭的）
     return (select(loans)
             ..where((l) =>
                 l.userId.equals(userId) &
                 l.deletedAt.isNull() &
-                (l.groupId.equals('') | l.groupId.isNull()))
+                (l.groupId.equals('') | l.groupId.isNull()) &
+                (l.familyId.equals('') | l.familyId.isNull()))
             ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
           .get();
   }

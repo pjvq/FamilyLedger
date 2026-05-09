@@ -161,6 +161,7 @@ func (s *Service) ListLoans(ctx context.Context, req *pb.ListLoansRequest) (*pb.
 			        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month,
 			        family_id, repayment_category_id
 			 FROM loans WHERE user_id = $1 AND deleted_at IS NULL
+			 AND (family_id IS NULL OR family_id::text = '')
 			 ORDER BY created_at DESC`,
 			userID,
 		)
@@ -1510,6 +1511,7 @@ func (s *Service) ListLoanGroups(ctx context.Context, req *pb.ListLoanGroupsRequ
 			`SELECT id, name, group_type, total_principal, payment_day, start_date,
 			        account_id, family_id, created_at, updated_at
 			 FROM loan_groups WHERE user_id = $1 AND deleted_at IS NULL
+			 AND (family_id IS NULL OR family_id::text = '')
 			 ORDER BY created_at DESC`,
 			userID,
 		)
