@@ -58,7 +58,6 @@ Transaction _makeTransaction({
     txnDate: txnDate,
     createdAt: now,
     updatedAt: now,
-    synced: false,
     syncStatus: 'pending',
   );
 }

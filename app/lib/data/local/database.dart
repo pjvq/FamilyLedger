@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -143,6 +143,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 16) {
             // v15 → v16: add syncStatus column to transactions
             await m.addColumn(transactions, transactions.syncStatus);
+          }
+          if (from < 17) {
+            // v16 → v17: drop legacy 'synced' bool column (replaced by syncStatus text)
+            await customStatement('ALTER TABLE transactions DROP COLUMN synced');
           }
         },
         beforeOpen: (details) async {
@@ -682,7 +686,6 @@ class AppDatabase extends _$AppDatabase {
     if (entityIds.isEmpty) return;
     await (update(transactions)..where((t) => t.id.isIn(entityIds)))
         .write(const TransactionsCompanion(
-          synced: Value(true),
           syncStatus: Value('synced'),
         ));
   }

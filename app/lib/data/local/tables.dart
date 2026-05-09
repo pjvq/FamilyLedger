@@ -64,7 +64,6 @@ class Transactions extends Table {
   DateTimeColumn get txnDate => dateTime()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
-  BoolColumn get synced => boolean().withDefault(const Constant(false))();
   /// Sync status: 'synced' | 'pending' | 'failed'
   TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
   DateTimeColumn get deletedAt => dateTime().nullable()();

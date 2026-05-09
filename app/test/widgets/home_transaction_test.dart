@@ -52,7 +52,7 @@ Transaction _makeTransaction({
   DateTime? txnDate,
   DateTime? createdAt,
   DateTime? updatedAt,
-  bool synced = false,
+  String syncStatus = 'pending',
 }) {
   final now = DateTime.now();
   final effectiveCategoryId = categoryId ?? CategoryUUID.generate('test-user', 'expense', '餐饮');
@@ -72,8 +72,7 @@ Transaction _makeTransaction({
     txnDate: txnDate ?? now,
     createdAt: createdAt ?? now,
     updatedAt: updatedAt ?? now,
-    synced: synced,
-    syncStatus: synced ? 'synced' : 'pending',
+    syncStatus: syncStatus,
   );
 }
 
