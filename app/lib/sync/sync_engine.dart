@@ -390,7 +390,7 @@ class SyncEngine {
         final createAccountId = payload['account_id'] ?? '';
         final createAmountCny = (payload['amount_cny'] as num?)?.toInt() ?? 0;
         final createType = payload['type'] ?? 'expense';
-        if (createAccountId.isNotEmpty && createAmountCny != 0) {
+        if (createAccountId.isNotEmpty && createAmountCny != 0 && createType != 'transfer') {
           final delta = createType == 'income' ? createAmountCny : -createAmountCny;
           await _db!.updateAccountBalance(createAccountId, delta);
         }
@@ -416,13 +416,13 @@ class SyncEngine {
         final updateAccountId = payload['account_id'] ?? '';
         final updateAmountCny = (payload['amount_cny'] as num?)?.toInt() ?? 0;
         final updateType = payload['type'] ?? 'expense';
-        if (oldTxn != null && oldTxn.deletedAt == null) {
+        if (oldTxn != null && oldTxn.deletedAt == null && oldTxn.type != 'transfer') {
           // Revert old balance contribution
           final oldDelta = oldTxn.type == 'income' ? oldTxn.amountCny : -oldTxn.amountCny;
           await _db!.updateAccountBalance(oldTxn.accountId, -oldDelta);
         }
         // Apply new balance delta
-        if (updateAccountId.isNotEmpty && updateAmountCny != 0) {
+        if (updateAccountId.isNotEmpty && updateAmountCny != 0 && updateType != 'transfer') {
           final newDelta = updateType == 'income' ? updateAmountCny : -updateAmountCny;
           await _db!.updateAccountBalance(updateAccountId, newDelta);
         }
@@ -430,7 +430,7 @@ class SyncEngine {
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
         // Get transaction before soft-deleting to revert balance
         final txn = await _db!.getTransactionById(entityId);
-        if (txn != null && txn.deletedAt == null) {
+        if (txn != null && txn.deletedAt == null && txn.type != 'transfer') {
           // Revert balance contribution
           final delta = txn.type == 'income' ? txn.amountCny : -txn.amountCny;
           await _db!.updateAccountBalance(txn.accountId, -delta);

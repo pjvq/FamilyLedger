@@ -1,10 +1,10 @@
--- Remove existing duplicates first (keep the one with lowest id/earliest created_at)
+-- Remove existing duplicates first (keep the earliest by created_at, break ties by id)
 DELETE FROM budgets a USING budgets b
-WHERE a.id > b.id
-  AND a.user_id = b.user_id
+WHERE a.user_id = b.user_id
   AND a.year = b.year
   AND a.month = b.month
-  AND COALESCE(a.family_id::text, '') = COALESCE(b.family_id::text, '');
+  AND COALESCE(a.family_id::text, '') = COALESCE(b.family_id::text, '')
+  AND (a.created_at > b.created_at OR (a.created_at = b.created_at AND a.id > b.id));
 
 -- Drop the old constraint that doesn't account for family_id
 ALTER TABLE budgets DROP CONSTRAINT IF EXISTS budgets_user_id_year_month_key;

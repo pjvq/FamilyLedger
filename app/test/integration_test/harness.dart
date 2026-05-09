@@ -26,11 +26,16 @@ class HarnessConfig {
   final String wsHost;
   final int wsPort;
 
+  /// JWT secret must match the server's JWT_SECRET env var.
+  /// Default matches docker-compose.yml development default.
+  final String jwtSecret;
+
   HarnessConfig({
     String? grpcHost,
     int? grpcPort,
     String? wsHost,
     int? wsPort,
+    String? jwtSecret,
   })  : // Use 127.0.0.1 instead of localhost to avoid macOS IPv6 (::1) resolution
         // when Go server only binds IPv4. See BUG-007.
         grpcHost = grpcHost ??
@@ -44,7 +49,10 @@ class HarnessConfig {
             '127.0.0.1', // Same as grpcHost — avoid IPv6 resolution. See BUG-007.
         wsPort = wsPort ??
             int.tryParse(Platform.environment['WS_PORT'] ?? '') ??
-            8080;
+            8080,
+        jwtSecret = jwtSecret ??
+            Platform.environment['JWT_SECRET'] ??
+            'change-me-in-production-at-least-32-chars';
 }
 
 /// The main test harness — manages gRPC channel, auth tokens, and cleanup.

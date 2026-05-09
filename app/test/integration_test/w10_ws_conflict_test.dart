@@ -808,8 +808,7 @@ void main() {
     /// Generate a short-lived JWT signed with the E2E test secret.
     /// This allows us to test token expiration without modifying server config.
     String makeShortLivedJwt(String userId, {int ttlSeconds = 2}) {
-      final secret = Platform.environment['JWT_SECRET'] ??
-          'change-me-in-production-at-least-32-chars';
+      final secret = HarnessConfig().jwtSecret;
 
       // Header: {"alg": "HS256", "typ": "JWT"}
       final header = base64Url
