@@ -739,15 +739,16 @@ var preciousMetalList = []SymbolInfo{
 }
 
 // preciousMetalSecID maps symbol to 东方财富 secid for commodity API.
+// Note: SGE codes use UPPERCASE without dots (e.g. AU9999, not Au99.99)
 var preciousMetalSecID = map[string]string{
-	"Au99.99":   "118.Au99.99",
-	"Au99.95":   "118.Au99.95",
-	"Au100g":    "118.Au100g",
-	"Au(T+D)":  "118.Au(T+D)",
-	"mAu(T+D)": "118.mAu(T+D)",
-	"Ag99.99":  "118.Ag99.99",
-	"Ag(T+D)":  "118.Ag(T+D)",
-	"Pt99.95":  "118.Pt99.95",
+	"Au99.99":   "118.AU9999",
+	"Au99.95":   "118.AU9995",
+	"Au100g":    "118.AU100",
+	"Au(T+D)":  "118.AUTD",
+	"mAu(T+D)": "118.mAUTD",
+	"Ag99.99":  "118.AG9999",
+	"Ag(T+D)":  "118.AGTD",
+	"Pt99.95":  "118.PT9995",
 }
 
 func (r *RealFetcher) fetchPreciousMetal(ctx context.Context, symbol string) (*MarketQuote, error) {
