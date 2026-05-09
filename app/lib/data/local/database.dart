@@ -517,6 +517,7 @@ class AppDatabase extends _$AppDatabase {
     required String type,
     required String note,
     required DateTime txnDate,
+    String syncStatus = 'synced',
   }) async {
     await into(transactions).insertOnConflictUpdate(
       TransactionsCompanion.insert(
@@ -529,6 +530,7 @@ class AppDatabase extends _$AppDatabase {
         type: type,
         note: Value(note),
         txnDate: txnDate,
+        syncStatus: Value(syncStatus),
       ),
     );
   }
