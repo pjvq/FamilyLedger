@@ -715,7 +715,8 @@ class SyncEngine {
 
       // Pull immediately after reconnect to catch up on changes
       // that were broadcast while we were disconnected.
-      _pullChanges();
+      // Fire-and-forget: don't block the WS message loop.
+      unawaited(_pullChanges());
     } catch (e) {
       dev.log('SyncEngine: ws connect failed: $e', name: 'sync');
       _scheduleReconnect();
