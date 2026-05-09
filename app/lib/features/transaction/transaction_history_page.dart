@@ -10,6 +10,7 @@ import '../../domain/providers/dashboard_provider.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
+import '../../sync/sync_engine.dart';
 import '../../core/widgets/widgets.dart';
 import 'transaction_detail_page.dart';
 
@@ -124,7 +125,8 @@ class _TransactionHistoryPageState
   }
 
   Future<void> _onRefresh() async {
-    // Pull fresh data from server and reset display count
+    // Pull latest changes from server first, then reload local data
+    await ref.read(syncEngineProvider).forcePull();
     await ref.read(transactionProvider.notifier).reload();
     setState(() => _displayCount = _pageSize);
   }

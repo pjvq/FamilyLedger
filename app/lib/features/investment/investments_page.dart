@@ -7,6 +7,7 @@ import '../../core/widgets/micro_interactions.dart';
 import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/investment_provider.dart';
+import '../../sync/sync_engine.dart';
 import '../../domain/providers/market_data_provider.dart';
 
 class InvestmentsPage extends ConsumerStatefulWidget {
@@ -79,6 +80,7 @@ class _InvestmentsPageState extends ConsumerState<InvestmentsPage> {
                 )
               : CustomRefreshIndicator(
               onRefresh: () async {
+                await ref.read(syncEngineProvider).forcePull();
                 await ref.read(investmentProvider.notifier).listInvestments();
                 _refreshQuotes();
               },

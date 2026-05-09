@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart' as db;
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/loan_provider.dart';
+import '../../sync/sync_engine.dart';
 
 class LoansPage extends ConsumerWidget {
   const LoansPage({super.key});
@@ -36,8 +37,10 @@ class LoansPage extends ConsumerWidget {
               : !hasData
               ? _EmptyState(theme: theme)
               : CustomRefreshIndicator(
-                  onRefresh: () =>
-                      ref.read(loanProvider.notifier).loadAll(),
+                  onRefresh: () async {
+                      await ref.read(syncEngineProvider).forcePull();
+                      await ref.read(loanProvider.notifier).loadAll();
+                  },
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                     children: [

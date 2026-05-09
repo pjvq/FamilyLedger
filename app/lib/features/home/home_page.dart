@@ -402,8 +402,10 @@ class _AccountsTab extends ConsumerWidget {
                   ),
                 )
               : CustomRefreshIndicator(
-                  onRefresh: () =>
-                      ref.read(accountProvider.notifier).refresh(),
+                  onRefresh: () async {
+                      await ref.read(syncEngineProvider).forcePull();
+                      await ref.read(accountProvider.notifier).refresh();
+                  },
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                     children: [
