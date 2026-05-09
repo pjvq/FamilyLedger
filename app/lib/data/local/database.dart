@@ -577,6 +577,7 @@ class AppDatabase extends _$AppDatabase {
             type: p.type as String,
             note: Value(p.note as String),
             txnDate: p.txnDate as DateTime,
+            syncStatus: const Value('synced'),
           ),
           onConflict: DoUpdate(
             (old) => TransactionsCompanion(
@@ -589,6 +590,7 @@ class AppDatabase extends _$AppDatabase {
               note: Value(p.note as String),
               txnDate: Value(p.txnDate as DateTime),
               updatedAt: Value(DateTime.now()),
+              syncStatus: const Value('synced'),
             ),
           ),
         );
