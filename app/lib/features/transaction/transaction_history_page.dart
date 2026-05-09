@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/constants/category_icons.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart';
@@ -410,6 +411,8 @@ class _TransactionRow extends StatelessWidget {
         ? '${yuan.toInt()}'
         : yuan.toStringAsFixed(2);
     final timeText = DateFormat('HH:mm').format(transaction.txnDate);
+    final iconKey = category?.iconKey ?? '';
+    final hasIconKey = iconKey.isNotEmpty;
     final icon = category?.icon ?? '📦';
     final catName = category?.name ?? '未分类';
     final categoryName = parentCategory != null ? '${parentCategory!.name}-$catName' : catName;
@@ -441,13 +444,21 @@ class _TransactionRow extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF3A3A3C)
-                      : const Color(0xFFF2F2F7),
+                  color: hasIconKey
+                      ? CategoryIcons.getColor(iconKey).withValues(alpha: 0.15)
+                      : (isDark
+                          ? const Color(0xFF3A3A3C)
+                          : const Color(0xFFF2F2F7)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
-                child: Text(icon, style: const TextStyle(fontSize: 20)),
+                child: hasIconKey
+                    ? Icon(
+                        CategoryIcons.getIcon(iconKey),
+                        size: 22,
+                        color: CategoryIcons.getColor(iconKey),
+                      )
+                    : Text(icon.isNotEmpty ? icon : '📦', style: const TextStyle(fontSize: 20)),
               ),
               ),
               const SizedBox(width: 12),
