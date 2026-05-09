@@ -153,6 +153,8 @@ class SyncEngine {
         for (final op in pendingOps) {
           if (failedSet.contains(op.id) &&
               op.entityType == 'transaction' &&
+              // op.retryCount is the value BEFORE increment; after incrementSyncOpRetry
+              // it becomes retryCount+1. So >= 9 here means 10th failure total → mark dead.
               op.retryCount >= 9) {
             deadTxnIds.add(op.entityId);
           }
@@ -838,8 +840,8 @@ class SyncEngine {
       const Duration(seconds: AppConstants.syncIntervalSeconds),
       (_) => _syncCycle(),
     );
-    // Immediate sync + reconnect
-    _syncCycle();
+    // Immediate sync + reconnect (fire-and-forget)
+    unawaited(_syncCycle());
     if (_wsChannel == null) _connectWebSocket();
   }
 
@@ -913,8 +915,8 @@ class _SyncLifecycleObserverState extends ConsumerState<SyncLifecycleObserver>
     final engine = ref.read(syncEngineProvider);
     if (state == AppLifecycleState.resumed) {
       engine.onAppResumed();
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
+    } else if (state == AppLifecycleState.paused) {
+      // Only pause on actual background (not inactive — e.g. phone call, notification center)
       engine.onAppPaused();
     }
   }
