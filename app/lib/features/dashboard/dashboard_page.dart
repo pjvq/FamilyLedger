@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/dashboard_provider.dart';
+import '../../sync/sync_engine.dart';
 import 'widgets/dashboard_card.dart';
 
 /// Key identifiers for each dashboard section (used for reorder persistence)
@@ -72,7 +73,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     return dashState.isLoading && dashState.netWorth.total == 0
         ? const Center(child: CircularProgressIndicator())
         : RefreshIndicator(
-            onRefresh: () => ref.read(dashboardProvider.notifier).loadAll(),
+            onRefresh: () async {
+              await ref.read(syncEngineProvider).forcePull();
+              await ref.read(dashboardProvider.notifier).loadAll();
+            },
             child: ReorderableListView.builder(
               padding: const EdgeInsets.only(top: 8, bottom: 100),
               buildDefaultDragHandles: false,

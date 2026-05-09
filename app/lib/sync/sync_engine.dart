@@ -59,16 +59,16 @@ class SyncEngine {
   void start() {
     if (_disposed) return;
 
-    // 定期推送
+    // 定期 push + pull（pull 作为 WS 通知丢失的兜底）
     _syncTimer = Timer.periodic(
       const Duration(seconds: AppConstants.syncIntervalSeconds),
-      (_) => _pushPendingOps(),
+      (_) => _syncCycle(),
     );
 
     // 网络变化时触发推送 + 重连 WebSocket
     _connectivitySub = _connectivity.onConnectivityChanged.listen((results) {
       if (results.any((r) => r != ConnectivityResult.none)) {
-        _pushPendingOps();
+        _syncCycle();
         _connectWebSocket();
       } else {
         _disconnectWebSocket();
@@ -76,8 +76,20 @@ class SyncEngine {
     });
 
     // 启动时立即尝试
-    _pushPendingOps();
+    _syncCycle();
     _connectWebSocket();
+  }
+
+  /// Full sync cycle: push pending ops then pull remote changes.
+  Future<void> _syncCycle() async {
+    await _pushPendingOps();
+    await _pullChanges();
+  }
+
+  /// Public API: force an immediate pull from server.
+  /// Call this from pull-to-refresh, app resume, etc.
+  Future<void> forcePull() async {
+    await _pullChanges();
   }
 
   // ─────────── Push: 本地 → 服务端 ───────────
@@ -700,6 +712,10 @@ class SyncEngine {
 
       dev.log('SyncEngine: ws connected', name: 'sync');
       _reconnectAttempts = 0;
+
+      // Pull immediately after reconnect to catch up on changes
+      // that were broadcast while we were disconnected.
+      _pullChanges();
     } catch (e) {
       dev.log('SyncEngine: ws connect failed: $e', name: 'sync');
       _scheduleReconnect();

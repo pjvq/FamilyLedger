@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/budget_provider.dart';
+import '../../sync/sync_engine.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import 'budget_execution_card.dart';
@@ -40,8 +41,10 @@ class BudgetPage extends ConsumerWidget {
                       : null,
                 )
               : RefreshIndicator(
-                  onRefresh: () =>
-                      ref.read(budgetProvider.notifier).loadCurrentMonth(),
+                  onRefresh: () async {
+                      await ref.read(syncEngineProvider).forcePull();
+                      await ref.read(budgetProvider.notifier).loadCurrentMonth();
+                  },
                   child: ListView(
                     padding: const EdgeInsets.only(bottom: 100),
                     children: [

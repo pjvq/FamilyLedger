@@ -138,8 +138,11 @@ func (s *Service) PushOperations(ctx context.Context, req *pb.PushOperationsRequ
 		UserID:     userID,
 	})
 
-	// Determine if any operation targets a family account; if so, broadcast to all family members
-	familyMembers := s.getFamilyMembersForOperations(ctx, req.Operations)
+	// Broadcast to all family members if user belongs to any family.
+	// Previously only checked account/transaction entities for family_id,
+	// which meant budget/loan/investment/asset/category changes were never
+	// broadcast to other family members.
+	familyMembers := s.getFamilyMembersForUser(ctx, userID)
 	if len(familyMembers) > 0 {
 		for _, memberID := range familyMembers {
 			s.hub.BroadcastToUser(memberID, notification)
@@ -1004,8 +1007,43 @@ func (s *Service) applyCategoryDelete(ctx context.Context, tx pgx.Tx, userID uui
 	return nil
 }
 
+// getFamilyMembersForUser returns all family member user IDs (including the user themselves)
+// if the user belongs to any family. Returns nil if user is not in any family.
+// This is used for broadcast — any sync operation from a family member should notify all others.
+func (s *Service) getFamilyMembersForUser(ctx context.Context, userID string) []string {
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return nil
+	}
+
+	rows, err := s.pool.Query(ctx,
+		`SELECT DISTINCT fm2.user_id FROM family_members fm1
+		 JOIN family_members fm2 ON fm1.family_id = fm2.family_id
+		 WHERE fm1.user_id = $1`, uid)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	var members []string
+	for rows.Next() {
+		var memberUID uuid.UUID
+		if err := rows.Scan(&memberUID); err != nil {
+			continue
+		}
+		members = append(members, memberUID.String())
+	}
+
+	// Only return if there are multiple members (no point broadcasting to just yourself)
+	if len(members) <= 1 {
+		return nil
+	}
+	return members
+}
+
 // getFamilyMembersForOperations checks if any of the pushed operations target a family account.
 // If so, it returns the user IDs of all family members (for broadcast). Returns nil if personal-only.
+// DEPRECATED: Use getFamilyMembersForUser instead — it covers all entity types.
 func (s *Service) getFamilyMembersForOperations(ctx context.Context, operations []*pb.SyncOperation) []string {
 	// Collect entity IDs from operations that might reference family accounts
 	var accountIDs []string

@@ -102,10 +102,10 @@ func TestPushOperations_Success(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	// getFamilyMembersForOperations: check if transaction's account is a family account
-	mock.ExpectQuery(`SELECT a.family_id FROM transactions t`).
-		WithArgs(entityID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"})) // no rows = personal
+	// getFamilyMembersForUser: check if user belongs to any family
+	mock.ExpectQuery(`SELECT DISTINCT fm2.user_id FROM family_members fm1`).
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id"})) // no rows = not in any family
 
 	categoryID := uuid.New()
 	payload := `{"id":"` + entityID.String() + `","account_id":"` + accountID.String() + `","category_id":"` + categoryID.String() + `","amount":5000,"currency":"CNY","type":"expense","note":"test"}`
@@ -236,14 +236,9 @@ func TestPushOperations_FamilyBroadcast(t *testing.T) {
 	mock.ExpectExec(`RELEASE SAVEPOINT sp_0`).WillReturnResult(pgxmock.NewResult("RELEASE", 0))
 	mock.ExpectCommit()
 
-	// getFamilyMembersForOperations: transaction's account has family_id
-	mock.ExpectQuery(`SELECT a.family_id FROM transactions t`).
-		WithArgs(entityID).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id"}).AddRow(familyIDPtr))
-
-	// Query family members
-	mock.ExpectQuery(`SELECT user_id FROM family_members WHERE family_id = \$1`).
-		WithArgs(familyID).
+	// getFamilyMembersForUser: user is in a family, return all members
+	mock.ExpectQuery(`SELECT DISTINCT fm2.user_id FROM family_members fm1`).
+		WithArgs(pgxmock.AnyArg()).
 		WillReturnRows(pgxmock.NewRows([]string{"user_id"}).
 			AddRow(userUUID).
 			AddRow(user2UUID))

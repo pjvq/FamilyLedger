@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/asset_provider.dart';
+import '../../sync/sync_engine.dart';
 
 class AssetsPage extends ConsumerStatefulWidget {
   const AssetsPage({super.key});
@@ -41,8 +42,10 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
               : assetState.assets.isEmpty
               ? _EmptyState(theme: theme)
               : CustomRefreshIndicator(
-                  onRefresh: () =>
-                      ref.read(assetProvider.notifier).listAssets(),
+                  onRefresh: () async {
+                      await ref.read(syncEngineProvider).forcePull();
+                      await ref.read(assetProvider.notifier).listAssets();
+                  },
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                     children: [
