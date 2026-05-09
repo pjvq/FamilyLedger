@@ -32,6 +32,12 @@ type Service struct {
 	uploadDir   string // 图片上传目录 (kept for quota check)
 	baseURL     string // 图片访问基础 URL
 	fileStorage storage.FileStorage
+	hub         wsHub  // WebSocket hub for real-time notifications (optional)
+}
+
+// wsHub is the interface for broadcasting WS notifications.
+type wsHub interface {
+	BroadcastToUser(userID string, message []byte)
 }
 
 func NewService(pool db.Pool, opts ...ServiceOption) *Service {
@@ -77,6 +83,11 @@ func WithUploadDir(dir string) ServiceOption {
 
 func WithBaseURL(url string) ServiceOption {
 	return func(s *Service) { s.baseURL = url }
+}
+
+// WithHub sets the WebSocket hub for real-time change notifications.
+func WithHub(h wsHub) ServiceOption {
+	return func(s *Service) { s.hub = h }
 }
 
 // WithFileStorage sets a custom FileStorage implementation (useful for testing).
@@ -624,6 +635,44 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 		}
 	}
 
+	// Write sync_operations record for update
+	{
+		// Re-query updated fields for sync payload
+		var syncAccID, syncCatID uuid.UUID
+		var syncAmount, syncAmountCny int64
+		var syncType, syncNote, syncCurrency string
+		var syncTxnDate time.Time
+		_ = tx.QueryRow(ctx,
+			`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date
+			 FROM transactions WHERE id = $1`,
+			txnID,
+		).Scan(&syncAccID, &syncCatID, &syncAmount, &syncAmountCny, &syncType, &syncNote, &syncCurrency, &syncTxnDate)
+		syncPayload, _ := json.Marshal(map[string]interface{}{
+			"id":           txnID.String(),
+			"user_id":      uid.String(),
+			"account_id":   syncAccID.String(),
+			"category_id":  syncCatID.String(),
+			"amount":       syncAmount,
+			"amount_cny":   syncAmountCny,
+			"type":         syncType,
+			"note":         syncNote,
+			"currency":     syncCurrency,
+			"txn_date":     syncTxnDate.Format("2006-01-02"),
+		})
+		_, _ = tx.Exec(ctx, "SAVEPOINT sync_insert")
+		_, syncErr := tx.Exec(ctx,
+			`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
+			 VALUES ($1, 'transaction', $2, 'update'::sync_op_type, $3, $4, NOW())`,
+			uid, txnID, string(syncPayload), "grpc-update-"+txnID.String(),
+		)
+		if syncErr != nil {
+			log.Printf("ERROR: transaction: sync_operations update insert FAILED (transaction %s): %v", txnID.String(), syncErr)
+			_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT sync_insert")
+		} else {
+			_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT sync_insert")
+		}
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, status.Error(codes.Internal, "failed to commit transaction")
 	}
@@ -647,9 +696,11 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 		return nil, status.Error(codes.Internal, "failed to scan updated transaction")
 	}
 
+	// Real-time WS notification to family members
+	s.notifyFamilyChange(ctx, userID, accountID, "update", txnID.String())
+
 	return &pb.UpdateTransactionResponse{Transaction: txn}, nil
 }
-
 func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransactionRequest) (*pb.DeleteTransactionResponse, error) {
 	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
@@ -735,6 +786,23 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 		return nil, status.Error(codes.Internal, "failed to update account balance")
 	}
 
+	// Write sync_operations record for delete
+	syncPayload, _ := json.Marshal(map[string]interface{}{
+		"id": txnID.String(),
+	})
+	_, _ = tx.Exec(ctx, "SAVEPOINT sync_insert")
+	_, syncErr := tx.Exec(ctx,
+		`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
+		 VALUES ($1, 'transaction', $2, 'delete'::sync_op_type, $3, $4, NOW())`,
+		uid, txnID, string(syncPayload), "grpc-delete-"+txnID.String(),
+	)
+	if syncErr != nil {
+		log.Printf("ERROR: transaction: sync_operations delete insert FAILED (transaction %s): %v", txnID.String(), syncErr)
+		_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT sync_insert")
+	} else {
+		_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT sync_insert")
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, status.Error(codes.Internal, "failed to commit transaction")
 	}
@@ -744,6 +812,9 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 	if familyID != "" {
 		audit.LogAudit(ctx, s.pool, familyID, userID, "delete", "transaction", txnID.String(), nil)
 	}
+
+	// Real-time WS notification to family members
+	s.notifyFamilyChange(ctx, userID, accountID, "delete", txnID.String())
 
 	return &pb.DeleteTransactionResponse{}, nil
 }
@@ -906,11 +977,42 @@ func (s *Service) BatchDeleteTransactions(ctx context.Context, req *pb.BatchDele
 		}
 	}
 
+	// Write sync_operations for each deleted transaction
+	_, _ = tx.Exec(ctx, "SAVEPOINT sync_batch_delete")
+	var syncBatchErr error
+	for _, info := range toDelete {
+		payload, _ := json.Marshal(map[string]interface{}{"id": info.id.String()})
+		_, syncBatchErr = tx.Exec(ctx,
+			`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
+			 VALUES ($1, 'transaction', $2, 'delete'::sync_op_type, $3, $4, NOW())`,
+			uid, info.id, string(payload), "grpc-batchdel-"+info.id.String(),
+		)
+		if syncBatchErr != nil {
+			log.Printf("ERROR: transaction: sync_operations batch-delete insert FAILED (transaction %s): %v", info.id.String(), syncBatchErr)
+			break
+		}
+	}
+	if syncBatchErr != nil {
+		_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT sync_batch_delete")
+	} else {
+		_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT sync_batch_delete")
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
 
 	log.Printf("transaction: batch-deleted %d transactions by user %s", len(toDelete), userID)
+
+	// Real-time WS notification for each deleted transaction's account
+	notifiedAccounts := make(map[uuid.UUID]bool)
+	for _, info := range toDelete {
+		if !notifiedAccounts[info.accountID] {
+			s.notifyFamilyChange(ctx, userID, info.accountID, "delete", info.id.String())
+			notifiedAccounts[info.accountID] = true
+		}
+	}
+
 	return &pb.BatchDeleteTransactionsResponse{DeletedCount: int32(len(toDelete))}, nil
 }
 
@@ -1756,3 +1858,39 @@ func scanTransactionWithDeleted(rows pgx.Rows) (*pb.Transaction, error) {
 }
 
 
+
+// notifyFamilyChange sends a WS change notification to all family members
+// (or just the user if not in a family). Best-effort: never returns error.
+func (s *Service) notifyFamilyChange(ctx context.Context, userID string, accountID uuid.UUID, opType string, entityID string) {
+	if s.hub == nil {
+		return
+	}
+	notification, _ := json.Marshal(map[string]interface{}{
+		"type":        "sync_notify",
+		"entity_type": "transaction",
+		"entity_id":   entityID,
+		"op_type":     opType,
+		"user_id":     userID,
+	})
+
+	familyID, _ := s.getAccountFamilyID(ctx, accountID)
+	if familyID != "" {
+		// Notify all family members
+		rows, err := s.pool.Query(ctx,
+			"SELECT user_id::text FROM family_members WHERE family_id = $1",
+			familyID,
+		)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var memberID string
+				if rows.Scan(&memberID) == nil {
+					s.hub.BroadcastToUser(memberID, notification)
+				}
+			}
+			return
+		}
+	}
+	// Fallback: notify just the user
+	s.hub.BroadcastToUser(userID, notification)
+}

@@ -101,7 +101,7 @@ func main() {
 
 	// Services
 	authService := auth.NewService(pool, jwtManager)
-	txnService := transaction.NewService(pool)
+	txnService := transaction.NewService(pool, transaction.WithHub(hub))
 	syncService := syncsvc.NewService(pool, hub)
 	familyService := family.NewService(pool)
 	accountService := account.NewService(pool)
