@@ -108,7 +108,8 @@ FamilyLedger/
 - Flutter 3.41+ (stable channel)
 - Go 1.25+ (仅开发后端时需要)
 - protoc 34.x + protoc-gen-go / protoc-gen-dart (仅重新生成 proto 时需要)
-- Xcode 16+ (iOS 编译)
+- **iOS**: Xcode 16+、CocoaPods
+- **Android**: Android Studio、Android SDK 34+、Java 17+
 
 ### 1. 启动后端
 
@@ -143,10 +144,20 @@ make run
 ```bash
 cd app
 flutter pub get
-flutter run
+
+# iOS (需要 macOS + Xcode)
+cd ios && pod install && cd ..
+flutter run -d iphone
+
+# Android (需要连接设备或启动模拟器)
+flutter run -d android
+
+# 查看可用设备
+flutter devices
 ```
 
 > - 客户端默认连接 `localhost:50051` (gRPC) 和 `localhost:8080` (WebSocket)
+> - Android 真机调试时需将地址改为电脑局域网 IP（`10.0.2.2` 对模拟器有效）
 > - 后端未运行时客户端仍可启动（离线优先），数据存本地 Drift DB
 > - 修改服务器地址：`app/lib/core/constants/app_constants.dart`
 
