@@ -502,7 +502,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  '${_trendTouchedMonth! + 1}月 ${_trendTab == 1 ? "收入" : _trendTab == 2 ? "结余" : "支出"} ¥${_fmtYuan(data[_trendTouchedMonth!].abs())}',
+                  '${_trendTouchedMonth! + 1}月 ${_trendTab == 1 ? "收入" : _trendTab == 2 ? "结余" : "支出"} ${_trendTab == 2 && data[_trendTouchedMonth!] < 0 ? "-" : ""}¥${_fmtYuan(data[_trendTouchedMonth!].abs())}',
                   style: theme.textTheme.bodySmall,
                 ),
               ),
