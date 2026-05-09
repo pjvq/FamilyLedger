@@ -55,6 +55,56 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
     });
   }
 
+  // Precious metal catalog (matches server preciousMetalList)
+  static const _preciousMetals = [
+    SymbolSearchResult(symbol: 'Au99.99', name: '黄金9999', marketType: 'precious_metal'),
+    SymbolSearchResult(symbol: 'Au99.95', name: '黄金9995', marketType: 'precious_metal'),
+    SymbolSearchResult(symbol: 'Au100g', name: '黄金100克', marketType: 'precious_metal'),
+    SymbolSearchResult(symbol: 'Au(T+D)', name: '黄金T+D', marketType: 'precious_metal'),
+    SymbolSearchResult(symbol: 'mAu(T+D)', name: '迷你黄金T+D', marketType: 'precious_metal'),
+    SymbolSearchResult(symbol: 'Ag99.99', name: '白银9999', marketType: 'precious_metal'),
+    SymbolSearchResult(symbol: 'Ag(T+D)', name: '白银T+D', marketType: 'precious_metal'),
+    SymbolSearchResult(symbol: 'Pt99.95', name: '铂金9995', marketType: 'precious_metal'),
+  ];
+
+  Widget _buildPreciousMetalChooser(ThemeData theme, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('选择品种', style: theme.textTheme.titleSmall),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _preciousMetals.map((pm) {
+            final isGold = pm.symbol.startsWith('Au') || pm.symbol.startsWith('mAu');
+            final isSilver = pm.symbol.startsWith('Ag');
+            final icon = isGold
+                ? Icons.hexagon_rounded
+                : isSilver
+                    ? Icons.hexagon_outlined
+                    : Icons.diamond_rounded;
+            final color = isGold
+                ? const Color(0xFFD4AF37)
+                : isSilver
+                    ? const Color(0xFFC0C0C0)
+                    : const Color(0xFFE5E4E2);
+            return ActionChip(
+              avatar: Icon(icon, size: 18, color: color),
+              label: Text(pm.name),
+              labelStyle: theme.textTheme.bodyMedium,
+              backgroundColor: isDark ? AppColors.cardDark : AppColors.cardLight,
+              side: BorderSide(
+                color: isDark ? AppColors.dividerDark : AppColors.divider,
+              ),
+              onPressed: () => _selectSymbol(pm),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
   void _selectSymbol(SymbolSearchResult result) {
     setState(() {
       _selectedSymbol = result;
@@ -164,99 +214,123 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
             ),
             const SizedBox(height: 16),
 
-            // Search field
-            Semantics(
-              label: _selectedMarket == 'precious_metal' ? '搜索贵金属品种' : '搜索股票代码或名称',
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  labelText: '搜索代码或名称',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear_rounded),
-                          tooltip: '清除搜索',
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _selectedSymbol = null);
-                            ref
-                                .read(marketDataProvider.notifier)
-                                .searchSymbol('');
-                          },
-                        )
-                      : null,
-                ),
-                onChanged: (query) {
-                  _onSearchChanged(query);
-                  setState(() {});
-                },
-              ),
-            ),
-
-            // Search results dropdown
-            if (marketState.searchResults.isNotEmpty &&
-                _selectedSymbol == null)
-              Container(
-                constraints: const BoxConstraints(maxHeight: 200),
-                margin: const EdgeInsets.only(top: 4),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.cardDark : AppColors.cardLight,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+            // Precious metal: show chooser grid; others: search field
+            if (_selectedMarket == 'precious_metal' && _selectedSymbol == null)
+              _buildPreciousMetalChooser(theme, isDark)
+            else if (_selectedMarket != 'precious_metal') ...[
+              // Search field
+              Semantics(
+                label: '搜索股票代码或名称',
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    labelText: '搜索代码或名称',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
-                ),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: marketState.searchResults.length,
-                  separatorBuilder: (_, _) => Divider(
-                    height: 1,
-                    color: isDark ? AppColors.dividerDark : AppColors.divider,
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded),
+                            tooltip: '清除搜索',
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _selectedSymbol = null);
+                              ref
+                                  .read(marketDataProvider.notifier)
+                                  .searchSymbol('');
+                            },
+                          )
+                        : null,
                   ),
-                  itemBuilder: (context, index) {
-                    final result = marketState.searchResults[index];
-                    return Semantics(
-                      label: '${result.name}，代码${result.symbol}',
-                      button: true,
-                      child: ListTile(
-                        dense: true,
-                        title: Text(
-                          result.name,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        subtitle: Text(
-                          '${result.symbol} · ${marketTypeLabel(result.marketType)}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5),
-                          ),
-                        ),
-                        trailing: const Icon(Icons.add_circle_outline_rounded,
-                            size: 20),
-                        onTap: () => _selectSymbol(result),
-                      ),
-                    );
+                  onChanged: (query) {
+                    _onSearchChanged(query);
+                    setState(() {});
                   },
                 ),
               ),
 
+              // Search results dropdown
+              if (marketState.searchResults.isNotEmpty &&
+                  _selectedSymbol == null)
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  margin: const EdgeInsets.only(top: 4),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.cardDark : AppColors.cardLight,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: marketState.searchResults.length,
+                    separatorBuilder: (_, _) => Divider(
+                      height: 1,
+                      color: isDark ? AppColors.dividerDark : AppColors.divider,
+                    ),
+                    itemBuilder: (context, index) {
+                      final result = marketState.searchResults[index];
+                      return Semantics(
+                        label: '${result.name}，代码${result.symbol}',
+                        button: true,
+                        child: ListTile(
+                          dense: true,
+                          title: Text(
+                            result.name,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${result.symbol} · ${marketTypeLabel(result.marketType)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
+                          trailing: const Icon(Icons.add_circle_outline_rounded,
+                              size: 20),
+                          onTap: () => _selectSymbol(result),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+
             // Buy form (shown after selecting a symbol)
             if (_selectedSymbol != null) ...[
               const SizedBox(height: 24),
-              Text(
-                '买入 ${_selectedSymbol!.name}',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '买入 ${_selectedSymbol!.name}',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _selectedSymbol = null;
+                        _searchController.clear();
+                        _priceController.clear();
+                        _quantityController.clear();
+                        _feeController.clear();
+                      });
+                    },
+                    icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+                    label: const Text('换品种'),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
@@ -268,7 +342,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
-                    labelText: '数量',
+                    labelText: _selectedMarket == 'precious_metal' ? '重量（克）' : '数量',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -287,7 +361,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
-                    labelText: '成交价',
+                    labelText: _selectedMarket == 'precious_metal' ? '成交价（元/克）' : '成交价',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
