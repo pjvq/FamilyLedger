@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:fixnum/fixnum.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -138,6 +139,28 @@ class SyncEngine {
         if (syncedTxnIds.isNotEmpty) {
           await _db!.markTransactionsSynced(syncedTxnIds);
         }
+      }
+
+      // Increment retry count for failed ops (exponential backoff)
+      final failedIds = pendingOps
+          .where((op) => failedSet.contains(op.id))
+          .map((op) => op.id)
+          .toList();
+      if (failedIds.isNotEmpty) {
+        await _db!.incrementSyncOpRetry(failedIds);
+        // Mark corresponding transactions as failed if retries exhausted
+        final deadTxnIds = <String>[];
+        for (final op in pendingOps) {
+          if (failedSet.contains(op.id) &&
+              op.entityType == 'transaction' &&
+              op.retryCount >= 9) {
+            deadTxnIds.add(op.entityId);
+          }
+        }
+        if (deadTxnIds.isNotEmpty) {
+          await _db!.markTransactionsFailed(deadTxnIds);
+        }
+        onStatusChanged?.call(failedCount: failedIds.length);
       }
 
       dev.log(
@@ -749,6 +772,20 @@ class SyncEngine {
       if (type == 'sync_notify' || type == 'change') {
         // 服务端通知有新变更，触发增量拉取
         _pullChanges();
+      } else if (type == 'heartbeat' || type == 'ping') {
+        // Server heartbeat with watermark: compare with our lastSyncTs
+        final serverTimeMs = (data['server_time'] as num?)?.toInt();
+        if (serverTimeMs != null) {
+          final localTs = _prefs!.getInt(_lastSyncTsKey) ?? 0;
+          if (serverTimeMs > localTs) {
+            // We're behind — pull to catch up
+            dev.log(
+              'SyncEngine: heartbeat watermark ahead (server=$serverTimeMs, local=$localTs), pulling',
+              name: 'sync',
+            );
+            _pullChanges();
+          }
+        }
       }
     } catch (e) {
       // 非 JSON 消息或未知格式，尝试拉取
@@ -791,6 +828,29 @@ class SyncEngine {
     await _pullChanges();
   }
 
+  /// App 回到前台时调用：立即同步 + 重启 timer + 重连 WS
+  void onAppResumed() {
+    if (_disposed) return;
+    dev.log('SyncEngine: app resumed, syncing...', name: 'sync');
+    // Restart timer if it was cancelled
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(
+      const Duration(seconds: AppConstants.syncIntervalSeconds),
+      (_) => _syncCycle(),
+    );
+    // Immediate sync + reconnect
+    _syncCycle();
+    if (_wsChannel == null) _connectWebSocket();
+  }
+
+  /// App 进入后台时调用：停止 timer 省电，保持 WS（会自然断开）
+  void onAppPaused() {
+    if (_disposed) return;
+    dev.log('SyncEngine: app paused, stopping timer', name: 'sync');
+    _syncTimer?.cancel();
+    _syncTimer = null;
+  }
+
   void dispose() {
     _disposed = true;
     _reconnectAttempts = 0;
@@ -823,3 +883,44 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
   ref.onDispose(() => engine.dispose());
   return engine;
 });
+
+/// Lifecycle observer that pauses/resumes SyncEngine with the app.
+/// Wrap your app content with this inside ProviderScope.
+class SyncLifecycleObserver extends ConsumerStatefulWidget {
+  final Widget child;
+  const SyncLifecycleObserver({super.key, required this.child});
+
+  @override
+  ConsumerState<SyncLifecycleObserver> createState() => _SyncLifecycleObserverState();
+}
+
+class _SyncLifecycleObserverState extends ConsumerState<SyncLifecycleObserver>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final engine = ref.read(syncEngineProvider);
+    if (state == AppLifecycleState.resumed) {
+      engine.onAppResumed();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      engine.onAppPaused();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
+  }
+}

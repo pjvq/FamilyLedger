@@ -12231,6 +12231,29 @@ class $SyncQueueTable extends SyncQueue
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _retryCountMeta = const VerificationMeta(
+    'retryCount',
+  );
+  @override
+  late final GeneratedColumn<int> retryCount = GeneratedColumn<int>(
+    'retry_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _nextRetryAtMeta = const VerificationMeta(
+    'nextRetryAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> nextRetryAt = GeneratedColumn<DateTime>(
+    'next_retry_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -12241,6 +12264,8 @@ class $SyncQueueTable extends SyncQueue
     clientId,
     timestamp,
     uploaded,
+    retryCount,
+    nextRetryAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -12313,6 +12338,21 @@ class $SyncQueueTable extends SyncQueue
         uploaded.isAcceptableOrUnknown(data['uploaded']!, _uploadedMeta),
       );
     }
+    if (data.containsKey('retry_count')) {
+      context.handle(
+        _retryCountMeta,
+        retryCount.isAcceptableOrUnknown(data['retry_count']!, _retryCountMeta),
+      );
+    }
+    if (data.containsKey('next_retry_at')) {
+      context.handle(
+        _nextRetryAtMeta,
+        nextRetryAt.isAcceptableOrUnknown(
+          data['next_retry_at']!,
+          _nextRetryAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -12354,6 +12394,14 @@ class $SyncQueueTable extends SyncQueue
         DriftSqlType.bool,
         data['${effectivePrefix}uploaded'],
       )!,
+      retryCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}retry_count'],
+      )!,
+      nextRetryAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_retry_at'],
+      ),
     );
   }
 
@@ -12372,6 +12420,8 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
   final String clientId;
   final DateTime timestamp;
   final bool uploaded;
+  final int retryCount;
+  final DateTime? nextRetryAt;
   const SyncQueueData({
     required this.id,
     required this.entityType,
@@ -12381,6 +12431,8 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
     required this.clientId,
     required this.timestamp,
     required this.uploaded,
+    required this.retryCount,
+    this.nextRetryAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -12393,6 +12445,10 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
     map['client_id'] = Variable<String>(clientId);
     map['timestamp'] = Variable<DateTime>(timestamp);
     map['uploaded'] = Variable<bool>(uploaded);
+    map['retry_count'] = Variable<int>(retryCount);
+    if (!nullToAbsent || nextRetryAt != null) {
+      map['next_retry_at'] = Variable<DateTime>(nextRetryAt);
+    }
     return map;
   }
 
@@ -12406,6 +12462,10 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
       clientId: Value(clientId),
       timestamp: Value(timestamp),
       uploaded: Value(uploaded),
+      retryCount: Value(retryCount),
+      nextRetryAt: nextRetryAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextRetryAt),
     );
   }
 
@@ -12423,6 +12483,8 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
       clientId: serializer.fromJson<String>(json['clientId']),
       timestamp: serializer.fromJson<DateTime>(json['timestamp']),
       uploaded: serializer.fromJson<bool>(json['uploaded']),
+      retryCount: serializer.fromJson<int>(json['retryCount']),
+      nextRetryAt: serializer.fromJson<DateTime?>(json['nextRetryAt']),
     );
   }
   @override
@@ -12437,6 +12499,8 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
       'clientId': serializer.toJson<String>(clientId),
       'timestamp': serializer.toJson<DateTime>(timestamp),
       'uploaded': serializer.toJson<bool>(uploaded),
+      'retryCount': serializer.toJson<int>(retryCount),
+      'nextRetryAt': serializer.toJson<DateTime?>(nextRetryAt),
     };
   }
 
@@ -12449,6 +12513,8 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
     String? clientId,
     DateTime? timestamp,
     bool? uploaded,
+    int? retryCount,
+    Value<DateTime?> nextRetryAt = const Value.absent(),
   }) => SyncQueueData(
     id: id ?? this.id,
     entityType: entityType ?? this.entityType,
@@ -12458,6 +12524,8 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
     clientId: clientId ?? this.clientId,
     timestamp: timestamp ?? this.timestamp,
     uploaded: uploaded ?? this.uploaded,
+    retryCount: retryCount ?? this.retryCount,
+    nextRetryAt: nextRetryAt.present ? nextRetryAt.value : this.nextRetryAt,
   );
   SyncQueueData copyWithCompanion(SyncQueueCompanion data) {
     return SyncQueueData(
@@ -12471,6 +12539,12 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
       clientId: data.clientId.present ? data.clientId.value : this.clientId,
       timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
       uploaded: data.uploaded.present ? data.uploaded.value : this.uploaded,
+      retryCount: data.retryCount.present
+          ? data.retryCount.value
+          : this.retryCount,
+      nextRetryAt: data.nextRetryAt.present
+          ? data.nextRetryAt.value
+          : this.nextRetryAt,
     );
   }
 
@@ -12484,7 +12558,9 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
           ..write('payload: $payload, ')
           ..write('clientId: $clientId, ')
           ..write('timestamp: $timestamp, ')
-          ..write('uploaded: $uploaded')
+          ..write('uploaded: $uploaded, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('nextRetryAt: $nextRetryAt')
           ..write(')'))
         .toString();
   }
@@ -12499,6 +12575,8 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
     clientId,
     timestamp,
     uploaded,
+    retryCount,
+    nextRetryAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -12511,7 +12589,9 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
           other.payload == this.payload &&
           other.clientId == this.clientId &&
           other.timestamp == this.timestamp &&
-          other.uploaded == this.uploaded);
+          other.uploaded == this.uploaded &&
+          other.retryCount == this.retryCount &&
+          other.nextRetryAt == this.nextRetryAt);
 }
 
 class SyncQueueCompanion extends UpdateCompanion<SyncQueueData> {
@@ -12523,6 +12603,8 @@ class SyncQueueCompanion extends UpdateCompanion<SyncQueueData> {
   final Value<String> clientId;
   final Value<DateTime> timestamp;
   final Value<bool> uploaded;
+  final Value<int> retryCount;
+  final Value<DateTime?> nextRetryAt;
   final Value<int> rowid;
   const SyncQueueCompanion({
     this.id = const Value.absent(),
@@ -12533,6 +12615,8 @@ class SyncQueueCompanion extends UpdateCompanion<SyncQueueData> {
     this.clientId = const Value.absent(),
     this.timestamp = const Value.absent(),
     this.uploaded = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.nextRetryAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SyncQueueCompanion.insert({
@@ -12544,6 +12628,8 @@ class SyncQueueCompanion extends UpdateCompanion<SyncQueueData> {
     required String clientId,
     required DateTime timestamp,
     this.uploaded = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.nextRetryAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        entityType = Value(entityType),
@@ -12561,6 +12647,8 @@ class SyncQueueCompanion extends UpdateCompanion<SyncQueueData> {
     Expression<String>? clientId,
     Expression<DateTime>? timestamp,
     Expression<bool>? uploaded,
+    Expression<int>? retryCount,
+    Expression<DateTime>? nextRetryAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -12572,6 +12660,8 @@ class SyncQueueCompanion extends UpdateCompanion<SyncQueueData> {
       if (clientId != null) 'client_id': clientId,
       if (timestamp != null) 'timestamp': timestamp,
       if (uploaded != null) 'uploaded': uploaded,
+      if (retryCount != null) 'retry_count': retryCount,
+      if (nextRetryAt != null) 'next_retry_at': nextRetryAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -12585,6 +12675,8 @@ class SyncQueueCompanion extends UpdateCompanion<SyncQueueData> {
     Value<String>? clientId,
     Value<DateTime>? timestamp,
     Value<bool>? uploaded,
+    Value<int>? retryCount,
+    Value<DateTime?>? nextRetryAt,
     Value<int>? rowid,
   }) {
     return SyncQueueCompanion(
@@ -12596,6 +12688,8 @@ class SyncQueueCompanion extends UpdateCompanion<SyncQueueData> {
       clientId: clientId ?? this.clientId,
       timestamp: timestamp ?? this.timestamp,
       uploaded: uploaded ?? this.uploaded,
+      retryCount: retryCount ?? this.retryCount,
+      nextRetryAt: nextRetryAt ?? this.nextRetryAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -12627,6 +12721,12 @@ class SyncQueueCompanion extends UpdateCompanion<SyncQueueData> {
     if (uploaded.present) {
       map['uploaded'] = Variable<bool>(uploaded.value);
     }
+    if (retryCount.present) {
+      map['retry_count'] = Variable<int>(retryCount.value);
+    }
+    if (nextRetryAt.present) {
+      map['next_retry_at'] = Variable<DateTime>(nextRetryAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -12644,6 +12744,8 @@ class SyncQueueCompanion extends UpdateCompanion<SyncQueueData> {
           ..write('clientId: $clientId, ')
           ..write('timestamp: $timestamp, ')
           ..write('uploaded: $uploaded, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('nextRetryAt: $nextRetryAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -22611,6 +22713,8 @@ typedef $$SyncQueueTableCreateCompanionBuilder =
       required String clientId,
       required DateTime timestamp,
       Value<bool> uploaded,
+      Value<int> retryCount,
+      Value<DateTime?> nextRetryAt,
       Value<int> rowid,
     });
 typedef $$SyncQueueTableUpdateCompanionBuilder =
@@ -22623,6 +22727,8 @@ typedef $$SyncQueueTableUpdateCompanionBuilder =
       Value<String> clientId,
       Value<DateTime> timestamp,
       Value<bool> uploaded,
+      Value<int> retryCount,
+      Value<DateTime?> nextRetryAt,
       Value<int> rowid,
     });
 
@@ -22672,6 +22778,16 @@ class $$SyncQueueTableFilterComposer
 
   ColumnFilters<bool> get uploaded => $composableBuilder(
     column: $table.uploaded,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextRetryAt => $composableBuilder(
+    column: $table.nextRetryAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -22724,6 +22840,16 @@ class $$SyncQueueTableOrderingComposer
     column: $table.uploaded,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get nextRetryAt => $composableBuilder(
+    column: $table.nextRetryAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SyncQueueTableAnnotationComposer
@@ -22760,6 +22886,16 @@ class $$SyncQueueTableAnnotationComposer
 
   GeneratedColumn<bool> get uploaded =>
       $composableBuilder(column: $table.uploaded, builder: (column) => column);
+
+  GeneratedColumn<int> get retryCount => $composableBuilder(
+    column: $table.retryCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get nextRetryAt => $composableBuilder(
+    column: $table.nextRetryAt,
+    builder: (column) => column,
+  );
 }
 
 class $$SyncQueueTableTableManager
@@ -22801,6 +22937,8 @@ class $$SyncQueueTableTableManager
                 Value<String> clientId = const Value.absent(),
                 Value<DateTime> timestamp = const Value.absent(),
                 Value<bool> uploaded = const Value.absent(),
+                Value<int> retryCount = const Value.absent(),
+                Value<DateTime?> nextRetryAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SyncQueueCompanion(
                 id: id,
@@ -22811,6 +22949,8 @@ class $$SyncQueueTableTableManager
                 clientId: clientId,
                 timestamp: timestamp,
                 uploaded: uploaded,
+                retryCount: retryCount,
+                nextRetryAt: nextRetryAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -22823,6 +22963,8 @@ class $$SyncQueueTableTableManager
                 required String clientId,
                 required DateTime timestamp,
                 Value<bool> uploaded = const Value.absent(),
+                Value<int> retryCount = const Value.absent(),
+                Value<DateTime?> nextRetryAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SyncQueueCompanion.insert(
                 id: id,
@@ -22833,6 +22975,8 @@ class $$SyncQueueTableTableManager
                 clientId: clientId,
                 timestamp: timestamp,
                 uploaded: uploaded,
+                retryCount: retryCount,
+                nextRetryAt: nextRetryAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

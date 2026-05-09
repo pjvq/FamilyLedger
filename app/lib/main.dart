@@ -11,6 +11,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'domain/providers/app_providers.dart';
 import 'domain/providers/theme_provider.dart';
+import 'sync/sync_engine.dart';
 
 void main() async {
   // Catch all synchronous Flutter framework errors
@@ -71,7 +72,8 @@ class FamilyLedgerApp extends ConsumerWidget {
     final isLoggedIn = ref.watch(isLoggedInProvider);
     final themeMode = ref.watch(themeModeProvider);
 
-    return MaterialApp(
+    return SyncLifecycleObserver(
+      child: MaterialApp(
       title: 'FamilyLedger',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
@@ -89,6 +91,7 @@ class FamilyLedgerApp extends ConsumerWidget {
       locale: const Locale('zh', 'CN'),
       initialRoute: isLoggedIn ? AppRouter.home : AppRouter.login,
       onGenerateRoute: AppRouter.onGenerateRoute,
+    ),
     );
   }
 }
