@@ -24,12 +24,12 @@
 
 ## 技术栈
 
-- **后端**: Go 1.24 / gRPC / PostgreSQL 16 / golang-migrate / WebSocket
+- **后端**: Go 1.25 / gRPC / PostgreSQL 16 / golang-migrate / WebSocket
 - **客户端**: Flutter 3.41 / Dart 3.11 / Riverpod / Drift (SQLite) / Material 3
 - **协议**: Protocol Buffers 3 (13 个 proto 文件)
-- **部署**: Docker Compose (golang:1.24-alpine + postgres:16-alpine)
-- **数据库**: 38 个 migration 文件，软删除模式
-- **测试**: Go 330 test functions (18 packages) + Flutter 535 tests
+- **部署**: Docker Compose (golang:1.25-alpine + postgres:16-alpine)
+- **数据库**: 45 个 migration 文件，软删除模式
+- **测试**: Go 1,485 test functions (19 packages) + Flutter 972 tests + E2E 集成测试
 
 ## 项目结构
 
@@ -49,9 +49,9 @@ FamilyLedger/
 │   ├── dashboard.proto
 │   ├── export.proto
 │   └── import.proto
-├── server/                   # Go 后端 (~43,700 行)
+├── server/                   # Go 后端 (~78,000 行)
 │   ├── cmd/server/           # 入口 + 定时任务注册
-│   ├── internal/             # 业务逻辑 (14 packages)
+│   ├── internal/             # 业务逻辑 (19 packages)
 │   │   ├── auth/             # 认证 + OAuth Provider 接口
 │   │   ├── transaction/      # 交易 CRUD + 家庭权限
 │   │   ├── account/          # 账户管理
@@ -65,7 +65,10 @@ FamilyLedger/
 │   │   ├── asset/            # 固定资产 + 折旧
 │   │   ├── dashboard/        # 仪表盘聚合 + 汇率 API + 投资曲线
 │   │   ├── export/           # 导出(CSV/Excel/PDF/全量备份)
-│   │   └── importcsv/        # CSV 导入 (session 持久化)
+│   │   ├── importcsv/        # CSV 导入 (session 持久化)
+│   │   ├── security/         # 安全策略
+│   │   ├── migration/        # 数据库迁移管理
+│   │   └── integration/      # 集成测试 (testcontainers)
 │   ├── pkg/                  # 公共包
 │   │   ├── audit/            # 审计日志 helper
 │   │   ├── config/           # JWT 配置校验
@@ -76,11 +79,11 @@ FamilyLedger/
 │   │   ├── storage/          # FileStorage 接口 (Local + S3)
 │   │   ├── category/         # 预设分类 UUID
 │   │   └── ws/               # WebSocket Hub + Ping-Pong
-│   ├── migrations/           # 38 个 SQL migration
+│   ├── migrations/           # 45 个 SQL migration
 │   ├── Makefile
 │   ├── Dockerfile
 │   └── entrypoint.sh
-├── app/                      # Flutter 客户端 (~56,600 行)
+├── app/                      # Flutter 客户端 (~80,000 行)
 │   ├── lib/
 │   │   ├── core/             # 常量、主题、路由
 │   │   ├── data/             # Drift 数据库 + gRPC clients
@@ -89,7 +92,7 @@ FamilyLedger/
 │   │   ├── generated/        # Proto 生成代码
 │   │   ├── sync/             # SyncEngine (LWW + 分页)
 │   │   └── main.dart
-│   ├── test/                 # 535 单元/Widget 测试
+│   ├── test/                 # 972 单元/Widget 测试
 │   ├── integration_test/     # E2E 集成测试
 │   └── pubspec.yaml
 ├── docs/                     # 项目文档
@@ -103,7 +106,7 @@ FamilyLedger/
 
 - Docker & Docker Compose
 - Flutter 3.41+ (stable channel)
-- Go 1.24+ (仅开发后端时需要)
+- Go 1.25+ (仅开发后端时需要)
 - protoc 34.x + protoc-gen-go / protoc-gen-dart (仅重新生成 proto 时需要)
 - Xcode 16+ (iOS 编译)
 
@@ -150,14 +153,14 @@ flutter run
 ### 3. 运行测试
 
 ```bash
-# 后端 (18 packages, 330 test functions)
+# 后端 (19 packages, 1,485 test functions)
 cd server && go test ./... -count=1
 
-# 前端 (535 tests)
+# 前端 (972 tests)
 cd app && flutter test
 
-# 集成测试 (需要 iOS 模拟器)
-cd app && flutter test integration_test/
+# 集成测试 (需要 Docker 跑后端)
+cd app && flutter test test/integration_test/ --concurrency=1
 ```
 
 ### 4. 部署到服务器
