@@ -763,7 +763,7 @@ func (r *RealFetcher) fetchPreciousMetal(ctx context.Context, symbol string) (*M
 		return nil, fmt.Errorf("unknown precious metal symbol: %s", symbol)
 	}
 
-	url := "https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=30&fs=m:118&fields=f2,f3,f4,f12,f14&fltt=2"
+	url := "https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=30&fs=m:118&fields=f2,f3,f4,f12,f14,f18&fltt=2"
 
 	// Retry up to 3 times (SGE endpoint can be flaky)
 	var lastErr error
@@ -799,6 +799,7 @@ func (r *RealFetcher) fetchPreciousMetal(ctx context.Context, symbol string) (*M
 					F4  float64 `json:"f4"`  // change amount (元)
 					F12 string  `json:"f12"` // code (AU9999)
 					F14 string  `json:"f14"` // name (黄金9999)
+					F18 float64 `json:"f18"` // prev close (昨收元/克)
 				} `json:"diff"`
 			} `json:"data"`
 		}
@@ -817,10 +818,15 @@ func (r *RealFetcher) fetchPreciousMetal(ctx context.Context, symbol string) (*M
 
 		for _, item := range result.Data.Diff {
 			if strings.EqualFold(item.F12, code) {
-				if item.F2 <= 0 {
-					return nil, fmt.Errorf("%s: no valid price (market may be closed)", symbol)
+				// Use current price; if market closed (f2=0), fall back to prev close
+				price := item.F2
+				if price <= 0 {
+					price = item.F18 // prev close
 				}
-				priceCents := int64(math.Round(item.F2 * 100))
+				if price <= 0 {
+					return nil, fmt.Errorf("%s: no valid price (market closed, no prev close)", symbol)
+				}
+				priceCents := int64(math.Round(price * 100))
 				changeCents := int64(math.Round(item.F4 * 100))
 				return &MarketQuote{
 					Symbol:        symbol,
