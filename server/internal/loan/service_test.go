@@ -131,7 +131,7 @@ func loanColumns() []string {
 		"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
 		"start_date", "created_at", "updated_at", "account_id",
 		"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
-		"family_id",
+		"family_id", "repayment_category_id",
 	}
 }
 
@@ -142,7 +142,18 @@ func loanRow(id uuid.UUID, userID uuid.UUID) []interface{} {
 		3.85, int32(360), int32(12), "equal_installment", int32(15),
 		now, now, now, (*uuid.UUID)(nil),
 		(*uuid.UUID)(nil), (*string)(nil), (*string)(nil), (*float64)(nil), (*float64)(nil), (*int32)(nil),
-		(*uuid.UUID)(nil),
+		(*uuid.UUID)(nil), (*uuid.UUID)(nil), // family_id, repayment_category_id
+	}
+}
+
+// subLoanColumns returns the 22 columns used by loadSubLoans (no repayment_category_id).
+func subLoanColumns() []string {
+	return []string{
+		"id", "user_id", "name", "loan_type", "principal", "remaining_principal",
+		"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
+		"start_date", "created_at", "updated_at", "account_id",
+		"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
+		"family_id", "repayment_category_id",
 	}
 }
 
@@ -255,7 +266,8 @@ func listLoanColumns() []string {
 		"id", "user_id", "name", "loan_type", "principal", "remaining_principal",
 		"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
 		"start_date", "created_at", "updated_at", "account_id",
-		"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month", "family_id",
+		"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
+		"family_id", "repayment_category_id",
 	}
 }
 
@@ -265,7 +277,8 @@ func listLoanRow(id uuid.UUID, userID uuid.UUID, name string) []interface{} {
 		id, userID, name, "mortgage", int64(100000000), int64(95000000),
 		3.85, int32(360), int32(12), "equal_installment", int32(15),
 		now, now, now, (*uuid.UUID)(nil),
-		(*uuid.UUID)(nil), (*string)(nil), (*string)(nil), (*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil),
+		(*uuid.UUID)(nil), (*string)(nil), (*string)(nil), (*float64)(nil), (*float64)(nil), (*int32)(nil),
+		(*uuid.UUID)(nil), (*uuid.UUID)(nil),
 	}
 }
 
@@ -515,7 +528,7 @@ func TestUpdateLoan_Success(t *testing.T) {
 
 	// UPDATE
 	mock.ExpectExec("UPDATE loans SET").
-		WithArgs("\u65b0\u540d\u5b57", int32(15), (*uuid.UUID)(nil), loanID.String(), testUserID).
+		WithArgs("\u65b0\u540d\u5b57", int32(15), (*uuid.UUID)(nil), loanID.String(), testUserID, (*uuid.UUID)(nil)).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
 	// loadLoan (reload after update)

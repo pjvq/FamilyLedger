@@ -78,6 +78,7 @@ db.Loan _makeLoan({
     lprBase: 0.0,
     lprSpread: 0.0,
     rateAdjustMonth: 1,
+    repaymentCategoryId: '',
     createdAt: _now,
     updatedAt: _now,
   );

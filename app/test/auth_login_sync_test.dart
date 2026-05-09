@@ -484,7 +484,7 @@ void main() {
       expect(prefs.getString(AppConstants.userIdKey), 'user_1');
     });
 
-    test('login with GetCategories failure: seed categories remain intact',
+    test('login with GetCategories failure: auth succeeds, categories seeded via fire-and-forget',
         () async {
       txnClient.categoriesError =
           GrpcError.unavailable('network unreachable');
@@ -494,7 +494,10 @@ void main() {
       // Should still be authenticated (category sync failure is non-fatal)
       expect(container.read(authProvider).status, AuthStatus.authenticated);
 
-      // getCategories fails BEFORE delete runs, so seed categories remain
+      // seedCategoriesForOwner is fire-and-forget after login
+      // Give it a moment to complete
+      await Future.delayed(const Duration(milliseconds: 100));
+
       final expCats = await db.getCategoriesByType('expense');
       // Seed has 14 expense root categories + their subcategories
       expect(expCats.length, greaterThan(10));
@@ -648,7 +651,9 @@ void main() {
     test(
         'when local categories exist (from seed), TransactionNotifier uses them without server call',
         () async {
-      // DB has seed categories from migration
+      // Seed categories manually (since v13+ they're no longer auto-seeded)
+      await db.seedCategoriesForOwner('user_1');
+
       final expCatsBefore = await db.getCategoriesByType('expense');
       expect(expCatsBefore.length, greaterThan(10));
 

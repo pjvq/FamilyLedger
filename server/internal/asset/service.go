@@ -704,12 +704,12 @@ func (s *Service) loadAsset(ctx context.Context, assetID, userID string) (*pb.As
 
 	err := s.pool.QueryRow(ctx,
 		`SELECT id, user_id, name, asset_type, purchase_price, current_value,
-		        purchase_date, description, created_at, updated_at, family_id
+		        purchase_date, description, family_id, created_at, updated_at
 		 FROM fixed_assets
 		 WHERE id = $1 AND deleted_at IS NULL`,
 		assetID,
 	).Scan(&id, &uid, &name, &assetType, &purchasePrice, &currentValue,
-		&purchaseDate, &description, &createdAt, &updatedAt, &familyID)
+		&purchaseDate, &description, &familyID, &createdAt, &updatedAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "asset not found")

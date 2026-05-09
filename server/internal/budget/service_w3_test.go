@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
 	pgxmock "github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,37 +22,36 @@ func noAuthCtx() context.Context { return context.Background() }
 // Covers: unique constraint, execution rate computation, edge cases
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ─── CreateBudget: duplicate year+month+user ────────────────────────────────
+// ─── CreateBudget: duplicate year+month+user (upsert) ───────────────────────
 
-func TestW3_CreateBudget_DuplicateMonthReject(t *testing.T) {
+func TestW3_CreateBudget_DuplicateMonthUpsert(t *testing.T) {
 	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
 	defer mock.Close()
 
 	svc := NewService(mock)
 
-	// permission.Check skipped (no family_id)
-	// Begin transaction
+	budgetID := uuid.New()
+	now := time.Now()
+
 	mock.ExpectBegin()
-
-	// INSERT returns unique_violation (23505)
+	// ON CONFLICT DO UPDATE returns same id
 	mock.ExpectQuery(`INSERT INTO budgets`).
-		WillReturnError(&pgconn.PgError{
-			Code:    "23505",
-			Message: "duplicate key value violates unique constraint",
-		})
+		WithArgs(testUserUUID, (*uuid.UUID)(nil), int32(2026), int32(5), int64(600000)).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at"}).AddRow(budgetID, now))
+	mock.ExpectExec("DELETE FROM category_budgets").
+		WithArgs(budgetID).
+		WillReturnResult(pgxmock.NewResult("DELETE", 2)) // had 2 old category budgets
+	mock.ExpectCommit()
 
-	// Rollback after error (deferred)
-	mock.ExpectRollback()
-
-	_, err = svc.CreateBudget(authedCtx(), &pb.CreateBudgetRequest{
+	resp, err := svc.CreateBudget(authedCtx(), &pb.CreateBudgetRequest{
 		Year:        2026,
 		Month:       5,
-		TotalAmount: 500000,
+		TotalAmount: 600000,
 	})
-
-	require.Error(t, err)
-	assert.Equal(t, codes.AlreadyExists, status.Code(err))
+	require.NoError(t, err)
+	assert.Equal(t, int64(600000), resp.Budget.TotalAmount)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 // ─── CreateBudget: zero amount rejected ─────────────────────────────────────

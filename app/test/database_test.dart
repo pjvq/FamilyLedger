@@ -10,8 +10,10 @@ final _catSalary = CategoryUUID.generate('test-user', 'income', '工资');
 void main() {
   late AppDatabase db;
 
-  setUp(() {
+  setUp(() async {
     db = AppDatabase.forTesting(NativeDatabase.memory());
+    // Since v13+, categories are seeded after auth. Seed for test user.
+    await db.seedCategoriesForOwner('test-user');
   });
 
   tearDown(() async {
@@ -36,7 +38,7 @@ void main() {
       expect(incParents.length, 7);
     });
 
-    test('clearAllData re-seeds preset categories', () async {
+    test('clearAllData clears all data (categories re-seeded separately)', () async {
       // Verify initial seed
       var cats = await db.getAllCategories();
       var parents = cats.where((c) => c.parentId == null).toList();
@@ -45,12 +47,17 @@ void main() {
       // Clear all data
       await db.clearAllData();
 
-      // Verify categories are re-seeded
+      // After clearAllData, no categories (re-seed happens after next login)
+      cats = await db.getAllCategories();
+      expect(cats, isEmpty, reason: 'clearAllData should remove all data');
+
+      // Re-seed manually (simulates post-login behavior)
+      await db.seedCategoriesForOwner('test-user');
       cats = await db.getAllCategories();
       parents = cats.where((c) => c.parentId == null).toList();
       final subs = cats.where((c) => c.parentId != null).toList();
-      expect(parents.length, 21, reason: 'clearAllData should re-seed 21 parent categories');
-      expect(subs.length, greaterThan(0), reason: 'clearAllData should re-seed subcategories');
+      expect(parents.length, 21, reason: 'seedCategoriesForOwner should seed 21 parent categories');
+      expect(subs.length, greaterThan(0), reason: 'seedCategoriesForOwner should seed subcategories');
 
       // Verify they are all preset
       for (final cat in parents) {

@@ -42,6 +42,9 @@ func TestCreateBudget_Success(t *testing.T) {
 		WithArgs(testUserUUID, (*uuid.UUID)(nil), int32(2026), int32(4), int64(500000)).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at"}).
 			AddRow(budgetID, now))
+	mock.ExpectExec("DELETE FROM category_budgets").
+		WithArgs(budgetID).
+		WillReturnResult(pgxmock.NewResult("DELETE", 0))
 	mock.ExpectCommit()
 
 	resp, err := svc.CreateBudget(authedCtx(), &pb.CreateBudgetRequest{

@@ -132,13 +132,13 @@ func TestCB_ListInvestments_FamilyMode(t *testing.T) {
 		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
 
 	listCols := []string{"id", "user_id", "symbol", "name", "market_type", "quantity", "cost_basis",
-		"created_at", "updated_at", "current_price"}
+		"created_at", "updated_at", "current_price", "family_id"}
 	var price int64 = 15000
 	mock.ExpectQuery("SELECT i.id").
 		WithArgs(fid.String()).
 		WillReturnRows(pgxmock.NewRows(listCols).AddRow(
 			invID, testUserID, "AAPL", "Apple", "us_stock", 100.0, int64(1500000),
-			now, now, &price,
+			now, now, &price, (*uuid.UUID)(nil),
 		))
 	resp, err := svc.ListInvestments(authedCtx(), &pb.ListInvestmentsRequest{FamilyId: fid.String()})
 	require.NoError(t, err)
@@ -177,13 +177,13 @@ func TestCB_ListInvestments_ByMarketType(t *testing.T) {
 	now := time.Now()
 
 	listCols := []string{"id", "user_id", "symbol", "name", "market_type", "quantity", "cost_basis",
-		"created_at", "updated_at", "current_price"}
+		"created_at", "updated_at", "current_price", "family_id"}
 	var price int64 = 15000
 	mock.ExpectQuery("SELECT i.id").
 		WithArgs(testUserID, "us_stock").
 		WillReturnRows(pgxmock.NewRows(listCols).AddRow(
 			invID, testUserID, "AAPL", "Apple", "us_stock", 100.0, int64(1500000),
-			now, now, &price,
+			now, now, &price, (*uuid.UUID)(nil),
 		))
 	resp, err := svc.ListInvestments(authedCtx(), &pb.ListInvestmentsRequest{
 		MarketType: pb.MarketType_MARKET_TYPE_US_STOCK,

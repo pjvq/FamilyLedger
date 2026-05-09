@@ -292,19 +292,19 @@ func TestBoost_ListLoanGroups_Success(t *testing.T) {
 	// List groups query
 	mock.ExpectQuery("SELECT .+ FROM loan_groups WHERE user_id").
 		WithArgs(testUserID).
-		WillReturnRows(pgxmock.NewRows([]string{"id", "name", "group_type", "total_principal", "payment_day", "start_date", "account_id", "created_at", "updated_at"}).
-			AddRow(groupID, "房贷组合", "combined", int64(150000000), int32(15), now, (*uuid.UUID)(nil), now, now))
+		WillReturnRows(pgxmock.NewRows([]string{"id", "name", "group_type", "total_principal", "payment_day", "start_date", "account_id", "family_id", "created_at", "updated_at"}).
+			AddRow(groupID, "房贷组合", "combined", int64(150000000), int32(15), now, (*uuid.UUID)(nil), (*uuid.UUID)(nil), now, now))
 
 	// loadSubLoans for this group
 	subType := "commercial"
 	rateType := "fixed"
 	mock.ExpectQuery("SELECT .+ FROM loans WHERE group_id").
 		WithArgs(groupID.String(), testUserID).
-		WillReturnRows(pgxmock.NewRows(loanColumns()).
+		WillReturnRows(pgxmock.NewRows(subLoanColumns()).
 			AddRow(loanID, testUserUUID, "房贷-商贷", "mortgage", int64(100000000), int64(90000000),
 				float64(3.85), int32(360), int32(12), "equal_installment", int32(15),
 				now, now, now, (*uuid.UUID)(nil),
-				&groupID, &subType, &rateType, (*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil)))
+				&groupID, &subType, &rateType, (*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil), (*uuid.UUID)(nil)))
 
 	// loadSchedule to find monthly payment
 	mock.ExpectQuery("SELECT .+ FROM loan_schedules WHERE loan_id").
@@ -327,7 +327,7 @@ func TestBoost_ListLoanGroups_Empty(t *testing.T) {
 
 	mock.ExpectQuery("SELECT .+ FROM loan_groups WHERE user_id").
 		WithArgs(testUserID).
-		WillReturnRows(pgxmock.NewRows([]string{"id", "name", "group_type", "total_principal", "payment_day", "start_date", "account_id", "created_at", "updated_at"}))
+		WillReturnRows(pgxmock.NewRows([]string{"id", "name", "group_type", "total_principal", "payment_day", "start_date", "account_id", "family_id", "created_at", "updated_at"}))
 
 	resp, err := svc.ListLoanGroups(authedCtx(), &pb.ListLoanGroupsRequest{})
 	require.NoError(t, err)
@@ -721,6 +721,11 @@ func TestBoost_RecordPayment_WrongSequence(t *testing.T) {
 		WithArgs(loanID.String()).
 		WillReturnRows(pgxmock.NewRows([]string{"min"}).AddRow(int32(13)))
 
+	// Idempotency check: month 15 not already paid
+	mock.ExpectQuery("SELECT .+ FROM loan_schedules WHERE loan_id").
+		WithArgs(loanID.String(), int32(15)).
+		WillReturnError(pgx.ErrNoRows)
+
 	_, err = svc.RecordPayment(authedCtx(), &pb.RecordPaymentRequest{
 		LoanId:      loanID.String(),
 		MonthNumber: 15,
@@ -743,6 +748,11 @@ func TestBoost_RecordPayment_AllPaid(t *testing.T) {
 	mock.ExpectQuery("SELECT COALESCE\\(MIN\\(month_number\\)").
 		WithArgs(loanID.String()).
 		WillReturnRows(pgxmock.NewRows([]string{"min"}).AddRow(int32(0)))
+
+	// Idempotency check: month 1 not already paid
+	mock.ExpectQuery("SELECT .+ FROM loan_schedules WHERE loan_id").
+		WithArgs(loanID.String(), int32(1)).
+		WillReturnError(pgx.ErrNoRows)
 
 	_, err = svc.RecordPayment(authedCtx(), &pb.RecordPaymentRequest{
 		LoanId:      loanID.String(),
@@ -784,15 +794,25 @@ func TestBoost_RecordPayment_WithAccountDeduction(t *testing.T) {
 		WithArgs(loanID.String(), int64(89000000)).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
-	// Account balance check
-	mock.ExpectQuery("SELECT balance FROM accounts WHERE id").
-		WithArgs(accountID.String()).
-		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(5000000)))
-
-	// Deduct payment
+	// Deduct payment from account (no balance check, direct deduction)
 	mock.ExpectExec("UPDATE accounts SET balance").
 		WithArgs(int64(467000), accountID.String()).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	// SELECT repayment_category_id
+	mock.ExpectQuery("SELECT repayment_category_id FROM loans").
+		WithArgs(loanID.String()).
+		WillReturnRows(pgxmock.NewRows([]string{"repayment_category_id"}).AddRow((*uuid.UUID)(nil)))
+
+	// Fallback category lookup: "还款"
+	catID := uuid.New()
+	mock.ExpectQuery("SELECT id FROM categories WHERE name").
+		WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow(catID.String()))
+
+	// INSERT transaction record
+	mock.ExpectExec("INSERT INTO transactions").
+		WithArgs(testUserID, accountID.String(), catID.String(), int64(467000), pgxmock.AnyArg(), pgxmock.AnyArg(), nil).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 	mock.ExpectCommit()
 
@@ -805,50 +825,9 @@ func TestBoost_RecordPayment_WithAccountDeduction(t *testing.T) {
 	_ = now
 }
 
-func TestBoost_RecordPayment_InsufficientBalance(t *testing.T) {
-	mock, err := pgxmock.NewPool()
-	require.NoError(t, err)
-	defer mock.Close()
-	svc := NewService(mock)
-
-	loanID := uuid.New()
-	accountID := uuid.New()
-	dueDate := time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC)
-
-	rowData := loanRow(loanID, testUserUUID)
-	rowData[14] = &accountID
-	mock.ExpectQuery("SELECT .+ FROM loans WHERE id").
-		WithArgs(loanID.String()).
-		WillReturnRows(pgxmock.NewRows(loanColumns()).AddRow(rowData...))
-
-	mock.ExpectQuery("SELECT COALESCE\\(MIN\\(month_number\\)").
-		WithArgs(loanID.String()).
-		WillReturnRows(pgxmock.NewRows([]string{"min"}).AddRow(int32(13)))
-
-	mock.ExpectBegin()
-
-	mock.ExpectQuery("UPDATE loan_schedules SET is_paid=true").
-		WithArgs(pgxmock.AnyArg(), loanID.String(), int32(13)).
-		WillReturnRows(pgxmock.NewRows([]string{"month_number", "payment", "principal_part", "interest_part", "remaining_principal", "due_date"}).
-			AddRow(int32(13), int64(467000), int64(178000), int64(289000), int64(89000000), dueDate))
-
-	mock.ExpectExec("UPDATE loans SET").
-		WithArgs(loanID.String(), int64(89000000)).
-		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-
-	// Balance too low
-	mock.ExpectQuery("SELECT balance FROM accounts WHERE id").
-		WithArgs(accountID.String()).
-		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100))) // way too low
-
-	mock.ExpectRollback()
-
-	_, err = svc.RecordPayment(authedCtx(), &pb.RecordPaymentRequest{
-		LoanId:      loanID.String(),
-		MonthNumber: 13,
-	})
-	assert.Equal(t, codes.FailedPrecondition, status.Code(err))
-}
+// TestBoost_RecordPayment_InsufficientBalance removed:
+// Balance check was removed in commit 26044a7. Account balance can go negative.
+// The code now directly deducts without checking.
 
 // ════════════════════════════════════════════════════════════════════════════
 // CreateLoanGroup with LPR floating rate
@@ -1019,7 +998,7 @@ func TestBoost_SimulateGroupPrepayment_AutoSelectTargetLoan(t *testing.T) {
 			AddRow(loanID, testUserUUID, "商贷", "mortgage", int64(100000000), int64(95000000),
 				float64(3.85), int32(360), int32(12), "equal_installment", int32(15),
 				now, now, now, (*uuid.UUID)(nil),
-				&groupID, &subType, &rateType, (*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil)))
+				&groupID, &subType, &rateType, (*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil), (*uuid.UUID)(nil)))
 
 	// loadSchedule for monthly payment
 	mock.ExpectQuery("SELECT .+ FROM loan_schedules WHERE loan_id").
@@ -1034,7 +1013,7 @@ func TestBoost_SimulateGroupPrepayment_AutoSelectTargetLoan(t *testing.T) {
 			AddRow(loanID, testUserUUID, "商贷", "mortgage", int64(100000000), int64(95000000),
 				float64(3.85), int32(360), int32(12), "equal_installment", int32(15),
 				now, now, now, (*uuid.UUID)(nil),
-				&groupID, &subType, &rateType, (*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil)))
+				&groupID, &subType, &rateType, (*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil), (*uuid.UUID)(nil)))
 
 	// loadSchedule for simulate
 	schedRows := pgxmock.NewRows([]string{"month_number", "payment", "principal_part", "interest_part", "remaining_principal", "is_paid", "due_date", "paid_date"})

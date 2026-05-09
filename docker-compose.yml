@@ -38,6 +38,8 @@ services:
       GRPC_PORT: "50051"
       WS_PORT: "8080"
       WS_TOKEN_CHECK_INTERVAL: "1s"
+      AUTH_RATE_RPS: "50"
+      AUTH_RATE_BURST: "100"
     ports:
       - "50051:50051"
       - "8080:8080"

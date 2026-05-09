@@ -82,7 +82,7 @@ func TestBoost2_UpdateLoan_NameOnly(t *testing.T) {
 
 	// Exec update
 	mock.ExpectExec("UPDATE loans SET").
-		WithArgs("新名字", int32(15), (*uuid.UUID)(nil), loanID.String(), boost2UserID).
+		WithArgs("新名字", int32(15), (*uuid.UUID)(nil), loanID.String(), boost2UserID, (*uuid.UUID)(nil)).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
 	// loadLoan again
@@ -172,7 +172,7 @@ func TestBoost2_UpdateLoan_WithAccountID(t *testing.T) {
 		WillReturnRows(pgxmock.NewRows(loanColumns()).AddRow(loanRow(loanID, boost2UserUUID)...))
 
 	mock.ExpectExec("UPDATE loans SET").
-		WithArgs("房贷", int32(15), &accountID, loanID.String(), boost2UserID).
+		WithArgs("房贷", int32(15), &accountID, loanID.String(), boost2UserID, (*uuid.UUID)(nil)).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
 	updatedRow := loanRow(loanID, boost2UserUUID)
@@ -202,7 +202,7 @@ func TestBoost2_UpdateLoan_PaymentDayUpdate(t *testing.T) {
 		WillReturnRows(pgxmock.NewRows(loanColumns()).AddRow(loanRow(loanID, boost2UserUUID)...))
 
 	mock.ExpectExec("UPDATE loans SET").
-		WithArgs("房贷", int32(20), (*uuid.UUID)(nil), loanID.String(), boost2UserID).
+		WithArgs("房贷", int32(20), (*uuid.UUID)(nil), loanID.String(), boost2UserID, (*uuid.UUID)(nil)).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
 	updatedRow := loanRow(loanID, boost2UserUUID)
@@ -232,7 +232,7 @@ func TestBoost2_UpdateLoan_DBExecError(t *testing.T) {
 		WillReturnRows(pgxmock.NewRows(loanColumns()).AddRow(loanRow(loanID, boost2UserUUID)...))
 
 	mock.ExpectExec("UPDATE loans SET").
-		WithArgs("房贷", int32(15), (*uuid.UUID)(nil), loanID.String(), boost2UserID).
+		WithArgs("房贷", int32(15), (*uuid.UUID)(nil), loanID.String(), boost2UserID, (*uuid.UUID)(nil)).
 		WillReturnError(fmt.Errorf("db error"))
 
 	_, err = svc.UpdateLoan(boost2Ctx(), &pb.UpdateLoanRequest{
@@ -830,7 +830,7 @@ func TestBoost2_LoadLoan_AllNullableFields(t *testing.T) {
 		float64(4.15), int32(360), int32(12), "equal_installment", int32(15),
 		now, now, now, &accountID,
 		&groupID, &subType, &rateType, &lprBase, &lprSpread, &rateAdjustMonth,
-		&famID,
+		&famID, (*uuid.UUID)(nil),
 	}
 	mock.ExpectQuery("SELECT .+ FROM loans WHERE id").
 		WithArgs(loanID.String()).

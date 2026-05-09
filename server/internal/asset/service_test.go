@@ -26,13 +26,13 @@ func authedCtx() context.Context {
 
 func assetCols() []string {
 	return []string{"id", "user_id", "name", "asset_type", "purchase_price", "current_value",
-		"purchase_date", "description", "created_at", "updated_at", "family_id"}
+		"purchase_date", "description", "family_id", "created_at", "updated_at"}
 }
 
 func assetRow(id uuid.UUID) []interface{} {
 	now := time.Now()
 	return []interface{}{id, testUserID, "MacBook Pro", "electronics",
-		int64(1599900), int64(1200000), now, (*string)(nil), now, now, (*uuid.UUID)(nil)}
+		int64(1599900), int64(1200000), now, (*string)(nil), (*uuid.UUID)(nil), now, now}
 }
 
 // ─── CreateAsset ────────────────────────────────────────────────────────────
@@ -148,7 +148,7 @@ func TestGetAsset_PermissionDenied(t *testing.T) {
 	now := time.Now()
 
 	row := []interface{}{id, uuid.New().String(), "Car", "vehicle",
-		int64(300000), int64(200000), now, (*string)(nil), now, now, (*uuid.UUID)(nil)}
+		int64(300000), int64(200000), now, (*string)(nil), (*uuid.UUID)(nil), now, now}
 	mock.ExpectQuery("SELECT .+ FROM fixed_assets").
 		WithArgs(id.String()).
 		WillReturnRows(pgxmock.NewRows(assetCols()).AddRow(row...))
@@ -175,15 +175,15 @@ func TestListAssets_Success(t *testing.T) {
 	svc := NewService(mock)
 
 	cols := []string{"id", "user_id", "name", "asset_type", "purchase_price", "current_value",
-		"purchase_date", "description", "created_at", "updated_at"}
+		"purchase_date", "description", "family_id", "created_at", "updated_at"}
 	now := time.Now()
 	id1, id2 := uuid.New(), uuid.New()
 
 	mock.ExpectQuery("SELECT .+ FROM fixed_assets.+WHERE user_id").
 		WithArgs(testUserID).
 		WillReturnRows(pgxmock.NewRows(cols).
-			AddRow(id1, testUserID, "MacBook", "electronics", int64(1599900), int64(1200000), now, (*string)(nil), now, now).
-			AddRow(id2, testUserID, "Car", "vehicle", int64(15000000), int64(12000000), now, (*string)(nil), now, now))
+			AddRow(id1, testUserID, "MacBook", "electronics", int64(1599900), int64(1200000), now, (*string)(nil), (*uuid.UUID)(nil), now, now).
+			AddRow(id2, testUserID, "Car", "vehicle", int64(15000000), int64(12000000), now, (*string)(nil), (*uuid.UUID)(nil), now, now))
 
 	resp, err := svc.ListAssets(authedCtx(), &pb.ListAssetsRequest{})
 	require.NoError(t, err)
@@ -197,13 +197,13 @@ func TestListAssets_FilterByType(t *testing.T) {
 	svc := NewService(mock)
 
 	cols := []string{"id", "user_id", "name", "asset_type", "purchase_price", "current_value",
-		"purchase_date", "description", "created_at", "updated_at"}
+		"purchase_date", "description", "family_id", "created_at", "updated_at"}
 	now := time.Now()
 
 	mock.ExpectQuery("SELECT .+ FROM fixed_assets.+asset_type").
 		WithArgs(testUserID, "electronics").
 		WillReturnRows(pgxmock.NewRows(cols).
-			AddRow(uuid.New(), testUserID, "MacBook", "electronics", int64(1599900), int64(1200000), now, (*string)(nil), now, now))
+			AddRow(uuid.New(), testUserID, "MacBook", "electronics", int64(1599900), int64(1200000), now, (*string)(nil), (*uuid.UUID)(nil), now, now))
 
 	resp, err := svc.ListAssets(authedCtx(), &pb.ListAssetsRequest{AssetType: pb.AssetType_ASSET_TYPE_ELECTRONICS})
 	require.NoError(t, err)
@@ -217,7 +217,7 @@ func TestListAssets_Empty(t *testing.T) {
 	svc := NewService(mock)
 
 	cols := []string{"id", "user_id", "name", "asset_type", "purchase_price", "current_value",
-		"purchase_date", "description", "created_at", "updated_at"}
+		"purchase_date", "description", "family_id", "created_at", "updated_at"}
 	mock.ExpectQuery("SELECT .+ FROM fixed_assets").
 		WithArgs(testUserID).
 		WillReturnRows(pgxmock.NewRows(cols))

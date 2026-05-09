@@ -21,8 +21,8 @@ void main() {
       await db.close();
     });
 
-    test('schemaVersion is 12', () {
-      expect(db.schemaVersion, 12);
+    test('schemaVersion is 15', () {
+      expect(db.schemaVersion, 15);
     });
 
     test('fresh database creates all tables without error', () async {
@@ -97,13 +97,11 @@ void main() {
       expect(exchangeRates, isEmpty);
     });
 
-    test('preset categories are seeded on fresh database', () async {
+    test('preset categories are seeded after auth (not on fresh database)', () async {
       final categories = await db.select(db.categories).get();
-      // Should have preset categories seeded by _seedCategories + _seedSubcategories
-      expect(categories, isNotEmpty);
-      // All preset categories should have isPreset = true
-      final presets = categories.where((c) => c.isPreset).toList();
-      expect(presets, isNotEmpty);
+      // Since v13+, categories are seeded after auth when userId is known,
+      // so a fresh database will have no categories.
+      expect(categories, isEmpty);
     });
   });
 
@@ -166,15 +164,16 @@ void main() {
         accountType: const Value('bank_card'),
       ));
 
-      // Use a known category from preset
-      final cats = await db.select(db.categories).get();
-      final expenseCat = cats.firstWhere((c) => c.type == 'expense');
+      // Insert a test category since categories are no longer seeded on fresh DB
+      await db.customStatement(
+          "INSERT INTO categories (id, name, type, icon, sort_order, is_preset) "
+          "VALUES ('cat1', 'Food', 'expense', '🍔', 1, 1)");
 
       await db.insertTransaction(TransactionsCompanion.insert(
         id: 'tx1',
         userId: 'u1',
         accountId: 'acc1',
-        categoryId: expenseCat.id,
+        categoryId: 'cat1',
         amount: 5000,
         amountCny: 5000,
         type: 'expense',

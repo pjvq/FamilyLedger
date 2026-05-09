@@ -164,15 +164,15 @@ func TestListInvestments_Success(t *testing.T) {
 	svc := NewService(mock)
 
 	listCols := []string{"id", "user_id", "symbol", "name", "market_type", "quantity", "cost_basis",
-		"created_at", "updated_at", "current_price"}
+		"created_at", "updated_at", "current_price", "family_id"}
 	now := time.Now()
 	var price int64 = 15000
 
 	mock.ExpectQuery("SELECT .+ FROM investments").
 		WithArgs(testUserID).
 		WillReturnRows(pgxmock.NewRows(listCols).
-			AddRow(uuid.New(), testUserID, "AAPL", "Apple", "us_stock", float64(100), int64(1500000), now, now, &price).
-			AddRow(uuid.New(), testUserID, "600519", "贵州茅台", "a_share", float64(10), int64(200000), now, now, (*int64)(nil)))
+			AddRow(uuid.New(), testUserID, "AAPL", "Apple", "us_stock", float64(100), int64(1500000), now, now, &price, (*uuid.UUID)(nil)).
+			AddRow(uuid.New(), testUserID, "600519", "贵州茅台", "a_share", float64(10), int64(200000), now, now, (*int64)(nil), (*uuid.UUID)(nil)))
 
 	resp, err := svc.ListInvestments(authedCtx(), &pb.ListInvestmentsRequest{})
 	require.NoError(t, err)
@@ -186,7 +186,7 @@ func TestListInvestments_Empty(t *testing.T) {
 	svc := NewService(mock)
 
 	listCols := []string{"id", "user_id", "symbol", "name", "market_type", "quantity", "cost_basis",
-		"created_at", "updated_at", "current_price"}
+		"created_at", "updated_at", "current_price", "family_id"}
 	mock.ExpectQuery("SELECT .+ FROM investments").
 		WithArgs(testUserID).
 		WillReturnRows(pgxmock.NewRows(listCols))

@@ -369,9 +369,11 @@ class SyncEngine {
   ) async {
     switch (opType) {
       case sync_enum.OperationType.OPERATION_TYPE_CREATE:
-      case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
-        // Upsert transaction
-        final txnDate = DateTime.tryParse(payload['txn_date'] ?? '') ??
+        // Check if already exists (idempotent)
+        final existing = await _db!.getTransactionById(entityId);
+        if (existing != null) break; // already applied
+
+        final txnDateCreate = DateTime.tryParse(payload['txn_date'] ?? '') ??
             DateTime.now();
         await _db!.insertOrUpdateTransaction(
           id: entityId,
@@ -382,10 +384,57 @@ class SyncEngine {
           amountCny: (payload['amount_cny'] as num?)?.toInt() ?? 0,
           type: payload['type'] ?? 'expense',
           note: payload['note'] ?? '',
-          txnDate: txnDate,
+          txnDate: txnDateCreate,
         );
+        // Apply balance delta for the new transaction
+        final createAccountId = payload['account_id'] ?? '';
+        final createAmountCny = (payload['amount_cny'] as num?)?.toInt() ?? 0;
+        final createType = payload['type'] ?? 'expense';
+        if (createAccountId.isNotEmpty && createAmountCny != 0) {
+          final delta = createType == 'income' ? createAmountCny : -createAmountCny;
+          await _db!.updateAccountBalance(createAccountId, delta);
+        }
+        break;
+      case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
+        // Get old transaction to revert its balance contribution
+        final oldTxn = await _db!.getTransactionById(entityId);
+
+        final txnDateUpdate = DateTime.tryParse(payload['txn_date'] ?? '') ??
+            DateTime.now();
+        await _db!.insertOrUpdateTransaction(
+          id: entityId,
+          userId: payload['user_id'] ?? '',
+          accountId: payload['account_id'] ?? '',
+          categoryId: payload['category_id'] ?? '',
+          amount: (payload['amount'] as num?)?.toInt() ?? 0,
+          amountCny: (payload['amount_cny'] as num?)?.toInt() ?? 0,
+          type: payload['type'] ?? 'expense',
+          note: payload['note'] ?? '',
+          txnDate: txnDateUpdate,
+        );
+        // Revert old balance, apply new
+        final updateAccountId = payload['account_id'] ?? '';
+        final updateAmountCny = (payload['amount_cny'] as num?)?.toInt() ?? 0;
+        final updateType = payload['type'] ?? 'expense';
+        if (oldTxn != null && oldTxn.deletedAt == null) {
+          // Revert old balance contribution
+          final oldDelta = oldTxn.type == 'income' ? oldTxn.amountCny : -oldTxn.amountCny;
+          await _db!.updateAccountBalance(oldTxn.accountId, -oldDelta);
+        }
+        // Apply new balance delta
+        if (updateAccountId.isNotEmpty && updateAmountCny != 0) {
+          final newDelta = updateType == 'income' ? updateAmountCny : -updateAmountCny;
+          await _db!.updateAccountBalance(updateAccountId, newDelta);
+        }
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
+        // Get transaction before soft-deleting to revert balance
+        final txn = await _db!.getTransactionById(entityId);
+        if (txn != null && txn.deletedAt == null) {
+          // Revert balance contribution
+          final delta = txn.type == 'income' ? txn.amountCny : -txn.amountCny;
+          await _db!.updateAccountBalance(txn.accountId, -delta);
+        }
         await _db!.softDeleteTransaction(entityId);
         break;
       default:
