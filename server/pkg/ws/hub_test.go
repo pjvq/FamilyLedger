@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -176,10 +177,19 @@ func TestHub_BroadcastToUser(t *testing.T) {
 	// Send a message to user3
 	hub.BroadcastToUser("user3", []byte(`{"hello":"world"}`))
 
-	// Read the message
+	// Read the message (skip heartbeats)
 	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-	_, msg, err := conn.ReadMessage()
-	require.NoError(t, err)
+	var msg []byte
+	for {
+		_, m, err := conn.ReadMessage()
+		require.NoError(t, err)
+		var parsed map[string]interface{}
+		if json.Unmarshal(m, &parsed) == nil && parsed["type"] == "heartbeat" {
+			continue
+		}
+		msg = m
+		break
+	}
 	assert.Equal(t, `{"hello":"world"}`, string(msg))
 }
 
@@ -209,7 +219,21 @@ func TestHub_WritePump_SendsCloseOnChannelClose(t *testing.T) {
 	}
 
 	// The client should receive a close message or connection error
+	// (heartbeats may arrive before close propagates)
 	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-	_, _, err = conn.ReadMessage()
-	assert.Error(t, err)
+	for {
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			// Expected: connection closed
+			break
+		}
+		// Skip heartbeats
+		var parsed map[string]interface{}
+		if json.Unmarshal(msg, &parsed) == nil && parsed["type"] == "heartbeat" {
+			continue
+		}
+		// Unexpected non-heartbeat message
+		t.Errorf("unexpected message after unregister: %s", string(msg))
+		break
+	}
 }

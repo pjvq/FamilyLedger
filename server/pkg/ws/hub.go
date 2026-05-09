@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
@@ -197,6 +198,16 @@ func (c *Client) writePump() {
 			}
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(c.hub.config.WriteWait))
+			// Send application-level heartbeat with server timestamp (watermark)
+			hb, _ := json.Marshal(map[string]interface{}{
+				"type":        "heartbeat",
+				"server_time": time.Now().UnixMilli(),
+			})
+			if err := c.conn.WriteMessage(websocket.TextMessage, hb); err != nil {
+				log.Printf("ws: heartbeat write error: %v", err)
+				return
+			}
+			// Also send protocol-level ping for connection keepalive
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				log.Printf("ws: ping error: %v", err)
 				return

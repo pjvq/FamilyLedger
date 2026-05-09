@@ -718,6 +718,16 @@ class AppDatabase extends _$AppDatabase {
     return result.length;
   }
 
+  /// Reset retry state for dead ops so they can be retried.
+  Future<void> resetDeadSyncOps() async {
+    await (update(syncQueue)
+          ..where((s) => s.uploaded.equals(false) & s.retryCount.isBiggerOrEqualValue(10)))
+        .write(const SyncQueueCompanion(
+          retryCount: Value(0),
+          nextRetryAt: Value(null),
+        ));
+  }
+
   /// Mark transactions as synced (called after successful push).
   Future<void> markTransactionsSynced(List<String> entityIds) async {
     if (entityIds.isEmpty) return;
