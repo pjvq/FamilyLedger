@@ -123,12 +123,33 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
     if (_selectedSymbol == null) return;
 
     final quantity = double.tryParse(_quantityController.text) ?? 0;
-    final priceYuan = double.tryParse(_priceController.text) ?? 0;
+    var priceYuan = double.tryParse(_priceController.text) ?? 0;
     final feeYuan = double.tryParse(_feeController.text) ?? 0;
 
-    if (quantity <= 0 || priceYuan <= 0) {
+    if (quantity <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入有效的数量和价格')),
+        const SnackBar(content: Text('请输入有效的数量')),
+      );
+      return;
+    }
+
+    // For precious metals, if price is empty, fetch latest real-time price
+    if (priceYuan <= 0 && _selectedMarket == 'precious_metal') {
+      final quote = await ref.read(marketDataProvider.notifier).getQuote(
+            _selectedSymbol!.symbol, _selectedSymbol!.marketType);
+      if (quote != null && quote.currentPrice > 0) {
+        priceYuan = quote.currentPrice / 100;
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('获取实时价格失败，请手动输入成交价')),
+          );
+        }
+        return;
+      }
+    } else if (priceYuan <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请输入有效的价格')),
       );
       return;
     }
@@ -362,6 +383,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
                       const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     labelText: _selectedMarket == 'precious_metal' ? '成交价（元/克）' : '成交价',
+                    hintText: _selectedMarket == 'precious_metal' ? '留空则使用实时价格' : null,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
