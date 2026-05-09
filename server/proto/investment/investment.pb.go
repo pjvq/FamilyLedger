@@ -26,12 +26,13 @@ const (
 type MarketType int32
 
 const (
-	MarketType_MARKET_TYPE_UNSPECIFIED MarketType = 0
-	MarketType_MARKET_TYPE_A_SHARE     MarketType = 1 // A股
-	MarketType_MARKET_TYPE_HK_STOCK    MarketType = 2 // 港股
-	MarketType_MARKET_TYPE_US_STOCK    MarketType = 3 // 美股
-	MarketType_MARKET_TYPE_CRYPTO      MarketType = 4 // 加密货币
-	MarketType_MARKET_TYPE_FUND        MarketType = 5 // 基金
+	MarketType_MARKET_TYPE_UNSPECIFIED    MarketType = 0
+	MarketType_MARKET_TYPE_A_SHARE        MarketType = 1 // A股
+	MarketType_MARKET_TYPE_HK_STOCK       MarketType = 2 // 港股
+	MarketType_MARKET_TYPE_US_STOCK       MarketType = 3 // 美股
+	MarketType_MARKET_TYPE_CRYPTO         MarketType = 4 // 加密货币
+	MarketType_MARKET_TYPE_FUND           MarketType = 5 // 基金
+	MarketType_MARKET_TYPE_PRECIOUS_METAL MarketType = 6 // 贵金属
 )
 
 // Enum value maps for MarketType.
@@ -43,14 +44,16 @@ var (
 		3: "MARKET_TYPE_US_STOCK",
 		4: "MARKET_TYPE_CRYPTO",
 		5: "MARKET_TYPE_FUND",
+		6: "MARKET_TYPE_PRECIOUS_METAL",
 	}
 	MarketType_value = map[string]int32{
-		"MARKET_TYPE_UNSPECIFIED": 0,
-		"MARKET_TYPE_A_SHARE":     1,
-		"MARKET_TYPE_HK_STOCK":    2,
-		"MARKET_TYPE_US_STOCK":    3,
-		"MARKET_TYPE_CRYPTO":      4,
-		"MARKET_TYPE_FUND":        5,
+		"MARKET_TYPE_UNSPECIFIED":    0,
+		"MARKET_TYPE_A_SHARE":        1,
+		"MARKET_TYPE_HK_STOCK":       2,
+		"MARKET_TYPE_US_STOCK":       3,
+		"MARKET_TYPE_CRYPTO":         4,
+		"MARKET_TYPE_FUND":           5,
+		"MARKET_TYPE_PRECIOUS_METAL": 6,
 	}
 )
 
@@ -1964,7 +1967,7 @@ const file_investment_proto_rawDesc = "" +
 	"\vIRRResponse\x12%\n" +
 	"\x0eannualized_irr\x18\x01 \x01(\x01R\rannualizedIrr\x12C\n" +
 	"\n" +
-	"cash_flows\x18\x02 \x03(\v2$.familyledger.investment.v1.CashFlowR\tcashFlows*\xa4\x01\n" +
+	"cash_flows\x18\x02 \x03(\v2$.familyledger.investment.v1.CashFlowR\tcashFlows*\xc4\x01\n" +
 	"\n" +
 	"MarketType\x12\x1b\n" +
 	"\x17MARKET_TYPE_UNSPECIFIED\x10\x00\x12\x17\n" +
@@ -1972,7 +1975,8 @@ const file_investment_proto_rawDesc = "" +
 	"\x14MARKET_TYPE_HK_STOCK\x10\x02\x12\x18\n" +
 	"\x14MARKET_TYPE_US_STOCK\x10\x03\x12\x16\n" +
 	"\x12MARKET_TYPE_CRYPTO\x10\x04\x12\x14\n" +
-	"\x10MARKET_TYPE_FUND\x10\x05*P\n" +
+	"\x10MARKET_TYPE_FUND\x10\x05\x12\x1e\n" +
+	"\x1aMARKET_TYPE_PRECIOUS_METAL\x10\x06*P\n" +
 	"\tTradeType\x12\x1a\n" +
 	"\x16TRADE_TYPE_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eTRADE_TYPE_BUY\x10\x01\x12\x13\n" +

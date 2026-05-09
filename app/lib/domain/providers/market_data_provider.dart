@@ -20,6 +20,8 @@ pb_enum.MarketType _toProtoMarketType(String type) {
       return pb_enum.MarketType.MARKET_TYPE_CRYPTO;
     case 'fund':
       return pb_enum.MarketType.MARKET_TYPE_FUND;
+    case 'precious_metal':
+      return pb_enum.MarketType.MARKET_TYPE_PRECIOUS_METAL;
     default:
       return pb_enum.MarketType.MARKET_TYPE_A_SHARE;
   }
@@ -37,6 +39,8 @@ String _fromProtoMarketType(pb_enum.MarketType type) {
       return 'crypto';
     case pb_enum.MarketType.MARKET_TYPE_FUND:
       return 'fund';
+    case pb_enum.MarketType.MARKET_TYPE_PRECIOUS_METAL:
+      return 'precious_metal';
     default:
       return 'a_share';
   }

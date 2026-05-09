@@ -401,6 +401,8 @@ func marketTypeToString(mt pb.MarketType) string {
 		return "crypto"
 	case pb.MarketType_MARKET_TYPE_FUND:
 		return "fund"
+	case pb.MarketType_MARKET_TYPE_PRECIOUS_METAL:
+		return "precious_metal"
 	default:
 		return "unspecified"
 	}
@@ -418,6 +420,8 @@ func stringToMarketType(s string) pb.MarketType {
 		return pb.MarketType_MARKET_TYPE_CRYPTO
 	case "fund":
 		return pb.MarketType_MARKET_TYPE_FUND
+	case "precious_metal":
+		return pb.MarketType_MARKET_TYPE_PRECIOUS_METAL
 	default:
 		return pb.MarketType_MARKET_TYPE_UNSPECIFIED
 	}

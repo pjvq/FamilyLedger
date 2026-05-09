@@ -327,7 +327,7 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                 ],
               ),
             ),
-            _TradeList(trades: invState.currentTrades, theme: theme, isDark: isDark),
+            _TradeList(trades: invState.currentTrades, theme: theme, isDark: isDark, marketType: investment.marketType),
             const SizedBox(height: 80),
           ],
         ),
@@ -621,11 +621,13 @@ class _TradeList extends StatelessWidget {
   final List<db.InvestmentTrade> trades;
   final ThemeData theme;
   final bool isDark;
+  final String marketType;
 
   const _TradeList({
     required this.trades,
     required this.theme,
     required this.isDark,
+    required this.marketType,
   });
 
   @override
@@ -658,7 +660,7 @@ class _TradeList extends StatelessWidget {
 
         return Semantics(
           label:
-              '${isBuy ? "买入" : "卖出"}${trade.quantity}股，价格${trade.price / 100}',
+              '${isBuy ? "买入" : "卖出"}${trade.quantity}${marketType == "precious_metal" ? "克" : "股"}，价格${trade.price / 100}',
           child: Card(
             margin: const EdgeInsets.only(bottom: 4),
             child: Padding(
@@ -696,7 +698,7 @@ class _TradeList extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '${_fmtQty(trade.quantity)}股 × ¥${(trade.price / 100).toStringAsFixed(2)}',
+                          '${_fmtQty(trade.quantity)}${marketType == "precious_metal" ? "克" : "股"} × ¥${(trade.price / 100).toStringAsFixed(2)}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurface
                                 .withValues(alpha: 0.5),

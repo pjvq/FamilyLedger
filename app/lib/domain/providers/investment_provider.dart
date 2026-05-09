@@ -141,6 +141,7 @@ const marketTypeLabels = {
   'us_stock': '美股',
   'crypto': '加密货币',
   'fund': '基金',
+  'precious_metal': '贵金属',
 };
 
 String marketTypeLabel(String type) => marketTypeLabels[type] ?? type;

@@ -23,6 +23,7 @@ const MarketType$json = {
     {'1': 'MARKET_TYPE_US_STOCK', '2': 3},
     {'1': 'MARKET_TYPE_CRYPTO', '2': 4},
     {'1': 'MARKET_TYPE_FUND', '2': 5},
+    {'1': 'MARKET_TYPE_PRECIOUS_METAL', '2': 6},
   ],
 };
 
@@ -30,7 +31,8 @@ const MarketType$json = {
 final $typed_data.Uint8List marketTypeDescriptor = $convert.base64Decode(
     'CgpNYXJrZXRUeXBlEhsKF01BUktFVF9UWVBFX1VOU1BFQ0lGSUVEEAASFwoTTUFSS0VUX1RZUE'
     'VfQV9TSEFSRRABEhgKFE1BUktFVF9UWVBFX0hLX1NUT0NLEAISGAoUTUFSS0VUX1RZUEVfVVNf'
-    'U1RPQ0sQAxIWChJNQVJLRVRfVFlQRV9DUllQVE8QBBIUChBNQVJLRVRfVFlQRV9GVU5EEAU=');
+    'U1RPQ0sQAxIWChJNQVJLRVRfVFlQRV9DUllQVE8QBBIUChBNQVJLRVRfVFlQRV9GVU5EEAUSHg'
+    'oaTUFSS0VUX1RZUEVfUFJFQ0lPVVNfTUVUQUwQBg==');
 
 @$core.Deprecated('Use tradeTypeDescriptor instead')
 const TradeType$json = {
@@ -337,11 +339,15 @@ final $typed_data.Uint8List listTradesResponseDescriptor = $convert.base64Decode
 @$core.Deprecated('Use getPortfolioSummaryRequestDescriptor instead')
 const GetPortfolioSummaryRequest$json = {
   '1': 'GetPortfolioSummaryRequest',
+  '2': [
+    {'1': 'family_id', '3': 1, '4': 1, '5': 9, '10': 'familyId'},
+  ],
 };
 
 /// Descriptor for `GetPortfolioSummaryRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getPortfolioSummaryRequestDescriptor = $convert.base64Decode(
-    'ChpHZXRQb3J0Zm9saW9TdW1tYXJ5UmVxdWVzdA==');
+    'ChpHZXRQb3J0Zm9saW9TdW1tYXJ5UmVxdWVzdBIbCglmYW1pbHlfaWQYASABKAlSCGZhbWlseU'
+    'lk');
 
 @$core.Deprecated('Use getQuoteRequestDescriptor instead')
 const GetQuoteRequest$json = {
@@ -447,4 +453,47 @@ final $typed_data.Uint8List priceHistoryResponseDescriptor = $convert.base64Deco
     'RfdHlwZRgCIAEoDjImLmZhbWlseWxlZGdlci5pbnZlc3RtZW50LnYxLk1hcmtldFR5cGVSCm1h'
     'cmtldFR5cGUSPgoGcG9pbnRzGAMgAygLMiYuZmFtaWx5bGVkZ2VyLmludmVzdG1lbnQudjEuUH'
     'JpY2VQb2ludFIGcG9pbnRz');
+
+@$core.Deprecated('Use getIRRRequestDescriptor instead')
+const GetIRRRequest$json = {
+  '1': 'GetIRRRequest',
+  '2': [
+    {'1': 'investment_id', '3': 1, '4': 1, '5': 9, '10': 'investmentId'},
+    {'1': 'family_id', '3': 2, '4': 1, '5': 9, '10': 'familyId'},
+  ],
+};
+
+/// Descriptor for `GetIRRRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getIRRRequestDescriptor = $convert.base64Decode(
+    'Cg1HZXRJUlJSZXF1ZXN0EiMKDWludmVzdG1lbnRfaWQYASABKAlSDGludmVzdG1lbnRJZBIbCg'
+    'lmYW1pbHlfaWQYAiABKAlSCGZhbWlseUlk');
+
+@$core.Deprecated('Use cashFlowDescriptor instead')
+const CashFlow$json = {
+  '1': 'CashFlow',
+  '2': [
+    {'1': 'date', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'date'},
+    {'1': 'amount', '3': 2, '4': 1, '5': 3, '10': 'amount'},
+  ],
+};
+
+/// Descriptor for `CashFlow`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cashFlowDescriptor = $convert.base64Decode(
+    'CghDYXNoRmxvdxIuCgRkYXRlGAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIEZG'
+    'F0ZRIWCgZhbW91bnQYAiABKANSBmFtb3VudA==');
+
+@$core.Deprecated('Use iRRResponseDescriptor instead')
+const IRRResponse$json = {
+  '1': 'IRRResponse',
+  '2': [
+    {'1': 'annualized_irr', '3': 1, '4': 1, '5': 1, '10': 'annualizedIrr'},
+    {'1': 'cash_flows', '3': 2, '4': 3, '5': 11, '6': '.familyledger.investment.v1.CashFlow', '10': 'cashFlows'},
+  ],
+};
+
+/// Descriptor for `IRRResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List iRRResponseDescriptor = $convert.base64Decode(
+    'CgtJUlJSZXNwb25zZRIlCg5hbm51YWxpemVkX2lychgBIAEoAVINYW5udWFsaXplZElychJDCg'
+    'pjYXNoX2Zsb3dzGAIgAygLMiQuZmFtaWx5bGVkZ2VyLmludmVzdG1lbnQudjEuQ2FzaEZsb3dS'
+    'CWNhc2hGbG93cw==');
 

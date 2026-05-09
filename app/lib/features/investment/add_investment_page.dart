@@ -32,6 +32,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
     ('us_stock', '美股'),
     ('crypto', '加密货币'),
     ('fund', '基金'),
+    ('precious_metal', '贵金属'),
   ];
 
   @override
@@ -165,7 +166,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
 
             // Search field
             Semantics(
-              label: '搜索股票代码或名称',
+              label: _selectedMarket == 'precious_metal' ? '搜索贵金属品种' : '搜索股票代码或名称',
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
@@ -271,7 +272,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    suffixText: '股/份',
+                    suffixText: _selectedMarket == 'precious_metal' ? '克' : '股/份',
                   ),
                   onChanged: (_) => setState(() {}),
                 ),

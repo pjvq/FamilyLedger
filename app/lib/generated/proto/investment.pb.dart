@@ -14,7 +14,7 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'google/protobuf/timestamp.pb.dart' as $4;
+import 'google/protobuf/timestamp.pb.dart' as $2;
 import 'investment.pbenum.dart';
 
 export 'investment.pbenum.dart';
@@ -31,8 +31,8 @@ class Investment extends $pb.GeneratedMessage {
     $fixnum.Int64? currentValue,
     $core.double? totalReturn,
     $core.double? annualizedReturn,
-    $4.Timestamp? createdAt,
-    $4.Timestamp? updatedAt,
+    $2.Timestamp? createdAt,
+    $2.Timestamp? updatedAt,
     $core.String? familyId,
   }) {
     final $result = create();
@@ -92,8 +92,8 @@ class Investment extends $pb.GeneratedMessage {
     ..aInt64(8, _omitFieldNames ? '' : 'currentValue')
     ..a<$core.double>(9, _omitFieldNames ? '' : 'totalReturn', $pb.PbFieldType.OD)
     ..a<$core.double>(10, _omitFieldNames ? '' : 'annualizedReturn', $pb.PbFieldType.OD)
-    ..aOM<$4.Timestamp>(11, _omitFieldNames ? '' : 'createdAt', subBuilder: $4.Timestamp.create)
-    ..aOM<$4.Timestamp>(12, _omitFieldNames ? '' : 'updatedAt', subBuilder: $4.Timestamp.create)
+    ..aOM<$2.Timestamp>(11, _omitFieldNames ? '' : 'createdAt', subBuilder: $2.Timestamp.create)
+    ..aOM<$2.Timestamp>(12, _omitFieldNames ? '' : 'updatedAt', subBuilder: $2.Timestamp.create)
     ..aOS(13, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
@@ -210,26 +210,26 @@ class Investment extends $pb.GeneratedMessage {
   void clearAnnualizedReturn() => clearField(10);
 
   @$pb.TagNumber(11)
-  $4.Timestamp get createdAt => $_getN(10);
+  $2.Timestamp get createdAt => $_getN(10);
   @$pb.TagNumber(11)
-  set createdAt($4.Timestamp v) { setField(11, v); }
+  set createdAt($2.Timestamp v) { setField(11, v); }
   @$pb.TagNumber(11)
   $core.bool hasCreatedAt() => $_has(10);
   @$pb.TagNumber(11)
   void clearCreatedAt() => clearField(11);
   @$pb.TagNumber(11)
-  $4.Timestamp ensureCreatedAt() => $_ensure(10);
+  $2.Timestamp ensureCreatedAt() => $_ensure(10);
 
   @$pb.TagNumber(12)
-  $4.Timestamp get updatedAt => $_getN(11);
+  $2.Timestamp get updatedAt => $_getN(11);
   @$pb.TagNumber(12)
-  set updatedAt($4.Timestamp v) { setField(12, v); }
+  set updatedAt($2.Timestamp v) { setField(12, v); }
   @$pb.TagNumber(12)
   $core.bool hasUpdatedAt() => $_has(11);
   @$pb.TagNumber(12)
   void clearUpdatedAt() => clearField(12);
   @$pb.TagNumber(12)
-  $4.Timestamp ensureUpdatedAt() => $_ensure(11);
+  $2.Timestamp ensureUpdatedAt() => $_ensure(11);
 
   @$pb.TagNumber(13)
   $core.String get familyId => $_getSZ(12);
@@ -250,7 +250,7 @@ class InvestmentTrade extends $pb.GeneratedMessage {
     $fixnum.Int64? price,
     $fixnum.Int64? totalAmount,
     $fixnum.Int64? fee,
-    $4.Timestamp? tradeDate,
+    $2.Timestamp? tradeDate,
   }) {
     final $result = create();
     if (id != null) {
@@ -291,7 +291,7 @@ class InvestmentTrade extends $pb.GeneratedMessage {
     ..aInt64(5, _omitFieldNames ? '' : 'price')
     ..aInt64(6, _omitFieldNames ? '' : 'totalAmount')
     ..aInt64(7, _omitFieldNames ? '' : 'fee')
-    ..aOM<$4.Timestamp>(8, _omitFieldNames ? '' : 'tradeDate', subBuilder: $4.Timestamp.create)
+    ..aOM<$2.Timestamp>(8, _omitFieldNames ? '' : 'tradeDate', subBuilder: $2.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -380,15 +380,15 @@ class InvestmentTrade extends $pb.GeneratedMessage {
   void clearFee() => clearField(7);
 
   @$pb.TagNumber(8)
-  $4.Timestamp get tradeDate => $_getN(7);
+  $2.Timestamp get tradeDate => $_getN(7);
   @$pb.TagNumber(8)
-  set tradeDate($4.Timestamp v) { setField(8, v); }
+  set tradeDate($2.Timestamp v) { setField(8, v); }
   @$pb.TagNumber(8)
   $core.bool hasTradeDate() => $_has(7);
   @$pb.TagNumber(8)
   void clearTradeDate() => clearField(8);
   @$pb.TagNumber(8)
-  $4.Timestamp ensureTradeDate() => $_ensure(7);
+  $2.Timestamp ensureTradeDate() => $_ensure(7);
 }
 
 class MarketQuote extends $pb.GeneratedMessage {
@@ -403,7 +403,7 @@ class MarketQuote extends $pb.GeneratedMessage {
     $fixnum.Int64? high,
     $fixnum.Int64? low,
     $fixnum.Int64? prevClose,
-    $4.Timestamp? updatedAt,
+    $2.Timestamp? updatedAt,
   }) {
     final $result = create();
     if (symbol != null) {
@@ -456,7 +456,7 @@ class MarketQuote extends $pb.GeneratedMessage {
     ..aInt64(8, _omitFieldNames ? '' : 'high')
     ..aInt64(9, _omitFieldNames ? '' : 'low')
     ..aInt64(10, _omitFieldNames ? '' : 'prevClose')
-    ..aOM<$4.Timestamp>(11, _omitFieldNames ? '' : 'updatedAt', subBuilder: $4.Timestamp.create)
+    ..aOM<$2.Timestamp>(11, _omitFieldNames ? '' : 'updatedAt', subBuilder: $2.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -572,15 +572,15 @@ class MarketQuote extends $pb.GeneratedMessage {
   void clearPrevClose() => clearField(10);
 
   @$pb.TagNumber(11)
-  $4.Timestamp get updatedAt => $_getN(10);
+  $2.Timestamp get updatedAt => $_getN(10);
   @$pb.TagNumber(11)
-  set updatedAt($4.Timestamp v) { setField(11, v); }
+  set updatedAt($2.Timestamp v) { setField(11, v); }
   @$pb.TagNumber(11)
   $core.bool hasUpdatedAt() => $_has(10);
   @$pb.TagNumber(11)
   void clearUpdatedAt() => clearField(11);
   @$pb.TagNumber(11)
-  $4.Timestamp ensureUpdatedAt() => $_ensure(10);
+  $2.Timestamp ensureUpdatedAt() => $_ensure(10);
 }
 
 class PortfolioSummary extends $pb.GeneratedMessage {
@@ -819,7 +819,7 @@ class HoldingItem extends $pb.GeneratedMessage {
 
 class PricePoint extends $pb.GeneratedMessage {
   factory PricePoint({
-    $4.Timestamp? timestamp,
+    $2.Timestamp? timestamp,
     $fixnum.Int64? price,
   }) {
     final $result = create();
@@ -836,7 +836,7 @@ class PricePoint extends $pb.GeneratedMessage {
   factory PricePoint.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PricePoint', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.investment.v1'), createEmptyInstance: create)
-    ..aOM<$4.Timestamp>(1, _omitFieldNames ? '' : 'timestamp', subBuilder: $4.Timestamp.create)
+    ..aOM<$2.Timestamp>(1, _omitFieldNames ? '' : 'timestamp', subBuilder: $2.Timestamp.create)
     ..aInt64(2, _omitFieldNames ? '' : 'price')
     ..hasRequiredFields = false
   ;
@@ -863,15 +863,15 @@ class PricePoint extends $pb.GeneratedMessage {
   static PricePoint? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $4.Timestamp get timestamp => $_getN(0);
+  $2.Timestamp get timestamp => $_getN(0);
   @$pb.TagNumber(1)
-  set timestamp($4.Timestamp v) { setField(1, v); }
+  set timestamp($2.Timestamp v) { setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasTimestamp() => $_has(0);
   @$pb.TagNumber(1)
   void clearTimestamp() => clearField(1);
   @$pb.TagNumber(1)
-  $4.Timestamp ensureTimestamp() => $_ensure(0);
+  $2.Timestamp ensureTimestamp() => $_ensure(0);
 
   @$pb.TagNumber(2)
   $fixnum.Int64 get price => $_getI64(1);
@@ -1333,7 +1333,7 @@ class RecordTradeRequest extends $pb.GeneratedMessage {
     $core.double? quantity,
     $fixnum.Int64? price,
     $fixnum.Int64? fee,
-    $4.Timestamp? tradeDate,
+    $2.Timestamp? tradeDate,
   }) {
     final $result = create();
     if (investmentId != null) {
@@ -1366,7 +1366,7 @@ class RecordTradeRequest extends $pb.GeneratedMessage {
     ..a<$core.double>(3, _omitFieldNames ? '' : 'quantity', $pb.PbFieldType.OD)
     ..aInt64(4, _omitFieldNames ? '' : 'price')
     ..aInt64(5, _omitFieldNames ? '' : 'fee')
-    ..aOM<$4.Timestamp>(6, _omitFieldNames ? '' : 'tradeDate', subBuilder: $4.Timestamp.create)
+    ..aOM<$2.Timestamp>(6, _omitFieldNames ? '' : 'tradeDate', subBuilder: $2.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -1437,15 +1437,15 @@ class RecordTradeRequest extends $pb.GeneratedMessage {
   void clearFee() => clearField(5);
 
   @$pb.TagNumber(6)
-  $4.Timestamp get tradeDate => $_getN(5);
+  $2.Timestamp get tradeDate => $_getN(5);
   @$pb.TagNumber(6)
-  set tradeDate($4.Timestamp v) { setField(6, v); }
+  set tradeDate($2.Timestamp v) { setField(6, v); }
   @$pb.TagNumber(6)
   $core.bool hasTradeDate() => $_has(5);
   @$pb.TagNumber(6)
   void clearTradeDate() => clearField(6);
   @$pb.TagNumber(6)
-  $4.Timestamp ensureTradeDate() => $_ensure(5);
+  $2.Timestamp ensureTradeDate() => $_ensure(5);
 }
 
 class ListTradesRequest extends $pb.GeneratedMessage {
@@ -1543,12 +1543,21 @@ class ListTradesResponse extends $pb.GeneratedMessage {
 }
 
 class GetPortfolioSummaryRequest extends $pb.GeneratedMessage {
-  factory GetPortfolioSummaryRequest() => create();
+  factory GetPortfolioSummaryRequest({
+    $core.String? familyId,
+  }) {
+    final $result = create();
+    if (familyId != null) {
+      $result.familyId = familyId;
+    }
+    return $result;
+  }
   GetPortfolioSummaryRequest._() : super();
   factory GetPortfolioSummaryRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory GetPortfolioSummaryRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPortfolioSummaryRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.investment.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'familyId')
     ..hasRequiredFields = false
   ;
 
@@ -1572,6 +1581,15 @@ class GetPortfolioSummaryRequest extends $pb.GeneratedMessage {
   @$core.pragma('dart2js:noInline')
   static GetPortfolioSummaryRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetPortfolioSummaryRequest>(create);
   static GetPortfolioSummaryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get familyId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set familyId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasFamilyId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFamilyId() => clearField(1);
 }
 
 /// MarketDataService
@@ -1839,8 +1857,8 @@ class GetPriceHistoryRequest extends $pb.GeneratedMessage {
   factory GetPriceHistoryRequest({
     $core.String? symbol,
     MarketType? marketType,
-    $4.Timestamp? startDate,
-    $4.Timestamp? endDate,
+    $2.Timestamp? startDate,
+    $2.Timestamp? endDate,
   }) {
     final $result = create();
     if (symbol != null) {
@@ -1864,8 +1882,8 @@ class GetPriceHistoryRequest extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetPriceHistoryRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.investment.v1'), createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'symbol')
     ..e<MarketType>(2, _omitFieldNames ? '' : 'marketType', $pb.PbFieldType.OE, defaultOrMaker: MarketType.MARKET_TYPE_UNSPECIFIED, valueOf: MarketType.valueOf, enumValues: MarketType.values)
-    ..aOM<$4.Timestamp>(3, _omitFieldNames ? '' : 'startDate', subBuilder: $4.Timestamp.create)
-    ..aOM<$4.Timestamp>(4, _omitFieldNames ? '' : 'endDate', subBuilder: $4.Timestamp.create)
+    ..aOM<$2.Timestamp>(3, _omitFieldNames ? '' : 'startDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$2.Timestamp>(4, _omitFieldNames ? '' : 'endDate', subBuilder: $2.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -1909,26 +1927,26 @@ class GetPriceHistoryRequest extends $pb.GeneratedMessage {
   void clearMarketType() => clearField(2);
 
   @$pb.TagNumber(3)
-  $4.Timestamp get startDate => $_getN(2);
+  $2.Timestamp get startDate => $_getN(2);
   @$pb.TagNumber(3)
-  set startDate($4.Timestamp v) { setField(3, v); }
+  set startDate($2.Timestamp v) { setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasStartDate() => $_has(2);
   @$pb.TagNumber(3)
   void clearStartDate() => clearField(3);
   @$pb.TagNumber(3)
-  $4.Timestamp ensureStartDate() => $_ensure(2);
+  $2.Timestamp ensureStartDate() => $_ensure(2);
 
   @$pb.TagNumber(4)
-  $4.Timestamp get endDate => $_getN(3);
+  $2.Timestamp get endDate => $_getN(3);
   @$pb.TagNumber(4)
-  set endDate($4.Timestamp v) { setField(4, v); }
+  set endDate($2.Timestamp v) { setField(4, v); }
   @$pb.TagNumber(4)
   $core.bool hasEndDate() => $_has(3);
   @$pb.TagNumber(4)
   void clearEndDate() => clearField(4);
   @$pb.TagNumber(4)
-  $4.Timestamp ensureEndDate() => $_ensure(3);
+  $2.Timestamp ensureEndDate() => $_ensure(3);
 }
 
 class PriceHistoryResponse extends $pb.GeneratedMessage {
@@ -2001,6 +2019,194 @@ class PriceHistoryResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(3)
   $core.List<PricePoint> get points => $_getList(2);
+}
+
+class GetIRRRequest extends $pb.GeneratedMessage {
+  factory GetIRRRequest({
+    $core.String? investmentId,
+    $core.String? familyId,
+  }) {
+    final $result = create();
+    if (investmentId != null) {
+      $result.investmentId = investmentId;
+    }
+    if (familyId != null) {
+      $result.familyId = familyId;
+    }
+    return $result;
+  }
+  GetIRRRequest._() : super();
+  factory GetIRRRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory GetIRRRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetIRRRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.investment.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'investmentId')
+    ..aOS(2, _omitFieldNames ? '' : 'familyId')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  GetIRRRequest clone() => GetIRRRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  GetIRRRequest copyWith(void Function(GetIRRRequest) updates) => super.copyWith((message) => updates(message as GetIRRRequest)) as GetIRRRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetIRRRequest create() => GetIRRRequest._();
+  GetIRRRequest createEmptyInstance() => create();
+  static $pb.PbList<GetIRRRequest> createRepeated() => $pb.PbList<GetIRRRequest>();
+  @$core.pragma('dart2js:noInline')
+  static GetIRRRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetIRRRequest>(create);
+  static GetIRRRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get investmentId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set investmentId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasInvestmentId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearInvestmentId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get familyId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set familyId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasFamilyId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFamilyId() => clearField(2);
+}
+
+class CashFlow extends $pb.GeneratedMessage {
+  factory CashFlow({
+    $2.Timestamp? date,
+    $fixnum.Int64? amount,
+  }) {
+    final $result = create();
+    if (date != null) {
+      $result.date = date;
+    }
+    if (amount != null) {
+      $result.amount = amount;
+    }
+    return $result;
+  }
+  CashFlow._() : super();
+  factory CashFlow.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory CashFlow.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CashFlow', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.investment.v1'), createEmptyInstance: create)
+    ..aOM<$2.Timestamp>(1, _omitFieldNames ? '' : 'date', subBuilder: $2.Timestamp.create)
+    ..aInt64(2, _omitFieldNames ? '' : 'amount')
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  CashFlow clone() => CashFlow()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  CashFlow copyWith(void Function(CashFlow) updates) => super.copyWith((message) => updates(message as CashFlow)) as CashFlow;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CashFlow create() => CashFlow._();
+  CashFlow createEmptyInstance() => create();
+  static $pb.PbList<CashFlow> createRepeated() => $pb.PbList<CashFlow>();
+  @$core.pragma('dart2js:noInline')
+  static CashFlow getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CashFlow>(create);
+  static CashFlow? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $2.Timestamp get date => $_getN(0);
+  @$pb.TagNumber(1)
+  set date($2.Timestamp v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasDate() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDate() => clearField(1);
+  @$pb.TagNumber(1)
+  $2.Timestamp ensureDate() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get amount => $_getI64(1);
+  @$pb.TagNumber(2)
+  set amount($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasAmount() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAmount() => clearField(2);
+}
+
+class IRRResponse extends $pb.GeneratedMessage {
+  factory IRRResponse({
+    $core.double? annualizedIrr,
+    $core.Iterable<CashFlow>? cashFlows,
+  }) {
+    final $result = create();
+    if (annualizedIrr != null) {
+      $result.annualizedIrr = annualizedIrr;
+    }
+    if (cashFlows != null) {
+      $result.cashFlows.addAll(cashFlows);
+    }
+    return $result;
+  }
+  IRRResponse._() : super();
+  factory IRRResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory IRRResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'IRRResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.investment.v1'), createEmptyInstance: create)
+    ..a<$core.double>(1, _omitFieldNames ? '' : 'annualizedIrr', $pb.PbFieldType.OD)
+    ..pc<CashFlow>(2, _omitFieldNames ? '' : 'cashFlows', $pb.PbFieldType.PM, subBuilder: CashFlow.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  IRRResponse clone() => IRRResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  IRRResponse copyWith(void Function(IRRResponse) updates) => super.copyWith((message) => updates(message as IRRResponse)) as IRRResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static IRRResponse create() => IRRResponse._();
+  IRRResponse createEmptyInstance() => create();
+  static $pb.PbList<IRRResponse> createRepeated() => $pb.PbList<IRRResponse>();
+  @$core.pragma('dart2js:noInline')
+  static IRRResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<IRRResponse>(create);
+  static IRRResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.double get annualizedIrr => $_getN(0);
+  @$pb.TagNumber(1)
+  set annualizedIrr($core.double v) { $_setDouble(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAnnualizedIrr() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAnnualizedIrr() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.List<CashFlow> get cashFlows => $_getList(1);
 }
 
 

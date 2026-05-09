@@ -16,44 +16,48 @@ import 'package:grpc/service_api.dart' as $grpc;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import 'google/protobuf/empty.pb.dart' as $1;
-import 'investment.pb.dart' as $2;
+import 'investment.pb.dart' as $0;
 
 export 'investment.pb.dart';
 
 @$pb.GrpcServiceName('familyledger.investment.v1.InvestmentService')
 class InvestmentServiceClient extends $grpc.Client {
-  static final _$createInvestment = $grpc.ClientMethod<$2.CreateInvestmentRequest, $2.Investment>(
+  static final _$createInvestment = $grpc.ClientMethod<$0.CreateInvestmentRequest, $0.Investment>(
       '/familyledger.investment.v1.InvestmentService/CreateInvestment',
-      ($2.CreateInvestmentRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $2.Investment.fromBuffer(value));
-  static final _$getInvestment = $grpc.ClientMethod<$2.GetInvestmentRequest, $2.Investment>(
+      ($0.CreateInvestmentRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.Investment.fromBuffer(value));
+  static final _$getInvestment = $grpc.ClientMethod<$0.GetInvestmentRequest, $0.Investment>(
       '/familyledger.investment.v1.InvestmentService/GetInvestment',
-      ($2.GetInvestmentRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $2.Investment.fromBuffer(value));
-  static final _$listInvestments = $grpc.ClientMethod<$2.ListInvestmentsRequest, $2.ListInvestmentsResponse>(
+      ($0.GetInvestmentRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.Investment.fromBuffer(value));
+  static final _$listInvestments = $grpc.ClientMethod<$0.ListInvestmentsRequest, $0.ListInvestmentsResponse>(
       '/familyledger.investment.v1.InvestmentService/ListInvestments',
-      ($2.ListInvestmentsRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $2.ListInvestmentsResponse.fromBuffer(value));
-  static final _$updateInvestment = $grpc.ClientMethod<$2.UpdateInvestmentRequest, $2.Investment>(
+      ($0.ListInvestmentsRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.ListInvestmentsResponse.fromBuffer(value));
+  static final _$updateInvestment = $grpc.ClientMethod<$0.UpdateInvestmentRequest, $0.Investment>(
       '/familyledger.investment.v1.InvestmentService/UpdateInvestment',
-      ($2.UpdateInvestmentRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $2.Investment.fromBuffer(value));
-  static final _$deleteInvestment = $grpc.ClientMethod<$2.DeleteInvestmentRequest, $1.Empty>(
+      ($0.UpdateInvestmentRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.Investment.fromBuffer(value));
+  static final _$deleteInvestment = $grpc.ClientMethod<$0.DeleteInvestmentRequest, $1.Empty>(
       '/familyledger.investment.v1.InvestmentService/DeleteInvestment',
-      ($2.DeleteInvestmentRequest value) => value.writeToBuffer(),
+      ($0.DeleteInvestmentRequest value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $1.Empty.fromBuffer(value));
-  static final _$recordTrade = $grpc.ClientMethod<$2.RecordTradeRequest, $2.InvestmentTrade>(
+  static final _$recordTrade = $grpc.ClientMethod<$0.RecordTradeRequest, $0.InvestmentTrade>(
       '/familyledger.investment.v1.InvestmentService/RecordTrade',
-      ($2.RecordTradeRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $2.InvestmentTrade.fromBuffer(value));
-  static final _$listTrades = $grpc.ClientMethod<$2.ListTradesRequest, $2.ListTradesResponse>(
+      ($0.RecordTradeRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.InvestmentTrade.fromBuffer(value));
+  static final _$listTrades = $grpc.ClientMethod<$0.ListTradesRequest, $0.ListTradesResponse>(
       '/familyledger.investment.v1.InvestmentService/ListTrades',
-      ($2.ListTradesRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $2.ListTradesResponse.fromBuffer(value));
-  static final _$getPortfolioSummary = $grpc.ClientMethod<$2.GetPortfolioSummaryRequest, $2.PortfolioSummary>(
+      ($0.ListTradesRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.ListTradesResponse.fromBuffer(value));
+  static final _$getPortfolioSummary = $grpc.ClientMethod<$0.GetPortfolioSummaryRequest, $0.PortfolioSummary>(
       '/familyledger.investment.v1.InvestmentService/GetPortfolioSummary',
-      ($2.GetPortfolioSummaryRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $2.PortfolioSummary.fromBuffer(value));
+      ($0.GetPortfolioSummaryRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.PortfolioSummary.fromBuffer(value));
+  static final _$getInvestmentIRR = $grpc.ClientMethod<$0.GetIRRRequest, $0.IRRResponse>(
+      '/familyledger.investment.v1.InvestmentService/GetInvestmentIRR',
+      ($0.GetIRRRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.IRRResponse.fromBuffer(value));
 
   InvestmentServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -61,36 +65,40 @@ class InvestmentServiceClient extends $grpc.Client {
       : super(channel, options: options,
         interceptors: interceptors);
 
-  $grpc.ResponseFuture<$2.Investment> createInvestment($2.CreateInvestmentRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$0.Investment> createInvestment($0.CreateInvestmentRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$createInvestment, request, options: options);
   }
 
-  $grpc.ResponseFuture<$2.Investment> getInvestment($2.GetInvestmentRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$0.Investment> getInvestment($0.GetInvestmentRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$getInvestment, request, options: options);
   }
 
-  $grpc.ResponseFuture<$2.ListInvestmentsResponse> listInvestments($2.ListInvestmentsRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$0.ListInvestmentsResponse> listInvestments($0.ListInvestmentsRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$listInvestments, request, options: options);
   }
 
-  $grpc.ResponseFuture<$2.Investment> updateInvestment($2.UpdateInvestmentRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$0.Investment> updateInvestment($0.UpdateInvestmentRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$updateInvestment, request, options: options);
   }
 
-  $grpc.ResponseFuture<$1.Empty> deleteInvestment($2.DeleteInvestmentRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$1.Empty> deleteInvestment($0.DeleteInvestmentRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$deleteInvestment, request, options: options);
   }
 
-  $grpc.ResponseFuture<$2.InvestmentTrade> recordTrade($2.RecordTradeRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$0.InvestmentTrade> recordTrade($0.RecordTradeRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$recordTrade, request, options: options);
   }
 
-  $grpc.ResponseFuture<$2.ListTradesResponse> listTrades($2.ListTradesRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$0.ListTradesResponse> listTrades($0.ListTradesRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$listTrades, request, options: options);
   }
 
-  $grpc.ResponseFuture<$2.PortfolioSummary> getPortfolioSummary($2.GetPortfolioSummaryRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$0.PortfolioSummary> getPortfolioSummary($0.GetPortfolioSummaryRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$getPortfolioSummary, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.IRRResponse> getInvestmentIRR($0.GetIRRRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$getInvestmentIRR, request, options: options);
   }
 }
 
@@ -99,123 +107,135 @@ abstract class InvestmentServiceBase extends $grpc.Service {
   $core.String get $name => 'familyledger.investment.v1.InvestmentService';
 
   InvestmentServiceBase() {
-    $addMethod($grpc.ServiceMethod<$2.CreateInvestmentRequest, $2.Investment>(
+    $addMethod($grpc.ServiceMethod<$0.CreateInvestmentRequest, $0.Investment>(
         'CreateInvestment',
         createInvestment_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $2.CreateInvestmentRequest.fromBuffer(value),
-        ($2.Investment value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$2.GetInvestmentRequest, $2.Investment>(
+        ($core.List<$core.int> value) => $0.CreateInvestmentRequest.fromBuffer(value),
+        ($0.Investment value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetInvestmentRequest, $0.Investment>(
         'GetInvestment',
         getInvestment_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $2.GetInvestmentRequest.fromBuffer(value),
-        ($2.Investment value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$2.ListInvestmentsRequest, $2.ListInvestmentsResponse>(
+        ($core.List<$core.int> value) => $0.GetInvestmentRequest.fromBuffer(value),
+        ($0.Investment value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ListInvestmentsRequest, $0.ListInvestmentsResponse>(
         'ListInvestments',
         listInvestments_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $2.ListInvestmentsRequest.fromBuffer(value),
-        ($2.ListInvestmentsResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$2.UpdateInvestmentRequest, $2.Investment>(
+        ($core.List<$core.int> value) => $0.ListInvestmentsRequest.fromBuffer(value),
+        ($0.ListInvestmentsResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.UpdateInvestmentRequest, $0.Investment>(
         'UpdateInvestment',
         updateInvestment_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $2.UpdateInvestmentRequest.fromBuffer(value),
-        ($2.Investment value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$2.DeleteInvestmentRequest, $1.Empty>(
+        ($core.List<$core.int> value) => $0.UpdateInvestmentRequest.fromBuffer(value),
+        ($0.Investment value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.DeleteInvestmentRequest, $1.Empty>(
         'DeleteInvestment',
         deleteInvestment_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $2.DeleteInvestmentRequest.fromBuffer(value),
+        ($core.List<$core.int> value) => $0.DeleteInvestmentRequest.fromBuffer(value),
         ($1.Empty value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$2.RecordTradeRequest, $2.InvestmentTrade>(
+    $addMethod($grpc.ServiceMethod<$0.RecordTradeRequest, $0.InvestmentTrade>(
         'RecordTrade',
         recordTrade_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $2.RecordTradeRequest.fromBuffer(value),
-        ($2.InvestmentTrade value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$2.ListTradesRequest, $2.ListTradesResponse>(
+        ($core.List<$core.int> value) => $0.RecordTradeRequest.fromBuffer(value),
+        ($0.InvestmentTrade value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ListTradesRequest, $0.ListTradesResponse>(
         'ListTrades',
         listTrades_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $2.ListTradesRequest.fromBuffer(value),
-        ($2.ListTradesResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$2.GetPortfolioSummaryRequest, $2.PortfolioSummary>(
+        ($core.List<$core.int> value) => $0.ListTradesRequest.fromBuffer(value),
+        ($0.ListTradesResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetPortfolioSummaryRequest, $0.PortfolioSummary>(
         'GetPortfolioSummary',
         getPortfolioSummary_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $2.GetPortfolioSummaryRequest.fromBuffer(value),
-        ($2.PortfolioSummary value) => value.writeToBuffer()));
+        ($core.List<$core.int> value) => $0.GetPortfolioSummaryRequest.fromBuffer(value),
+        ($0.PortfolioSummary value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetIRRRequest, $0.IRRResponse>(
+        'GetInvestmentIRR',
+        getInvestmentIRR_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.GetIRRRequest.fromBuffer(value),
+        ($0.IRRResponse value) => value.writeToBuffer()));
   }
 
-  $async.Future<$2.Investment> createInvestment_Pre($grpc.ServiceCall call, $async.Future<$2.CreateInvestmentRequest> request) async {
+  $async.Future<$0.Investment> createInvestment_Pre($grpc.ServiceCall call, $async.Future<$0.CreateInvestmentRequest> request) async {
     return createInvestment(call, await request);
   }
 
-  $async.Future<$2.Investment> getInvestment_Pre($grpc.ServiceCall call, $async.Future<$2.GetInvestmentRequest> request) async {
+  $async.Future<$0.Investment> getInvestment_Pre($grpc.ServiceCall call, $async.Future<$0.GetInvestmentRequest> request) async {
     return getInvestment(call, await request);
   }
 
-  $async.Future<$2.ListInvestmentsResponse> listInvestments_Pre($grpc.ServiceCall call, $async.Future<$2.ListInvestmentsRequest> request) async {
+  $async.Future<$0.ListInvestmentsResponse> listInvestments_Pre($grpc.ServiceCall call, $async.Future<$0.ListInvestmentsRequest> request) async {
     return listInvestments(call, await request);
   }
 
-  $async.Future<$2.Investment> updateInvestment_Pre($grpc.ServiceCall call, $async.Future<$2.UpdateInvestmentRequest> request) async {
+  $async.Future<$0.Investment> updateInvestment_Pre($grpc.ServiceCall call, $async.Future<$0.UpdateInvestmentRequest> request) async {
     return updateInvestment(call, await request);
   }
 
-  $async.Future<$1.Empty> deleteInvestment_Pre($grpc.ServiceCall call, $async.Future<$2.DeleteInvestmentRequest> request) async {
+  $async.Future<$1.Empty> deleteInvestment_Pre($grpc.ServiceCall call, $async.Future<$0.DeleteInvestmentRequest> request) async {
     return deleteInvestment(call, await request);
   }
 
-  $async.Future<$2.InvestmentTrade> recordTrade_Pre($grpc.ServiceCall call, $async.Future<$2.RecordTradeRequest> request) async {
+  $async.Future<$0.InvestmentTrade> recordTrade_Pre($grpc.ServiceCall call, $async.Future<$0.RecordTradeRequest> request) async {
     return recordTrade(call, await request);
   }
 
-  $async.Future<$2.ListTradesResponse> listTrades_Pre($grpc.ServiceCall call, $async.Future<$2.ListTradesRequest> request) async {
+  $async.Future<$0.ListTradesResponse> listTrades_Pre($grpc.ServiceCall call, $async.Future<$0.ListTradesRequest> request) async {
     return listTrades(call, await request);
   }
 
-  $async.Future<$2.PortfolioSummary> getPortfolioSummary_Pre($grpc.ServiceCall call, $async.Future<$2.GetPortfolioSummaryRequest> request) async {
+  $async.Future<$0.PortfolioSummary> getPortfolioSummary_Pre($grpc.ServiceCall call, $async.Future<$0.GetPortfolioSummaryRequest> request) async {
     return getPortfolioSummary(call, await request);
   }
 
-  $async.Future<$2.Investment> createInvestment($grpc.ServiceCall call, $2.CreateInvestmentRequest request);
-  $async.Future<$2.Investment> getInvestment($grpc.ServiceCall call, $2.GetInvestmentRequest request);
-  $async.Future<$2.ListInvestmentsResponse> listInvestments($grpc.ServiceCall call, $2.ListInvestmentsRequest request);
-  $async.Future<$2.Investment> updateInvestment($grpc.ServiceCall call, $2.UpdateInvestmentRequest request);
-  $async.Future<$1.Empty> deleteInvestment($grpc.ServiceCall call, $2.DeleteInvestmentRequest request);
-  $async.Future<$2.InvestmentTrade> recordTrade($grpc.ServiceCall call, $2.RecordTradeRequest request);
-  $async.Future<$2.ListTradesResponse> listTrades($grpc.ServiceCall call, $2.ListTradesRequest request);
-  $async.Future<$2.PortfolioSummary> getPortfolioSummary($grpc.ServiceCall call, $2.GetPortfolioSummaryRequest request);
+  $async.Future<$0.IRRResponse> getInvestmentIRR_Pre($grpc.ServiceCall call, $async.Future<$0.GetIRRRequest> request) async {
+    return getInvestmentIRR(call, await request);
+  }
+
+  $async.Future<$0.Investment> createInvestment($grpc.ServiceCall call, $0.CreateInvestmentRequest request);
+  $async.Future<$0.Investment> getInvestment($grpc.ServiceCall call, $0.GetInvestmentRequest request);
+  $async.Future<$0.ListInvestmentsResponse> listInvestments($grpc.ServiceCall call, $0.ListInvestmentsRequest request);
+  $async.Future<$0.Investment> updateInvestment($grpc.ServiceCall call, $0.UpdateInvestmentRequest request);
+  $async.Future<$1.Empty> deleteInvestment($grpc.ServiceCall call, $0.DeleteInvestmentRequest request);
+  $async.Future<$0.InvestmentTrade> recordTrade($grpc.ServiceCall call, $0.RecordTradeRequest request);
+  $async.Future<$0.ListTradesResponse> listTrades($grpc.ServiceCall call, $0.ListTradesRequest request);
+  $async.Future<$0.PortfolioSummary> getPortfolioSummary($grpc.ServiceCall call, $0.GetPortfolioSummaryRequest request);
+  $async.Future<$0.IRRResponse> getInvestmentIRR($grpc.ServiceCall call, $0.GetIRRRequest request);
 }
 @$pb.GrpcServiceName('familyledger.investment.v1.MarketDataService')
 class MarketDataServiceClient extends $grpc.Client {
-  static final _$getQuote = $grpc.ClientMethod<$2.GetQuoteRequest, $2.MarketQuote>(
+  static final _$getQuote = $grpc.ClientMethod<$0.GetQuoteRequest, $0.MarketQuote>(
       '/familyledger.investment.v1.MarketDataService/GetQuote',
-      ($2.GetQuoteRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $2.MarketQuote.fromBuffer(value));
-  static final _$batchGetQuotes = $grpc.ClientMethod<$2.BatchGetQuotesRequest, $2.BatchGetQuotesResponse>(
+      ($0.GetQuoteRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.MarketQuote.fromBuffer(value));
+  static final _$batchGetQuotes = $grpc.ClientMethod<$0.BatchGetQuotesRequest, $0.BatchGetQuotesResponse>(
       '/familyledger.investment.v1.MarketDataService/BatchGetQuotes',
-      ($2.BatchGetQuotesRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $2.BatchGetQuotesResponse.fromBuffer(value));
-  static final _$searchSymbol = $grpc.ClientMethod<$2.SearchSymbolRequest, $2.SearchSymbolResponse>(
+      ($0.BatchGetQuotesRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.BatchGetQuotesResponse.fromBuffer(value));
+  static final _$searchSymbol = $grpc.ClientMethod<$0.SearchSymbolRequest, $0.SearchSymbolResponse>(
       '/familyledger.investment.v1.MarketDataService/SearchSymbol',
-      ($2.SearchSymbolRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $2.SearchSymbolResponse.fromBuffer(value));
-  static final _$getPriceHistory = $grpc.ClientMethod<$2.GetPriceHistoryRequest, $2.PriceHistoryResponse>(
+      ($0.SearchSymbolRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.SearchSymbolResponse.fromBuffer(value));
+  static final _$getPriceHistory = $grpc.ClientMethod<$0.GetPriceHistoryRequest, $0.PriceHistoryResponse>(
       '/familyledger.investment.v1.MarketDataService/GetPriceHistory',
-      ($2.GetPriceHistoryRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $2.PriceHistoryResponse.fromBuffer(value));
+      ($0.GetPriceHistoryRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.PriceHistoryResponse.fromBuffer(value));
 
   MarketDataServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
@@ -223,19 +243,19 @@ class MarketDataServiceClient extends $grpc.Client {
       : super(channel, options: options,
         interceptors: interceptors);
 
-  $grpc.ResponseFuture<$2.MarketQuote> getQuote($2.GetQuoteRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$0.MarketQuote> getQuote($0.GetQuoteRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$getQuote, request, options: options);
   }
 
-  $grpc.ResponseFuture<$2.BatchGetQuotesResponse> batchGetQuotes($2.BatchGetQuotesRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$0.BatchGetQuotesResponse> batchGetQuotes($0.BatchGetQuotesRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$batchGetQuotes, request, options: options);
   }
 
-  $grpc.ResponseFuture<$2.SearchSymbolResponse> searchSymbol($2.SearchSymbolRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$0.SearchSymbolResponse> searchSymbol($0.SearchSymbolRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$searchSymbol, request, options: options);
   }
 
-  $grpc.ResponseFuture<$2.PriceHistoryResponse> getPriceHistory($2.GetPriceHistoryRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$0.PriceHistoryResponse> getPriceHistory($0.GetPriceHistoryRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$getPriceHistory, request, options: options);
   }
 }
@@ -245,54 +265,54 @@ abstract class MarketDataServiceBase extends $grpc.Service {
   $core.String get $name => 'familyledger.investment.v1.MarketDataService';
 
   MarketDataServiceBase() {
-    $addMethod($grpc.ServiceMethod<$2.GetQuoteRequest, $2.MarketQuote>(
+    $addMethod($grpc.ServiceMethod<$0.GetQuoteRequest, $0.MarketQuote>(
         'GetQuote',
         getQuote_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $2.GetQuoteRequest.fromBuffer(value),
-        ($2.MarketQuote value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$2.BatchGetQuotesRequest, $2.BatchGetQuotesResponse>(
+        ($core.List<$core.int> value) => $0.GetQuoteRequest.fromBuffer(value),
+        ($0.MarketQuote value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.BatchGetQuotesRequest, $0.BatchGetQuotesResponse>(
         'BatchGetQuotes',
         batchGetQuotes_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $2.BatchGetQuotesRequest.fromBuffer(value),
-        ($2.BatchGetQuotesResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$2.SearchSymbolRequest, $2.SearchSymbolResponse>(
+        ($core.List<$core.int> value) => $0.BatchGetQuotesRequest.fromBuffer(value),
+        ($0.BatchGetQuotesResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SearchSymbolRequest, $0.SearchSymbolResponse>(
         'SearchSymbol',
         searchSymbol_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $2.SearchSymbolRequest.fromBuffer(value),
-        ($2.SearchSymbolResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$2.GetPriceHistoryRequest, $2.PriceHistoryResponse>(
+        ($core.List<$core.int> value) => $0.SearchSymbolRequest.fromBuffer(value),
+        ($0.SearchSymbolResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetPriceHistoryRequest, $0.PriceHistoryResponse>(
         'GetPriceHistory',
         getPriceHistory_Pre,
         false,
         false,
-        ($core.List<$core.int> value) => $2.GetPriceHistoryRequest.fromBuffer(value),
-        ($2.PriceHistoryResponse value) => value.writeToBuffer()));
+        ($core.List<$core.int> value) => $0.GetPriceHistoryRequest.fromBuffer(value),
+        ($0.PriceHistoryResponse value) => value.writeToBuffer()));
   }
 
-  $async.Future<$2.MarketQuote> getQuote_Pre($grpc.ServiceCall call, $async.Future<$2.GetQuoteRequest> request) async {
+  $async.Future<$0.MarketQuote> getQuote_Pre($grpc.ServiceCall call, $async.Future<$0.GetQuoteRequest> request) async {
     return getQuote(call, await request);
   }
 
-  $async.Future<$2.BatchGetQuotesResponse> batchGetQuotes_Pre($grpc.ServiceCall call, $async.Future<$2.BatchGetQuotesRequest> request) async {
+  $async.Future<$0.BatchGetQuotesResponse> batchGetQuotes_Pre($grpc.ServiceCall call, $async.Future<$0.BatchGetQuotesRequest> request) async {
     return batchGetQuotes(call, await request);
   }
 
-  $async.Future<$2.SearchSymbolResponse> searchSymbol_Pre($grpc.ServiceCall call, $async.Future<$2.SearchSymbolRequest> request) async {
+  $async.Future<$0.SearchSymbolResponse> searchSymbol_Pre($grpc.ServiceCall call, $async.Future<$0.SearchSymbolRequest> request) async {
     return searchSymbol(call, await request);
   }
 
-  $async.Future<$2.PriceHistoryResponse> getPriceHistory_Pre($grpc.ServiceCall call, $async.Future<$2.GetPriceHistoryRequest> request) async {
+  $async.Future<$0.PriceHistoryResponse> getPriceHistory_Pre($grpc.ServiceCall call, $async.Future<$0.GetPriceHistoryRequest> request) async {
     return getPriceHistory(call, await request);
   }
 
-  $async.Future<$2.MarketQuote> getQuote($grpc.ServiceCall call, $2.GetQuoteRequest request);
-  $async.Future<$2.BatchGetQuotesResponse> batchGetQuotes($grpc.ServiceCall call, $2.BatchGetQuotesRequest request);
-  $async.Future<$2.SearchSymbolResponse> searchSymbol($grpc.ServiceCall call, $2.SearchSymbolRequest request);
-  $async.Future<$2.PriceHistoryResponse> getPriceHistory($grpc.ServiceCall call, $2.GetPriceHistoryRequest request);
+  $async.Future<$0.MarketQuote> getQuote($grpc.ServiceCall call, $0.GetQuoteRequest request);
+  $async.Future<$0.BatchGetQuotesResponse> batchGetQuotes($grpc.ServiceCall call, $0.BatchGetQuotesRequest request);
+  $async.Future<$0.SearchSymbolResponse> searchSymbol($grpc.ServiceCall call, $0.SearchSymbolRequest request);
+  $async.Future<$0.PriceHistoryResponse> getPriceHistory($grpc.ServiceCall call, $0.GetPriceHistoryRequest request);
 }

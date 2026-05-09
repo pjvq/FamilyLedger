@@ -79,6 +79,8 @@ func (r *RealFetcher) FetchQuote(ctx context.Context, symbol string, marketType 
 		quote, err = r.fetchYahooQuote(ctx, symbol)
 	case "crypto":
 		quote, err = r.fetchCoinGeckoQuote(ctx, symbol)
+	case "precious_metal":
+		quote, err = r.fetchPreciousMetal(ctx, symbol)
 	default:
 		log.Printf("market: unknown market type %q, falling back to mock", marketType)
 		return r.mock.FetchQuote(ctx, symbol, marketType)
@@ -102,6 +104,8 @@ func (r *RealFetcher) SearchSymbol(ctx context.Context, query string, marketType
 		results, err = r.searchYahoo(ctx, query)
 	case "crypto":
 		results, err = r.searchCoinGecko(ctx, query)
+	case "precious_metal":
+		results, err = r.searchPreciousMetal(ctx, query)
 	default:
 		log.Printf("market: unknown market type %q for search, falling back to mock", marketType)
 		return r.mock.SearchSymbol(ctx, query, marketType)
@@ -716,4 +720,53 @@ func mockName(symbol string, marketType string) string {
 	default:
 		return symbol
 	}
+}
+
+// ── Precious Metal (贵金属) ────────────────────────────────────────────────
+// Uses 东方财富 commodity API for Shanghai Gold Exchange products.
+// Common symbols: Au99.99, Au99.95, Ag99.99, Au(T+D), Ag(T+D), pt99.95
+
+// preciousMetalList is the static catalog of supported precious metals.
+var preciousMetalList = []SymbolInfo{
+	{Symbol: "Au99.99", Name: "黄金9999", MarketType: "precious_metal"},
+	{Symbol: "Au99.95", Name: "黄金9995", MarketType: "precious_metal"},
+	{Symbol: "Au100g", Name: "黄金100克", MarketType: "precious_metal"},
+	{Symbol: "Au(T+D)", Name: "黄金T+D", MarketType: "precious_metal"},
+	{Symbol: "mAu(T+D)", Name: "迷你黄金T+D", MarketType: "precious_metal"},
+	{Symbol: "Ag99.99", Name: "白银9999", MarketType: "precious_metal"},
+	{Symbol: "Ag(T+D)", Name: "白银T+D", MarketType: "precious_metal"},
+	{Symbol: "Pt99.95", Name: "铂金9995", MarketType: "precious_metal"},
+}
+
+// preciousMetalSecID maps symbol to 东方财富 secid for commodity API.
+var preciousMetalSecID = map[string]string{
+	"Au99.99":   "118.Au99.99",
+	"Au99.95":   "118.Au99.95",
+	"Au100g":    "118.Au100g",
+	"Au(T+D)":  "118.Au(T+D)",
+	"mAu(T+D)": "118.mAu(T+D)",
+	"Ag99.99":  "118.Ag99.99",
+	"Ag(T+D)":  "118.Ag(T+D)",
+	"Pt99.95":  "118.Pt99.95",
+}
+
+func (r *RealFetcher) fetchPreciousMetal(ctx context.Context, symbol string) (*MarketQuote, error) {
+	secid, ok := preciousMetalSecID[symbol]
+	if !ok {
+		return nil, fmt.Errorf("unknown precious metal symbol: %s", symbol)
+	}
+	return r.fetchEastMoneyStock(ctx, secid, symbol, "precious_metal")
+}
+
+func (r *RealFetcher) searchPreciousMetal(_ context.Context, query string) ([]SymbolInfo, error) {
+	query = strings.ToLower(query)
+	var results []SymbolInfo
+	for _, pm := range preciousMetalList {
+		if strings.Contains(strings.ToLower(pm.Symbol), query) ||
+			strings.Contains(strings.ToLower(pm.Name), query) ||
+			strings.Contains(pm.Name, query) {
+			results = append(results, pm)
+		}
+	}
+	return results, nil
 }

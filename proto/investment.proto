@@ -33,6 +33,7 @@ enum MarketType {
     MARKET_TYPE_US_STOCK = 3;   // 美股
     MARKET_TYPE_CRYPTO = 4;     // 加密货币
     MARKET_TYPE_FUND = 5;       // 基金
+    MARKET_TYPE_PRECIOUS_METAL = 6; // 贵金属
 }
 
 enum TradeType {

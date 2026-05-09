@@ -20,6 +20,7 @@ class MarketType extends $pb.ProtobufEnum {
   static const MarketType MARKET_TYPE_US_STOCK = MarketType._(3, _omitEnumNames ? '' : 'MARKET_TYPE_US_STOCK');
   static const MarketType MARKET_TYPE_CRYPTO = MarketType._(4, _omitEnumNames ? '' : 'MARKET_TYPE_CRYPTO');
   static const MarketType MARKET_TYPE_FUND = MarketType._(5, _omitEnumNames ? '' : 'MARKET_TYPE_FUND');
+  static const MarketType MARKET_TYPE_PRECIOUS_METAL = MarketType._(6, _omitEnumNames ? '' : 'MARKET_TYPE_PRECIOUS_METAL');
 
   static const $core.List<MarketType> values = <MarketType> [
     MARKET_TYPE_UNSPECIFIED,
@@ -28,6 +29,7 @@ class MarketType extends $pb.ProtobufEnum {
     MARKET_TYPE_US_STOCK,
     MARKET_TYPE_CRYPTO,
     MARKET_TYPE_FUND,
+    MARKET_TYPE_PRECIOUS_METAL,
   ];
 
   static final $core.Map<$core.int, MarketType> _byValue = $pb.ProtobufEnum.initByValue(values);
