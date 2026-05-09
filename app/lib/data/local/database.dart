@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -139,6 +139,10 @@ class AppDatabase extends _$AppDatabase {
             // Safe on fresh installs (empty tables → no-op).
             await _deduplicateCategories();
             await _backfillParentIconKeys();
+          }
+          if (from < 16) {
+            // v15 → v16: add syncStatus column to transactions
+            await m.addColumn(transactions, transactions.syncStatus);
           }
         },
         beforeOpen: (details) async {
@@ -671,6 +675,25 @@ class AppDatabase extends _$AppDatabase {
   Future<void> markSyncOpsUploaded(List<String> ids) async {
     await (update(syncQueue)..where((s) => s.id.isIn(ids)))
         .write(const SyncQueueCompanion(uploaded: Value(true)));
+  }
+
+  /// Mark transactions as synced (called after successful push).
+  Future<void> markTransactionsSynced(List<String> entityIds) async {
+    if (entityIds.isEmpty) return;
+    await (update(transactions)..where((t) => t.id.isIn(entityIds)))
+        .write(const TransactionsCompanion(
+          synced: Value(true),
+          syncStatus: Value('synced'),
+        ));
+  }
+
+  /// Mark transactions as failed (called after push retries exhausted).
+  Future<void> markTransactionsFailed(List<String> entityIds) async {
+    if (entityIds.isEmpty) return;
+    await (update(transactions)..where((t) => t.id.isIn(entityIds)))
+        .write(const TransactionsCompanion(
+          syncStatus: Value('failed'),
+        ));
   }
 
   // Balance summary

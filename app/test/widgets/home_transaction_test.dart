@@ -73,6 +73,7 @@ Transaction _makeTransaction({
     createdAt: createdAt ?? now,
     updatedAt: updatedAt ?? now,
     synced: synced,
+    syncStatus: synced ? 'synced' : 'pending',
   );
 }
 

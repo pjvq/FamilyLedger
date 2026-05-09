@@ -129,6 +129,15 @@ class SyncEngine {
       // R7 fix: previously marked ALL ops (including failed) which caused data loss.
       if (succeededIds.isNotEmpty) {
         await _db!.markSyncOpsUploaded(succeededIds);
+
+        // Mark transaction entities as synced for UI display
+        final syncedTxnIds = pendingOps
+            .where((op) => !failedSet.contains(op.id) && op.entityType == 'transaction')
+            .map((op) => op.entityId)
+            .toList();
+        if (syncedTxnIds.isNotEmpty) {
+          await _db!.markTransactionsSynced(syncedTxnIds);
+        }
       }
 
       dev.log(
