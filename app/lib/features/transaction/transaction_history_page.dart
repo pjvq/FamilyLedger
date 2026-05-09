@@ -219,14 +219,13 @@ class _TransactionHistoryPageState
           Expanded(
             child: VirtualList<Transaction>(
               items: visible,
-              itemExtent: 72,
+              itemExtent: 72, // not used when separatorBuilder is set
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               bottomPadding: 80,
-              separatorBuilder: (context, index) {
-                // Show date header before first item, or when date changes
-                if (index >= visible.length) return const SizedBox.shrink();
-                final txn = visible[index];
+              separatorBuilder: (context, index) => const SizedBox.shrink(),
+              itemBuilder: (context, txn, index) {
+                // Show date header above this item when date changes
                 final date = DateTime(txn.txnDate.year, txn.txnDate.month, txn.txnDate.day);
                 final bool showHeader;
                 if (index == 0) {
@@ -236,16 +235,11 @@ class _TransactionHistoryPageState
                   final prevDate = DateTime(prev.txnDate.year, prev.txnDate.month, prev.txnDate.day);
                   showHeader = date != prevDate;
                 }
-                return showHeader
-                    ? _DateHeader(date: date, isDark: isDark)
-                    : const SizedBox.shrink();
-              },
-              itemBuilder: (context, txn, index) {
                 final txnCategory = categoryMap[txn.categoryId];
                 final txnParentCategory = txnCategory?.parentId != null && txnCategory!.parentId!.isNotEmpty
                     ? categoryMap[txnCategory.parentId!]
                     : null;
-                return _TransactionRow(
+                final row = _TransactionRow(
                   transaction: txn,
                   category: txnCategory,
                   parentCategory: txnParentCategory,
@@ -282,6 +276,17 @@ class _TransactionHistoryPageState
                   }
                       : null,
                 );
+                if (showHeader) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _DateHeader(date: date, isDark: isDark),
+                      row,
+                    ],
+                  );
+                }
+                return row;
               },
             ),
           ),
