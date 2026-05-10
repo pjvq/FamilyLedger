@@ -1,11 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:grpc/grpc.dart';
 import '../../data/local/database.dart' as db;
 import '../../data/remote/grpc_clients.dart';
 import '../../generated/proto/dashboard.pb.dart' as pb;
 import '../../generated/proto/dashboard.pbgrpc.dart';
+import '../../generated/proto/investment.pb.dart' as inv_pb;
+import '../../generated/proto/investment.pbgrpc.dart';
 import 'app_providers.dart';
 
 // ── Display models ──
@@ -157,10 +160,11 @@ class DashboardState {
 class DashboardNotifier extends StateNotifier<DashboardState> {
   final db.AppDatabase _db;
   final DashboardServiceClient _client;
+  final MarketDataServiceClient _marketClient;
   final String? _userId;
   final String? _familyId;
 
-  DashboardNotifier(this._db, this._client, this._userId, this._familyId)
+  DashboardNotifier(this._db, this._client, this._marketClient, this._userId, this._familyId)
       : super(const DashboardState()) {
     if (_userId != null) {
       loadAll();
@@ -171,6 +175,57 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   static const _grpcTimeout = Duration(seconds: 3);
 
   CallOptions get _callOpts => CallOptions(timeout: _grpcTimeout);
+
+  /// Refresh market quotes for investments so local net worth calc has prices.
+  Future<void> _refreshInvestmentQuotes(List<db.Investment> investments) async {
+    try {
+      final requests = investments.map((inv) => inv_pb.GetQuoteRequest()
+        ..symbol = inv.symbol
+        ..marketType = _toProtoMarketType(inv.marketType));
+      final resp = await _marketClient.batchGetQuotes(
+        inv_pb.BatchGetQuotesRequest()..requests.addAll(requests),
+        options: _callOpts,
+      );
+      for (final q in resp.quotes) {
+        final mt = _fromProtoMarketType(q.marketType);
+        await _db.upsertMarketQuote(db.MarketQuotesCompanion.insert(
+          symbol: q.symbol,
+          marketType: mt,
+          name: Value(q.name),
+          currentPrice: Value(q.currentPrice.toInt()),
+          changeAmount: Value(q.change.toInt()),
+          changePercent: Value(q.changePercent),
+          updatedAt: Value(DateTime.now()),
+        ));
+      }
+    } catch (e) {
+      // Offline: local cache will be used as-is
+    }
+  }
+
+  static const _toProtoMap = <String, inv_pb.MarketType>{
+    'a_share': inv_pb.MarketType.MARKET_TYPE_A_SHARE,
+    'hk_stock': inv_pb.MarketType.MARKET_TYPE_HK_STOCK,
+    'us_stock': inv_pb.MarketType.MARKET_TYPE_US_STOCK,
+    'crypto': inv_pb.MarketType.MARKET_TYPE_CRYPTO,
+    'fund': inv_pb.MarketType.MARKET_TYPE_FUND,
+    'precious_metal': inv_pb.MarketType.MARKET_TYPE_PRECIOUS_METAL,
+  };
+
+  static const _fromProtoMap = <inv_pb.MarketType, String>{
+    inv_pb.MarketType.MARKET_TYPE_A_SHARE: 'a_share',
+    inv_pb.MarketType.MARKET_TYPE_HK_STOCK: 'hk_stock',
+    inv_pb.MarketType.MARKET_TYPE_US_STOCK: 'us_stock',
+    inv_pb.MarketType.MARKET_TYPE_CRYPTO: 'crypto',
+    inv_pb.MarketType.MARKET_TYPE_FUND: 'fund',
+    inv_pb.MarketType.MARKET_TYPE_PRECIOUS_METAL: 'precious_metal',
+  };
+
+  static inv_pb.MarketType _toProtoMarketType(String type) =>
+      _toProtoMap[type] ?? inv_pb.MarketType.MARKET_TYPE_A_SHARE;
+
+  static String _fromProtoMarketType(inv_pb.MarketType type) =>
+      _fromProtoMap[type] ?? 'a_share';
 
   /// Load all dashboard data: local-first, then background refresh via gRPC.
   Future<void> loadAll() async {
@@ -204,7 +259,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     await _refreshNetWorthRemote();
   }
 
-  /// gRPC refresh — silent, updates state if successful.
+  /// gRPC refresh — silent, merges with local state.
   Future<void> _refreshNetWorthRemote() async {
     if (_userId == null) return;
     try {
@@ -212,23 +267,49 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         pb.GetNetWorthRequest()..familyId = _familyId ?? '',
         options: _callOpts,
       );
-      // Always use gRPC response (server properly filters by familyId)
+      final local = state.netWorth;
+      // Merge: prefer remote value, but keep local investment value only when
+      // remote returns 0 AND local DB still has active investments (not cleared).
+      // This prevents stale values when user truly liquidates all positions.
+      int investmentValue = resp.investmentValue.toInt();
+      if (investmentValue == 0 && local.investmentValue != 0) {
+        final investments = await _db.getInvestments(_userId, familyId: _familyId);
+        if (investments.isNotEmpty) {
+          // Still have holdings → server likely missing market data
+          investmentValue = local.investmentValue;
+        }
+      }
+      final cashAndBank = resp.cashAndBank.toInt();
+      final fixedAssetValue = resp.fixedAssetValue.toInt();
+      final loanBalance = resp.loanBalance.toInt();
+      final total = cashAndBank + investmentValue + fixedAssetValue + loanBalance;
+
       state = state.copyWith(
         netWorth: NetWorthData(
-          total: resp.total.toInt(),
-          cashAndBank: resp.cashAndBank.toInt(),
-          investmentValue: resp.investmentValue.toInt(),
-          fixedAssetValue: resp.fixedAssetValue.toInt(),
-          loanBalance: resp.loanBalance.toInt(),
+          total: total,
+          cashAndBank: cashAndBank,
+          investmentValue: investmentValue,
+          fixedAssetValue: fixedAssetValue,
+          loanBalance: loanBalance,
           changeFromLastMonth: resp.changeFromLastMonth.toInt(),
           changePercent: resp.changePercent,
           composition: resp.composition
-              .map((c) => AssetCompositionItem(
+              .map((c) {
+                if (c.category == 'investment' && c.value.toInt() == 0 && investmentValue != 0) {
+                  return AssetCompositionItem(
                     category: c.category,
                     label: c.label,
-                    value: c.value.toInt(),
+                    value: investmentValue,
                     weight: c.weight,
-                  ))
+                  );
+                }
+                return AssetCompositionItem(
+                  category: c.category,
+                  label: c.label,
+                  value: c.value.toInt(),
+                  weight: c.weight,
+                );
+              })
               .toList(),
         ),
       );
@@ -251,13 +332,20 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     final cashAndBank =
         accounts.fold<int>(0, (sum, a) => sum + a.balance);
 
-    // Investment value
+    // Investment value — refresh quotes first so we have current prices
     final investments = await _db.getInvestments(_userId, familyId: _familyId);
+    if (investments.isNotEmpty) {
+      await _refreshInvestmentQuotes(investments);
+    }
     int investmentValue = 0;
     for (final inv in investments) {
       final quote = await _db.getMarketQuote(inv.symbol, inv.marketType);
       final price = quote?.currentPrice ?? 0;
-      investmentValue += (inv.quantity * price).round();
+      // Fallback: if no market price, use cost basis as estimated value
+      final value = price > 0
+          ? (inv.quantity * price).round()
+          : inv.costBasis;
+      investmentValue += value;
     }
 
     // Fixed asset value
@@ -648,7 +736,8 @@ final dashboardProvider =
     StateNotifierProvider<DashboardNotifier, DashboardState>((ref) {
   final database = ref.watch(databaseProvider);
   final client = ref.watch(dashboardClientProvider);
+  final marketClient = ref.watch(marketDataClientProvider);
   final userId = ref.watch(currentUserIdProvider);
   final familyId = ref.watch(currentFamilyIdProvider);
-  return DashboardNotifier(database, client, userId, familyId);
+  return DashboardNotifier(database, client, marketClient, userId, familyId);
 });

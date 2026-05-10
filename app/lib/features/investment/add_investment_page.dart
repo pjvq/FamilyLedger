@@ -19,7 +19,6 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
   final _searchFocus = FocusNode();
   Timer? _debounce;
   String? _scopeFamilyId;
-
   SymbolSearchResult? _selectedSymbol;
   final _quantityController = TextEditingController();
   final _priceController = TextEditingController();
@@ -204,7 +203,9 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
         // Scope selector
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: FamilyScopeSelector(onChanged: (fid) => _scopeFamilyId = fid),
+          child: FamilyScopeSelector(
+            onChanged: (fid) => _scopeFamilyId = fid,
+          ),
         ),
 
         // Market type chips (scrollable row)

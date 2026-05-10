@@ -358,7 +358,10 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
       // Try to get cached quote
       final quote = await _db.getMarketQuote(inv.symbol, inv.marketType);
       final price = quote?.currentPrice ?? 0;
-      final value = (inv.quantity * price).round();
+      // Fallback: if no market price, use cost basis as estimated value
+      final value = price > 0
+          ? (inv.quantity * price).round()
+          : inv.costBasis;
 
       totalValue += value;
       totalCost += inv.costBasis;

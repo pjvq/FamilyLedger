@@ -763,6 +763,19 @@ func (r *RealFetcher) fetchPreciousMetal(ctx context.Context, symbol string) (*M
 		return nil, fmt.Errorf("unknown precious metal symbol: %s", symbol)
 	}
 
+	// Try realtime clist endpoint first
+	quote, err := r.fetchPreciousMetalRealtime(ctx, symbol, code)
+	if err == nil {
+		return quote, nil
+	}
+	log.Printf("market: realtime SGE fetch failed for %s: %v, trying kline fallback", symbol, err)
+
+	// Fallback: use kline history (works on weekends / non-trading hours)
+	return r.fetchPreciousMetalKline(ctx, symbol, code)
+}
+
+// fetchPreciousMetalRealtime fetches from the clist realtime endpoint (trading hours only).
+func (r *RealFetcher) fetchPreciousMetalRealtime(ctx context.Context, symbol, code string) (*MarketQuote, error) {
 	url := "https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=30&fs=m:118&fields=f2,f3,f4,f12,f14,f18&fltt=2"
 
 	// Retry up to 3 times (SGE endpoint can be flaky)
@@ -841,7 +854,101 @@ func (r *RealFetcher) fetchPreciousMetal(ctx context.Context, symbol string) (*M
 		return nil, fmt.Errorf("%s: not found in SGE listing", symbol)
 	}
 
-	return nil, fmt.Errorf("fetchPreciousMetal(%s) failed after 3 retries: %w", symbol, lastErr)
+	return nil, fmt.Errorf("fetchPreciousMetalRealtime(%s) failed after 3 retries: %w", symbol, lastErr)
+}
+
+// fetchPreciousMetalKline fetches the last close price from kline history.
+// Works on weekends and non-trading hours when the realtime endpoint is down.
+func (r *RealFetcher) fetchPreciousMetalKline(ctx context.Context, symbol, code string) (*MarketQuote, error) {
+	url := fmt.Sprintf(
+		"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=118.%s&fields1=f1,f2,f3,f4&fields2=f51,f52,f53,f54,f55&klt=101&fqt=0&end=20500101&lmt=10",
+		code,
+	)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create kline request: %w", err)
+	}
+	req.Header.Set("Referer", "https://www.eastmoney.com/")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible)")
+
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("kline http get: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("kline endpoint returned status %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Data struct {
+			Code   string   `json:"code"`
+			Name   string   `json:"name"`
+			Klines []string `json:"klines"`
+		} `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decode kline json: %w", err)
+	}
+
+	if len(result.Data.Klines) == 0 {
+		return nil, fmt.Errorf("%s: no kline data available", symbol)
+	}
+
+	// Parse last kline: "date,open,close,high,low"
+	lastKline := result.Data.Klines[len(result.Data.Klines)-1]
+	parts := strings.Split(lastKline, ",")
+	if len(parts) < 3 {
+		return nil, fmt.Errorf("%s: invalid kline format: %s", symbol, lastKline)
+	}
+
+	closePrice, err := strconv.ParseFloat(parts[2], 64) // close price
+	if err != nil {
+		return nil, fmt.Errorf("%s: parse close price: %w", symbol, err)
+	}
+
+	// Calculate change from prev kline if available
+	var prevClose float64
+	if len(result.Data.Klines) >= 2 {
+		prevKline := result.Data.Klines[len(result.Data.Klines)-2]
+		prevParts := strings.Split(prevKline, ",")
+		if len(prevParts) >= 3 {
+			prevClose, _ = strconv.ParseFloat(prevParts[2], 64)
+		}
+	}
+
+	var changeAmount float64
+	var changePercent float64
+	if prevClose > 0 {
+		changeAmount = closePrice - prevClose
+		changePercent = (changeAmount / prevClose) * 100
+	}
+
+	name := result.Data.Name
+	if name == "" {
+		// Lookup from our static list
+		for _, pm := range preciousMetalList {
+			if pm.Symbol == symbol {
+				name = pm.Name
+				break
+			}
+		}
+	}
+
+	priceCents := int64(math.Round(closePrice * 100))
+	changeCents := int64(math.Round(changeAmount * 100))
+
+	return &MarketQuote{
+		Symbol:        symbol,
+		Name:          name,
+		MarketType:    "precious_metal",
+		CurrentPrice:  priceCents,
+		ChangeAmount:  changeCents,
+		ChangePercent: changePercent,
+	}, nil
 }
 
 func (r *RealFetcher) searchPreciousMetal(_ context.Context, query string) ([]SymbolInfo, error) {

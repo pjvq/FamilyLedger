@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
 
 /// A SegmentedButton that lets the user choose between personal and family scope.
+/// Automatically defaults to family mode when the app is in family scope.
 /// Returns null if user has no family (widget renders nothing).
 class FamilyScopeSelector extends ConsumerStatefulWidget {
   final ValueChanged<String?> onChanged; // null = personal, familyId = family
@@ -15,7 +17,8 @@ class FamilyScopeSelector extends ConsumerStatefulWidget {
 }
 
 class _FamilyScopeSelectorState extends ConsumerState<FamilyScopeSelector> {
-  bool _isFamily = false;
+  late bool _isFamily;
+  bool _initialized = false;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +32,17 @@ class _FamilyScopeSelectorState extends ConsumerState<FamilyScopeSelector> {
     if (family == null) return const SizedBox.shrink();
 
     final familyId = family.id;
+
+    // Initialize scope from current app mode (once)
+    if (!_initialized) {
+      _initialized = true;
+      final currentFamilyId = ref.read(currentFamilyIdProvider);
+      _isFamily = currentFamilyId != null && currentFamilyId.isNotEmpty;
+      // Fire initial callback so parent knows the default
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onChanged(_isFamily ? familyId : null);
+      });
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
