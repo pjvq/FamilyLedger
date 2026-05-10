@@ -1824,8 +1824,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
       // Ensure all categories exist on server before creating transactions
       final failedCatIds = <String>{}; // Track failed category IDs globally
-      if (_importToFamily) {
-        final familyId = ref.read(currentFamilyIdProvider) ?? '';
+      {
+        final familyId = _importToFamily ? (ref.read(currentFamilyIdProvider) ?? '') : '';
         setState(() {
           _importPhase = '同步分类到服务器...';
           _importProgress = 0;
@@ -1931,7 +1931,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         }
 
         if (failedCatIds.isNotEmpty) {
-          debugPrint('Import: ${failedCatIds.length} categories failed to sync, will use default for those transactions');
+          print('[Import] ${failedCatIds.length} categories FAILED to sync: $failedCatIds');
+        } else {
+          print('[Import] All categories synced OK (total=$totalCats)');
         }
       }
 
@@ -1976,9 +1978,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           await database.updateAccountBalance(defaultAccId, delta);
           imported++;
 
-          if (_importToFamily) {
-            // For categories that failed to sync to server, use default
-            // category to avoid server creating placeholder "未分类" entries
+          // Always prepare batch request for server sync (both personal and family mode)
+          {
             var serverCatId = catId;
             if (failedCatIds.contains(catId)) {
               serverCatId = _defaultCategory?.id ?? catId;
@@ -2006,8 +2007,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         }
       }
 
-      // Phase 2: Batch push to server (50 per batch)
-      if (_importToFamily && batchReqs.isNotEmpty) {
+      // Phase 2: Batch push to server (both personal and family mode)
+      if (batchReqs.isNotEmpty) {
+        print('[Import] Phase 2: pushing ${batchReqs.length} txns to server, accountId=$defaultAccId, toFamily=$_importToFamily');
         setState(() {
           _importPhase = '同步到服务器...';
           _importProgress = 0;
@@ -2044,21 +2046,27 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                       type: chunk[j].type == pb_enum.TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
                       txnDate: DateTime.fromMillisecondsSinceEpoch(chunk[j].txnDate.seconds.toInt() * 1000),
                       note: Value(chunk[j].note),
+                      syncStatus: Value('synced'),
                     ),
                   );
                 } catch (_) {}
+              } else {
+                // Server returned same ID or empty — mark existing as synced
+                await database.markTransactionsSynced([oldId]);
               }
             }
-            debugPrint('Import: batch ${i ~/ batchSize + 1} pushed ${batchResp.createdCount} txns');
+            print('[Import] batch ${i ~/ batchSize + 1} pushed ${batchResp.createdCount} txns, errors=${batchResp.errors.length}');
             syncedCount += chunk.length;
             if (batchResp.errors.isNotEmpty) {
               syncFailed += batchResp.errors.length;
               syncedCount -= batchResp.errors.length;
-              debugPrint('Import: batch errors: ${batchResp.errors}');
+              for (final err in batchResp.errors) {
+                print('[Import] batch error: $err');
+              }
             }
-          } catch (e) {
+          } catch (e, st) {
             syncFailed += chunk.length;
-            debugPrint('Import: batch ${i ~/ batchSize + 1} failed: $e');
+            print('[Import] batch ${i ~/ batchSize + 1} FAILED: $e\n$st');
           }
           setState(() => _importProgress = syncedCount + syncFailed);
         }
@@ -2072,7 +2080,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         _isImporting = false;
         _importDone = true;
         _importedCount = imported;
-        _syncedToServerCount = _importToFamily ? (imported - syncFailed) : 0;
+        _syncedToServerCount = imported - syncFailed;
         _duplicateCount = _duplicates.length - _dupSelection.values.where((v) => v).length;
         _importErrors = [
           ...errors,
