@@ -56,10 +56,14 @@ class CategoryIconWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular((size + 16) / 2),
           ),
           alignment: Alignment.center,
-          child: Text(emoji, style: TextStyle(fontSize: size)),
+          child: Text(emoji,
+              style: TextStyle(fontSize: size, height: 1.0),
+              textAlign: TextAlign.center),
         );
       }
-      return Text(emoji, style: TextStyle(fontSize: size));
+      return Text(emoji,
+          style: TextStyle(fontSize: size, height: 1.0),
+          textAlign: TextAlign.center);
     }
 
     // Material Icons rendering
