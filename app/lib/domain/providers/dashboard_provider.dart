@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:grpc/grpc.dart';
@@ -183,15 +182,12 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       final requests = investments.map((inv) => inv_pb.GetQuoteRequest()
         ..symbol = inv.symbol
         ..marketType = _toProtoMarketType(inv.marketType));
-      debugPrint('[Dashboard] refreshing quotes for ${investments.length} investments');
       final resp = await _marketClient.batchGetQuotes(
         inv_pb.BatchGetQuotesRequest()..requests.addAll(requests),
         options: _callOpts,
       );
-      debugPrint('[Dashboard] got ${resp.quotes.length} quotes from server');
       for (final q in resp.quotes) {
         final mt = _fromProtoMarketType(q.marketType);
-        debugPrint('[Dashboard] quote: ${q.symbol} price=${q.currentPrice} mt=$mt');
         await _db.upsertMarketQuote(db.MarketQuotesCompanion.insert(
           symbol: q.symbol,
           marketType: mt,
@@ -203,34 +199,33 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         ));
       }
     } catch (e) {
-      debugPrint('[Dashboard] refreshInvestmentQuotes failed: $e');
       // Offline: local cache will be used as-is
     }
   }
 
-  static inv_pb.MarketType _toProtoMarketType(String type) {
-    switch (type) {
-      case 'a_share': return inv_pb.MarketType.MARKET_TYPE_A_SHARE;
-      case 'hk_stock': return inv_pb.MarketType.MARKET_TYPE_HK_STOCK;
-      case 'us_stock': return inv_pb.MarketType.MARKET_TYPE_US_STOCK;
-      case 'crypto': return inv_pb.MarketType.MARKET_TYPE_CRYPTO;
-      case 'fund': return inv_pb.MarketType.MARKET_TYPE_FUND;
-      case 'precious_metal': return inv_pb.MarketType.MARKET_TYPE_PRECIOUS_METAL;
-      default: return inv_pb.MarketType.MARKET_TYPE_A_SHARE;
-    }
-  }
+  static const _toProtoMap = <String, inv_pb.MarketType>{
+    'a_share': inv_pb.MarketType.MARKET_TYPE_A_SHARE,
+    'hk_stock': inv_pb.MarketType.MARKET_TYPE_HK_STOCK,
+    'us_stock': inv_pb.MarketType.MARKET_TYPE_US_STOCK,
+    'crypto': inv_pb.MarketType.MARKET_TYPE_CRYPTO,
+    'fund': inv_pb.MarketType.MARKET_TYPE_FUND,
+    'precious_metal': inv_pb.MarketType.MARKET_TYPE_PRECIOUS_METAL,
+  };
 
-  static String _fromProtoMarketType(inv_pb.MarketType type) {
-    switch (type) {
-      case inv_pb.MarketType.MARKET_TYPE_A_SHARE: return 'a_share';
-      case inv_pb.MarketType.MARKET_TYPE_HK_STOCK: return 'hk_stock';
-      case inv_pb.MarketType.MARKET_TYPE_US_STOCK: return 'us_stock';
-      case inv_pb.MarketType.MARKET_TYPE_CRYPTO: return 'crypto';
-      case inv_pb.MarketType.MARKET_TYPE_FUND: return 'fund';
-      case inv_pb.MarketType.MARKET_TYPE_PRECIOUS_METAL: return 'precious_metal';
-      default: return 'a_share';
-    }
-  }
+  static const _fromProtoMap = <inv_pb.MarketType, String>{
+    inv_pb.MarketType.MARKET_TYPE_A_SHARE: 'a_share',
+    inv_pb.MarketType.MARKET_TYPE_HK_STOCK: 'hk_stock',
+    inv_pb.MarketType.MARKET_TYPE_US_STOCK: 'us_stock',
+    inv_pb.MarketType.MARKET_TYPE_CRYPTO: 'crypto',
+    inv_pb.MarketType.MARKET_TYPE_FUND: 'fund',
+    inv_pb.MarketType.MARKET_TYPE_PRECIOUS_METAL: 'precious_metal',
+  };
+
+  static inv_pb.MarketType _toProtoMarketType(String type) =>
+      _toProtoMap[type] ?? inv_pb.MarketType.MARKET_TYPE_A_SHARE;
+
+  static String _fromProtoMarketType(inv_pb.MarketType type) =>
+      _fromProtoMap[type] ?? 'a_share';
 
   /// Load all dashboard data: local-first, then background refresh via gRPC.
   Future<void> loadAll() async {
@@ -273,11 +268,17 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         options: _callOpts,
       );
       final local = state.netWorth;
-      // Merge: prefer remote value, but keep local if remote is 0 and local has data
-      // (handles cases where server can't fetch market data, e.g., weekends)
-      final investmentValue = resp.investmentValue.toInt() != 0
-          ? resp.investmentValue.toInt()
-          : local.investmentValue;
+      // Merge: prefer remote value, but keep local investment value only when
+      // remote returns 0 AND local DB still has active investments (not cleared).
+      // This prevents stale values when user truly liquidates all positions.
+      int investmentValue = resp.investmentValue.toInt();
+      if (investmentValue == 0 && local.investmentValue != 0) {
+        final investments = await _db.getInvestments(_userId, familyId: _familyId);
+        if (investments.isNotEmpty) {
+          // Still have holdings → server likely missing market data
+          investmentValue = local.investmentValue;
+        }
+      }
       final cashAndBank = resp.cashAndBank.toInt();
       final fixedAssetValue = resp.fixedAssetValue.toInt();
       final loanBalance = resp.loanBalance.toInt();
@@ -294,12 +295,11 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           changePercent: resp.changePercent,
           composition: resp.composition
               .map((c) {
-                // Also patch investment composition item
-                if (c.category == 'investment' && c.value.toInt() == 0 && local.investmentValue != 0) {
+                if (c.category == 'investment' && c.value.toInt() == 0 && investmentValue != 0) {
                   return AssetCompositionItem(
                     category: c.category,
                     label: c.label,
-                    value: local.investmentValue,
+                    value: investmentValue,
                     weight: c.weight,
                   );
                 }
@@ -334,7 +334,6 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
     // Investment value — refresh quotes first so we have current prices
     final investments = await _db.getInvestments(_userId, familyId: _familyId);
-    debugPrint('[Dashboard] investments count=${investments.length}, familyId=$_familyId');
     if (investments.isNotEmpty) {
       await _refreshInvestmentQuotes(investments);
     }
@@ -346,10 +345,8 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       final value = price > 0
           ? (inv.quantity * price).round()
           : inv.costBasis;
-      debugPrint('[Dashboard] ${inv.symbol} qty=${inv.quantity} price=$price costBasis=${inv.costBasis} value=$value quote=${quote != null}');
       investmentValue += value;
     }
-    debugPrint('[Dashboard] investmentValue=$investmentValue');
 
     // Fixed asset value
     final assets = await _db.getFixedAssets(_userId, familyId: _familyId);

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
-import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/investment_provider.dart';
 import '../../domain/providers/market_data_provider.dart';
 import '../shared/family_scope_selector.dart';
@@ -20,8 +19,6 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
   final _searchFocus = FocusNode();
   Timer? _debounce;
   String? _scopeFamilyId;
-  bool _scopeInitialized = false;
-
   SymbolSearchResult? _selectedSymbol;
   final _quantityController = TextEditingController();
   final _priceController = TextEditingController();
@@ -187,12 +184,6 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // Initialize scope to current mode on first build
-    if (!_scopeInitialized) {
-      _scopeFamilyId = ref.read(currentFamilyIdProvider);
-      _scopeInitialized = true;
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('添加投资'),
@@ -213,7 +204,6 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: FamilyScopeSelector(
-            initialFamilyId: _scopeFamilyId,
             onChanged: (fid) => _scopeFamilyId = fid,
           ),
         ),

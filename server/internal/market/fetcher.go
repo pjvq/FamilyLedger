@@ -861,7 +861,7 @@ func (r *RealFetcher) fetchPreciousMetalRealtime(ctx context.Context, symbol, co
 // Works on weekends and non-trading hours when the realtime endpoint is down.
 func (r *RealFetcher) fetchPreciousMetalKline(ctx context.Context, symbol, code string) (*MarketQuote, error) {
 	url := fmt.Sprintf(
-		"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=118.%s&fields1=f1,f2,f3,f4&fields2=f51,f52,f53,f54,f55&klt=101&fqt=0&end=20500101&lmt=3",
+		"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=118.%s&fields1=f1,f2,f3,f4&fields2=f51,f52,f53,f54,f55&klt=101&fqt=0&end=20500101&lmt=10",
 		code,
 	)
 

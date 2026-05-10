@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/account_provider.dart';
-import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/loan_provider.dart';
 import '../shared/family_scope_selector.dart';
 import '../transaction/widgets/number_pad.dart';
@@ -35,7 +34,6 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
   String? _accountId;
   bool _isSubmitting = false;
   String? _scopeFamilyId; // null = personal, familyId = family
-  bool _scopeInitialized = false;
 
   // ── Commercial loan fields ──
   final _comRateController = TextEditingController();
@@ -101,11 +99,6 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
     final theme = Theme.of(context);
     final accountState = ref.watch(accountProvider);
 
-    if (!_scopeInitialized) {
-      _scopeFamilyId = ref.read(currentFamilyIdProvider);
-      _scopeInitialized = true;
-    }
-
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
@@ -132,7 +125,6 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
                 const SizedBox(height: 20),
                 // ── 归属选择（个人/家庭）──
                 FamilyScopeSelector(
-                  initialFamilyId: _scopeFamilyId,
                   onChanged: (fid) => _scopeFamilyId = fid,
                 ),
                 // ── 贷款名称 ──

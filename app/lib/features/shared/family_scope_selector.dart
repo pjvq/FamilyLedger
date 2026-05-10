@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
 
 /// A SegmentedButton that lets the user choose between personal and family scope.
+/// Automatically defaults to family mode when the app is in family scope.
 /// Returns null if user has no family (widget renders nothing).
 class FamilyScopeSelector extends ConsumerStatefulWidget {
   final ValueChanged<String?> onChanged; // null = personal, familyId = family
-  final String? initialFamilyId; // if non-null, default to family mode
 
-  const FamilyScopeSelector({super.key, required this.onChanged, this.initialFamilyId});
+  const FamilyScopeSelector({super.key, required this.onChanged});
 
   @override
   ConsumerState<FamilyScopeSelector> createState() =>
@@ -17,12 +18,7 @@ class FamilyScopeSelector extends ConsumerStatefulWidget {
 
 class _FamilyScopeSelectorState extends ConsumerState<FamilyScopeSelector> {
   late bool _isFamily;
-
-  @override
-  void initState() {
-    super.initState();
-    _isFamily = widget.initialFamilyId != null && widget.initialFamilyId!.isNotEmpty;
-  }
+  bool _initialized = false;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +32,17 @@ class _FamilyScopeSelectorState extends ConsumerState<FamilyScopeSelector> {
     if (family == null) return const SizedBox.shrink();
 
     final familyId = family.id;
+
+    // Initialize scope from current app mode (once)
+    if (!_initialized) {
+      _initialized = true;
+      final currentFamilyId = ref.read(currentFamilyIdProvider);
+      _isFamily = currentFamilyId != null && currentFamilyId.isNotEmpty;
+      // Fire initial callback so parent knows the default
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onChanged(_isFamily ? familyId : null);
+      });
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
