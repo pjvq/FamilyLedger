@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
+import '../../core/constants/category_icon_widget.dart';
 import '../../core/constants/category_icons.dart';
 import '../../data/local/database.dart' as db;
 import '../../data/remote/grpc_clients.dart';
@@ -371,7 +372,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                 color: color.withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
-              child: Icon(CategoryIcons.getIcon(iconKey), color: color, size: 22),
+              child: CategoryIconWidget(iconKey: iconKey, size: 22, showBackground: false),
             ),
             title: Row(
               children: [
@@ -479,7 +480,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
               color: color.withOpacity(0.08),
               shape: BoxShape.circle,
             ),
-            child: Icon(CategoryIcons.getIcon(iconKey), color: color, size: 16),
+            child: CategoryIconWidget(iconKey: iconKey, size: 16, showBackground: false),
           ),
           title: Row(
             children: [
@@ -577,8 +578,10 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                           border: Border.all(
                               color: color.withOpacity(0.3), width: 1.5),
                         ),
-                        child: Icon(CategoryIcons.getIcon(iconKey),
-                            color: color, size: 28),
+                        child: CategoryIconWidget(
+                            iconKey: iconKey,
+                            size: 28,
+                            showBackground: false),
                       ),
                     ),
                     const SizedBox(width: 4),
