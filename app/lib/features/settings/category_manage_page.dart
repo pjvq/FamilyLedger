@@ -389,23 +389,20 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                 ],
               ],
             ),
-            trailing: hasChildren
-                ? AnimatedRotation(
+            trailing: AnimatedRotation(
                     turns: isExpanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
                     child: Icon(Icons.expand_more,
-                        color: theme.colorScheme.onSurface.withOpacity(0.4)),
-                  )
-                : null,
-            onTap: hasChildren
-                ? () => setState(() {
+                        color: theme.colorScheme.onSurface.withOpacity(
+                            hasChildren ? 0.4 : 0.2)),
+                  ),
+            onTap: () => setState(() {
                       if (isExpanded) {
                         _expandedIds.remove(cat.id);
                       } else {
                         _expandedIds.add(cat.id);
                       }
-                    })
-                : null,
+                    }),
             onLongPress: cat.isPreset ? null : () => _editCategory(cat),
           ),
         ),
