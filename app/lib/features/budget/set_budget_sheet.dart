@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/local/database.dart' show Category;
 import '../../domain/providers/budget_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 
@@ -17,6 +18,7 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
   final Map<String, TextEditingController> _catControllers = {};
   bool _showCategories = false;
   bool _isSaving = false;
+  final Set<String> _expandedParents = {};
 
   @override
   void initState() {
@@ -50,6 +52,143 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
 
   TextEditingController _getController(String catId) {
     return _catControllers.putIfAbsent(catId, () => TextEditingController());
+  }
+
+  /// Build category budget rows grouped by parent (1st level) → children (2nd level).
+  List<Widget> _buildGroupedCategories(
+      List<Category> allCats, ThemeData theme, bool isDark) {
+    // Separate into parents (parentId == null) and children
+    final parents = allCats.where((c) => c.parentId == null).toList();
+    final childrenMap = <String, List<Category>>{};
+    for (final c in allCats.where((c) => c.parentId != null)) {
+      childrenMap.putIfAbsent(c.parentId!, () => []).add(c);
+    }
+
+    final widgets = <Widget>[];
+    for (final parent in parents) {
+      final children = childrenMap[parent.id] ?? [];
+      final isExpanded = _expandedParents.contains(parent.id);
+
+      // Parent row: icon + name + budget input + expand toggle
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Column(
+            children: [
+              InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: children.isNotEmpty
+                    ? () => setState(() {
+                          if (isExpanded) {
+                            _expandedParents.remove(parent.id);
+                          } else {
+                            _expandedParents.add(parent.id);
+                          }
+                        })
+                    : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Text(parent.icon,
+                          style: const TextStyle(fontSize: 22)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: Row(
+                          children: [
+                            Text(
+                              parent.name,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (children.isNotEmpty) ...[
+                              const SizedBox(width: 4),
+                              Icon(
+                                isExpanded
+                                    ? Icons.expand_less
+                                    : Icons.expand_more,
+                                size: 18,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: _buildBudgetInput(
+                            parent.id, parent.name, theme, isDark),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Children rows (indented)
+              if (isExpanded && children.isNotEmpty)
+                ...children.map((child) => Padding(
+                      padding:
+                          const EdgeInsets.only(left: 32, bottom: 2),
+                      child: Padding(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Text(child.icon,
+                                style: const TextStyle(fontSize: 18)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                child.name,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color:
+                                      theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: _buildBudgetInput(
+                                  child.id, child.name, theme, isDark),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )),
+            ],
+          ),
+        ),
+      );
+    }
+    return widgets;
+  }
+
+  Widget _buildBudgetInput(
+      String catId, String catName, ThemeData theme, bool isDark) {
+    final controller = _getController(catId);
+    return Semantics(
+      label: '$catName分类预算金额',
+      child: TextField(
+        controller: controller,
+        keyboardType:
+            const TextInputType.numberWithOptions(decimal: true),
+        textAlign: TextAlign.right,
+        decoration: InputDecoration(
+          prefixText: '¥ ',
+          hintText: '0',
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          filled: true,
+          fillColor: isDark ? AppColors.cardDark : AppColors.cardLight,
+        ),
+      ),
+    );
   }
 
   Future<void> _save() async {
@@ -211,61 +350,11 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                         contentPadding: EdgeInsets.zero,
                       ),
 
-                      // Category budget list
+                      // Category budget list — grouped by parent
                       if (_showCategories) ...[
                         const SizedBox(height: 8),
-                        ...expenseCategories.map((cat) {
-                          final controller = _getController(cat.id);
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Semantics(
-                              label: '${cat.name}分类预算金额',
-                              child: Row(
-                                children: [
-                                  Text(cat.icon,
-                                      style:
-                                          const TextStyle(fontSize: 20)),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      cat.name,
-                                      style: theme.textTheme.bodyLarge,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 3,
-                                    child: TextField(
-                                      controller: controller,
-                                      keyboardType:
-                                          const TextInputType
-                                              .numberWithOptions(
-                                              decimal: true),
-                                      textAlign: TextAlign.right,
-                                      decoration: InputDecoration(
-                                        prefixText: '¥ ',
-                                        hintText: '0',
-                                        isDense: true,
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                                horizontal: 12,
-                                                vertical: 10),
-                                        border: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                        ),
-                                        filled: true,
-                                        fillColor: isDark
-                                            ? AppColors.cardDark
-                                            : AppColors.cardLight,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }),
+                        ..._buildGroupedCategories(
+                            expenseCategories, theme, isDark),
                       ],
 
                       const SizedBox(height: 24),
