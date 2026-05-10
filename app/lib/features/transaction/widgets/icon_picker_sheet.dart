@@ -1,28 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/category_icons.dart';
 
-/// 常用 emoji 分组（用于图标选择器的 Emoji tab）
-const Map<String, List<String>> _emojiGroups = {
-  '餐饮': ['🍚', '🍜', '🍲', '🍛', '🍱', '🍣', '🍕', '🍔', '🌮', '🥗',
-           '🥐', '☕', '🧋', '🍵', '🍺', '🍷', '🧁', '🍰', '🍩', '🍿'],
-  '交通': ['🚗', '🚕', '🚌', '🚇', '🚄', '🛵', '🚲', '✈️', '🚢', '⛽',
-           '🅿️', '🛻', '🚐', '🏍️', '🛺', '🚠'],
-  '购物': ['🛒', '🛍️', '📱', '💻', '🖥️', '🎧', '📷', '👗', '👟', '👜',
-           '💍', '🧴', '💄', '🪥', '🧹', '🧺'],
-  '居住': ['🏠', '🏢', '🔑', '💡', '🚿', '🛋️', '🧊', '📺', '🪴', '🔧',
-           '🪣', '🧰', '🔌', '🌡️', '🛏️', '🪑'],
-  '娱乐': ['🎬', '🎮', '🎵', '📚', '🎨', '🏊', '⚽', '🎳', '🎯', '♟️',
-           '🧩', '🎤', '🎪', '🎠', '🏄', '⛷️'],
-  '健康': ['🏥', '💊', '🩺', '🩹', '🧘', '💪', '🦷', '👁️', '🫀', '🧬'],
-  '教育': ['🎓', '📖', '✏️', '🏫', '🔬', '🧮', '🗂️', '📝', '🖊️', '📐'],
-  '社交': ['🎁', '🧧', '💐', '🎂', '🍻', '👶', '💒', '🤝', '❤️', '🎊'],
-  '宠物': ['🐶', '🐱', '🐟', '🐦', '🐹', '🐰', '🐢', '🦜', '🐾', '🦴'],
-  '旅行': ['🏖️', '⛰️', '🗼', '🎡', '🏕️', '🧳', '🗺️', '🌅', '📸', '⛺'],
-  '收入': ['💰', '💵', '📈', '🏦', '💳', '🤑', '💎', '🪙', '📊', '🎰'],
-  '表情': ['⭐', '🔥', '💫', '✨', '🌈', '🎉', '💝', '🏆', '👍', '🙌',
-           '🌟', '❄️', '🌸', '🍀', '🎵', '💬'],
-};
-
 /// 图标选择器 BottomSheet
 /// 使用: showIconPickerSheet(context, selectedKey: 'food', onSelect: (key) { ... })
 Future<void> showIconPickerSheet(
@@ -238,8 +216,21 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
   }
 
   Widget _buildEmojiTab(ThemeData theme) {
-    final emojiEntries = _emojiGroups.entries.toList();
+    final emojiEntries = CategoryIcons.kEmojiGroups.entries.toList();
     final currentEmojis = emojiEntries[_emojiSubIndex].value;
+    // Find which sub-group contains the selected emoji (for cross-group indicator)
+    final selectedEmoji = (_selected != null && _selected!.startsWith('emoji:'))
+        ? _selected!.substring(6)
+        : null;
+    int? selectedGroupIndex;
+    if (selectedEmoji != null) {
+      for (int i = 0; i < emojiEntries.length; i++) {
+        if (emojiEntries[i].value.contains(selectedEmoji)) {
+          selectedGroupIndex = i;
+          break;
+        }
+      }
+    }
 
     return Column(
       children: [
@@ -255,7 +246,10 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 3),
                 child: ChoiceChip(
-                  label: Text(emojiEntries[index].key,
+                  label: Text(
+                      (selectedGroupIndex == index && index != _emojiSubIndex)
+                          ? '${emojiEntries[index].key} ●'
+                          : emojiEntries[index].key,
                       style: const TextStyle(fontSize: 12)),
                   selected: isActive,
                   onSelected: (_) =>

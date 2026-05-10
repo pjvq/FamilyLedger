@@ -69,7 +69,7 @@ void main() {
       final cats = await db.getCategoriesByType('expense');
       final food = cats.firstWhere((c) => c.id == _catFood);
       expect(food.name, '餐饮');
-      expect(food.iconKey, '🍜');
+      expect(food.iconKey, 'food');
       expect(food.isPreset, true);
     });
   });

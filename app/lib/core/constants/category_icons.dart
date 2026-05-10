@@ -95,7 +95,7 @@ class CategoryIcons {
     'entertainment_basketball': Icons.sports_basketball,
     'entertainment_soccer': Icons.sports_soccer,
     'entertainment_tennis': Icons.sports_tennis,
-    'entertainment_bowling': Icons.sports_cricket,
+    'entertainment_cricket': Icons.sports_cricket,
     'entertainment_theater': Icons.theater_comedy,
 
     // ── 医疗 (15) ──
@@ -294,7 +294,7 @@ class CategoryIcons {
              'entertainment_music', 'entertainment_karaoke', 'entertainment_photo', 'entertainment_art',
              'entertainment_dance', 'entertainment_swim', 'entertainment_ski', 'entertainment_golf',
              'entertainment_basketball', 'entertainment_soccer', 'entertainment_tennis',
-             'entertainment_bowling', 'entertainment_theater'],
+             'entertainment_cricket', 'entertainment_theater'],
     '健康': ['medical', 'medical_clinic', 'medical_hospital', 'medical_pharmacy', 'medical_health',
              'medical_dental', 'medical_eye', 'medical_heart', 'medical_vaccine', 'medical_emergency',
              'medical_insurance', 'medical_yoga', 'medical_run', 'medical_nutrition', 'medical_psychology'],
@@ -382,7 +382,7 @@ class CategoryIcons {
     'entertainment_karaoke': 'KTV', 'entertainment_photo': '摄影', 'entertainment_art': '艺术',
     'entertainment_dance': '夜生活', 'entertainment_swim': '游泳', 'entertainment_ski': '滑雪',
     'entertainment_golf': '高尔夫', 'entertainment_basketball': '篮球', 'entertainment_soccer': '足球',
-    'entertainment_tennis': '网球', 'entertainment_bowling': '保龄球', 'entertainment_theater': '话剧',
+    'entertainment_tennis': '网球', 'entertainment_cricket': '板球', 'entertainment_theater': '话剧',
 
     'medical': '医疗', 'medical_clinic': '门诊', 'medical_hospital': '住院', 'medical_pharmacy': '买药',
     'medical_health': '保健', 'medical_dental': '牙科', 'medical_eye': '眼科', 'medical_heart': '心脏',
@@ -460,4 +460,26 @@ class CategoryIcons {
 
   /// 所有图标 keys
   static List<String> get allKeys => _icons.keys.toList();
+
+  /// 常用 emoji 分组（用于图标选择器的 Emoji tab）
+  static const Map<String, List<String>> kEmojiGroups = {
+    '餐饮': ['🍚', '🍜', '🍲', '🍛', '🍱', '🍣', '🍕', '🍔', '🌮', '🥗',
+             '🥐', '☕', '🧋', '🍵', '🍺', '🍷', '🧁', '🍰', '🍩', '🍿'],
+    '交通': ['🚗', '🚕', '🚌', '🚇', '🚄', '🛵', '🚲', '✈️', '🚢', '⛽',
+             '🅿️', '🛻', '🚐', '🏍️', '🛺', '🚠'],
+    '购物': ['🛒', '🛍️', '📱', '💻', '🖥️', '🎧', '📷', '👗', '👟', '👜',
+             '💍', '🧴', '💄', '🪥', '🧹', '🧺'],
+    '居住': ['🏠', '🏢', '🔑', '💡', '🚿', '🛋️', '🧊', '📺', '🪴', '🔧',
+             '🪣', '🧰', '🔌', '🌡️', '🛏️', '🪑'],
+    '娱乐': ['🎬', '🎮', '🎵', '📚', '🎨', '🏊', '⚽', '🎳', '🎯', '♟️',
+             '🧩', '🎤', '🎪', '🎠', '🏄', '⛷️'],
+    '健康': ['🏥', '💊', '🩺', '🩹', '🧘', '💪', '🦷', '👁️', '🫀', '🧬'],
+    '教育': ['🎓', '📖', '✏️', '🏫', '🔬', '🧮', '🗂️', '📝', '🖊️', '📐'],
+    '社交': ['🎁', '🧧', '💐', '🎂', '🍻', '👶', '💒', '🤝', '❤️', '🎊'],
+    '宠物': ['🐶', '🐱', '🐟', '🐦', '🐹', '🐰', '🐢', '🦜', '🐾', '🦴'],
+    '旅行': ['🏖️', '⛰️', '🗼', '🎡', '🏕️', '🧳', '🗺️', '🌅', '📸', '⛺'],
+    '收入': ['💰', '💵', '📈', '🏦', '💳', '🤑', '💎', '🪙', '📊', '🎰'],
+    '表情': ['⭐', '🔥', '💫', '✨', '🌈', '🎉', '💝', '🏆', '👍', '🙌',
+             '🌟', '❄️', '🌸', '🍀', '🎵', '💬'],
+  };
 }

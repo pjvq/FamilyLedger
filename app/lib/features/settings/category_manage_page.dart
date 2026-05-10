@@ -312,15 +312,15 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.category_outlined,
-                size: 64, color: theme.colorScheme.onSurface.withOpacity(0.2)),
+                size: 64, color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
             const SizedBox(height: 12),
             Text('暂无分类',
                 style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.4))),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4))),
             const SizedBox(height: 4),
             Text('点击右上角 + 添加',
                 style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.3))),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3))),
           ],
         ),
       );
@@ -365,7 +365,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: CategoryIconWidget(iconKey: iconKey, size: 22, showBackground: false),
@@ -378,13 +378,13 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.08),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text('预设',
                         style: TextStyle(
                             fontSize: 10,
-                            color: theme.colorScheme.primary.withOpacity(0.6))),
+                            color: theme.colorScheme.primary.withValues(alpha: 0.6))),
                   ),
                 ],
               ],
@@ -420,11 +420,11 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                   dense: true,
                   leading: Icon(Icons.add_circle_outline,
                       size: 20,
-                      color: theme.colorScheme.primary.withOpacity(0.6)),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.6)),
                   title: Text('添加子分类',
                       style: TextStyle(
                           fontSize: 13,
-                          color: theme.colorScheme.primary.withOpacity(0.6))),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.6))),
                   onTap: () => _addCategory(parentId: cat.id),
                 ),
               ),
@@ -438,7 +438,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
           Divider(
               height: 1,
               indent: 72,
-              color: theme.colorScheme.outlineVariant.withOpacity(0.3)),
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
       ],
     );
   }
@@ -470,7 +470,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              color: color.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: CategoryIconWidget(iconKey: iconKey, size: 16, showBackground: false),
@@ -484,13 +484,13 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.06),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(3),
                   ),
                   child: Text('预设',
                       style: TextStyle(
                           fontSize: 9,
-                          color: theme.colorScheme.primary.withOpacity(0.5))),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.5))),
                 ),
               ],
             ],
@@ -542,7 +542,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurface.withOpacity(0.2),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -566,10 +566,10 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.12),
+                          color: color.withValues(alpha: 0.12),
                           shape: BoxShape.circle,
                           border: Border.all(
-                              color: color.withOpacity(0.3), width: 1.5),
+                              color: color.withValues(alpha: 0.3), width: 1.5),
                         ),
                         child: CategoryIconWidget(
                             iconKey: iconKey,
@@ -579,7 +579,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                     ),
                     const SizedBox(width: 4),
                     Icon(Icons.edit, size: 14,
-                        color: theme.colorScheme.onSurface.withOpacity(0.3)),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextField(

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
+import '../../core/constants/category_icons.dart';
 import '../../core/utils/category_uuid.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart' as db;
@@ -1230,7 +1231,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final newCat = db.Category(
       id: id,
       name: name,
-      iconKey: '',
+      iconKey: _guessIconKey(name, type),
       type: type,
       isPreset: false,
       sortOrder: 999,
@@ -1292,7 +1293,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final newCat = db.Category(
       id: id,
       name: name,
-      iconKey: '',
+      iconKey: _guessIconKey(name, type),
       type: type,
       isPreset: false,
       sortOrder: 999,
@@ -1349,7 +1350,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final newCat = db.Category(
       id: id,
       name: name,
-      iconKey: '',
+      iconKey: _guessIconKey(name, type),
       type: type,
       isPreset: false,
       sortOrder: 999,
@@ -2094,4 +2095,51 @@ proto_ts.Timestamp _toProtoTimestamp(DateTime dt) {
   return proto_ts.Timestamp()
     ..seconds = Int64(seconds)
     ..nanos = nanos;
+}
+
+/// 根据分类名和类型智能匹配 iconKey
+String _guessIconKey(String name, String type) {
+  // 精确匹配 label→key
+  for (final entry in CategoryIcons.kIconGroups.entries) {
+    for (final key in entry.value) {
+      if (CategoryIcons.getLabel(key) == name) return key;
+    }
+  }
+
+  // 模糊匹配：分类名包含关键词
+  const nameToKey = {
+    '餐': 'food', '饭': 'food', '吃': 'food', '外卖': 'food_takeout',
+    '早餐': 'food_breakfast', '午餐': 'food_lunch', '晚餐': 'food_dinner',
+    '零食': 'food_snack', '饮': 'food_drink', '咖啡': 'food_drink',
+    '交通': 'transport', '地铁': 'transport_metro', '打车': 'transport_taxi',
+    '加油': 'transport_fuel', '停车': 'transport_parking', '公交': 'transport_bus',
+    '购物': 'shopping', '数码': 'shopping_digital', '美妆': 'shopping_beauty',
+    '网购': 'shopping_online', '超市': 'shopping_daily',
+    '房租': 'housing_rent', '物业': 'housing_property', '水电': 'housing_utility',
+    '居住': 'housing', '房': 'housing',
+    '娱乐': 'entertainment', '电影': 'entertainment_movie', '游戏': 'entertainment_game',
+    '运动': 'entertainment_sport', '健身': 'entertainment_sport',
+    '医疗': 'medical', '看病': 'medical_clinic', '买药': 'medical_pharmacy',
+    '教育': 'education', '学费': 'education_tuition', '课程': 'education_course',
+    '话费': 'communication_phone', '通讯': 'communication', '宽带': 'communication_broadband',
+    '订阅': 'communication_subscription',
+    '红包': 'gift_red_packet', '人情': 'gift', '礼': 'gift', '份子': 'gift_wedding',
+    '服饰': 'clothing', '衣': 'clothing_clothes', '鞋': 'clothing_shoes',
+    '日用': 'daily', '护理': 'daily_personal',
+    '旅': 'travel', '出差': 'travel', '酒店': 'travel_hotel',
+    '宠物': 'pet',
+    '工资': 'salary', '薪': 'salary',
+    '奖金': 'bonus', '年终': 'bonus_annual',
+    '投资': 'investment_income', '理财': 'investment_fund', '股': 'investment_stock',
+    '利息': 'investment_interest', '分红': 'investment_dividend',
+    '兼职': 'freelance', '副业': 'freelance',
+    '报销': 'reimbursement',
+  };
+
+  for (final entry in nameToKey.entries) {
+    if (name.contains(entry.key)) return entry.value;
+  }
+
+  // 按类型返回默认
+  return type == 'income' ? 'salary' : 'other';
 }
