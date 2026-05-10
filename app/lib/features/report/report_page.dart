@@ -2,6 +2,7 @@ import 'dart:ui' show FontFeature;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/category_icon_widget.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/app_providers.dart';
@@ -349,7 +350,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
                           // ── Category ranking ──
                           Text(
                             _filterParentCatId != null
-                                ? '${catMap[_filterParentCatId]?.icon ?? ""} ${catMap[_filterParentCatId]?.name ?? ""} 明细'
+                                ? '${catMap[_filterParentCatId]?.name ?? ""} 明细'
                                 : '分类排行',
                             style: theme.textTheme.titleSmall
                                 ?.copyWith(fontWeight: FontWeight.w600),
@@ -419,7 +420,8 @@ class _ReportPageState extends ConsumerState<ReportPage>
                               return _TransactionRow(
                                 transaction: t,
                                 categoryName: catName,
-                                categoryIcon: cat?.icon ?? '📦',
+                                iconKey: cat?.iconKey,
+                                icon: cat?.icon,
                                 isDark: isDark,
                                 theme: theme,
                               );
@@ -827,7 +829,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
         ),
         radius: 50,
         badgeWidget: pct >= 8
-            ? Text(cat?.icon ?? '📦', style: const TextStyle(fontSize: 16))
+            ? CategoryIconWidget(iconKey: cat?.iconKey, icon: cat?.icon, size: 14, showBackground: false)
             : null,
         badgePositionPercentageOffset: 1.3,
       ));
@@ -936,8 +938,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
             children: [
               Row(
                 children: [
-                  Text(cat?.icon ?? '📦',
-                      style: const TextStyle(fontSize: 18)),
+                  CategoryIconWidget(iconKey: cat?.iconKey, icon: cat?.icon, size: 18, showBackground: false),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -1024,14 +1025,16 @@ class _ReportPageState extends ConsumerState<ReportPage>
 class _TransactionRow extends StatelessWidget {
   final db.Transaction transaction;
   final String categoryName;
-  final String categoryIcon;
+  final String? iconKey;
+  final String? icon;
   final bool isDark;
   final ThemeData theme;
 
   const _TransactionRow({
     required this.transaction,
     required this.categoryName,
-    required this.categoryIcon,
+    this.iconKey,
+    this.icon,
     required this.isDark,
     required this.theme,
   });
@@ -1049,7 +1052,7 @@ class _TransactionRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Text(categoryIcon, style: const TextStyle(fontSize: 20)),
+          CategoryIconWidget(iconKey: iconKey, icon: icon, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
