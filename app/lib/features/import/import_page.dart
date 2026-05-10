@@ -1931,7 +1931,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         }
 
         if (failedCatIds.isNotEmpty) {
-          debugPrint('Import: ${failedCatIds.length} categories failed to sync, will use default for those transactions');
+          print('[Import] ${failedCatIds.length} categories FAILED to sync: $failedCatIds');
+        } else {
+          print('[Import] All categories synced OK (total=$totalCats)');
         }
       }
 
@@ -2007,6 +2009,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
       // Phase 2: Batch push to server (both personal and family mode)
       if (batchReqs.isNotEmpty) {
+        print('[Import] Phase 2: pushing ${batchReqs.length} txns to server, accountId=$defaultAccId, toFamily=$_importToFamily');
         setState(() {
           _importPhase = '同步到服务器...';
           _importProgress = 0;
@@ -2048,16 +2051,18 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                 } catch (_) {}
               }
             }
-            debugPrint('Import: batch ${i ~/ batchSize + 1} pushed ${batchResp.createdCount} txns');
+            print('[Import] batch ${i ~/ batchSize + 1} pushed ${batchResp.createdCount} txns, errors=${batchResp.errors.length}');
             syncedCount += chunk.length;
             if (batchResp.errors.isNotEmpty) {
               syncFailed += batchResp.errors.length;
               syncedCount -= batchResp.errors.length;
-              debugPrint('Import: batch errors: ${batchResp.errors}');
+              for (final err in batchResp.errors) {
+                print('[Import] batch error: $err');
+              }
             }
-          } catch (e) {
+          } catch (e, st) {
             syncFailed += chunk.length;
-            debugPrint('Import: batch ${i ~/ batchSize + 1} failed: $e');
+            print('[Import] batch ${i ~/ batchSize + 1} FAILED: $e\n$st');
           }
           setState(() => _importProgress = syncedCount + syncFailed);
         }
