@@ -1224,14 +1224,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     await database.upsertCategory(
       id: id,
       name: name,
-      icon: _defaultIcon,
       type: type,
       userId: userId,
     );
     final newCat = db.Category(
       id: id,
       name: name,
-      icon: _defaultIcon,
       iconKey: '',
       type: type,
       isPreset: false,
@@ -1288,14 +1286,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     await database.upsertCategory(
       id: id,
       name: name,
-      icon: _defaultIcon,
       type: type,
       userId: userId,
     );
     final newCat = db.Category(
       id: id,
       name: name,
-      icon: _defaultIcon,
       iconKey: '',
       type: type,
       isPreset: false,
@@ -1346,7 +1342,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     await database.upsertCategory(
       id: id,
       name: name,
-      icon: _defaultIcon,
       type: type,
       parentId: parentId,
       userId: userId,
@@ -1354,7 +1349,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     final newCat = db.Category(
       id: id,
       name: name,
-      icon: _defaultIcon,
       iconKey: '',
       type: type,
       isPreset: false,

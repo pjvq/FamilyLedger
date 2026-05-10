@@ -184,7 +184,6 @@ Future<void> _insertCategory(AppDatabase db, {
   await db.upsertCategory(
     id: id,
     name: name,
-    icon: '🍜',
     type: type,
     isPreset: true,
     sortOrder: 1,

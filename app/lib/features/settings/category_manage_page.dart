@@ -123,7 +123,6 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       return Category(
         id: c.id,
         name: c.name,
-        icon: c.icon,
         iconKey: c.iconKey,
         type: c.type == 'income'
             ? TransactionType.TRANSACTION_TYPE_INCOME
@@ -191,7 +190,6 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         await database.upsertCategory(
           id: cat.id,
           name: result.name,
-          icon: result.iconKey, // icon column stores the key for display
           iconKey: result.iconKey,
           type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
           parentId: cat.parentId.isEmpty ? null : cat.parentId,
@@ -216,7 +214,6 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       db.upsertCategory(
         id: cat.id,
         name: cat.name,
-        icon: cat.icon,
         iconKey: cat.iconKey,
         type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
         isPreset: cat.isPreset,
@@ -228,7 +225,6 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         db.upsertCategory(
           id: child.id,
           name: child.name,
-          icon: child.icon,
           iconKey: child.iconKey,
           type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
           isPreset: child.isPreset,

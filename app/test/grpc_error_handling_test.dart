@@ -232,7 +232,6 @@ Future<AppDatabase> _setupDb({bool withFamilyAccount = false}) async {
   await db.upsertCategory(
     id: 'cat1',
     name: 'Food',
-    icon: '🍜',
     type: 'expense',
     isPreset: true,
     sortOrder: 1,
@@ -240,7 +239,6 @@ Future<AppDatabase> _setupDb({bool withFamilyAccount = false}) async {
   await db.upsertCategory(
     id: 'cat_income',
     name: 'Salary',
-    icon: '💰',
     type: 'income',
     isPreset: true,
     sortOrder: 1,

@@ -212,7 +212,6 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       CategoriesCompanion.insert(
         id: c.id,
         name: c.name,
-        icon: c.icon,
         type: typeStr,
         isPreset: const Value(true),
         sortOrder: Value(c.sortOrder),

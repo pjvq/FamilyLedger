@@ -148,7 +148,7 @@ class TransactionDetailPage extends ConsumerWidget {
                             alignment: Alignment.center,
                             child: CategoryIconWidget(
                               iconKey: category?.iconKey,
-                              icon: category?.icon,
+
                               size: 24,
                               showBackground: false,
                             ),

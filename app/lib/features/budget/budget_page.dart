@@ -178,7 +178,6 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
           child: _CategoryBudgetTile(
             categoryName: parentName,
             iconKey: parentCat?.iconKey,
-            icon: parentCat?.icon,
             budgetAmount: parentBudget,
             spentAmount: parentSpent,
             executionRate: parentRate,
@@ -204,7 +203,6 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
           widgets.add(_CategoryBudgetTile(
             categoryName: ce.categoryName,
             iconKey: _getCategoryIconKey(ce.categoryId, txnState),
-            icon: _getCategoryIcon(ce.categoryId, txnState),
             budgetAmount: ce.budgetAmount,
             spentAmount: ce.spentAmount,
             executionRate: ce.executionRate,
@@ -225,15 +223,6 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
     ];
     final cat = allCats.where((c) => c.id == categoryId).firstOrNull;
     return cat?.iconKey;
-  }
-
-  String _getCategoryIcon(String categoryId, dynamic txnState) {
-    final allCats = [
-      ...txnState.expenseCategories,
-      ...txnState.incomeCategories,
-    ];
-    final cat = allCats.where((c) => c.id == categoryId).firstOrNull;
-    return cat?.icon ?? '📦';
   }
 
   void _showSetBudgetSheet(BuildContext context) {
@@ -300,7 +289,6 @@ class _EmptyBudgetState extends StatelessWidget {
 class _CategoryBudgetTile extends StatelessWidget {
   final String categoryName;
   final String? iconKey;
-  final String? icon;
   final int budgetAmount;
   final int spentAmount;
   final double executionRate;
@@ -312,7 +300,6 @@ class _CategoryBudgetTile extends StatelessWidget {
   const _CategoryBudgetTile({
     required this.categoryName,
     this.iconKey,
-    this.icon,
     required this.budgetAmount,
     required this.spentAmount,
     required this.executionRate,
@@ -378,7 +365,6 @@ class _CategoryBudgetTile extends StatelessWidget {
               children: [
                 CategoryIconWidget(
                     iconKey: iconKey,
-                    icon: icon,
                     size: isParent ? 22 : 18,
                     showBackground: true),
                 const SizedBox(width: 10),

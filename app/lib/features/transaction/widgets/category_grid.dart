@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/constants/category_icon_widget.dart';
 import '../../../core/constants/category_icons.dart';
 import '../../../data/local/database.dart';
 
@@ -78,7 +79,6 @@ class _CategoryGridState extends State<CategoryGrid> {
 
               return _MainCategoryItem(
                 iconKey: iconKey,
-                icon: cat.icon,
                 name: cat.name,
                 isSelected: isSelected,
                 hasChildren: hasChildren,
@@ -125,7 +125,6 @@ class _CategoryGridState extends State<CategoryGrid> {
 /// 主分类 Item
 class _MainCategoryItem extends StatelessWidget {
   final String iconKey;
-  final String icon;
   final String name;
   final bool isSelected;
   final bool hasChildren;
@@ -134,7 +133,6 @@ class _MainCategoryItem extends StatelessWidget {
 
   const _MainCategoryItem({
     required this.iconKey,
-    required this.icon,
     required this.name,
     required this.isSelected,
     required this.hasChildren,
@@ -173,11 +171,8 @@ class _MainCategoryItem extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Center(
-                  child: Icon(
-                    CategoryIcons.getIcon(iconKey),
-                    size: 22,
-                    color: color,
-                  ),
+                  child: CategoryIconWidget(
+                      iconKey: iconKey, size: 22, showBackground: false),
                 ),
               ),
               const SizedBox(height: 2),

@@ -66,7 +66,6 @@ class TrendPointData {
 class CategoryBreakdownItem {
   final String categoryId;
   final String categoryName;
-  final String icon;
   final String iconKey;
   final int amount;
   final double weight;
@@ -75,7 +74,6 @@ class CategoryBreakdownItem {
   const CategoryBreakdownItem({
     required this.categoryId,
     required this.categoryName,
-    required this.icon,
     this.iconKey = '',
     required this.amount,
     required this.weight,
@@ -511,7 +509,6 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
             .map((c) => CategoryBreakdownItem(
                   categoryId: c.categoryId,
                   categoryName: c.categoryName,
-                  icon: c.icon,
                   iconKey: c.iconKey,
                   amount: c.amount.toInt(),
                   weight: c.weight,
@@ -519,7 +516,6 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
                       .map((ch) => CategoryBreakdownItem(
                             categoryId: ch.categoryId,
                             categoryName: ch.categoryName,
-                            icon: ch.icon,
                             iconKey: ch.iconKey,
                             amount: ch.amount.toInt(),
                             weight: ch.weight,
@@ -565,7 +561,6 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         childrenMap[parentId]!.add(CategoryBreakdownItem(
           categoryId: entry.key,
           categoryName: cat?.name ?? '未知',
-          icon: cat?.icon ?? '📦',
           iconKey: cat?.iconKey ?? '',
           amount: entry.value,
           weight: 0, // computed later
@@ -594,7 +589,6 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       items.add(CategoryBreakdownItem(
         categoryId: id,
         categoryName: cat?.name ?? '未知',
-        icon: cat?.icon ?? '📦',
         iconKey: cat?.iconKey ?? '',
         amount: totalAmt,
         weight: 0, // computed below
@@ -607,7 +601,6 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       final updatedChildren = item.children.map((ch) => CategoryBreakdownItem(
         categoryId: ch.categoryId,
         categoryName: ch.categoryName,
-        icon: ch.icon,
         iconKey: ch.iconKey,
         amount: ch.amount,
         weight: item.amount > 0 ? ch.amount / item.amount : 0.0,
@@ -616,7 +609,6 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       items[items.indexOf(item)] = CategoryBreakdownItem(
         categoryId: item.categoryId,
         categoryName: item.categoryName,
-        icon: item.icon,
         iconKey: item.iconKey,
         amount: item.amount,
         weight: total > 0 ? item.amount / total : 0.0,

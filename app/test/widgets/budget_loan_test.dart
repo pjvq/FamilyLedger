@@ -146,7 +146,6 @@ db.Budget makeBudget({
 db.Category makeCategory({
   String id = 'cat-food',
   String name = '餐饮',
-  String icon = '🍔',
   String type = 'expense',
   bool isPreset = true,
   int sortOrder = 0,
@@ -154,7 +153,6 @@ db.Category makeCategory({
   return db.Category(
     id: id,
     name: name,
-    icon: icon,
     type: type,
     isPreset: isPreset,
     sortOrder: sortOrder,
@@ -194,12 +192,12 @@ List<Override> budgetOverrides({
       TransactionState(
         isLoading: false,
         expenseCategories: [
-          makeCategory(id: 'cat-food', name: '餐饮', icon: '🍔'),
-          makeCategory(id: 'cat-transport', name: '交通', icon: '🚌'),
+          makeCategory(id: 'cat-food', name: '餐饮'),
+          makeCategory(id: 'cat-transport', name: '交通'),
         ],
         incomeCategories: [
           makeCategory(
-              id: 'cat-salary', name: '工资', icon: '💰', type: 'income'),
+              id: 'cat-salary', name: '工资', type: 'income'),
         ],
       );
 
@@ -232,7 +230,7 @@ List<Override> loanOverrides({
         TransactionState(
           isLoading: false,
           expenseCategories: [
-            makeCategory(id: 'cat-food', name: '餐饮', icon: '🍔'),
+            makeCategory(id: 'cat-food', name: '餐饮'),
           ],
           incomeCategories: [],
         ),

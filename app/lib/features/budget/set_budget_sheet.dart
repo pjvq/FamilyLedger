@@ -93,7 +93,6 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                     children: [
                       CategoryIconWidget(
                           iconKey: parent.iconKey,
-                          icon: parent.icon,
                           size: 20,
                           showBackground: true),
                       const SizedBox(width: 10),
@@ -141,7 +140,6 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                           children: [
                             CategoryIconWidget(
                                 iconKey: child.iconKey,
-                                icon: child.icon,
                                 size: 16,
                                 showBackground: true),
                             const SizedBox(width: 8),

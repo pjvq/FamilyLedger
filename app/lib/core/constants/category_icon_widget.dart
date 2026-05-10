@@ -14,9 +14,6 @@ class CategoryIconWidget extends StatelessWidget {
   /// Primary icon identifier. Material Icons key or `emoji:X` format.
   final String? iconKey;
 
-  /// Legacy emoji icon (fallback when iconKey is empty).
-  final String? icon;
-
   /// Icon size (applies to both Material Icon and emoji text).
   final double size;
 
@@ -26,15 +23,13 @@ class CategoryIconWidget extends StatelessWidget {
   const CategoryIconWidget({
     super.key,
     this.iconKey,
-    this.icon,
     this.size = 24,
     this.showBackground = true,
   });
 
-  /// Resolve the effective icon key from iconKey + legacy icon fields.
-  static String resolveIconKey(String? iconKey, String? icon) {
+  /// Resolve the effective icon key.
+  static String resolveIconKey(String? iconKey) {
     if (iconKey != null && iconKey.isNotEmpty) return iconKey;
-    if (icon != null && icon.isNotEmpty) return 'emoji:$icon';
     return 'other';
   }
 
@@ -47,7 +42,7 @@ class CategoryIconWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final key = resolveIconKey(iconKey, icon);
+    final key = resolveIconKey(iconKey);
 
     if (isEmoji(key)) {
       // Emoji rendering

@@ -432,7 +432,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       CategoriesCompanion.insert(
         id: c.id,
         name: c.name,
-        icon: c.icon,
         type: typeStr,
         isPreset: const Value(true),
         sortOrder: Value(c.sortOrder),

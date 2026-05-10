@@ -421,7 +421,6 @@ class _ReportPageState extends ConsumerState<ReportPage>
                                 transaction: t,
                                 categoryName: catName,
                                 iconKey: cat?.iconKey,
-                                icon: cat?.icon,
                                 isDark: isDark,
                                 theme: theme,
                               );
@@ -829,7 +828,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
         ),
         radius: 50,
         badgeWidget: pct >= 8
-            ? CategoryIconWidget(iconKey: cat?.iconKey, icon: cat?.icon, size: 14, showBackground: false)
+            ? CategoryIconWidget(iconKey: cat?.iconKey, size: 14, showBackground: false)
             : null,
         badgePositionPercentageOffset: 1.3,
       ));
@@ -938,7 +937,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
             children: [
               Row(
                 children: [
-                  CategoryIconWidget(iconKey: cat?.iconKey, icon: cat?.icon, size: 18, showBackground: false),
+                  CategoryIconWidget(iconKey: cat?.iconKey, size: 18, showBackground: false),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -1026,7 +1025,6 @@ class _TransactionRow extends StatelessWidget {
   final db.Transaction transaction;
   final String categoryName;
   final String? iconKey;
-  final String? icon;
   final bool isDark;
   final ThemeData theme;
 
@@ -1034,7 +1032,6 @@ class _TransactionRow extends StatelessWidget {
     required this.transaction,
     required this.categoryName,
     this.iconKey,
-    this.icon,
     required this.isDark,
     required this.theme,
   });
@@ -1052,7 +1049,7 @@ class _TransactionRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          CategoryIconWidget(iconKey: iconKey, icon: icon, size: 20),
+          CategoryIconWidget(iconKey: iconKey, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

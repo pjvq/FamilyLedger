@@ -234,7 +234,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                 dense: true,
                 visualDensity: VisualDensity.compact,
                 contentPadding: const EdgeInsets.only(left: 56),
-                title: Text('${child.icon} ${child.name}', style: const TextStyle(fontSize: 13)),
+                title: Text('${child.name}', style: const TextStyle(fontSize: 13)),
                 value: _selectedCategoryIds.contains(child.id),
                 onChanged: (v) {
                   setState(() {
