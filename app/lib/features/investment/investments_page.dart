@@ -278,7 +278,9 @@ class _InvestmentListItem extends StatelessWidget {
     final changeColor = isUp
         ? (isDark ? AppColors.incomeDark : AppColors.income)
         : (isDark ? AppColors.expenseDark : AppColors.expense);
-    final value = (investment.quantity * price).round();
+    final value = price > 0
+        ? (investment.quantity * price).round()
+        : investment.costBasis;
 
     return Semantics(
       label:

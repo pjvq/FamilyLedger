@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
+import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/asset_provider.dart';
 import '../shared/family_scope_selector.dart';
 
@@ -19,6 +20,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   final _descController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String? _scopeFamilyId;
+  bool _scopeInitialized = false;
 
   String _selectedType = 'other';
   DateTime _purchaseDate = DateTime.now();
@@ -86,6 +88,11 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
     final isDark = theme.brightness == Brightness.dark;
     final assetState = ref.watch(assetProvider);
 
+    if (!_scopeInitialized) {
+      _scopeFamilyId = ref.read(currentFamilyIdProvider);
+      _scopeInitialized = true;
+    }
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
@@ -99,6 +106,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
           children: [
             // Family/personal scope selector
             FamilyScopeSelector(
+              initialFamilyId: _scopeFamilyId,
               onChanged: (fid) => _scopeFamilyId = fid,
             ),
             // Asset name

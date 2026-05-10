@@ -102,7 +102,9 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
         ? (isDark ? AppColors.incomeDark : AppColors.income)
         : (isDark ? AppColors.expenseDark : AppColors.expense);
 
-    final currentValue = (investment.quantity * price).round();
+    final currentValue = price > 0
+        ? (investment.quantity * price).round()
+        : investment.costBasis;
     final profit = currentValue - investment.costBasis;
     final returnRate =
         investment.costBasis > 0 ? profit / investment.costBasis : 0.0;
@@ -273,6 +275,7 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
               child: SizedBox(
                 width: double.infinity,
                 child: SegmentedButton<String>(
+                  showSelectedIcon: false,
                   segments: _timeRanges
                       .map((r) => ButtonSegment<String>(
                             value: r,
@@ -547,11 +550,14 @@ class _HoldingInfoCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: SegmentedButton<int>(
+                    showSelectedIcon: false,
                     segments: returnLabels.asMap().entries.map((e) {
                       return ButtonSegment<int>(
                         value: e.key,
                         label: Text(e.value,
-                            style: const TextStyle(fontSize: 11)),
+                            style: const TextStyle(fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
                       );
                     }).toList(),
                     selected: {returnMode},

@@ -6,8 +6,9 @@ import '../../domain/providers/family_provider.dart';
 /// Returns null if user has no family (widget renders nothing).
 class FamilyScopeSelector extends ConsumerStatefulWidget {
   final ValueChanged<String?> onChanged; // null = personal, familyId = family
+  final String? initialFamilyId; // if non-null, default to family mode
 
-  const FamilyScopeSelector({super.key, required this.onChanged});
+  const FamilyScopeSelector({super.key, required this.onChanged, this.initialFamilyId});
 
   @override
   ConsumerState<FamilyScopeSelector> createState() =>
@@ -15,7 +16,13 @@ class FamilyScopeSelector extends ConsumerStatefulWidget {
 }
 
 class _FamilyScopeSelectorState extends ConsumerState<FamilyScopeSelector> {
-  bool _isFamily = false;
+  late bool _isFamily;
+
+  @override
+  void initState() {
+    super.initState();
+    _isFamily = widget.initialFamilyId != null && widget.initialFamilyId!.isNotEmpty;
+  }
 
   @override
   Widget build(BuildContext context) {
