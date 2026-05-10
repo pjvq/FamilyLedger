@@ -264,7 +264,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     await _refreshNetWorthRemote();
   }
 
-  /// gRPC refresh — silent, updates state if successful.
+  /// gRPC refresh — silent, merges with local state.
   Future<void> _refreshNetWorthRemote() async {
     if (_userId == null) return;
     try {
@@ -272,23 +272,44 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         pb.GetNetWorthRequest()..familyId = _familyId ?? '',
         options: _callOpts,
       );
-      // Always use gRPC response (server properly filters by familyId)
+      final local = state.netWorth;
+      // Merge: prefer remote value, but keep local if remote is 0 and local has data
+      // (handles cases where server can't fetch market data, e.g., weekends)
+      final investmentValue = resp.investmentValue.toInt() != 0
+          ? resp.investmentValue.toInt()
+          : local.investmentValue;
+      final cashAndBank = resp.cashAndBank.toInt();
+      final fixedAssetValue = resp.fixedAssetValue.toInt();
+      final loanBalance = resp.loanBalance.toInt();
+      final total = cashAndBank + investmentValue + fixedAssetValue + loanBalance;
+
       state = state.copyWith(
         netWorth: NetWorthData(
-          total: resp.total.toInt(),
-          cashAndBank: resp.cashAndBank.toInt(),
-          investmentValue: resp.investmentValue.toInt(),
-          fixedAssetValue: resp.fixedAssetValue.toInt(),
-          loanBalance: resp.loanBalance.toInt(),
+          total: total,
+          cashAndBank: cashAndBank,
+          investmentValue: investmentValue,
+          fixedAssetValue: fixedAssetValue,
+          loanBalance: loanBalance,
           changeFromLastMonth: resp.changeFromLastMonth.toInt(),
           changePercent: resp.changePercent,
           composition: resp.composition
-              .map((c) => AssetCompositionItem(
+              .map((c) {
+                // Also patch investment composition item
+                if (c.category == 'investment' && c.value.toInt() == 0 && local.investmentValue != 0) {
+                  return AssetCompositionItem(
                     category: c.category,
                     label: c.label,
-                    value: c.value.toInt(),
+                    value: local.investmentValue,
                     weight: c.weight,
-                  ))
+                  );
+                }
+                return AssetCompositionItem(
+                  category: c.category,
+                  label: c.label,
+                  value: c.value.toInt(),
+                  weight: c.weight,
+                );
+              })
               .toList(),
         ),
       );
