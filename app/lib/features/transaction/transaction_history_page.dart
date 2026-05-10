@@ -211,98 +211,85 @@ class _TransactionHistoryPageState
     Map<String, String> memberNameMap,
   ) {
     final visible = state.transactions.take(_displayCount).toList();
-    final hasMore = _displayCount < state.transactions.length;
 
     return CustomRefreshIndicator(
       onRefresh: _onRefresh,
-      child: Column(
-        children: [
-          Expanded(
-            child: VirtualList<Transaction>(
-              items: visible,
-              itemExtent: 72, // not used when separatorBuilder is set
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              bottomPadding: 80,
-              separatorBuilder: (context, index) => const SizedBox.shrink(),
-              itemBuilder: (context, txn, index) {
-                // Show date header above this item when date changes
-                final date = DateTime(txn.txnDate.year, txn.txnDate.month, txn.txnDate.day);
-                final bool showHeader;
-                if (index == 0) {
-                  showHeader = true;
-                } else {
-                  final prev = visible[index - 1];
-                  final prevDate = DateTime(prev.txnDate.year, prev.txnDate.month, prev.txnDate.day);
-                  showHeader = date != prevDate;
-                }
-                final txnCategory = categoryMap[txn.categoryId];
-                final txnParentCategory = txnCategory?.parentId != null && txnCategory!.parentId!.isNotEmpty
-                    ? categoryMap[txnCategory.parentId!]
-                    : null;
-                final row = _TransactionRow(
-                  transaction: txn,
-                  category: txnCategory,
-                  parentCategory: txnParentCategory,
-                  isDark: isDark,
-                  selectionMode: _selectionMode,
-                  selected: _selectedIds.contains(txn.id),
-                  creatorName: memberNameMap.isNotEmpty ? memberNameMap[txn.userId] : null,
-                  onTap: _selectionMode
-                      ? () => _toggleSelection(txn.id)
-                      : () {
-                          Navigator.of(context).pushNamed(
-                            AppRouter.transactionDetail,
-                            arguments: TransactionDetailArgs(
-                              transaction: txn,
-                              category: txnCategory,
-                            ),
-                          );
-                        },
-                  onLongPress: !_selectionMode
-                      ? () {
-                          setState(() => _selectionMode = true);
-                          _toggleSelection(txn.id);
-                        }
-                      : null,
-                  onDelete: ref.watch(canDeleteProvider)
-                      ? () => _deleteTransaction(txn)
-                      : null,
-                  onEdit: ref.watch(canEditProvider)
-                      ? () {
+      child: VirtualList<Transaction>(
+        items: visible,
+        itemExtent: 72,
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        bottomPadding: 80,
+        separatorBuilder: (context, index) => const SizedBox.shrink(),
+        itemBuilder: (context, txn, index) {
+          // Show date header above this item when date changes
+          final date = DateTime(
+              txn.txnDate.year, txn.txnDate.month, txn.txnDate.day);
+          final bool showHeader;
+          if (index == 0) {
+            showHeader = true;
+          } else {
+            final prev = visible[index - 1];
+            final prevDate = DateTime(
+                prev.txnDate.year, prev.txnDate.month, prev.txnDate.day);
+            showHeader = date != prevDate;
+          }
+          final txnCategory = categoryMap[txn.categoryId];
+          final txnParentCategory = txnCategory?.parentId != null &&
+                  txnCategory!.parentId!.isNotEmpty
+              ? categoryMap[txnCategory.parentId!]
+              : null;
+          final row = _TransactionRow(
+            transaction: txn,
+            category: txnCategory,
+            parentCategory: txnParentCategory,
+            isDark: isDark,
+            selectionMode: _selectionMode,
+            selected: _selectedIds.contains(txn.id),
+            creatorName: memberNameMap.isNotEmpty
+                ? memberNameMap[txn.userId]
+                : null,
+            onTap: _selectionMode
+                ? () => _toggleSelection(txn.id)
+                : () {
+                    Navigator.of(context).pushNamed(
+                      AppRouter.transactionDetail,
+                      arguments: TransactionDetailArgs(
+                        transaction: txn,
+                        category: txnCategory,
+                      ),
+                    );
+                  },
+            onLongPress: !_selectionMode
+                ? () {
+                    setState(() => _selectionMode = true);
+                    _toggleSelection(txn.id);
+                  }
+                : null,
+            onDelete: ref.watch(canDeleteProvider)
+                ? () => _deleteTransaction(txn)
+                : null,
+            onEdit: ref.watch(canEditProvider)
+                ? () {
                     Navigator.of(context).pushNamed(
                       AppRouter.addTransaction,
                       arguments: txn,
                     );
                   }
-                      : null,
-                );
-                if (showHeader) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _DateHeader(date: date, isDark: isDark),
-                      row,
-                    ],
-                  );
-                }
-                return row;
-              },
-            ),
-          ),
-          if (hasMore)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            ),
-        ],
+                : null,
+          );
+          if (showHeader) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _DateHeader(date: date, isDark: isDark),
+                row,
+              ],
+            );
+          }
+          return row;
+        },
       ),
     );
   }
