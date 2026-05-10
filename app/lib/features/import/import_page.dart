@@ -1824,8 +1824,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
       // Ensure all categories exist on server before creating transactions
       final failedCatIds = <String>{}; // Track failed category IDs globally
-      if (_importToFamily) {
-        final familyId = ref.read(currentFamilyIdProvider) ?? '';
+      {
+        final familyId = _importToFamily ? (ref.read(currentFamilyIdProvider) ?? '') : '';
         setState(() {
           _importPhase = '同步分类到服务器...';
           _importProgress = 0;
@@ -1976,9 +1976,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           await database.updateAccountBalance(defaultAccId, delta);
           imported++;
 
-          if (_importToFamily) {
-            // For categories that failed to sync to server, use default
-            // category to avoid server creating placeholder "未分类" entries
+          // Always prepare batch request for server sync (both personal and family mode)
+          {
             var serverCatId = catId;
             if (failedCatIds.contains(catId)) {
               serverCatId = _defaultCategory?.id ?? catId;
@@ -2006,8 +2005,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         }
       }
 
-      // Phase 2: Batch push to server (50 per batch)
-      if (_importToFamily && batchReqs.isNotEmpty) {
+      // Phase 2: Batch push to server (both personal and family mode)
+      if (batchReqs.isNotEmpty) {
         setState(() {
           _importPhase = '同步到服务器...';
           _importProgress = 0;
@@ -2072,7 +2071,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         _isImporting = false;
         _importDone = true;
         _importedCount = imported;
-        _syncedToServerCount = _importToFamily ? (imported - syncFailed) : 0;
+        _syncedToServerCount = imported - syncFailed;
         _duplicateCount = _duplicates.length - _dupSelection.values.where((v) => v).length;
         _importErrors = [
           ...errors,
