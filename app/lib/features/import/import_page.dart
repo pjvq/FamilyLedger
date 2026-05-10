@@ -2046,9 +2046,13 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                       type: chunk[j].type == pb_enum.TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
                       txnDate: DateTime.fromMillisecondsSinceEpoch(chunk[j].txnDate.seconds.toInt() * 1000),
                       note: Value(chunk[j].note),
+                      syncStatus: Value('synced'),
                     ),
                   );
                 } catch (_) {}
+              } else {
+                // Server returned same ID or empty — mark existing as synced
+                await database.markTransactionsSynced([oldId]);
               }
             }
             print('[Import] batch ${i ~/ batchSize + 1} pushed ${batchResp.createdCount} txns, errors=${batchResp.errors.length}');
