@@ -265,12 +265,10 @@ class _SubcategoryBar extends StatelessWidget {
           final child = children[index - 1];
           final isSelected = child.id == selectedId;
           final iconKey = child.iconKey.isNotEmpty ? child.iconKey : 'other';
-          final color = CategoryIcons.getColor(iconKey);
 
           return _SubcategoryChip(
             label: child.name,
-            icon: CategoryIcons.getIcon(iconKey),
-            iconColor: color,
+            iconKey: iconKey,
             isSelected: isSelected,
             onTap: () => onSelect(child.id),
             theme: theme,
@@ -283,16 +281,14 @@ class _SubcategoryBar extends StatelessWidget {
 
 class _SubcategoryChip extends StatelessWidget {
   final String label;
-  final IconData? icon;
-  final Color? iconColor;
+  final String? iconKey;
   final bool isSelected;
   final VoidCallback onTap;
   final ThemeData theme;
 
   const _SubcategoryChip({
     required this.label,
-    this.icon,
-    this.iconColor,
+    this.iconKey,
     required this.isSelected,
     required this.onTap,
     required this.theme,
@@ -320,8 +316,8 @@ class _SubcategoryChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (icon != null) ...[
-              Icon(icon, size: 16, color: iconColor ?? theme.colorScheme.primary),
+            if (iconKey != null) ...[
+              CategoryIconWidget(iconKey: iconKey!, size: 16, showBackground: false),
               const SizedBox(width: 4),
             ],
             Text(

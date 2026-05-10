@@ -104,6 +104,11 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       // Show local data immediately — don't block on network
       state = state.copyWith(isLoading: false);
 
+      // Sync categories from server (covers newly created categories)
+      if (_txnClient != null) {
+        _syncCategoriesFromServer();
+      }
+
       // Background incremental sync for family mode
       if (_familyId != null && _familyId.isNotEmpty && _txnClient != null) {
         _syncFamilyTransactionsIncremental();
