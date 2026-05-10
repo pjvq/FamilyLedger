@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/local/database.dart' show Category;
 import '../../domain/providers/budget_provider.dart';
 import '../../sync/sync_engine.dart';
 import '../../domain/providers/family_provider.dart';
@@ -71,23 +72,110 @@ class BudgetPage extends ConsumerWidget {
                           ),
                         ),
 
-                      // Category budget items
+                      // Category budget items — grouped by parent
                       if (budgetState.execution != null)
-                        ...budgetState.execution!.categoryExecutions
-                            .map((ce) => _CategoryBudgetTile(
-                                  categoryName: ce.categoryName,
-                                  categoryIcon: _getCategoryIcon(
-                                      ce.categoryId, txnState),
-                                  budgetAmount: ce.budgetAmount,
-                                  spentAmount: ce.spentAmount,
-                                  executionRate: ce.executionRate,
-                                  isDark: isDark,
-                                  theme: theme,
-                                )),
+                        ..._buildGroupedCategoryTiles(
+                          budgetState.execution!.categoryExecutions,
+                          txnState,
+                          isDark,
+                          theme,
+                        ),
                     ],
                   ),
                 ),
     );
+  }
+
+  /// Build category execution tiles grouped by parent category.
+  List<Widget> _buildGroupedCategoryTiles(
+    List<CategoryExecutionData> executions,
+    dynamic txnState,
+    bool isDark,
+    ThemeData theme,
+  ) {
+    final allCats = <String, Category>{};
+    for (final c in [...txnState.expenseCategories, ...txnState.incomeCategories]) {
+      allCats[c.id] = c;
+    }
+
+    // Build a map: categoryId → execution
+    final execMap = <String, CategoryExecutionData>{};
+    for (final ce in executions) {
+      execMap[ce.categoryId] = ce;
+    }
+
+    // Find parent categories that have budget entries (either directly or via children)
+    final parentIds = <String>{}; // ordered set
+    final childExecs = <String, List<CategoryExecutionData>>{}; // parentId → children
+    final parentExecs = <String, CategoryExecutionData>{}; // parentId → parent exec
+
+    for (final ce in executions) {
+      final cat = allCats[ce.categoryId];
+      if (cat == null) continue;
+      if (cat.parentId == null) {
+        // This is a parent category
+        parentIds.add(ce.categoryId);
+        parentExecs[ce.categoryId] = ce;
+      } else {
+        // This is a child category
+        final pid = cat.parentId!;
+        parentIds.add(pid);
+        childExecs.putIfAbsent(pid, () => []).add(ce);
+      }
+    }
+
+    final widgets = <Widget>[];
+    for (final pid in parentIds) {
+      final parentExec = parentExecs[pid];
+      final children = childExecs[pid] ?? [];
+      final parentCat = allCats[pid];
+
+      // Parent tile
+      if (parentExec != null) {
+        widgets.add(_CategoryBudgetTile(
+          categoryName: parentExec.categoryName,
+          categoryIcon: parentCat?.icon ?? '📦',
+          budgetAmount: parentExec.budgetAmount,
+          spentAmount: parentExec.spentAmount,
+          executionRate: parentExec.executionRate,
+          isDark: isDark,
+          theme: theme,
+          isParent: true,
+        ));
+      } else if (parentCat != null) {
+        // Parent has no budget but has children with budgets
+        widgets.add(Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+          child: Row(
+            children: [
+              Text(parentCat.icon, style: const TextStyle(fontSize: 22)),
+              const SizedBox(width: 10),
+              Text(
+                parentCat.name,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ));
+      }
+
+      // Child tiles (indented)
+      for (final ce in children) {
+        widgets.add(_CategoryBudgetTile(
+          categoryName: ce.categoryName,
+          categoryIcon: _getCategoryIcon(ce.categoryId, txnState),
+          budgetAmount: ce.budgetAmount,
+          spentAmount: ce.spentAmount,
+          executionRate: ce.executionRate,
+          isDark: isDark,
+          theme: theme,
+          isParent: false,
+        ));
+      }
+    }
+    return widgets;
   }
 
   String _getCategoryIcon(String categoryId, dynamic txnState) {
@@ -166,6 +254,7 @@ class _CategoryBudgetTile extends StatelessWidget {
   final double executionRate;
   final bool isDark;
   final ThemeData theme;
+  final bool isParent;
 
   const _CategoryBudgetTile({
     required this.categoryName,
@@ -175,6 +264,7 @@ class _CategoryBudgetTile extends StatelessWidget {
     required this.executionRate,
     required this.isDark,
     required this.theme,
+    this.isParent = true,
   });
 
   Color _rateColor(double rate) {
@@ -206,8 +296,13 @@ class _CategoryBudgetTile extends StatelessWidget {
       label: '$categoryName，已用 ${_formatAmount(spentAmount)}，'
           '预算 ${_formatAmount(budgetAmount)}，执行率 $pct',
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        padding: const EdgeInsets.all(16),
+        margin: EdgeInsets.only(
+          left: isParent ? 16 : 40,
+          right: 16,
+          top: 4,
+          bottom: 4,
+        ),
+        padding: EdgeInsets.all(isParent ? 16 : 12),
         decoration: BoxDecoration(
           color: isDark ? AppColors.cardDark : AppColors.cardLight,
           borderRadius: BorderRadius.circular(14),
@@ -224,13 +319,16 @@ class _CategoryBudgetTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(categoryIcon, style: const TextStyle(fontSize: 24)),
+                Text(categoryIcon,
+                    style: TextStyle(fontSize: isParent ? 24 : 20)),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     categoryName,
                     style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
+                      fontWeight:
+                          isParent ? FontWeight.w600 : FontWeight.w400,
+                      fontSize: isParent ? null : 14,
                     ),
                   ),
                 ),
