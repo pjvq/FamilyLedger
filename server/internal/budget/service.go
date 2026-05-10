@@ -570,11 +570,42 @@ func (s *Service) computeExecution(ctx context.Context, budgetID uuid.UUID, budg
 			nameMap[catID.String()] = catName
 		}
 
+		// Build parent→children map for aggregation
+		childrenOf := make(map[string][]string) // parentId → []childId
+		catParent := make(map[string]string)     // catId → parentId (if any)
+		catNames := make(map[string]string)      // catId → name
+		catRows, err := s.pool.Query(ctx,
+			`SELECT id, name, COALESCE(parent_id::text, '') FROM categories WHERE deleted_at IS NULL`)
+		if err == nil {
+			defer catRows.Close()
+			for catRows.Next() {
+				var cid, cname, pid string
+				if err := catRows.Scan(&cid, &cname, &pid); err == nil {
+					catNames[cid] = cname
+					if pid != "" {
+						catParent[cid] = pid
+						childrenOf[pid] = append(childrenOf[pid], cid)
+					}
+				}
+			}
+		}
+
 		for _, cb := range budget.CategoryBudgets {
+			// For parent categories: aggregate own + all children's spent
 			spent := spentMap[cb.CategoryId]
+			if _, isChild := catParent[cb.CategoryId]; !isChild {
+				for _, childID := range childrenOf[cb.CategoryId] {
+					spent += spentMap[childID]
+				}
+			}
+			// Resolve name: prefer spentMap lookup, fallback to categories table
+			name := nameMap[cb.CategoryId]
+			if name == "" {
+				name = catNames[cb.CategoryId]
+			}
 			ce := &pb.CategoryExecution{
 				CategoryId:   cb.CategoryId,
-				CategoryName: nameMap[cb.CategoryId],
+				CategoryName: name,
 				BudgetAmount: cb.Amount,
 				SpentAmount:  spent,
 			}

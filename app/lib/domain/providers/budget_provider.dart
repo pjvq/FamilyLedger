@@ -175,6 +175,58 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
           );
           dev.log('[Budget] loadCurrentMonth: getBudgetExecution OK', name: 'BudgetProvider');
           final exec = execResp.execution;
+
+          // Build parent→children map to aggregate parent spent from all children
+          final categories = await _db.getAllCategories();
+          final catMap = {for (final c in categories) c.id: c};
+          final childrenOf = <String, List<String>>{};
+          for (final c in categories) {
+            if (c.parentId != null) {
+              childrenOf.putIfAbsent(c.parentId!, () => []).add(c.id);
+            }
+          }
+
+          // Get actual expenses per category for proper aggregation
+          final categoryExpenses = await _db.getMonthCategoryExpenses(
+              _userId, now.year, now.month, familyId: _familyId);
+
+          final rawCatExecs = exec.categoryExecutions
+              .map((ce) => CategoryExecutionData(
+                    categoryId: ce.categoryId,
+                    categoryName: ce.categoryName.isNotEmpty
+                        ? ce.categoryName
+                        : (catMap[ce.categoryId]?.name ?? '未知'),
+                    budgetAmount: ce.budgetAmount.toInt(),
+                    spentAmount: ce.spentAmount.toInt(),
+                    executionRate: ce.executionRate,
+                  ))
+              .toList();
+
+          // Patch parent categories: aggregate children's spent
+          final patchedCatExecs = rawCatExecs.map((ce) {
+            final cat = catMap[ce.categoryId];
+            if (cat != null && cat.parentId == null) {
+              final children = childrenOf[ce.categoryId];
+              if (children != null && children.isNotEmpty) {
+                int aggregatedSpent = categoryExpenses[ce.categoryId] ?? 0;
+                for (final childId in children) {
+                  aggregatedSpent += categoryExpenses[childId] ?? 0;
+                }
+                final rate = ce.budgetAmount > 0
+                    ? aggregatedSpent / ce.budgetAmount
+                    : 0.0;
+                return CategoryExecutionData(
+                  categoryId: ce.categoryId,
+                  categoryName: ce.categoryName,
+                  budgetAmount: ce.budgetAmount,
+                  spentAmount: aggregatedSpent,
+                  executionRate: rate,
+                );
+              }
+            }
+            return ce;
+          }).toList();
+
           state = state.copyWith(
             currentBudget: current,
             budgets: budgetsList,
@@ -183,15 +235,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
               totalBudget: exec.totalBudget.toInt(),
               totalSpent: exec.totalSpent.toInt(),
               executionRate: exec.executionRate,
-              categoryExecutions: exec.categoryExecutions
-                  .map((ce) => CategoryExecutionData(
-                        categoryId: ce.categoryId,
-                        categoryName: ce.categoryName,
-                        budgetAmount: ce.budgetAmount.toInt(),
-                        spentAmount: ce.spentAmount.toInt(),
-                        executionRate: ce.executionRate,
-                      ))
-                  .toList(),
+              categoryExecutions: patchedCatExecs,
             ),
             isLoading: false,
           );
@@ -250,10 +294,28 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       final categories = await _db.getAllCategories();
       final catMap = {for (final c in categories) c.id: c};
 
+      // Build parent→children map for aggregation
+      final childrenOf = <String, List<String>>{};
+      for (final c in categories) {
+        if (c.parentId != null) {
+          childrenOf.putIfAbsent(c.parentId!, () => []).add(c.id);
+        }
+      }
+
       final catExecs = catBudgets.map((cb) {
-        final spent = categoryExpenses[cb.categoryId] ?? 0;
-        final catRate = cb.amount > 0 ? spent / cb.amount : 0.0;
         final cat = catMap[cb.categoryId];
+        // Start with own direct expenses
+        int spent = categoryExpenses[cb.categoryId] ?? 0;
+        // If this is a parent category (no parent itself), add all children's expenses
+        if (cat != null && cat.parentId == null) {
+          final children = childrenOf[cb.categoryId];
+          if (children != null) {
+            for (final childId in children) {
+              spent += categoryExpenses[childId] ?? 0;
+            }
+          }
+        }
+        final catRate = cb.amount > 0 ? spent / cb.amount : 0.0;
         return CategoryExecutionData(
           categoryId: cb.categoryId,
           categoryName: cat?.name ?? '未知',

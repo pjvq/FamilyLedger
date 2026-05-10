@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/local/database.dart' show Category;
 import '../../domain/providers/budget_provider.dart';
 import '../../sync/sync_engine.dart';
 import '../../domain/providers/family_provider.dart';
@@ -8,11 +9,18 @@ import '../../domain/providers/transaction_provider.dart';
 import 'budget_execution_card.dart';
 import 'set_budget_sheet.dart';
 
-class BudgetPage extends ConsumerWidget {
+class BudgetPage extends ConsumerStatefulWidget {
   const BudgetPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BudgetPage> createState() => _BudgetPageState();
+}
+
+class _BudgetPageState extends ConsumerState<BudgetPage> {
+  final Set<String> _expandedParents = {};
+
+  @override
+  Widget build(BuildContext context) {
     final budgetState = ref.watch(budgetProvider);
     final txnState = ref.watch(transactionProvider);
     final theme = Theme.of(context);
@@ -26,10 +34,11 @@ class BudgetPage extends ConsumerWidget {
       ),
       floatingActionButton: ref.watch(canEditProvider)
           ? FloatingActionButton.extended(
-        onPressed: () => _showSetBudgetSheet(context),
-        icon: const Icon(Icons.edit_rounded),
-        label: Text(budgetState.currentBudget != null ? '编辑预算' : '设置预算'),
-      )
+              onPressed: () => _showSetBudgetSheet(context),
+              icon: const Icon(Icons.edit_rounded),
+              label: Text(
+                  budgetState.currentBudget != null ? '编辑预算' : '设置预算'),
+            )
           : null,
       body: budgetState.isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -42,8 +51,10 @@ class BudgetPage extends ConsumerWidget {
                 )
               : RefreshIndicator(
                   onRefresh: () async {
-                      await ref.read(syncEngineProvider).forcePull();
-                      await ref.read(budgetProvider.notifier).loadCurrentMonth();
+                    await ref.read(syncEngineProvider).forcePull();
+                    await ref
+                        .read(budgetProvider.notifier)
+                        .loadCurrentMonth();
                   },
                   child: ListView(
                     padding: const EdgeInsets.only(bottom: 100),
@@ -55,39 +66,154 @@ class BudgetPage extends ConsumerWidget {
                               budgetState.execution!.executionRate,
                           totalBudget:
                               budgetState.execution!.totalBudget,
-                          totalSpent: budgetState.execution!.totalSpent,
+                          totalSpent:
+                              budgetState.execution!.totalSpent,
                         ),
 
                       // Category budget list header
                       if (budgetState.execution != null &&
-                          budgetState.execution!.categoryExecutions.isNotEmpty)
+                          budgetState
+                              .execution!.categoryExecutions.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                          padding:
+                              const EdgeInsets.fromLTRB(20, 24, 20, 8),
                           child: Text(
                             '分类预算',
-                            style: theme.textTheme.titleMedium?.copyWith(
+                            style:
+                                theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
 
-                      // Category budget items
+                      // Category budget items — grouped by parent
                       if (budgetState.execution != null)
-                        ...budgetState.execution!.categoryExecutions
-                            .map((ce) => _CategoryBudgetTile(
-                                  categoryName: ce.categoryName,
-                                  categoryIcon: _getCategoryIcon(
-                                      ce.categoryId, txnState),
-                                  budgetAmount: ce.budgetAmount,
-                                  spentAmount: ce.spentAmount,
-                                  executionRate: ce.executionRate,
-                                  isDark: isDark,
-                                  theme: theme,
-                                )),
+                        ..._buildGroupedCategoryTiles(
+                          budgetState.execution!.categoryExecutions,
+                          txnState,
+                          isDark,
+                          theme,
+                        ),
                     ],
                   ),
                 ),
     );
+  }
+
+  /// Build category execution tiles grouped by parent category.
+  ///
+  /// Fixes:
+  /// 1. Parent spent = own spent + sum of children spent
+  /// 2. Parent name always shown (from category DB, not just execution data)
+  /// 3. Collapsible: children hidden by default, tap parent to expand
+  List<Widget> _buildGroupedCategoryTiles(
+    List<CategoryExecutionData> executions,
+    dynamic txnState,
+    bool isDark,
+    ThemeData theme,
+  ) {
+    final allCats = <String, Category>{};
+    for (final c in [
+      ...txnState.expenseCategories,
+      ...txnState.incomeCategories,
+    ]) {
+      allCats[c.id] = c;
+    }
+
+    // Separate into parent execs and child execs
+    final parentOrder = <String>[]; // ordered unique parent ids
+    final parentExecs =
+        <String, CategoryExecutionData>{}; // parentId → exec
+    final childExecs =
+        <String, List<CategoryExecutionData>>{}; // parentId → children
+
+    for (final ce in executions) {
+      final cat = allCats[ce.categoryId];
+      if (cat == null) continue;
+      if (cat.parentId == null) {
+        if (!parentOrder.contains(ce.categoryId)) {
+          parentOrder.add(ce.categoryId);
+        }
+        parentExecs[ce.categoryId] = ce;
+      } else {
+        final pid = cat.parentId!;
+        if (!parentOrder.contains(pid)) {
+          parentOrder.add(pid);
+        }
+        childExecs.putIfAbsent(pid, () => []).add(ce);
+      }
+    }
+
+    final widgets = <Widget>[];
+    for (final pid in parentOrder) {
+      final parentExec = parentExecs[pid];
+      final children = childExecs[pid] ?? [];
+      final parentCat = allCats[pid];
+      final isExpanded = _expandedParents.contains(pid);
+      final hasChildren = children.isNotEmpty;
+
+      // Parent spent already includes all children (aggregated in provider)
+      final parentSpent = parentExec?.spentAmount ?? 0;
+      final parentBudget = parentExec?.budgetAmount ?? 0;
+      final parentRate =
+          parentBudget > 0 ? parentSpent / parentBudget : 0.0;
+
+      // Parent category name (from DB, guaranteed not empty)
+      final parentName =
+          parentCat?.name ?? parentExec?.categoryName ?? '未知';
+      final parentIcon = parentCat?.icon ?? '📦';
+
+      // Parent tile (always visible, tappable to expand)
+      widgets.add(
+        GestureDetector(
+          onTap: hasChildren
+              ? () => setState(() {
+                    if (isExpanded) {
+                      _expandedParents.remove(pid);
+                    } else {
+                      _expandedParents.add(pid);
+                    }
+                  })
+              : null,
+          child: _CategoryBudgetTile(
+            categoryName: parentName,
+            categoryIcon: parentIcon,
+            budgetAmount: parentBudget,
+            spentAmount: parentSpent,
+            executionRate: parentRate,
+            isDark: isDark,
+            theme: theme,
+            isParent: true,
+            trailing: hasChildren
+                ? Icon(
+                    isExpanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    size: 20,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  )
+                : null,
+          ),
+        ),
+      );
+
+      // Child tiles (only when expanded)
+      if (isExpanded) {
+        for (final ce in children) {
+          widgets.add(_CategoryBudgetTile(
+            categoryName: ce.categoryName,
+            categoryIcon: _getCategoryIcon(ce.categoryId, txnState),
+            budgetAmount: ce.budgetAmount,
+            spentAmount: ce.spentAmount,
+            executionRate: ce.executionRate,
+            isDark: isDark,
+            theme: theme,
+            isParent: false,
+          ));
+        }
+      }
+    }
+    return widgets;
   }
 
   String _getCategoryIcon(String categoryId, dynamic txnState) {
@@ -133,23 +259,25 @@ class _EmptyBudgetState extends StatelessWidget {
           Text(
             '还没有设置预算',
             style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              color:
+                  theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             '设置每月预算，掌控支出',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+              color:
+                  theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
           ),
           const SizedBox(height: 24),
           if (onSetBudget != null)
-          FilledButton.icon(
-            onPressed: onSetBudget,
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('设置预算'),
-          ),
+            FilledButton.icon(
+              onPressed: onSetBudget,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('设置预算'),
+            ),
         ],
       ),
     );
@@ -166,6 +294,8 @@ class _CategoryBudgetTile extends StatelessWidget {
   final double executionRate;
   final bool isDark;
   final ThemeData theme;
+  final bool isParent;
+  final Widget? trailing;
 
   const _CategoryBudgetTile({
     required this.categoryName,
@@ -175,6 +305,8 @@ class _CategoryBudgetTile extends StatelessWidget {
     required this.executionRate,
     required this.isDark,
     required this.theme,
+    this.isParent = true,
+    this.trailing,
   });
 
   Color _rateColor(double rate) {
@@ -200,20 +332,27 @@ class _CategoryBudgetTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _rateColor(executionRate);
-    final pct = '${(executionRate * 100).clamp(0, 999).toStringAsFixed(0)}%';
+    final pct =
+        '${(executionRate * 100).clamp(0, 999).toStringAsFixed(0)}%';
 
     return Semantics(
       label: '$categoryName，已用 ${_formatAmount(spentAmount)}，'
           '预算 ${_formatAmount(budgetAmount)}，执行率 $pct',
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        padding: const EdgeInsets.all(16),
+        margin: EdgeInsets.only(
+          left: isParent ? 16 : 40,
+          right: 16,
+          top: 4,
+          bottom: 4,
+        ),
+        padding: EdgeInsets.all(isParent ? 16 : 12),
         decoration: BoxDecoration(
           color: isDark ? AppColors.cardDark : AppColors.cardLight,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+              color: Colors.black
+                  .withValues(alpha: isDark ? 0.2 : 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -224,13 +363,18 @@ class _CategoryBudgetTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(categoryIcon, style: const TextStyle(fontSize: 24)),
+                Text(categoryIcon,
+                    style:
+                        TextStyle(fontSize: isParent ? 24 : 20)),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     categoryName,
                     style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
+                      fontWeight: isParent
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      fontSize: isParent ? null : 14,
                     ),
                   ),
                 ),
@@ -242,6 +386,10 @@ class _CategoryBudgetTile extends StatelessWidget {
                         : AppColors.textSecondary,
                   ),
                 ),
+                if (trailing != null) ...[
+                  const SizedBox(width: 4),
+                  trailing!,
+                ],
               ],
             ),
             const SizedBox(height: 10),
