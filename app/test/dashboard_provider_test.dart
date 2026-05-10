@@ -12,6 +12,8 @@ import 'package:familyledger/data/local/database.dart';
 import 'package:familyledger/domain/providers/dashboard_provider.dart';
 import 'package:familyledger/generated/proto/dashboard.pb.dart' as pb;
 import 'package:familyledger/generated/proto/dashboard.pbgrpc.dart';
+import 'package:familyledger/generated/proto/investment.pb.dart' as inv_pb;
+import 'package:familyledger/generated/proto/investment.pbgrpc.dart';
 
 // ─── Fake gRPC client (all methods throw to force local fallback) ──
 
@@ -87,6 +89,27 @@ class FailingDashboardClient implements DashboardServiceClient {
 
   @override
   ResponseFuture<pb.TrendResponse> getNetWorthTrend(pb.TrendRequest request,
+      {CallOptions? options}) {
+    return FakeResponseFuture.error(
+        GrpcError.unavailable('test: no server'));
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
+      '${invocation.memberName} not implemented in fake');
+}
+
+class FailingMarketDataClient implements MarketDataServiceClient {
+  @override
+  ResponseFuture<inv_pb.MarketQuote> getQuote(inv_pb.GetQuoteRequest request,
+      {CallOptions? options}) {
+    return FakeResponseFuture.error(
+        GrpcError.unavailable('test: no server'));
+  }
+
+  @override
+  ResponseFuture<inv_pb.BatchGetQuotesResponse> batchGetQuotes(
+      inv_pb.BatchGetQuotesRequest request,
       {CallOptions? options}) {
     return FakeResponseFuture.error(
         GrpcError.unavailable('test: no server'));
@@ -180,7 +203,7 @@ void main() {
       await _insertAccount(db, id: 'acc2', balance: 5000000);  // 5万
 
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), 'user1', null);
+          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', null);
       await notifier.loadAll();
       // Allow async ops to complete
       await Future.delayed(const Duration(milliseconds: 300));
@@ -194,7 +217,7 @@ void main() {
 
     test('empty data does not crash', () async {
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), 'user1', null);
+          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', null);
       await notifier.loadAll();
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -214,7 +237,7 @@ void main() {
       await _insertAccount(db, id: 'acc_family', balance: 20000000, familyId: 'fam1');
 
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), 'user1', 'fam1');
+          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', 'fam1');
       await notifier.loadAll();
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -229,7 +252,7 @@ void main() {
       await _insertAccount(db, id: 'acc_family', balance: 20000000, familyId: 'fam1');
 
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), 'user1', null);
+          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', null);
       await notifier.loadAll();
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -277,7 +300,7 @@ void main() {
       );
 
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), 'user1', null);
+          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', null);
       await notifier.loadAll();
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -297,7 +320,7 @@ void main() {
       await _insertAccount(db, id: 'acc1', balance: 0);
 
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), 'user1', null);
+          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', null);
       await notifier.loadAll();
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -358,7 +381,7 @@ void main() {
       );
 
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), 'user1', null);
+          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', null);
       await notifier.loadAll();
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -385,7 +408,7 @@ void main() {
       await _insertAccount(db, id: 'acc1', balance: 0);
 
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), 'user1', null);
+          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', null);
       await notifier.loadAll();
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -409,7 +432,7 @@ void main() {
 
     test('null userId does not crash and stays in initial state', () async {
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), null, null);
+          db, FailingDashboardClient(), FailingMarketDataClient(), null, null);
       await Future.delayed(const Duration(milliseconds: 300));
 
       expect(notifier.state.isLoading, false);
