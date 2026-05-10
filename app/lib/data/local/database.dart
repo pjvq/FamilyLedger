@@ -156,11 +156,13 @@ class AppDatabase extends _$AppDatabase {
           if (from < 19) {
             // v18 → v19: remove legacy icon column from categories
             await customStatement('ALTER TABLE categories DROP COLUMN icon');
+            // Backfill empty iconKey based on category name
+            await _backfillEmptyIconKeys();
           }
         },
         beforeOpen: (details) async {
-          // Category dedup and icon backfill moved to migration v15
-          // No longer needed here
+          // Backfill empty iconKey for categories that have none
+          await _backfillEmptyIconKeys();
         },
       );
 
@@ -271,6 +273,73 @@ class AppDatabase extends _$AppDatabase {
         await (update(categories)..where((c) => c.id.equals(cat.id)))
             .write(CategoriesCompanion(iconKey: Value(key)));
       }
+    }
+  }
+
+  /// Backfill empty iconKey for all categories (user-created or imported).
+  /// Uses name-based matching with fuzzy keyword fallback.
+  Future<void> _backfillEmptyIconKeys() async {
+    const nameToKey = <String, String>{
+      '餐饮': 'food', '交通': 'transport', '购物': 'shopping',
+      '居住': 'housing', '娱乐': 'entertainment', '医疗': 'medical',
+      '教育': 'education', '通讯': 'communication', '人情': 'gift',
+      '服饰': 'clothing', '日用': 'daily', '旅行': 'travel',
+      '宠物': 'pet', '工资': 'salary', '奖金': 'bonus',
+      '投资收益': 'investment_income', '兼职': 'freelance',
+      '红包': 'red_packet', '报销': 'reimbursement', '其他': 'other',
+      '早餐': 'food_breakfast', '午餐': 'food_lunch', '晚餐': 'food_dinner',
+      '夜孵': 'food_midnight', '饮品': 'food_drink', '零食': 'food_snack',
+      '外卖': 'food_takeout', '咖啡': 'food_drink', '快餐': 'food_fastfood',
+      '地铁': 'transport_metro', '打车': 'transport_taxi', '加油': 'transport_fuel',
+      '停车': 'transport_parking', '公交': 'transport_bus',
+      '数码': 'shopping_digital', '美妆': 'shopping_beauty', '网购': 'shopping_online',
+      '超市': 'shopping_daily', '百货': 'shopping_daily',
+      '房租': 'housing_rent', '物业': 'housing_property',
+      '水电': 'housing_utility', '水费': 'housing_water', '电费': 'housing_utility',
+      '燃气': 'housing_fire', '家政': 'housing_cleaning',
+      '电影': 'entertainment_movie', '游戏': 'entertainment_game',
+      '运动': 'entertainment_sport', '健身': 'entertainment_sport',
+      '音乐': 'entertainment_music', '书籍': 'entertainment_book',
+      '看病': 'medical_clinic', '买药': 'medical_pharmacy',
+      '牙科': 'medical_dental',
+      '学费': 'education_tuition', '课程': 'education_course',
+      '话费': 'communication_phone', '宽带': 'communication_broadband',
+      '订阅': 'communication_subscription',
+      '请客': 'gift_treat', '份子': 'gift_wedding',
+      '生日': 'gift_birthday', '聚会': 'gift_party',
+      '衣服': 'clothing_clothes', '鞋包': 'clothing_shoes', '配饰': 'clothing_accessory',
+      '清洁': 'daily_cleaning', '护理': 'daily_personal', '快递': 'daily_package',
+      '住宿': 'travel_hotel', '景点': 'travel_attraction',
+      '酒店': 'travel_hotel', '机票': 'transport_flight', '车票': 'travel_ticket',
+      '底薪': 'salary_base', '绩效': 'salary_performance',
+      '加班': 'salary_overtime', '提成': 'salary_commission',
+      '年终': 'bonus_annual', '股票': 'investment_stock',
+      '基金': 'investment_fund', '利息': 'investment_interest',
+      '分红': 'investment_dividend',
+      '结婚': 'gift_wedding', '婚礼': 'gift_wedding', '订婚': 'gift_wedding',
+      '水果': 'food_snack', '饮料': 'food_drink',
+      '出租': 'transport_taxi', '出租车': 'transport_taxi',
+      '日常': 'daily', '生活': 'daily',
+    };
+
+    final emptyCats = await (select(categories)
+          ..where((c) => c.iconKey.equals('') | c.iconKey.isNull()))
+        .get();
+    if (emptyCats.isEmpty) return;
+
+    for (final cat in emptyCats) {
+      var key = nameToKey[cat.name];
+      if (key == null) {
+        for (final entry in nameToKey.entries) {
+          if (cat.name.contains(entry.key)) {
+            key = entry.value;
+            break;
+          }
+        }
+      }
+      key ??= (cat.type == 'income') ? 'salary' : 'other';
+      await (update(categories)..where((c) => c.id.equals(cat.id)))
+          .write(CategoriesCompanion(iconKey: Value(key)));
     }
   }
 
