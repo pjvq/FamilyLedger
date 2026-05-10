@@ -393,8 +393,8 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                     turns: isExpanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
                     child: Icon(Icons.expand_more,
-                        color: theme.colorScheme.onSurface.withOpacity(
-                            hasChildren ? 0.4 : 0.2)),
+                        color: theme.colorScheme.onSurface.withValues(
+                            alpha: hasChildren ? 0.4 : 0.2)),
                   ),
             onTap: () => setState(() {
                       if (isExpanded) {
