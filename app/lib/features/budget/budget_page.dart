@@ -152,14 +152,11 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
       final isExpanded = _expandedParents.contains(pid);
       final hasChildren = children.isNotEmpty;
 
-      // Aggregate spent for parent: own + children
-      final childrenSpent =
-          children.fold<int>(0, (sum, ce) => sum + ce.spentAmount);
-      final parentOwnSpent = parentExec?.spentAmount ?? 0;
-      final aggregatedSpent = parentOwnSpent + childrenSpent;
+      // Parent spent already includes all children (aggregated in provider)
+      final parentSpent = parentExec?.spentAmount ?? 0;
       final parentBudget = parentExec?.budgetAmount ?? 0;
-      final aggregatedRate =
-          parentBudget > 0 ? aggregatedSpent / parentBudget : 0.0;
+      final parentRate =
+          parentBudget > 0 ? parentSpent / parentBudget : 0.0;
 
       // Parent category name (from DB, guaranteed not empty)
       final parentName =
@@ -182,8 +179,8 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
             categoryName: parentName,
             categoryIcon: parentIcon,
             budgetAmount: parentBudget,
-            spentAmount: aggregatedSpent,
-            executionRate: aggregatedRate,
+            spentAmount: parentSpent,
+            executionRate: parentRate,
             isDark: isDark,
             theme: theme,
             isParent: true,

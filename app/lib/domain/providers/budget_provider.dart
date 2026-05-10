@@ -250,10 +250,27 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       final categories = await _db.getAllCategories();
       final catMap = {for (final c in categories) c.id: c};
 
+      // Build parent→children map for aggregation
+      final childrenOf = <String, List<String>>{};
+      for (final c in categories) {
+        if (c.parentId != null) {
+          childrenOf.putIfAbsent(c.parentId!, () => []).add(c.id);
+        }
+      }
+
       final catExecs = catBudgets.map((cb) {
-        final spent = categoryExpenses[cb.categoryId] ?? 0;
-        final catRate = cb.amount > 0 ? spent / cb.amount : 0.0;
         final cat = catMap[cb.categoryId];
+        int spent;
+        if (cat != null && cat.parentId == null && childrenOf.containsKey(cb.categoryId)) {
+          // Parent category: aggregate own + ALL children (including those without budgets)
+          spent = categoryExpenses[cb.categoryId] ?? 0;
+          for (final childId in childrenOf[cb.categoryId]!) {
+            spent += categoryExpenses[childId] ?? 0;
+          }
+        } else {
+          spent = categoryExpenses[cb.categoryId] ?? 0;
+        }
+        final catRate = cb.amount > 0 ? spent / cb.amount : 0.0;
         return CategoryExecutionData(
           categoryId: cb.categoryId,
           categoryName: cat?.name ?? '未知',
