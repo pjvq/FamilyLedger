@@ -995,7 +995,7 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
                       color: AppColors.chartPalette[i % AppColors.chartPalette.length],
                       value: item.amount.toDouble(),
                       title: isTouched
-                          ? '${item.icon}\n${(item.weight * 100).toStringAsFixed(1)}%'
+                          ? '${item.categoryName}\n${(item.weight * 100).toStringAsFixed(1)}%'
                           : '',
                       radius: isTouched ? 60.0 : 50.0,
                       titleStyle: const TextStyle(
@@ -1046,7 +1046,7 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
-                                  '${item.icon} ${item.categoryName}',
+                                  item.categoryName,
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     fontWeight: isTouched
                                         ? FontWeight.w700

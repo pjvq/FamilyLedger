@@ -89,13 +89,11 @@ void main() {
     await database.upsertCategory(
       id: id,
       name: name,
-      icon: '📌',
       type: type,
     );
     final newCat = Category(
       id: id,
       name: name,
-      icon: '📌',
       iconKey: '',
       type: type,
       isPreset: false,
@@ -142,14 +140,12 @@ void main() {
     await database.upsertCategory(
       id: id,
       name: name,
-      icon: '📌',
       type: type,
       parentId: parentId,
     );
     final newCat = Category(
       id: id,
       name: name,
-      icon: '📌',
       iconKey: '',
       type: type,
       isPreset: false,

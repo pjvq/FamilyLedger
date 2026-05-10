@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/category_icon_widget.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart' show Category;
 import '../../domain/providers/budget_provider.dart';
@@ -161,7 +162,6 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
       // Parent category name (from DB, guaranteed not empty)
       final parentName =
           parentCat?.name ?? parentExec?.categoryName ?? '未知';
-      final parentIcon = parentCat?.icon ?? '📦';
 
       // Parent tile (always visible, tappable to expand)
       widgets.add(
@@ -177,7 +177,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
               : null,
           child: _CategoryBudgetTile(
             categoryName: parentName,
-            categoryIcon: parentIcon,
+            iconKey: parentCat?.iconKey,
             budgetAmount: parentBudget,
             spentAmount: parentSpent,
             executionRate: parentRate,
@@ -202,7 +202,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
         for (final ce in children) {
           widgets.add(_CategoryBudgetTile(
             categoryName: ce.categoryName,
-            categoryIcon: _getCategoryIcon(ce.categoryId, txnState),
+            iconKey: _getCategoryIconKey(ce.categoryId, txnState),
             budgetAmount: ce.budgetAmount,
             spentAmount: ce.spentAmount,
             executionRate: ce.executionRate,
@@ -216,13 +216,13 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
     return widgets;
   }
 
-  String _getCategoryIcon(String categoryId, dynamic txnState) {
+  String? _getCategoryIconKey(String categoryId, dynamic txnState) {
     final allCats = [
       ...txnState.expenseCategories,
       ...txnState.incomeCategories,
     ];
     final cat = allCats.where((c) => c.id == categoryId).firstOrNull;
-    return cat?.icon ?? '📦';
+    return cat?.iconKey;
   }
 
   void _showSetBudgetSheet(BuildContext context) {
@@ -288,7 +288,7 @@ class _EmptyBudgetState extends StatelessWidget {
 
 class _CategoryBudgetTile extends StatelessWidget {
   final String categoryName;
-  final String categoryIcon;
+  final String? iconKey;
   final int budgetAmount;
   final int spentAmount;
   final double executionRate;
@@ -299,7 +299,7 @@ class _CategoryBudgetTile extends StatelessWidget {
 
   const _CategoryBudgetTile({
     required this.categoryName,
-    required this.categoryIcon,
+    this.iconKey,
     required this.budgetAmount,
     required this.spentAmount,
     required this.executionRate,
@@ -363,9 +363,10 @@ class _CategoryBudgetTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(categoryIcon,
-                    style:
-                        TextStyle(fontSize: isParent ? 24 : 20)),
+                CategoryIconWidget(
+                    iconKey: iconKey,
+                    size: isParent ? 22 : 18,
+                    showBackground: true),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(

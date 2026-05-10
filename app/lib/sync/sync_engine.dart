@@ -534,7 +534,6 @@ class SyncEngine {
         await _db!.upsertCategory(
           id: entityId,
           name: payload['name'] ?? 'Unknown',
-          icon: payload['icon'] ?? '📦',
           iconKey: (payload['icon_key'] as String?) ?? '',
           type: payload['type'] ?? 'expense',
           isPreset: payload['is_preset'] ?? false,

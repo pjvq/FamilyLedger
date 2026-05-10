@@ -191,7 +191,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
             return CheckboxListTile(
               dense: true,
               visualDensity: VisualDensity.compact,
-              title: Text('${parent.icon} ${parent.name}', style: const TextStyle(fontSize: 14)),
+              title: Text('${parent.name}', style: const TextStyle(fontSize: 14)),
               value: _selectedCategoryIds.contains(parent.id),
               onChanged: (v) {
                 setState(() {
@@ -222,7 +222,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                 });
               },
             ),
-            title: Text('${parent.icon} ${parent.name}',
+            title: Text('${parent.name}',
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
             trailing: Text('${children.length} 个子分类',
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -234,7 +234,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                 dense: true,
                 visualDensity: VisualDensity.compact,
                 contentPadding: const EdgeInsets.only(left: 56),
-                title: Text('${child.icon} ${child.name}', style: const TextStyle(fontSize: 13)),
+                title: Text('${child.name}', style: const TextStyle(fontSize: 13)),
                 value: _selectedCategoryIds.contains(child.id),
                 onChanged: (v) {
                   setState(() {

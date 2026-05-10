@@ -80,7 +80,6 @@ Transaction _makeTransaction({
 Category _makeCategory({
   String? id,
   String name = '餐饮',
-  String icon = '🍜',
   String type = 'expense',
   bool isPreset = true,
   int sortOrder = 1,
@@ -88,7 +87,6 @@ Category _makeCategory({
   return Category(
     id: id ?? CategoryUUID.generate('test-user', type, name),
     name: name,
-    icon: icon,
     type: type,
     isPreset: isPreset,
     sortOrder: sortOrder,
@@ -337,12 +335,12 @@ void main() {
 
   group('CategoryGrid', () {
     final categories = [
-      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '餐饮'), name: '餐饮', icon: '🍜'),
-      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '交通'), name: '交通', icon: '🚗'),
-      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '购物'), name: '购物', icon: '🛍️'),
-      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '居住'), name: '居住', icon: '🏠'),
-      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '娱乐'), name: '娱乐', icon: '🎮'),
-      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '医疗'), name: '医疗', icon: '🏥'),
+      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '餐饮'), name: '餐饮'),
+      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '交通'), name: '交通'),
+      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '购物'), name: '购物'),
+      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '居住'), name: '居住'),
+      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '娱乐'), name: '娱乐'),
+      _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '医疗'), name: '医疗'),
     ];
 
     testWidgets('renders all categories', (tester) async {

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/category_icon_widget.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/router/app_router.dart';
@@ -145,9 +146,11 @@ class TransactionDetailPage extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(14),
                             ),
                             alignment: Alignment.center,
-                            child: Text(
-                              category?.icon ?? '📦',
-                              style: const TextStyle(fontSize: 24),
+                            child: CategoryIconWidget(
+                              iconKey: category?.iconKey,
+
+                              size: 24,
+                              showBackground: false,
                             ),
                           ),
                           const SizedBox(width: 14),

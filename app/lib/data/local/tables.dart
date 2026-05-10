@@ -33,7 +33,6 @@ class Accounts extends Table {
 class Categories extends Table {
   TextColumn get id => text()();
   TextColumn get name => text().withLength(min: 1, max: 30)();
-  TextColumn get icon => text()();
   TextColumn get type => text()(); // 'income' | 'expense'
   BoolColumn get isPreset => boolean().withDefault(const Constant(true))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/category_icon_widget.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart' show Category;
 import '../../domain/providers/budget_provider.dart';
@@ -90,8 +91,10 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Row(
                     children: [
-                      Text(parent.icon,
-                          style: const TextStyle(fontSize: 22)),
+                      CategoryIconWidget(
+                          iconKey: parent.iconKey,
+                          size: 20,
+                          showBackground: true),
                       const SizedBox(width: 10),
                       Expanded(
                         flex: 2,
@@ -135,8 +138,10 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                             const EdgeInsets.symmetric(vertical: 4),
                         child: Row(
                           children: [
-                            Text(child.icon,
-                                style: const TextStyle(fontSize: 18)),
+                            CategoryIconWidget(
+                                iconKey: child.iconKey,
+                                size: 16,
+                                showBackground: true),
                             const SizedBox(width: 8),
                             Expanded(
                               flex: 2,

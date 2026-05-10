@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
+import '../../core/constants/category_icon_widget.dart';
 import '../../core/constants/category_icons.dart';
 import '../../data/local/database.dart' as db;
 import '../../data/remote/grpc_clients.dart';
@@ -122,7 +123,6 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       return Category(
         id: c.id,
         name: c.name,
-        icon: c.icon,
         iconKey: c.iconKey,
         type: c.type == 'income'
             ? TransactionType.TRANSACTION_TYPE_INCOME
@@ -190,7 +190,6 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         await database.upsertCategory(
           id: cat.id,
           name: result.name,
-          icon: result.iconKey, // icon column stores the key for display
           iconKey: result.iconKey,
           type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
           parentId: cat.parentId.isEmpty ? null : cat.parentId,
@@ -215,7 +214,6 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       db.upsertCategory(
         id: cat.id,
         name: cat.name,
-        icon: cat.icon,
         iconKey: cat.iconKey,
         type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
         isPreset: cat.isPreset,
@@ -227,7 +225,6 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         db.upsertCategory(
           id: child.id,
           name: child.name,
-          icon: child.icon,
           iconKey: child.iconKey,
           type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
           isPreset: child.isPreset,
@@ -315,15 +312,15 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.category_outlined,
-                size: 64, color: theme.colorScheme.onSurface.withOpacity(0.2)),
+                size: 64, color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
             const SizedBox(height: 12),
             Text('暂无分类',
                 style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.4))),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4))),
             const SizedBox(height: 4),
             Text('点击右上角 + 添加',
                 style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.3))),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3))),
           ],
         ),
       );
@@ -368,10 +365,10 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: Icon(CategoryIcons.getIcon(iconKey), color: color, size: 22),
+              child: CategoryIconWidget(iconKey: iconKey, size: 22, showBackground: false),
             ),
             title: Row(
               children: [
@@ -381,34 +378,31 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.08),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text('预设',
                         style: TextStyle(
                             fontSize: 10,
-                            color: theme.colorScheme.primary.withOpacity(0.6))),
+                            color: theme.colorScheme.primary.withValues(alpha: 0.6))),
                   ),
                 ],
               ],
             ),
-            trailing: hasChildren
-                ? AnimatedRotation(
+            trailing: AnimatedRotation(
                     turns: isExpanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
                     child: Icon(Icons.expand_more,
-                        color: theme.colorScheme.onSurface.withOpacity(0.4)),
-                  )
-                : null,
-            onTap: hasChildren
-                ? () => setState(() {
+                        color: theme.colorScheme.onSurface.withValues(
+                            alpha: hasChildren ? 0.4 : 0.2)),
+                  ),
+            onTap: () => setState(() {
                       if (isExpanded) {
                         _expandedIds.remove(cat.id);
                       } else {
                         _expandedIds.add(cat.id);
                       }
-                    })
-                : null,
+                    }),
             onLongPress: cat.isPreset ? null : () => _editCategory(cat),
           ),
         ),
@@ -426,11 +420,11 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                   dense: true,
                   leading: Icon(Icons.add_circle_outline,
                       size: 20,
-                      color: theme.colorScheme.primary.withOpacity(0.6)),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.6)),
                   title: Text('添加子分类',
                       style: TextStyle(
                           fontSize: 13,
-                          color: theme.colorScheme.primary.withOpacity(0.6))),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.6))),
                   onTap: () => _addCategory(parentId: cat.id),
                 ),
               ),
@@ -444,7 +438,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
           Divider(
               height: 1,
               indent: 72,
-              color: theme.colorScheme.outlineVariant.withOpacity(0.3)),
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
       ],
     );
   }
@@ -476,10 +470,10 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              color: color.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: Icon(CategoryIcons.getIcon(iconKey), color: color, size: 16),
+            child: CategoryIconWidget(iconKey: iconKey, size: 16, showBackground: false),
           ),
           title: Row(
             children: [
@@ -490,13 +484,13 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.06),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(3),
                   ),
                   child: Text('预设',
                       style: TextStyle(
                           fontSize: 9,
-                          color: theme.colorScheme.primary.withOpacity(0.5))),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.5))),
                 ),
               ],
             ],
@@ -548,7 +542,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurface.withOpacity(0.2),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -572,18 +566,20 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                         width: 56,
                         height: 56,
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.12),
+                          color: color.withValues(alpha: 0.12),
                           shape: BoxShape.circle,
                           border: Border.all(
-                              color: color.withOpacity(0.3), width: 1.5),
+                              color: color.withValues(alpha: 0.3), width: 1.5),
                         ),
-                        child: Icon(CategoryIcons.getIcon(iconKey),
-                            color: color, size: 28),
+                        child: CategoryIconWidget(
+                            iconKey: iconKey,
+                            size: 28,
+                            showBackground: false),
                       ),
                     ),
                     const SizedBox(width: 4),
                     Icon(Icons.edit, size: 14,
-                        color: theme.colorScheme.onSurface.withOpacity(0.3)),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextField(

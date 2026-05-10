@@ -990,15 +990,6 @@ class $CategoriesTable extends Categories
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
-  @override
-  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
-    'icon',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
   static const VerificationMeta _typeMeta = const VerificationMeta('type');
   @override
   late final GeneratedColumn<String> type = GeneratedColumn<String>(
@@ -1085,7 +1076,6 @@ class $CategoriesTable extends Categories
   List<GeneratedColumn> get $columns => [
     id,
     name,
-    icon,
     type,
     isPreset,
     sortOrder,
@@ -1118,14 +1108,6 @@ class $CategoriesTable extends Categories
       );
     } else if (isInserting) {
       context.missing(_nameMeta);
-    }
-    if (data.containsKey('icon')) {
-      context.handle(
-        _iconMeta,
-        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_iconMeta);
     }
     if (data.containsKey('type')) {
       context.handle(
@@ -1188,10 +1170,6 @@ class $CategoriesTable extends Categories
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
-      icon: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}icon'],
-      )!,
       type: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}type'],
@@ -1232,7 +1210,6 @@ class $CategoriesTable extends Categories
 class Category extends DataClass implements Insertable<Category> {
   final String id;
   final String name;
-  final String icon;
   final String type;
   final bool isPreset;
   final int sortOrder;
@@ -1243,7 +1220,6 @@ class Category extends DataClass implements Insertable<Category> {
   const Category({
     required this.id,
     required this.name,
-    required this.icon,
     required this.type,
     required this.isPreset,
     required this.sortOrder,
@@ -1257,7 +1233,6 @@ class Category extends DataClass implements Insertable<Category> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
-    map['icon'] = Variable<String>(icon);
     map['type'] = Variable<String>(type);
     map['is_preset'] = Variable<bool>(isPreset);
     map['sort_order'] = Variable<int>(sortOrder);
@@ -1278,7 +1253,6 @@ class Category extends DataClass implements Insertable<Category> {
     return CategoriesCompanion(
       id: Value(id),
       name: Value(name),
-      icon: Value(icon),
       type: Value(type),
       isPreset: Value(isPreset),
       sortOrder: Value(sortOrder),
@@ -1303,7 +1277,6 @@ class Category extends DataClass implements Insertable<Category> {
     return Category(
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
-      icon: serializer.fromJson<String>(json['icon']),
       type: serializer.fromJson<String>(json['type']),
       isPreset: serializer.fromJson<bool>(json['isPreset']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
@@ -1319,7 +1292,6 @@ class Category extends DataClass implements Insertable<Category> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
-      'icon': serializer.toJson<String>(icon),
       'type': serializer.toJson<String>(type),
       'isPreset': serializer.toJson<bool>(isPreset),
       'sortOrder': serializer.toJson<int>(sortOrder),
@@ -1333,7 +1305,6 @@ class Category extends DataClass implements Insertable<Category> {
   Category copyWith({
     String? id,
     String? name,
-    String? icon,
     String? type,
     bool? isPreset,
     int? sortOrder,
@@ -1344,7 +1315,6 @@ class Category extends DataClass implements Insertable<Category> {
   }) => Category(
     id: id ?? this.id,
     name: name ?? this.name,
-    icon: icon ?? this.icon,
     type: type ?? this.type,
     isPreset: isPreset ?? this.isPreset,
     sortOrder: sortOrder ?? this.sortOrder,
@@ -1357,7 +1327,6 @@ class Category extends DataClass implements Insertable<Category> {
     return Category(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
-      icon: data.icon.present ? data.icon.value : this.icon,
       type: data.type.present ? data.type.value : this.type,
       isPreset: data.isPreset.present ? data.isPreset.value : this.isPreset,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
@@ -1373,7 +1342,6 @@ class Category extends DataClass implements Insertable<Category> {
     return (StringBuffer('Category(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('icon: $icon, ')
           ..write('type: $type, ')
           ..write('isPreset: $isPreset, ')
           ..write('sortOrder: $sortOrder, ')
@@ -1389,7 +1357,6 @@ class Category extends DataClass implements Insertable<Category> {
   int get hashCode => Object.hash(
     id,
     name,
-    icon,
     type,
     isPreset,
     sortOrder,
@@ -1404,7 +1371,6 @@ class Category extends DataClass implements Insertable<Category> {
       (other is Category &&
           other.id == this.id &&
           other.name == this.name &&
-          other.icon == this.icon &&
           other.type == this.type &&
           other.isPreset == this.isPreset &&
           other.sortOrder == this.sortOrder &&
@@ -1417,7 +1383,6 @@ class Category extends DataClass implements Insertable<Category> {
 class CategoriesCompanion extends UpdateCompanion<Category> {
   final Value<String> id;
   final Value<String> name;
-  final Value<String> icon;
   final Value<String> type;
   final Value<bool> isPreset;
   final Value<int> sortOrder;
@@ -1429,7 +1394,6 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   const CategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
-    this.icon = const Value.absent(),
     this.type = const Value.absent(),
     this.isPreset = const Value.absent(),
     this.sortOrder = const Value.absent(),
@@ -1442,7 +1406,6 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   CategoriesCompanion.insert({
     required String id,
     required String name,
-    required String icon,
     required String type,
     this.isPreset = const Value.absent(),
     this.sortOrder = const Value.absent(),
@@ -1453,12 +1416,10 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
-       icon = Value(icon),
        type = Value(type);
   static Insertable<Category> custom({
     Expression<String>? id,
     Expression<String>? name,
-    Expression<String>? icon,
     Expression<String>? type,
     Expression<bool>? isPreset,
     Expression<int>? sortOrder,
@@ -1471,7 +1432,6 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
-      if (icon != null) 'icon': icon,
       if (type != null) 'type': type,
       if (isPreset != null) 'is_preset': isPreset,
       if (sortOrder != null) 'sort_order': sortOrder,
@@ -1486,7 +1446,6 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   CategoriesCompanion copyWith({
     Value<String>? id,
     Value<String>? name,
-    Value<String>? icon,
     Value<String>? type,
     Value<bool>? isPreset,
     Value<int>? sortOrder,
@@ -1499,7 +1458,6 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     return CategoriesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
-      icon: icon ?? this.icon,
       type: type ?? this.type,
       isPreset: isPreset ?? this.isPreset,
       sortOrder: sortOrder ?? this.sortOrder,
@@ -1519,9 +1477,6 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
-    }
-    if (icon.present) {
-      map['icon'] = Variable<String>(icon.value);
     }
     if (type.present) {
       map['type'] = Variable<String>(type.value);
@@ -1555,7 +1510,6 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     return (StringBuffer('CategoriesCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('icon: $icon, ')
           ..write('type: $type, ')
           ..write('isPreset: $isPreset, ')
           ..write('sortOrder: $sortOrder, ')
@@ -14356,7 +14310,6 @@ typedef $$CategoriesTableCreateCompanionBuilder =
     CategoriesCompanion Function({
       required String id,
       required String name,
-      required String icon,
       required String type,
       Value<bool> isPreset,
       Value<int> sortOrder,
@@ -14370,7 +14323,6 @@ typedef $$CategoriesTableUpdateCompanionBuilder =
     CategoriesCompanion Function({
       Value<String> id,
       Value<String> name,
-      Value<String> icon,
       Value<String> type,
       Value<bool> isPreset,
       Value<int> sortOrder,
@@ -14442,11 +14394,6 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get icon => $composableBuilder(
-    column: $table.icon,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14548,11 +14495,6 @@ class $$CategoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get icon => $composableBuilder(
-    column: $table.icon,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get type => $composableBuilder(
     column: $table.type,
     builder: (column) => ColumnOrderings(column),
@@ -14621,9 +14563,6 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get icon =>
-      $composableBuilder(column: $table.icon, builder: (column) => column);
 
   GeneratedColumn<String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
@@ -14722,7 +14661,6 @@ class $$CategoriesTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<String> icon = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<bool> isPreset = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
@@ -14734,7 +14672,6 @@ class $$CategoriesTableTableManager
               }) => CategoriesCompanion(
                 id: id,
                 name: name,
-                icon: icon,
                 type: type,
                 isPreset: isPreset,
                 sortOrder: sortOrder,
@@ -14748,7 +14685,6 @@ class $$CategoriesTableTableManager
               ({
                 required String id,
                 required String name,
-                required String icon,
                 required String type,
                 Value<bool> isPreset = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
@@ -14760,7 +14696,6 @@ class $$CategoriesTableTableManager
               }) => CategoriesCompanion.insert(
                 id: id,
                 name: name,
-                icon: icon,
                 type: type,
                 isPreset: isPreset,
                 sortOrder: sortOrder,
