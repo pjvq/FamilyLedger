@@ -88,21 +88,22 @@ class _CategoryGridState extends State<CategoryGrid> {
               final hasChildren = widget.categories.any((c) => c.parentId == cat.id);
               final iconKey = cat.iconKey.isNotEmpty ? cat.iconKey : 'other';
 
+              // Show expand arrow if has children OR can add subcategories
+              final canExpand = hasChildren || widget.onAddCategory != null;
+
               return _MainCategoryItem(
                 iconKey: iconKey,
                 name: cat.name,
                 isSelected: isSelected,
-                hasChildren: hasChildren,
+                hasChildren: canExpand,
                 onTap: () {
-                  if (hasChildren) {
+                  if (canExpand) {
                     setState(() {
                       _expandedParentId =
                           _expandedParentId == cat.id ? null : cat.id;
                     });
-                    // 如果没展开子分类，直接选主分类
-                    if (_expandedParentId == null) {
-                      widget.onSelect(cat.id);
-                    }
+                    // Select the main category
+                    widget.onSelect(cat.id);
                   } else {
                     setState(() => _expandedParentId = null);
                     widget.onSelect(cat.id);
