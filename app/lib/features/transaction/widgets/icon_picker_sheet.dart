@@ -215,6 +215,63 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
     );
   }
 
+  /// Show a dialog for the user to type a single emoji directly.
+  Future<void> _showEmojiInputDialog(BuildContext context) async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        return AlertDialog(
+          title: const Text('输入 Emoji'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 24),
+            decoration: InputDecoration(
+              hintText: '粘贴或输入一个 emoji',
+              hintStyle: TextStyle(
+                fontSize: 15,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final text = controller.text.trim();
+                if (text.isNotEmpty) {
+                  // Extract first emoji (grapheme cluster)
+                  final runes = text.characters.first;
+                  Navigator.pop(ctx, runes);
+                }
+              },
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    if (result != null && result.isNotEmpty) {
+      if (!context.mounted) return;
+      final emojiKey = 'emoji:$result';
+      setState(() => _selected = emojiKey);
+      widget.onSelect(emojiKey);
+      Navigator.pop(context);
+    }
+  }
+
   Widget _buildEmojiTab(ThemeData theme) {
     final emojiEntries = CategoryIcons.kEmojiGroups.entries.toList();
     final currentEmojis = emojiEntries[_emojiSubIndex].value;
@@ -234,6 +291,41 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
 
     return Column(
       children: [
+        // Custom emoji input button
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: InkWell(
+            onTap: () => _showEmojiInputDialog(context),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.keyboard,
+                      size: 18,
+                      color: theme.colorScheme.primary),
+                  const SizedBox(width: 6),
+                  Text(
+                    '输入自定义 Emoji',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
         // Emoji sub-group chips
         SizedBox(
           height: 36,
