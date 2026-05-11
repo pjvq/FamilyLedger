@@ -112,5 +112,22 @@ class RateType extends $pb.ProtobufEnum {
   const RateType._($core.int v, $core.String n) : super(v, n);
 }
 
+class InterestCalcMethod extends $pb.ProtobufEnum {
+  static const InterestCalcMethod INTEREST_CALC_MONTHLY = InterestCalcMethod._(0, _omitEnumNames ? '' : 'INTEREST_CALC_MONTHLY');
+  static const InterestCalcMethod INTEREST_CALC_DAILY_ACT_365 = InterestCalcMethod._(1, _omitEnumNames ? '' : 'INTEREST_CALC_DAILY_ACT_365');
+  static const InterestCalcMethod INTEREST_CALC_DAILY_ACT_360 = InterestCalcMethod._(2, _omitEnumNames ? '' : 'INTEREST_CALC_DAILY_ACT_360');
+
+  static const $core.List<InterestCalcMethod> values = <InterestCalcMethod> [
+    INTEREST_CALC_MONTHLY,
+    INTEREST_CALC_DAILY_ACT_365,
+    INTEREST_CALC_DAILY_ACT_360,
+  ];
+
+  static final $core.Map<$core.int, InterestCalcMethod> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static InterestCalcMethod? valueOf($core.int value) => _byValue[value];
+
+  const InterestCalcMethod._($core.int v, $core.String n) : super(v, n);
+}
+
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

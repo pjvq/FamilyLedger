@@ -44,6 +44,7 @@ class Loan extends $pb.GeneratedMessage {
     $core.int? rateAdjustMonth,
     $core.String? familyId,
     $core.String? repaymentCategoryId,
+    InterestCalcMethod? interestCalcMethod,
   }) {
     final $result = create();
     if (id != null) {
@@ -115,6 +116,9 @@ class Loan extends $pb.GeneratedMessage {
     if (repaymentCategoryId != null) {
       $result.repaymentCategoryId = repaymentCategoryId;
     }
+    if (interestCalcMethod != null) {
+      $result.interestCalcMethod = interestCalcMethod;
+    }
     return $result;
   }
   Loan._() : super();
@@ -145,6 +149,7 @@ class Loan extends $pb.GeneratedMessage {
     ..a<$core.int>(21, _omitFieldNames ? '' : 'rateAdjustMonth', $pb.PbFieldType.O3)
     ..aOS(22, _omitFieldNames ? '' : 'familyId')
     ..aOS(23, _omitFieldNames ? '' : 'repaymentCategoryId')
+    ..e<InterestCalcMethod>(24, _omitFieldNames ? '' : 'interestCalcMethod', $pb.PbFieldType.OE, defaultOrMaker: InterestCalcMethod.INTEREST_CALC_MONTHLY, valueOf: InterestCalcMethod.valueOf, enumValues: InterestCalcMethod.values)
     ..hasRequiredFields = false
   ;
 
@@ -381,6 +386,15 @@ class Loan extends $pb.GeneratedMessage {
   $core.bool hasRepaymentCategoryId() => $_has(22);
   @$pb.TagNumber(23)
   void clearRepaymentCategoryId() => clearField(23);
+
+  @$pb.TagNumber(24)
+  InterestCalcMethod get interestCalcMethod => $_getN(23);
+  @$pb.TagNumber(24)
+  set interestCalcMethod(InterestCalcMethod v) { setField(24, v); }
+  @$pb.TagNumber(24)
+  $core.bool hasInterestCalcMethod() => $_has(23);
+  @$pb.TagNumber(24)
+  void clearInterestCalcMethod() => clearField(24);
 }
 
 class LoanScheduleItem extends $pb.GeneratedMessage {
@@ -675,6 +689,7 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
     $2.Timestamp? startDate,
     $core.String? accountId,
     $core.String? familyId,
+    InterestCalcMethod? interestCalcMethod,
   }) {
     final $result = create();
     if (name != null) {
@@ -707,6 +722,9 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
     if (familyId != null) {
       $result.familyId = familyId;
     }
+    if (interestCalcMethod != null) {
+      $result.interestCalcMethod = interestCalcMethod;
+    }
     return $result;
   }
   CreateLoanRequest._() : super();
@@ -724,6 +742,7 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
     ..aOM<$2.Timestamp>(8, _omitFieldNames ? '' : 'startDate', subBuilder: $2.Timestamp.create)
     ..aOS(9, _omitFieldNames ? '' : 'accountId')
     ..aOS(10, _omitFieldNames ? '' : 'familyId')
+    ..e<InterestCalcMethod>(11, _omitFieldNames ? '' : 'interestCalcMethod', $pb.PbFieldType.OE, defaultOrMaker: InterestCalcMethod.INTEREST_CALC_MONTHLY, valueOf: InterestCalcMethod.valueOf, enumValues: InterestCalcMethod.values)
     ..hasRequiredFields = false
   ;
 
@@ -839,6 +858,15 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
   $core.bool hasFamilyId() => $_has(9);
   @$pb.TagNumber(10)
   void clearFamilyId() => clearField(10);
+
+  @$pb.TagNumber(11)
+  InterestCalcMethod get interestCalcMethod => $_getN(10);
+  @$pb.TagNumber(11)
+  set interestCalcMethod(InterestCalcMethod v) { setField(11, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasInterestCalcMethod() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearInterestCalcMethod() => clearField(11);
 }
 
 class GetLoanRequest extends $pb.GeneratedMessage {
@@ -1715,6 +1743,7 @@ class SubLoanSpec extends $pb.GeneratedMessage {
     $core.double? lprBase,
     $core.double? lprSpread,
     $core.int? rateAdjustMonth,
+    InterestCalcMethod? interestCalcMethod,
   }) {
     final $result = create();
     if (name != null) {
@@ -1747,6 +1776,9 @@ class SubLoanSpec extends $pb.GeneratedMessage {
     if (rateAdjustMonth != null) {
       $result.rateAdjustMonth = rateAdjustMonth;
     }
+    if (interestCalcMethod != null) {
+      $result.interestCalcMethod = interestCalcMethod;
+    }
     return $result;
   }
   SubLoanSpec._() : super();
@@ -1764,6 +1796,7 @@ class SubLoanSpec extends $pb.GeneratedMessage {
     ..a<$core.double>(8, _omitFieldNames ? '' : 'lprBase', $pb.PbFieldType.OD)
     ..a<$core.double>(9, _omitFieldNames ? '' : 'lprSpread', $pb.PbFieldType.OD)
     ..a<$core.int>(10, _omitFieldNames ? '' : 'rateAdjustMonth', $pb.PbFieldType.O3)
+    ..e<InterestCalcMethod>(11, _omitFieldNames ? '' : 'interestCalcMethod', $pb.PbFieldType.OE, defaultOrMaker: InterestCalcMethod.INTEREST_CALC_MONTHLY, valueOf: InterestCalcMethod.valueOf, enumValues: InterestCalcMethod.values)
     ..hasRequiredFields = false
   ;
 
@@ -1877,6 +1910,15 @@ class SubLoanSpec extends $pb.GeneratedMessage {
   $core.bool hasRateAdjustMonth() => $_has(9);
   @$pb.TagNumber(10)
   void clearRateAdjustMonth() => clearField(10);
+
+  @$pb.TagNumber(11)
+  InterestCalcMethod get interestCalcMethod => $_getN(10);
+  @$pb.TagNumber(11)
+  set interestCalcMethod(InterestCalcMethod v) { setField(11, v); }
+  @$pb.TagNumber(11)
+  $core.bool hasInterestCalcMethod() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearInterestCalcMethod() => clearField(11);
 }
 
 class CreateLoanGroupRequest extends $pb.GeneratedMessage {
