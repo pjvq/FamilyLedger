@@ -1445,11 +1445,17 @@ func (s *Service) GetCategories(ctx context.Context, req *pb.GetCategoriesReques
 	// Query categories visible to this user:
 	// 1. Preset categories (user_id IS NULL) — shared by all
 	// 2. User's own custom categories (user_id = current user)
+	// 3. Family members' categories (user_id IN same family)
 	query := `SELECT id, name, icon, type, is_preset, sort_order,
 	          COALESCE(parent_id::text, '') as parent_id,
 	          COALESCE(icon_key, '') as icon_key
 	          FROM categories WHERE deleted_at IS NULL
-	          AND (user_id IS NULL OR user_id = $1)`
+	          AND (user_id IS NULL OR user_id = $1
+	               OR user_id IN (
+	                   SELECT fm2.user_id FROM family_members fm1
+	                   JOIN family_members fm2 ON fm1.family_id = fm2.family_id
+	                   WHERE fm1.user_id = $1
+	               ))`
 	args := []interface{}{userID}
 
 	if req.Type != pb.TransactionType_TRANSACTION_TYPE_UNSPECIFIED {
