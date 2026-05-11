@@ -42,6 +42,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
   String _comAmountText = '';
   int _comTotalMonths = 360;
   String _comRepaymentMethod = 'equal_installment';
+  String _comCalcMethod = 'monthly';
   String _comRateType = 'fixed';
   bool _showComNumberPad = false;
 
@@ -50,6 +51,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
   String _pvdAmountText = '';
   int _pvdTotalMonths = 360;
   String _pvdRepaymentMethod = 'equal_installment';
+  String _pvdCalcMethod = 'monthly';
   bool _showPvdNumberPad = false;
 
   // ── Combined loan fields ──
@@ -60,12 +62,14 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
   final _combPvdRateController = TextEditingController(text: '2.85');
   int _combPvdTotalMonths = 360;
   String _combPvdRepaymentMethod = 'equal_installment';
+  String _combPvdCalcMethod = 'monthly';
   // Combined: commercial part
   final _combComRateController = TextEditingController();
   final _combComLprBaseController = TextEditingController(text: '3.45');
   final _combComLprSpreadController = TextEditingController(text: '0');
   int _combComTotalMonths = 360;
   String _combComRepaymentMethod = 'equal_installment';
+  String _combComCalcMethod = 'monthly';
   String _combComRateType = 'fixed';
   bool _showCombNumberPad = false;
   String _combActiveField = 'total'; // total / pvd
@@ -422,8 +426,19 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
         _buildRepaymentMethod(
           theme: theme,
           method: _comRepaymentMethod,
-          onChanged: (v) => setState(() => _comRepaymentMethod = v),
+          onChanged: (v) => setState(() {
+            _comRepaymentMethod = v;
+            if (v != 'interest_only' && v != 'bullet') _comCalcMethod = 'monthly';
+          }),
         ),
+        if (_comRepaymentMethod == 'interest_only' || _comRepaymentMethod == 'bullet') ...[
+          const SizedBox(height: 16),
+          _buildCalcMethodSelector(
+            theme: theme,
+            calcMethod: _comCalcMethod,
+            onChanged: (v) => setState(() => _comCalcMethod = v),
+          ),
+        ],
       ],
     );
   }
@@ -489,8 +504,19 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
         _buildRepaymentMethod(
           theme: theme,
           method: _pvdRepaymentMethod,
-          onChanged: (v) => setState(() => _pvdRepaymentMethod = v),
+          onChanged: (v) => setState(() {
+            _pvdRepaymentMethod = v;
+            if (v != 'interest_only' && v != 'bullet') _pvdCalcMethod = 'monthly';
+          }),
         ),
+        if (_pvdRepaymentMethod == 'interest_only' || _pvdRepaymentMethod == 'bullet') ...[
+          const SizedBox(height: 16),
+          _buildCalcMethodSelector(
+            theme: theme,
+            calcMethod: _pvdCalcMethod,
+            onChanged: (v) => setState(() => _pvdCalcMethod = v),
+          ),
+        ],
       ],
     );
   }
@@ -631,9 +657,19 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
               _buildRepaymentMethod(
                 theme: theme,
                 method: _combPvdRepaymentMethod,
-                onChanged: (v) =>
-                    setState(() => _combPvdRepaymentMethod = v),
+                onChanged: (v) => setState(() {
+                  _combPvdRepaymentMethod = v;
+                  if (v != 'interest_only' && v != 'bullet') _combPvdCalcMethod = 'monthly';
+                }),
               ),
+              if (_combPvdRepaymentMethod == 'interest_only' || _combPvdRepaymentMethod == 'bullet') ...[
+                const SizedBox(height: 16),
+                _buildCalcMethodSelector(
+                  theme: theme,
+                  calcMethod: _combPvdCalcMethod,
+                  onChanged: (v) => setState(() => _combPvdCalcMethod = v),
+                ),
+              ],
             ],
           ),
         ),
@@ -693,9 +729,19 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
               _buildRepaymentMethod(
                 theme: theme,
                 method: _combComRepaymentMethod,
-                onChanged: (v) =>
-                    setState(() => _combComRepaymentMethod = v),
+                onChanged: (v) => setState(() {
+                  _combComRepaymentMethod = v;
+                  if (v != 'interest_only' && v != 'bullet') _combComCalcMethod = 'monthly';
+                }),
               ),
+              if (_combComRepaymentMethod == 'interest_only' || _combComRepaymentMethod == 'bullet') ...[
+                const SizedBox(height: 16),
+                _buildCalcMethodSelector(
+                  theme: theme,
+                  calcMethod: _combComCalcMethod,
+                  onChanged: (v) => setState(() => _combComCalcMethod = v),
+                ),
+              ],
             ],
           ),
         ),
@@ -874,6 +920,39 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
     );
   }
 
+  Widget _buildCalcMethodSelector({
+    required ThemeData theme,
+    required String calcMethod,
+    required ValueChanged<String> onChanged,
+  }) {
+    const methods = [
+      ('monthly', '按月计息', '月利率 = 年利率/12'),
+      ('daily_act_365', '按日计息(ACT/365)', '日利率 = 年利率/365 × 实际天数'),
+      ('daily_act_360', '按日计息(ACT/360)', '日利率 = 年利率/360 × 实际天数'),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(title: '计息方式', theme: theme),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: methods.map((m) {
+            final isSelected = calcMethod == m.$1;
+            return ChoiceChip(
+              label: Text(m.$2),
+              selected: isSelected,
+              onSelected: (_) => onChanged(m.$1),
+              tooltip: m.$3,
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
   Widget _buildRepaymentMethod({
     required ThemeData theme,
     required String method,
@@ -1042,6 +1121,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
               ? _parseLprSpread(_comLprSpreadController)
               : null,
           familyId: _scopeFamilyId,
+          interestCalcMethod: _comCalcMethod,
         );
   }
 
@@ -1065,6 +1145,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
           accountId: _accountId,
           rateType: 'fixed',
           familyId: _scopeFamilyId,
+          interestCalcMethod: _pvdCalcMethod,
         );
   }
 
@@ -1113,6 +1194,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
           totalMonths: _combPvdTotalMonths,
           repaymentMethod: _combPvdRepaymentMethod,
           rateType: 'fixed',
+          interestCalcMethod: _combPvdCalcMethod,
         ),
         SubLoanInput(
           name: '$name-商贷',
@@ -1128,6 +1210,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
           lprSpread: _combComRateType == 'lpr_floating'
               ? _parseLprSpread(_combComLprSpreadController)
               : 0.0,
+          interestCalcMethod: _combComCalcMethod,
         ),
       ],
     );

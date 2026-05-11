@@ -629,6 +629,17 @@ pb_enum.RepaymentMethod _stringToRepaymentMethod(String method) {
   }
 }
 
+pb_enum.InterestCalcMethod _stringToInterestCalcMethod(String method) {
+  switch (method) {
+    case 'daily_act_365':
+      return pb_enum.InterestCalcMethod.INTEREST_CALC_DAILY_ACT_365;
+    case 'daily_act_360':
+      return pb_enum.InterestCalcMethod.INTEREST_CALC_DAILY_ACT_360;
+    default:
+      return pb_enum.InterestCalcMethod.INTEREST_CALC_MONTHLY;
+  }
+}
+
 String _subTypeToString(pb_enum.LoanSubType type) {
   switch (type) {
     case pb_enum.LoanSubType.LOAN_SUB_TYPE_COMMERCIAL:
@@ -852,6 +863,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     double? lprSpread,
     int? rateAdjustMonth,
     String? familyId,
+    String? interestCalcMethod,
   }) async {
     if (_userId == null) return;
     state = state.copyWith(isLoading: true, clearError: true);
@@ -870,7 +882,8 @@ class LoanNotifier extends StateNotifier<LoanState> {
         ..paymentDay = paymentDay
         ..startDate = _toTimestamp(startDate)
         ..accountId = accountId ?? ''
-        ..familyId = familyId ?? '');
+        ..familyId = familyId ?? ''
+        ..interestCalcMethod = _stringToInterestCalcMethod(interestCalcMethod ?? 'monthly'));
       loanId = resp.id;
       await _db.upsertLoan(_loanFromProto(resp));
     } catch (e, st) {
@@ -963,7 +976,8 @@ class LoanNotifier extends StateNotifier<LoanState> {
           ..rateType = _stringToRateType(sub.rateType)
           ..lprBase = sub.lprBase
           ..lprSpread = sub.lprSpread
-          ..rateAdjustMonth = sub.rateAdjustMonth);
+          ..rateAdjustMonth = sub.rateAdjustMonth
+          ..interestCalcMethod = _stringToInterestCalcMethod(sub.interestCalcMethod));
       }
 
       final resp = await _client.createLoanGroup(req);
@@ -1477,6 +1491,7 @@ class SubLoanInput {
   final double lprBase;
   final double lprSpread;
   final int rateAdjustMonth;
+  final String interestCalcMethod;
 
   const SubLoanInput({
     required this.name,
@@ -1489,6 +1504,7 @@ class SubLoanInput {
     this.lprBase = 0.0,
     this.lprSpread = 0.0,
     this.rateAdjustMonth = 1,
+    this.interestCalcMethod = 'monthly',
   });
 }
 
