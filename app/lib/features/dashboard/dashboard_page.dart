@@ -800,16 +800,21 @@ class _IncomeExpenseChart extends StatelessWidget {
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
                   showTitles: true,
+                  interval: 1,
                   getTitlesWidget: (value, meta) {
                     final i = value.toInt();
                     if (i < 0 || i >= points.length) {
                       return const SizedBox.shrink();
                     }
                     final label = points[i].label;
-                    // Show short label (month only)
-                    final short = label.length > 5
-                        ? label.substring(5)
-                        : label;
+                    // "2025-01" → "1月", "2025" → "2025"
+                    String short;
+                    if (label.length >= 7) {
+                      final monthNum = int.tryParse(label.substring(5)) ?? 0;
+                      short = '$monthNum月';
+                    } else {
+                      short = label;
+                    }
                     return Text(
                       short,
                       style: TextStyle(
