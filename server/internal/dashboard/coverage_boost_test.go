@@ -542,7 +542,8 @@ func TestGetIncomeExpenseTrend_DefaultCount(t *testing.T) {
 		// Count=0 → default 12
 	})
 	require.NoError(t, err)
-	assert.Empty(t, resp.Points)
+	// Returns 12 zero-filled points
+	assert.Len(t, resp.Points, 12)
 }
 
 func TestGetIncomeExpenseTrend_ClampMax60(t *testing.T) {
@@ -560,7 +561,8 @@ func TestGetIncomeExpenseTrend_ClampMax60(t *testing.T) {
 		Count: 200, // should be clamped to 60
 	})
 	require.NoError(t, err)
-	assert.Empty(t, resp.Points)
+	// Clamped to 60 zero-filled points
+	assert.Len(t, resp.Points, 60)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

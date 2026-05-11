@@ -235,9 +235,14 @@ func TestGetIncomeExpenseTrend_PersonalMode(t *testing.T) {
 
 	svc := NewService(mock)
 
+	now := time.Now()
+	// Use current month to ensure the mock data falls within the generated range
+	m1 := time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, time.UTC)
+	m2 := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+
 	rows := pgxmock.NewRows([]string{"period", "income", "expense"}).
-		AddRow(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), int64(80000), int64(50000)).
-		AddRow(time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC), int64(90000), int64(60000))
+		AddRow(m1, int64(80000), int64(50000)).
+		AddRow(m2, int64(90000), int64(60000))
 
 	mock.ExpectQuery("SELECT DATE_TRUNC").
 		WithArgs(testUserID, pgxmock.AnyArg()).
@@ -245,11 +250,13 @@ func TestGetIncomeExpenseTrend_PersonalMode(t *testing.T) {
 
 	resp, err := svc.GetIncomeExpenseTrend(authedCtx(), &pb.TrendRequest{Period: "monthly", Count: 6})
 	require.NoError(t, err)
-	assert.Len(t, resp.Points, 2)
-	assert.Equal(t, "2026-01", resp.Points[0].Label)
-	assert.Equal(t, int64(80000), resp.Points[0].Income)
-	assert.Equal(t, int64(50000), resp.Points[0].Expense)
-	assert.Equal(t, int64(30000), resp.Points[0].Net)
+	// Should return 6 points (complete time series)
+	assert.Len(t, resp.Points, 6)
+	// Last two points should have data
+	assert.Equal(t, int64(80000), resp.Points[4].Income)
+	assert.Equal(t, int64(50000), resp.Points[4].Expense)
+	assert.Equal(t, int64(30000), resp.Points[4].Net)
+	assert.Equal(t, int64(90000), resp.Points[5].Income)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -263,9 +270,10 @@ func TestGetIncomeExpenseTrend_FamilyMode(t *testing.T) {
 	// Family membership check
 	expectFamilyMembershipCheck(mock, testFamilyID, testUserID, true)
 
-	// Query returns family data (aggregated from all members)
+	now := time.Now()
+	// Query returns family data for current month
 	rows := pgxmock.NewRows([]string{"period", "income", "expense"}).
-		AddRow(time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC), int64(200000), int64(150000))
+		AddRow(time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC), int64(200000), int64(150000))
 
 	mock.ExpectQuery("SELECT DATE_TRUNC").
 		WithArgs(testFamilyID, pgxmock.AnyArg()).
@@ -277,10 +285,11 @@ func TestGetIncomeExpenseTrend_FamilyMode(t *testing.T) {
 		FamilyId: testFamilyID,
 	})
 	require.NoError(t, err)
-	require.Len(t, resp.Points, 1)
-	assert.Equal(t, int64(200000), resp.Points[0].Income)
-	assert.Equal(t, int64(150000), resp.Points[0].Expense)
-	assert.Equal(t, int64(50000), resp.Points[0].Net)
+	require.Len(t, resp.Points, 6)
+	// Last point (current month) should have data
+	assert.Equal(t, int64(200000), resp.Points[5].Income)
+	assert.Equal(t, int64(150000), resp.Points[5].Expense)
+	assert.Equal(t, int64(50000), resp.Points[5].Net)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -316,7 +325,12 @@ func TestGetIncomeExpenseTrend_Empty(t *testing.T) {
 
 	resp, err := svc.GetIncomeExpenseTrend(authedCtx(), &pb.TrendRequest{Period: "monthly", Count: 6})
 	require.NoError(t, err)
-	assert.Empty(t, resp.Points)
+	// Returns complete time series even with no data (all zeros)
+	assert.Len(t, resp.Points, 6)
+	for _, p := range resp.Points {
+		assert.Equal(t, int64(0), p.Income)
+		assert.Equal(t, int64(0), p.Expense)
+	}
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -327,9 +341,9 @@ func TestGetIncomeExpenseTrend_Yearly(t *testing.T) {
 
 	svc := NewService(mock)
 
+	now := time.Now()
 	rows := pgxmock.NewRows([]string{"period", "income", "expense"}).
-		AddRow(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC), int64(1000000), int64(800000)).
-		AddRow(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), int64(1200000), int64(900000))
+		AddRow(time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.UTC), int64(1000000), int64(800000))
 
 	mock.ExpectQuery("SELECT DATE_TRUNC").
 		WithArgs(testUserID, pgxmock.AnyArg()).
@@ -337,9 +351,19 @@ func TestGetIncomeExpenseTrend_Yearly(t *testing.T) {
 
 	resp, err := svc.GetIncomeExpenseTrend(authedCtx(), &pb.TrendRequest{Period: "yearly", Count: 5})
 	require.NoError(t, err)
-	assert.Len(t, resp.Points, 2)
-	assert.Equal(t, "2025", resp.Points[0].Label)
-	assert.Equal(t, "2026", resp.Points[1].Label)
+	// Should return 5 points (gaps filled with zeros)
+	assert.Len(t, resp.Points, 5)
+	// Current year should have data
+	currentYearLabel := fmt.Sprintf("%d", now.Year())
+	found := false
+	for _, p := range resp.Points {
+		if p.Label == currentYearLabel {
+			assert.Equal(t, int64(1000000), p.Income)
+			assert.Equal(t, int64(800000), p.Expense)
+			found = true
+		}
+	}
+	assert.True(t, found, "current year point not found")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -759,8 +783,9 @@ func TestGetIncomeExpenseTrend_SingleMonth(t *testing.T) {
 
 	svc := NewService(mock)
 
+	now := time.Now()
 	rows := pgxmock.NewRows([]string{"period", "income", "expense"}).
-		AddRow(time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC), int64(120000), int64(80000))
+		AddRow(time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC), int64(120000), int64(80000))
 
 	mock.ExpectQuery("SELECT DATE_TRUNC").
 		WithArgs(testUserID, pgxmock.AnyArg()).

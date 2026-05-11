@@ -436,14 +436,14 @@ func (s *Service) GetIncomeExpenseTrend(ctx context.Context, req *pb.TrendReques
 	}
 	defer rows.Close()
 
-	var points []*pb.TrendPoint
+	var rawPoints []*pb.TrendPoint
 	for rows.Next() {
 		var period time.Time
 		var income, expense int64
 		if err := rows.Scan(&period, &income, &expense); err != nil {
 			return nil, status.Error(codes.Internal, "failed to scan trend row")
 		}
-		points = append(points, &pb.TrendPoint{
+		rawPoints = append(rawPoints, &pb.TrendPoint{
 			Label:   period.Format(labelFormat),
 			Income:  income,
 			Expense: expense,
@@ -451,9 +451,34 @@ func (s *Service) GetIncomeExpenseTrend(ctx context.Context, req *pb.TrendReques
 		})
 	}
 
-	if points == nil {
-		points = []*pb.TrendPoint{}
+	// Build complete time series (fill gaps with zeros)
+	pointMap := make(map[string]*pb.TrendPoint, len(rawPoints))
+	for _, p := range rawPoints {
+		pointMap[p.Label] = p
 	}
+
+	var points []*pb.TrendPoint
+	for i := 0; i < count; i++ {
+		var label string
+		if req.Period == "yearly" {
+			y := now.Year() - count + 1 + i
+			label = time.Date(y, 1, 1, 0, 0, 0, 0, time.UTC).Format(labelFormat)
+		} else {
+			m := time.Date(now.Year(), now.Month()-time.Month(count-1-i), 1, 0, 0, 0, 0, time.UTC)
+			label = m.Format(labelFormat)
+		}
+		if p, ok := pointMap[label]; ok {
+			points = append(points, p)
+		} else {
+			points = append(points, &pb.TrendPoint{
+				Label:   label,
+				Income:  0,
+				Expense: 0,
+				Net:     0,
+			})
+		}
+	}
+
 	return &pb.TrendResponse{Points: points}, nil
 }
 
