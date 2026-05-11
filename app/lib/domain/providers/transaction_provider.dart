@@ -85,14 +85,14 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   Future<void> _load() async {
     try {
       // Load categories first (fast, local only)
-      var expCats = await _db.getCategoriesByType('expense');
-      var incCats = await _db.getCategoriesByType('income');
+      var expCats = await _db.getCategoriesByType('expense', userId: _userId);
+      var incCats = await _db.getCategoriesByType('income', userId: _userId);
 
       // If local categories are empty, fetch from server before showing UI
       if (expCats.isEmpty && incCats.isEmpty && _txnClient != null) {
         await _syncCategoriesFromServer();
-        expCats = await _db.getCategoriesByType('expense');
-        incCats = await _db.getCategoriesByType('income');
+        expCats = await _db.getCategoriesByType('expense', userId: _userId);
+        incCats = await _db.getCategoriesByType('income', userId: _userId);
       }
 
       state = state.copyWith(
@@ -200,8 +200,8 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         await _insertCategoryRecursive(c, null);
       }
       // Refresh local state
-      final expCats = await _db.getCategoriesByType('expense');
-      final incCats = await _db.getCategoriesByType('income');
+      final expCats = await _db.getCategoriesByType('expense', userId: _userId);
+      final incCats = await _db.getCategoriesByType('income', userId: _userId);
       state = state.copyWith(
         expenseCategories: expCats,
         incomeCategories: incCats,
@@ -222,6 +222,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         sortOrder: Value(c.sortOrder),
         parentId: Value(parentId ?? (c.parentId.isNotEmpty ? c.parentId : null)),
         iconKey: Value(c.iconKey),
+        userId: Value(_userId),
       ),
     );
     for (final child in c.children) {

@@ -530,9 +530,15 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // Categories
-  Future<List<Category>> getCategoriesByType(String type) =>
+  Future<List<Category>> getCategoriesByType(String type, {String? userId}) =>
       (select(categories)
-            ..where((c) => c.type.equals(type))
+            ..where((c) {
+              final typeFilter = c.type.equals(type);
+              if (userId != null && userId.isNotEmpty) {
+                return typeFilter & (c.userId.equals(userId) | c.userId.isNull());
+              }
+              return typeFilter;
+            })
             ..orderBy([(c) => OrderingTerm.asc(c.sortOrder)]))
           .get();
 
