@@ -670,6 +670,12 @@ pb_enum.RepaymentMethod _stringToRepaymentMethod(String method) {
   switch (method) {
     case 'equal_principal':
       return pb_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_PRINCIPAL;
+    case 'interest_only':
+      return pb_enum.RepaymentMethod.REPAYMENT_METHOD_INTEREST_ONLY;
+    case 'bullet':
+      return pb_enum.RepaymentMethod.REPAYMENT_METHOD_BULLET;
+    case 'equal_interest':
+      return pb_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_INTEREST;
     default:
       return pb_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_INSTALLMENT;
   }

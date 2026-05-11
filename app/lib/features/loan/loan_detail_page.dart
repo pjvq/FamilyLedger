@@ -667,9 +667,7 @@ class _SummaryCard extends StatelessWidget {
               children: [
                 _StatItem(
                   label: '还款方式',
-                  value: loan.repaymentMethod == 'equal_principal'
-                      ? '等额本金'
-                      : '等额本息',
+                  value: _repaymentMethodLabel(loan.repaymentMethod),
                   theme: theme,
                 ),
                 _StatItem(
@@ -741,6 +739,21 @@ class _ProgressRingPainter extends CustomPainter {
       oldDelegate.progress != progress ||
       oldDelegate.color != color ||
       oldDelegate.backgroundColor != backgroundColor;
+}
+
+String _repaymentMethodLabel(String method) {
+  switch (method) {
+    case 'equal_principal':
+      return '等额本金';
+    case 'interest_only':
+      return '先息后本';
+    case 'bullet':
+      return '到期还本付息';
+    case 'equal_interest':
+      return '等本等息';
+    default:
+      return '等额本息';
+  }
 }
 
 class _StatItem extends StatelessWidget {
