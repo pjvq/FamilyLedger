@@ -43,7 +43,7 @@ func TestCreateLoan_Success(t *testing.T) {
 		WithArgs(
 			testUserUUID, "\u623f\u8d37", "mortgage", int64(100000000), int64(100000000),
 			float64(3.85), int32(360), "equal_installment", int32(15),
-			pgxmock.AnyArg(), (*uuid.UUID)(nil), (*uuid.UUID)(nil),
+			pgxmock.AnyArg(), (*uuid.UUID)(nil), (*uuid.UUID)(nil), "monthly",
 		).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 			AddRow(loanID, now, now))
@@ -131,7 +131,7 @@ func loanColumns() []string {
 		"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
 		"start_date", "created_at", "updated_at", "account_id",
 		"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
-		"family_id", "repayment_category_id",
+		"family_id", "repayment_category_id", "interest_calc_method",
 	}
 }
 
@@ -142,18 +142,18 @@ func loanRow(id uuid.UUID, userID uuid.UUID) []interface{} {
 		3.85, int32(360), int32(12), "equal_installment", int32(15),
 		now, now, now, (*uuid.UUID)(nil),
 		(*uuid.UUID)(nil), (*string)(nil), (*string)(nil), (*float64)(nil), (*float64)(nil), (*int32)(nil),
-		(*uuid.UUID)(nil), (*uuid.UUID)(nil), // family_id, repayment_category_id
+		(*uuid.UUID)(nil), (*uuid.UUID)(nil), "monthly", // family_id, repayment_category_id, interest_calc_method
 	}
 }
 
-// subLoanColumns returns the 22 columns used by loadSubLoans (no repayment_category_id).
+// subLoanColumns returns the columns used by loadSubLoans.
 func subLoanColumns() []string {
 	return []string{
 		"id", "user_id", "name", "loan_type", "principal", "remaining_principal",
 		"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
 		"start_date", "created_at", "updated_at", "account_id",
 		"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
-		"family_id", "repayment_category_id",
+		"family_id", "repayment_category_id", "interest_calc_method",
 	}
 }
 
@@ -267,7 +267,7 @@ func listLoanColumns() []string {
 		"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
 		"start_date", "created_at", "updated_at", "account_id",
 		"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
-		"family_id", "repayment_category_id",
+		"family_id", "repayment_category_id", "interest_calc_method",
 	}
 }
 
@@ -278,7 +278,7 @@ func listLoanRow(id uuid.UUID, userID uuid.UUID, name string) []interface{} {
 		3.85, int32(360), int32(12), "equal_installment", int32(15),
 		now, now, now, (*uuid.UUID)(nil),
 		(*uuid.UUID)(nil), (*string)(nil), (*string)(nil), (*float64)(nil), (*float64)(nil), (*int32)(nil),
-		(*uuid.UUID)(nil), (*uuid.UUID)(nil),
+		(*uuid.UUID)(nil), (*uuid.UUID)(nil), "monthly",
 	}
 }
 
@@ -449,7 +449,7 @@ func TestSimulatePrepayment_InvalidAmount(t *testing.T) {
 func TestGenerateSchedule_EqualInstallment(t *testing.T) {
 	// 100万, 4.9%, 360月, 等额本息
 	items := generateSchedule(100000000, 4.9, 360, "equal_installment", 15,
-		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), "monthly")
 
 	require.Len(t, items, 360)
 	// Last item should have 0 remaining
@@ -467,7 +467,7 @@ func TestGenerateSchedule_EqualInstallment(t *testing.T) {
 func TestGenerateSchedule_EqualPrincipal(t *testing.T) {
 	// 100万, 4.9%, 360月, 等额本金
 	items := generateSchedule(100000000, 4.9, 360, "equal_principal", 15,
-		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), "monthly")
 
 	require.Len(t, items, 360)
 	assert.Equal(t, int64(0), items[359].remainingPrincipal)
@@ -479,7 +479,7 @@ func TestGenerateSchedule_EqualPrincipal(t *testing.T) {
 
 func TestGenerateSchedule_ZeroRate(t *testing.T) {
 	items := generateSchedule(1200000, 0, 12, "equal_installment", 1,
-		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), "monthly")
 
 	require.Len(t, items, 12)
 	for _, it := range items {
@@ -490,11 +490,11 @@ func TestGenerateSchedule_ZeroRate(t *testing.T) {
 
 func TestGenerateSchedule_EdgeCases(t *testing.T) {
 	// Zero principal
-	items := generateSchedule(0, 4.9, 360, "equal_installment", 15, time.Now())
+	items := generateSchedule(0, 4.9, 360, "equal_installment", 15, time.Now(), "monthly")
 	assert.Nil(t, items)
 
 	// Zero months
-	items = generateSchedule(100000000, 4.9, 0, "equal_installment", 15, time.Now())
+	items = generateSchedule(100000000, 4.9, 0, "equal_installment", 15, time.Now(), "monthly")
 	assert.Nil(t, items)
 }
 
@@ -502,7 +502,7 @@ func TestGenerateSchedule_InterestOnly(t *testing.T) {
 	// 50万, 5.0%, 12个月, 先息后本
 	principal := int64(50000000) // 50万 (分)
 	items := generateSchedule(principal, 5.0, 12, "interest_only", 15,
-		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), "monthly")
 
 	require.Len(t, items, 12)
 
@@ -526,7 +526,7 @@ func TestGenerateSchedule_Bullet(t *testing.T) {
 	// 10万, 6.0%, 6个月, 一次性还本付息
 	principal := int64(10000000) // 10万 (分)
 	items := generateSchedule(principal, 6.0, 6, "bullet", 1,
-		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), "monthly")
 
 	require.Len(t, items, 6)
 
@@ -550,7 +550,7 @@ func TestGenerateSchedule_EqualInterest(t *testing.T) {
 	// 12万, 12.0%, 12个月, 等本等息
 	principal := int64(12000000) // 12万 (分)
 	items := generateSchedule(principal, 12.0, 12, "equal_interest", 1,
-		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), "monthly")
 
 	require.Len(t, items, 12)
 
@@ -730,3 +730,91 @@ func TestAdvanceMonths(t *testing.T) {
 	assert.Equal(t, 28, d3.Day()) // Feb 2026 has 28 days
 }
 
+
+// ─── Daily Interest Calculation Tests ───────────────────────────────────────
+
+func TestGenerateSchedule_InterestOnly_DailyAct365(t *testing.T) {
+	// 50万, 5%, 12月, 先息后本, 按日计息 ACT/365
+	principal := int64(50000000) // 50万（分）
+	startDate := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
+	items := generateSchedule(principal, 5.0, 12, "interest_only", 15, startDate, "daily_act_365")
+
+	require.Len(t, items, 12)
+
+	// 按日计息: 每月利息不同（因为天数不同）
+	// 1月: 15号→2月15号 = 31天, 利息 = 500000 * 5%/365 * 31 ≈ 21232.88
+	// 2月: 15号→3月15号 = 28天, 利息 = 500000 * 5%/365 * 28 ≈ 19178.08
+	assert.NotEqual(t, items[0].interestPart, items[1].interestPart, "daily interest should differ month to month")
+
+	// 最后一期包含本金
+	assert.Equal(t, principal, items[11].principalPart)
+	assert.Equal(t, int64(0), items[11].remainingPrincipal)
+
+	// 中间期无本金偿还
+	for i := 0; i < 11; i++ {
+		assert.Equal(t, int64(0), items[i].principalPart)
+		assert.Equal(t, principal, items[i].remainingPrincipal)
+		assert.True(t, items[i].interestPart > 0, "interest should be positive for period %d", i)
+	}
+}
+
+func TestGenerateSchedule_Bullet_DailyAct365(t *testing.T) {
+	// 50万, 6%, 6月, 一次性还本付息, 按日计息 ACT/365
+	principal := int64(50000000)
+	startDate := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	items := generateSchedule(principal, 6.0, 6, "bullet", 1, startDate, "daily_act_365")
+
+	require.Len(t, items, 6)
+
+	// 期间无还款
+	for i := 0; i < 5; i++ {
+		assert.Equal(t, int64(0), items[i].payment)
+		assert.Equal(t, principal, items[i].remainingPrincipal)
+	}
+
+	// 最后一期还本+全部利息
+	assert.Equal(t, principal, items[5].principalPart)
+	assert.True(t, items[5].interestPart > 0)
+	assert.Equal(t, int64(0), items[5].remainingPrincipal)
+
+	// 按日计息的总利息应该与按月计息不同
+	monthlyItems := generateSchedule(principal, 6.0, 6, "bullet", 1, startDate, "monthly")
+	assert.NotEqual(t, items[5].interestPart, monthlyItems[5].interestPart,
+		"daily vs monthly interest should differ")
+}
+
+func TestGenerateSchedule_InterestOnly_DailyAct360(t *testing.T) {
+	// ACT/360 的日利率比 ACT/365 更高（除以360而非365）
+	principal := int64(50000000)
+	startDate := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
+
+	items365 := generateSchedule(principal, 5.0, 12, "interest_only", 15, startDate, "daily_act_365")
+	items360 := generateSchedule(principal, 5.0, 12, "interest_only", 15, startDate, "daily_act_360")
+
+	require.Len(t, items365, 12)
+	require.Len(t, items360, 12)
+
+	// ACT/360 每月利息应该 > ACT/365（因为日利率更高: rate/360 > rate/365）
+	var total365, total360 int64
+	for i := 0; i < 12; i++ {
+		total365 += items365[i].interestPart
+		total360 += items360[i].interestPart
+	}
+	assert.Greater(t, total360, total365, "ACT/360 total interest should exceed ACT/365")
+}
+
+func TestGenerateSchedule_EqualInstallment_MonthlyUnchanged(t *testing.T) {
+	// 等额本息不受 calcMethod 影响（始终按月计息）
+	principal := int64(100000000)
+	startDate := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	monthlyItems := generateSchedule(principal, 4.9, 360, "equal_installment", 15, startDate, "monthly")
+	dailyItems := generateSchedule(principal, 4.9, 360, "equal_installment", 15, startDate, "daily_act_365")
+
+	require.Len(t, monthlyItems, 360)
+	require.Len(t, dailyItems, 360)
+
+	// equal_installment always uses monthly calculation regardless of calcMethod
+	assert.Equal(t, monthlyItems[0].payment, dailyItems[0].payment)
+	assert.Equal(t, monthlyItems[359].payment, dailyItems[359].payment)
+}

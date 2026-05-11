@@ -87,7 +87,7 @@ func TestBoost_CreateLoanGroup_Success(t *testing.T) {
 			testUserUUID, "房贷组合-商贷", "mortgage", int64(100000000), int64(100000000),
 			float64(3.85), int32(360), "equal_installment", int32(15),
 			startDate, (*uuid.UUID)(nil), groupID, "commercial", "fixed",
-			(*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil),
+			(*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil), "monthly",
 		).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(loanID, now, now))
 
@@ -105,7 +105,7 @@ func TestBoost_CreateLoanGroup_Success(t *testing.T) {
 			testUserUUID, "房贷组合-公积金", "mortgage", int64(50000000), int64(50000000),
 			float64(2.85), int32(360), "equal_installment", int32(15),
 			startDate, (*uuid.UUID)(nil), groupID, "provident", "fixed",
-			(*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil),
+			(*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil), "monthly",
 		).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(loanID2, now, now))
 
@@ -304,7 +304,7 @@ func TestBoost_ListLoanGroups_Success(t *testing.T) {
 			AddRow(loanID, testUserUUID, "房贷-商贷", "mortgage", int64(100000000), int64(90000000),
 				float64(3.85), int32(360), int32(12), "equal_installment", int32(15),
 				now, now, now, (*uuid.UUID)(nil),
-				&groupID, &subType, &rateType, (*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil), (*uuid.UUID)(nil)))
+				&groupID, &subType, &rateType, (*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil), (*uuid.UUID)(nil), "monthly"))
 
 	// loadSchedule to find monthly payment
 	mock.ExpectQuery("SELECT .+ FROM loan_schedules WHERE loan_id").
@@ -860,7 +860,7 @@ func TestBoost_CreateLoanGroup_LPRFloating(t *testing.T) {
 			testUserUUID, "LPR贷-商贷", "mortgage", int64(100000000), int64(100000000),
 			float64(4.15), int32(12), "equal_installment", int32(15),
 			startDate, (*uuid.UUID)(nil), groupID, "commercial", "lpr_floating",
-			&lprBase, &lprSpread, &rateAdjustMonth, (*uuid.UUID)(nil),
+			&lprBase, &lprSpread, &rateAdjustMonth, (*uuid.UUID)(nil), "monthly",
 		).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(loanID, now, now))
 
@@ -998,7 +998,7 @@ func TestBoost_SimulateGroupPrepayment_AutoSelectTargetLoan(t *testing.T) {
 			AddRow(loanID, testUserUUID, "商贷", "mortgage", int64(100000000), int64(95000000),
 				float64(3.85), int32(360), int32(12), "equal_installment", int32(15),
 				now, now, now, (*uuid.UUID)(nil),
-				&groupID, &subType, &rateType, (*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil), (*uuid.UUID)(nil)))
+				&groupID, &subType, &rateType, (*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil), (*uuid.UUID)(nil), "monthly"))
 
 	// loadSchedule for monthly payment
 	mock.ExpectQuery("SELECT .+ FROM loan_schedules WHERE loan_id").
@@ -1013,7 +1013,7 @@ func TestBoost_SimulateGroupPrepayment_AutoSelectTargetLoan(t *testing.T) {
 			AddRow(loanID, testUserUUID, "商贷", "mortgage", int64(100000000), int64(95000000),
 				float64(3.85), int32(360), int32(12), "equal_installment", int32(15),
 				now, now, now, (*uuid.UUID)(nil),
-				&groupID, &subType, &rateType, (*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil), (*uuid.UUID)(nil)))
+				&groupID, &subType, &rateType, (*float64)(nil), (*float64)(nil), (*int32)(nil), (*uuid.UUID)(nil), (*uuid.UUID)(nil), "monthly"))
 
 	// loadSchedule for simulate
 	schedRows := pgxmock.NewRows([]string{"month_number", "payment", "principal_part", "interest_part", "remaining_principal", "is_paid", "due_date", "paid_date"})

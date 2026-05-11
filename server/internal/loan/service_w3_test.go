@@ -101,7 +101,7 @@ func TestW3_SimulatePrepayment_EmptyLoanId(t *testing.T) {
 
 func TestW3_GenerateSchedule_EqualInstallment_paymentConsistency(t *testing.T) {
 	// 100万, 30年, 4.9%
-	schedule := generateSchedule(1000000_00, 0.049, 360, "equal_installment", 15, time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC))
+	schedule := generateSchedule(1000000_00, 0.049, 360, "equal_installment", 15, time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC), "monthly")
 
 	require.NotEmpty(t, schedule)
 	assert.Len(t, schedule, 360)
@@ -128,7 +128,7 @@ func TestW3_GenerateSchedule_EqualInstallment_paymentConsistency(t *testing.T) {
 
 func TestW3_GenerateSchedule_EqualPrincipal_DecreasingPayments(t *testing.T) {
 	// 100万, 360月, 4.9%
-	schedule := generateSchedule(1000000_00, 0.049, 360, "equal_principal", 15, time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC))
+	schedule := generateSchedule(1000000_00, 0.049, 360, "equal_principal", 15, time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC), "monthly")
 
 	require.NotEmpty(t, schedule)
 	assert.Len(t, schedule, 360)
@@ -150,7 +150,7 @@ func TestW3_GenerateSchedule_FinalBalanceZero(t *testing.T) {
 
 	for _, method := range methods {
 		t.Run(method, func(t *testing.T) {
-			schedule := generateSchedule(500000_00, 0.035, 120, method, 20, time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC))
+			schedule := generateSchedule(500000_00, 0.035, 120, method, 20, time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC), "monthly")
 			require.NotEmpty(t, schedule)
 
 			lastItem := schedule[len(schedule)-1]
@@ -181,14 +181,14 @@ func TestW3_SimulatePrepayment_ReduceMonths_Success(t *testing.T) {
 			"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
 			"start_date", "created_at", "updated_at", "account_id",
 			"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
-			"family_id", "repayment_category_id",
+			"family_id", "repayment_category_id", "interest_calc_method",
 		}).AddRow(
 			loanID, uuid.MustParse(testUserID), "房贷", "mortgage",
 			int64(1000000_00), int64(970000_00), // remaining after 12 months
 			4.9, int32(360), int32(12),
 			pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT, int32(15),
 			startDate, startDate, startDate, nil,
-			nil, nil, nil, nil, nil, nil, nil, nil,
+			nil, nil, nil, nil, nil, nil, nil, nil, "monthly",
 		))
 
 	// loadSchedule: build 360 items (12 paid + 348 unpaid)
@@ -244,14 +244,14 @@ func TestW3_SimulatePrepayment_ReducePayment_Success(t *testing.T) {
 			"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
 			"start_date", "created_at", "updated_at", "account_id",
 			"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
-			"family_id", "repayment_category_id",
+			"family_id", "repayment_category_id", "interest_calc_method",
 		}).AddRow(
 			loanID, uuid.MustParse(testUserID), "房贷", "mortgage",
 			int64(1000000_00), int64(970000_00),
 			4.9, int32(360), int32(12),
 			pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT, int32(15),
 			startDate, startDate, startDate, nil,
-			nil, nil, nil, nil, nil, nil, nil, nil,
+			nil, nil, nil, nil, nil, nil, nil, nil, "monthly",
 		))
 
 	scheduleRows := pgxmock.NewRows([]string{
@@ -304,14 +304,14 @@ func TestW3_SimulatePrepayment_ExceedsRemaining_Rejected(t *testing.T) {
 			"annual_rate", "total_months", "paid_months", "repayment_method", "payment_day",
 			"start_date", "created_at", "updated_at", "account_id",
 			"group_id", "sub_type", "rate_type", "lpr_base", "lpr_spread", "rate_adjust_month",
-			"family_id", "repayment_category_id",
+			"family_id", "repayment_category_id", "interest_calc_method",
 		}).AddRow(
 			loanID, uuid.MustParse(testUserID), "房贷", "mortgage",
 			int64(1000000_00), int64(500000_00), // remaining 50万
 			4.9, int32(360), int32(180),
 			pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT, int32(15),
 			startDate, startDate, startDate, nil,
-			nil, nil, nil, nil, nil, nil, nil, nil,
+			nil, nil, nil, nil, nil, nil, nil, nil, "monthly",
 		))
 
 	_, err = svc.SimulatePrepayment(extAuthedCtx(), &pb.SimulatePrepaymentRequest{
