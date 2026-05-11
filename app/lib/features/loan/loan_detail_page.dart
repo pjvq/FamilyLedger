@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart' as db;
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/loan_provider.dart';
+import '../../domain/providers/app_providers.dart';
 import 'loans_page.dart';
 import 'rate_change_dialog.dart';
 
@@ -223,7 +224,8 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
 
   void _showRepaymentCategoryPicker(String loanId) async {
     final db = ref.read(loanProvider.notifier).database;
-    final categories = await db.getCategoriesByType('expense');
+    final userId = ref.read(currentUserIdProvider);
+    final categories = await db.getCategoriesByType('expense', userId: userId);
     final loanState = ref.read(loanProvider);
     final currentCatId = loanState.currentLoan?.repaymentCategoryId ?? '';
 

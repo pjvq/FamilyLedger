@@ -53,8 +53,9 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
 
       // Merge locally-created categories (from import) that server doesn't know about
       final database = ref.read(databaseProvider);
-      final localExp = await database.getCategoriesByType('expense');
-      final localInc = await database.getCategoriesByType('income');
+      final userId = ref.read(currentUserIdProvider);
+      final localExp = await database.getCategoriesByType('expense', userId: userId);
+      final localInc = await database.getCategoriesByType('income', userId: userId);
 
       // Collect all server category names (including children) to deduplicate
       final serverExpNames = _collectAllNames(expResp.categories);
@@ -77,8 +78,9 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       // Fallback to local DB
       try {
         final database = ref.read(databaseProvider);
-        final localExp = await database.getCategoriesByType('expense');
-        final localInc = await database.getCategoriesByType('income');
+        final userId = ref.read(currentUserIdProvider);
+        final localExp = await database.getCategoriesByType('expense', userId: userId);
+        final localInc = await database.getCategoriesByType('income', userId: userId);
         setState(() {
           _expenseCategories = _buildProtoTree(localExp, localExp);
           _incomeCategories = _buildProtoTree(localInc, localInc);
@@ -210,6 +212,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
 
   void _syncCategoriesToLocal(List<Category> cats) {
     final db = ref.read(databaseProvider);
+    final userId = ref.read(currentUserIdProvider);
     for (final cat in cats) {
       db.upsertCategory(
         id: cat.id,
@@ -219,6 +222,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         isPreset: cat.isPreset,
         sortOrder: cat.sortOrder,
         parentId: cat.parentId.isEmpty ? null : cat.parentId,
+        userId: userId,
       );
       // Also sync children
       for (final child in cat.children) {
@@ -230,6 +234,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
           isPreset: child.isPreset,
           sortOrder: child.sortOrder,
           parentId: cat.id,
+          userId: userId,
         );
       }
     }
