@@ -42,11 +42,17 @@ class RepaymentMethod extends $pb.ProtobufEnum {
   static const RepaymentMethod REPAYMENT_METHOD_UNSPECIFIED = RepaymentMethod._(0, _omitEnumNames ? '' : 'REPAYMENT_METHOD_UNSPECIFIED');
   static const RepaymentMethod REPAYMENT_METHOD_EQUAL_INSTALLMENT = RepaymentMethod._(1, _omitEnumNames ? '' : 'REPAYMENT_METHOD_EQUAL_INSTALLMENT');
   static const RepaymentMethod REPAYMENT_METHOD_EQUAL_PRINCIPAL = RepaymentMethod._(2, _omitEnumNames ? '' : 'REPAYMENT_METHOD_EQUAL_PRINCIPAL');
+  static const RepaymentMethod REPAYMENT_METHOD_INTEREST_ONLY = RepaymentMethod._(3, _omitEnumNames ? '' : 'REPAYMENT_METHOD_INTEREST_ONLY');
+  static const RepaymentMethod REPAYMENT_METHOD_BULLET = RepaymentMethod._(4, _omitEnumNames ? '' : 'REPAYMENT_METHOD_BULLET');
+  static const RepaymentMethod REPAYMENT_METHOD_EQUAL_INTEREST = RepaymentMethod._(5, _omitEnumNames ? '' : 'REPAYMENT_METHOD_EQUAL_INTEREST');
 
   static const $core.List<RepaymentMethod> values = <RepaymentMethod> [
     REPAYMENT_METHOD_UNSPECIFIED,
     REPAYMENT_METHOD_EQUAL_INSTALLMENT,
     REPAYMENT_METHOD_EQUAL_PRINCIPAL,
+    REPAYMENT_METHOD_INTEREST_ONLY,
+    REPAYMENT_METHOD_BULLET,
+    REPAYMENT_METHOD_EQUAL_INTEREST,
   ];
 
   static final $core.Map<$core.int, RepaymentMethod> _byValue = $pb.ProtobufEnum.initByValue(values);

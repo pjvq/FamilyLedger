@@ -39,6 +39,9 @@ enum RepaymentMethod {
     REPAYMENT_METHOD_UNSPECIFIED = 0;
     REPAYMENT_METHOD_EQUAL_INSTALLMENT = 1;  // 等额本息
     REPAYMENT_METHOD_EQUAL_PRINCIPAL = 2;    // 等额本金
+    REPAYMENT_METHOD_INTEREST_ONLY = 3;      // 先息后本（按月付息，到期还本）
+    REPAYMENT_METHOD_BULLET = 4;             // 一次性还本付息（到期一次性偿还本金+利息）
+    REPAYMENT_METHOD_EQUAL_INTEREST = 5;     // 等本等息（每月固定本金+固定利息，利息按初始本金计算）
 }
 
 enum PrepaymentStrategy {

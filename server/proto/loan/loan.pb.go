@@ -90,6 +90,9 @@ const (
 	RepaymentMethod_REPAYMENT_METHOD_UNSPECIFIED       RepaymentMethod = 0
 	RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT RepaymentMethod = 1 // 等额本息
 	RepaymentMethod_REPAYMENT_METHOD_EQUAL_PRINCIPAL   RepaymentMethod = 2 // 等额本金
+	RepaymentMethod_REPAYMENT_METHOD_INTEREST_ONLY     RepaymentMethod = 3 // 先息后本（按月付息，到期还本）
+	RepaymentMethod_REPAYMENT_METHOD_BULLET            RepaymentMethod = 4 // 一次性还本付息（到期一次性偿还本金+利息）
+	RepaymentMethod_REPAYMENT_METHOD_EQUAL_INTEREST    RepaymentMethod = 5 // 等本等息（每月固定本金+固定利息，利息按初始本金计算）
 )
 
 // Enum value maps for RepaymentMethod.
@@ -98,11 +101,17 @@ var (
 		0: "REPAYMENT_METHOD_UNSPECIFIED",
 		1: "REPAYMENT_METHOD_EQUAL_INSTALLMENT",
 		2: "REPAYMENT_METHOD_EQUAL_PRINCIPAL",
+		3: "REPAYMENT_METHOD_INTEREST_ONLY",
+		4: "REPAYMENT_METHOD_BULLET",
+		5: "REPAYMENT_METHOD_EQUAL_INTEREST",
 	}
 	RepaymentMethod_value = map[string]int32{
 		"REPAYMENT_METHOD_UNSPECIFIED":       0,
 		"REPAYMENT_METHOD_EQUAL_INSTALLMENT": 1,
 		"REPAYMENT_METHOD_EQUAL_PRINCIPAL":   2,
+		"REPAYMENT_METHOD_INTEREST_ONLY":     3,
+		"REPAYMENT_METHOD_BULLET":            4,
+		"REPAYMENT_METHOD_EQUAL_INTEREST":    5,
 	}
 )
 
@@ -2128,11 +2137,14 @@ const file_loan_proto_rawDesc = "" +
 	"\x15LOAN_TYPE_CREDIT_CARD\x10\x03\x12\x16\n" +
 	"\x12LOAN_TYPE_CONSUMER\x10\x04\x12\x16\n" +
 	"\x12LOAN_TYPE_BUSINESS\x10\x05\x12\x13\n" +
-	"\x0fLOAN_TYPE_OTHER\x10\x06*\x81\x01\n" +
+	"\x0fLOAN_TYPE_OTHER\x10\x06*\xe7\x01\n" +
 	"\x0fRepaymentMethod\x12 \n" +
 	"\x1cREPAYMENT_METHOD_UNSPECIFIED\x10\x00\x12&\n" +
 	"\"REPAYMENT_METHOD_EQUAL_INSTALLMENT\x10\x01\x12$\n" +
-	" REPAYMENT_METHOD_EQUAL_PRINCIPAL\x10\x02*\x88\x01\n" +
+	" REPAYMENT_METHOD_EQUAL_PRINCIPAL\x10\x02\x12\"\n" +
+	"\x1eREPAYMENT_METHOD_INTEREST_ONLY\x10\x03\x12\x1b\n" +
+	"\x17REPAYMENT_METHOD_BULLET\x10\x04\x12#\n" +
+	"\x1fREPAYMENT_METHOD_EQUAL_INTEREST\x10\x05*\x88\x01\n" +
 	"\x12PrepaymentStrategy\x12#\n" +
 	"\x1fPREPAYMENT_STRATEGY_UNSPECIFIED\x10\x00\x12%\n" +
 	"!PREPAYMENT_STRATEGY_REDUCE_MONTHS\x10\x01\x12&\n" +
