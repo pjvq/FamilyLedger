@@ -879,26 +879,32 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
     required String method,
     required ValueChanged<String> onChanged,
   }) {
+    const methods = [
+      ('equal_installment', '等额本息', '每月还款额固定', Icons.balance_rounded),
+      ('equal_principal', '等额本金', '每月本金固定，利息递减', Icons.trending_down_rounded),
+      ('interest_only', '先息后本', '按月付息，到期还本', Icons.schedule_rounded),
+      ('bullet', '到期还本付息', '到期一次还本+利息', Icons.event_rounded),
+      ('equal_interest', '等本等息', '固定本金+固定利息(分期)', Icons.grid_view_rounded),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionTitle(title: '还款方式', theme: theme),
         const SizedBox(height: 8),
-        SegmentedButton<String>(
-          segments: const [
-            ButtonSegment(
-              value: 'equal_installment',
-              label: Text('等额本息'),
-              icon: Icon(Icons.balance_rounded, size: 16),
-            ),
-            ButtonSegment(
-              value: 'equal_principal',
-              label: Text('等额本金'),
-              icon: Icon(Icons.trending_down_rounded, size: 16),
-            ),
-          ],
-          selected: {method},
-          onSelectionChanged: (v) => onChanged(v.first),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: methods.map((m) {
+            final isSelected = method == m.$1;
+            return ChoiceChip(
+              label: Text(m.$2),
+              selected: isSelected,
+              onSelected: (_) => onChanged(m.$1),
+              avatar: Icon(m.$4, size: 16),
+              tooltip: m.$3,
+            );
+          }).toList(),
         ),
       ],
     );

@@ -234,6 +234,96 @@ class LoanCalculator {
     return items;
   }
 
+  /// 先息后本还款计划
+  static List<LoanScheduleDisplayItem> interestOnly({
+    required int principal,
+    required double annualRate,
+    required int totalMonths,
+    required DateTime startDate,
+    required int paymentDay,
+    int paidMonths = 0,
+  }) {
+    final monthlyRate = annualRate / 100 / 12;
+    final monthlyInterest = (principal * monthlyRate).round();
+    final items = <LoanScheduleDisplayItem>[];
+
+    for (var i = 1; i <= totalMonths; i++) {
+      final isLast = i == totalMonths;
+      final principalPart = isLast ? principal : 0;
+      items.add(LoanScheduleDisplayItem(
+        monthNumber: i,
+        payment: principalPart + monthlyInterest,
+        principalPart: principalPart,
+        interestPart: monthlyInterest,
+        remainingPrincipal: isLast ? 0 : principal,
+        dueDate: _dueDate(startDate, i, paymentDay),
+        isPaid: i <= paidMonths,
+      ));
+    }
+    return items;
+  }
+
+  /// 一次性还本付息还款计划
+  static List<LoanScheduleDisplayItem> bullet({
+    required int principal,
+    required double annualRate,
+    required int totalMonths,
+    required DateTime startDate,
+    required int paymentDay,
+    int paidMonths = 0,
+  }) {
+    final monthlyRate = annualRate / 100 / 12;
+    final totalInterest = (principal * monthlyRate * totalMonths).round();
+    final items = <LoanScheduleDisplayItem>[];
+
+    for (var i = 1; i <= totalMonths; i++) {
+      final isLast = i == totalMonths;
+      items.add(LoanScheduleDisplayItem(
+        monthNumber: i,
+        payment: isLast ? principal + totalInterest : 0,
+        principalPart: isLast ? principal : 0,
+        interestPart: isLast ? totalInterest : 0,
+        remainingPrincipal: isLast ? 0 : principal,
+        dueDate: _dueDate(startDate, i, paymentDay),
+        isPaid: i <= paidMonths,
+      ));
+    }
+    return items;
+  }
+
+  /// 等本等息还款计划
+  static List<LoanScheduleDisplayItem> equalInterest({
+    required int principal,
+    required double annualRate,
+    required int totalMonths,
+    required DateTime startDate,
+    required int paymentDay,
+    int paidMonths = 0,
+  }) {
+    final monthlyRate = annualRate / 100 / 12;
+    final monthlyPrincipal = (principal / totalMonths).round();
+    final monthlyInterest = (principal * monthlyRate).round();
+    final items = <LoanScheduleDisplayItem>[];
+
+    var remaining = principal;
+    for (var i = 1; i <= totalMonths; i++) {
+      final principalPart = i == totalMonths ? remaining : monthlyPrincipal;
+      remaining -= principalPart;
+      if (remaining < 0) remaining = 0;
+
+      items.add(LoanScheduleDisplayItem(
+        monthNumber: i,
+        payment: principalPart + monthlyInterest,
+        principalPart: principalPart,
+        interestPart: monthlyInterest,
+        remainingPrincipal: remaining,
+        dueDate: _dueDate(startDate, i, paymentDay),
+        isPaid: i <= paidMonths,
+      ));
+    }
+    return items;
+  }
+
   /// 计算还款计划
   static List<LoanScheduleDisplayItem> calculate({
     required int principal,
@@ -244,24 +334,53 @@ class LoanCalculator {
     required int paymentDay,
     int paidMonths = 0,
   }) {
-    if (repaymentMethod == 'equal_principal') {
-      return equalPrincipal(
-        principal: principal,
-        annualRate: annualRate,
-        totalMonths: totalMonths,
-        startDate: startDate,
-        paymentDay: paymentDay,
-        paidMonths: paidMonths,
-      );
+    switch (repaymentMethod) {
+      case 'equal_principal':
+        return equalPrincipal(
+          principal: principal,
+          annualRate: annualRate,
+          totalMonths: totalMonths,
+          startDate: startDate,
+          paymentDay: paymentDay,
+          paidMonths: paidMonths,
+        );
+      case 'interest_only':
+        return interestOnly(
+          principal: principal,
+          annualRate: annualRate,
+          totalMonths: totalMonths,
+          startDate: startDate,
+          paymentDay: paymentDay,
+          paidMonths: paidMonths,
+        );
+      case 'bullet':
+        return bullet(
+          principal: principal,
+          annualRate: annualRate,
+          totalMonths: totalMonths,
+          startDate: startDate,
+          paymentDay: paymentDay,
+          paidMonths: paidMonths,
+        );
+      case 'equal_interest':
+        return equalInterest(
+          principal: principal,
+          annualRate: annualRate,
+          totalMonths: totalMonths,
+          startDate: startDate,
+          paymentDay: paymentDay,
+          paidMonths: paidMonths,
+        );
+      default:
+        return equalInstallment(
+          principal: principal,
+          annualRate: annualRate,
+          totalMonths: totalMonths,
+          startDate: startDate,
+          paymentDay: paymentDay,
+          paidMonths: paidMonths,
+        );
     }
-    return equalInstallment(
-      principal: principal,
-      annualRate: annualRate,
-      totalMonths: totalMonths,
-      startDate: startDate,
-      paymentDay: paymentDay,
-      paidMonths: paidMonths,
-    );
   }
 
   /// 计算贷款的有效年利率（考虑 LPR 浮动）
