@@ -7,8 +7,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../../generated/proto/transaction.pb.dart' as pb;
+import '../../generated/proto/transaction.pbgrpc.dart' as pbgrpc;
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart';
+import '../../data/remote/grpc_clients.dart';
 import '../../domain/providers/exchange_rate_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
@@ -16,6 +18,9 @@ import '../../domain/providers/account_provider.dart';
 import '../../core/widgets/success_animation.dart';
 import 'widgets/number_pad.dart';
 import 'widgets/category_grid.dart';
+import 'widgets/icon_picker_sheet.dart';
+import '../../core/constants/category_icons.dart';
+import '../../core/constants/category_icon_widget.dart';
 
 class AddTransactionPage extends ConsumerStatefulWidget {
   /// 传入已有 transaction 时进入编辑模式
@@ -165,6 +170,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                 setState(() => _selectedCategoryId = id);
                 HapticFeedback.selectionClick();
               },
+              onAddCategory: (parentId) => _addNewCategory(parentId),
             ),
           ),
           // Number pad
@@ -546,6 +552,143 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       await File(picked.path).copy(destPath);
       setState(() => _imagePaths.add(destPath));
     }
+  }
+
+  Future<void> _addNewCategory(String? parentId) async {
+    final result = await _showQuickCategoryEditor(context);
+    if (result == null) return;
+
+    try {
+      final client = ref.read(transactionClientProvider);
+      final type = _isExpense
+          ? pb.TransactionType.TRANSACTION_TYPE_EXPENSE
+          : pb.TransactionType.TRANSACTION_TYPE_INCOME;
+      await client.createCategory(pbgrpc.CreateCategoryRequest(
+        name: result.$1,
+        iconKey: result.$2,
+        type: type,
+        parentId: parentId ?? '',
+      ));
+      ref.read(transactionProvider.notifier).reload();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('分类「${result.$1}」创建成功'),
+            behavior: SnackBarBehavior.fixed,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('创建失败: $e'), behavior: SnackBarBehavior.fixed),
+        );
+      }
+    }
+  }
+
+  /// 简化版分类编辑器（名称 + 图标）
+  Future<(String, String)?> _showQuickCategoryEditor(BuildContext context) async {
+    final theme = Theme.of(context);
+    String name = '';
+    String iconKey = 'other';
+    final nameController = TextEditingController();
+
+    return showModalBottomSheet<(String, String)>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocalState) {
+          final color = CategoryIcons.getColor(iconKey);
+          final bottom = MediaQuery.of(ctx).viewInsets.bottom;
+
+          return Container(
+            padding: EdgeInsets.only(
+              left: 20, right: 20, top: 12,
+              bottom: 16 + bottom + MediaQuery.of(ctx).padding.bottom,
+            ),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurface.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text('新建分类',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        showIconPickerSheet(ctx,
+                            selectedKey: iconKey, onSelect: (key) {
+                          setLocalState(() => iconKey = key);
+                        });
+                      },
+                      child: Container(
+                        width: 50, height: 50,
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.12),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+                        ),
+                        child: CategoryIconWidget(
+                            iconKey: iconKey, size: 24, showBackground: false),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.edit, size: 14,
+                        color: theme.colorScheme.onSurface.withOpacity(0.3)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: nameController,
+                        maxLength: 15,
+                        autofocus: true,
+                        decoration: InputDecoration(
+                          hintText: '输入分类名称',
+                          counterText: '',
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
+                        ),
+                        onChanged: (v) => setLocalState(() => name = v),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: name.trim().isEmpty
+                        ? null
+                        : () => Navigator.pop(ctx, (name.trim(), iconKey)),
+                    child: const Text('添加'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _handleKey(String key) {

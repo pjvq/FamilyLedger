@@ -10,12 +10,15 @@ class CategoryGrid extends StatefulWidget {
   final List<Category> categories; // 所有分类（flat list from Drift）
   final String? selectedId;
   final ValueChanged<String> onSelect;
+  /// Callback to add a new category. parentId is null for top-level, non-null for sub-category.
+  final ValueChanged<String?>? onAddCategory;
 
   const CategoryGrid({
     super.key,
     required this.categories,
     required this.selectedId,
     required this.onSelect,
+    this.onAddCategory,
   });
 
   @override
@@ -69,8 +72,16 @@ class _CategoryGridState extends State<CategoryGrid> {
               crossAxisSpacing: 8,
               childAspectRatio: 0.8,
             ),
-            itemCount: mainCats.length,
+            itemCount: mainCats.length + (widget.onAddCategory != null ? 1 : 0),
             itemBuilder: (context, index) {
+              // Last item: add button
+              if (index == mainCats.length) {
+                return _AddCategoryButton(
+                  label: '新分类',
+                  onTap: () => widget.onAddCategory?.call(null),
+                  theme: theme,
+                );
+              }
               final cat = mainCats[index];
               final isSelected = cat.id == widget.selectedId ||
                   cat.id == _expandedParentId;
@@ -113,6 +124,9 @@ class _CategoryGridState extends State<CategoryGrid> {
                   onSelect: widget.onSelect,
                   parentId: _expandedParentId!,
                   onSelectParent: () => widget.onSelect(_expandedParentId!),
+                  onAddSubcategory: widget.onAddCategory != null
+                      ? () => widget.onAddCategory?.call(_expandedParentId)
+                      : null,
                   theme: theme,
                 )
               : const SizedBox.shrink(),
@@ -221,6 +235,7 @@ class _SubcategoryBar extends StatelessWidget {
   final ValueChanged<String> onSelect;
   final String parentId;
   final VoidCallback onSelectParent;
+  final VoidCallback? onAddSubcategory;
   final ThemeData theme;
 
   const _SubcategoryBar({
@@ -229,12 +244,16 @@ class _SubcategoryBar extends StatelessWidget {
     required this.onSelect,
     required this.parentId,
     required this.onSelectParent,
+    this.onAddSubcategory,
     required this.theme,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (children.isEmpty) return const SizedBox.shrink();
+    if (children.isEmpty && onAddSubcategory == null) return const SizedBox.shrink();
+
+    // +1 for "全部" chip, +1 for add button (if callback provided)
+    final extraCount = 1 + (onAddSubcategory != null ? 1 : 0);
 
     return Container(
       height: 52,
@@ -249,7 +268,7 @@ class _SubcategoryBar extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        itemCount: children.length + 1, // +1 for "全部" chip
+        itemCount: children.length + extraCount,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           if (index == 0) {
@@ -260,6 +279,16 @@ class _SubcategoryBar extends StatelessWidget {
               isSelected: isSelected,
               onTap: onSelectParent,
               theme: theme,
+            );
+          }
+          // Last item: add button
+          if (index == children.length + 1 && onAddSubcategory != null) {
+            return _SubcategoryChip(
+              label: '+ 新分类',
+              isSelected: false,
+              onTap: onAddSubcategory!,
+              theme: theme,
+              isAddButton: true,
             );
           }
           final child = children[index - 1];
@@ -285,6 +314,7 @@ class _SubcategoryChip extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final ThemeData theme;
+  final bool isAddButton;
 
   const _SubcategoryChip({
     required this.label,
@@ -292,6 +322,7 @@ class _SubcategoryChip extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     required this.theme,
+    this.isAddButton = false,
   });
 
   @override
@@ -302,14 +333,18 @@ class _SubcategoryChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected
-              ? theme.colorScheme.primary.withOpacity(0.12)
-              : theme.colorScheme.surfaceContainerHigh,
+          color: isAddButton
+              ? theme.colorScheme.primaryContainer.withOpacity(0.3)
+              : isSelected
+                  ? theme.colorScheme.primary.withOpacity(0.12)
+                  : theme.colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected
-                ? theme.colorScheme.primary
-                : Colors.transparent,
+            color: isAddButton
+                ? theme.colorScheme.primary.withOpacity(0.3)
+                : isSelected
+                    ? theme.colorScheme.primary
+                    : Colors.transparent,
             width: 1.5,
           ),
         ),
@@ -324,11 +359,72 @@ class _SubcategoryChip extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 12,
-                color: isSelected
+                color: isAddButton
                     ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface.withOpacity(0.7),
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    : isSelected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface.withOpacity(0.7),
+                fontWeight: isSelected || isAddButton ? FontWeight.w600 : FontWeight.normal,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 主分类网格中的“新分类”按钮
+class _AddCategoryButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final ThemeData theme;
+
+  const _AddCategoryButton({
+    required this.label,
+    required this.onTap,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primaryContainer.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: theme.colorScheme.primary.withOpacity(0.3),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.add_rounded,
+                size: 22,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
