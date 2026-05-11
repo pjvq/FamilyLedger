@@ -498,6 +498,82 @@ func TestGenerateSchedule_EdgeCases(t *testing.T) {
 	assert.Nil(t, items)
 }
 
+func TestGenerateSchedule_InterestOnly(t *testing.T) {
+	// 50万, 5.0%, 12个月, 先息后本
+	principal := int64(50000000) // 50万 (分)
+	items := generateSchedule(principal, 5.0, 12, "interest_only", 15,
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+
+	require.Len(t, items, 12)
+
+	// 前 11 个月只付利息，不还本
+	expectedMonthlyInterest := roundCent(float64(principal) * 5.0 / 100.0 / 12.0)
+	for i := 0; i < 11; i++ {
+		assert.Equal(t, int64(0), items[i].principalPart, "month %d principal should be 0", i+1)
+		assert.Equal(t, expectedMonthlyInterest, items[i].interestPart)
+		assert.Equal(t, expectedMonthlyInterest, items[i].payment)
+		assert.Equal(t, principal, items[i].remainingPrincipal)
+	}
+
+	// 最后一个月还本+利息
+	assert.Equal(t, principal, items[11].principalPart)
+	assert.Equal(t, expectedMonthlyInterest, items[11].interestPart)
+	assert.Equal(t, principal+expectedMonthlyInterest, items[11].payment)
+	assert.Equal(t, int64(0), items[11].remainingPrincipal)
+}
+
+func TestGenerateSchedule_Bullet(t *testing.T) {
+	// 10万, 6.0%, 6个月, 一次性还本付息
+	principal := int64(10000000) // 10万 (分)
+	items := generateSchedule(principal, 6.0, 6, "bullet", 1,
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+
+	require.Len(t, items, 6)
+
+	// 前 5 个月无任何还款
+	for i := 0; i < 5; i++ {
+		assert.Equal(t, int64(0), items[i].payment, "month %d payment should be 0", i+1)
+		assert.Equal(t, int64(0), items[i].principalPart)
+		assert.Equal(t, int64(0), items[i].interestPart)
+		assert.Equal(t, principal, items[i].remainingPrincipal)
+	}
+
+	// 最后一期还本+累计利息
+	totalInterest := roundCent(float64(principal) * 6.0 / 100.0 / 12.0 * 6)
+	assert.Equal(t, principal, items[5].principalPart)
+	assert.Equal(t, totalInterest, items[5].interestPart)
+	assert.Equal(t, principal+totalInterest, items[5].payment)
+	assert.Equal(t, int64(0), items[5].remainingPrincipal)
+}
+
+func TestGenerateSchedule_EqualInterest(t *testing.T) {
+	// 12万, 12.0%, 12个月, 等本等息
+	principal := int64(12000000) // 12万 (分)
+	items := generateSchedule(principal, 12.0, 12, "equal_interest", 1,
+		time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+
+	require.Len(t, items, 12)
+
+	// 每月本金 = 12万/12 = 1万
+	// 每月利息 = 12万 * 12% / 12 = 1200 (按初始本金计算，每月固定)
+	expectedPrincipal := roundCent(float64(principal) / 12.0)
+	expectedInterest := roundCent(float64(principal) * 12.0 / 100.0 / 12.0)
+
+	for i := 0; i < 11; i++ {
+		assert.Equal(t, expectedPrincipal, items[i].principalPart, "month %d", i+1)
+		assert.Equal(t, expectedInterest, items[i].interestPart, "month %d", i+1)
+		assert.Equal(t, expectedPrincipal+expectedInterest, items[i].payment, "month %d", i+1)
+	}
+
+	// 最后一期本金清除尾差
+	var totalPrincipal int64
+	for _, it := range items {
+		totalPrincipal += it.principalPart
+	}
+	assert.Equal(t, principal, totalPrincipal)
+	assert.Equal(t, int64(0), items[11].remainingPrincipal)
+}
+
 func TestGenerateWithFixedPayment(t *testing.T) {
 	// 50万 remaining, 4.9%, fixed payment 5308 (original equal installment for 100万/360)
 	items := generateWithFixedPayment(50000000, 4.9, 530850, 15,

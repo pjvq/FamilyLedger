@@ -811,6 +811,72 @@ func generateSchedule(principal int64, annualRate float64, totalMonths int, meth
 				dueDate:            dueDate,
 			}
 		}
+
+	case "interest_only":
+		// 先息后本: 每月只付利息，最后一期还本+利息
+		for i := 0; i < n; i++ {
+			dueDate := advanceMonths(startDate, i, paymentDay)
+			interest := roundCent(P * r)
+			var pprt int64
+			if i == n-1 {
+				// 最后一期还本
+				pprt = principal
+			}
+			items[i] = scheduleItem{
+				payment:            pprt + interest,
+				principalPart:      pprt,
+				interestPart:       interest,
+				remainingPrincipal: principal - pprt,
+				dueDate:            dueDate,
+			}
+		}
+
+	case "bullet":
+		// 一次性还本付息: 期间无任何还款，到期还本+累计利息
+		totalInterest := roundCent(P * r * float64(n))
+		for i := 0; i < n; i++ {
+			dueDate := advanceMonths(startDate, i, paymentDay)
+			if i == n-1 {
+				items[i] = scheduleItem{
+					payment:            principal + totalInterest,
+					principalPart:      principal,
+					interestPart:       totalInterest,
+					remainingPrincipal: 0,
+					dueDate:            dueDate,
+				}
+			} else {
+				items[i] = scheduleItem{
+					payment:            0,
+					principalPart:      0,
+					interestPart:       0,
+					remainingPrincipal: principal,
+					dueDate:            dueDate,
+				}
+			}
+		}
+
+	case "equal_interest":
+		// 等本等息: 每月固定本金 + 固定利息（利息按初始本金计算）
+		monthlyPrincipal := roundCent(P / float64(n))
+		monthlyInterest := roundCent(P * r)
+		remaining := principal
+
+		for i := 0; i < n; i++ {
+			dueDate := advanceMonths(startDate, i, paymentDay)
+			pprt := monthlyPrincipal
+			if i == n-1 {
+				pprt = remaining // 清除尾差
+			}
+			remaining -= pprt
+
+			items[i] = scheduleItem{
+				payment:            pprt + monthlyInterest,
+				principalPart:      pprt,
+				interestPart:       monthlyInterest,
+				remainingPrincipal: remaining,
+				dueDate:            dueDate,
+			}
+		}
 	}
 	return items
 }
@@ -1208,6 +1274,12 @@ func repaymentMethodToString(m pb.RepaymentMethod) string {
 		return "equal_installment"
 	case pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_PRINCIPAL:
 		return "equal_principal"
+	case pb.RepaymentMethod_REPAYMENT_METHOD_INTEREST_ONLY:
+		return "interest_only"
+	case pb.RepaymentMethod_REPAYMENT_METHOD_BULLET:
+		return "bullet"
+	case pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INTEREST:
+		return "equal_interest"
 	default:
 		return "equal_installment"
 	}
@@ -1219,6 +1291,12 @@ func stringToRepaymentMethod(s string) pb.RepaymentMethod {
 		return pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT
 	case "equal_principal":
 		return pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_PRINCIPAL
+	case "interest_only":
+		return pb.RepaymentMethod_REPAYMENT_METHOD_INTEREST_ONLY
+	case "bullet":
+		return pb.RepaymentMethod_REPAYMENT_METHOD_BULLET
+	case "equal_interest":
+		return pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INTEREST
 	default:
 		return pb.RepaymentMethod_REPAYMENT_METHOD_UNSPECIFIED
 	}
