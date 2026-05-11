@@ -500,6 +500,83 @@ void main() {
       }
     });
   });
+
+  group('LoanCalculator — 先息后本按日计息 (daily_act_365)', () {
+    test('每月利息随天数变化', () {
+      final schedule = LoanCalculator.interestOnly(
+        principal: 50000000, // 50万
+        annualRate: 5.0,
+        totalMonths: 12,
+        startDate: DateTime(2026, 1, 15),
+        paymentDay: 15,
+        calcMethod: 'daily_act_365',
+      );
+      expect(schedule.length, 12);
+      // 按日计息，每月利息不同（31天 vs 28天）
+      expect(schedule[0].interestPart, isNot(equals(schedule[1].interestPart)));
+      // 最后一期包含本金
+      expect(schedule[11].principalPart, 50000000);
+      expect(schedule[11].remainingPrincipal, 0);
+      // 中间期无本金偿还
+      for (var i = 0; i < 11; i++) {
+        expect(schedule[i].principalPart, 0);
+        expect(schedule[i].remainingPrincipal, 50000000);
+      }
+    });
+  });
+
+  group('LoanCalculator — 一次性还本付息按日计息 (daily_act_365)', () {
+    test('总利息与按月计息不同', () {
+      final daily = LoanCalculator.bullet(
+        principal: 50000000,
+        annualRate: 6.0,
+        totalMonths: 6,
+        startDate: DateTime(2026, 1, 1),
+        paymentDay: 1,
+        calcMethod: 'daily_act_365',
+      );
+      final monthly = LoanCalculator.bullet(
+        principal: 50000000,
+        annualRate: 6.0,
+        totalMonths: 6,
+        startDate: DateTime(2026, 1, 1),
+        paymentDay: 1,
+        calcMethod: 'monthly',
+      );
+      expect(daily.length, 6);
+      expect(daily[5].principalPart, 50000000);
+      expect(daily[5].remainingPrincipal, 0);
+      // 日息 vs 月息应有差异
+      expect(daily[5].interestPart, isNot(equals(monthly[5].interestPart)));
+    });
+  });
+
+  group('LoanCalculator — ACT/360 利息大于 ACT/365', () {
+    test('ACT/360 日利率更高', () {
+      final act365 = LoanCalculator.interestOnly(
+        principal: 50000000,
+        annualRate: 5.0,
+        totalMonths: 12,
+        startDate: DateTime(2026, 1, 15),
+        paymentDay: 15,
+        calcMethod: 'daily_act_365',
+      );
+      final act360 = LoanCalculator.interestOnly(
+        principal: 50000000,
+        annualRate: 5.0,
+        totalMonths: 12,
+        startDate: DateTime(2026, 1, 15),
+        paymentDay: 15,
+        calcMethod: 'daily_act_360',
+      );
+      var total365 = 0, total360 = 0;
+      for (var i = 0; i < 12; i++) {
+        total365 += act365[i].interestPart;
+        total360 += act360[i].interestPart;
+      }
+      expect(total360, greaterThan(total365));
+    });
+  });
 }
 
 class _LoanTestCase {

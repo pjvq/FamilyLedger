@@ -235,7 +235,6 @@ class LoanCalculator {
   }
 
   /// 先息后本还款计划
-  // TODO: 暂不支持日息计算预览（daily_act_365/360），以服务端结果为准
   static List<LoanScheduleDisplayItem> interestOnly({
     required int principal,
     required double annualRate,
@@ -243,29 +242,53 @@ class LoanCalculator {
     required DateTime startDate,
     required int paymentDay,
     int paidMonths = 0,
+    String calcMethod = 'monthly',
   }) {
-    final monthlyRate = annualRate / 100 / 12;
-    final monthlyInterest = (principal * monthlyRate).round();
     final items = <LoanScheduleDisplayItem>[];
 
-    for (var i = 1; i <= totalMonths; i++) {
-      final isLast = i == totalMonths;
-      final principalPart = isLast ? principal : 0;
-      items.add(LoanScheduleDisplayItem(
-        monthNumber: i,
-        payment: principalPart + monthlyInterest,
-        principalPart: principalPart,
-        interestPart: monthlyInterest,
-        remainingPrincipal: isLast ? 0 : principal,
-        dueDate: _dueDate(startDate, i, paymentDay),
-        isPaid: i <= paidMonths,
-      ));
+    if (calcMethod == 'daily_act_365' || calcMethod == 'daily_act_360') {
+      final divisor = calcMethod == 'daily_act_365' ? 365.0 : 360.0;
+      final dailyRate = annualRate / 100.0 / divisor;
+      var periodStart = startDate;
+      for (var i = 1; i <= totalMonths; i++) {
+        final dueDate = _dueDate(startDate, i, paymentDay);
+        var days = dueDate.difference(periodStart).inDays;
+        if (days <= 0) days = 30;
+        final interest = (principal * dailyRate * days).round();
+        final isLast = i == totalMonths;
+        final principalPart = isLast ? principal : 0;
+        items.add(LoanScheduleDisplayItem(
+          monthNumber: i,
+          payment: principalPart + interest,
+          principalPart: principalPart,
+          interestPart: interest,
+          remainingPrincipal: isLast ? 0 : principal,
+          dueDate: dueDate,
+          isPaid: i <= paidMonths,
+        ));
+        periodStart = dueDate;
+      }
+    } else {
+      final monthlyRate = annualRate / 100 / 12;
+      final monthlyInterest = (principal * monthlyRate).round();
+      for (var i = 1; i <= totalMonths; i++) {
+        final isLast = i == totalMonths;
+        final principalPart = isLast ? principal : 0;
+        items.add(LoanScheduleDisplayItem(
+          monthNumber: i,
+          payment: principalPart + monthlyInterest,
+          principalPart: principalPart,
+          interestPart: monthlyInterest,
+          remainingPrincipal: isLast ? 0 : principal,
+          dueDate: _dueDate(startDate, i, paymentDay),
+          isPaid: i <= paidMonths,
+        ));
+      }
     }
     return items;
   }
 
   /// 一次性还本付息还款计划
-  // TODO: 暂不支持日息计算预览（daily_act_365/360），以服务端结果为准
   static List<LoanScheduleDisplayItem> bullet({
     required int principal,
     required double annualRate,
@@ -273,10 +296,28 @@ class LoanCalculator {
     required DateTime startDate,
     required int paymentDay,
     int paidMonths = 0,
+    String calcMethod = 'monthly',
   }) {
-    final monthlyRate = annualRate / 100 / 12;
-    final totalInterest = (principal * monthlyRate * totalMonths).round();
     final items = <LoanScheduleDisplayItem>[];
+    int totalInterest;
+
+    if (calcMethod == 'daily_act_365' || calcMethod == 'daily_act_360') {
+      final divisor = calcMethod == 'daily_act_365' ? 365.0 : 360.0;
+      final dailyRate = annualRate / 100.0 / divisor;
+      // 累计实际天数的利息
+      var prevDate = startDate;
+      totalInterest = 0;
+      for (var i = 1; i <= totalMonths; i++) {
+        final dueDate = _dueDate(startDate, i, paymentDay);
+        var days = dueDate.difference(prevDate).inDays;
+        if (days <= 0) days = 30;
+        totalInterest += (principal * dailyRate * days).round();
+        prevDate = dueDate;
+      }
+    } else {
+      final monthlyRate = annualRate / 100 / 12;
+      totalInterest = (principal * monthlyRate * totalMonths).round();
+    }
 
     for (var i = 1; i <= totalMonths; i++) {
       final isLast = i == totalMonths;
@@ -335,6 +376,7 @@ class LoanCalculator {
     required DateTime startDate,
     required int paymentDay,
     int paidMonths = 0,
+    String calcMethod = 'monthly',
   }) {
     switch (repaymentMethod) {
       case 'equal_principal':
@@ -354,6 +396,7 @@ class LoanCalculator {
           startDate: startDate,
           paymentDay: paymentDay,
           paidMonths: paidMonths,
+          calcMethod: calcMethod,
         );
       case 'bullet':
         return bullet(
@@ -363,6 +406,7 @@ class LoanCalculator {
           startDate: startDate,
           paymentDay: paymentDay,
           paidMonths: paidMonths,
+          calcMethod: calcMethod,
         );
       case 'equal_interest':
         return equalInterest(
