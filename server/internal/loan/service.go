@@ -846,6 +846,7 @@ func generateSchedule(principal int64, annualRate float64, totalMonths int, meth
 				}
 				days := daysInPeriod(periodStart, dueDate)
 				if days <= 0 {
+					log.Printf("loan: unexpected zero-day period at month %d, periodStart=%v dueDate=%v, using 30-day fallback", i+1, periodStart, dueDate)
 					days = 30 // fallback
 				}
 				interest = roundCent(P * dr * float64(days))
@@ -878,6 +879,7 @@ func generateSchedule(principal int64, annualRate float64, totalMonths int, meth
 				dueDate := advanceMonths(startDate, i, paymentDay)
 				days := daysInPeriod(prevDate, dueDate)
 				if days <= 0 {
+					log.Printf("loan: unexpected zero-day period at month %d, prevDate=%v dueDate=%v, using 30-day fallback", i, prevDate, dueDate)
 					days = 30
 				}
 				totalInterest += roundCent(P * dr * float64(days))

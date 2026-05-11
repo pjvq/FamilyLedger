@@ -235,6 +235,7 @@ class LoanCalculator {
   }
 
   /// 先息后本还款计划
+  // TODO: 暂不支持日息计算预览（daily_act_365/360），以服务端结果为准
   static List<LoanScheduleDisplayItem> interestOnly({
     required int principal,
     required double annualRate,
@@ -264,6 +265,7 @@ class LoanCalculator {
   }
 
   /// 一次性还本付息还款计划
+  // TODO: 暂不支持日息计算预览（daily_act_365/360），以服务端结果为准
   static List<LoanScheduleDisplayItem> bullet({
     required int principal,
     required double annualRate,
