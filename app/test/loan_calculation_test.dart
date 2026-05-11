@@ -387,6 +387,119 @@ void main() {
       expect(schedule[0].dueDate.day, 29);
     });
   });
+
+  group('LoanCalculator — 先息后本 (interest only)', () {
+    test('基本计算: 50万, 5%, 12个月', () {
+      final schedule = LoanCalculator.interestOnly(
+        principal: 50000000, // 50万
+        annualRate: 5.0,
+        totalMonths: 12,
+        startDate: DateTime(2026, 1, 1),
+        paymentDay: 15,
+      );
+
+      expect(schedule.length, 12);
+
+      // 前11个月只付利息
+      final monthlyInterest = (50000000 * 5.0 / 100 / 12).round();
+      for (var i = 0; i < 11; i++) {
+        expect(schedule[i].principalPart, 0);
+        expect(schedule[i].interestPart, monthlyInterest);
+        expect(schedule[i].payment, monthlyInterest);
+        expect(schedule[i].remainingPrincipal, 50000000);
+      }
+
+      // 最后一期还本+利息
+      expect(schedule[11].principalPart, 50000000);
+      expect(schedule[11].interestPart, monthlyInterest);
+      expect(schedule[11].remainingPrincipal, 0);
+    });
+  });
+
+  group('LoanCalculator — 一次性还本付息 (bullet)', () {
+    test('基本计算: 10万, 6%, 6个月', () {
+      final schedule = LoanCalculator.bullet(
+        principal: 10000000, // 10万
+        annualRate: 6.0,
+        totalMonths: 6,
+        startDate: DateTime(2026, 1, 1),
+        paymentDay: 1,
+      );
+
+      expect(schedule.length, 6);
+
+      // 前5个月无任何还款
+      for (var i = 0; i < 5; i++) {
+        expect(schedule[i].payment, 0);
+        expect(schedule[i].principalPart, 0);
+        expect(schedule[i].interestPart, 0);
+        expect(schedule[i].remainingPrincipal, 10000000);
+      }
+
+      // 最后一期还本+累计利息
+      final totalInterest = (10000000 * 6.0 / 100 / 12 * 6).round();
+      expect(schedule[5].principalPart, 10000000);
+      expect(schedule[5].interestPart, totalInterest);
+      expect(schedule[5].payment, 10000000 + totalInterest);
+      expect(schedule[5].remainingPrincipal, 0);
+    });
+  });
+
+  group('LoanCalculator — 等本等息 (equal interest)', () {
+    test('基本计算: 12万, 12%, 12个月', () {
+      final schedule = LoanCalculator.equalInterest(
+        principal: 12000000, // 12万
+        annualRate: 12.0,
+        totalMonths: 12,
+        startDate: DateTime(2026, 1, 1),
+        paymentDay: 1,
+      );
+
+      expect(schedule.length, 12);
+
+      final monthlyPrincipal = (12000000 / 12).round();
+      final monthlyInterest = (12000000 * 12.0 / 100 / 12).round();
+
+      // 每月固定利息
+      for (var i = 0; i < 12; i++) {
+        expect(schedule[i].interestPart, monthlyInterest);
+      }
+
+      // 前11个月固定本金
+      for (var i = 0; i < 11; i++) {
+        expect(schedule[i].principalPart, monthlyPrincipal);
+        expect(schedule[i].payment, monthlyPrincipal + monthlyInterest);
+      }
+
+      // 本金总和 = 原始本金
+      final totalPrincipal = schedule.fold<int>(0, (s, e) => s + e.principalPart);
+      expect(totalPrincipal, 12000000);
+      expect(schedule[11].remainingPrincipal, 0);
+    });
+  });
+
+  group('LoanCalculator.calculate — 统一入口路由', () {
+    test('所有方式都能正确路由', () {
+      for (final method in [
+        'equal_installment',
+        'equal_principal',
+        'interest_only',
+        'bullet',
+        'equal_interest',
+      ]) {
+        final schedule = LoanCalculator.calculate(
+          principal: 10000000,
+          annualRate: 5.0,
+          totalMonths: 12,
+          repaymentMethod: method,
+          startDate: DateTime(2026, 1, 1),
+          paymentDay: 1,
+        );
+        expect(schedule.isNotEmpty, true, reason: '$method should produce schedule');
+        expect(schedule.last.remainingPrincipal, 0, reason: '$method last remaining should be 0');
+      }
+    });
+  });
 }
 
 class _LoanTestCase {
