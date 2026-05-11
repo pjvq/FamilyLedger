@@ -1437,19 +1437,33 @@ func (s *Service) listTransactionsIncremental(
 }
 
 func (s *Service) GetCategories(ctx context.Context, req *pb.GetCategoriesRequest) (*pb.GetCategoriesResponse, error) {
-	// Query all categories (including subcategories), excluding soft-deleted
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Query categories visible to this user:
+	// 1. Preset categories (user_id IS NULL) — shared by all
+	// 2. User's own custom categories (user_id = current user)
+	// 3. Family members' categories (user_id IN same family)
 	query := `SELECT id, name, icon, type, is_preset, sort_order,
 	          COALESCE(parent_id::text, '') as parent_id,
 	          COALESCE(icon_key, '') as icon_key
-	          FROM categories WHERE deleted_at IS NULL`
-	var args []interface{}
+	          FROM categories WHERE deleted_at IS NULL
+	          AND (user_id IS NULL OR user_id = $1
+	               OR user_id IN (
+	                   SELECT fm2.user_id FROM family_members fm1
+	                   JOIN family_members fm2 ON fm1.family_id = fm2.family_id
+	                   WHERE fm1.user_id = $1
+	               ))`
+	args := []interface{}{userID}
 
 	if req.Type != pb.TransactionType_TRANSACTION_TYPE_UNSPECIFIED {
 		catType := "expense"
 		if req.Type == pb.TransactionType_TRANSACTION_TYPE_INCOME {
 			catType = "income"
 		}
-		query += " AND type = $1::category_type"
+		query += " AND type = $2::category_type"
 		args = append(args, catType)
 	}
 	query += " ORDER BY type, sort_order ASC"

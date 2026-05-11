@@ -1,7 +1,6 @@
 package transaction
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -663,11 +662,11 @@ func TestGetCategories_WithTypeFilter(t *testing.T) {
 	svc, mock := svcWithMock(t)
 
 	mock.ExpectQuery("SELECT id, name, icon, type").
-		WithArgs("income").
+		WithArgs(testUserID, "income").
 		WillReturnRows(pgxmock.NewRows([]string{"id", "name", "icon", "type", "is_preset", "sort_order", "parent_id", "icon_key"}).
 			AddRow(uuid.New(), "salary", "💰", "income", true, int32(1), "", "money"))
 
-	resp, err := svc.GetCategories(context.Background(), &pb.GetCategoriesRequest{
+	resp, err := svc.GetCategories(authedCtx(), &pb.GetCategoriesRequest{
 		Type: pb.TransactionType_TRANSACTION_TYPE_INCOME,
 	})
 	require.NoError(t, err)
@@ -681,11 +680,12 @@ func TestGetCategories_WithChildren(t *testing.T) {
 	childID := uuid.New()
 
 	mock.ExpectQuery("SELECT id, name, icon, type").
+		WithArgs(testUserID).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "name", "icon", "type", "is_preset", "sort_order", "parent_id", "icon_key"}).
 			AddRow(parentID, "food", "🍔", "expense", true, int32(1), "", "food").
 			AddRow(childID, "lunch", "🍱", "expense", false, int32(1), parentID.String(), "lunch"))
 
-	resp, err := svc.GetCategories(context.Background(), &pb.GetCategoriesRequest{})
+	resp, err := svc.GetCategories(authedCtx(), &pb.GetCategoriesRequest{})
 	require.NoError(t, err)
 	assert.Len(t, resp.Categories, 1) // parent is root
 	assert.Len(t, resp.Categories[0].Children, 1)
@@ -697,10 +697,11 @@ func TestGetCategories_OrphanChild(t *testing.T) {
 	orphanID := uuid.New()
 
 	mock.ExpectQuery("SELECT id, name, icon, type").
+		WithArgs(testUserID).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "name", "icon", "type", "is_preset", "sort_order", "parent_id", "icon_key"}).
 			AddRow(orphanID, "orphan", "", "expense", false, int32(1), uuid.New().String(), ""))
 
-	resp, err := svc.GetCategories(context.Background(), &pb.GetCategoriesRequest{})
+	resp, err := svc.GetCategories(authedCtx(), &pb.GetCategoriesRequest{})
 	require.NoError(t, err)
 	assert.Len(t, resp.Categories, 1) // orphan treated as root
 }
@@ -708,9 +709,10 @@ func TestGetCategories_OrphanChild(t *testing.T) {
 func TestGetCategories_DBError(t *testing.T) {
 	svc, mock := svcWithMock(t)
 	mock.ExpectQuery("SELECT id, name, icon, type").
+		WithArgs(testUserID).
 		WillReturnError(fmt.Errorf("err"))
 
-	_, err := svc.GetCategories(context.Background(), &pb.GetCategoriesRequest{})
+	_, err := svc.GetCategories(authedCtx(), &pb.GetCategoriesRequest{})
 	st, _ := status.FromError(err)
 	assert.Equal(t, codes.Internal, st.Code())
 }
@@ -718,9 +720,10 @@ func TestGetCategories_DBError(t *testing.T) {
 func TestGetCategories_Empty(t *testing.T) {
 	svc, mock := svcWithMock(t)
 	mock.ExpectQuery("SELECT id, name, icon, type").
+		WithArgs(testUserID).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "name", "icon", "type", "is_preset", "sort_order", "parent_id", "icon_key"}))
 
-	resp, err := svc.GetCategories(context.Background(), &pb.GetCategoriesRequest{})
+	resp, err := svc.GetCategories(authedCtx(), &pb.GetCategoriesRequest{})
 	require.NoError(t, err)
 	assert.Len(t, resp.Categories, 0)
 }

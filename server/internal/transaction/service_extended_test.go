@@ -231,6 +231,7 @@ func TestGetCategories_Success(t *testing.T) {
 	catID := uuid.New()
 
 	mock.ExpectQuery(`SELECT id, name, icon, type, is_preset, sort_order`).
+		WithArgs(testUserID).
 		WillReturnRows(pgxmock.NewRows([]string{
 			"id", "name", "icon", "type", "is_preset", "sort_order", "parent_id", "icon_key",
 		}).AddRow(catID, "餐饮", "food", "expense", true, 1, "", "food"))
@@ -250,6 +251,7 @@ func TestGetCategories_DBFailure(t *testing.T) {
 	svc := NewService(mock)
 
 	mock.ExpectQuery(`SELECT id, name, icon, type, is_preset, sort_order`).
+		WithArgs(testUserID).
 		WillReturnError(assert.AnError)
 
 	_, err = svc.GetCategories(authedCtx(), &pb.GetCategoriesRequest{})
