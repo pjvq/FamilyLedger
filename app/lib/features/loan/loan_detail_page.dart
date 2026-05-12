@@ -53,8 +53,8 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
     }
 
     final typeInfo = getLoanTypeInfo(loan.loanType);
-    final progress = loan.totalMonths > 0
-        ? loan.paidMonths / loan.totalMonths
+    final progress = loan.principal > 0
+        ? (loan.principal - loan.remainingPrincipal) / loan.principal
         : 0.0;
     final monthlyPayment =
         ref.read(loanProvider.notifier).getMonthlyPayment(loan);
@@ -509,7 +509,7 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       label: '${loan.name}，剩余本金${_fmtCents(loan.remainingPrincipal)}元，'
-          '还款进度第${loan.paidMonths}期共${loan.totalMonths}期，'
+          '已还${(progress * 100).toStringAsFixed(0)}%，'
           '月供${_fmtCents(monthlyPayment)}元',
       child: Container(
         margin: const EdgeInsets.all(16),
@@ -644,7 +644,7 @@ class _SummaryCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '第 ${loan.paidMonths}/${loan.totalMonths} 期',
+                            '第 ${loan.paidMonths}/${loan.totalMonths} 期·${(progress * 100).toStringAsFixed(0)}%',
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: theme.colorScheme.onSurface
                                   .withValues(alpha: 0.5),

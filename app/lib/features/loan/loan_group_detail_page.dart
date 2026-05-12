@@ -674,8 +674,8 @@ class _SubLoanTab extends StatelessWidget {
       );
     }
 
-    final progress = loan!.totalMonths > 0
-        ? loan!.paidMonths / loan!.totalMonths
+    final progress = loan!.principal > 0
+        ? (loan!.principal - loan!.remainingPrincipal) / loan!.principal
         : 0.0;
 
     return ListView(
@@ -739,7 +739,7 @@ class _SubLoanTab extends StatelessWidget {
                                 color: theme.colorScheme.onSurface
                                     .withValues(alpha: 0.5))),
                         Text(
-                          '${loan!.paidMonths}/${loan!.totalMonths}期',
+                          '${loan!.paidMonths}/${loan!.totalMonths}期·${(progress * 100).toStringAsFixed(0)}%',
                           style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                               fontFeatures: const [
