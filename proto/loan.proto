@@ -39,6 +39,9 @@ enum RepaymentMethod {
     REPAYMENT_METHOD_UNSPECIFIED = 0;
     REPAYMENT_METHOD_EQUAL_INSTALLMENT = 1;  // 等额本息
     REPAYMENT_METHOD_EQUAL_PRINCIPAL = 2;    // 等额本金
+    REPAYMENT_METHOD_INTEREST_ONLY = 3;      // 先息后本（按月付息，到期还本）
+    REPAYMENT_METHOD_BULLET = 4;             // 一次性还本付息（到期一次性偿还本金+利息）
+    REPAYMENT_METHOD_EQUAL_INTEREST = 5;     // 等本等息（每月固定本金+固定利息，利息按初始本金计算）
 }
 
 enum PrepaymentStrategy {
@@ -57,6 +60,12 @@ enum RateType {
     RATE_TYPE_UNSPECIFIED = 0;
     RATE_TYPE_FIXED = 1;           // 固定利率
     RATE_TYPE_LPR_FLOATING = 2;    // LPR浮动
+}
+
+enum InterestCalcMethod {
+    INTEREST_CALC_MONTHLY = 0;      // 按月计息（月利率=年利率/12）— 默认
+    INTEREST_CALC_DAILY_ACT_365 = 1; // 按日计息（日利率=年利率/365，按实际天数）
+    INTEREST_CALC_DAILY_ACT_360 = 2; // 按日计息（日利率=年利率/360，按实际天数）
 }
 
 message Loan {
@@ -83,6 +92,7 @@ message Loan {
     int32 rate_adjust_month = 21;  // 利率调整月 (1=一月, 0=放款月)
     string family_id = 22;         // 家庭 ID（空 = 个人贷款）
     string repayment_category_id = 23; // 默认还款分类 ID
+    InterestCalcMethod interest_calc_method = 24; // 计息方式
 }
 
 message LoanScheduleItem {
@@ -119,6 +129,7 @@ message CreateLoanRequest {
     google.protobuf.Timestamp start_date = 8;
     string account_id = 9;         // 关联还款账户（可选）
     string family_id = 10;         // 家庭 ID（可选）
+    InterestCalcMethod interest_calc_method = 11; // 计息方式（可选，默认按月）
 }
 
 message GetLoanRequest {
@@ -201,6 +212,7 @@ message SubLoanSpec {
     double lpr_base = 8;
     double lpr_spread = 9;
     int32 rate_adjust_month = 10;
+    InterestCalcMethod interest_calc_method = 11; // 计息方式
 }
 
 message CreateLoanGroupRequest {

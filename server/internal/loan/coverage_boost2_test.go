@@ -525,7 +525,7 @@ func TestBoost2_CreateLoan_FamilySuccess(t *testing.T) {
 	mock.ExpectQuery("INSERT INTO loans").
 		WithArgs(boost2UserUUID, "家庭贷款", "mortgage", int64(10000), int64(10000),
 			float64(3.0), int32(12), "equal_installment", int32(15),
-			startDate, (*uuid.UUID)(nil), &famID).
+			startDate, (*uuid.UUID)(nil), &famID, "monthly").
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(loanID, now, now))
 
 	// Schedule inserts (12 months)
@@ -566,7 +566,7 @@ func TestBoost2_CreateLoan_WithAccountID(t *testing.T) {
 	mock.ExpectQuery("INSERT INTO loans").
 		WithArgs(boost2UserUUID, "test", "mortgage", int64(10000), int64(10000),
 			float64(3.0), int32(12), "equal_installment", int32(15),
-			startDate, &accountID, (*uuid.UUID)(nil)).
+			startDate, &accountID, (*uuid.UUID)(nil), "monthly").
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(loanID, now, now))
 
 	for i := 0; i < 12; i++ {
@@ -626,7 +626,7 @@ func TestBoost2_CreateLoan_EqualPrincipalMethod(t *testing.T) {
 	mock.ExpectQuery("INSERT INTO loans").
 		WithArgs(boost2UserUUID, "等额本金", "consumer", int64(12000), int64(12000),
 			float64(5.0), int32(12), "equal_principal", int32(10),
-			startDate, (*uuid.UUID)(nil), (*uuid.UUID)(nil)).
+			startDate, (*uuid.UUID)(nil), (*uuid.UUID)(nil), "monthly").
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(loanID, now, now))
 
 	for i := 0; i < 12; i++ {
@@ -686,17 +686,17 @@ func TestBoost2_RepaymentMethodToString(t *testing.T) {
 // ════════════════════════════════════════════════════════════════════════════
 
 func TestBoost2_GenerateSchedule_ZeroMonths(t *testing.T) {
-	items := generateSchedule(100000, 3.0, 0, "equal_installment", 15, time.Now())
+	items := generateSchedule(100000, 3.0, 0, "equal_installment", 15, time.Now(), "monthly")
 	assert.Nil(t, items)
 }
 
 func TestBoost2_GenerateSchedule_ZeroPrincipal(t *testing.T) {
-	items := generateSchedule(0, 3.0, 12, "equal_installment", 15, time.Now())
+	items := generateSchedule(0, 3.0, 12, "equal_installment", 15, time.Now(), "monthly")
 	assert.Nil(t, items)
 }
 
 func TestBoost2_GenerateSchedule_ZeroRate(t *testing.T) {
-	items := generateSchedule(12000, 0.0, 12, "equal_installment", 15, time.Now())
+	items := generateSchedule(12000, 0.0, 12, "equal_installment", 15, time.Now(), "monthly")
 	require.Len(t, items, 12)
 	// With zero rate, all interest parts should be 0
 	for _, item := range items {
@@ -706,7 +706,7 @@ func TestBoost2_GenerateSchedule_ZeroRate(t *testing.T) {
 }
 
 func TestBoost2_GenerateSchedule_EqualPrincipal(t *testing.T) {
-	items := generateSchedule(12000, 12.0, 12, "equal_principal", 15, time.Now())
+	items := generateSchedule(12000, 12.0, 12, "equal_principal", 15, time.Now(), "monthly")
 	require.Len(t, items, 12)
 	// Each month principal should be 1000
 	assert.Equal(t, int64(1000), items[0].principalPart)
@@ -830,7 +830,7 @@ func TestBoost2_LoadLoan_AllNullableFields(t *testing.T) {
 		float64(4.15), int32(360), int32(12), "equal_installment", int32(15),
 		now, now, now, &accountID,
 		&groupID, &subType, &rateType, &lprBase, &lprSpread, &rateAdjustMonth,
-		&famID, (*uuid.UUID)(nil),
+		&famID, (*uuid.UUID)(nil), "monthly",
 	}
 	mock.ExpectQuery("SELECT .+ FROM loans WHERE id").
 		WithArgs(loanID.String()).

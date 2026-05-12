@@ -15,7 +15,7 @@ import (
 )
 
 const migrationsDir = "../../migrations"
-const expectedMigrationCount = 45
+const expectedMigrationCount = 46
 
 // validSQLStartRegex matches common SQL statement starters.
 var validSQLStartRegex = regexp.MustCompile(`(?i)^\s*(CREATE|ALTER|DROP|INSERT|UPDATE|DELETE|SET|DO|BEGIN|COMMIT|WITH|--|\s*$)`)

@@ -345,6 +345,7 @@ class FakeLoanNotifier extends StateNotifier<LoanState>
     double? lprSpread,
     int? rateAdjustMonth,
     String? familyId,
+    String? interestCalcMethod,
   }) async {}
   @override
   Future<void> createLoanGroup({

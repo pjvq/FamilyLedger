@@ -234,6 +234,139 @@ class LoanCalculator {
     return items;
   }
 
+  /// 先息后本还款计划
+  static List<LoanScheduleDisplayItem> interestOnly({
+    required int principal,
+    required double annualRate,
+    required int totalMonths,
+    required DateTime startDate,
+    required int paymentDay,
+    int paidMonths = 0,
+    String calcMethod = 'monthly',
+  }) {
+    final items = <LoanScheduleDisplayItem>[];
+
+    if (calcMethod == 'daily_act_365' || calcMethod == 'daily_act_360') {
+      final divisor = calcMethod == 'daily_act_365' ? 365.0 : 360.0;
+      final dailyRate = annualRate / 100.0 / divisor;
+      var periodStart = startDate;
+      for (var i = 1; i <= totalMonths; i++) {
+        final dueDate = _dueDate(startDate, i, paymentDay);
+        var days = dueDate.difference(periodStart).inDays;
+        if (days <= 0) days = 30;
+        final interest = (principal * dailyRate * days).round();
+        final isLast = i == totalMonths;
+        final principalPart = isLast ? principal : 0;
+        items.add(LoanScheduleDisplayItem(
+          monthNumber: i,
+          payment: principalPart + interest,
+          principalPart: principalPart,
+          interestPart: interest,
+          remainingPrincipal: isLast ? 0 : principal,
+          dueDate: dueDate,
+          isPaid: i <= paidMonths,
+        ));
+        periodStart = dueDate;
+      }
+    } else {
+      final monthlyRate = annualRate / 100 / 12;
+      final monthlyInterest = (principal * monthlyRate).round();
+      for (var i = 1; i <= totalMonths; i++) {
+        final isLast = i == totalMonths;
+        final principalPart = isLast ? principal : 0;
+        items.add(LoanScheduleDisplayItem(
+          monthNumber: i,
+          payment: principalPart + monthlyInterest,
+          principalPart: principalPart,
+          interestPart: monthlyInterest,
+          remainingPrincipal: isLast ? 0 : principal,
+          dueDate: _dueDate(startDate, i, paymentDay),
+          isPaid: i <= paidMonths,
+        ));
+      }
+    }
+    return items;
+  }
+
+  /// 一次性还本付息还款计划
+  static List<LoanScheduleDisplayItem> bullet({
+    required int principal,
+    required double annualRate,
+    required int totalMonths,
+    required DateTime startDate,
+    required int paymentDay,
+    int paidMonths = 0,
+    String calcMethod = 'monthly',
+  }) {
+    final items = <LoanScheduleDisplayItem>[];
+    int totalInterest;
+
+    if (calcMethod == 'daily_act_365' || calcMethod == 'daily_act_360') {
+      final divisor = calcMethod == 'daily_act_365' ? 365.0 : 360.0;
+      final dailyRate = annualRate / 100.0 / divisor;
+      // 累计实际天数的利息
+      var prevDate = startDate;
+      totalInterest = 0;
+      for (var i = 1; i <= totalMonths; i++) {
+        final dueDate = _dueDate(startDate, i, paymentDay);
+        var days = dueDate.difference(prevDate).inDays;
+        if (days <= 0) days = 30;
+        totalInterest += (principal * dailyRate * days).round();
+        prevDate = dueDate;
+      }
+    } else {
+      final monthlyRate = annualRate / 100 / 12;
+      totalInterest = (principal * monthlyRate * totalMonths).round();
+    }
+
+    for (var i = 1; i <= totalMonths; i++) {
+      final isLast = i == totalMonths;
+      items.add(LoanScheduleDisplayItem(
+        monthNumber: i,
+        payment: isLast ? principal + totalInterest : 0,
+        principalPart: isLast ? principal : 0,
+        interestPart: isLast ? totalInterest : 0,
+        remainingPrincipal: isLast ? 0 : principal,
+        dueDate: _dueDate(startDate, i, paymentDay),
+        isPaid: i <= paidMonths,
+      ));
+    }
+    return items;
+  }
+
+  /// 等本等息还款计划
+  static List<LoanScheduleDisplayItem> equalInterest({
+    required int principal,
+    required double annualRate,
+    required int totalMonths,
+    required DateTime startDate,
+    required int paymentDay,
+    int paidMonths = 0,
+  }) {
+    final monthlyRate = annualRate / 100 / 12;
+    final monthlyPrincipal = (principal / totalMonths).round();
+    final monthlyInterest = (principal * monthlyRate).round();
+    final items = <LoanScheduleDisplayItem>[];
+
+    var remaining = principal;
+    for (var i = 1; i <= totalMonths; i++) {
+      final principalPart = i == totalMonths ? remaining : monthlyPrincipal;
+      remaining -= principalPart;
+      if (remaining < 0) remaining = 0;
+
+      items.add(LoanScheduleDisplayItem(
+        monthNumber: i,
+        payment: principalPart + monthlyInterest,
+        principalPart: principalPart,
+        interestPart: monthlyInterest,
+        remainingPrincipal: remaining,
+        dueDate: _dueDate(startDate, i, paymentDay),
+        isPaid: i <= paidMonths,
+      ));
+    }
+    return items;
+  }
+
   /// 计算还款计划
   static List<LoanScheduleDisplayItem> calculate({
     required int principal,
@@ -243,25 +376,57 @@ class LoanCalculator {
     required DateTime startDate,
     required int paymentDay,
     int paidMonths = 0,
+    String calcMethod = 'monthly',
   }) {
-    if (repaymentMethod == 'equal_principal') {
-      return equalPrincipal(
-        principal: principal,
-        annualRate: annualRate,
-        totalMonths: totalMonths,
-        startDate: startDate,
-        paymentDay: paymentDay,
-        paidMonths: paidMonths,
-      );
+    switch (repaymentMethod) {
+      case 'equal_principal':
+        return equalPrincipal(
+          principal: principal,
+          annualRate: annualRate,
+          totalMonths: totalMonths,
+          startDate: startDate,
+          paymentDay: paymentDay,
+          paidMonths: paidMonths,
+        );
+      case 'interest_only':
+        return interestOnly(
+          principal: principal,
+          annualRate: annualRate,
+          totalMonths: totalMonths,
+          startDate: startDate,
+          paymentDay: paymentDay,
+          paidMonths: paidMonths,
+          calcMethod: calcMethod,
+        );
+      case 'bullet':
+        return bullet(
+          principal: principal,
+          annualRate: annualRate,
+          totalMonths: totalMonths,
+          startDate: startDate,
+          paymentDay: paymentDay,
+          paidMonths: paidMonths,
+          calcMethod: calcMethod,
+        );
+      case 'equal_interest':
+        return equalInterest(
+          principal: principal,
+          annualRate: annualRate,
+          totalMonths: totalMonths,
+          startDate: startDate,
+          paymentDay: paymentDay,
+          paidMonths: paidMonths,
+        );
+      default:
+        return equalInstallment(
+          principal: principal,
+          annualRate: annualRate,
+          totalMonths: totalMonths,
+          startDate: startDate,
+          paymentDay: paymentDay,
+          paidMonths: paidMonths,
+        );
     }
-    return equalInstallment(
-      principal: principal,
-      annualRate: annualRate,
-      totalMonths: totalMonths,
-      startDate: startDate,
-      paymentDay: paymentDay,
-      paidMonths: paidMonths,
-    );
   }
 
   /// 计算贷款的有效年利率（考虑 LPR 浮动）
@@ -505,8 +670,25 @@ pb_enum.RepaymentMethod _stringToRepaymentMethod(String method) {
   switch (method) {
     case 'equal_principal':
       return pb_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_PRINCIPAL;
+    case 'interest_only':
+      return pb_enum.RepaymentMethod.REPAYMENT_METHOD_INTEREST_ONLY;
+    case 'bullet':
+      return pb_enum.RepaymentMethod.REPAYMENT_METHOD_BULLET;
+    case 'equal_interest':
+      return pb_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_INTEREST;
     default:
       return pb_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_INSTALLMENT;
+  }
+}
+
+pb_enum.InterestCalcMethod _stringToInterestCalcMethod(String method) {
+  switch (method) {
+    case 'daily_act_365':
+      return pb_enum.InterestCalcMethod.INTEREST_CALC_DAILY_ACT_365;
+    case 'daily_act_360':
+      return pb_enum.InterestCalcMethod.INTEREST_CALC_DAILY_ACT_360;
+    default:
+      return pb_enum.InterestCalcMethod.INTEREST_CALC_MONTHLY;
   }
 }
 
@@ -733,6 +915,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     double? lprSpread,
     int? rateAdjustMonth,
     String? familyId,
+    String? interestCalcMethod,
   }) async {
     if (_userId == null) return;
     state = state.copyWith(isLoading: true, clearError: true);
@@ -751,7 +934,8 @@ class LoanNotifier extends StateNotifier<LoanState> {
         ..paymentDay = paymentDay
         ..startDate = _toTimestamp(startDate)
         ..accountId = accountId ?? ''
-        ..familyId = familyId ?? '');
+        ..familyId = familyId ?? ''
+        ..interestCalcMethod = _stringToInterestCalcMethod(interestCalcMethod ?? 'monthly'));
       loanId = resp.id;
       await _db.upsertLoan(_loanFromProto(resp));
     } catch (e, st) {
@@ -844,7 +1028,8 @@ class LoanNotifier extends StateNotifier<LoanState> {
           ..rateType = _stringToRateType(sub.rateType)
           ..lprBase = sub.lprBase
           ..lprSpread = sub.lprSpread
-          ..rateAdjustMonth = sub.rateAdjustMonth);
+          ..rateAdjustMonth = sub.rateAdjustMonth
+          ..interestCalcMethod = _stringToInterestCalcMethod(sub.interestCalcMethod));
       }
 
       final resp = await _client.createLoanGroup(req);
@@ -1358,6 +1543,7 @@ class SubLoanInput {
   final double lprBase;
   final double lprSpread;
   final int rateAdjustMonth;
+  final String interestCalcMethod;
 
   const SubLoanInput({
     required this.name,
@@ -1370,6 +1556,7 @@ class SubLoanInput {
     this.lprBase = 0.0,
     this.lprSpread = 0.0,
     this.rateAdjustMonth = 1,
+    this.interestCalcMethod = 'monthly',
   });
 }
 

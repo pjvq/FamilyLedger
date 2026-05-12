@@ -41,6 +41,9 @@ const RepaymentMethod$json = {
     {'1': 'REPAYMENT_METHOD_UNSPECIFIED', '2': 0},
     {'1': 'REPAYMENT_METHOD_EQUAL_INSTALLMENT', '2': 1},
     {'1': 'REPAYMENT_METHOD_EQUAL_PRINCIPAL', '2': 2},
+    {'1': 'REPAYMENT_METHOD_INTEREST_ONLY', '2': 3},
+    {'1': 'REPAYMENT_METHOD_BULLET', '2': 4},
+    {'1': 'REPAYMENT_METHOD_EQUAL_INTEREST', '2': 5},
   ],
 };
 
@@ -48,7 +51,9 @@ const RepaymentMethod$json = {
 final $typed_data.Uint8List repaymentMethodDescriptor = $convert.base64Decode(
     'Cg9SZXBheW1lbnRNZXRob2QSIAocUkVQQVlNRU5UX01FVEhPRF9VTlNQRUNJRklFRBAAEiYKIl'
     'JFUEFZTUVOVF9NRVRIT0RfRVFVQUxfSU5TVEFMTE1FTlQQARIkCiBSRVBBWU1FTlRfTUVUSE9E'
-    'X0VRVUFMX1BSSU5DSVBBTBAC');
+    'X0VRVUFMX1BSSU5DSVBBTBACEiIKHlJFUEFZTUVOVF9NRVRIT0RfSU5URVJFU1RfT05MWRADEh'
+    'sKF1JFUEFZTUVOVF9NRVRIT0RfQlVMTEVUEAQSIwofUkVQQVlNRU5UX01FVEhPRF9FUVVBTF9J'
+    'TlRFUkVTVBAF');
 
 @$core.Deprecated('Use prepaymentStrategyDescriptor instead')
 const PrepaymentStrategy$json = {
@@ -96,6 +101,22 @@ final $typed_data.Uint8List rateTypeDescriptor = $convert.base64Decode(
     'CghSYXRlVHlwZRIZChVSQVRFX1RZUEVfVU5TUEVDSUZJRUQQABITCg9SQVRFX1RZUEVfRklYRU'
     'QQARIaChZSQVRFX1RZUEVfTFBSX0ZMT0FUSU5HEAI=');
 
+@$core.Deprecated('Use interestCalcMethodDescriptor instead')
+const InterestCalcMethod$json = {
+  '1': 'InterestCalcMethod',
+  '2': [
+    {'1': 'INTEREST_CALC_MONTHLY', '2': 0},
+    {'1': 'INTEREST_CALC_DAILY_ACT_365', '2': 1},
+    {'1': 'INTEREST_CALC_DAILY_ACT_360', '2': 2},
+  ],
+};
+
+/// Descriptor for `InterestCalcMethod`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List interestCalcMethodDescriptor = $convert.base64Decode(
+    'ChJJbnRlcmVzdENhbGNNZXRob2QSGQoVSU5URVJFU1RfQ0FMQ19NT05USExZEAASHwobSU5URV'
+    'JFU1RfQ0FMQ19EQUlMWV9BQ1RfMzY1EAESHwobSU5URVJFU1RfQ0FMQ19EQUlMWV9BQ1RfMzYw'
+    'EAI=');
+
 @$core.Deprecated('Use loanDescriptor instead')
 const Loan$json = {
   '1': 'Loan',
@@ -123,6 +144,7 @@ const Loan$json = {
     {'1': 'rate_adjust_month', '3': 21, '4': 1, '5': 5, '10': 'rateAdjustMonth'},
     {'1': 'family_id', '3': 22, '4': 1, '5': 9, '10': 'familyId'},
     {'1': 'repayment_category_id', '3': 23, '4': 1, '5': 9, '10': 'repaymentCategoryId'},
+    {'1': 'interest_calc_method', '3': 24, '4': 1, '5': 14, '6': '.familyledger.loan.v1.InterestCalcMethod', '10': 'interestCalcMethod'},
   ],
 };
 
@@ -145,7 +167,9 @@ final $typed_data.Uint8List loanDescriptor = $convert.base64Decode(
     'VHlwZRIZCghscHJfYmFzZRgTIAEoAVIHbHByQmFzZRIdCgpscHJfc3ByZWFkGBQgASgBUglscH'
     'JTcHJlYWQSKgoRcmF0ZV9hZGp1c3RfbW9udGgYFSABKAVSD3JhdGVBZGp1c3RNb250aBIbCglm'
     'YW1pbHlfaWQYFiABKAlSCGZhbWlseUlkEjIKFXJlcGF5bWVudF9jYXRlZ29yeV9pZBgXIAEoCV'
-    'ITcmVwYXltZW50Q2F0ZWdvcnlJZA==');
+    'ITcmVwYXltZW50Q2F0ZWdvcnlJZBJaChRpbnRlcmVzdF9jYWxjX21ldGhvZBgYIAEoDjIoLmZh'
+    'bWlseWxlZGdlci5sb2FuLnYxLkludGVyZXN0Q2FsY01ldGhvZFISaW50ZXJlc3RDYWxjTWV0aG'
+    '9k');
 
 @$core.Deprecated('Use loanScheduleItemDescriptor instead')
 const LoanScheduleItem$json = {
@@ -210,6 +234,7 @@ const CreateLoanRequest$json = {
     {'1': 'start_date', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'startDate'},
     {'1': 'account_id', '3': 9, '4': 1, '5': 9, '10': 'accountId'},
     {'1': 'family_id', '3': 10, '4': 1, '5': 9, '10': 'familyId'},
+    {'1': 'interest_calc_method', '3': 11, '4': 1, '5': 14, '6': '.familyledger.loan.v1.InterestCalcMethod', '10': 'interestCalcMethod'},
   ],
 };
 
@@ -222,7 +247,9 @@ final $typed_data.Uint8List createLoanRequestDescriptor = $convert.base64Decode(
     'KA4yJS5mYW1pbHlsZWRnZXIubG9hbi52MS5SZXBheW1lbnRNZXRob2RSD3JlcGF5bWVudE1ldG'
     'hvZBIfCgtwYXltZW50X2RheRgHIAEoBVIKcGF5bWVudERheRI5CgpzdGFydF9kYXRlGAggASgL'
     'MhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJc3RhcnREYXRlEh0KCmFjY291bnRfaWQYCS'
-    'ABKAlSCWFjY291bnRJZBIbCglmYW1pbHlfaWQYCiABKAlSCGZhbWlseUlk');
+    'ABKAlSCWFjY291bnRJZBIbCglmYW1pbHlfaWQYCiABKAlSCGZhbWlseUlkEloKFGludGVyZXN0'
+    'X2NhbGNfbWV0aG9kGAsgASgOMiguZmFtaWx5bGVkZ2VyLmxvYW4udjEuSW50ZXJlc3RDYWxjTW'
+    'V0aG9kUhJpbnRlcmVzdENhbGNNZXRob2Q=');
 
 @$core.Deprecated('Use getLoanRequestDescriptor instead')
 const GetLoanRequest$json = {
@@ -415,6 +442,7 @@ const SubLoanSpec$json = {
     {'1': 'lpr_base', '3': 8, '4': 1, '5': 1, '10': 'lprBase'},
     {'1': 'lpr_spread', '3': 9, '4': 1, '5': 1, '10': 'lprSpread'},
     {'1': 'rate_adjust_month', '3': 10, '4': 1, '5': 5, '10': 'rateAdjustMonth'},
+    {'1': 'interest_calc_method', '3': 11, '4': 1, '5': 14, '6': '.familyledger.loan.v1.InterestCalcMethod', '10': 'interestCalcMethod'},
   ],
 };
 
@@ -427,7 +455,9 @@ final $typed_data.Uint8List subLoanSpecDescriptor = $convert.base64Decode(
     'ZmFtaWx5bGVkZ2VyLmxvYW4udjEuUmVwYXltZW50TWV0aG9kUg9yZXBheW1lbnRNZXRob2QSOw'
     'oJcmF0ZV90eXBlGAcgASgOMh4uZmFtaWx5bGVkZ2VyLmxvYW4udjEuUmF0ZVR5cGVSCHJhdGVU'
     'eXBlEhkKCGxwcl9iYXNlGAggASgBUgdscHJCYXNlEh0KCmxwcl9zcHJlYWQYCSABKAFSCWxwcl'
-    'NwcmVhZBIqChFyYXRlX2FkanVzdF9tb250aBgKIAEoBVIPcmF0ZUFkanVzdE1vbnRo');
+    'NwcmVhZBIqChFyYXRlX2FkanVzdF9tb250aBgKIAEoBVIPcmF0ZUFkanVzdE1vbnRoEloKFGlu'
+    'dGVyZXN0X2NhbGNfbWV0aG9kGAsgASgOMiguZmFtaWx5bGVkZ2VyLmxvYW4udjEuSW50ZXJlc3'
+    'RDYWxjTWV0aG9kUhJpbnRlcmVzdENhbGNNZXRob2Q=');
 
 @$core.Deprecated('Use createLoanGroupRequestDescriptor instead')
 const CreateLoanGroupRequest$json = {

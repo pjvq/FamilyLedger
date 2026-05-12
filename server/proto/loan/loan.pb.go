@@ -90,6 +90,9 @@ const (
 	RepaymentMethod_REPAYMENT_METHOD_UNSPECIFIED       RepaymentMethod = 0
 	RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT RepaymentMethod = 1 // 等额本息
 	RepaymentMethod_REPAYMENT_METHOD_EQUAL_PRINCIPAL   RepaymentMethod = 2 // 等额本金
+	RepaymentMethod_REPAYMENT_METHOD_INTEREST_ONLY     RepaymentMethod = 3 // 先息后本（按月付息，到期还本）
+	RepaymentMethod_REPAYMENT_METHOD_BULLET            RepaymentMethod = 4 // 一次性还本付息（到期一次性偿还本金+利息）
+	RepaymentMethod_REPAYMENT_METHOD_EQUAL_INTEREST    RepaymentMethod = 5 // 等本等息（每月固定本金+固定利息，利息按初始本金计算）
 )
 
 // Enum value maps for RepaymentMethod.
@@ -98,11 +101,17 @@ var (
 		0: "REPAYMENT_METHOD_UNSPECIFIED",
 		1: "REPAYMENT_METHOD_EQUAL_INSTALLMENT",
 		2: "REPAYMENT_METHOD_EQUAL_PRINCIPAL",
+		3: "REPAYMENT_METHOD_INTEREST_ONLY",
+		4: "REPAYMENT_METHOD_BULLET",
+		5: "REPAYMENT_METHOD_EQUAL_INTEREST",
 	}
 	RepaymentMethod_value = map[string]int32{
 		"REPAYMENT_METHOD_UNSPECIFIED":       0,
 		"REPAYMENT_METHOD_EQUAL_INSTALLMENT": 1,
 		"REPAYMENT_METHOD_EQUAL_PRINCIPAL":   2,
+		"REPAYMENT_METHOD_INTEREST_ONLY":     3,
+		"REPAYMENT_METHOD_BULLET":            4,
+		"REPAYMENT_METHOD_EQUAL_INTEREST":    5,
 	}
 )
 
@@ -280,6 +289,55 @@ func (RateType) EnumDescriptor() ([]byte, []int) {
 	return file_loan_proto_rawDescGZIP(), []int{4}
 }
 
+type InterestCalcMethod int32
+
+const (
+	InterestCalcMethod_INTEREST_CALC_MONTHLY       InterestCalcMethod = 0 // 按月计息（月利率=年利率/12）— 默认
+	InterestCalcMethod_INTEREST_CALC_DAILY_ACT_365 InterestCalcMethod = 1 // 按日计息（日利率=年利率/365，按实际天数）
+	InterestCalcMethod_INTEREST_CALC_DAILY_ACT_360 InterestCalcMethod = 2 // 按日计息（日利率=年利率/360，按实际天数）
+)
+
+// Enum value maps for InterestCalcMethod.
+var (
+	InterestCalcMethod_name = map[int32]string{
+		0: "INTEREST_CALC_MONTHLY",
+		1: "INTEREST_CALC_DAILY_ACT_365",
+		2: "INTEREST_CALC_DAILY_ACT_360",
+	}
+	InterestCalcMethod_value = map[string]int32{
+		"INTEREST_CALC_MONTHLY":       0,
+		"INTEREST_CALC_DAILY_ACT_365": 1,
+		"INTEREST_CALC_DAILY_ACT_360": 2,
+	}
+)
+
+func (x InterestCalcMethod) Enum() *InterestCalcMethod {
+	p := new(InterestCalcMethod)
+	*p = x
+	return p
+}
+
+func (x InterestCalcMethod) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (InterestCalcMethod) Descriptor() protoreflect.EnumDescriptor {
+	return file_loan_proto_enumTypes[5].Descriptor()
+}
+
+func (InterestCalcMethod) Type() protoreflect.EnumType {
+	return &file_loan_proto_enumTypes[5]
+}
+
+func (x InterestCalcMethod) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use InterestCalcMethod.Descriptor instead.
+func (InterestCalcMethod) EnumDescriptor() ([]byte, []int) {
+	return file_loan_proto_rawDescGZIP(), []int{5}
+}
+
 type Loan struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	Id                  string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -296,15 +354,16 @@ type Loan struct {
 	StartDate           *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
 	CreatedAt           *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt           *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	AccountId           string                 `protobuf:"bytes,15,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`                                  // 关联还款账户
-	GroupId             string                 `protobuf:"bytes,16,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`                                        // 归属组合贷款（空 = 独立贷款）
-	SubType             LoanSubType            `protobuf:"varint,17,opt,name=sub_type,json=subType,proto3,enum=familyledger.loan.v1.LoanSubType" json:"sub_type,omitempty"` // 子贷款类型
-	RateType            RateType               `protobuf:"varint,18,opt,name=rate_type,json=rateType,proto3,enum=familyledger.loan.v1.RateType" json:"rate_type,omitempty"` // 利率类型
-	LprBase             float64                `protobuf:"fixed64,19,opt,name=lpr_base,json=lprBase,proto3" json:"lpr_base,omitempty"`                                      // LPR 基准利率
-	LprSpread           float64                `protobuf:"fixed64,20,opt,name=lpr_spread,json=lprSpread,proto3" json:"lpr_spread,omitempty"`                                // 基点偏移
-	RateAdjustMonth     int32                  `protobuf:"varint,21,opt,name=rate_adjust_month,json=rateAdjustMonth,proto3" json:"rate_adjust_month,omitempty"`             // 利率调整月 (1=一月, 0=放款月)
-	FamilyId            string                 `protobuf:"bytes,22,opt,name=family_id,json=familyId,proto3" json:"family_id,omitempty"`                                     // 家庭 ID（空 = 个人贷款）
-	RepaymentCategoryId string                 `protobuf:"bytes,23,opt,name=repayment_category_id,json=repaymentCategoryId,proto3" json:"repayment_category_id,omitempty"`  // 默认还款分类 ID
+	AccountId           string                 `protobuf:"bytes,15,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`                                                                            // 关联还款账户
+	GroupId             string                 `protobuf:"bytes,16,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`                                                                                  // 归属组合贷款（空 = 独立贷款）
+	SubType             LoanSubType            `protobuf:"varint,17,opt,name=sub_type,json=subType,proto3,enum=familyledger.loan.v1.LoanSubType" json:"sub_type,omitempty"`                                           // 子贷款类型
+	RateType            RateType               `protobuf:"varint,18,opt,name=rate_type,json=rateType,proto3,enum=familyledger.loan.v1.RateType" json:"rate_type,omitempty"`                                           // 利率类型
+	LprBase             float64                `protobuf:"fixed64,19,opt,name=lpr_base,json=lprBase,proto3" json:"lpr_base,omitempty"`                                                                                // LPR 基准利率
+	LprSpread           float64                `protobuf:"fixed64,20,opt,name=lpr_spread,json=lprSpread,proto3" json:"lpr_spread,omitempty"`                                                                          // 基点偏移
+	RateAdjustMonth     int32                  `protobuf:"varint,21,opt,name=rate_adjust_month,json=rateAdjustMonth,proto3" json:"rate_adjust_month,omitempty"`                                                       // 利率调整月 (1=一月, 0=放款月)
+	FamilyId            string                 `protobuf:"bytes,22,opt,name=family_id,json=familyId,proto3" json:"family_id,omitempty"`                                                                               // 家庭 ID（空 = 个人贷款）
+	RepaymentCategoryId string                 `protobuf:"bytes,23,opt,name=repayment_category_id,json=repaymentCategoryId,proto3" json:"repayment_category_id,omitempty"`                                            // 默认还款分类 ID
+	InterestCalcMethod  InterestCalcMethod     `protobuf:"varint,24,opt,name=interest_calc_method,json=interestCalcMethod,proto3,enum=familyledger.loan.v1.InterestCalcMethod" json:"interest_calc_method,omitempty"` // 计息方式
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -500,6 +559,13 @@ func (x *Loan) GetRepaymentCategoryId() string {
 	return ""
 }
 
+func (x *Loan) GetInterestCalcMethod() InterestCalcMethod {
+	if x != nil {
+		return x.InterestCalcMethod
+	}
+	return InterestCalcMethod_INTEREST_CALC_MONTHLY
+}
+
 type LoanScheduleItem struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	MonthNumber        int32                  `protobuf:"varint,1,opt,name=month_number,json=monthNumber,proto3" json:"month_number,omitempty"`                      // 第几期
@@ -693,19 +759,20 @@ func (x *PrepaymentSimulation) GetNewSchedule() []*LoanScheduleItem {
 }
 
 type CreateLoanRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	LoanType        LoanType               `protobuf:"varint,2,opt,name=loan_type,json=loanType,proto3,enum=familyledger.loan.v1.LoanType" json:"loan_type,omitempty"`
-	Principal       int64                  `protobuf:"varint,3,opt,name=principal,proto3" json:"principal,omitempty"`                        // 贷款本金（分）
-	AnnualRate      float64                `protobuf:"fixed64,4,opt,name=annual_rate,json=annualRate,proto3" json:"annual_rate,omitempty"`   // 年利率（如 4.2 表示 4.2%）
-	TotalMonths     int32                  `protobuf:"varint,5,opt,name=total_months,json=totalMonths,proto3" json:"total_months,omitempty"` // 总期数
-	RepaymentMethod RepaymentMethod        `protobuf:"varint,6,opt,name=repayment_method,json=repaymentMethod,proto3,enum=familyledger.loan.v1.RepaymentMethod" json:"repayment_method,omitempty"`
-	PaymentDay      int32                  `protobuf:"varint,7,opt,name=payment_day,json=paymentDay,proto3" json:"payment_day,omitempty"` // 每月还款日 1-28
-	StartDate       *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
-	AccountId       string                 `protobuf:"bytes,9,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"` // 关联还款账户（可选）
-	FamilyId        string                 `protobuf:"bytes,10,opt,name=family_id,json=familyId,proto3" json:"family_id,omitempty"`   // 家庭 ID（可选）
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Name               string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	LoanType           LoanType               `protobuf:"varint,2,opt,name=loan_type,json=loanType,proto3,enum=familyledger.loan.v1.LoanType" json:"loan_type,omitempty"`
+	Principal          int64                  `protobuf:"varint,3,opt,name=principal,proto3" json:"principal,omitempty"`                        // 贷款本金（分）
+	AnnualRate         float64                `protobuf:"fixed64,4,opt,name=annual_rate,json=annualRate,proto3" json:"annual_rate,omitempty"`   // 年利率（如 4.2 表示 4.2%）
+	TotalMonths        int32                  `protobuf:"varint,5,opt,name=total_months,json=totalMonths,proto3" json:"total_months,omitempty"` // 总期数
+	RepaymentMethod    RepaymentMethod        `protobuf:"varint,6,opt,name=repayment_method,json=repaymentMethod,proto3,enum=familyledger.loan.v1.RepaymentMethod" json:"repayment_method,omitempty"`
+	PaymentDay         int32                  `protobuf:"varint,7,opt,name=payment_day,json=paymentDay,proto3" json:"payment_day,omitempty"` // 每月还款日 1-28
+	StartDate          *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	AccountId          string                 `protobuf:"bytes,9,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`                                                                             // 关联还款账户（可选）
+	FamilyId           string                 `protobuf:"bytes,10,opt,name=family_id,json=familyId,proto3" json:"family_id,omitempty"`                                                                               // 家庭 ID（可选）
+	InterestCalcMethod InterestCalcMethod     `protobuf:"varint,11,opt,name=interest_calc_method,json=interestCalcMethod,proto3,enum=familyledger.loan.v1.InterestCalcMethod" json:"interest_calc_method,omitempty"` // 计息方式（可选，默认按月）
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *CreateLoanRequest) Reset() {
@@ -806,6 +873,13 @@ func (x *CreateLoanRequest) GetFamilyId() string {
 		return x.FamilyId
 	}
 	return ""
+}
+
+func (x *CreateLoanRequest) GetInterestCalcMethod() InterestCalcMethod {
+	if x != nil {
+		return x.InterestCalcMethod
+	}
+	return InterestCalcMethod_INTEREST_CALC_MONTHLY
 }
 
 type GetLoanRequest struct {
@@ -1477,19 +1551,20 @@ func (x *LoanGroup) GetRepaymentCategoryId() string {
 }
 
 type SubLoanSpec struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	SubType         LoanSubType            `protobuf:"varint,2,opt,name=sub_type,json=subType,proto3,enum=familyledger.loan.v1.LoanSubType" json:"sub_type,omitempty"`
-	Principal       int64                  `protobuf:"varint,3,opt,name=principal,proto3" json:"principal,omitempty"`                      // 本金（分）
-	AnnualRate      float64                `protobuf:"fixed64,4,opt,name=annual_rate,json=annualRate,proto3" json:"annual_rate,omitempty"` // 年利率
-	TotalMonths     int32                  `protobuf:"varint,5,opt,name=total_months,json=totalMonths,proto3" json:"total_months,omitempty"`
-	RepaymentMethod RepaymentMethod        `protobuf:"varint,6,opt,name=repayment_method,json=repaymentMethod,proto3,enum=familyledger.loan.v1.RepaymentMethod" json:"repayment_method,omitempty"`
-	RateType        RateType               `protobuf:"varint,7,opt,name=rate_type,json=rateType,proto3,enum=familyledger.loan.v1.RateType" json:"rate_type,omitempty"`
-	LprBase         float64                `protobuf:"fixed64,8,opt,name=lpr_base,json=lprBase,proto3" json:"lpr_base,omitempty"`
-	LprSpread       float64                `protobuf:"fixed64,9,opt,name=lpr_spread,json=lprSpread,proto3" json:"lpr_spread,omitempty"`
-	RateAdjustMonth int32                  `protobuf:"varint,10,opt,name=rate_adjust_month,json=rateAdjustMonth,proto3" json:"rate_adjust_month,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Name               string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	SubType            LoanSubType            `protobuf:"varint,2,opt,name=sub_type,json=subType,proto3,enum=familyledger.loan.v1.LoanSubType" json:"sub_type,omitempty"`
+	Principal          int64                  `protobuf:"varint,3,opt,name=principal,proto3" json:"principal,omitempty"`                      // 本金（分）
+	AnnualRate         float64                `protobuf:"fixed64,4,opt,name=annual_rate,json=annualRate,proto3" json:"annual_rate,omitempty"` // 年利率
+	TotalMonths        int32                  `protobuf:"varint,5,opt,name=total_months,json=totalMonths,proto3" json:"total_months,omitempty"`
+	RepaymentMethod    RepaymentMethod        `protobuf:"varint,6,opt,name=repayment_method,json=repaymentMethod,proto3,enum=familyledger.loan.v1.RepaymentMethod" json:"repayment_method,omitempty"`
+	RateType           RateType               `protobuf:"varint,7,opt,name=rate_type,json=rateType,proto3,enum=familyledger.loan.v1.RateType" json:"rate_type,omitempty"`
+	LprBase            float64                `protobuf:"fixed64,8,opt,name=lpr_base,json=lprBase,proto3" json:"lpr_base,omitempty"`
+	LprSpread          float64                `protobuf:"fixed64,9,opt,name=lpr_spread,json=lprSpread,proto3" json:"lpr_spread,omitempty"`
+	RateAdjustMonth    int32                  `protobuf:"varint,10,opt,name=rate_adjust_month,json=rateAdjustMonth,proto3" json:"rate_adjust_month,omitempty"`
+	InterestCalcMethod InterestCalcMethod     `protobuf:"varint,11,opt,name=interest_calc_method,json=interestCalcMethod,proto3,enum=familyledger.loan.v1.InterestCalcMethod" json:"interest_calc_method,omitempty"` // 计息方式
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *SubLoanSpec) Reset() {
@@ -1590,6 +1665,13 @@ func (x *SubLoanSpec) GetRateAdjustMonth() int32 {
 		return x.RateAdjustMonth
 	}
 	return 0
+}
+
+func (x *SubLoanSpec) GetInterestCalcMethod() InterestCalcMethod {
+	if x != nil {
+		return x.InterestCalcMethod
+	}
+	return InterestCalcMethod_INTEREST_CALC_MONTHLY
 }
 
 type CreateLoanGroupRequest struct {
@@ -1957,7 +2039,7 @@ var File_loan_proto protoreflect.FileDescriptor
 const file_loan_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"loan.proto\x12\x14familyledger.loan.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xc4\a\n" +
+	"loan.proto\x12\x14familyledger.loan.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xa0\b\n" +
 	"\x04Loan\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
@@ -1990,7 +2072,8 @@ const file_loan_proto_rawDesc = "" +
 	"lpr_spread\x18\x14 \x01(\x01R\tlprSpread\x12*\n" +
 	"\x11rate_adjust_month\x18\x15 \x01(\x05R\x0frateAdjustMonth\x12\x1b\n" +
 	"\tfamily_id\x18\x16 \x01(\tR\bfamilyId\x122\n" +
-	"\x15repayment_category_id\x18\x17 \x01(\tR\x13repaymentCategoryId\"\xd5\x02\n" +
+	"\x15repayment_category_id\x18\x17 \x01(\tR\x13repaymentCategoryId\x12Z\n" +
+	"\x14interest_calc_method\x18\x18 \x01(\x0e2(.familyledger.loan.v1.InterestCalcMethodR\x12interestCalcMethod\"\xd5\x02\n" +
 	"\x10LoanScheduleItem\x12!\n" +
 	"\fmonth_number\x18\x01 \x01(\x05R\vmonthNumber\x12\x18\n" +
 	"\apayment\x18\x02 \x01(\x03R\apayment\x12%\n" +
@@ -2007,7 +2090,7 @@ const file_loan_proto_rawDesc = "" +
 	"\x0einterest_saved\x18\x04 \x01(\x03R\rinterestSaved\x12%\n" +
 	"\x0emonths_reduced\x18\x05 \x01(\x05R\rmonthsReduced\x12.\n" +
 	"\x13new_monthly_payment\x18\x06 \x01(\x03R\x11newMonthlyPayment\x12I\n" +
-	"\fnew_schedule\x18\a \x03(\v2&.familyledger.loan.v1.LoanScheduleItemR\vnewSchedule\"\xb0\x03\n" +
+	"\fnew_schedule\x18\a \x03(\v2&.familyledger.loan.v1.LoanScheduleItemR\vnewSchedule\"\x8c\x04\n" +
 	"\x11CreateLoanRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12;\n" +
 	"\tloan_type\x18\x02 \x01(\x0e2\x1e.familyledger.loan.v1.LoanTypeR\bloanType\x12\x1c\n" +
@@ -2023,7 +2106,8 @@ const file_loan_proto_rawDesc = "" +
 	"\n" +
 	"account_id\x18\t \x01(\tR\taccountId\x12\x1b\n" +
 	"\tfamily_id\x18\n" +
-	" \x01(\tR\bfamilyId\")\n" +
+	" \x01(\tR\bfamilyId\x12Z\n" +
+	"\x14interest_calc_method\x18\v \x01(\x0e2(.familyledger.loan.v1.InterestCalcMethodR\x12interestCalcMethod\")\n" +
 	"\x0eGetLoanRequest\x12\x17\n" +
 	"\aloan_id\x18\x01 \x01(\tR\x06loanId\"/\n" +
 	"\x10ListLoansRequest\x12\x1b\n" +
@@ -2077,7 +2161,7 @@ const file_loan_proto_rawDesc = "" +
 	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12;\n" +
 	"\tloan_type\x18\r \x01(\x0e2\x1e.familyledger.loan.v1.LoanTypeR\bloanType\x12\x1b\n" +
 	"\tfamily_id\x18\x0e \x01(\tR\bfamilyId\x122\n" +
-	"\x15repayment_category_id\x18\x0f \x01(\tR\x13repaymentCategoryId\"\xb6\x03\n" +
+	"\x15repayment_category_id\x18\x0f \x01(\tR\x13repaymentCategoryId\"\x92\x04\n" +
 	"\vSubLoanSpec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12<\n" +
 	"\bsub_type\x18\x02 \x01(\x0e2!.familyledger.loan.v1.LoanSubTypeR\asubType\x12\x1c\n" +
@@ -2091,7 +2175,8 @@ const file_loan_proto_rawDesc = "" +
 	"\n" +
 	"lpr_spread\x18\t \x01(\x01R\tlprSpread\x12*\n" +
 	"\x11rate_adjust_month\x18\n" +
-	" \x01(\x05R\x0frateAdjustMonth\"\xe0\x02\n" +
+	" \x01(\x05R\x0frateAdjustMonth\x12Z\n" +
+	"\x14interest_calc_method\x18\v \x01(\x0e2(.familyledger.loan.v1.InterestCalcMethodR\x12interestCalcMethod\"\xe0\x02\n" +
 	"\x16CreateLoanGroupRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
@@ -2128,11 +2213,14 @@ const file_loan_proto_rawDesc = "" +
 	"\x15LOAN_TYPE_CREDIT_CARD\x10\x03\x12\x16\n" +
 	"\x12LOAN_TYPE_CONSUMER\x10\x04\x12\x16\n" +
 	"\x12LOAN_TYPE_BUSINESS\x10\x05\x12\x13\n" +
-	"\x0fLOAN_TYPE_OTHER\x10\x06*\x81\x01\n" +
+	"\x0fLOAN_TYPE_OTHER\x10\x06*\xe7\x01\n" +
 	"\x0fRepaymentMethod\x12 \n" +
 	"\x1cREPAYMENT_METHOD_UNSPECIFIED\x10\x00\x12&\n" +
 	"\"REPAYMENT_METHOD_EQUAL_INSTALLMENT\x10\x01\x12$\n" +
-	" REPAYMENT_METHOD_EQUAL_PRINCIPAL\x10\x02*\x88\x01\n" +
+	" REPAYMENT_METHOD_EQUAL_PRINCIPAL\x10\x02\x12\"\n" +
+	"\x1eREPAYMENT_METHOD_INTEREST_ONLY\x10\x03\x12\x1b\n" +
+	"\x17REPAYMENT_METHOD_BULLET\x10\x04\x12#\n" +
+	"\x1fREPAYMENT_METHOD_EQUAL_INTEREST\x10\x05*\x88\x01\n" +
 	"\x12PrepaymentStrategy\x12#\n" +
 	"\x1fPREPAYMENT_STRATEGY_UNSPECIFIED\x10\x00\x12%\n" +
 	"!PREPAYMENT_STRATEGY_REDUCE_MONTHS\x10\x01\x12&\n" +
@@ -2144,7 +2232,11 @@ const file_loan_proto_rawDesc = "" +
 	"\bRateType\x12\x19\n" +
 	"\x15RATE_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fRATE_TYPE_FIXED\x10\x01\x12\x1a\n" +
-	"\x16RATE_TYPE_LPR_FLOATING\x10\x022\xff\t\n" +
+	"\x16RATE_TYPE_LPR_FLOATING\x10\x02*q\n" +
+	"\x12InterestCalcMethod\x12\x19\n" +
+	"\x15INTEREST_CALC_MONTHLY\x10\x00\x12\x1f\n" +
+	"\x1bINTEREST_CALC_DAILY_ACT_365\x10\x01\x12\x1f\n" +
+	"\x1bINTEREST_CALC_DAILY_ACT_360\x10\x022\xff\t\n" +
 	"\vLoanService\x12Q\n" +
 	"\n" +
 	"CreateLoan\x12'.familyledger.loan.v1.CreateLoanRequest\x1a\x1a.familyledger.loan.v1.Loan\x12K\n" +
@@ -2175,7 +2267,7 @@ func file_loan_proto_rawDescGZIP() []byte {
 	return file_loan_proto_rawDescData
 }
 
-var file_loan_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_loan_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
 var file_loan_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_loan_proto_goTypes = []any{
 	(LoanType)(0),                          // 0: familyledger.loan.v1.LoanType
@@ -2183,94 +2275,98 @@ var file_loan_proto_goTypes = []any{
 	(PrepaymentStrategy)(0),                // 2: familyledger.loan.v1.PrepaymentStrategy
 	(LoanSubType)(0),                       // 3: familyledger.loan.v1.LoanSubType
 	(RateType)(0),                          // 4: familyledger.loan.v1.RateType
-	(*Loan)(nil),                           // 5: familyledger.loan.v1.Loan
-	(*LoanScheduleItem)(nil),               // 6: familyledger.loan.v1.LoanScheduleItem
-	(*PrepaymentSimulation)(nil),           // 7: familyledger.loan.v1.PrepaymentSimulation
-	(*CreateLoanRequest)(nil),              // 8: familyledger.loan.v1.CreateLoanRequest
-	(*GetLoanRequest)(nil),                 // 9: familyledger.loan.v1.GetLoanRequest
-	(*ListLoansRequest)(nil),               // 10: familyledger.loan.v1.ListLoansRequest
-	(*ListLoansResponse)(nil),              // 11: familyledger.loan.v1.ListLoansResponse
-	(*UpdateLoanRequest)(nil),              // 12: familyledger.loan.v1.UpdateLoanRequest
-	(*DeleteLoanRequest)(nil),              // 13: familyledger.loan.v1.DeleteLoanRequest
-	(*GetLoanScheduleRequest)(nil),         // 14: familyledger.loan.v1.GetLoanScheduleRequest
-	(*LoanScheduleResponse)(nil),           // 15: familyledger.loan.v1.LoanScheduleResponse
-	(*SimulatePrepaymentRequest)(nil),      // 16: familyledger.loan.v1.SimulatePrepaymentRequest
-	(*RecordRateChangeRequest)(nil),        // 17: familyledger.loan.v1.RecordRateChangeRequest
-	(*RecordPaymentRequest)(nil),           // 18: familyledger.loan.v1.RecordPaymentRequest
-	(*LoanGroup)(nil),                      // 19: familyledger.loan.v1.LoanGroup
-	(*SubLoanSpec)(nil),                    // 20: familyledger.loan.v1.SubLoanSpec
-	(*CreateLoanGroupRequest)(nil),         // 21: familyledger.loan.v1.CreateLoanGroupRequest
-	(*GetLoanGroupRequest)(nil),            // 22: familyledger.loan.v1.GetLoanGroupRequest
-	(*ListLoanGroupsRequest)(nil),          // 23: familyledger.loan.v1.ListLoanGroupsRequest
-	(*ListLoanGroupsResponse)(nil),         // 24: familyledger.loan.v1.ListLoanGroupsResponse
-	(*SimulateGroupPrepaymentRequest)(nil), // 25: familyledger.loan.v1.SimulateGroupPrepaymentRequest
-	(*GroupPrepaymentSimulation)(nil),      // 26: familyledger.loan.v1.GroupPrepaymentSimulation
-	(*timestamppb.Timestamp)(nil),          // 27: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                  // 28: google.protobuf.Empty
+	(InterestCalcMethod)(0),                // 5: familyledger.loan.v1.InterestCalcMethod
+	(*Loan)(nil),                           // 6: familyledger.loan.v1.Loan
+	(*LoanScheduleItem)(nil),               // 7: familyledger.loan.v1.LoanScheduleItem
+	(*PrepaymentSimulation)(nil),           // 8: familyledger.loan.v1.PrepaymentSimulation
+	(*CreateLoanRequest)(nil),              // 9: familyledger.loan.v1.CreateLoanRequest
+	(*GetLoanRequest)(nil),                 // 10: familyledger.loan.v1.GetLoanRequest
+	(*ListLoansRequest)(nil),               // 11: familyledger.loan.v1.ListLoansRequest
+	(*ListLoansResponse)(nil),              // 12: familyledger.loan.v1.ListLoansResponse
+	(*UpdateLoanRequest)(nil),              // 13: familyledger.loan.v1.UpdateLoanRequest
+	(*DeleteLoanRequest)(nil),              // 14: familyledger.loan.v1.DeleteLoanRequest
+	(*GetLoanScheduleRequest)(nil),         // 15: familyledger.loan.v1.GetLoanScheduleRequest
+	(*LoanScheduleResponse)(nil),           // 16: familyledger.loan.v1.LoanScheduleResponse
+	(*SimulatePrepaymentRequest)(nil),      // 17: familyledger.loan.v1.SimulatePrepaymentRequest
+	(*RecordRateChangeRequest)(nil),        // 18: familyledger.loan.v1.RecordRateChangeRequest
+	(*RecordPaymentRequest)(nil),           // 19: familyledger.loan.v1.RecordPaymentRequest
+	(*LoanGroup)(nil),                      // 20: familyledger.loan.v1.LoanGroup
+	(*SubLoanSpec)(nil),                    // 21: familyledger.loan.v1.SubLoanSpec
+	(*CreateLoanGroupRequest)(nil),         // 22: familyledger.loan.v1.CreateLoanGroupRequest
+	(*GetLoanGroupRequest)(nil),            // 23: familyledger.loan.v1.GetLoanGroupRequest
+	(*ListLoanGroupsRequest)(nil),          // 24: familyledger.loan.v1.ListLoanGroupsRequest
+	(*ListLoanGroupsResponse)(nil),         // 25: familyledger.loan.v1.ListLoanGroupsResponse
+	(*SimulateGroupPrepaymentRequest)(nil), // 26: familyledger.loan.v1.SimulateGroupPrepaymentRequest
+	(*GroupPrepaymentSimulation)(nil),      // 27: familyledger.loan.v1.GroupPrepaymentSimulation
+	(*timestamppb.Timestamp)(nil),          // 28: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                  // 29: google.protobuf.Empty
 }
 var file_loan_proto_depIdxs = []int32{
 	0,  // 0: familyledger.loan.v1.Loan.loan_type:type_name -> familyledger.loan.v1.LoanType
 	1,  // 1: familyledger.loan.v1.Loan.repayment_method:type_name -> familyledger.loan.v1.RepaymentMethod
-	27, // 2: familyledger.loan.v1.Loan.start_date:type_name -> google.protobuf.Timestamp
-	27, // 3: familyledger.loan.v1.Loan.created_at:type_name -> google.protobuf.Timestamp
-	27, // 4: familyledger.loan.v1.Loan.updated_at:type_name -> google.protobuf.Timestamp
+	28, // 2: familyledger.loan.v1.Loan.start_date:type_name -> google.protobuf.Timestamp
+	28, // 3: familyledger.loan.v1.Loan.created_at:type_name -> google.protobuf.Timestamp
+	28, // 4: familyledger.loan.v1.Loan.updated_at:type_name -> google.protobuf.Timestamp
 	3,  // 5: familyledger.loan.v1.Loan.sub_type:type_name -> familyledger.loan.v1.LoanSubType
 	4,  // 6: familyledger.loan.v1.Loan.rate_type:type_name -> familyledger.loan.v1.RateType
-	27, // 7: familyledger.loan.v1.LoanScheduleItem.due_date:type_name -> google.protobuf.Timestamp
-	27, // 8: familyledger.loan.v1.LoanScheduleItem.paid_date:type_name -> google.protobuf.Timestamp
-	6,  // 9: familyledger.loan.v1.PrepaymentSimulation.new_schedule:type_name -> familyledger.loan.v1.LoanScheduleItem
-	0,  // 10: familyledger.loan.v1.CreateLoanRequest.loan_type:type_name -> familyledger.loan.v1.LoanType
-	1,  // 11: familyledger.loan.v1.CreateLoanRequest.repayment_method:type_name -> familyledger.loan.v1.RepaymentMethod
-	27, // 12: familyledger.loan.v1.CreateLoanRequest.start_date:type_name -> google.protobuf.Timestamp
-	5,  // 13: familyledger.loan.v1.ListLoansResponse.loans:type_name -> familyledger.loan.v1.Loan
-	6,  // 14: familyledger.loan.v1.LoanScheduleResponse.items:type_name -> familyledger.loan.v1.LoanScheduleItem
-	2,  // 15: familyledger.loan.v1.SimulatePrepaymentRequest.strategy:type_name -> familyledger.loan.v1.PrepaymentStrategy
-	27, // 16: familyledger.loan.v1.RecordRateChangeRequest.effective_date:type_name -> google.protobuf.Timestamp
-	27, // 17: familyledger.loan.v1.LoanGroup.start_date:type_name -> google.protobuf.Timestamp
-	5,  // 18: familyledger.loan.v1.LoanGroup.sub_loans:type_name -> familyledger.loan.v1.Loan
-	27, // 19: familyledger.loan.v1.LoanGroup.created_at:type_name -> google.protobuf.Timestamp
-	27, // 20: familyledger.loan.v1.LoanGroup.updated_at:type_name -> google.protobuf.Timestamp
-	0,  // 21: familyledger.loan.v1.LoanGroup.loan_type:type_name -> familyledger.loan.v1.LoanType
-	3,  // 22: familyledger.loan.v1.SubLoanSpec.sub_type:type_name -> familyledger.loan.v1.LoanSubType
-	1,  // 23: familyledger.loan.v1.SubLoanSpec.repayment_method:type_name -> familyledger.loan.v1.RepaymentMethod
-	4,  // 24: familyledger.loan.v1.SubLoanSpec.rate_type:type_name -> familyledger.loan.v1.RateType
-	27, // 25: familyledger.loan.v1.CreateLoanGroupRequest.start_date:type_name -> google.protobuf.Timestamp
-	20, // 26: familyledger.loan.v1.CreateLoanGroupRequest.sub_loans:type_name -> familyledger.loan.v1.SubLoanSpec
-	0,  // 27: familyledger.loan.v1.CreateLoanGroupRequest.loan_type:type_name -> familyledger.loan.v1.LoanType
-	19, // 28: familyledger.loan.v1.ListLoanGroupsResponse.groups:type_name -> familyledger.loan.v1.LoanGroup
-	2,  // 29: familyledger.loan.v1.SimulateGroupPrepaymentRequest.strategy:type_name -> familyledger.loan.v1.PrepaymentStrategy
-	7,  // 30: familyledger.loan.v1.GroupPrepaymentSimulation.target_sim:type_name -> familyledger.loan.v1.PrepaymentSimulation
-	8,  // 31: familyledger.loan.v1.LoanService.CreateLoan:input_type -> familyledger.loan.v1.CreateLoanRequest
-	9,  // 32: familyledger.loan.v1.LoanService.GetLoan:input_type -> familyledger.loan.v1.GetLoanRequest
-	10, // 33: familyledger.loan.v1.LoanService.ListLoans:input_type -> familyledger.loan.v1.ListLoansRequest
-	12, // 34: familyledger.loan.v1.LoanService.UpdateLoan:input_type -> familyledger.loan.v1.UpdateLoanRequest
-	13, // 35: familyledger.loan.v1.LoanService.DeleteLoan:input_type -> familyledger.loan.v1.DeleteLoanRequest
-	14, // 36: familyledger.loan.v1.LoanService.GetLoanSchedule:input_type -> familyledger.loan.v1.GetLoanScheduleRequest
-	16, // 37: familyledger.loan.v1.LoanService.SimulatePrepayment:input_type -> familyledger.loan.v1.SimulatePrepaymentRequest
-	17, // 38: familyledger.loan.v1.LoanService.RecordRateChange:input_type -> familyledger.loan.v1.RecordRateChangeRequest
-	18, // 39: familyledger.loan.v1.LoanService.RecordPayment:input_type -> familyledger.loan.v1.RecordPaymentRequest
-	21, // 40: familyledger.loan.v1.LoanService.CreateLoanGroup:input_type -> familyledger.loan.v1.CreateLoanGroupRequest
-	22, // 41: familyledger.loan.v1.LoanService.GetLoanGroup:input_type -> familyledger.loan.v1.GetLoanGroupRequest
-	23, // 42: familyledger.loan.v1.LoanService.ListLoanGroups:input_type -> familyledger.loan.v1.ListLoanGroupsRequest
-	25, // 43: familyledger.loan.v1.LoanService.SimulateGroupPrepayment:input_type -> familyledger.loan.v1.SimulateGroupPrepaymentRequest
-	5,  // 44: familyledger.loan.v1.LoanService.CreateLoan:output_type -> familyledger.loan.v1.Loan
-	5,  // 45: familyledger.loan.v1.LoanService.GetLoan:output_type -> familyledger.loan.v1.Loan
-	11, // 46: familyledger.loan.v1.LoanService.ListLoans:output_type -> familyledger.loan.v1.ListLoansResponse
-	5,  // 47: familyledger.loan.v1.LoanService.UpdateLoan:output_type -> familyledger.loan.v1.Loan
-	28, // 48: familyledger.loan.v1.LoanService.DeleteLoan:output_type -> google.protobuf.Empty
-	15, // 49: familyledger.loan.v1.LoanService.GetLoanSchedule:output_type -> familyledger.loan.v1.LoanScheduleResponse
-	7,  // 50: familyledger.loan.v1.LoanService.SimulatePrepayment:output_type -> familyledger.loan.v1.PrepaymentSimulation
-	5,  // 51: familyledger.loan.v1.LoanService.RecordRateChange:output_type -> familyledger.loan.v1.Loan
-	6,  // 52: familyledger.loan.v1.LoanService.RecordPayment:output_type -> familyledger.loan.v1.LoanScheduleItem
-	19, // 53: familyledger.loan.v1.LoanService.CreateLoanGroup:output_type -> familyledger.loan.v1.LoanGroup
-	19, // 54: familyledger.loan.v1.LoanService.GetLoanGroup:output_type -> familyledger.loan.v1.LoanGroup
-	24, // 55: familyledger.loan.v1.LoanService.ListLoanGroups:output_type -> familyledger.loan.v1.ListLoanGroupsResponse
-	26, // 56: familyledger.loan.v1.LoanService.SimulateGroupPrepayment:output_type -> familyledger.loan.v1.GroupPrepaymentSimulation
-	44, // [44:57] is the sub-list for method output_type
-	31, // [31:44] is the sub-list for method input_type
-	31, // [31:31] is the sub-list for extension type_name
-	31, // [31:31] is the sub-list for extension extendee
-	0,  // [0:31] is the sub-list for field type_name
+	5,  // 7: familyledger.loan.v1.Loan.interest_calc_method:type_name -> familyledger.loan.v1.InterestCalcMethod
+	28, // 8: familyledger.loan.v1.LoanScheduleItem.due_date:type_name -> google.protobuf.Timestamp
+	28, // 9: familyledger.loan.v1.LoanScheduleItem.paid_date:type_name -> google.protobuf.Timestamp
+	7,  // 10: familyledger.loan.v1.PrepaymentSimulation.new_schedule:type_name -> familyledger.loan.v1.LoanScheduleItem
+	0,  // 11: familyledger.loan.v1.CreateLoanRequest.loan_type:type_name -> familyledger.loan.v1.LoanType
+	1,  // 12: familyledger.loan.v1.CreateLoanRequest.repayment_method:type_name -> familyledger.loan.v1.RepaymentMethod
+	28, // 13: familyledger.loan.v1.CreateLoanRequest.start_date:type_name -> google.protobuf.Timestamp
+	5,  // 14: familyledger.loan.v1.CreateLoanRequest.interest_calc_method:type_name -> familyledger.loan.v1.InterestCalcMethod
+	6,  // 15: familyledger.loan.v1.ListLoansResponse.loans:type_name -> familyledger.loan.v1.Loan
+	7,  // 16: familyledger.loan.v1.LoanScheduleResponse.items:type_name -> familyledger.loan.v1.LoanScheduleItem
+	2,  // 17: familyledger.loan.v1.SimulatePrepaymentRequest.strategy:type_name -> familyledger.loan.v1.PrepaymentStrategy
+	28, // 18: familyledger.loan.v1.RecordRateChangeRequest.effective_date:type_name -> google.protobuf.Timestamp
+	28, // 19: familyledger.loan.v1.LoanGroup.start_date:type_name -> google.protobuf.Timestamp
+	6,  // 20: familyledger.loan.v1.LoanGroup.sub_loans:type_name -> familyledger.loan.v1.Loan
+	28, // 21: familyledger.loan.v1.LoanGroup.created_at:type_name -> google.protobuf.Timestamp
+	28, // 22: familyledger.loan.v1.LoanGroup.updated_at:type_name -> google.protobuf.Timestamp
+	0,  // 23: familyledger.loan.v1.LoanGroup.loan_type:type_name -> familyledger.loan.v1.LoanType
+	3,  // 24: familyledger.loan.v1.SubLoanSpec.sub_type:type_name -> familyledger.loan.v1.LoanSubType
+	1,  // 25: familyledger.loan.v1.SubLoanSpec.repayment_method:type_name -> familyledger.loan.v1.RepaymentMethod
+	4,  // 26: familyledger.loan.v1.SubLoanSpec.rate_type:type_name -> familyledger.loan.v1.RateType
+	5,  // 27: familyledger.loan.v1.SubLoanSpec.interest_calc_method:type_name -> familyledger.loan.v1.InterestCalcMethod
+	28, // 28: familyledger.loan.v1.CreateLoanGroupRequest.start_date:type_name -> google.protobuf.Timestamp
+	21, // 29: familyledger.loan.v1.CreateLoanGroupRequest.sub_loans:type_name -> familyledger.loan.v1.SubLoanSpec
+	0,  // 30: familyledger.loan.v1.CreateLoanGroupRequest.loan_type:type_name -> familyledger.loan.v1.LoanType
+	20, // 31: familyledger.loan.v1.ListLoanGroupsResponse.groups:type_name -> familyledger.loan.v1.LoanGroup
+	2,  // 32: familyledger.loan.v1.SimulateGroupPrepaymentRequest.strategy:type_name -> familyledger.loan.v1.PrepaymentStrategy
+	8,  // 33: familyledger.loan.v1.GroupPrepaymentSimulation.target_sim:type_name -> familyledger.loan.v1.PrepaymentSimulation
+	9,  // 34: familyledger.loan.v1.LoanService.CreateLoan:input_type -> familyledger.loan.v1.CreateLoanRequest
+	10, // 35: familyledger.loan.v1.LoanService.GetLoan:input_type -> familyledger.loan.v1.GetLoanRequest
+	11, // 36: familyledger.loan.v1.LoanService.ListLoans:input_type -> familyledger.loan.v1.ListLoansRequest
+	13, // 37: familyledger.loan.v1.LoanService.UpdateLoan:input_type -> familyledger.loan.v1.UpdateLoanRequest
+	14, // 38: familyledger.loan.v1.LoanService.DeleteLoan:input_type -> familyledger.loan.v1.DeleteLoanRequest
+	15, // 39: familyledger.loan.v1.LoanService.GetLoanSchedule:input_type -> familyledger.loan.v1.GetLoanScheduleRequest
+	17, // 40: familyledger.loan.v1.LoanService.SimulatePrepayment:input_type -> familyledger.loan.v1.SimulatePrepaymentRequest
+	18, // 41: familyledger.loan.v1.LoanService.RecordRateChange:input_type -> familyledger.loan.v1.RecordRateChangeRequest
+	19, // 42: familyledger.loan.v1.LoanService.RecordPayment:input_type -> familyledger.loan.v1.RecordPaymentRequest
+	22, // 43: familyledger.loan.v1.LoanService.CreateLoanGroup:input_type -> familyledger.loan.v1.CreateLoanGroupRequest
+	23, // 44: familyledger.loan.v1.LoanService.GetLoanGroup:input_type -> familyledger.loan.v1.GetLoanGroupRequest
+	24, // 45: familyledger.loan.v1.LoanService.ListLoanGroups:input_type -> familyledger.loan.v1.ListLoanGroupsRequest
+	26, // 46: familyledger.loan.v1.LoanService.SimulateGroupPrepayment:input_type -> familyledger.loan.v1.SimulateGroupPrepaymentRequest
+	6,  // 47: familyledger.loan.v1.LoanService.CreateLoan:output_type -> familyledger.loan.v1.Loan
+	6,  // 48: familyledger.loan.v1.LoanService.GetLoan:output_type -> familyledger.loan.v1.Loan
+	12, // 49: familyledger.loan.v1.LoanService.ListLoans:output_type -> familyledger.loan.v1.ListLoansResponse
+	6,  // 50: familyledger.loan.v1.LoanService.UpdateLoan:output_type -> familyledger.loan.v1.Loan
+	29, // 51: familyledger.loan.v1.LoanService.DeleteLoan:output_type -> google.protobuf.Empty
+	16, // 52: familyledger.loan.v1.LoanService.GetLoanSchedule:output_type -> familyledger.loan.v1.LoanScheduleResponse
+	8,  // 53: familyledger.loan.v1.LoanService.SimulatePrepayment:output_type -> familyledger.loan.v1.PrepaymentSimulation
+	6,  // 54: familyledger.loan.v1.LoanService.RecordRateChange:output_type -> familyledger.loan.v1.Loan
+	7,  // 55: familyledger.loan.v1.LoanService.RecordPayment:output_type -> familyledger.loan.v1.LoanScheduleItem
+	20, // 56: familyledger.loan.v1.LoanService.CreateLoanGroup:output_type -> familyledger.loan.v1.LoanGroup
+	20, // 57: familyledger.loan.v1.LoanService.GetLoanGroup:output_type -> familyledger.loan.v1.LoanGroup
+	25, // 58: familyledger.loan.v1.LoanService.ListLoanGroups:output_type -> familyledger.loan.v1.ListLoanGroupsResponse
+	27, // 59: familyledger.loan.v1.LoanService.SimulateGroupPrepayment:output_type -> familyledger.loan.v1.GroupPrepaymentSimulation
+	47, // [47:60] is the sub-list for method output_type
+	34, // [34:47] is the sub-list for method input_type
+	34, // [34:34] is the sub-list for extension type_name
+	34, // [34:34] is the sub-list for extension extendee
+	0,  // [0:34] is the sub-list for field type_name
 }
 
 func init() { file_loan_proto_init() }
@@ -2283,7 +2379,7 @@ func file_loan_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_loan_proto_rawDesc), len(file_loan_proto_rawDesc)),
-			NumEnums:      5,
+			NumEnums:      6,
 			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,

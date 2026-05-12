@@ -47,6 +47,7 @@ func (s *Service) CreateLoan(ctx context.Context, req *pb.CreateLoanRequest) (*p
 
 	loanType := loanTypeToString(req.LoanType)
 	method := repaymentMethodToString(req.RepaymentMethod)
+	calcMethod := interestCalcMethodToString(req.InterestCalcMethod)
 	startDate := req.StartDate.AsTime()
 
 	var accountID *uuid.UUID
@@ -72,7 +73,7 @@ func (s *Service) CreateLoan(ctx context.Context, req *pb.CreateLoanRequest) (*p
 		}
 	}
 
-	schedule := generateSchedule(req.Principal, req.AnnualRate, int(req.TotalMonths), method, int(req.PaymentDay), startDate)
+	schedule := generateSchedule(req.Principal, req.AnnualRate, int(req.TotalMonths), method, int(req.PaymentDay), startDate, calcMethod)
 
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -85,12 +86,12 @@ func (s *Service) CreateLoan(ctx context.Context, req *pb.CreateLoanRequest) (*p
 	err = tx.QueryRow(ctx,
 		`INSERT INTO loans (user_id, name, loan_type, principal, remaining_principal,
 		 annual_rate, total_months, paid_months, repayment_method, payment_day,
-		 start_date, account_id, family_id)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, $9, $10, $11, $12)
+		 start_date, account_id, family_id, interest_calc_method)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8, $9, $10, $11, $12, $13)
 		 RETURNING id, created_at, updated_at`,
 		uid, req.Name, loanType, req.Principal, req.Principal,
 		req.AnnualRate, req.TotalMonths, method, req.PaymentDay,
-		startDate, accountID, familyID,
+		startDate, accountID, familyID, calcMethod,
 	).Scan(&loanID, &createdAt, &updatedAt)
 	if err != nil {
 		log.Printf("loan: create error: %v", err)
@@ -148,7 +149,7 @@ func (s *Service) ListLoans(ctx context.Context, req *pb.ListLoansRequest) (*pb.
 			        annual_rate, total_months, paid_months, repayment_method, payment_day,
 			        start_date, created_at, updated_at, account_id,
 			        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month,
-			        family_id, repayment_category_id
+			        family_id, repayment_category_id, interest_calc_method
 			 FROM loans WHERE family_id = $1 AND deleted_at IS NULL
 			 ORDER BY created_at DESC`,
 			req.FamilyId,
@@ -159,7 +160,7 @@ func (s *Service) ListLoans(ctx context.Context, req *pb.ListLoansRequest) (*pb.
 			        annual_rate, total_months, paid_months, repayment_method, payment_day,
 			        start_date, created_at, updated_at, account_id,
 			        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month,
-			        family_id, repayment_category_id
+			        family_id, repayment_category_id, interest_calc_method
 			 FROM loans WHERE user_id = $1 AND deleted_at IS NULL
 			 AND (family_id IS NULL OR family_id::text = '')
 			 ORDER BY created_at DESC`,
@@ -336,6 +337,7 @@ func (s *Service) SimulatePrepayment(ctx context.Context, req *pb.SimulatePrepay
 	newPrincipal := loan.RemainingPrincipal - req.PrepaymentAmount
 	remainingMonths := int(loan.TotalMonths - loan.PaidMonths)
 	method := repaymentMethodToString(loan.RepaymentMethod)
+	calcMethodPrepay := interestCalcMethodToString(loan.InterestCalcMethod)
 
 	// Start date for new schedule = next unpaid due date
 	var nextDueDate time.Time
@@ -381,12 +383,12 @@ func (s *Service) SimulatePrepayment(ctx context.Context, req *pb.SimulatePrepay
 			if newMonths < 1 {
 				newMonths = 1
 			}
-			newSchedule = generateSchedule(newPrincipal, loan.AnnualRate, newMonths, method, int(loan.PaymentDay), nextDueDate)
+			newSchedule = generateSchedule(newPrincipal, loan.AnnualRate, newMonths, method, int(loan.PaymentDay), nextDueDate, calcMethodPrepay)
 		}
 
 	case pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_PAYMENT:
 		// Keep same months, reduce payment
-		newSchedule = generateSchedule(newPrincipal, loan.AnnualRate, remainingMonths, method, int(loan.PaymentDay), nextDueDate)
+		newSchedule = generateSchedule(newPrincipal, loan.AnnualRate, remainingMonths, method, int(loan.PaymentDay), nextDueDate, calcMethodPrepay)
 	}
 
 	var newInterest int64
@@ -516,7 +518,8 @@ func (s *Service) RecordRateChange(ctx context.Context, req *pb.RecordRateChange
 
 	newMonthCount := int(loan.TotalMonths) - int(nextUnpaidMonth) + 1
 	method := repaymentMethodToString(loan.RepaymentMethod)
-	newItems := generateSchedule(rpBefore, req.NewRate, newMonthCount, method, int(loan.PaymentDay), nextDueDate)
+	calcMethodRate := interestCalcMethodToString(loan.InterestCalcMethod)
+	newItems := generateSchedule(rpBefore, req.NewRate, newMonthCount, method, int(loan.PaymentDay), nextDueDate, calcMethodRate)
 
 	// Delete unpaid items, insert new
 	_, err = tx.Exec(ctx, `DELETE FROM loan_schedules WHERE loan_id=$1 AND is_paid=false`, req.LoanId)
@@ -729,8 +732,23 @@ func roundCent(v float64) int64 {
 	return int64(math.Round(v))
 }
 
+// daysInPeriod returns the actual number of days between two consecutive due dates.
+func daysInPeriod(from, to time.Time) int {
+	return int(to.Sub(from).Hours() / 24)
+}
+
+// dailyRate returns the daily interest rate based on the calc method.
+func dailyRate(annualRate float64, calcMethod string) float64 {
+	switch calcMethod {
+	case "daily_act_360":
+		return annualRate / 100.0 / 360.0
+	default: // daily_act_365
+		return annualRate / 100.0 / 365.0
+	}
+}
+
 // generateSchedule creates the full amortization schedule from scratch.
-func generateSchedule(principal int64, annualRate float64, totalMonths int, method string, paymentDay int, startDate time.Time) []scheduleItem {
+func generateSchedule(principal int64, annualRate float64, totalMonths int, method string, paymentDay int, startDate time.Time, calcMethod string) []scheduleItem {
 	if totalMonths <= 0 || principal <= 0 {
 		return nil
 	}
@@ -807,6 +825,108 @@ func generateSchedule(principal int64, annualRate float64, totalMonths int, meth
 				payment:            pprt + interest,
 				principalPart:      pprt,
 				interestPart:       interest,
+				remainingPrincipal: remaining,
+				dueDate:            dueDate,
+			}
+		}
+
+	case "interest_only":
+		// 先息后本: 每月只付利息，最后一期还本+利息
+		for i := 0; i < n; i++ {
+			dueDate := advanceMonths(startDate, i, paymentDay)
+			var interest int64
+			if calcMethod == "daily_act_365" || calcMethod == "daily_act_360" {
+				// 按日计息：利息 = 本金 × 日利率 × 当期实际天数
+				dr := dailyRate(annualRate, calcMethod)
+				var periodStart time.Time
+				if i == 0 {
+					periodStart = startDate
+				} else {
+					periodStart = advanceMonths(startDate, i-1, paymentDay)
+				}
+				days := daysInPeriod(periodStart, dueDate)
+				if days <= 0 {
+					log.Printf("loan: unexpected zero-day period at month %d, periodStart=%v dueDate=%v, using 30-day fallback", i+1, periodStart, dueDate)
+					days = 30 // fallback
+				}
+				interest = roundCent(P * dr * float64(days))
+			} else {
+				// 按月计息
+				interest = roundCent(P * r)
+			}
+			var pprt int64
+			if i == n-1 {
+				// 最后一期还本
+				pprt = principal
+			}
+			items[i] = scheduleItem{
+				payment:            pprt + interest,
+				principalPart:      pprt,
+				interestPart:       interest,
+				remainingPrincipal: principal - pprt,
+				dueDate:            dueDate,
+			}
+		}
+
+	case "bullet":
+		// 一次性还本付息: 期间无任何还款，到期还本+累计利息
+		var totalInterest int64
+		if calcMethod == "daily_act_365" || calcMethod == "daily_act_360" {
+			// 按日计息：累加每期实际天数
+			dr := dailyRate(annualRate, calcMethod)
+			prevDate := startDate
+			for i := 0; i < n; i++ {
+				dueDate := advanceMonths(startDate, i, paymentDay)
+				days := daysInPeriod(prevDate, dueDate)
+				if days <= 0 {
+					log.Printf("loan: unexpected zero-day period at month %d, prevDate=%v dueDate=%v, using 30-day fallback", i, prevDate, dueDate)
+					days = 30
+				}
+				totalInterest += roundCent(P * dr * float64(days))
+				prevDate = dueDate
+			}
+		} else {
+			totalInterest = roundCent(P * r * float64(n))
+		}
+		for i := 0; i < n; i++ {
+			dueDate := advanceMonths(startDate, i, paymentDay)
+			if i == n-1 {
+				items[i] = scheduleItem{
+					payment:            principal + totalInterest,
+					principalPart:      principal,
+					interestPart:       totalInterest,
+					remainingPrincipal: 0,
+					dueDate:            dueDate,
+				}
+			} else {
+				items[i] = scheduleItem{
+					payment:            0,
+					principalPart:      0,
+					interestPart:       0,
+					remainingPrincipal: principal,
+					dueDate:            dueDate,
+				}
+			}
+		}
+
+	case "equal_interest":
+		// 等本等息: 每月固定本金 + 固定利息（利息按初始本金计算）
+		monthlyPrincipal := roundCent(P / float64(n))
+		monthlyInterest := roundCent(P * r)
+		remaining := principal
+
+		for i := 0; i < n; i++ {
+			dueDate := advanceMonths(startDate, i, paymentDay)
+			pprt := monthlyPrincipal
+			if i == n-1 {
+				pprt = remaining // 清除尾差
+			}
+			remaining -= pprt
+
+			items[i] = scheduleItem{
+				payment:            pprt + monthlyInterest,
+				principalPart:      pprt,
+				interestPart:       monthlyInterest,
 				remainingPrincipal: remaining,
 				dueDate:            dueDate,
 			}
@@ -934,20 +1054,21 @@ func (s *Service) loadLoan(ctx context.Context, loanID, userID string) (*pb.Loan
 	var rateAdjustMonth *int32
 	var familyID *uuid.UUID
 	var repCatID *uuid.UUID
+	var loadCalcMethod string
 
 	err := s.pool.QueryRow(ctx,
 		`SELECT id, user_id, name, loan_type, principal, remaining_principal,
 		        annual_rate, total_months, paid_months, repayment_method, payment_day,
 		        start_date, created_at, updated_at, account_id,
 		        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month,
-		        family_id, repayment_category_id
+		        family_id, repayment_category_id, interest_calc_method
 		 FROM loans WHERE id=$1 AND deleted_at IS NULL`,
 		loanID,
 	).Scan(&id, &uid, &name, &loanType, &principal, &remainingPrincipal,
 		&annualRate, &totalMonths, &paidMonths, &method, &paymentDay,
 		&startDate, &createdAt, &updatedAt, &accountID,
 		&groupID, &subType, &rateType, &lprBase, &lprSpread, &rateAdjustMonth,
-		&familyID, &repCatID)
+		&familyID, &repCatID, &loadCalcMethod)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "loan not found")
@@ -1000,6 +1121,7 @@ func (s *Service) loadLoan(ctx context.Context, loanID, userID string) (*pb.Loan
 	if repCatID != nil {
 		f.repaymentCategoryID = repCatID.String()
 	}
+	f.interestCalcMethod = stringToInterestCalcMethod(loadCalcMethod)
 	return buildLoanProtoFull(f), nil
 }
 
@@ -1057,11 +1179,12 @@ func scanLoan(rows pgx.Rows) (*pb.Loan, error) {
 	var rateAdjustMonth *int32
 	var familyID *uuid.UUID
 	var repCatID *uuid.UUID
+	var interestCalcMethodStr string
 
 	if err := rows.Scan(&id, &uid, &name, &loanType, &principal, &remainingPrincipal,
 		&annualRate, &totalMonths, &paidMonths, &method, &paymentDay,
 		&startDate, &createdAt, &updatedAt, &accountID,
-		&groupID, &subType, &rateType, &lprBase, &lprSpread, &rateAdjustMonth, &familyID, &repCatID); err != nil {
+		&groupID, &subType, &rateType, &lprBase, &lprSpread, &rateAdjustMonth, &familyID, &repCatID, &interestCalcMethodStr); err != nil {
 		return nil, status.Error(codes.Internal, "failed to scan loan")
 	}
 
@@ -1097,6 +1220,7 @@ func scanLoan(rows pgx.Rows) (*pb.Loan, error) {
 	if familyID != nil {
 		f.familyID = familyID.String()
 	}
+	f.interestCalcMethod = stringToInterestCalcMethod(interestCalcMethodStr)
 	return buildLoanProtoFull(f), nil
 }
 
@@ -1122,6 +1246,7 @@ type loanFields struct {
 	rateAdjustMonth  int32
 	familyID         string
 	repaymentCategoryID string
+	interestCalcMethod  pb.InterestCalcMethod
 }
 
 func buildLoanProto(id, userID, name string, loanType pb.LoanType,
@@ -1161,6 +1286,7 @@ func buildLoanProtoFull(f loanFields) *pb.Loan {
 	loan.RateAdjustMonth = f.rateAdjustMonth
 	loan.FamilyId = f.familyID
 	loan.RepaymentCategoryId = f.repaymentCategoryID
+	loan.InterestCalcMethod = f.interestCalcMethod
 	return loan
 }
 
@@ -1208,6 +1334,12 @@ func repaymentMethodToString(m pb.RepaymentMethod) string {
 		return "equal_installment"
 	case pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_PRINCIPAL:
 		return "equal_principal"
+	case pb.RepaymentMethod_REPAYMENT_METHOD_INTEREST_ONLY:
+		return "interest_only"
+	case pb.RepaymentMethod_REPAYMENT_METHOD_BULLET:
+		return "bullet"
+	case pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INTEREST:
+		return "equal_interest"
 	default:
 		return "equal_installment"
 	}
@@ -1219,6 +1351,12 @@ func stringToRepaymentMethod(s string) pb.RepaymentMethod {
 		return pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT
 	case "equal_principal":
 		return pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_PRINCIPAL
+	case "interest_only":
+		return pb.RepaymentMethod_REPAYMENT_METHOD_INTEREST_ONLY
+	case "bullet":
+		return pb.RepaymentMethod_REPAYMENT_METHOD_BULLET
+	case "equal_interest":
+		return pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INTEREST
 	default:
 		return pb.RepaymentMethod_REPAYMENT_METHOD_UNSPECIFIED
 	}
@@ -1254,6 +1392,28 @@ func rateTypeToString(rt pb.RateType) string {
 		return "lpr_floating"
 	default:
 		return "fixed"
+	}
+}
+
+func interestCalcMethodToString(m pb.InterestCalcMethod) string {
+	switch m {
+	case pb.InterestCalcMethod_INTEREST_CALC_DAILY_ACT_365:
+		return "daily_act_365"
+	case pb.InterestCalcMethod_INTEREST_CALC_DAILY_ACT_360:
+		return "daily_act_360"
+	default:
+		return "monthly"
+	}
+}
+
+func stringToInterestCalcMethod(s string) pb.InterestCalcMethod {
+	switch s {
+	case "daily_act_365":
+		return pb.InterestCalcMethod_INTEREST_CALC_DAILY_ACT_365
+	case "daily_act_360":
+		return pb.InterestCalcMethod_INTEREST_CALC_DAILY_ACT_360
+	default:
+		return pb.InterestCalcMethod_INTEREST_CALC_MONTHLY
 	}
 }
 
@@ -1376,6 +1536,7 @@ func (s *Service) CreateLoanGroup(ctx context.Context, req *pb.CreateLoanGroupRe
 		subTypeStr := loanSubTypeToString(sl.SubType)
 		rateTypeStr := rateTypeToString(sl.RateType)
 		methodStr := repaymentMethodToString(sl.RepaymentMethod)
+		slCalcMethod := interestCalcMethodToString(sl.InterestCalcMethod)
 
 		// Determine effective annual rate
 		annualRate := sl.AnnualRate
@@ -1393,7 +1554,7 @@ func (s *Service) CreateLoanGroup(ctx context.Context, req *pb.CreateLoanGroupRe
 			}
 		}
 
-		schedule := generateSchedule(sl.Principal, annualRate, int(sl.TotalMonths), methodStr, int(req.PaymentDay), startDate)
+		schedule := generateSchedule(sl.Principal, annualRate, int(sl.TotalMonths), methodStr, int(req.PaymentDay), startDate, slCalcMethod)
 
 		var loanID uuid.UUID
 		var lCreatedAt, lUpdatedAt time.Time
@@ -1409,13 +1570,13 @@ func (s *Service) CreateLoanGroup(ctx context.Context, req *pb.CreateLoanGroupRe
 		err = tx.QueryRow(ctx,
 			`INSERT INTO loans (user_id, name, loan_type, principal, remaining_principal,
 			 annual_rate, total_months, paid_months, repayment_method, payment_day,
-			 start_date, account_id, group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month, family_id)
-			 VALUES ($1,$2,$3,$4,$5,$6,$7,0,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+			 start_date, account_id, group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month, family_id, interest_calc_method)
+			 VALUES ($1,$2,$3,$4,$5,$6,$7,0,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
 			 RETURNING id, created_at, updated_at`,
 			uid, subName, loanTypeStr, sl.Principal, sl.Principal,
 			annualRate, sl.TotalMonths, methodStr, req.PaymentDay,
 			startDate, accountID, groupID, subTypeStr, rateTypeStr,
-			lprBasePtr, lprSpreadPtr, rateAdjustMonthPtr, familyIDPtr,
+			lprBasePtr, lprSpreadPtr, rateAdjustMonthPtr, familyIDPtr, slCalcMethod,
 		).Scan(&loanID, &lCreatedAt, &lUpdatedAt)
 		if err != nil {
 			log.Printf("loan: create sub-loan error: %v", err)
@@ -1714,7 +1875,7 @@ func (s *Service) loadSubLoans(ctx context.Context, groupID, userID string) ([]*
 		        annual_rate, total_months, paid_months, repayment_method, payment_day,
 		        start_date, created_at, updated_at, account_id,
 		        group_id, sub_type, rate_type, lpr_base, lpr_spread, rate_adjust_month,
-		        family_id, repayment_category_id
+		        family_id, repayment_category_id, interest_calc_method
 		 FROM loans WHERE group_id = $1 AND user_id = $2 AND deleted_at IS NULL
 		 ORDER BY sub_type`,
 		groupID, userID,
