@@ -15,6 +15,7 @@ service LoanService {
     rpc DeleteLoan(DeleteLoanRequest) returns (google.protobuf.Empty);
     rpc GetLoanSchedule(GetLoanScheduleRequest) returns (LoanScheduleResponse);
     rpc SimulatePrepayment(SimulatePrepaymentRequest) returns (PrepaymentSimulation);
+    rpc ExecutePrepayment(ExecutePrepaymentRequest) returns (ExecutePrepaymentResponse);
     rpc RecordRateChange(RecordRateChangeRequest) returns (Loan);
     rpc RecordPayment(RecordPaymentRequest) returns (LoanScheduleItem);
 
@@ -23,6 +24,7 @@ service LoanService {
     rpc GetLoanGroup(GetLoanGroupRequest) returns (LoanGroup);
     rpc ListLoanGroups(ListLoanGroupsRequest) returns (ListLoanGroupsResponse);
     rpc SimulateGroupPrepayment(SimulateGroupPrepaymentRequest) returns (GroupPrepaymentSimulation);
+    rpc ExecuteGroupPrepayment(ExecuteGroupPrepaymentRequest) returns (ExecuteGroupPrepaymentResponse);
 }
 
 enum LoanType {
@@ -249,4 +251,32 @@ message GroupPrepaymentSimulation {
     string target_loan_id = 1;
     PrepaymentSimulation target_sim = 2;  // 被提前还款的子贷款模拟结果
     int64 total_interest_saved = 3;
+}
+
+// ── 提前还款执行 ────────────────────────────────────────────────────────────
+
+message ExecutePrepaymentRequest {
+    string loan_id = 1;
+    int64 prepayment_amount = 2;       // 提前还款金额（分）
+    PrepaymentStrategy strategy = 3;    // 缩短期限 or 减少月供
+}
+
+message ExecutePrepaymentResponse {
+    Loan loan = 1;                      // 更新后的贷款
+    PrepaymentSimulation simulation = 2; // 执行结果摘要
+    repeated LoanScheduleItem new_schedule = 3; // 新还款计划
+}
+
+message ExecuteGroupPrepaymentRequest {
+    string group_id = 1;
+    string target_loan_id = 2;          // 指定先还哪笔（为空则自动选利率高的）
+    int64 prepayment_amount = 3;
+    PrepaymentStrategy strategy = 4;
+}
+
+message ExecuteGroupPrepaymentResponse {
+    string target_loan_id = 1;
+    Loan loan = 2;                      // 更新后的目标子贷款
+    PrepaymentSimulation simulation = 3;
+    repeated LoanScheduleItem new_schedule = 4;
 }

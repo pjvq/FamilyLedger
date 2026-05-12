@@ -2381,6 +2381,342 @@ class GroupPrepaymentSimulation extends $pb.GeneratedMessage {
   void clearTotalInterestSaved() => clearField(3);
 }
 
+class ExecutePrepaymentRequest extends $pb.GeneratedMessage {
+  factory ExecutePrepaymentRequest({
+    $core.String? loanId,
+    $fixnum.Int64? prepaymentAmount,
+    PrepaymentStrategy? strategy,
+  }) {
+    final $result = create();
+    if (loanId != null) {
+      $result.loanId = loanId;
+    }
+    if (prepaymentAmount != null) {
+      $result.prepaymentAmount = prepaymentAmount;
+    }
+    if (strategy != null) {
+      $result.strategy = strategy;
+    }
+    return $result;
+  }
+  ExecutePrepaymentRequest._() : super();
+  factory ExecutePrepaymentRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ExecutePrepaymentRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ExecutePrepaymentRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'loanId')
+    ..aInt64(2, _omitFieldNames ? '' : 'prepaymentAmount')
+    ..e<PrepaymentStrategy>(3, _omitFieldNames ? '' : 'strategy', $pb.PbFieldType.OE, defaultOrMaker: PrepaymentStrategy.PREPAYMENT_STRATEGY_UNSPECIFIED, valueOf: PrepaymentStrategy.valueOf, enumValues: PrepaymentStrategy.values)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ExecutePrepaymentRequest clone() => ExecutePrepaymentRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ExecutePrepaymentRequest copyWith(void Function(ExecutePrepaymentRequest) updates) => super.copyWith((message) => updates(message as ExecutePrepaymentRequest)) as ExecutePrepaymentRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExecutePrepaymentRequest create() => ExecutePrepaymentRequest._();
+  ExecutePrepaymentRequest createEmptyInstance() => create();
+  static $pb.PbList<ExecutePrepaymentRequest> createRepeated() => $pb.PbList<ExecutePrepaymentRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ExecutePrepaymentRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ExecutePrepaymentRequest>(create);
+  static ExecutePrepaymentRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get loanId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set loanId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasLoanId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLoanId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get prepaymentAmount => $_getI64(1);
+  @$pb.TagNumber(2)
+  set prepaymentAmount($fixnum.Int64 v) { $_setInt64(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasPrepaymentAmount() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPrepaymentAmount() => clearField(2);
+
+  @$pb.TagNumber(3)
+  PrepaymentStrategy get strategy => $_getN(2);
+  @$pb.TagNumber(3)
+  set strategy(PrepaymentStrategy v) { setField(3, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasStrategy() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearStrategy() => clearField(3);
+}
+
+class ExecutePrepaymentResponse extends $pb.GeneratedMessage {
+  factory ExecutePrepaymentResponse({
+    Loan? loan,
+    PrepaymentSimulation? simulation,
+    $core.Iterable<LoanScheduleItem>? newSchedule,
+  }) {
+    final $result = create();
+    if (loan != null) {
+      $result.loan = loan;
+    }
+    if (simulation != null) {
+      $result.simulation = simulation;
+    }
+    if (newSchedule != null) {
+      $result.newSchedule.addAll(newSchedule);
+    }
+    return $result;
+  }
+  ExecutePrepaymentResponse._() : super();
+  factory ExecutePrepaymentResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ExecutePrepaymentResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ExecutePrepaymentResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+    ..aOM<Loan>(1, _omitFieldNames ? '' : 'loan', subBuilder: Loan.create)
+    ..aOM<PrepaymentSimulation>(2, _omitFieldNames ? '' : 'simulation', subBuilder: PrepaymentSimulation.create)
+    ..pc<LoanScheduleItem>(3, _omitFieldNames ? '' : 'newSchedule', $pb.PbFieldType.PM, subBuilder: LoanScheduleItem.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ExecutePrepaymentResponse clone() => ExecutePrepaymentResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ExecutePrepaymentResponse copyWith(void Function(ExecutePrepaymentResponse) updates) => super.copyWith((message) => updates(message as ExecutePrepaymentResponse)) as ExecutePrepaymentResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExecutePrepaymentResponse create() => ExecutePrepaymentResponse._();
+  ExecutePrepaymentResponse createEmptyInstance() => create();
+  static $pb.PbList<ExecutePrepaymentResponse> createRepeated() => $pb.PbList<ExecutePrepaymentResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ExecutePrepaymentResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ExecutePrepaymentResponse>(create);
+  static ExecutePrepaymentResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  Loan get loan => $_getN(0);
+  @$pb.TagNumber(1)
+  set loan(Loan v) { setField(1, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasLoan() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLoan() => clearField(1);
+  @$pb.TagNumber(1)
+  Loan ensureLoan() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  PrepaymentSimulation get simulation => $_getN(1);
+  @$pb.TagNumber(2)
+  set simulation(PrepaymentSimulation v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasSimulation() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSimulation() => clearField(2);
+  @$pb.TagNumber(2)
+  PrepaymentSimulation ensureSimulation() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  $core.List<LoanScheduleItem> get newSchedule => $_getList(2);
+}
+
+class ExecuteGroupPrepaymentRequest extends $pb.GeneratedMessage {
+  factory ExecuteGroupPrepaymentRequest({
+    $core.String? groupId,
+    $core.String? targetLoanId,
+    $fixnum.Int64? prepaymentAmount,
+    PrepaymentStrategy? strategy,
+  }) {
+    final $result = create();
+    if (groupId != null) {
+      $result.groupId = groupId;
+    }
+    if (targetLoanId != null) {
+      $result.targetLoanId = targetLoanId;
+    }
+    if (prepaymentAmount != null) {
+      $result.prepaymentAmount = prepaymentAmount;
+    }
+    if (strategy != null) {
+      $result.strategy = strategy;
+    }
+    return $result;
+  }
+  ExecuteGroupPrepaymentRequest._() : super();
+  factory ExecuteGroupPrepaymentRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ExecuteGroupPrepaymentRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ExecuteGroupPrepaymentRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'groupId')
+    ..aOS(2, _omitFieldNames ? '' : 'targetLoanId')
+    ..aInt64(3, _omitFieldNames ? '' : 'prepaymentAmount')
+    ..e<PrepaymentStrategy>(4, _omitFieldNames ? '' : 'strategy', $pb.PbFieldType.OE, defaultOrMaker: PrepaymentStrategy.PREPAYMENT_STRATEGY_UNSPECIFIED, valueOf: PrepaymentStrategy.valueOf, enumValues: PrepaymentStrategy.values)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ExecuteGroupPrepaymentRequest clone() => ExecuteGroupPrepaymentRequest()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ExecuteGroupPrepaymentRequest copyWith(void Function(ExecuteGroupPrepaymentRequest) updates) => super.copyWith((message) => updates(message as ExecuteGroupPrepaymentRequest)) as ExecuteGroupPrepaymentRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExecuteGroupPrepaymentRequest create() => ExecuteGroupPrepaymentRequest._();
+  ExecuteGroupPrepaymentRequest createEmptyInstance() => create();
+  static $pb.PbList<ExecuteGroupPrepaymentRequest> createRepeated() => $pb.PbList<ExecuteGroupPrepaymentRequest>();
+  @$core.pragma('dart2js:noInline')
+  static ExecuteGroupPrepaymentRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ExecuteGroupPrepaymentRequest>(create);
+  static ExecuteGroupPrepaymentRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get groupId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set groupId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasGroupId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearGroupId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get targetLoanId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set targetLoanId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTargetLoanId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTargetLoanId() => clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get prepaymentAmount => $_getI64(2);
+  @$pb.TagNumber(3)
+  set prepaymentAmount($fixnum.Int64 v) { $_setInt64(2, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasPrepaymentAmount() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearPrepaymentAmount() => clearField(3);
+
+  @$pb.TagNumber(4)
+  PrepaymentStrategy get strategy => $_getN(3);
+  @$pb.TagNumber(4)
+  set strategy(PrepaymentStrategy v) { setField(4, v); }
+  @$pb.TagNumber(4)
+  $core.bool hasStrategy() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearStrategy() => clearField(4);
+}
+
+class ExecuteGroupPrepaymentResponse extends $pb.GeneratedMessage {
+  factory ExecuteGroupPrepaymentResponse({
+    $core.String? targetLoanId,
+    Loan? loan,
+    PrepaymentSimulation? simulation,
+    $core.Iterable<LoanScheduleItem>? newSchedule,
+  }) {
+    final $result = create();
+    if (targetLoanId != null) {
+      $result.targetLoanId = targetLoanId;
+    }
+    if (loan != null) {
+      $result.loan = loan;
+    }
+    if (simulation != null) {
+      $result.simulation = simulation;
+    }
+    if (newSchedule != null) {
+      $result.newSchedule.addAll(newSchedule);
+    }
+    return $result;
+  }
+  ExecuteGroupPrepaymentResponse._() : super();
+  factory ExecuteGroupPrepaymentResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory ExecuteGroupPrepaymentResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ExecuteGroupPrepaymentResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'targetLoanId')
+    ..aOM<Loan>(2, _omitFieldNames ? '' : 'loan', subBuilder: Loan.create)
+    ..aOM<PrepaymentSimulation>(3, _omitFieldNames ? '' : 'simulation', subBuilder: PrepaymentSimulation.create)
+    ..pc<LoanScheduleItem>(4, _omitFieldNames ? '' : 'newSchedule', $pb.PbFieldType.PM, subBuilder: LoanScheduleItem.create)
+    ..hasRequiredFields = false
+  ;
+
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+  'Will be removed in next major version')
+  ExecuteGroupPrepaymentResponse clone() => ExecuteGroupPrepaymentResponse()..mergeFromMessage(this);
+  @$core.Deprecated(
+  'Using this can add significant overhead to your binary. '
+  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+  'Will be removed in next major version')
+  ExecuteGroupPrepaymentResponse copyWith(void Function(ExecuteGroupPrepaymentResponse) updates) => super.copyWith((message) => updates(message as ExecuteGroupPrepaymentResponse)) as ExecuteGroupPrepaymentResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExecuteGroupPrepaymentResponse create() => ExecuteGroupPrepaymentResponse._();
+  ExecuteGroupPrepaymentResponse createEmptyInstance() => create();
+  static $pb.PbList<ExecuteGroupPrepaymentResponse> createRepeated() => $pb.PbList<ExecuteGroupPrepaymentResponse>();
+  @$core.pragma('dart2js:noInline')
+  static ExecuteGroupPrepaymentResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ExecuteGroupPrepaymentResponse>(create);
+  static ExecuteGroupPrepaymentResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get targetLoanId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set targetLoanId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasTargetLoanId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTargetLoanId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  Loan get loan => $_getN(1);
+  @$pb.TagNumber(2)
+  set loan(Loan v) { setField(2, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasLoan() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLoan() => clearField(2);
+  @$pb.TagNumber(2)
+  Loan ensureLoan() => $_ensure(1);
+
+  @$pb.TagNumber(3)
+  PrepaymentSimulation get simulation => $_getN(2);
+  @$pb.TagNumber(3)
+  set simulation(PrepaymentSimulation v) { setField(3, v); }
+  @$pb.TagNumber(3)
+  $core.bool hasSimulation() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSimulation() => clearField(3);
+  @$pb.TagNumber(3)
+  PrepaymentSimulation ensureSimulation() => $_ensure(2);
+
+  @$pb.TagNumber(4)
+  $core.List<LoanScheduleItem> get newSchedule => $_getList(3);
+}
+
 
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
 const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');

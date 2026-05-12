@@ -101,7 +101,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                     child: _ActionButton(
                       icon: Icons.speed_rounded,
                       label: '提前还款',
-                      semanticLabel: '提前还款模拟',
+                      semanticLabel: '提前还款',
                       onTap: () => Navigator.of(context).pushNamed(
                         AppRouter.prepayment,
                         arguments: loan.id,
