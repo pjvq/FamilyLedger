@@ -581,7 +581,7 @@ class _SummaryCard extends StatelessWidget {
             // Main content: remaining principal + progress ring
             Row(
               children: [
-                // Left: principal info + monthly payment
+                // Left: remaining principal only
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -602,74 +602,6 @@ class _SummaryCard extends StatelessWidget {
                           color: isDark
                               ? AppColors.liabilityDark
                               : AppColors.liability,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      // 贷款本金 + 剩余利息，并排显示
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '贷款本金',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.5),
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '¥${_fmtCents(loan.principal)}',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    fontFeatures: const [FontFeature.tabularFigures()],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '剩余利息',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.5),
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '¥${_fmtCents(remainingInterest)}',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    fontFeatures: const [FontFeature.tabularFigures()],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        '月供',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '¥${_fmtCents(monthlyPayment)}',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                     ],
@@ -703,7 +635,7 @@ class _SummaryCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '第 ${loan.paidMonths}/${loan.totalMonths} 期·${(progress * 100).toStringAsFixed(0)}%',
+                            '第 ${loan.paidMonths}/${loan.totalMonths} 期',
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: theme.colorScheme.onSurface
                                   .withValues(alpha: 0.5),
@@ -717,6 +649,27 @@ class _SummaryCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Middle stats: principal, remaining interest, monthly payment
+            Row(
+              children: [
+                _StatItem(
+                  label: '贷款本金',
+                  value: '¥${_fmtCents(loan.principal)}',
+                  theme: theme,
+                ),
+                _StatItem(
+                  label: '剩余利息',
+                  value: '¥${_fmtCents(remainingInterest)}',
+                  theme: theme,
+                ),
+                _StatItem(
+                  label: '月供',
+                  value: '¥${_fmtCents(monthlyPayment)}',
+                  theme: theme,
                 ),
               ],
             ),
