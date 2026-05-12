@@ -672,11 +672,9 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 	log.Printf("loan: prepayment executed %s: amount=%d strategy=%s newPrincipal=%d newMonths=%d",
 		req.LoanId, req.PrepaymentAmount, req.Strategy, newPrincipal, newTotalMonths)
 
-	// Build response
-	updatedLoan, err := s.loadLoan(ctx, req.LoanId, userID)
-	if err != nil {
-		return nil, err
-	}
+	// Build response — update the loan proto we already have
+	loan.RemainingPrincipal = newPrincipal
+	loan.TotalMonths = newTotalMonths
 
 	protoNewItems := make([]*pb.LoanScheduleItem, len(newSchedule))
 	for i, si := range newSchedule {
@@ -692,7 +690,7 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 	}
 
 	return &pb.ExecutePrepaymentResponse{
-		Loan: updatedLoan,
+		Loan: loan,
 		Simulation: &pb.PrepaymentSimulation{
 			PrepaymentAmount:    req.PrepaymentAmount,
 			TotalInterestBefore: totalInterestBefore,
