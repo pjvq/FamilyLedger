@@ -677,6 +677,10 @@ class _SubLoanTab extends StatelessWidget {
     final progress = loan!.principal > 0
         ? (loan!.principal - loan!.remainingPrincipal) / loan!.principal
         : 0.0;
+    // 剩余利息 = 未还期数的利息总和
+    final remainingInterest = schedule
+        .where((item) => !item.isPaid)
+        .fold<int>(0, (sum, item) => sum + item.interestPart);
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -746,6 +750,49 @@ class _SubLoanTab extends StatelessWidget {
                                 FontFeature.tabularFigures()
                               ]),
                         ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // 第二行：剩余本金 + 剩余利息
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('剩余本金',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.5))),
+                        Text('¥${_fmtCents(loan!.remainingPrincipal)}',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? AppColors.liabilityDark
+                                    : AppColors.liability,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures()
+                                ])),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('剩余利息',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.5))),
+                        Text('¥${_fmtCents(remainingInterest)}',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures()
+                                ])),
                       ],
                     ),
                   ),

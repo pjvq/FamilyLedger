@@ -58,6 +58,10 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
         : 0.0;
     final monthlyPayment =
         ref.read(loanProvider.notifier).getMonthlyPayment(loan);
+    // 剩余利息 = 未还期数的利息总和
+    final remainingInterest = loanState.schedule
+        .where((item) => !item.isPaid)
+        .fold<int>(0, (sum, item) => sum + item.interestPart);
 
     return Scaffold(
       appBar: AppBar(
@@ -87,6 +91,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
               typeInfo: typeInfo,
               progress: progress,
               monthlyPayment: monthlyPayment,
+              remainingInterest: remainingInterest,
               isDark: isDark,
               theme: theme,
             ),
@@ -493,6 +498,7 @@ class _SummaryCard extends StatelessWidget {
   final LoanTypeInfo typeInfo;
   final double progress;
   final int monthlyPayment;
+  final int remainingInterest;
   final bool isDark;
   final ThemeData theme;
 
@@ -501,6 +507,7 @@ class _SummaryCard extends StatelessWidget {
     required this.typeInfo,
     required this.progress,
     required this.monthlyPayment,
+    required this.remainingInterest,
     required this.isDark,
     required this.theme,
   });
@@ -574,7 +581,7 @@ class _SummaryCard extends StatelessWidget {
             // Main content: remaining principal + progress ring
             Row(
               children: [
-                // Left: remaining principal + monthly payment
+                // Left: principal info + monthly payment
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -597,7 +604,59 @@ class _SummaryCard extends StatelessWidget {
                               : AppColors.liability,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
+                      // 贷款本金 + 剩余利息，并排显示
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '贷款本金',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.5),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '¥${_fmtCents(loan.principal)}',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    fontFeatures: const [FontFeature.tabularFigures()],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '剩余利息',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.5),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '¥${_fmtCents(remainingInterest)}',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    fontFeatures: const [FontFeature.tabularFigures()],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
                       Text(
                         '月供',
                         style: theme.textTheme.bodySmall?.copyWith(
