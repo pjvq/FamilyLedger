@@ -41,7 +41,7 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('提前还款模拟'),
+        title: const Text('提前还款'),
       ),
       body: Column(
         children: [
@@ -174,6 +174,19 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
                         )
                       : const SizedBox.shrink(key: ValueKey('empty')),
                 ),
+                // Confirm execution button
+                if (simulation != null) ...[  
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: loanState.isLoading ? null : () => _confirmExecute(context),
+                    icon: const Icon(Icons.check_circle_rounded),
+                    label: const Text('确认提前还款'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: isDark ? AppColors.incomeDark : AppColors.income,
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 40),
               ],
             ),
@@ -224,6 +237,57 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
           amount: (amount * 100).round(),
           strategy: _strategy,
         );
+  }
+
+  Future<void> _confirmExecute(BuildContext context) async {
+    final amount = double.tryParse(_amountText);
+    if (amount == null || amount <= 0) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('确认提前还款'),
+        content: Text(
+          '确认提前还款 ¥${_fmtCents((amount * 100).round())}？\n\n'
+          '此操作不可撤销，还款计划将重新生成。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('确认执行'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final success = await ref.read(loanProvider.notifier).executePrepayment(
+          loanId: widget.loanId,
+          amount: (amount * 100).round(),
+          strategy: _strategy,
+        );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('提前还款成功'), behavior: SnackBarBehavior.fixed),
+      );
+      Navigator.pop(context); // 返回贷款详情页
+    } else {
+      final error = ref.read(loanProvider).error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error ?? '提前还款失败'),
+          behavior: SnackBarBehavior.fixed,
+        ),
+      );
+    }
   }
 }
 

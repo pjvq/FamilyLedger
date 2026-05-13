@@ -134,12 +134,12 @@ class _LoanGroupCard extends StatelessWidget {
     final comMonthly = comLoan != null ? notifier.getMonthlyPayment(comLoan) : 0;
     final pvdMonthly = pvdLoan != null ? notifier.getMonthlyPayment(pvdLoan) : 0;
 
-    // Progress
-    final comProgress = comLoan != null && comLoan.totalMonths > 0
-        ? comLoan.paidMonths / comLoan.totalMonths
+    // Progress (based on principal repaid ratio)
+    final comProgress = comLoan != null && comLoan.principal > 0
+        ? (comLoan.principal - comLoan.remainingPrincipal) / comLoan.principal
         : 0.0;
-    final pvdProgress = pvdLoan != null && pvdLoan.totalMonths > 0
-        ? pvdLoan.paidMonths / pvdLoan.totalMonths
+    final pvdProgress = pvdLoan != null && pvdLoan.principal > 0
+        ? (pvdLoan.principal - pvdLoan.remainingPrincipal) / pvdLoan.principal
         : 0.0;
 
     final comPrincipalWan = comLoan != null
@@ -407,13 +407,13 @@ class _LoanCard extends StatelessWidget {
     final typeInfo = getLoanTypeInfo(loan.loanType);
     final monthlyPayment = notifier.getMonthlyPayment(loan);
     final nextPayment = notifier.getNextPaymentDate(loan);
-    final progress = loan.totalMonths > 0
-        ? loan.paidMonths / loan.totalMonths
+    final progress = loan.principal > 0
+        ? (loan.principal - loan.remainingPrincipal) / loan.principal
         : 0.0;
 
     return Semantics(
       label: '${loan.name}，${typeInfo.label}，剩余本金${_formatCents(loan.remainingPrincipal)}元，'
-          '还款进度第${loan.paidMonths}期共${loan.totalMonths}期',
+          '已还${(progress * 100).toStringAsFixed(0)}%',
       button: true,
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
@@ -559,7 +559,7 @@ class _LoanCard extends StatelessWidget {
                     const SizedBox(width: 16),
                     _InfoChip(
                       label: '进度',
-                      value: '第 ${loan.paidMonths}/${loan.totalMonths} 期',
+                      value: '第 ${loan.paidMonths}/${loan.totalMonths} 期·${(progress * 100).toStringAsFixed(0)}%',
                       theme: theme,
                     ),
                     const Spacer(),

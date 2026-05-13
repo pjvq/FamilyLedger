@@ -434,6 +434,328 @@ func (s *Service) SimulatePrepayment(ctx context.Context, req *pb.SimulatePrepay
 	}, nil
 }
 
+
+
+// ── ExecutePrepayment ────────────────────────────────────────────────────────
+
+func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepaymentRequest) (*pb.ExecutePrepaymentResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if req.LoanId == "" {
+		return nil, status.Error(codes.InvalidArgument, "loan_id is required")
+	}
+	if req.PrepaymentAmount <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "prepayment_amount must be positive")
+	}
+	if req.Strategy == pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_UNSPECIFIED {
+		return nil, status.Error(codes.InvalidArgument, "strategy is required")
+	}
+
+	loan, err := s.loadLoan(ctx, req.LoanId, userID)
+	if err != nil {
+		return nil, err
+	}
+	if req.PrepaymentAmount > loan.RemainingPrincipal {
+		return nil, status.Error(codes.InvalidArgument, "prepayment_amount exceeds remaining principal")
+	}
+
+	// Check family permission if applicable
+	if loan.FamilyId != "" {
+		if err := permission.Check(ctx, s.pool, userID, loan.FamilyId, permission.CanEdit); err != nil {
+			return nil, err
+		}
+	}
+
+	// Load current schedule for interest calculation
+	items, err := s.loadSchedule(ctx, req.LoanId)
+	if err != nil {
+		return nil, err
+	}
+
+	// Original total interest
+	var totalInterestBefore int64
+	for _, it := range items {
+		totalInterestBefore += it.InterestPart
+	}
+
+	// Interest already paid
+	var paidInterest int64
+	for _, it := range items {
+		if it.IsPaid {
+			paidInterest += it.InterestPart
+		}
+	}
+
+	newPrincipal := loan.RemainingPrincipal - req.PrepaymentAmount
+	remainingMonths := int(loan.TotalMonths - loan.PaidMonths)
+	method := repaymentMethodToString(loan.RepaymentMethod)
+	calcMethod := interestCalcMethodToString(loan.InterestCalcMethod)
+
+	// Find next unpaid due date as start for new schedule
+	var nextDueDate time.Time
+	for _, it := range items {
+		if !it.IsPaid {
+			nextDueDate = it.DueDate.AsTime()
+			break
+		}
+	}
+	if nextDueDate.IsZero() {
+		nextDueDate = loan.StartDate.AsTime()
+	}
+
+	// Calculate new schedule based on strategy
+	var newSchedule []scheduleItem
+	var newTotalMonths int32
+
+	if newPrincipal <= 0 {
+		// Full prepayment — loan is paid off
+		newSchedule = nil
+		newTotalMonths = loan.PaidMonths
+		newPrincipal = 0
+	} else {
+		switch req.Strategy {
+		case pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_MONTHS:
+			r := loan.AnnualRate / 100.0 / 12.0
+			if method == "equal_installment" {
+				var originalMonthly float64
+				if r == 0 {
+					originalMonthly = float64(loan.Principal) / float64(loan.TotalMonths)
+				} else {
+					rn := math.Pow(1+r, float64(loan.TotalMonths))
+					originalMonthly = float64(loan.Principal) * r * rn / (rn - 1)
+				}
+				M := roundCent(originalMonthly)
+				newSchedule = generateWithFixedPayment(newPrincipal, loan.AnnualRate, M, int(loan.PaymentDay), nextDueDate)
+			} else if method == "interest_only" || method == "bullet" {
+				// These methods can't meaningfully reduce months; fall back to reduce payment
+				newSchedule = generateSchedule(newPrincipal, loan.AnnualRate, remainingMonths, method, int(loan.PaymentDay), nextDueDate, calcMethod)
+			} else {
+				origMonthlyPrincipal := roundCent(float64(loan.Principal) / float64(loan.TotalMonths))
+				newMonths := int(math.Ceil(float64(newPrincipal) / float64(origMonthlyPrincipal)))
+				if newMonths < 1 {
+					newMonths = 1
+				}
+				newSchedule = generateSchedule(newPrincipal, loan.AnnualRate, newMonths, method, int(loan.PaymentDay), nextDueDate, calcMethod)
+			}
+			newTotalMonths = loan.PaidMonths + int32(len(newSchedule))
+
+		case pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_PAYMENT:
+			newSchedule = generateSchedule(newPrincipal, loan.AnnualRate, remainingMonths, method, int(loan.PaymentDay), nextDueDate, calcMethod)
+			newTotalMonths = loan.TotalMonths
+		}
+	}
+
+	// Calculate interest savings
+	var newInterest int64
+	for _, si := range newSchedule {
+		newInterest += si.interestPart
+	}
+	totalInterestAfter := paidInterest + newInterest
+	interestSaved := totalInterestBefore - totalInterestAfter
+	if interestSaved < 0 {
+		interestSaved = 0
+	}
+	monthsReduced := int32(remainingMonths) - int32(len(newSchedule))
+	if monthsReduced < 0 {
+		monthsReduced = 0
+	}
+	var newMonthlyPayment int64
+	if len(newSchedule) > 0 {
+		newMonthlyPayment = newSchedule[0].payment
+	}
+
+	// ===== Execute in transaction =====
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to begin transaction")
+	}
+	defer tx.Rollback(ctx)
+
+	// 1. Update loan: remaining_principal, total_months
+	_, err = tx.Exec(ctx,
+		`UPDATE loans SET remaining_principal = $1, total_months = $2, updated_at = NOW()
+		 WHERE id = $3 AND deleted_at IS NULL`,
+		newPrincipal, newTotalMonths, req.LoanId,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to update loan")
+	}
+
+	// 2. Delete all unpaid schedule items
+	_, err = tx.Exec(ctx,
+		`DELETE FROM loan_schedules WHERE loan_id = $1 AND is_paid = false`,
+		req.LoanId,
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to delete unpaid schedule")
+	}
+
+	// 3. Insert new schedule (month_number continues from paid_months+1)
+	for i, item := range newSchedule {
+		monthNum := int(loan.PaidMonths) + 1 + i
+		_, err = tx.Exec(ctx,
+			`INSERT INTO loan_schedules (loan_id, month_number, payment, principal_part,
+			 interest_part, remaining_principal, due_date) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+			req.LoanId, monthNum, item.payment, item.principalPart,
+			item.interestPart, item.remainingPrincipal, item.dueDate,
+		)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to insert schedule item %d: %v", monthNum, err)
+		}
+	}
+
+	// 4. Deduct prepayment amount from associated account
+	if loan.AccountId != "" {
+		_, err = tx.Exec(ctx,
+			`UPDATE accounts SET balance = balance - $1, updated_at = NOW() WHERE id = $2`,
+			req.PrepaymentAmount, loan.AccountId,
+		)
+		if err != nil {
+			log.Printf("loan: execute prepayment: failed to deduct from account %s: %v", loan.AccountId, err)
+			return nil, status.Error(codes.Internal, "failed to deduct from account")
+		}
+	}
+
+	// 5. Create transaction record for the prepayment
+	{
+		var categoryID string
+		var repCatID *uuid.UUID
+		err = tx.QueryRow(ctx,
+			`SELECT repayment_category_id FROM loans WHERE id = $1`,
+			req.LoanId,
+		).Scan(&repCatID)
+		if err == nil && repCatID != nil {
+			categoryID = repCatID.String()
+		} else {
+			_ = tx.QueryRow(ctx,
+				`SELECT id FROM categories WHERE name = '还款' LIMIT 1`,
+			).Scan(&categoryID)
+			if categoryID == "" {
+				_ = tx.QueryRow(ctx,
+					`SELECT id FROM categories WHERE name = '房贷' LIMIT 1`,
+				).Scan(&categoryID)
+			}
+		}
+
+		accountID := loan.AccountId
+		if accountID == "" {
+			_ = tx.QueryRow(ctx,
+				`SELECT id FROM accounts WHERE user_id = $1 AND is_active = true AND deleted_at IS NULL ORDER BY created_at LIMIT 1`,
+				userID,
+			).Scan(&accountID)
+		}
+
+		if categoryID != "" && accountID != "" {
+			note := fmt.Sprintf("%s 提前还款", loan.Name)
+			var familyIDVal interface{}
+			if loan.FamilyId != "" {
+				familyIDVal = loan.FamilyId
+			}
+			_, txErr := tx.Exec(ctx,
+				`INSERT INTO transactions (user_id, account_id, category_id, amount, amount_cny, type, note, txn_date, family_id)
+				 VALUES ($1, $2, $3, $4, $4, 'expense', $5, $6, $7)`,
+				userID, accountID, categoryID, req.PrepaymentAmount, note, time.Now(), familyIDVal,
+			)
+			if txErr != nil {
+				log.Printf("loan: execute prepayment: failed to create transaction record: %v", txErr)
+				// Non-fatal — payment still processed
+			}
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, status.Error(codes.Internal, "failed to commit")
+	}
+
+	log.Printf("loan: prepayment executed %s: amount=%d strategy=%s newPrincipal=%d newMonths=%d",
+		req.LoanId, req.PrepaymentAmount, req.Strategy, newPrincipal, newTotalMonths)
+
+	// Build response — update the loan proto we already have
+	loan.RemainingPrincipal = newPrincipal
+	loan.TotalMonths = newTotalMonths
+
+	protoNewItems := make([]*pb.LoanScheduleItem, len(newSchedule))
+	for i, si := range newSchedule {
+		protoNewItems[i] = &pb.LoanScheduleItem{
+			MonthNumber:        int32(int(loan.PaidMonths) + 1 + i),
+			Payment:            si.payment,
+			PrincipalPart:      si.principalPart,
+			InterestPart:       si.interestPart,
+			RemainingPrincipal: si.remainingPrincipal,
+			IsPaid:             false,
+			DueDate:            timestamppb.New(si.dueDate),
+		}
+	}
+
+	return &pb.ExecutePrepaymentResponse{
+		Loan: loan,
+		Simulation: &pb.PrepaymentSimulation{
+			PrepaymentAmount:    req.PrepaymentAmount,
+			TotalInterestBefore: totalInterestBefore,
+			TotalInterestAfter:  totalInterestAfter,
+			InterestSaved:       interestSaved,
+			MonthsReduced:       monthsReduced,
+			NewMonthlyPayment:   newMonthlyPayment,
+		},
+		NewSchedule: protoNewItems,
+	}, nil
+}
+
+// ── ExecuteGroupPrepayment ───────────────────────────────────────────────────
+
+func (s *Service) ExecuteGroupPrepayment(ctx context.Context, req *pb.ExecuteGroupPrepaymentRequest) (*pb.ExecuteGroupPrepaymentResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if req.GroupId == "" {
+		return nil, status.Error(codes.InvalidArgument, "group_id is required")
+	}
+	if req.PrepaymentAmount <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "prepayment_amount must be positive")
+	}
+	if req.Strategy == pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_UNSPECIFIED {
+		return nil, status.Error(codes.InvalidArgument, "strategy is required")
+	}
+
+	group, err := s.loadLoanGroup(ctx, req.GroupId, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	targetLoanID := req.TargetLoanId
+	if targetLoanID == "" {
+		var maxRate float64
+		for _, sl := range group.SubLoans {
+			if sl.AnnualRate > maxRate {
+				maxRate = sl.AnnualRate
+				targetLoanID = sl.Id
+			}
+		}
+	}
+	if targetLoanID == "" {
+		return nil, status.Error(codes.InvalidArgument, "no sub-loans found in group")
+	}
+
+	resp, err := s.ExecutePrepayment(ctx, &pb.ExecutePrepaymentRequest{
+		LoanId:           targetLoanID,
+		PrepaymentAmount: req.PrepaymentAmount,
+		Strategy:         req.Strategy,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.ExecuteGroupPrepaymentResponse{
+		TargetLoanId: targetLoanID,
+		Loan:         resp.Loan,
+		Simulation:   resp.Simulation,
+		NewSchedule:  resp.NewSchedule,
+	}, nil
+}
+
 // ── RecordRateChange ────────────────────────────────────────────────────────
 
 func (s *Service) RecordRateChange(ctx context.Context, req *pb.RecordRateChangeRequest) (*pb.Loan, error) {

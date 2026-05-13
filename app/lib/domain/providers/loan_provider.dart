@@ -1428,6 +1428,42 @@ class LoanNotifier extends StateNotifier<LoanState> {
     await getLoanDetail(loanId);
   }
 
+  /// 执行提前还款（确认模拟结果后调用）
+  Future<bool> executePrepayment({
+    required String loanId,
+    required int amount,
+    required String strategy,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    try {
+      final pbStrategy = strategy == 'reduce_months'
+          ? pb_enum.PrepaymentStrategy.PREPAYMENT_STRATEGY_REDUCE_MONTHS
+          : pb_enum.PrepaymentStrategy.PREPAYMENT_STRATEGY_REDUCE_PAYMENT;
+
+      final resp = await _client.executePrepayment(
+        pb.ExecutePrepaymentRequest()
+          ..loanId = loanId
+          ..prepaymentAmount = Int64(amount)
+          ..strategy = pbStrategy,
+      );
+
+      // Update local DB with the returned loan
+      if (resp.hasLoan()) {
+        await _db.upsertLoan(_loanFromProto(resp.loan));
+      }
+
+      state = state.copyWith(isLoading: false, clearSimulation: true);
+      // Refresh detail + schedule from server
+      await getLoanDetail(loanId);
+      return true;
+    } catch (e) {
+      developer.log('[Loan] executePrepayment error: $e', name: 'LoanProvider');
+      state = state.copyWith(isLoading: false, error: '提前还款失败: $e');
+      return false;
+    }
+  }
+
   Future<void> recordPayment({
     required String loanId,
     required int monthNumber,

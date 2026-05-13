@@ -556,3 +556,75 @@ final $typed_data.Uint8List groupPrepaymentSimulationDescriptor = $convert.base6
     'ZXBheW1lbnRTaW11bGF0aW9uUgl0YXJnZXRTaW0SMAoUdG90YWxfaW50ZXJlc3Rfc2F2ZWQYAy'
     'ABKANSEnRvdGFsSW50ZXJlc3RTYXZlZA==');
 
+@$core.Deprecated('Use executePrepaymentRequestDescriptor instead')
+const ExecutePrepaymentRequest$json = {
+  '1': 'ExecutePrepaymentRequest',
+  '2': [
+    {'1': 'loan_id', '3': 1, '4': 1, '5': 9, '10': 'loanId'},
+    {'1': 'prepayment_amount', '3': 2, '4': 1, '5': 3, '10': 'prepaymentAmount'},
+    {'1': 'strategy', '3': 3, '4': 1, '5': 14, '6': '.familyledger.loan.v1.PrepaymentStrategy', '10': 'strategy'},
+  ],
+};
+
+/// Descriptor for `ExecutePrepaymentRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List executePrepaymentRequestDescriptor = $convert.base64Decode(
+    'ChhFeGVjdXRlUHJlcGF5bWVudFJlcXVlc3QSFwoHbG9hbl9pZBgBIAEoCVIGbG9hbklkEisKEX'
+    'ByZXBheW1lbnRfYW1vdW50GAIgASgDUhBwcmVwYXltZW50QW1vdW50EkQKCHN0cmF0ZWd5GAMg'
+    'ASgOMiguZmFtaWx5bGVkZ2VyLmxvYW4udjEuUHJlcGF5bWVudFN0cmF0ZWd5UghzdHJhdGVneQ'
+    '==');
+
+@$core.Deprecated('Use executePrepaymentResponseDescriptor instead')
+const ExecutePrepaymentResponse$json = {
+  '1': 'ExecutePrepaymentResponse',
+  '2': [
+    {'1': 'loan', '3': 1, '4': 1, '5': 11, '6': '.familyledger.loan.v1.Loan', '10': 'loan'},
+    {'1': 'simulation', '3': 2, '4': 1, '5': 11, '6': '.familyledger.loan.v1.PrepaymentSimulation', '10': 'simulation'},
+    {'1': 'new_schedule', '3': 3, '4': 3, '5': 11, '6': '.familyledger.loan.v1.LoanScheduleItem', '10': 'newSchedule'},
+  ],
+};
+
+/// Descriptor for `ExecutePrepaymentResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List executePrepaymentResponseDescriptor = $convert.base64Decode(
+    'ChlFeGVjdXRlUHJlcGF5bWVudFJlc3BvbnNlEi4KBGxvYW4YASABKAsyGi5mYW1pbHlsZWRnZX'
+    'IubG9hbi52MS5Mb2FuUgRsb2FuEkoKCnNpbXVsYXRpb24YAiABKAsyKi5mYW1pbHlsZWRnZXIu'
+    'bG9hbi52MS5QcmVwYXltZW50U2ltdWxhdGlvblIKc2ltdWxhdGlvbhJJCgxuZXdfc2NoZWR1bG'
+    'UYAyADKAsyJi5mYW1pbHlsZWRnZXIubG9hbi52MS5Mb2FuU2NoZWR1bGVJdGVtUgtuZXdTY2hl'
+    'ZHVsZQ==');
+
+@$core.Deprecated('Use executeGroupPrepaymentRequestDescriptor instead')
+const ExecuteGroupPrepaymentRequest$json = {
+  '1': 'ExecuteGroupPrepaymentRequest',
+  '2': [
+    {'1': 'group_id', '3': 1, '4': 1, '5': 9, '10': 'groupId'},
+    {'1': 'target_loan_id', '3': 2, '4': 1, '5': 9, '10': 'targetLoanId'},
+    {'1': 'prepayment_amount', '3': 3, '4': 1, '5': 3, '10': 'prepaymentAmount'},
+    {'1': 'strategy', '3': 4, '4': 1, '5': 14, '6': '.familyledger.loan.v1.PrepaymentStrategy', '10': 'strategy'},
+  ],
+};
+
+/// Descriptor for `ExecuteGroupPrepaymentRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List executeGroupPrepaymentRequestDescriptor = $convert.base64Decode(
+    'Ch1FeGVjdXRlR3JvdXBQcmVwYXltZW50UmVxdWVzdBIZCghncm91cF9pZBgBIAEoCVIHZ3JvdX'
+    'BJZBIkCg50YXJnZXRfbG9hbl9pZBgCIAEoCVIMdGFyZ2V0TG9hbklkEisKEXByZXBheW1lbnRf'
+    'YW1vdW50GAMgASgDUhBwcmVwYXltZW50QW1vdW50EkQKCHN0cmF0ZWd5GAQgASgOMiguZmFtaW'
+    'x5bGVkZ2VyLmxvYW4udjEuUHJlcGF5bWVudFN0cmF0ZWd5UghzdHJhdGVneQ==');
+
+@$core.Deprecated('Use executeGroupPrepaymentResponseDescriptor instead')
+const ExecuteGroupPrepaymentResponse$json = {
+  '1': 'ExecuteGroupPrepaymentResponse',
+  '2': [
+    {'1': 'target_loan_id', '3': 1, '4': 1, '5': 9, '10': 'targetLoanId'},
+    {'1': 'loan', '3': 2, '4': 1, '5': 11, '6': '.familyledger.loan.v1.Loan', '10': 'loan'},
+    {'1': 'simulation', '3': 3, '4': 1, '5': 11, '6': '.familyledger.loan.v1.PrepaymentSimulation', '10': 'simulation'},
+    {'1': 'new_schedule', '3': 4, '4': 3, '5': 11, '6': '.familyledger.loan.v1.LoanScheduleItem', '10': 'newSchedule'},
+  ],
+};
+
+/// Descriptor for `ExecuteGroupPrepaymentResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List executeGroupPrepaymentResponseDescriptor = $convert.base64Decode(
+    'Ch5FeGVjdXRlR3JvdXBQcmVwYXltZW50UmVzcG9uc2USJAoOdGFyZ2V0X2xvYW5faWQYASABKA'
+    'lSDHRhcmdldExvYW5JZBIuCgRsb2FuGAIgASgLMhouZmFtaWx5bGVkZ2VyLmxvYW4udjEuTG9h'
+    'blIEbG9hbhJKCgpzaW11bGF0aW9uGAMgASgLMiouZmFtaWx5bGVkZ2VyLmxvYW4udjEuUHJlcG'
+    'F5bWVudFNpbXVsYXRpb25SCnNpbXVsYXRpb24SSQoMbmV3X3NjaGVkdWxlGAQgAygLMiYuZmFt'
+    'aWx5bGVkZ2VyLmxvYW4udjEuTG9hblNjaGVkdWxlSXRlbVILbmV3U2NoZWR1bGU=');
+

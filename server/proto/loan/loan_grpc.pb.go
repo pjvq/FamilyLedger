@@ -27,12 +27,14 @@ const (
 	LoanService_DeleteLoan_FullMethodName              = "/familyledger.loan.v1.LoanService/DeleteLoan"
 	LoanService_GetLoanSchedule_FullMethodName         = "/familyledger.loan.v1.LoanService/GetLoanSchedule"
 	LoanService_SimulatePrepayment_FullMethodName      = "/familyledger.loan.v1.LoanService/SimulatePrepayment"
+	LoanService_ExecutePrepayment_FullMethodName       = "/familyledger.loan.v1.LoanService/ExecutePrepayment"
 	LoanService_RecordRateChange_FullMethodName        = "/familyledger.loan.v1.LoanService/RecordRateChange"
 	LoanService_RecordPayment_FullMethodName           = "/familyledger.loan.v1.LoanService/RecordPayment"
 	LoanService_CreateLoanGroup_FullMethodName         = "/familyledger.loan.v1.LoanService/CreateLoanGroup"
 	LoanService_GetLoanGroup_FullMethodName            = "/familyledger.loan.v1.LoanService/GetLoanGroup"
 	LoanService_ListLoanGroups_FullMethodName          = "/familyledger.loan.v1.LoanService/ListLoanGroups"
 	LoanService_SimulateGroupPrepayment_FullMethodName = "/familyledger.loan.v1.LoanService/SimulateGroupPrepayment"
+	LoanService_ExecuteGroupPrepayment_FullMethodName  = "/familyledger.loan.v1.LoanService/ExecuteGroupPrepayment"
 )
 
 // LoanServiceClient is the client API for LoanService service.
@@ -46,6 +48,7 @@ type LoanServiceClient interface {
 	DeleteLoan(ctx context.Context, in *DeleteLoanRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetLoanSchedule(ctx context.Context, in *GetLoanScheduleRequest, opts ...grpc.CallOption) (*LoanScheduleResponse, error)
 	SimulatePrepayment(ctx context.Context, in *SimulatePrepaymentRequest, opts ...grpc.CallOption) (*PrepaymentSimulation, error)
+	ExecutePrepayment(ctx context.Context, in *ExecutePrepaymentRequest, opts ...grpc.CallOption) (*ExecutePrepaymentResponse, error)
 	RecordRateChange(ctx context.Context, in *RecordRateChangeRequest, opts ...grpc.CallOption) (*Loan, error)
 	RecordPayment(ctx context.Context, in *RecordPaymentRequest, opts ...grpc.CallOption) (*LoanScheduleItem, error)
 	// ── Loan Group (组合贷款) ────────────────────────────────────────────
@@ -53,6 +56,7 @@ type LoanServiceClient interface {
 	GetLoanGroup(ctx context.Context, in *GetLoanGroupRequest, opts ...grpc.CallOption) (*LoanGroup, error)
 	ListLoanGroups(ctx context.Context, in *ListLoanGroupsRequest, opts ...grpc.CallOption) (*ListLoanGroupsResponse, error)
 	SimulateGroupPrepayment(ctx context.Context, in *SimulateGroupPrepaymentRequest, opts ...grpc.CallOption) (*GroupPrepaymentSimulation, error)
+	ExecuteGroupPrepayment(ctx context.Context, in *ExecuteGroupPrepaymentRequest, opts ...grpc.CallOption) (*ExecuteGroupPrepaymentResponse, error)
 }
 
 type loanServiceClient struct {
@@ -133,6 +137,16 @@ func (c *loanServiceClient) SimulatePrepayment(ctx context.Context, in *Simulate
 	return out, nil
 }
 
+func (c *loanServiceClient) ExecutePrepayment(ctx context.Context, in *ExecutePrepaymentRequest, opts ...grpc.CallOption) (*ExecutePrepaymentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExecutePrepaymentResponse)
+	err := c.cc.Invoke(ctx, LoanService_ExecutePrepayment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *loanServiceClient) RecordRateChange(ctx context.Context, in *RecordRateChangeRequest, opts ...grpc.CallOption) (*Loan, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Loan)
@@ -193,6 +207,16 @@ func (c *loanServiceClient) SimulateGroupPrepayment(ctx context.Context, in *Sim
 	return out, nil
 }
 
+func (c *loanServiceClient) ExecuteGroupPrepayment(ctx context.Context, in *ExecuteGroupPrepaymentRequest, opts ...grpc.CallOption) (*ExecuteGroupPrepaymentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExecuteGroupPrepaymentResponse)
+	err := c.cc.Invoke(ctx, LoanService_ExecuteGroupPrepayment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LoanServiceServer is the server API for LoanService service.
 // All implementations must embed UnimplementedLoanServiceServer
 // for forward compatibility.
@@ -204,6 +228,7 @@ type LoanServiceServer interface {
 	DeleteLoan(context.Context, *DeleteLoanRequest) (*emptypb.Empty, error)
 	GetLoanSchedule(context.Context, *GetLoanScheduleRequest) (*LoanScheduleResponse, error)
 	SimulatePrepayment(context.Context, *SimulatePrepaymentRequest) (*PrepaymentSimulation, error)
+	ExecutePrepayment(context.Context, *ExecutePrepaymentRequest) (*ExecutePrepaymentResponse, error)
 	RecordRateChange(context.Context, *RecordRateChangeRequest) (*Loan, error)
 	RecordPayment(context.Context, *RecordPaymentRequest) (*LoanScheduleItem, error)
 	// ── Loan Group (组合贷款) ────────────────────────────────────────────
@@ -211,6 +236,7 @@ type LoanServiceServer interface {
 	GetLoanGroup(context.Context, *GetLoanGroupRequest) (*LoanGroup, error)
 	ListLoanGroups(context.Context, *ListLoanGroupsRequest) (*ListLoanGroupsResponse, error)
 	SimulateGroupPrepayment(context.Context, *SimulateGroupPrepaymentRequest) (*GroupPrepaymentSimulation, error)
+	ExecuteGroupPrepayment(context.Context, *ExecuteGroupPrepaymentRequest) (*ExecuteGroupPrepaymentResponse, error)
 	mustEmbedUnimplementedLoanServiceServer()
 }
 
@@ -242,6 +268,9 @@ func (UnimplementedLoanServiceServer) GetLoanSchedule(context.Context, *GetLoanS
 func (UnimplementedLoanServiceServer) SimulatePrepayment(context.Context, *SimulatePrepaymentRequest) (*PrepaymentSimulation, error) {
 	return nil, status.Error(codes.Unimplemented, "method SimulatePrepayment not implemented")
 }
+func (UnimplementedLoanServiceServer) ExecutePrepayment(context.Context, *ExecutePrepaymentRequest) (*ExecutePrepaymentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ExecutePrepayment not implemented")
+}
 func (UnimplementedLoanServiceServer) RecordRateChange(context.Context, *RecordRateChangeRequest) (*Loan, error) {
 	return nil, status.Error(codes.Unimplemented, "method RecordRateChange not implemented")
 }
@@ -259,6 +288,9 @@ func (UnimplementedLoanServiceServer) ListLoanGroups(context.Context, *ListLoanG
 }
 func (UnimplementedLoanServiceServer) SimulateGroupPrepayment(context.Context, *SimulateGroupPrepaymentRequest) (*GroupPrepaymentSimulation, error) {
 	return nil, status.Error(codes.Unimplemented, "method SimulateGroupPrepayment not implemented")
+}
+func (UnimplementedLoanServiceServer) ExecuteGroupPrepayment(context.Context, *ExecuteGroupPrepaymentRequest) (*ExecuteGroupPrepaymentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ExecuteGroupPrepayment not implemented")
 }
 func (UnimplementedLoanServiceServer) mustEmbedUnimplementedLoanServiceServer() {}
 func (UnimplementedLoanServiceServer) testEmbeddedByValue()                     {}
@@ -407,6 +439,24 @@ func _LoanService_SimulatePrepayment_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LoanService_ExecutePrepayment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecutePrepaymentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoanServiceServer).ExecutePrepayment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LoanService_ExecutePrepayment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoanServiceServer).ExecutePrepayment(ctx, req.(*ExecutePrepaymentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _LoanService_RecordRateChange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RecordRateChangeRequest)
 	if err := dec(in); err != nil {
@@ -515,6 +565,24 @@ func _LoanService_SimulateGroupPrepayment_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LoanService_ExecuteGroupPrepayment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteGroupPrepaymentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoanServiceServer).ExecuteGroupPrepayment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LoanService_ExecuteGroupPrepayment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoanServiceServer).ExecuteGroupPrepayment(ctx, req.(*ExecuteGroupPrepaymentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // LoanService_ServiceDesc is the grpc.ServiceDesc for LoanService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -551,6 +619,10 @@ var LoanService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _LoanService_SimulatePrepayment_Handler,
 		},
 		{
+			MethodName: "ExecutePrepayment",
+			Handler:    _LoanService_ExecutePrepayment_Handler,
+		},
+		{
 			MethodName: "RecordRateChange",
 			Handler:    _LoanService_RecordRateChange_Handler,
 		},
@@ -573,6 +645,10 @@ var LoanService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SimulateGroupPrepayment",
 			Handler:    _LoanService_SimulateGroupPrepayment_Handler,
+		},
+		{
+			MethodName: "ExecuteGroupPrepayment",
+			Handler:    _LoanService_ExecuteGroupPrepayment_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

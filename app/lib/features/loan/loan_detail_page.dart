@@ -53,11 +53,15 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
     }
 
     final typeInfo = getLoanTypeInfo(loan.loanType);
-    final progress = loan.totalMonths > 0
-        ? loan.paidMonths / loan.totalMonths
+    final progress = loan.principal > 0
+        ? (loan.principal - loan.remainingPrincipal) / loan.principal
         : 0.0;
     final monthlyPayment =
         ref.read(loanProvider.notifier).getMonthlyPayment(loan);
+    // 剩余利息 = 未还期数的利息总和
+    final remainingInterest = loanState.schedule
+        .where((item) => !item.isPaid)
+        .fold<int>(0, (sum, item) => sum + item.interestPart);
 
     return Scaffold(
       appBar: AppBar(
@@ -87,6 +91,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
               typeInfo: typeInfo,
               progress: progress,
               monthlyPayment: monthlyPayment,
+              remainingInterest: remainingInterest,
               isDark: isDark,
               theme: theme,
             ),
@@ -101,7 +106,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                     child: _ActionButton(
                       icon: Icons.speed_rounded,
                       label: '提前还款',
-                      semanticLabel: '提前还款模拟',
+                      semanticLabel: '提前还款',
                       onTap: () => Navigator.of(context).pushNamed(
                         AppRouter.prepayment,
                         arguments: loan.id,
@@ -493,6 +498,7 @@ class _SummaryCard extends StatelessWidget {
   final LoanTypeInfo typeInfo;
   final double progress;
   final int monthlyPayment;
+  final int remainingInterest;
   final bool isDark;
   final ThemeData theme;
 
@@ -501,6 +507,7 @@ class _SummaryCard extends StatelessWidget {
     required this.typeInfo,
     required this.progress,
     required this.monthlyPayment,
+    required this.remainingInterest,
     required this.isDark,
     required this.theme,
   });
@@ -509,7 +516,7 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       label: '${loan.name}，剩余本金${_fmtCents(loan.remainingPrincipal)}元，'
-          '还款进度第${loan.paidMonths}期共${loan.totalMonths}期，'
+          '已还${(progress * 100).toStringAsFixed(0)}%，'
           '月供${_fmtCents(monthlyPayment)}元',
       child: Container(
         margin: const EdgeInsets.all(16),
@@ -574,7 +581,7 @@ class _SummaryCard extends StatelessWidget {
             // Main content: remaining principal + progress ring
             Row(
               children: [
-                // Left: remaining principal + monthly payment
+                // Left: remaining principal only
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -595,22 +602,6 @@ class _SummaryCard extends StatelessWidget {
                           color: isDark
                               ? AppColors.liabilityDark
                               : AppColors.liability,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '月供',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '¥${_fmtCents(monthlyPayment)}',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                     ],
@@ -658,6 +649,27 @@ class _SummaryCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Middle stats: principal, remaining interest, monthly payment
+            Row(
+              children: [
+                _StatItem(
+                  label: '贷款本金',
+                  value: '¥${_fmtCents(loan.principal)}',
+                  theme: theme,
+                ),
+                _StatItem(
+                  label: '剩余利息',
+                  value: '¥${_fmtCents(remainingInterest)}',
+                  theme: theme,
+                ),
+                _StatItem(
+                  label: '月供',
+                  value: '¥${_fmtCents(monthlyPayment)}',
+                  theme: theme,
                 ),
               ],
             ),
