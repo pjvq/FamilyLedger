@@ -537,9 +537,6 @@ class _AssetDetailRow extends StatelessWidget {
 
   String _fmtYuan(int cents) {
     final yuan = cents / 100;
-    if (yuan.abs() >= 10000) {
-      return '${(yuan / 10000).toStringAsFixed(2)}万';
-    }
     return yuan.toStringAsFixed(2);
   }
 }
