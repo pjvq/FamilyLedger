@@ -378,7 +378,7 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	_, syncErr := tx.Exec(ctx,
 		`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
 		 VALUES ($1, 'transaction', $2, 'create'::sync_op_type, $3, $4, NOW())`,
-		uid, txnID, string(syncPayload), "grpc-"+txnID.String(),
+		uid, txnID, string(syncPayload), "grpc-create-"+uuid.New().String(),
 	)
 	if syncErr != nil {
 		// TODO: increment metrics counter sync_operations_insert_failures_total
@@ -663,7 +663,7 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 		_, syncErr := tx.Exec(ctx,
 			`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
 			 VALUES ($1, 'transaction', $2, 'update'::sync_op_type, $3, $4, NOW())`,
-			uid, txnID, string(syncPayload), "grpc-update-"+txnID.String(),
+			uid, txnID, string(syncPayload), "grpc-update-"+uuid.New().String(),
 		)
 		if syncErr != nil {
 			log.Printf("ERROR: transaction: sync_operations update insert FAILED (transaction %s): %v", txnID.String(), syncErr)
@@ -794,7 +794,7 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 	_, syncErr := tx.Exec(ctx,
 		`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
 		 VALUES ($1, 'transaction', $2, 'delete'::sync_op_type, $3, $4, NOW())`,
-		uid, txnID, string(syncPayload), "grpc-delete-"+txnID.String(),
+		uid, txnID, string(syncPayload), "grpc-delete-"+uuid.New().String(),
 	)
 	if syncErr != nil {
 		log.Printf("ERROR: transaction: sync_operations delete insert FAILED (transaction %s): %v", txnID.String(), syncErr)
@@ -985,7 +985,7 @@ func (s *Service) BatchDeleteTransactions(ctx context.Context, req *pb.BatchDele
 		_, syncBatchErr = tx.Exec(ctx,
 			`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
 			 VALUES ($1, 'transaction', $2, 'delete'::sync_op_type, $3, $4, NOW())`,
-			uid, info.id, string(payload), "grpc-batchdel-"+info.id.String(),
+			uid, info.id, string(payload), "grpc-batchdel-"+uuid.New().String(),
 		)
 		if syncBatchErr != nil {
 			log.Printf("ERROR: transaction: sync_operations batch-delete insert FAILED (transaction %s): %v", info.id.String(), syncBatchErr)

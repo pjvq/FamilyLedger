@@ -347,8 +347,9 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
     // If offline, queue for later sync
     if (!syncedToServer) {
+      final syncOpId = _uuid.v4();
       await _db.insertSyncOp(SyncQueueCompanion.insert(
-        id: _uuid.v4(),
+        id: syncOpId,
         entityType: 'transaction',
         entityId: transactionId,
         opType: 'create',
@@ -364,7 +365,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           'note': note,
           'txn_date': effectiveTxnDate.toIso8601String(),
         }),
-        clientId: 'client_$_userId',
+        clientId: syncOpId,
         timestamp: now,
       ));
     }
@@ -435,8 +436,9 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     } catch (e) {
       dev.log('TransactionNotifier: updateTransaction gRPC failed: $e',
           name: 'txn');
+      final syncOpId = _uuid.v4();
       await _db.insertSyncOp(SyncQueueCompanion.insert(
-        id: _uuid.v4(),
+        id: syncOpId,
         entityType: 'transaction',
         entityId: id,
         opType: 'update',
@@ -450,7 +452,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           if (note != null) 'note': note,
           if (tags != null) 'tags': tags,
         }),
-        clientId: 'client_$_userId',
+        clientId: syncOpId,
         timestamp: DateTime.now(),
       ));
     }
@@ -483,13 +485,14 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     } catch (e) {
       dev.log('TransactionNotifier: deleteTransaction gRPC failed: $e',
           name: 'txn');
+      final syncOpId = _uuid.v4();
       await _db.insertSyncOp(SyncQueueCompanion.insert(
-        id: _uuid.v4(),
+        id: syncOpId,
         entityType: 'transaction',
         entityId: id,
         opType: 'delete',
         payload: jsonEncode({'id': id}),
-        clientId: 'client_$_userId',
+        clientId: syncOpId,
         timestamp: DateTime.now(),
       ));
     }
@@ -522,13 +525,14 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     } catch (e) {
       dev.log('TransactionNotifier: batchDelete gRPC failed: $e', name: 'txn');
       for (final id in ids) {
+        final syncOpId = _uuid.v4();
         await _db.insertSyncOp(SyncQueueCompanion.insert(
-          id: _uuid.v4(),
+          id: syncOpId,
           entityType: 'transaction',
           entityId: id,
           opType: 'delete',
           payload: jsonEncode({'id': id}),
-          clientId: 'client_$_userId',
+          clientId: syncOpId,
           timestamp: DateTime.now(),
         ));
       }

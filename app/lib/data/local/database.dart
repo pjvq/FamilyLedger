@@ -163,6 +163,15 @@ class AppDatabase extends _$AppDatabase {
         beforeOpen: (details) async {
           // Backfill empty iconKey for categories that have none
           await _backfillEmptyIconKeys();
+
+          // Fix sync ops that used non-unique clientId ('client_{userId}').
+          // These ops were incorrectly marked as uploaded due to server-side
+          // ON CONFLICT (client_id) treating different ops as duplicates.
+          // Reset them so SyncEngine retries with unique clientIds.
+          await customStatement(
+            "UPDATE sync_queue SET uploaded = 0, client_id = id "
+            "WHERE uploaded = 1 AND client_id LIKE 'client_%'",
+          );
         },
       );
 

@@ -284,13 +284,20 @@ func (s *Service) applyTransactionCreate(ctx context.Context, tx pgx.Tx, userID 
 		imageURLs = []string{}
 	}
 
-	_, err = tx.Exec(ctx,
+	cmdTag, err := tx.Exec(ctx,
 		`INSERT INTO transactions (id, user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, tags, image_urls)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::transaction_type, $10, $11, $12, $13)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::transaction_type, $10, $11, $12, $13)
+		 ON CONFLICT (id) DO NOTHING`,
 		entityID, userID, accountID, categoryID, p.Amount, currency, amountCny, exchangeRate, txnType, p.Note, txnDate, tags, imageURLs,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert transaction: %w", err)
+	}
+
+	// If the row already existed (duplicate push), skip balance update
+	if cmdTag.RowsAffected() == 0 {
+		log.Printf("sync: transaction %s already exists, skipping (idempotent)", entityID)
+		return nil
 	}
 
 	// Update account balance
