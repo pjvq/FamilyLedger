@@ -640,12 +640,6 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 		}
 
 		accountID := loan.AccountId
-		if accountID == "" {
-			_ = tx.QueryRow(ctx,
-				`SELECT id FROM accounts WHERE user_id = $1 AND is_active = true AND deleted_at IS NULL ORDER BY created_at LIMIT 1`,
-				userID,
-			).Scan(&accountID)
-		}
 
 		if categoryID != "" && accountID != "" {
 			note := fmt.Sprintf("%s 提前还款", loan.Name)
@@ -1003,14 +997,7 @@ func (s *Service) RecordPayment(ctx context.Context, req *pb.RecordPaymentReques
 
 		accountID := loan.AccountId
 		if accountID == "" {
-			// If no account linked, try the user's default account
-			_ = tx.QueryRow(ctx,
-				`SELECT id FROM accounts WHERE user_id = $1 AND is_active = true AND deleted_at IS NULL ORDER BY created_at LIMIT 1`,
-				userID,
-			).Scan(&accountID)
-		}
-		if accountID == "" {
-			log.Printf("loan: no account for transaction record, skipping")
+			log.Printf("loan: no account linked to loan, skipping transaction record")
 			goto skipTransaction
 		}
 
