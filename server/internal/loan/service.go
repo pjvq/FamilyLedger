@@ -339,7 +339,8 @@ func (s *Service) SimulatePrepayment(ctx context.Context, req *pb.SimulatePrepay
 	method := repaymentMethodToString(loan.RepaymentMethod)
 	calcMethodPrepay := interestCalcMethodToString(loan.InterestCalcMethod)
 
-	// Start date for new schedule = next unpaid due date
+	// Start date for new schedule = next unpaid due date.
+	// Normalize to 1st of month — see ExecutePrepayment comment for why.
 	var nextDueDate time.Time
 	for _, it := range items {
 		if !it.IsPaid {
@@ -350,6 +351,7 @@ func (s *Service) SimulatePrepayment(ctx context.Context, req *pb.SimulatePrepay
 	if nextDueDate.IsZero() {
 		nextDueDate = loan.StartDate.AsTime()
 	}
+	nextDueDate = time.Date(nextDueDate.Year(), nextDueDate.Month(), 1, 0, 0, 0, 0, nextDueDate.Location())
 
 	var newSchedule []scheduleItem
 
@@ -493,7 +495,11 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 	method := repaymentMethodToString(loan.RepaymentMethod)
 	calcMethod := interestCalcMethodToString(loan.InterestCalcMethod)
 
-	// Find next unpaid due date as start for new schedule
+	// Find next unpaid due date as start for new schedule.
+	// We use the 1st of that month as the startDate for generateSchedule,
+	// because advanceMonths(startDate, 0, paymentDay) adds an extra month
+	// when startDate.Day() >= paymentDay. Since nextDueDate.Day() == paymentDay,
+	// passing it directly would shift the first period forward by one month.
 	var nextDueDate time.Time
 	for _, it := range items {
 		if !it.IsPaid {
@@ -504,6 +510,8 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 	if nextDueDate.IsZero() {
 		nextDueDate = loan.StartDate.AsTime()
 	}
+	// Normalize to 1st of the month so advanceMonths won't skip forward
+	nextDueDate = time.Date(nextDueDate.Year(), nextDueDate.Month(), 1, 0, 0, 0, 0, nextDueDate.Location())
 
 	// Calculate new schedule based on strategy
 	var newSchedule []scheduleItem
@@ -822,7 +830,8 @@ func (s *Service) RecordRateChange(ctx context.Context, req *pb.RecordRateChange
 		}
 	}
 
-	// Get due date of first unpaid month
+	// Get due date of first unpaid month.
+	// Normalize to 1st of month — see ExecutePrepayment comment for why.
 	var nextDueDate time.Time
 	err = tx.QueryRow(ctx,
 		`SELECT due_date FROM loan_schedules WHERE loan_id=$1 AND month_number=$2`,
@@ -831,6 +840,7 @@ func (s *Service) RecordRateChange(ctx context.Context, req *pb.RecordRateChange
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to get next due date")
 	}
+	nextDueDate = time.Date(nextDueDate.Year(), nextDueDate.Month(), 1, 0, 0, 0, 0, nextDueDate.Location())
 
 	newMonthCount := int(loan.TotalMonths) - int(nextUnpaidMonth) + 1
 	method := repaymentMethodToString(loan.RepaymentMethod)
