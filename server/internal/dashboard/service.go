@@ -862,8 +862,14 @@ func (s *Service) GetNetWorthTrend(ctx context.Context, req *pb.TrendRequest) (*
 		count = 60
 	}
 
-	// 简化方案：从当前净资产回推，用每月净收支逆推
-	// 先拿当前净资产
+	truncUnit := "month"
+	labelFormat := "2006-01"
+	if req.Period == "yearly" {
+		truncUnit = "year"
+		labelFormat = "2006"
+	}
+
+	// 简化方案：从当前净资产回推，用每期净收支逆推
 	nw, err := s.GetNetWorth(ctx, &pb.GetNetWorthRequest{FamilyId: req.FamilyId})
 	if err != nil {
 		return nil, err
@@ -871,106 +877,113 @@ func (s *Service) GetNetWorthTrend(ctx context.Context, req *pb.TrendRequest) (*
 	currentTotal := nw.Total
 
 	now := time.Now()
-	var points []*pb.TrendPoint
 
-	// 查每月净收支
-	startDate := time.Date(now.Year(), now.Month()-time.Month(count-1), 1, 0, 0, 0, 0, time.UTC)
+	// 计算查询起始日期
+	var startDate time.Time
+	if req.Period == "yearly" {
+		startDate = time.Date(now.Year()-count+1, 1, 1, 0, 0, 0, 0, time.UTC)
+	} else {
+		startDate = time.Date(now.Year(), now.Month()-time.Month(count-1), 1, 0, 0, 0, 0, time.UTC)
+	}
 
+	// 查每期净收支
 	var rows pgx.Rows
 	if ff.isFamilyMode {
-		rows, err = s.pool.Query(ctx,
-			`SELECT DATE_TRUNC('month', t.txn_date) AS period,
+		query := fmt.Sprintf(
+			`SELECT DATE_TRUNC('%s', t.txn_date) AS period,
 			        COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount_cny ELSE 0 END), 0) AS income,
 			        COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount_cny ELSE 0 END), 0) AS expense
 			 FROM transactions t
 			 JOIN accounts a ON a.id = t.account_id
 			 WHERE a.family_id = $1 AND t.deleted_at IS NULL AND t.txn_date >= $2
-			 GROUP BY 1 ORDER BY 1`,
-			ff.familyID, startDate,
-		)
+			 GROUP BY 1 ORDER BY 1`, truncUnit)
+		rows, err = s.pool.Query(ctx, query, ff.familyID, startDate)
 	} else {
-		rows, err = s.pool.Query(ctx,
-			`SELECT DATE_TRUNC('month', txn_date) AS period,
+		query := fmt.Sprintf(
+			`SELECT DATE_TRUNC('%s', txn_date) AS period,
 			        COALESCE(SUM(CASE WHEN type = 'income' THEN amount_cny ELSE 0 END), 0) AS income,
 			        COALESCE(SUM(CASE WHEN type = 'expense' THEN amount_cny ELSE 0 END), 0) AS expense
 			 FROM transactions
 			 WHERE user_id = $1 AND deleted_at IS NULL AND txn_date >= $2
-			 GROUP BY 1 ORDER BY 1`,
-			userID, startDate,
-		)
+			 GROUP BY 1 ORDER BY 1`, truncUnit)
+		rows, err = s.pool.Query(ctx, query, userID, startDate)
 	}
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to query net worth trend")
 	}
 	defer rows.Close()
 
-	type monthData struct {
+	type periodData struct {
 		label string
 		net   int64
 	}
-	var months []monthData
+	var periods []periodData
 	for rows.Next() {
 		var period time.Time
 		var income, expense int64
 		if err := rows.Scan(&period, &income, &expense); err != nil {
 			return nil, status.Error(codes.Internal, "failed to scan trend row")
 		}
-		months = append(months, monthData{
-			label: period.Format("2006-01"),
+		periods = append(periods, periodData{
+			label: period.Format(labelFormat),
 			net:   income - expense,
 		})
 	}
 
-	// 从后往前，逆推净资产
-	// netWorth[currentMonth] = currentTotal
-	// netWorth[previousMonth] = netWorth[currentMonth] - net[currentMonth]
-	currentMonthLabel := now.Format("2006-01")
-
 	// 建立 label -> net 映射
 	netMap := make(map[string]int64)
-	for _, m := range months {
-		netMap[m.label] = m.net
+	for _, p := range periods {
+		netMap[p.label] = p.net
 	}
 
-	// 生成连续月份列表
-	type monthPoint struct {
+	// 生成连续时间序列（从新到旧，用于逆推）
+	currentLabel := now.Format(labelFormat)
+	type trendPoint struct {
 		label    string
 		netWorth int64
 	}
-	var allMonths []monthPoint
+	var allPoints []trendPoint
 	for i := 0; i < count; i++ {
-		t := time.Date(now.Year(), now.Month()-time.Month(i), 1, 0, 0, 0, 0, time.UTC)
-		allMonths = append(allMonths, monthPoint{label: t.Format("2006-01")})
+		var label string
+		if req.Period == "yearly" {
+			y := now.Year() - i
+			label = time.Date(y, 1, 1, 0, 0, 0, 0, time.UTC).Format(labelFormat)
+		} else {
+			t := time.Date(now.Year(), now.Month()-time.Month(i), 1, 0, 0, 0, 0, time.UTC)
+			label = t.Format(labelFormat)
+		}
+		allPoints = append(allPoints, trendPoint{label: label})
 	}
 
 	// 逆序填充净资产
 	runningTotal := currentTotal
-	for i := 0; i < len(allMonths); i++ {
-		label := allMonths[i].label
-		if i == 0 && label == currentMonthLabel {
-			allMonths[i].netWorth = currentTotal
+	for i := 0; i < len(allPoints); i++ {
+		label := allPoints[i].label
+		if i == 0 && label == currentLabel {
+			allPoints[i].netWorth = currentTotal
 		} else if i > 0 {
-			// 减去上个月（allMonths[i-1]）的净收入得到本月末的净资产
-			prevLabel := allMonths[i-1].label
+			prevLabel := allPoints[i-1].label
 			runningTotal -= netMap[prevLabel]
-			allMonths[i].netWorth = runningTotal
+			allPoints[i].netWorth = runningTotal
 		} else {
-			allMonths[i].netWorth = runningTotal
+			allPoints[i].netWorth = runningTotal
 		}
 	}
 
 	// 翻转为时间正序，并构建 TrendPoint
-	for i := len(allMonths) - 1; i >= 0; i-- {
+	var points []*pb.TrendPoint
+	for i := len(allPoints) - 1; i >= 0; i-- {
 		points = append(points, &pb.TrendPoint{
-			Label:   allMonths[i].label,
+			Label:   allPoints[i].label,
 			Income:  0,
 			Expense: 0,
-			Net:     allMonths[i].netWorth,
+			Net:     allPoints[i].netWorth,
 		})
 	}
 
 	return &pb.TrendResponse{Points: points}, nil
 }
+
 
 // sortCategoryItems sorts items by amount descending.
 func sortCategoryItems(items []*pb.CategoryItem) {
