@@ -10,6 +10,13 @@ import 'widgets/dashboard_card.dart';
 
 // ── Shared formatting helpers (used by multiple chart widgets) ──
 
+/// Format cents as exact yuan string without abbreviation.
+/// e.g. 1115000 → "-11150.00"
+String _fmtYuanExact(int cents) {
+  final yuan = cents / 100;
+  return yuan.toStringAsFixed(2);
+}
+
 /// Format cents as abbreviated yuan string for axis labels.
 /// e.g. 1250000 → "1.3万", 80000 → "800", 50 → "1"
 String _shortAmount(int cents) {
@@ -544,7 +551,7 @@ class _AssetDetailRow extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            '¥ ${_fmtYuan(value)}',
+            '¥ ${_fmtYuanExact(value)}',
             style: TextStyle(
               color: isNegative
                   ? AppColors.expenseDark.withValues(alpha: 0.9)
