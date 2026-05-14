@@ -581,11 +581,11 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 	}
 	defer tx.Rollback(ctx)
 
-	// 1. Update loan: remaining_principal, total_months
+	// 1. Update loan: remaining_principal, total_months, monthly_payment
 	_, err = tx.Exec(ctx,
-		`UPDATE loans SET remaining_principal = $1, total_months = $2, updated_at = NOW()
-		 WHERE id = $3 AND deleted_at IS NULL`,
-		newPrincipal, newTotalMonths, req.LoanId,
+		`UPDATE loans SET remaining_principal = $1, total_months = $2, monthly_payment = $3, updated_at = NOW()
+		 WHERE id = $4 AND deleted_at IS NULL`,
+		newPrincipal, newTotalMonths, newMonthlyPayment, req.LoanId,
 	)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to update loan")

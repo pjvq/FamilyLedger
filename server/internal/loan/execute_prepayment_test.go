@@ -172,7 +172,7 @@ func TestExecutePrepayment_ReduceMonths_Success(t *testing.T) {
 	// Transaction
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE loans SET remaining_principal`).
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), loanID.String()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), loanID.String()).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	mock.ExpectExec(`DELETE FROM loan_schedules WHERE loan_id`).
 		WithArgs(loanID.String()).
@@ -270,7 +270,7 @@ func TestExecutePrepayment_ReducePayment_Success(t *testing.T) {
 	mock.MatchExpectationsInOrder(false)
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE loans SET remaining_principal`).
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), loanID.String()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), loanID.String()).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	mock.ExpectExec(`DELETE FROM loan_schedules`).
 		WithArgs(loanID.String()).
