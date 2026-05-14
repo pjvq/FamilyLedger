@@ -251,10 +251,21 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           icon: Icons.trending_up_rounded,
           isExpanded: isExp,
           onToggle: () => _toggle(section),
-          trailing: ReorderableDragStartListener(
-            index: index,
-            child: Icon(Icons.drag_handle_rounded, size: 20,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _PeriodToggle(
+                period: dashState.netWorthTrendPeriod,
+                onChanged: (p) =>
+                    ref.read(dashboardProvider.notifier).loadNetWorthTrend(p),
+              ),
+              const SizedBox(width: 4),
+              ReorderableDragStartListener(
+                index: index,
+                child: Icon(Icons.drag_handle_rounded, size: 20,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+              ),
+            ],
           ),
           child: RepaintBoundary(
             child: _NetWorthTrendChart(
@@ -1287,17 +1298,49 @@ class _NetWorthTrendChart extends StatelessWidget {
     final maxV = vals.reduce(math.max);
     final range = maxV - minV;
     final padding = range > 0 ? range * 0.1 : 100;
+    final yRange = (maxV + padding) - (minV - padding);
+    final yInterval = (yRange > 0 ? yRange / 4 : 100).toDouble();
 
     return Semantics(
       label: '净资产趋势折线图，最近${points.length}个月',
       child: SizedBox(
-        height: 160,
-        child: LineChart(
+        height: 180,
+        child: Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: LineChart(
           LineChartData(
-            gridData: FlGridData(show: false),
+            gridData: FlGridData(
+              show: true,
+              drawVerticalLine: false,
+              horizontalInterval: yInterval,
+              getDrawingHorizontalLine: (value) => FlLine(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                strokeWidth: 1,
+              ),
+            ),
             titlesData: FlTitlesData(
-              leftTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 48,
+                  interval: yInterval,
+                  getTitlesWidget: (value, meta) {
+                    // Skip min/max edge labels to avoid clipping
+                    if (value <= minV - padding + yInterval * 0.1 ||
+                        value >= maxV + padding - yInterval * 0.1) {
+                      return const SizedBox.shrink();
+                    }
+                    return Text(
+                      _shortAmount(value.toInt()),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.4),
+                      ),
+                    );
+                  },
+                ),
+              ),
               topTitles:
                   const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               rightTitles:
@@ -1312,8 +1355,13 @@ class _NetWorthTrendChart extends StatelessWidget {
                       return const SizedBox.shrink();
                     }
                     final label = points[i].label;
-                    final short =
-                        label.length > 5 ? label.substring(5) : label;
+                    String short;
+                    if (label.length >= 7) {
+                      final monthNum = int.tryParse(label.substring(5)) ?? 0;
+                      short = '$monthNum月';
+                    } else {
+                      short = label;
+                    }
                     return Text(
                       short,
                       style: TextStyle(
@@ -1375,8 +1423,16 @@ class _NetWorthTrendChart extends StatelessWidget {
             ],
           ),
         ),
+        ),
       ),
     );
+  }
+
+  String _shortAmount(int cents) {
+    final yuan = cents / 100;
+    if (yuan.abs() >= 10000) return '${(yuan / 10000).toStringAsFixed(1)}万';
+    if (yuan.abs() >= 1000) return '${(yuan / 1000).toStringAsFixed(0)}k';
+    return yuan.toStringAsFixed(0);
   }
 
   String _fmtYuan(int cents) {

@@ -107,6 +107,7 @@ class DashboardState {
   final String? error;
   final String trendPeriod; // 'monthly' | 'yearly'
   final String categoryBreakdownPeriod; // 'monthly' | 'yearly'
+  final String netWorthTrendPeriod; // 'monthly' | 'yearly'
 
   const DashboardState({
     this.netWorth = const NetWorthData(),
@@ -120,6 +121,7 @@ class DashboardState {
     this.error,
     this.trendPeriod = 'monthly',
     this.categoryBreakdownPeriod = 'monthly',
+    this.netWorthTrendPeriod = 'monthly',
   });
 
   DashboardState copyWith({
@@ -134,6 +136,7 @@ class DashboardState {
     String? error,
     String? trendPeriod,
     String? categoryBreakdownPeriod,
+    String? netWorthTrendPeriod,
     bool clearError = false,
   }) =>
       DashboardState(
@@ -150,6 +153,8 @@ class DashboardState {
         trendPeriod: trendPeriod ?? this.trendPeriod,
         categoryBreakdownPeriod:
             categoryBreakdownPeriod ?? this.categoryBreakdownPeriod,
+        netWorthTrendPeriod:
+            netWorthTrendPeriod ?? this.netWorthTrendPeriod,
       );
 }
 
@@ -247,7 +252,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       _refreshCategoryBreakdownRemote(
           DateTime.now().year, DateTime.now().month, 'expense'),
       _refreshBudgetSummaryRemote(),
-      _refreshNetWorthTrendRemote(12),
+      _refreshNetWorthTrendRemote(12, 'monthly'),
     ]));
   }
 
@@ -674,22 +679,22 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     }
   }
 
-  /// Public: load net worth trend.
-  Future<void> loadNetWorthTrend(int months) async {
-    // Net worth trend has no good local source (would need historical
-    // snapshots), so just try remote with short timeout.
-    await _refreshNetWorthTrendRemote(months);
+  /// Public: load net worth trend with period toggle.
+  Future<void> loadNetWorthTrend(String period, [int count = 12]) async {
+    state = state.copyWith(netWorthTrendPeriod: period);
+    final effectiveCount = period == 'yearly' ? 5 : count;
+    await _refreshNetWorthTrendRemote(effectiveCount, period);
   }
 
-  Future<void> _refreshNetWorthTrendRemote(int months) async {
+  Future<void> _refreshNetWorthTrendRemote(int count, [String period = 'monthly']) async {
     if (_userId == null) return;
     try {
       final resp = await _client.getNetWorthTrend(
         pb.TrendRequest()
           ..userId = _userId
           ..familyId = _familyId ?? ''
-          ..period = 'monthly'
-          ..count = months,
+          ..period = period
+          ..count = count,
         options: _callOpts,
       );
       // Always use gRPC response (server properly filters by familyId)
@@ -708,10 +713,16 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       final nw = state.netWorth.total;
       final now = DateTime.now();
       final points = <TrendPointData>[];
-      for (int i = months - 1; i >= 0; i--) {
-        final month = DateTime(now.year, now.month - i, 1);
+      for (int i = count - 1; i >= 0; i--) {
+        String label;
+        if (period == 'yearly') {
+          label = '${now.year - i}';
+        } else {
+          final month = DateTime(now.year, now.month - i, 1);
+          label = '${month.year}-${month.month.toString().padLeft(2, '0')}';
+        }
         points.add(TrendPointData(
-          label: '${month.year}-${month.month.toString().padLeft(2, '0')}',
+          label: label,
           income: 0,
           expense: 0,
           net: nw,
