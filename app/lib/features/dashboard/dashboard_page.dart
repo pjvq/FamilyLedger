@@ -8,6 +8,27 @@ import '../../domain/providers/dashboard_provider.dart';
 import '../../sync/sync_engine.dart';
 import 'widgets/dashboard_card.dart';
 
+// ── Shared formatting helpers (used by multiple chart widgets) ──
+
+/// Format cents as abbreviated yuan string for axis labels.
+/// e.g. 1250000 → "1.3万", 80000 → "800", 50 → "1"
+String _shortAmount(int cents) {
+  final yuan = cents / 100;
+  if (yuan.abs() >= 10000) return '${(yuan / 10000).toStringAsFixed(1)}万';
+  if (yuan.abs() >= 1000) return '${(yuan / 1000).toStringAsFixed(0)}k';
+  return yuan.toStringAsFixed(0);
+}
+
+/// Format cents as friendly yuan string for display / tooltips.
+/// e.g. 1250000 → "1.25万", 8000 → "80.00"
+String _fmtYuan(int cents) {
+  final yuan = cents / 100;
+  if (yuan.abs() >= 10000) return '${(yuan / 10000).toStringAsFixed(2)}万';
+  return yuan.toStringAsFixed(2);
+}
+
+const _kTrendMonthlyCount = 6;
+
 /// Key identifiers for each dashboard section (used for reorder persistence)
 enum DashboardSection {
   netWorth,
@@ -173,7 +194,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               _PeriodToggle(
                 period: dashState.trendPeriod,
                 onChanged: (p) =>
-                    ref.read(dashboardProvider.notifier).loadTrend(p, 6),
+                    ref.read(dashboardProvider.notifier).loadTrend(p, _kTrendMonthlyCount),
               ),
               const SizedBox(width: 4),
               ReorderableDragStartListener(
@@ -251,10 +272,21 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           icon: Icons.trending_up_rounded,
           isExpanded: isExp,
           onToggle: () => _toggle(section),
-          trailing: ReorderableDragStartListener(
-            index: index,
-            child: Icon(Icons.drag_handle_rounded, size: 20,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _PeriodToggle(
+                period: dashState.netWorthTrendPeriod,
+                onChanged: (p) =>
+                    ref.read(dashboardProvider.notifier).loadNetWorthTrend(p),
+              ),
+              const SizedBox(width: 4),
+              ReorderableDragStartListener(
+                index: index,
+                child: Icon(Icons.drag_handle_rounded, size: 20,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+              ),
+            ],
           ),
           child: RepaintBoundary(
             child: _NetWorthTrendChart(
@@ -480,14 +512,6 @@ class _NetWorthCard extends StatelessWidget {
       ),
     );
   }
-
-  String _fmtYuan(int cents) {
-    final yuan = cents / 100;
-    if (yuan.abs() >= 10000) {
-      return '${(yuan / 10000).toStringAsFixed(2)}万';
-    }
-    return yuan.toStringAsFixed(2);
-  }
 }
 
 class _AssetDetailRow extends StatelessWidget {
@@ -533,11 +557,6 @@ class _AssetDetailRow extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _fmtYuan(int cents) {
-    final yuan = cents / 100;
-    return yuan.toStringAsFixed(2);
   }
 }
 
@@ -909,18 +928,6 @@ class _IncomeExpenseChart extends StatelessWidget {
       ),
     );
   }
-
-  String _shortAmount(int cents) {
-    final yuan = cents / 100;
-    if (yuan.abs() >= 10000) return '${(yuan / 10000).toStringAsFixed(0)}万';
-    if (yuan.abs() >= 1000) return '${(yuan / 1000).toStringAsFixed(0)}k';
-    return yuan.toStringAsFixed(0);
-  }
-
-  String _fmtYuan(int cents) {
-    final yuan = cents / 100;
-    return yuan.toStringAsFixed(2);
-  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1202,12 +1209,6 @@ class _BudgetMiniCard extends StatelessWidget {
       ),
     );
   }
-
-  String _fmtYuan(int cents) {
-    final yuan = cents / 100;
-    if (yuan.abs() >= 10000) return '${(yuan / 10000).toStringAsFixed(2)}万';
-    return yuan.toStringAsFixed(2);
-  }
 }
 
 class _MiniRingPainter extends CustomPainter {
@@ -1287,17 +1288,49 @@ class _NetWorthTrendChart extends StatelessWidget {
     final maxV = vals.reduce(math.max);
     final range = maxV - minV;
     final padding = range > 0 ? range * 0.1 : 100;
+    final yRange = (maxV + padding) - (minV - padding);
+    final yInterval = (yRange > 0 ? yRange / 4 : 100).toDouble();
 
     return Semantics(
-      label: '净资产趋势折线图，最近${points.length}个月',
+      label: '净资产趋势折线图，最近${points.length}个${points.isNotEmpty && points.first.label.length <= 4 ? "年" : "月"}',
       child: SizedBox(
-        height: 160,
-        child: LineChart(
+        height: 180,
+        child: Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: LineChart(
           LineChartData(
-            gridData: FlGridData(show: false),
+            gridData: FlGridData(
+              show: true,
+              drawVerticalLine: false,
+              horizontalInterval: yInterval,
+              getDrawingHorizontalLine: (value) => FlLine(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                strokeWidth: 1,
+              ),
+            ),
             titlesData: FlTitlesData(
-              leftTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 48, // TODO: revisit for i18n / large negative values
+                  interval: yInterval,
+                  getTitlesWidget: (value, meta) {
+                    // Skip min/max edge labels to avoid clipping
+                    if (value <= minV - padding + yInterval * 0.1 ||
+                        value >= maxV + padding - yInterval * 0.1) {
+                      return const SizedBox.shrink();
+                    }
+                    return Text(
+                      _shortAmount(value.toInt()),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.4),
+                      ),
+                    );
+                  },
+                ),
+              ),
               topTitles:
                   const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               rightTitles:
@@ -1312,8 +1345,13 @@ class _NetWorthTrendChart extends StatelessWidget {
                       return const SizedBox.shrink();
                     }
                     final label = points[i].label;
-                    final short =
-                        label.length > 5 ? label.substring(5) : label;
+                    String short;
+                    if (label.length >= 7) {
+                      final monthNum = int.tryParse(label.substring(5)) ?? 0;
+                      short = '$monthNum月';
+                    } else {
+                      short = label;
+                    }
                     return Text(
                       short,
                       style: TextStyle(
@@ -1375,14 +1413,9 @@ class _NetWorthTrendChart extends StatelessWidget {
             ],
           ),
         ),
+        ),
       ),
     );
-  }
-
-  String _fmtYuan(int cents) {
-    final yuan = cents / 100;
-    if (yuan.abs() >= 10000) return '${(yuan / 10000).toStringAsFixed(2)}万';
-    return yuan.toStringAsFixed(2);
   }
 }
 
@@ -1458,11 +1491,5 @@ class _InvestmentTrendPlaceholder extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _fmtYuan(int cents) {
-    final yuan = cents / 100;
-    if (yuan.abs() >= 10000) return '${(yuan / 10000).toStringAsFixed(2)}万';
-    return yuan.toStringAsFixed(2);
   }
 }
