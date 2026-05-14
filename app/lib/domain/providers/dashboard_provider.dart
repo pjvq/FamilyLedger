@@ -174,6 +174,13 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     }
   }
 
+  /// Default count for monthly net worth trend.
+  static const _kMonthlyCount = 12;
+  /// Default count for yearly net worth trend.
+  static const _kYearlyCount = 5;
+  /// Default count for income/expense trend.
+  static const _kTrendMonthlyCount = 6;
+
   /// gRPC call timeout — fail fast to local fallback
   static const _grpcTimeout = Duration(seconds: 3);
 
@@ -238,7 +245,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     // Phase 1: instant local data (milliseconds)
     await Future.wait([
       _computeLocalNetWorth(),
-      _computeLocalTrend('monthly', 6),
+      _computeLocalTrend('monthly', _kTrendMonthlyCount),
       _computeLocalCategoryBreakdown(
           DateTime.now().year, DateTime.now().month),
       _computeLocalBudgetSummary(),
@@ -248,11 +255,11 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     // Phase 2: background gRPC refresh (non-blocking)
     unawaited(Future.wait([
       _refreshNetWorthRemote(),
-      _refreshTrendRemote('monthly', 6),
+      _refreshTrendRemote('monthly', _kTrendMonthlyCount),
       _refreshCategoryBreakdownRemote(
           DateTime.now().year, DateTime.now().month, 'expense'),
       _refreshBudgetSummaryRemote(),
-      _refreshNetWorthTrendRemote(12, 'monthly'),
+      _refreshNetWorthTrendRemote(_kMonthlyCount, 'monthly'),
     ]));
   }
 
@@ -680,9 +687,9 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   }
 
   /// Public: load net worth trend with period toggle.
-  Future<void> loadNetWorthTrend(String period, [int count = 12]) async {
+  Future<void> loadNetWorthTrend(String period, [int? count]) async {
     state = state.copyWith(netWorthTrendPeriod: period);
-    final effectiveCount = period == 'yearly' ? 5 : count;
+    final effectiveCount = count ?? (period == 'yearly' ? _kYearlyCount : _kMonthlyCount);
     await _refreshNetWorthTrendRemote(effectiveCount, period);
   }
 
