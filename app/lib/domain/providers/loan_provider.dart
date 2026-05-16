@@ -1549,19 +1549,23 @@ class LoanNotifier extends StateNotifier<LoanState> {
 
   /// 获取某贷款的首期月供（用于列表展示）
   int getMonthlyPayment(db.Loan loan) {
+    // After prepayment, remainingPrincipal and totalMonths are updated by the
+    // server but principal stays at the original value. We must recalculate
+    // the schedule from the *current* remaining state so the displayed monthly
+    // payment matches the actual repayment plan.
+    final remainingMonths = loan.totalMonths - loan.paidMonths;
+    if (remainingMonths <= 0 || loan.remainingPrincipal <= 0) return 0;
+
     final schedule = LoanCalculator.calculate(
-      principal: loan.principal,
+      principal: loan.remainingPrincipal,
       annualRate: loan.annualRate,
-      totalMonths: loan.totalMonths,
+      totalMonths: remainingMonths,
       repaymentMethod: loan.repaymentMethod,
       startDate: loan.startDate,
       paymentDay: loan.paymentDay,
     );
     if (schedule.isEmpty) return 0;
-    // For 等额本金, use the current month's payment
-    final currentMonth = loan.paidMonths + 1;
-    final item = schedule.where((s) => s.monthNumber == currentMonth).firstOrNull;
-    return item?.payment ?? schedule.first.payment;
+    return schedule.first.payment;
   }
 
   /// 下次还款日
