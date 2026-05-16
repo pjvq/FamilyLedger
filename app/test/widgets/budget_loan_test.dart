@@ -1173,7 +1173,7 @@ void main() {
         ),
       ));
       await tester.pumpAndSettle();
-      expect(find.bySemanticsLabel('提前还款模拟'), findsOneWidget);
+      expect(find.text('提前还款'), findsOneWidget);
       expect(find.text('缩短期限'), findsWidgets);
       expect(find.text('减少月供'), findsWidgets);
     });

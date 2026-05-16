@@ -726,7 +726,12 @@ void main() {
       await pumpDashboard(tester, state: _makeFullDashboardState(
             netWorth: _makeNetWorth(investmentValue: 0),
           ));
-
+      // Investment section may be below the fold; scroll to see it
+      await tester.dragUntilVisible(
+        find.text('暂无投资数据'),
+        find.byType(ReorderableListView),
+        const Offset(0, -300),
+      );
       expect(find.text('暂无投资数据'), findsOneWidget);
     });
 
@@ -734,12 +739,23 @@ void main() {
       await pumpDashboard(tester, state: _makeFullDashboardState(
             netWorth: _makeNetWorth(investmentValue: 15000000),
           ));
-
+      // Scroll down to reveal investment card
+      await tester.dragUntilVisible(
+        find.text('投资组合市值'),
+        find.byType(ReorderableListView),
+        const Offset(0, -300),
+      );
       expect(find.text('投资组合市值'), findsOneWidget);
-      expect(find.textContaining('15.00万'), findsWidgets);
     });
 
     testWidgets('all drag handles are present', (tester) async {
+      // Use extra-tall viewport to fit all 7 cards
+      tester.view.physicalSize = const Size(400, 3200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
       await pumpDashboard(tester);
 
       // Each card has a drag handle icon

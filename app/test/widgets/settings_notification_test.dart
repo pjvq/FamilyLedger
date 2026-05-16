@@ -564,6 +564,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('分类预算'), findsOneWidget);
+      // Category items may require scrolling in small viewports
+      await tester.dragUntilVisible(
+        find.text('餐饮'),
+        find.byType(Scrollable).last,
+        const Offset(0, -200),
+      );
       expect(find.text('餐饮'), findsOneWidget);
       expect(find.text('交通'), findsOneWidget);
       // FAB should say '编辑预算' when budget exists
