@@ -534,6 +534,13 @@ void main() {
 
       await tester.pumpWidget(wrapWithProviders(
         const BudgetPage(),
+        transaction: TransactionState(
+          isLoading: false,
+          expenseCategories: const [
+            db.Category(id: 'cat-1', name: '餐饮', type: 'expense', isPreset: true, sortOrder: 1, iconKey: ''),
+            db.Category(id: 'cat-2', name: '交通', type: 'expense', isPreset: true, sortOrder: 2, iconKey: ''),
+          ],
+        ),
         budget: BudgetState(
           currentBudget: budget,
           execution: const BudgetExecutionData(
@@ -564,12 +571,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('分类预算'), findsOneWidget);
-      // Category items may require scrolling in small viewports
-      await tester.dragUntilVisible(
-        find.text('餐饮'),
-        find.byType(Scrollable).last,
-        const Offset(0, -200),
-      );
       expect(find.text('餐饮'), findsOneWidget);
       expect(find.text('交通'), findsOneWidget);
       // FAB should say '编辑预算' when budget exists
