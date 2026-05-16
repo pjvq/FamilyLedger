@@ -654,14 +654,14 @@ void main() {
     testWidgets('period toggle shows month/year segments', (tester) async {
       await pumpDashboard(tester, state: _makeFullDashboardState(trendPeriod: 'monthly'));
 
-      expect(find.text('月'), findsNWidgets(2));
-      expect(find.text('年'), findsNWidgets(2));
+      expect(find.text('月'), findsNWidgets(3));
+      expect(find.text('年'), findsNWidgets(3));
     });
 
     testWidgets('period toggle uses SegmentedButton', (tester) async {
       await pumpDashboard(tester);
 
-      expect(find.byType(SegmentedButton<String>), findsNWidgets(2));
+      expect(find.byType(SegmentedButton<String>), findsNWidgets(3));
     });
 
     testWidgets('budget card shows execution rate', (tester) async {

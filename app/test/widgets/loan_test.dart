@@ -357,7 +357,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('提前还款模拟'), findsOneWidget);
+      expect(find.bySemanticsLabel('提前还款模拟'), findsOneWidget);
       expect(find.text('提前还款金额（元）'), findsOneWidget);
       expect(find.text('还款策略'), findsOneWidget);
       expect(find.text('缩短期限'), findsOneWidget);
