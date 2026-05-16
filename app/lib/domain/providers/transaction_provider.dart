@@ -363,7 +363,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           'exchange_rate': amount > 0 ? effectiveAmountCny / amount : 1.0,
           'type': type,
           'note': note,
-          'txn_date': effectiveTxnDate.toIso8601String(),
+          'txn_date': effectiveTxnDate.toUtc().toIso8601String(),
         }),
         clientId: syncOpId,
         timestamp: now,
