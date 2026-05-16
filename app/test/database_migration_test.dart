@@ -166,7 +166,7 @@ void main() {
 
       // Insert a test category since categories are no longer seeded on fresh DB
       await db.customStatement(
-          "INSERT INTO categories (id, name, type, icon, sort_order, is_preset) "
+          "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
           "VALUES ('cat1', 'Food', 'expense', '🍔', 1, 1)");
 
       await db.insertTransaction(TransactionsCompanion.insert(
