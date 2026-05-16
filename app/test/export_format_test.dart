@@ -76,10 +76,10 @@ Future<AppDatabase> _setupDb({
     accountType: const Value('bank_card'),
   ));
   await db.customStatement(
-      "INSERT OR IGNORE INTO categories (id, name, type, icon) "
+      "INSERT OR IGNORE INTO categories (id, name, type, icon_key) "
       "VALUES ('cat_food', '餐饮', 'expense', 'restaurant')");
   await db.customStatement(
-      "INSERT OR IGNORE INTO categories (id, name, type, icon) "
+      "INSERT OR IGNORE INTO categories (id, name, type, icon_key) "
       "VALUES ('cat_salary', '工资', 'income', 'work')");
 
   for (final txn in transactions) {

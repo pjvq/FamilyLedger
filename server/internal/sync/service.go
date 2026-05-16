@@ -21,6 +21,29 @@ import (
 	pb "github.com/familyledger/server/proto/sync"
 )
 
+// parseTxnDate parses txn_date strings from sync payloads.
+// Supports multiple formats produced by Dart's toIso8601String() and Go's Format():
+//   - RFC3339:            "2026-05-16T23:31:00+08:00" or "2026-05-16T23:31:00Z"
+//   - 6-digit µs no tz:  "2026-05-16T23:31:00.000000" (Dart local DateTime)
+//   - 3-digit ms no tz:  "2026-05-16T23:31:00.000"
+//   - no fraction no tz: "2026-05-16T23:31:00"
+//   - date only:         "2026-05-16"
+func parseTxnDate(s string) (time.Time, error) {
+	formats := []string{
+		time.RFC3339,
+		"2006-01-02T15:04:05.000000",
+		"2006-01-02T15:04:05.000",
+		"2006-01-02T15:04:05",
+		"2006-01-02",
+	}
+	for _, f := range formats {
+		if t, err := time.Parse(f, s); err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("parseTxnDate: unrecognized format: %q", s)
+}
+
 type Service struct {
 	pb.UnimplementedSyncServiceServer
 	pool db.Pool
@@ -268,10 +291,10 @@ func (s *Service) applyTransactionCreate(ctx context.Context, tx pgx.Tx, userID 
 
 	txnDate := time.Now()
 	if p.TxnDate != "" {
-		if parsed, err := time.Parse("2006-01-02T15:04:05.000", p.TxnDate); err == nil {
+		if parsed, err := parseTxnDate(p.TxnDate); err == nil {
 			txnDate = parsed
-		} else if parsed, err := time.Parse(time.RFC3339, p.TxnDate); err == nil {
-			txnDate = parsed
+		} else {
+			log.Printf("sync: applyTransactionCreate: failed to parse txn_date %q, using server time: %v", p.TxnDate, err)
 		}
 	}
 
@@ -391,13 +414,9 @@ func (s *Service) applyTransactionUpdate(ctx context.Context, tx pgx.Tx, userID 
 	}
 
 	if p.TxnDate != "" {
-		var txnDate time.Time
-		if parsed, err := time.Parse("2006-01-02T15:04:05.000", p.TxnDate); err == nil {
-			txnDate = parsed
-		} else if parsed, err := time.Parse(time.RFC3339, p.TxnDate); err == nil {
-			txnDate = parsed
-		} else {
-			return fmt.Errorf("invalid txn_date format: %s", p.TxnDate)
+		txnDate, err := parseTxnDate(p.TxnDate)
+		if err != nil {
+			return fmt.Errorf("invalid txn_date format: %s (%w)", p.TxnDate, err)
 		}
 		args = append(args, txnDate)
 		setClauses = append(setClauses, fmt.Sprintf("txn_date = $%d", argIdx))

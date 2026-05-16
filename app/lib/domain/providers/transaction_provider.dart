@@ -10,6 +10,7 @@ import '../../generated/proto/google/protobuf/timestamp.pb.dart'
 import '../../data/local/database.dart';
 import 'package:grpc/grpc.dart';
 import '../../data/remote/grpc_clients.dart';
+import '../../sync/sync_engine.dart';
 import '../../generated/proto/transaction.pbgrpc.dart' as pb;
 import '../../generated/proto/transaction.pbenum.dart' as pbe;
 import 'app_providers.dart';
@@ -63,12 +64,14 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   final String _userId;
   final String? _familyId;
   final pb.TransactionServiceClient? _txnClient;
+  final void Function()? _onSyncNeeded;
   final _uuid = const Uuid();
   StreamSubscription? _sub;
   static final _callOpts = CallOptions(timeout: const Duration(seconds: 5));
 
-  TransactionNotifier(this._db, this._userId, this._familyId, this._txnClient)
-      : super(const TransactionState()) {
+  TransactionNotifier(this._db, this._userId, this._familyId, this._txnClient, {void Function()? onSyncNeeded})
+      : _onSyncNeeded = onSyncNeeded,
+        super(const TransactionState()) {
     _load();
     _sub = _db.watchTransactions(_userId, familyId: _familyId).listen((txns) {
       state = state.copyWith(transactions: txns);
@@ -363,11 +366,12 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           'exchange_rate': amount > 0 ? effectiveAmountCny / amount : 1.0,
           'type': type,
           'note': note,
-          'txn_date': effectiveTxnDate.toIso8601String(),
+          'txn_date': effectiveTxnDate.toUtc().toIso8601String(),
         }),
         clientId: syncOpId,
         timestamp: now,
       ));
+      _onSyncNeeded?.call();
     }
   }
 
@@ -455,6 +459,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         clientId: syncOpId,
         timestamp: DateTime.now(),
       ));
+      _onSyncNeeded?.call();
     }
 
     // 5. 刷新摘要
@@ -495,6 +500,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         clientId: syncOpId,
         timestamp: DateTime.now(),
       ));
+      _onSyncNeeded?.call();
     }
 
     // 5. 刷新摘要
@@ -536,6 +542,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           timestamp: DateTime.now(),
         ));
       }
+      _onSyncNeeded?.call();
     }
 
     // 3. 刷新摘要
@@ -610,5 +617,17 @@ final transactionProvider =
   if (userId == null) {
     return TransactionNotifier(db, '', null, null);
   }
-  return TransactionNotifier(db, userId, familyId, txnClient);
+
+  // Inject sync trigger: fire-and-forget push when offline ops are queued
+  void onSyncNeeded() {
+    try {
+      final engine = ref.read(syncEngineProvider);
+      unawaited(engine.syncNow());
+    } catch (_) {
+      // SyncEngine not initialized yet — will pick up ops on next timer cycle
+    }
+  }
+
+  return TransactionNotifier(db, userId, familyId, txnClient,
+      onSyncNeeded: onSyncNeeded);
 });

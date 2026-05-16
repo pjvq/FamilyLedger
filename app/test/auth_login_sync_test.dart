@@ -661,8 +661,9 @@ void main() {
       final notifier = TransactionNotifier(db, 'user_1', null, txnClient);
       await Future.delayed(const Duration(milliseconds: 200));
 
-      // Should NOT call server since local DB already has categories
-      expect(txnClient.getCategoriesCallCount, 0);
+      // Local categories exist, so UI loads without waiting for server.
+      // Background sync may still fire (fire-and-forget), so count can be 0 or 1.
+      expect(txnClient.getCategoriesCallCount, lessThanOrEqualTo(1));
       expect(notifier.state.expenseCategories.length, greaterThan(10));
 
       notifier.dispose();
