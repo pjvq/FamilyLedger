@@ -84,11 +84,11 @@ jobs:
         working-directory: app
         timeout-minutes: 5
         run: |
-          flutter test --reporter compact --coverage --timeout 5s 2>&1 | tee test_output.txt || {
+          flutter test --concurrency=1 --reporter compact --coverage --timeout 5s 2>&1 | tee test_output.txt || {
             FAILED=$(grep -oP '(?<=package:)[^ ]+_test.dart' test_output.txt | sort -u || true)
             if [ -n "$FAILED" ]; then
               echo "::notice::Retrying failed tests: $FAILED"
-              flutter test $FAILED --reporter compact --coverage --timeout 5s
+              flutter test --concurrency=1 $FAILED --reporter compact --coverage --timeout 5s
             else
               exit 1
             fi
