@@ -91,7 +91,7 @@ func TestCreateTransaction_Success(t *testing.T) {
 
 	// Sync operations savepoint
 	mock.ExpectExec(`INSERT INTO sync_operations`).
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 	mock.ExpectCommit()
@@ -348,7 +348,7 @@ func TestUpdateTransaction_Success(t *testing.T) {
 
 	// Sync operations
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
@@ -442,7 +442,7 @@ func TestDeleteTransaction_Success(t *testing.T) {
 
 	// Sync operations
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
@@ -551,7 +551,7 @@ func TestUpdateTransaction_FamilyMemberWithEditPermission(t *testing.T) {
 
 	// Sync operations
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
@@ -623,7 +623,7 @@ func TestUpdateTransaction_FamilyAdminCanEdit(t *testing.T) {
 
 	// Sync operations
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
@@ -840,7 +840,7 @@ func TestDeleteTransaction_FamilyMemberWithDeletePermission(t *testing.T) {
 
 	// Sync operations
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 	mock.ExpectCommit()

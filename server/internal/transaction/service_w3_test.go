@@ -72,7 +72,7 @@ func mockCreateTxnFlow(mock pgxmock.PgxPoolIface, accountID, categoryID, txnID u
 
 	// 7. Sync operations
 	mock.ExpectExec(`INSERT INTO sync_operations`).
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 	// 8. COMMIT
@@ -254,7 +254,7 @@ func TestW3_DeleteTransaction_SoftDeleteRevertsExpense(t *testing.T) {
 
 	// Sync operations
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
@@ -296,7 +296,7 @@ func TestW3_DeleteTransaction_IncomeRevertsBalance(t *testing.T) {
 
 	// Sync operations
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
@@ -390,7 +390,7 @@ func TestW3_UpdateTransaction_AmountChangeRebalance(t *testing.T) {
 
 	// Sync operations
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
@@ -477,7 +477,7 @@ func TestW3_CreateTransaction_UsesForUpdateLock(t *testing.T) {
 
 	// Sync operations
 	mock.ExpectExec(`INSERT INTO sync_operations`).
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 	mock.ExpectCommit()
@@ -530,7 +530,7 @@ func TestW3_DeleteTransaction_ForUpdateLockOnTransaction(t *testing.T) {
 
 	// Sync operations
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 

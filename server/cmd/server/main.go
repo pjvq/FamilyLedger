@@ -282,12 +282,22 @@ func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 			}
 			checkCancel()
 
+			if ctx.Err() != nil {
+				log.Println("scheduler: shutdown during checks, aborting remaining")
+				return
+			}
+
 			log.Println("scheduler: running loan reminder check...")
 			loanCtx, loanCancel := context.WithTimeout(ctx, 5*time.Minute)
 			if err := notifyService.CheckLoanReminders(loanCtx); err != nil {
 				log.Printf("scheduler: loan reminder check error: %v", err)
 			}
 			loanCancel()
+
+			if ctx.Err() != nil {
+				log.Println("scheduler: shutdown during checks, aborting remaining")
+				return
+			}
 
 			log.Println("scheduler: running custom reminder check...")
 			reminderCtx, reminderCancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -296,7 +306,6 @@ func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 			}
 			reminderCancel()
 
-			// TODO: Push notifications via FCM/APNs (placeholder — just logged for now)
 			log.Println("scheduler: all checks complete")
 		}
 	}

@@ -84,7 +84,7 @@ func TestConcurrent_CreateTransaction_NoRace(t *testing.T) {
 				WithArgs(pgxmock.AnyArg(), accountID).
 				WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
-			mock.ExpectExec(`INSERT INTO sync_operations`).WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).WillReturnResult(pgxmock.NewResult("INSERT", 1))
+			mock.ExpectExec(`INSERT INTO sync_operations`).WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).WillReturnResult(pgxmock.NewResult("INSERT", 1))
 			mock.ExpectCommit()
 
 			ctx := context.WithValue(context.Background(), middleware.UserIDKey, testUserID)
@@ -155,7 +155,7 @@ func TestConcurrent_UpdateTransaction_SameID_NoRace(t *testing.T) {
 
 			// Sync operations
 			mock.ExpectExec(`INSERT INTO sync_operations`).
-				WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+				WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 				WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 			mock.ExpectCommit()
@@ -251,7 +251,7 @@ func TestConcurrent_CreateAndList_NoRace(t *testing.T) {
 				WithArgs(pgxmock.AnyArg(), accountID).
 				WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
-			mock.ExpectExec(`INSERT INTO sync_operations`).WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).WillReturnResult(pgxmock.NewResult("INSERT", 1))
+			mock.ExpectExec(`INSERT INTO sync_operations`).WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).WillReturnResult(pgxmock.NewResult("INSERT", 1))
 			mock.ExpectCommit()
 
 			ctx := context.WithValue(context.Background(), middleware.UserIDKey, testUserID)
