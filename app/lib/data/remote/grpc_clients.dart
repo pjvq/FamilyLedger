@@ -2,9 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:grpc/grpc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_constants.dart';
-import '../../domain/providers/app_providers.dart';
+import '../local/secure_token_storage.dart';
 import '../../generated/proto/auth.pbgrpc.dart';
 import '../../generated/proto/transaction.pbgrpc.dart';
 import '../../generated/proto/sync.pbgrpc.dart';
@@ -24,8 +23,10 @@ final grpcChannelProvider = Provider<ClientChannel>((ref) {
   final channel = ClientChannel(
     AppConstants.serverHost,
     port: AppConstants.grpcPort,
-    options: const ChannelOptions(
-      credentials: ChannelCredentials.insecure(),
+    options: ChannelOptions(
+      credentials: AppConstants.useTls
+          ? const ChannelCredentials.secure()
+          : const ChannelCredentials.insecure(),
     ),
   );
   ref.onDispose(() => channel.shutdown());
@@ -41,13 +42,22 @@ final grpcChannelProvider = Provider<ClientChannel>((ref) {
 /// Concurrency-safe: if multiple calls trigger refresh simultaneously,
 /// only one refresh runs; the rest await the same Completer.
 class AuthInterceptor extends ClientInterceptor {
-  final SharedPreferences _prefs;
+  final TokenStorage _tokenStorage;
   final ClientChannel _channel;
 
   /// Guards concurrent refresh — only one in-flight at a time.
   Completer<bool>? _refreshCompleter;
 
-  AuthInterceptor(this._prefs, this._channel);
+  /// Cached token to avoid reading secure storage on every gRPC call.
+  /// Invalidated on refresh or clear.
+  String? _cachedToken;
+
+  AuthInterceptor(this._tokenStorage, this._channel);
+
+  /// Invalidate cached token. Must be called on logout.
+  void invalidateCache() {
+    _cachedToken = null;
+  }
 
   @override
   ResponseFuture<R> interceptUnary<Q, R>(
@@ -62,7 +72,8 @@ class AuthInterceptor extends ClientInterceptor {
         providers: [
           (metadata, uri) async {
             await _ensureFreshToken();
-            final token = _prefs.getString(AppConstants.accessTokenKey);
+            final token = _cachedToken ?? await _tokenStorage.getAccessToken();
+            _cachedToken = token;
             if (token != null) {
               metadata['authorization'] = 'Bearer $token';
             }
@@ -75,7 +86,8 @@ class AuthInterceptor extends ClientInterceptor {
 
   /// Ensures access token is fresh. If it expires within 60s, refreshes it.
   Future<void> _ensureFreshToken() async {
-    final accessToken = _prefs.getString(AppConstants.accessTokenKey);
+    final accessToken = _cachedToken ?? await _tokenStorage.getAccessToken();
+    _cachedToken = accessToken;
     if (accessToken == null) return;
 
     // Decode JWT exp without verification (client-side convenience only)
@@ -100,7 +112,7 @@ class AuthInterceptor extends ClientInterceptor {
 
     _refreshCompleter = Completer<bool>();
     try {
-      final refreshToken = _prefs.getString(AppConstants.refreshTokenKey);
+      final refreshToken = await _tokenStorage.getRefreshToken();
       if (refreshToken == null || refreshToken.isEmpty) {
         _refreshCompleter!.complete(false);
         return false;
@@ -112,16 +124,17 @@ class AuthInterceptor extends ClientInterceptor {
         RefreshTokenRequest(refreshToken: refreshToken),
       );
 
-      // Store new tokens
-      await _prefs.setString(AppConstants.accessTokenKey, resp.accessToken);
-      await _prefs.setString(AppConstants.refreshTokenKey, resp.refreshToken);
+      // Store new tokens securely
+      await _tokenStorage.setAccessToken(resp.accessToken);
+      await _tokenStorage.setRefreshToken(resp.refreshToken);
+      _cachedToken = resp.accessToken; // Update cache
 
       _refreshCompleter!.complete(true);
       return true;
     } catch (_) {
       // Refresh failed — clear tokens, user needs to re-login
-      await _prefs.remove(AppConstants.accessTokenKey);
-      await _prefs.remove(AppConstants.refreshTokenKey);
+      await _tokenStorage.clearTokens();
+      _cachedToken = null;
       _refreshCompleter!.complete(false);
       return false;
     } finally {
@@ -160,106 +173,35 @@ class AuthInterceptor extends ClientInterceptor {
 
 /// Shared interceptor singleton — all clients use the same instance
 /// so concurrent refresh coordination works correctly.
-final _authInterceptorProvider = Provider<AuthInterceptor>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
+final authInterceptorProvider = Provider<AuthInterceptor>((ref) {
+  final tokenStorage = ref.watch(secureTokenStorageProvider);
   final channel = ref.watch(grpcChannelProvider);
-  return AuthInterceptor(prefs, channel);
+  return AuthInterceptor(tokenStorage, channel);
 });
 
-/// Auth gRPC client
-final authClientProvider = Provider<AuthServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
-  return AuthServiceClient(channel, interceptors: [interceptor]);
-});
+/// Helper: create a gRPC client provider with auth interceptor.
+/// TODO: Forward CallOptions if a client needs custom timeouts.
+Provider<T> _grpcClientProvider<T extends Client>(
+  T Function(ClientChannel, {Iterable<ClientInterceptor> interceptors}) ctor,
+) {
+  return Provider<T>((ref) {
+    final channel = ref.watch(grpcChannelProvider);
+    final interceptor = ref.watch(authInterceptorProvider);
+    return ctor(channel, interceptors: [interceptor]);
+  });
+}
 
-/// Transaction gRPC client
-final transactionClientProvider = Provider<TransactionServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
-  return TransactionServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Sync gRPC client
-final syncClientProvider = Provider<SyncServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
-  return SyncServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Family gRPC client
-final familyClientProvider = Provider<FamilyServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
-  return FamilyServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Account gRPC client
-final accountClientProvider = Provider<AccountServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
-  return AccountServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Budget gRPC client
-final budgetClientProvider = Provider<BudgetServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
-  return BudgetServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Notify gRPC client
-final notifyClientProvider = Provider<NotifyServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
-  return NotifyServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Loan gRPC client
-final loanClientProvider = Provider<LoanServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
-  return LoanServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Investment gRPC client
-final investmentClientProvider = Provider<InvestmentServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
-  return InvestmentServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// MarketData gRPC client
-final marketDataClientProvider = Provider<MarketDataServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
-  return MarketDataServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Asset gRPC client
-final assetClientProvider = Provider<AssetServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
-  return AssetServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Dashboard gRPC client
-final dashboardClientProvider = Provider<DashboardServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
-  return DashboardServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Export gRPC client
-final exportClientProvider = Provider<ExportServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
-  return ExportServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Import gRPC client
-final importClientProvider = Provider<ImportServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
-  return ImportServiceClient(channel, interceptors: [interceptor]);
-});
+final authClientProvider = _grpcClientProvider(AuthServiceClient.new);
+final transactionClientProvider = _grpcClientProvider(TransactionServiceClient.new);
+final syncClientProvider = _grpcClientProvider(SyncServiceClient.new);
+final familyClientProvider = _grpcClientProvider(FamilyServiceClient.new);
+final accountClientProvider = _grpcClientProvider(AccountServiceClient.new);
+final budgetClientProvider = _grpcClientProvider(BudgetServiceClient.new);
+final notifyClientProvider = _grpcClientProvider(NotifyServiceClient.new);
+final loanClientProvider = _grpcClientProvider(LoanServiceClient.new);
+final investmentClientProvider = _grpcClientProvider(InvestmentServiceClient.new);
+final marketDataClientProvider = _grpcClientProvider(MarketDataServiceClient.new);
+final assetClientProvider = _grpcClientProvider(AssetServiceClient.new);
+final dashboardClientProvider = _grpcClientProvider(DashboardServiceClient.new);
+final exportClientProvider = _grpcClientProvider(ExportServiceClient.new);
+final importClientProvider = _grpcClientProvider(ImportServiceClient.new);

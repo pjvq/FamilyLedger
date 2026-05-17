@@ -18,6 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:familyledger/data/local/secure_token_storage.dart';
 import 'package:familyledger/core/constants/app_constants.dart';
 import 'package:familyledger/data/local/database.dart';
 import 'package:familyledger/data/remote/grpc_clients.dart';
@@ -403,25 +404,37 @@ AppDatabase _createTestDb() =>
 void main() {
   late AppDatabase db;
   late SharedPreferences prefs;
+  late FakeSecureTokenStorage fakeTokenStorage;
   late FakeAuthClient authClient;
   late FakeAccountClient accountClient;
   late FakeTransactionClient txnClient;
   late FakeFamilyClient familyClient;
   late ProviderContainer container;
+  late ClientChannel dummyChannel;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
+    fakeTokenStorage = FakeSecureTokenStorage(prefs);
     db = _createTestDb();
     authClient = FakeAuthClient();
     accountClient = FakeAccountClient();
     txnClient = FakeTransactionClient();
     familyClient = FakeFamilyClient();
+    dummyChannel = ClientChannel(
+      'localhost',
+      port: 1,
+      options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
+    );
 
     container = ProviderContainer(
       overrides: [
         databaseProvider.overrideWithValue(db),
         sharedPreferencesProvider.overrideWithValue(prefs),
+        secureTokenStorageProvider.overrideWithValue(fakeTokenStorage),
+        authInterceptorProvider.overrideWithValue(
+          AuthInterceptor(fakeTokenStorage, dummyChannel),
+        ),
         authClientProvider.overrideWithValue(authClient),
         accountClientProvider.overrideWithValue(accountClient),
         transactionClientProvider.overrideWithValue(txnClient),
@@ -432,6 +445,7 @@ void main() {
 
   tearDown(() async {
     container.dispose();
+    await dummyChannel.shutdown();
     await db.close();
   });
 
@@ -474,13 +488,13 @@ void main() {
       expect(salary.parentId, isNull);
     });
 
-    test('login stores access/refresh tokens and userId in SharedPreferences',
+    test('login stores access/refresh tokens in secure storage and userId in SharedPreferences',
         () async {
       final authNotifier = container.read(authProvider.notifier);
       await authNotifier.login('test@test.com', 'pass123');
 
-      expect(prefs.getString(AppConstants.accessTokenKey), 'token_abc');
-      expect(prefs.getString(AppConstants.refreshTokenKey), 'refresh_abc');
+      expect(await fakeTokenStorage.getAccessToken(), 'token_abc');
+      expect(await fakeTokenStorage.getRefreshToken(), 'refresh_abc');
       expect(prefs.getString(AppConstants.userIdKey), 'user_1');
     });
 

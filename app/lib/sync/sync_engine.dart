@@ -9,6 +9,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../data/local/secure_token_storage.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../core/constants/app_constants.dart';
@@ -31,6 +32,7 @@ class SyncEngine {
   final AppDatabase? _db;
   final SyncServiceClient? _syncClient;
   final SharedPreferences? _prefs;
+  final TokenStorage? _tokenStorage;
   final Connectivity _connectivity;
 
   Timer? _syncTimer;
@@ -49,10 +51,11 @@ class SyncEngine {
   static const _lastSyncTsKey = 'sync_last_pull_ts';
 
   SyncEngine(AppDatabase db, SyncServiceClient syncClient, SharedPreferences prefs,
-      {Connectivity? connectivity})
+      {Connectivity? connectivity, TokenStorage? tokenStorage})
       : _db = db,
         _syncClient = syncClient,
         _prefs = prefs,
+        _tokenStorage = tokenStorage,
         _connectivity = connectivity ?? Connectivity();
 
   /// @visibleForTesting — stub constructor, all methods become no-ops
@@ -60,6 +63,7 @@ class SyncEngine {
       : _db = null,
         _syncClient = null,
         _prefs = null,
+        _tokenStorage = null,
         _connectivity = Connectivity();
 
   void start() {
@@ -716,12 +720,13 @@ class SyncEngine {
     if (_disposed) return;
     _disconnectWebSocket();
 
-    final token = _prefs?.getString(AppConstants.accessTokenKey);
+    final token = await _tokenStorage?.getAccessToken();
     if (token == null) return;
 
     try {
+      final scheme = AppConstants.useTls ? 'wss' : 'ws';
       final uri = Uri.parse(
-        'ws://${AppConstants.serverHost}:${AppConstants.wsPort}/ws?token=$token',
+        '$scheme://${AppConstants.serverHost}:${AppConstants.wsPort}/ws?token=$token',
       );
       _wsChannel = WebSocketChannel.connect(uri);
 
@@ -865,7 +870,8 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
   final db = ref.watch(databaseProvider);
   final syncClient = ref.watch(syncClientProvider);
   final prefs = ref.watch(sharedPreferencesProvider);
-  final engine = SyncEngine(db, syncClient, prefs);
+  final tokenStorage = ref.watch(secureTokenStorageProvider);
+  final engine = SyncEngine(db, syncClient, prefs, tokenStorage: tokenStorage);
 
   // Wire status callbacks to SyncStatusNotifier
   final statusNotifier = ref.read(syncStatusProvider.notifier);

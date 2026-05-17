@@ -140,6 +140,8 @@ jobs:
 
       - name: Run integration tests (testcontainers)
         working-directory: server
+        env:
+          OAUTH_MODE: mock
         run: |
           set -o pipefail
           go test ./internal/integration/... -tags=integration -count=1 -timeout=300s -v 2>&1 | tee integration.log
@@ -177,6 +179,7 @@ jobs:
       DB_NAME: familyledger_e2e
       DB_SSLMODE: disable
       JWT_SECRET: ci-test-secret-do-not-use-in-production
+      OAUTH_MODE: mock
       GRPC_PORT: '50051'
       WS_PORT: '8080'
       AUTH_RATE_RPS: '100'

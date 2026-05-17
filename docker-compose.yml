@@ -5,15 +5,15 @@ services:
     image: postgres:16-alpine
     container_name: familyledger-db
     environment:
-      POSTGRES_USER: familyledger
-      POSTGRES_PASSWORD: familyledger
-      POSTGRES_DB: familyledger
+      POSTGRES_USER: ${DB_USER:-familyledger}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+      POSTGRES_DB: ${DB_NAME:-familyledger}
     ports:
-      - "5432:5432"
+      - "5432:5432"  # Dev only — remove in production (server accesses DB via Docker network)
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U familyledger"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-familyledger}"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -30,11 +30,12 @@ services:
       APP_ENV: production
       DB_HOST: db
       DB_PORT: "5432"
-      DB_USER: familyledger
-      DB_PASSWORD: familyledger
-      DB_NAME: familyledger
-      DB_SSLMODE: disable
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-at-least-32-chars}
+      DB_USER: ${DB_USER:-familyledger}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+      DB_NAME: ${DB_NAME:-familyledger}
+      DB_SSLMODE: disable  # Internal Docker network; TLS not needed between containers
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      OAUTH_MODE: ${OAUTH_MODE:-mock}  # Default mock for local dev. Production deploy: set OAUTH_MODE=production in .env
       GRPC_PORT: "50051"
       WS_PORT: "8080"
       WS_TOKEN_CHECK_INTERVAL: "1s"

@@ -21,6 +21,10 @@ import (
 	"github.com/familyledger/server/pkg/jwt"
 )
 
+// bcryptCost is the work factor for password hashing.
+// 12 is recommended for financial applications (2^12 iterations ≈ 250ms on modern hardware).
+const bcryptCost = 12
+
 type Service struct {
 	pb.UnimplementedAuthServiceServer
 	pool           db.Pool
@@ -71,7 +75,7 @@ func (s *Service) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.Re
 	}
 
 	// Hash password
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcryptCost)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to hash password")
 	}
@@ -142,6 +146,21 @@ func (s *Service) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginRes
 
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.Password)); err != nil {
 		return nil, status.Error(codes.Unauthenticated, "invalid email or password")
+	}
+
+	// Rehash with current cost if stored hash uses a weaker cost.
+	// This transparently upgrades passwords on successful login.
+	if cost, _ := bcrypt.Cost([]byte(passwordHash)); cost < bcryptCost {
+		if newHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcryptCost); err == nil {
+			if _, err := s.pool.Exec(ctx,
+				"UPDATE users SET password_hash = $1 WHERE id = $2",
+				string(newHash), userID,
+			); err != nil {
+				log.Printf("auth: WARNING: failed to upgrade password hash for user %s: %v", userID, err)
+			} else {
+				log.Printf("auth: upgraded password hash cost %d→%d for user %s", cost, bcryptCost, userID)
+			}
+		}
 	}
 
 	tokenPair, err := s.jwtManager.GenerateTokenPair(userID.String())

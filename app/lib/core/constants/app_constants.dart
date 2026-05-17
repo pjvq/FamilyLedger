@@ -7,6 +7,10 @@ class AppConstants {
   static const grpcPort = 50051;
   static const wsPort = 8080;
 
+  /// Whether gRPC uses TLS. Must match server GRPC_TLS_CERT config.
+  /// Set to true when server has TLS enabled.
+  static const useTls = false; // TODO: enable when GRPC_TLS_CERT deployed
+
   // Auth
   static const accessTokenKey = 'access_token';
   static const refreshTokenKey = 'refresh_token';
