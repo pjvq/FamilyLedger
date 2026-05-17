@@ -42,12 +42,13 @@ func parseTxnDate(s string) (time.Time, bool, error) {
 		return time.Time{}, false, fmt.Errorf("parseTxnDate: empty string")
 	}
 
-	// Fast path: try RFC3339 / RFC3339Nano first. These cover all timezone-aware
-	// formats without fragile character-position checks.
-	if t, err := time.Parse(time.RFC3339, s); err == nil {
+	// Fast path: RFC3339Nano is a superset of RFC3339 — it handles both
+	// "2026-05-16T23:31:00Z" and "2026-05-16T23:31:00.000000Z" in one call.
+	// RFC3339 kept as fallback for edge cases only.
+	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
 		return t, true, nil
 	}
-	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
 		return t, true, nil
 	}
 
@@ -323,6 +324,7 @@ func (s *Service) applyTransactionCreate(ctx context.Context, tx pgx.Tx, userID 
 	if p.TxnDate != "" {
 		parsed, hadTZ, err := parseTxnDate(p.TxnDate)
 		if err != nil {
+			log.Printf("sync: create: parseTxnDate failed for %q: %v", p.TxnDate, err)
 			return fmt.Errorf("invalid txn_date format")
 		}
 		if !hadTZ {
@@ -449,6 +451,7 @@ func (s *Service) applyTransactionUpdate(ctx context.Context, tx pgx.Tx, userID 
 	if p.TxnDate != "" {
 		txnDate, hadTZ, err := parseTxnDate(p.TxnDate)
 		if err != nil {
+			log.Printf("sync: update: parseTxnDate failed for %q: %v", p.TxnDate, err)
 			return fmt.Errorf("invalid txn_date format")
 		}
 		if !hadTZ {

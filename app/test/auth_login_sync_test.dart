@@ -666,6 +666,7 @@ void main() {
       // so getCategoriesCallCount may be 0 (not yet fired) or 1 (already ran).
       // This is unrelated to the syncEngine decoupling — category fetch is
       // a direct gRPC call, not routed through SyncEngine.
+      // TODO: mock _syncCategoriesFromServer's gRPC call to make this deterministic.
       expect(txnClient.getCategoriesCallCount, lessThanOrEqualTo(1));
       expect(notifier.state.expenseCategories.length, greaterThan(10));
 

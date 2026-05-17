@@ -59,6 +59,9 @@ class TransactionState {
       );
 }
 
+// TODO: inject Clock abstraction (e.g. package:clock) for DateTime.now()
+// testability. Currently DateTime.now() is called directly in add/update/delete/
+// batchDelete methods, making time-dependent logic hard to unit test.
 class TransactionNotifier extends StateNotifier<TransactionState> {
   final AppDatabase _db;
   final String _userId;
@@ -70,8 +73,9 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
   /// Stream that fires whenever an offline sync op is queued.
   /// External listeners (e.g. SyncEngine) can subscribe to trigger immediate push.
-  /// Uses a regular (non-broadcast) controller so events buffer until listener
-  /// attaches — no events lost between construction and listen().
+  ///
+  /// Single-subscription stream — only one listener is allowed.
+  /// If you need to observe in tests, mock at the provider layer instead.
   final _syncRequestedController = StreamController<void>();
   Stream<void> get syncRequested => _syncRequestedController.stream;
 
@@ -293,7 +297,6 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     String tags = '',
     String imageUrls = '',
   }) async {
-    // TODO: inject Clock for testability
     final now = DateTime.now();
     final account = await _db.getDefaultAccount(_userId, familyId: _familyId);
     if (account == null) {
@@ -548,6 +551,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           timestamp: DateTime.now(),
         ));
       }
+      // Batch: fire sync request once after all ops are queued, not per-item.
       _syncRequestedController.add(null);
     }
 
