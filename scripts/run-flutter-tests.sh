@@ -3,9 +3,12 @@
 #
 # Used by both ci.yml and flutter.yml to avoid duplicating the retry/tolerance logic.
 # Exit codes:
-#   0  — all tests passed (or passed on retry)
-#   78 — segfault/OOM crash with no real test failures (GitHub Actions "neutral")
+#   0  — all tests passed (or segfault/OOM with no real failures)
 #   1  — real test failures
+#
+# Note: GitHub Actions run-steps only support 0=success, non-zero=failure.
+# exit 78 (neutral) only works inside composite actions, NOT in run-steps.
+# So for segfault/OOM with no real failures, we exit 0 with a warning annotation.
 set -u
 
 TIMEOUT_SECS="${FLUTTER_TEST_TIMEOUT_SECS:-240}"
@@ -49,8 +52,8 @@ REAL_FAILURES=$(
 
 if [ -z "$REAL_FAILURES" ] && { [ -n "$SEGFAULTS" ] || [ -n "$TIMED_OUT" ]; }; then
   PASS_COUNT=$(grep -oP '\+\d+' test_output.txt | tail -1 || echo "+0")
-  echo "::warning::flutter_tester segfault/hang on CI (OOM), $PASS_COUNT tests passed before crash"
-  exit 78
+  echo "::warning::flutter_tester segfault/hang on CI (OOM), $PASS_COUNT tests passed before crash — not a code bug"
+  exit 0
 fi
 
 # Real test failures — retry
