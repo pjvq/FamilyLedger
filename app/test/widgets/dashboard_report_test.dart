@@ -753,6 +753,8 @@ void main() {
 
       // 7 sections exist but viewport (1600px) fits only 6 cards;
       // the last one (investmentTrend) is off-screen.
+      // TODO: scroll to bottom and verify all 7, or check the
+      // ReorderableListView children count directly.
       expect(
           find.byIcon(Icons.drag_handle_rounded), findsAtLeast(6));
     });

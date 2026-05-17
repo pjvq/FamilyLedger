@@ -932,8 +932,9 @@ void main() {
         routes: {'/loans/prepayment': (_) => const Scaffold()},
       ));
       await tester.pumpAndSettle();
-      // progress = (principal - remainingPrincipal) / principal = 20%
-      // (makeLoan defaults: principal=100M, remaining=80M)
+      // progress = (principal - remainingPrincipal) / principal
+      // makeLoan defaults: principal=100_000_000, remainingPrincipal=80_000_000
+      // → (100M - 80M) / 100M = 20%
       expect(find.text('20%'), findsOneWidget);
     });
 

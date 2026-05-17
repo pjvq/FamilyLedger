@@ -69,6 +69,8 @@ if [ -n "$FAILED" ]; then
   RETRY_EXIT=$?
   if [ "$RETRY_EXIT" -eq 0 ]; then
     echo "::notice::Retry succeeded for: $FAILED"
+  else
+    echo "::error::Retry also failed (exit $RETRY_EXIT) for: $FAILED"
   fi
   exit "$RETRY_EXIT"
 else
