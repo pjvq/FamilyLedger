@@ -32,7 +32,7 @@ class SyncEngine {
   final AppDatabase? _db;
   final SyncServiceClient? _syncClient;
   final SharedPreferences? _prefs;
-  final SecureTokenStorage? _tokenStorage;
+  final TokenStorage? _tokenStorage;
   final Connectivity _connectivity;
 
   Timer? _syncTimer;
@@ -51,7 +51,7 @@ class SyncEngine {
   static const _lastSyncTsKey = 'sync_last_pull_ts';
 
   SyncEngine(AppDatabase db, SyncServiceClient syncClient, SharedPreferences prefs,
-      {Connectivity? connectivity, SecureTokenStorage? tokenStorage})
+      {Connectivity? connectivity, TokenStorage? tokenStorage})
       : _db = db,
         _syncClient = syncClient,
         _prefs = prefs,

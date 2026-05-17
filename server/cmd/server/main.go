@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -64,9 +65,17 @@ func main() {
 	if dbUser == "" || dbPassword == "" {
 		log.Fatal("FATAL: DB_USER and DB_PASSWORD environment variables are required")
 	}
+	dbPort := 5432
+	if p := os.Getenv("DB_PORT"); p != "" {
+		if v, err := strconv.Atoi(p); err == nil {
+			dbPort = v
+		} else {
+			log.Fatalf("FATAL: invalid DB_PORT %q: %v", p, err)
+		}
+	}
 	dbCfg := db.Config{
 		Host:     getEnv("DB_HOST", "localhost"),
-		Port:     5432,
+		Port:     dbPort,
 		User:     dbUser,
 		Password: dbPassword,
 		DBName:   getEnv("DB_NAME", "familyledger"),

@@ -28,30 +28,48 @@ const (
 	maxMessageSize = 512
 )
 
+// allowedOrigins is parsed once at init from ALLOWED_ORIGINS env var.
+var (
+	allowedOrigins map[string]struct{}
+	allowAllOrigins bool
+	isProduction   bool
+)
+
+func init() {
+	isProduction = os.Getenv("APP_ENV") == "production"
+	raw := os.Getenv("ALLOWED_ORIGINS")
+	if raw == "" || raw == "*" {
+		allowAllOrigins = true
+		return
+	}
+	allowedOrigins = make(map[string]struct{})
+	for _, o := range strings.Split(raw, ",") {
+		if trimmed := strings.TrimSpace(o); trimmed != "" {
+			allowedOrigins[trimmed] = struct{}{}
+		}
+	}
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin:     checkOrigin,
 }
 
-// checkOrigin validates the request origin against ALLOWED_ORIGINS env var.
-// If ALLOWED_ORIGINS is empty or "*", all origins are allowed (dev mode).
+// checkOrigin validates the request origin against the pre-parsed allowedOrigins set.
 func checkOrigin(r *http.Request) bool {
-	allowed := os.Getenv("ALLOWED_ORIGINS")
-	if allowed == "" || allowed == "*" {
-		if os.Getenv("APP_ENV") == "production" {
+	if allowAllOrigins {
+		if isProduction {
 			log.Printf("ws: WARNING: ALLOWED_ORIGINS not set in production, rejecting connection")
 			return false
 		}
 		return true
 	}
 	origin := r.Header.Get("Origin")
-	for _, o := range strings.Split(allowed, ",") {
-		if strings.TrimSpace(o) == origin {
-			return true
-		}
+	if _, ok := allowedOrigins[origin]; ok {
+		return true
 	}
-	log.Printf("ws: rejected origin %q (allowed: %s)", origin, allowed)
+	log.Printf("ws: rejected origin %q", origin)
 	return false
 }
 
@@ -114,14 +132,11 @@ func NewHub(jwtManager *jwtpkg.Manager, configs ...HubConfig) *Hub {
 }
 
 func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	// Authenticate via Sec-WebSocket-Protocol header (preferred) or query param (legacy)
-	token := r.Header.Get("Sec-WebSocket-Protocol")
-	if token == "" {
-		token = r.URL.Query().Get("token")
-		if token != "" {
-			log.Printf("ws: WARNING: token passed via query string (deprecated, use Sec-WebSocket-Protocol header)")
-		}
-	}
+	// Authenticate via JWT token in query parameter.
+	// Note: query params are safe here because WebSocket upgrade is over HTTPS in
+	// production (via reverse proxy), and the token is short-lived JWT.
+	// TODO: Migrate to first-message auth pattern when client supports it.
+	token := r.URL.Query().Get("token")
 	if token == "" {
 		http.Error(w, "missing token", http.StatusUnauthorized)
 		return

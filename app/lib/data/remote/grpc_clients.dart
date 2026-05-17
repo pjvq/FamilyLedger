@@ -40,11 +40,15 @@ final grpcChannelProvider = Provider<ClientChannel>((ref) {
 /// Concurrency-safe: if multiple calls trigger refresh simultaneously,
 /// only one refresh runs; the rest await the same Completer.
 class AuthInterceptor extends ClientInterceptor {
-  final SecureTokenStorage _tokenStorage;
+  final TokenStorage _tokenStorage;
   final ClientChannel _channel;
 
   /// Guards concurrent refresh — only one in-flight at a time.
   Completer<bool>? _refreshCompleter;
+
+  /// Cached token to avoid reading secure storage on every gRPC call.
+  /// Invalidated on refresh or clear.
+  String? _cachedToken;
 
   AuthInterceptor(this._tokenStorage, this._channel);
 
@@ -61,7 +65,8 @@ class AuthInterceptor extends ClientInterceptor {
         providers: [
           (metadata, uri) async {
             await _ensureFreshToken();
-            final token = await _tokenStorage.getAccessToken();
+            final token = _cachedToken ?? await _tokenStorage.getAccessToken();
+            _cachedToken = token;
             if (token != null) {
               metadata['authorization'] = 'Bearer $token';
             }
@@ -74,7 +79,8 @@ class AuthInterceptor extends ClientInterceptor {
 
   /// Ensures access token is fresh. If it expires within 60s, refreshes it.
   Future<void> _ensureFreshToken() async {
-    final accessToken = await _tokenStorage.getAccessToken();
+    final accessToken = _cachedToken ?? await _tokenStorage.getAccessToken();
+    _cachedToken = accessToken;
     if (accessToken == null) return;
 
     // Decode JWT exp without verification (client-side convenience only)
@@ -114,12 +120,14 @@ class AuthInterceptor extends ClientInterceptor {
       // Store new tokens securely
       await _tokenStorage.setAccessToken(resp.accessToken);
       await _tokenStorage.setRefreshToken(resp.refreshToken);
+      _cachedToken = resp.accessToken; // Update cache
 
       _refreshCompleter!.complete(true);
       return true;
     } catch (_) {
       // Refresh failed — clear tokens, user needs to re-login
       await _tokenStorage.clearTokens();
+      _cachedToken = null;
       _refreshCompleter!.complete(false);
       return false;
     } finally {

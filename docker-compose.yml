@@ -35,7 +35,7 @@ services:
       DB_NAME: familyledger
       DB_SSLMODE: disable  # Use 'require' in production with TLS-enabled PostgreSQL
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production-at-least-32-chars}
-      OAUTH_MODE: ${OAUTH_MODE:-mock}  # Explicit: set to 'production' for real OAuth
+      OAUTH_MODE: ${OAUTH_MODE:-mock}  # Default mock for local dev. Production deploy: set OAUTH_MODE=production in .env
       GRPC_PORT: "50051"
       WS_PORT: "8080"
       WS_TOKEN_CHECK_INTERVAL: "1s"

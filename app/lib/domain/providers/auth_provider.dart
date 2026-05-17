@@ -54,7 +54,7 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final AppDatabase _db;
   final SharedPreferences _prefs;
-  final SecureTokenStorage _tokenStorage;
+  final TokenStorage _tokenStorage;
   final Ref _ref;
   final AuthServiceClient _authClient;
 
