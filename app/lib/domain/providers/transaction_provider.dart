@@ -70,7 +70,9 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
   /// Stream that fires whenever an offline sync op is queued.
   /// External listeners (e.g. SyncEngine) can subscribe to trigger immediate push.
-  final _syncRequestedController = StreamController<void>.broadcast();
+  /// Uses a regular (non-broadcast) controller so events buffer until listener
+  /// attaches — no events lost between construction and listen().
+  final _syncRequestedController = StreamController<void>();
   Stream<void> get syncRequested => _syncRequestedController.stream;
 
   TransactionNotifier(this._db, this._userId, this._familyId, this._txnClient)
@@ -631,7 +633,9 @@ final transactionProvider =
   syncSub = notifier.syncRequested.listen((_) {
     try {
       final engine = ref.read(syncEngineProvider);
-      unawaited(engine.syncNow());
+      unawaited(engine.syncNow().catchError(
+        (Object e, StackTrace st) => dev.log('SyncEngine.syncNow() failed: $e', name: 'txn'),
+      ));
     } on StateError catch (_) {
       // SyncEngine not initialized yet — will pick up ops on next timer cycle
     }

@@ -197,21 +197,27 @@ class _FixedFamilyNotifier extends StateNotifier<FamilyState>
   Future<void> refreshMembers() async {}
 }
 
-/// Minimal widget that reads canEditProvider to show/hide an edit button.
+/// Minimal widget that reads permission providers to show/hide buttons.
 class _PermissionTestWidget extends ConsumerWidget {
   const _PermissionTestWidget();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final canEdit = ref.watch(canEditProvider);
+    final canDelete = ref.watch(canDeleteProvider);
+    final canManage = ref.watch(canManageAccountsProvider);
     return MaterialApp(
       home: Scaffold(
-        body: canEdit
-            ? const ElevatedButton(
-                onPressed: null,
-                child: Text('Edit'),
-              )
-            : const SizedBox.shrink(),
+        body: Column(
+          children: [
+            if (canEdit)
+              const ElevatedButton(onPressed: null, child: Text('Edit')),
+            if (canDelete)
+              const ElevatedButton(onPressed: null, child: Text('Delete')),
+            if (canManage)
+              const ElevatedButton(onPressed: null, child: Text('Manage')),
+          ],
+        ),
       ),
     );
   }
@@ -219,7 +225,8 @@ class _PermissionTestWidget extends ConsumerWidget {
 
 void _widgetSmokeTests() {
   group('Widget smoke tests', () {
-    testWidgets('canEdit=false hides edit button in widget', (tester) async {
+    testWidgets('restricted member: no edit/delete/manage buttons',
+        (tester) async {
       final perms = pb_model.MemberPermissions()
         ..canView = true
         ..canCreate = true
@@ -239,9 +246,11 @@ void _widgetSmokeTests() {
       );
 
       expect(find.text('Edit'), findsNothing);
+      expect(find.text('Delete'), findsNothing);
+      expect(find.text('Manage'), findsNothing);
     });
 
-    testWidgets('canEdit=true shows edit button in widget', (tester) async {
+    testWidgets('owner: all buttons visible', (tester) async {
       final perms = pb_model.MemberPermissions()
         ..canView = true
         ..canCreate = true
@@ -261,6 +270,33 @@ void _widgetSmokeTests() {
       );
 
       expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Delete'), findsOneWidget);
+      expect(find.text('Manage'), findsOneWidget);
+    });
+
+    testWidgets('mixed: canEdit=true, canDelete=false, canManage=false',
+        (tester) async {
+      final perms = pb_model.MemberPermissions()
+        ..canView = true
+        ..canCreate = true
+        ..canEdit = true
+        ..canDelete = false
+        ..canManageAccounts = false;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentFamilyIdProvider.overrideWith((ref) => 'fam1'),
+            familyProvider.overrideWith(
+                (_) => _FixedFamilyNotifier(FamilyState(myPermissions: perms))),
+          ],
+          child: const _PermissionTestWidget(),
+        ),
+      );
+
+      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Delete'), findsNothing);
+      expect(find.text('Manage'), findsNothing);
     });
   });
 }

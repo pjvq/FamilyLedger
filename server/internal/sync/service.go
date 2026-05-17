@@ -32,30 +32,26 @@ import (
 // For formats without timezone info, we assume UTC. New clients (v14+) always
 // send UTC via DateTime.toUtc().toIso8601String(). Legacy clients may have sent
 // local time without timezone — treating those as UTC is the lesser evil vs.
-// guessing the client's timezone. A warning is logged to track legacy usage.
-func parseTxnDate(s string) (time.Time, error) {
+// guessing the client's timezone.
+//
+// Returns (time, hadTimezone, error). Callers can use hadTimezone to decide
+// whether to log a warning (avoids per-call log spam in batch scenarios).
+func parseTxnDate(s string) (time.Time, bool, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
-		return time.Time{}, fmt.Errorf("parseTxnDate: empty string")
+		return time.Time{}, false, fmt.Errorf("parseTxnDate: empty string")
 	}
 
-	// Fast path: check for timezone indicator (Z, +, or - after time portion).
-	// RFC3339 strings contain 'Z' or '+'/'-' offset after seconds.
-	hasTimezone := strings.ContainsAny(s[len(s)-1:], "Z") ||
-		(len(s) > 19 && (s[19] == '+' || s[19] == '-'))
-
-	if hasTimezone {
-		if t, err := time.Parse(time.RFC3339, s); err == nil {
-			return t, nil
-		}
-		// RFC3339Nano for formats like "2026-05-16T23:31:00.000000Z"
-		if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
-			return t, nil
-		}
-		return time.Time{}, fmt.Errorf("parseTxnDate: has timezone but failed RFC3339 parse: %q", s)
+	// Fast path: try RFC3339 / RFC3339Nano first. These cover all timezone-aware
+	// formats without fragile character-position checks.
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t, true, nil
+	}
+	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+		return t, true, nil
 	}
 
-	// No timezone — pick format by string length/structure, then parse as UTC.
+	// No timezone — pick format by string length, then parse as UTC.
 	var format string
 	switch {
 	case len(s) == 10: // "2006-01-02"
@@ -67,17 +63,15 @@ func parseTxnDate(s string) (time.Time, error) {
 	case len(s) == 26: // "2006-01-02T15:04:05.000000"
 		format = "2006-01-02T15:04:05.000000"
 	default:
-		return time.Time{}, fmt.Errorf("parseTxnDate: unrecognized format (len=%d): %q", len(s), s)
+		return time.Time{}, false, fmt.Errorf("parseTxnDate: unrecognized format (len=%d): %q", len(s), s)
 	}
 
 	t, err := time.ParseInLocation(format, s, time.UTC)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("parseTxnDate: parse failed for format %q: %w", format, err)
+		return time.Time{}, false, fmt.Errorf("parseTxnDate: parse failed for format %q: %w", format, err)
 	}
 
-	// Warn: no-timezone strings may come from legacy clients sending local time.
-	log.Printf("WARNING: parseTxnDate: no-timezone format %q parsed as UTC — legacy client?", s)
-	return t, nil
+	return t, false, nil
 }
 
 type Service struct {
@@ -327,9 +321,12 @@ func (s *Service) applyTransactionCreate(ctx context.Context, tx pgx.Tx, userID 
 
 	txnDate := time.Now()
 	if p.TxnDate != "" {
-		parsed, err := parseTxnDate(p.TxnDate)
+		parsed, hadTZ, err := parseTxnDate(p.TxnDate)
 		if err != nil {
-			return fmt.Errorf("invalid txn_date in create payload: %s (%w)", p.TxnDate, err)
+			return fmt.Errorf("invalid txn_date format")
+		}
+		if !hadTZ {
+			log.Printf("sync: create: txn_date %q has no timezone, parsed as UTC (legacy client?)", p.TxnDate)
 		}
 		txnDate = parsed
 	}
@@ -450,9 +447,12 @@ func (s *Service) applyTransactionUpdate(ctx context.Context, tx pgx.Tx, userID 
 	}
 
 	if p.TxnDate != "" {
-		txnDate, err := parseTxnDate(p.TxnDate)
+		txnDate, hadTZ, err := parseTxnDate(p.TxnDate)
 		if err != nil {
-			return fmt.Errorf("invalid txn_date format: %s (%w)", p.TxnDate, err)
+			return fmt.Errorf("invalid txn_date format")
+		}
+		if !hadTZ {
+			log.Printf("sync: update: txn_date %q has no timezone, parsed as UTC (legacy client?)", p.TxnDate)
 		}
 		args = append(args, txnDate)
 		setClauses = append(setClauses, fmt.Sprintf("txn_date = $%d", argIdx))
