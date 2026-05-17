@@ -309,9 +309,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   }
 
   // TODO: i18n — date format strings are hardcoded in Chinese
-  String _formatDateLabel(DateTime? date) {
+  String _formatDateLabel(DateTime? date, DateTime now) {
     if (date == null) return '今天';
-    final now = DateTime.now();
     final hh = date.hour.toString().padLeft(2, '0');
     final mm = date.minute.toString().padLeft(2, '0');
     final time = '$hh:$mm';
@@ -325,9 +324,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     }
   }
 
-  bool _isSelectedToday() {
+  bool _isSelectedToday(DateTime now) {
     if (_selectedDate == null) return true;
-    final now = DateTime.now();
     return _selectedDate!.year == now.year &&
         _selectedDate!.month == now.month &&
         _selectedDate!.day == now.day;
@@ -335,8 +333,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
 
   Widget _buildDateRow(BuildContext context) {
     final theme = Theme.of(context);
-    final isToday = _isSelectedToday();
-    final label = _formatDateLabel(_selectedDate);
+    final now = DateTime.now();
+    final isToday = _isSelectedToday(now);
+    final label = _formatDateLabel(_selectedDate, now);
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.4);
 
     return InkWell(
@@ -387,7 +386,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       context: context,
       initialDate: initial,
       firstDate: DateTime(2000),
-      lastDate: now,
+      lastDate: now.add(const Duration(minutes: 5)),
       locale: const Locale('zh', 'CN'),
     );
     if (date == null || !mounted) return;
