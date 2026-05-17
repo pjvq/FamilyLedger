@@ -155,7 +155,7 @@ Future<AppDatabase> _setupDb() async {
   ));
   // Insert a category for the test
   await db.customStatement(
-      "INSERT OR IGNORE INTO categories (id, name, icon, type, is_preset, sort_order) "
+      "INSERT OR IGNORE INTO categories (id, name, icon_key, type, is_preset, sort_order) "
       "VALUES ('cat1', 'Food', '🍔', 'expense', 1, 1)");
   return db;
 }

@@ -82,16 +82,8 @@ jobs:
 
       - name: Flutter — unit tests
         working-directory: app
-        run: |
-          flutter test --reporter compact --coverage --timeout 5s 2>&1 | tee test_output.txt || {
-            FAILED=$(grep -oP '(?<=package:)[^ ]+_test.dart' test_output.txt | sort -u || true)
-            if [ -n "$FAILED" ]; then
-              echo "::notice::Retrying failed tests: $FAILED"
-              flutter test $FAILED --reporter compact --coverage --timeout 5s
-            else
-              exit 1
-            fi
-          }
+        timeout-minutes: 8
+        run: bash ../scripts/run-flutter-tests.sh
 
       - name: Flutter — coverage gate (≥25%)
         working-directory: app

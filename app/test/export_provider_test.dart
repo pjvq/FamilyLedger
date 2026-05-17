@@ -85,7 +85,7 @@ Future<AppDatabase> _setupDb({bool addTransactions = true}) async {
   ));
   // Insert a default category
   await db.customStatement(
-      "INSERT OR IGNORE INTO categories (id, name, type, icon) "
+      "INSERT OR IGNORE INTO categories (id, name, type, icon_key) "
       "VALUES ('cat_food', '餐饮', 'expense', 'restaurant')");
 
   if (addTransactions) {

@@ -164,7 +164,7 @@ Future<AppDatabase> _setupDb() async {
     accountType: const Value('bank_card'),
   ));
   await db.customStatement(
-      "INSERT OR IGNORE INTO categories (id, name, type, icon) "
+      "INSERT OR IGNORE INTO categories (id, name, type, icon_key) "
       "VALUES ('cat1', '餐饮', 'expense', 'restaurant')");
   return db;
 }

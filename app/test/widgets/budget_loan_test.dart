@@ -932,7 +932,10 @@ void main() {
         routes: {'/loans/prepayment': (_) => const Scaffold()},
       ));
       await tester.pumpAndSettle();
-      expect(find.text('33%'), findsOneWidget);
+      // progress = (principal - remainingPrincipal) / principal
+      // makeLoan defaults: principal=100_000_000, remainingPrincipal=80_000_000
+      // → (100M - 80M) / 100M = 20%
+      expect(find.text('20%'), findsOneWidget);
     });
 
     testWidgets('equal_principal repayment method text', (tester) async {
@@ -1171,7 +1174,7 @@ void main() {
         ),
       ));
       await tester.pumpAndSettle();
-      expect(find.text('提前还款模拟'), findsOneWidget);
+      expect(find.text('提前还款'), findsOneWidget);
       expect(find.text('缩短期限'), findsWidgets);
       expect(find.text('减少月供'), findsWidgets);
     });

@@ -35,17 +35,8 @@ jobs:
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Run tests (with retry for flaky)
-        run: |
-          flutter test --reporter compact --coverage --timeout 5s 2>&1 | tee test_output.txt || {
-            # Extract failed test files and retry only those
-            FAILED=$(grep -oP '(?<=package:)[^ ]+_test.dart' test_output.txt | sort -u || true)
-            if [ -n "$FAILED" ]; then
-              echo "::notice::Retrying failed tests: $FAILED"
-              flutter test $FAILED --reporter compact --coverage --timeout 5s
-            else
-              exit 1
-            fi
-          }
+        timeout-minutes: 8
+        run: bash ../scripts/run-flutter-tests.sh
 
       - name: Coverage report (target 80% by W15)
         run: |

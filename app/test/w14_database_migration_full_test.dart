@@ -72,7 +72,7 @@ void main() {
 
       // Insert a test category since categories are no longer auto-seeded
       await db.customStatement(
-          "INSERT INTO categories (id, name, type, icon, sort_order, is_preset) "
+          "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
           "VALUES ('mig_cat', 'Food', 'expense', '🍔', 1, 1)");
 
       // Insert a transaction
@@ -102,10 +102,10 @@ void main() {
 
       // Insert some test categories manually
       await db.customStatement(
-          "INSERT INTO categories (id, name, type, icon, sort_order, is_preset) "
+          "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
           "VALUES ('preset_food', 'Food', 'expense', '🍔', 1, 1)");
       await db.customStatement(
-          "INSERT INTO categories (id, name, type, icon, sort_order, is_preset) "
+          "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
           "VALUES ('dup_food', 'Food', 'expense', '🍔', 999, 0)");
 
       // Verify both exist before any dedup
@@ -161,7 +161,7 @@ void main() {
 
       // Insert a test category
       await db.customStatement(
-          "INSERT INTO categories (id, name, type, icon, sort_order, is_preset) "
+          "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
           "VALUES ('v9_cat', 'Transport', 'expense', '🚌', 2, 1)");
 
       await db.insertTransaction(TransactionsCompanion.insert(
@@ -189,11 +189,11 @@ void main() {
 
       // Insert parent and subcategory to verify schema supports subcategories
       await db.customStatement(
-          "INSERT INTO categories (id, name, type, icon, sort_order, is_preset, icon_key) "
-          "VALUES ('parent_cat', 'Food', 'expense', '🍔', 1, 1, 'food')");
+          "INSERT INTO categories (id, name, type, sort_order, is_preset, icon_key) "
+          "VALUES ('parent_cat', 'Food', 'expense', 1, 1, 'food')");
       await db.customStatement(
-          "INSERT INTO categories (id, name, type, icon, sort_order, is_preset, parent_id, icon_key) "
-          "VALUES ('sub_cat', 'Dining', 'expense', '🍽️', 2, 1, 'parent_cat', 'dining')");
+          "INSERT INTO categories (id, name, type, sort_order, is_preset, parent_id, icon_key) "
+          "VALUES ('sub_cat', 'Dining', 'expense', 2, 1, 'parent_cat', 'dining')");
 
       final cats = await db.select(db.categories).get();
       final subcats = cats.where((c) => c.parentId != null).toList();

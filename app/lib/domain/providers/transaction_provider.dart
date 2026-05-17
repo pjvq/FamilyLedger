@@ -10,6 +10,7 @@ import '../../generated/proto/google/protobuf/timestamp.pb.dart'
 import '../../data/local/database.dart';
 import 'package:grpc/grpc.dart';
 import '../../data/remote/grpc_clients.dart';
+import '../../sync/sync_engine.dart';
 import '../../generated/proto/transaction.pbgrpc.dart' as pb;
 import '../../generated/proto/transaction.pbenum.dart' as pbe;
 import 'app_providers.dart';
@@ -58,6 +59,9 @@ class TransactionState {
       );
 }
 
+// TODO: inject Clock abstraction (e.g. package:clock) for DateTime.now()
+// testability. Currently DateTime.now() is called directly in add/update/delete/
+// batchDelete methods, making time-dependent logic hard to unit test.
 class TransactionNotifier extends StateNotifier<TransactionState> {
   final AppDatabase _db;
   final String _userId;
@@ -66,6 +70,14 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   final _uuid = const Uuid();
   StreamSubscription? _sub;
   static final _callOpts = CallOptions(timeout: const Duration(seconds: 5));
+
+  /// Stream that fires whenever an offline sync op is queued.
+  /// External listeners (e.g. SyncEngine) can subscribe to trigger immediate push.
+  ///
+  /// Single-subscription stream — only one listener is allowed.
+  /// If you need to observe in tests, mock at the provider layer instead.
+  final _syncRequestedController = StreamController<void>();
+  Stream<void> get syncRequested => _syncRequestedController.stream;
 
   TransactionNotifier(this._db, this._userId, this._familyId, this._txnClient)
       : super(const TransactionState()) {
@@ -363,11 +375,12 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           'exchange_rate': amount > 0 ? effectiveAmountCny / amount : 1.0,
           'type': type,
           'note': note,
-          'txn_date': effectiveTxnDate.toIso8601String(),
+          'txn_date': effectiveTxnDate.toUtc().toIso8601String(),
         }),
         clientId: syncOpId,
         timestamp: now,
       ));
+      _syncRequestedController.add(null);
     }
   }
 
@@ -455,6 +468,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         clientId: syncOpId,
         timestamp: DateTime.now(),
       ));
+      _syncRequestedController.add(null);
     }
 
     // 5. 刷新摘要
@@ -495,6 +509,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         clientId: syncOpId,
         timestamp: DateTime.now(),
       ));
+      _syncRequestedController.add(null);
     }
 
     // 5. 刷新摘要
@@ -536,6 +551,8 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           timestamp: DateTime.now(),
         ));
       }
+      // Batch: fire sync request once after all ops are queued, not per-item.
+      _syncRequestedController.add(null);
     }
 
     // 3. 刷新摘要
@@ -559,6 +576,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   @override
   void dispose() {
     _sub?.cancel();
+    _syncRequestedController.close();
     super.dispose();
   }
 }
@@ -610,5 +628,23 @@ final transactionProvider =
   if (userId == null) {
     return TransactionNotifier(db, '', null, null);
   }
-  return TransactionNotifier(db, userId, familyId, txnClient);
+
+  final notifier = TransactionNotifier(db, userId, familyId, txnClient);
+
+  // Listen to sync requests and forward to SyncEngine.
+  // TransactionNotifier has zero dependency on SyncEngine.
+  StreamSubscription<void>? syncSub;
+  syncSub = notifier.syncRequested.listen((_) {
+    try {
+      final engine = ref.read(syncEngineProvider);
+      unawaited(engine.syncNow().catchError(
+        (Object e, StackTrace st) => dev.log('SyncEngine.syncNow() failed: $e', name: 'txn'),
+      ));
+    } on StateError catch (_) {
+      // SyncEngine not initialized yet — will pick up ops on next timer cycle
+    }
+  });
+  ref.onDispose(() => syncSub?.cancel());
+
+  return notifier;
 });
