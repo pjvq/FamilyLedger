@@ -57,6 +57,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   // Show detail panel
   bool _showDetails = false;
 
+  // Transaction date/time (null = use current time)
+  DateTime? _selectedDate;
+
   bool get _isEditMode => widget.existingTransaction != null;
 
   @override
@@ -91,6 +94,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       _showDetails = _noteController.text.isNotEmpty ||
           _tags.isNotEmpty ||
           _imagePaths.isNotEmpty;
+      // 编辑模式：预填交易日期
+      _selectedDate = txn.txnDate;
       // 设置 tab（收入 or 支出）— 必须在 addListener 前设置
       if (txn.type == 'income') {
         _tabController.index = 1;
@@ -157,6 +162,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
           // CNY equivalent (when foreign currency)
           if (_selectedCurrency != 'CNY') _buildCnyEquivalent(),
           const SizedBox(height: 4),
+          // Date/time picker row
+          _buildDateRow(context),
           // Detail toggle
           _buildDetailToggle(context),
           // Details panel (note, tags, images)
@@ -299,6 +306,103 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
         ],
       ),
     );
+  }
+
+  Widget _buildDateRow(BuildContext context) {
+    final theme = Theme.of(context);
+    final now = DateTime.now();
+    final display = _selectedDate ?? now;
+    final isToday = _selectedDate == null ||
+        (display.year == now.year &&
+            display.month == now.month &&
+            display.day == now.day &&
+            (display.hour - now.hour).abs() < 1);
+
+    String label;
+    if (_selectedDate == null) {
+      label = '今天';
+    } else if (display.year == now.year &&
+        display.month == now.month &&
+        display.day == now.day) {
+      label = '今天 ${display.hour.toString().padLeft(2, '0')}:${display.minute.toString().padLeft(2, '0')}';
+    } else if (display.year == now.year) {
+      label =
+          '${display.month}月${display.day}日 ${display.hour.toString().padLeft(2, '0')}:${display.minute.toString().padLeft(2, '0')}';
+    } else {
+      label =
+          '${display.year}/${display.month}/${display.day} ${display.hour.toString().padLeft(2, '0')}:${display.minute.toString().padLeft(2, '0')}';
+    }
+
+    return GestureDetector(
+      onTap: () => _pickDateTime(context),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.calendar_today_rounded,
+              size: 14,
+              color: isToday
+                  ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
+                  : theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: isToday
+                    ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
+                    : theme.colorScheme.primary,
+                fontWeight: isToday ? FontWeight.normal : FontWeight.w500,
+              ),
+            ),
+            if (_selectedDate != null) ...[
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () => setState(() => _selectedDate = null),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 14,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickDateTime(BuildContext context) async {
+    final now = DateTime.now();
+    final initial = _selectedDate ?? now;
+
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: now.add(const Duration(days: 1)), // 允许选到明天（时区差异）
+      locale: const Locale('zh', 'CN'),
+    );
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _selectedDate = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time?.hour ?? initial.hour,
+        time?.minute ?? initial.minute,
+      );
+    });
   }
 
   Widget _buildDetailToggle(BuildContext context) {
@@ -786,6 +890,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
               amountCny: amountCny,
               tags: _tags.isNotEmpty ? jsonEncode(_tags) : '',
               imageUrls: imageUrlsStr,
+              txnDate: _selectedDate,
             );
       } else {
         // 新建模式：创建交易
@@ -798,6 +903,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
               amountCny: amountCny,
               tags: _tags.isNotEmpty ? jsonEncode(_tags) : '',
               imageUrls: imageUrlsStr,
+              txnDate: _selectedDate,
             );
       }
 

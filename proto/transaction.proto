@@ -102,6 +102,7 @@ message UpdateTransactionRequest {
   optional string tags = 5;
   optional TransactionType type = 6;
   optional string currency = 7;
+  optional google.protobuf.Timestamp txn_date = 8;
 }
 
 message UpdateTransactionResponse {

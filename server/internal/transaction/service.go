@@ -591,6 +591,12 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 		argIdx++
 	}
 
+	if req.TxnDate != nil {
+		args = append(args, req.TxnDate.AsTime())
+		setClauses = append(setClauses, fmt.Sprintf("txn_date = $%d", argIdx))
+		argIdx++
+	}
+
 	// Execute UPDATE
 	args = append(args, txnID)
 	query := fmt.Sprintf("UPDATE transactions SET %s WHERE id = $%d AND deleted_at IS NULL",

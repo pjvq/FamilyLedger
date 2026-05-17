@@ -395,6 +395,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     int? amountCny,
     String? tags,
     String? imageUrls,
+    DateTime? txnDate,
   }) async {
     // 1. 获取旧交易记录（用于回退余额）
     final oldTxn = await _db.getTransactionById(id);
@@ -412,6 +413,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       currency: currency != null ? Value(currency) : const Value.absent(),
       tags: tags != null ? Value(tags) : const Value.absent(),
       imageUrls: imageUrls != null ? Value(imageUrls) : const Value.absent(),
+      txnDate: txnDate != null ? Value(txnDate) : const Value.absent(),
       updatedAt: Value(DateTime.now()),
     );
     await _db.updateTransactionFields(id, companion);
@@ -444,6 +446,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
               ? pbe.TransactionType.TRANSACTION_TYPE_INCOME
               : pbe.TransactionType.TRANSACTION_TYPE_EXPENSE;
         }
+        if (txnDate != null) req.txnDate = _toTimestamp(txnDate);
         await _txnClient.updateTransaction(req);
       }
     } catch (e) {
@@ -464,6 +467,8 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           if (type != null) 'type': type,
           if (note != null) 'note': note,
           if (tags != null) 'tags': tags,
+          if (txnDate != null)
+            'txn_date': txnDate.toUtc().toIso8601String(),
         }),
         clientId: syncOpId,
         timestamp: DateTime.now(),
