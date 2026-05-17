@@ -185,6 +185,7 @@ const UpdateTransactionRequest$json = {
     {'1': 'tags', '3': 5, '4': 1, '5': 9, '9': 3, '10': 'tags', '17': true},
     {'1': 'type', '3': 6, '4': 1, '5': 14, '6': '.familyledger.transaction.v1.TransactionType', '9': 4, '10': 'type', '17': true},
     {'1': 'currency', '3': 7, '4': 1, '5': 9, '9': 5, '10': 'currency', '17': true},
+    {'1': 'txn_date', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 6, '10': 'txnDate', '17': true},
   ],
   '8': [
     {'1': '_amount'},
@@ -193,6 +194,7 @@ const UpdateTransactionRequest$json = {
     {'1': '_tags'},
     {'1': '_type'},
     {'1': '_currency'},
+    {'1': '_txn_date'},
   ],
 };
 
@@ -203,8 +205,9 @@ final $typed_data.Uint8List updateTransactionRequestDescriptor = $convert.base64
     'IAEoCUgBUgpjYXRlZ29yeUlkiAEBEhcKBG5vdGUYBCABKAlIAlIEbm90ZYgBARIXCgR0YWdzGA'
     'UgASgJSANSBHRhZ3OIAQESRQoEdHlwZRgGIAEoDjIsLmZhbWlseWxlZGdlci50cmFuc2FjdGlv'
     'bi52MS5UcmFuc2FjdGlvblR5cGVIBFIEdHlwZYgBARIfCghjdXJyZW5jeRgHIAEoCUgFUghjdX'
-    'JyZW5jeYgBAUIJCgdfYW1vdW50Qg4KDF9jYXRlZ29yeV9pZEIHCgVfbm90ZUIHCgVfdGFnc0IH'
-    'CgVfdHlwZUILCglfY3VycmVuY3k=');
+    'JyZW5jeYgBARI6Cgh0eG5fZGF0ZRgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBI'
+    'BlIHdHhuRGF0ZYgBAUIJCgdfYW1vdW50Qg4KDF9jYXRlZ29yeV9pZEIHCgVfbm90ZUIHCgVfdG'
+    'Fnc0IHCgVfdHlwZUILCglfY3VycmVuY3lCCwoJX3R4bl9kYXRl');
 
 @$core.Deprecated('Use updateTransactionResponseDescriptor instead')
 const UpdateTransactionResponse$json = {

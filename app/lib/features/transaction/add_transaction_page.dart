@@ -57,6 +57,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   // Show detail panel
   bool _showDetails = false;
 
+  // Transaction date/time (null = use current time)
+  DateTime? _selectedDate;
+
   bool get _isEditMode => widget.existingTransaction != null;
 
   @override
@@ -91,6 +94,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       _showDetails = _noteController.text.isNotEmpty ||
           _tags.isNotEmpty ||
           _imagePaths.isNotEmpty;
+      // 编辑模式：预填交易日期
+      _selectedDate = txn.txnDate;
       // 设置 tab（收入 or 支出）— 必须在 addListener 前设置
       if (txn.type == 'income') {
         _tabController.index = 1;
@@ -157,6 +162,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
           // CNY equivalent (when foreign currency)
           if (_selectedCurrency != 'CNY') _buildCnyEquivalent(),
           const SizedBox(height: 4),
+          // Date/time picker row
+          _buildDateRow(context),
           // Detail toggle
           _buildDetailToggle(context),
           // Details panel (note, tags, images)
@@ -299,6 +306,113 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
         ],
       ),
     );
+  }
+
+  // TODO: i18n — date format strings are hardcoded in Chinese
+  static const _kToday = '今天';
+
+  String _formatDateLabel(DateTime? date, DateTime now) {
+    if (date == null) return _kToday;
+    final hourStr = date.hour.toString().padLeft(2, '0');
+    final minStr = date.minute.toString().padLeft(2, '0');
+    final time = '$hourStr:$minStr';
+
+    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+      return '$_kToday $time';
+    } else if (date.year == now.year) {
+      return '${date.month}月${date.day}日 $time';
+    } else {
+      return '${date.year}/${date.month}/${date.day} $time';
+    }
+  }
+
+  bool _isSelectedToday(DateTime now) {
+    if (_selectedDate == null) return true;
+    return _selectedDate!.year == now.year &&
+        _selectedDate!.month == now.month &&
+        _selectedDate!.day == now.day;
+  }
+
+  Widget _buildDateRow(BuildContext context) {
+    final theme = Theme.of(context);
+    final now = DateTime.now();
+    final isToday = _isSelectedToday(now);
+    final label = _formatDateLabel(_selectedDate, now);
+    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.4);
+
+    return InkWell(
+      onTap: () => _pickDateTime(context),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.calendar_today_rounded,
+                size: 14,
+                color: isToday ? muted : theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isToday ? muted : theme.colorScheme.primary,
+                  fontWeight: isToday ? FontWeight.normal : FontWeight.w500,
+                ),
+              ),
+              if (_selectedDate != null) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: () => setState(() => _selectedDate = null),
+                  icon: Icon(Icons.close_rounded, size: 14, color: muted),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  style: IconButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickDateTime(BuildContext context) async {
+    final now = DateTime.now();
+    final initial = _selectedDate ?? now;
+
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      // Small buffer to prevent cross-midnight edge case where
+      // DatePicker render time causes 'today' to become invalid.
+      lastDate: now.add(const Duration(minutes: 5)),
+      locale: const Locale('zh', 'CN'),
+    );
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    // User cancelled time picker → don't change anything
+    if (time == null || !mounted) return;
+
+    setState(() {
+      _selectedDate = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
   }
 
   Widget _buildDetailToggle(BuildContext context) {
@@ -786,6 +900,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
               amountCny: amountCny,
               tags: _tags.isNotEmpty ? jsonEncode(_tags) : '',
               imageUrls: imageUrlsStr,
+              txnDate: _selectedDate,
             );
       } else {
         // 新建模式：创建交易
@@ -798,6 +913,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
               amountCny: amountCny,
               tags: _tags.isNotEmpty ? jsonEncode(_tags) : '',
               imageUrls: imageUrlsStr,
+              txnDate: _selectedDate,
             );
       }
 
@@ -813,6 +929,16 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
         if (mounted) {
           Navigator.of(context).pop(_isEditMode ? true : null);
         }
+      }
+    } on ArgumentError catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('日期无效: ${e.message}'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

@@ -898,6 +898,7 @@ class UpdateTransactionRequest extends $pb.GeneratedMessage {
     $core.String? tags,
     TransactionType? type,
     $core.String? currency,
+    $1.Timestamp? txnDate,
   }) {
     final $result = create();
     if (transactionId != null) {
@@ -921,6 +922,9 @@ class UpdateTransactionRequest extends $pb.GeneratedMessage {
     if (currency != null) {
       $result.currency = currency;
     }
+    if (txnDate != null) {
+      $result.txnDate = txnDate;
+    }
     return $result;
   }
   UpdateTransactionRequest._() : super();
@@ -935,6 +939,7 @@ class UpdateTransactionRequest extends $pb.GeneratedMessage {
     ..aOS(5, _omitFieldNames ? '' : 'tags')
     ..e<TransactionType>(6, _omitFieldNames ? '' : 'type', $pb.PbFieldType.OE, defaultOrMaker: TransactionType.TRANSACTION_TYPE_UNSPECIFIED, valueOf: TransactionType.valueOf, enumValues: TransactionType.values)
     ..aOS(7, _omitFieldNames ? '' : 'currency')
+    ..aOM<$1.Timestamp>(8, _omitFieldNames ? '' : 'txnDate', subBuilder: $1.Timestamp.create)
     ..hasRequiredFields = false
   ;
 
@@ -1021,6 +1026,17 @@ class UpdateTransactionRequest extends $pb.GeneratedMessage {
   $core.bool hasCurrency() => $_has(6);
   @$pb.TagNumber(7)
   void clearCurrency() => clearField(7);
+
+  @$pb.TagNumber(8)
+  $1.Timestamp get txnDate => $_getN(7);
+  @$pb.TagNumber(8)
+  set txnDate($1.Timestamp v) { setField(8, v); }
+  @$pb.TagNumber(8)
+  $core.bool hasTxnDate() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearTxnDate() => clearField(8);
+  @$pb.TagNumber(8)
+  $1.Timestamp ensureTxnDate() => $_ensure(7);
 }
 
 class UpdateTransactionResponse extends $pb.GeneratedMessage {

@@ -680,6 +680,7 @@ type UpdateTransactionRequest struct {
 	Tags          *string                `protobuf:"bytes,5,opt,name=tags,proto3,oneof" json:"tags,omitempty"`
 	Type          *TransactionType       `protobuf:"varint,6,opt,name=type,proto3,enum=familyledger.transaction.v1.TransactionType,oneof" json:"type,omitempty"`
 	Currency      *string                `protobuf:"bytes,7,opt,name=currency,proto3,oneof" json:"currency,omitempty"`
+	TxnDate       *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=txn_date,json=txnDate,proto3,oneof" json:"txn_date,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -761,6 +762,13 @@ func (x *UpdateTransactionRequest) GetCurrency() string {
 		return *x.Currency
 	}
 	return ""
+}
+
+func (x *UpdateTransactionRequest) GetTxnDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.TxnDate
+	}
+	return nil
 }
 
 type UpdateTransactionResponse struct {
@@ -1799,7 +1807,7 @@ const file_transaction_proto_rawDesc = "" +
 	"\ftransactions\x18\x01 \x03(\v2(.familyledger.transaction.v1.TransactionR\ftransactions\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
 	"\vtotal_count\x18\x03 \x01(\x05R\n" +
-	"totalCount\"\xe1\x02\n" +
+	"totalCount\"\xaa\x03\n" +
 	"\x18UpdateTransactionRequest\x12%\n" +
 	"\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId\x12\x1b\n" +
 	"\x06amount\x18\x02 \x01(\x03H\x00R\x06amount\x88\x01\x01\x12$\n" +
@@ -1808,13 +1816,15 @@ const file_transaction_proto_rawDesc = "" +
 	"\x04note\x18\x04 \x01(\tH\x02R\x04note\x88\x01\x01\x12\x17\n" +
 	"\x04tags\x18\x05 \x01(\tH\x03R\x04tags\x88\x01\x01\x12E\n" +
 	"\x04type\x18\x06 \x01(\x0e2,.familyledger.transaction.v1.TransactionTypeH\x04R\x04type\x88\x01\x01\x12\x1f\n" +
-	"\bcurrency\x18\a \x01(\tH\x05R\bcurrency\x88\x01\x01B\t\n" +
+	"\bcurrency\x18\a \x01(\tH\x05R\bcurrency\x88\x01\x01\x12:\n" +
+	"\btxn_date\x18\b \x01(\v2\x1a.google.protobuf.TimestampH\x06R\atxnDate\x88\x01\x01B\t\n" +
 	"\a_amountB\x0e\n" +
 	"\f_category_idB\a\n" +
 	"\x05_noteB\a\n" +
 	"\x05_tagsB\a\n" +
 	"\x05_typeB\v\n" +
-	"\t_currency\"g\n" +
+	"\t_currencyB\v\n" +
+	"\t_txn_date\"g\n" +
 	"\x19UpdateTransactionResponse\x12J\n" +
 	"\vtransaction\x18\x01 \x01(\v2(.familyledger.transaction.v1.TransactionR\vtransaction\"A\n" +
 	"\x18DeleteTransactionRequest\x12%\n" +
@@ -1953,44 +1963,45 @@ var file_transaction_proto_depIdxs = []int32{
 	28, // 12: familyledger.transaction.v1.ListTransactionsRequest.updated_since:type_name -> google.protobuf.Timestamp
 	1,  // 13: familyledger.transaction.v1.ListTransactionsResponse.transactions:type_name -> familyledger.transaction.v1.Transaction
 	0,  // 14: familyledger.transaction.v1.UpdateTransactionRequest.type:type_name -> familyledger.transaction.v1.TransactionType
-	1,  // 15: familyledger.transaction.v1.UpdateTransactionResponse.transaction:type_name -> familyledger.transaction.v1.Transaction
-	3,  // 16: familyledger.transaction.v1.BatchCreateTransactionsRequest.transactions:type_name -> familyledger.transaction.v1.CreateTransactionRequest
-	1,  // 17: familyledger.transaction.v1.BatchCreateTransactionsResponse.transactions:type_name -> familyledger.transaction.v1.Transaction
-	0,  // 18: familyledger.transaction.v1.GetCategoriesRequest.type:type_name -> familyledger.transaction.v1.TransactionType
-	2,  // 19: familyledger.transaction.v1.GetCategoriesResponse.categories:type_name -> familyledger.transaction.v1.Category
-	0,  // 20: familyledger.transaction.v1.CreateCategoryRequest.type:type_name -> familyledger.transaction.v1.TransactionType
-	2,  // 21: familyledger.transaction.v1.CreateCategoryResponse.category:type_name -> familyledger.transaction.v1.Category
-	2,  // 22: familyledger.transaction.v1.UpdateCategoryResponse.category:type_name -> familyledger.transaction.v1.Category
-	26, // 23: familyledger.transaction.v1.ReorderCategoriesRequest.orders:type_name -> familyledger.transaction.v1.CategoryOrder
-	3,  // 24: familyledger.transaction.v1.TransactionService.CreateTransaction:input_type -> familyledger.transaction.v1.CreateTransactionRequest
-	11, // 25: familyledger.transaction.v1.TransactionService.BatchCreateTransactions:input_type -> familyledger.transaction.v1.BatchCreateTransactionsRequest
-	7,  // 26: familyledger.transaction.v1.TransactionService.UpdateTransaction:input_type -> familyledger.transaction.v1.UpdateTransactionRequest
-	9,  // 27: familyledger.transaction.v1.TransactionService.DeleteTransaction:input_type -> familyledger.transaction.v1.DeleteTransactionRequest
-	13, // 28: familyledger.transaction.v1.TransactionService.BatchDeleteTransactions:input_type -> familyledger.transaction.v1.BatchDeleteTransactionsRequest
-	15, // 29: familyledger.transaction.v1.TransactionService.UploadTransactionImage:input_type -> familyledger.transaction.v1.UploadTransactionImageRequest
-	5,  // 30: familyledger.transaction.v1.TransactionService.ListTransactions:input_type -> familyledger.transaction.v1.ListTransactionsRequest
-	17, // 31: familyledger.transaction.v1.TransactionService.GetCategories:input_type -> familyledger.transaction.v1.GetCategoriesRequest
-	19, // 32: familyledger.transaction.v1.TransactionService.CreateCategory:input_type -> familyledger.transaction.v1.CreateCategoryRequest
-	21, // 33: familyledger.transaction.v1.TransactionService.UpdateCategory:input_type -> familyledger.transaction.v1.UpdateCategoryRequest
-	23, // 34: familyledger.transaction.v1.TransactionService.DeleteCategory:input_type -> familyledger.transaction.v1.DeleteCategoryRequest
-	25, // 35: familyledger.transaction.v1.TransactionService.ReorderCategories:input_type -> familyledger.transaction.v1.ReorderCategoriesRequest
-	4,  // 36: familyledger.transaction.v1.TransactionService.CreateTransaction:output_type -> familyledger.transaction.v1.CreateTransactionResponse
-	12, // 37: familyledger.transaction.v1.TransactionService.BatchCreateTransactions:output_type -> familyledger.transaction.v1.BatchCreateTransactionsResponse
-	8,  // 38: familyledger.transaction.v1.TransactionService.UpdateTransaction:output_type -> familyledger.transaction.v1.UpdateTransactionResponse
-	10, // 39: familyledger.transaction.v1.TransactionService.DeleteTransaction:output_type -> familyledger.transaction.v1.DeleteTransactionResponse
-	14, // 40: familyledger.transaction.v1.TransactionService.BatchDeleteTransactions:output_type -> familyledger.transaction.v1.BatchDeleteTransactionsResponse
-	16, // 41: familyledger.transaction.v1.TransactionService.UploadTransactionImage:output_type -> familyledger.transaction.v1.UploadTransactionImageResponse
-	6,  // 42: familyledger.transaction.v1.TransactionService.ListTransactions:output_type -> familyledger.transaction.v1.ListTransactionsResponse
-	18, // 43: familyledger.transaction.v1.TransactionService.GetCategories:output_type -> familyledger.transaction.v1.GetCategoriesResponse
-	20, // 44: familyledger.transaction.v1.TransactionService.CreateCategory:output_type -> familyledger.transaction.v1.CreateCategoryResponse
-	22, // 45: familyledger.transaction.v1.TransactionService.UpdateCategory:output_type -> familyledger.transaction.v1.UpdateCategoryResponse
-	24, // 46: familyledger.transaction.v1.TransactionService.DeleteCategory:output_type -> familyledger.transaction.v1.DeleteCategoryResponse
-	27, // 47: familyledger.transaction.v1.TransactionService.ReorderCategories:output_type -> familyledger.transaction.v1.ReorderCategoriesResponse
-	36, // [36:48] is the sub-list for method output_type
-	24, // [24:36] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	28, // 15: familyledger.transaction.v1.UpdateTransactionRequest.txn_date:type_name -> google.protobuf.Timestamp
+	1,  // 16: familyledger.transaction.v1.UpdateTransactionResponse.transaction:type_name -> familyledger.transaction.v1.Transaction
+	3,  // 17: familyledger.transaction.v1.BatchCreateTransactionsRequest.transactions:type_name -> familyledger.transaction.v1.CreateTransactionRequest
+	1,  // 18: familyledger.transaction.v1.BatchCreateTransactionsResponse.transactions:type_name -> familyledger.transaction.v1.Transaction
+	0,  // 19: familyledger.transaction.v1.GetCategoriesRequest.type:type_name -> familyledger.transaction.v1.TransactionType
+	2,  // 20: familyledger.transaction.v1.GetCategoriesResponse.categories:type_name -> familyledger.transaction.v1.Category
+	0,  // 21: familyledger.transaction.v1.CreateCategoryRequest.type:type_name -> familyledger.transaction.v1.TransactionType
+	2,  // 22: familyledger.transaction.v1.CreateCategoryResponse.category:type_name -> familyledger.transaction.v1.Category
+	2,  // 23: familyledger.transaction.v1.UpdateCategoryResponse.category:type_name -> familyledger.transaction.v1.Category
+	26, // 24: familyledger.transaction.v1.ReorderCategoriesRequest.orders:type_name -> familyledger.transaction.v1.CategoryOrder
+	3,  // 25: familyledger.transaction.v1.TransactionService.CreateTransaction:input_type -> familyledger.transaction.v1.CreateTransactionRequest
+	11, // 26: familyledger.transaction.v1.TransactionService.BatchCreateTransactions:input_type -> familyledger.transaction.v1.BatchCreateTransactionsRequest
+	7,  // 27: familyledger.transaction.v1.TransactionService.UpdateTransaction:input_type -> familyledger.transaction.v1.UpdateTransactionRequest
+	9,  // 28: familyledger.transaction.v1.TransactionService.DeleteTransaction:input_type -> familyledger.transaction.v1.DeleteTransactionRequest
+	13, // 29: familyledger.transaction.v1.TransactionService.BatchDeleteTransactions:input_type -> familyledger.transaction.v1.BatchDeleteTransactionsRequest
+	15, // 30: familyledger.transaction.v1.TransactionService.UploadTransactionImage:input_type -> familyledger.transaction.v1.UploadTransactionImageRequest
+	5,  // 31: familyledger.transaction.v1.TransactionService.ListTransactions:input_type -> familyledger.transaction.v1.ListTransactionsRequest
+	17, // 32: familyledger.transaction.v1.TransactionService.GetCategories:input_type -> familyledger.transaction.v1.GetCategoriesRequest
+	19, // 33: familyledger.transaction.v1.TransactionService.CreateCategory:input_type -> familyledger.transaction.v1.CreateCategoryRequest
+	21, // 34: familyledger.transaction.v1.TransactionService.UpdateCategory:input_type -> familyledger.transaction.v1.UpdateCategoryRequest
+	23, // 35: familyledger.transaction.v1.TransactionService.DeleteCategory:input_type -> familyledger.transaction.v1.DeleteCategoryRequest
+	25, // 36: familyledger.transaction.v1.TransactionService.ReorderCategories:input_type -> familyledger.transaction.v1.ReorderCategoriesRequest
+	4,  // 37: familyledger.transaction.v1.TransactionService.CreateTransaction:output_type -> familyledger.transaction.v1.CreateTransactionResponse
+	12, // 38: familyledger.transaction.v1.TransactionService.BatchCreateTransactions:output_type -> familyledger.transaction.v1.BatchCreateTransactionsResponse
+	8,  // 39: familyledger.transaction.v1.TransactionService.UpdateTransaction:output_type -> familyledger.transaction.v1.UpdateTransactionResponse
+	10, // 40: familyledger.transaction.v1.TransactionService.DeleteTransaction:output_type -> familyledger.transaction.v1.DeleteTransactionResponse
+	14, // 41: familyledger.transaction.v1.TransactionService.BatchDeleteTransactions:output_type -> familyledger.transaction.v1.BatchDeleteTransactionsResponse
+	16, // 42: familyledger.transaction.v1.TransactionService.UploadTransactionImage:output_type -> familyledger.transaction.v1.UploadTransactionImageResponse
+	6,  // 43: familyledger.transaction.v1.TransactionService.ListTransactions:output_type -> familyledger.transaction.v1.ListTransactionsResponse
+	18, // 44: familyledger.transaction.v1.TransactionService.GetCategories:output_type -> familyledger.transaction.v1.GetCategoriesResponse
+	20, // 45: familyledger.transaction.v1.TransactionService.CreateCategory:output_type -> familyledger.transaction.v1.CreateCategoryResponse
+	22, // 46: familyledger.transaction.v1.TransactionService.UpdateCategory:output_type -> familyledger.transaction.v1.UpdateCategoryResponse
+	24, // 47: familyledger.transaction.v1.TransactionService.DeleteCategory:output_type -> familyledger.transaction.v1.DeleteCategoryResponse
+	27, // 48: familyledger.transaction.v1.TransactionService.ReorderCategories:output_type -> familyledger.transaction.v1.ReorderCategoriesResponse
+	37, // [37:49] is the sub-list for method output_type
+	25, // [25:37] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_transaction_proto_init() }
