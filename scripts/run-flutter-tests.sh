@@ -66,6 +66,11 @@ if [ -n "$FAILED" ]; then
   echo "::notice::Retrying failed tests: $FAILED"
   # shellcheck disable=SC2086  # intentional: FAILED needs word splitting into multiple file args
   timeout --foreground "$RETRY_TIMEOUT_SECS" flutter test "${TEST_ARGS[@]}" $FAILED
+  RETRY_EXIT=$?
+  if [ "$RETRY_EXIT" -eq 0 ]; then
+    echo "::notice::Retry succeeded for: $FAILED"
+  fi
+  exit "$RETRY_EXIT"
 else
   exit "$EXIT_CODE"
 fi

@@ -42,9 +42,9 @@ func parseTxnDate(s string) (time.Time, bool, error) {
 		return time.Time{}, false, fmt.Errorf("parseTxnDate: empty string")
 	}
 
-	// Fast path: RFC3339Nano is a superset of RFC3339 — it handles both
-	// "2026-05-16T23:31:00Z" and "2026-05-16T23:31:00.000000Z" in one call.
-	// RFC3339 kept as fallback for edge cases only.
+	// Fast path: try RFC3339Nano first — its fractional-second part is optional
+	// in Go's time.Parse, so it also handles plain RFC3339 strings.
+	// RFC3339 kept as explicit fallback for safety.
 	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
 		return t, true, nil
 	}
