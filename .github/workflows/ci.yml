@@ -140,6 +140,8 @@ jobs:
 
       - name: Run integration tests (testcontainers)
         working-directory: server
+        env:
+          OAUTH_MODE: mock
         run: |
           set -o pipefail
           go test ./internal/integration/... -tags=integration -count=1 -timeout=300s -v 2>&1 | tee integration.log

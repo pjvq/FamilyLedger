@@ -53,6 +53,47 @@ class SecureTokenStorage {
   }
 }
 
+/// In-memory implementation for tests (no platform channels needed).
+class FakeSecureTokenStorage extends SecureTokenStorage {
+  final Map<String, String> _store = {};
+
+  FakeSecureTokenStorage(super.prefs);
+
+  @override
+  Future<void> migrateIfNeeded() async {
+    // In tests, migrate from SharedPreferences to in-memory store
+    final accessToken = _prefs.getString(AppConstants.accessTokenKey);
+    final refreshToken = _prefs.getString(AppConstants.refreshTokenKey);
+    if (accessToken != null) _store[AppConstants.accessTokenKey] = accessToken;
+    if (refreshToken != null) _store[AppConstants.refreshTokenKey] = refreshToken;
+  }
+
+  @override
+  Future<String?> getAccessToken() async =>
+      _store[AppConstants.accessTokenKey];
+
+  @override
+  Future<String?> getRefreshToken() async =>
+      _store[AppConstants.refreshTokenKey];
+
+  @override
+  Future<void> setAccessToken(String token) async =>
+      _store[AppConstants.accessTokenKey] = token;
+
+  @override
+  Future<void> setRefreshToken(String token) async =>
+      _store[AppConstants.refreshTokenKey] = token;
+
+  @override
+  Future<void> clearTokens() async {
+    _store.remove(AppConstants.accessTokenKey);
+    _store.remove(AppConstants.refreshTokenKey);
+  }
+
+  /// Test helper — read stored tokens
+  Map<String, String> get storedTokens => Map.unmodifiable(_store);
+}
+
 final secureTokenStorageProvider = Provider<SecureTokenStorage>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return SecureTokenStorage(prefs);

@@ -18,6 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:familyledger/data/local/secure_token_storage.dart';
 import 'package:familyledger/core/constants/app_constants.dart';
 import 'package:familyledger/data/local/database.dart';
 import 'package:familyledger/data/remote/grpc_clients.dart';
@@ -403,6 +404,7 @@ AppDatabase _createTestDb() =>
 void main() {
   late AppDatabase db;
   late SharedPreferences prefs;
+  late FakeSecureTokenStorage fakeTokenStorage;
   late FakeAuthClient authClient;
   late FakeAccountClient accountClient;
   late FakeTransactionClient txnClient;
@@ -412,6 +414,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
+    fakeTokenStorage = FakeSecureTokenStorage(prefs);
     db = _createTestDb();
     authClient = FakeAuthClient();
     accountClient = FakeAccountClient();
@@ -422,6 +425,7 @@ void main() {
       overrides: [
         databaseProvider.overrideWithValue(db),
         sharedPreferencesProvider.overrideWithValue(prefs),
+        secureTokenStorageProvider.overrideWithValue(fakeTokenStorage),
         authClientProvider.overrideWithValue(authClient),
         accountClientProvider.overrideWithValue(accountClient),
         transactionClientProvider.overrideWithValue(txnClient),
@@ -474,13 +478,13 @@ void main() {
       expect(salary.parentId, isNull);
     });
 
-    test('login stores access/refresh tokens and userId in SharedPreferences',
+    test('login stores access/refresh tokens in secure storage and userId in SharedPreferences',
         () async {
       final authNotifier = container.read(authProvider.notifier);
       await authNotifier.login('test@test.com', 'pass123');
 
-      expect(prefs.getString(AppConstants.accessTokenKey), 'token_abc');
-      expect(prefs.getString(AppConstants.refreshTokenKey), 'refresh_abc');
+      expect(await fakeTokenStorage.getAccessToken(), 'token_abc');
+      expect(await fakeTokenStorage.getRefreshToken(), 'refresh_abc');
       expect(prefs.getString(AppConstants.userIdKey), 'user_1');
     });
 
