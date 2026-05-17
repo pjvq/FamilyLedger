@@ -4,6 +4,7 @@
 /// Uses ProviderContainer (no widget pumping needed), avoiding flutter_tester
 /// subprocess which can segfault on memory-constrained CI runners.
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'
     hide Notifier, FamilyNotifier;
 import 'package:familyledger/domain/providers/family_provider.dart';
@@ -163,6 +164,9 @@ void main() {
       });
     });
   });
+
+  // Widget-level smoke tests: verify provider values actually affect rendered UI.
+  _widgetSmokeTests();
 }
 
 /// A minimal FamilyNotifier that holds fixed state.
@@ -191,4 +195,72 @@ class _FixedFamilyNotifier extends StateNotifier<FamilyState>
   Future<void> leaveFamily() async {}
   @override
   Future<void> refreshMembers() async {}
+}
+
+/// Minimal widget that reads canEditProvider to show/hide an edit button.
+class _PermissionTestWidget extends ConsumerWidget {
+  const _PermissionTestWidget();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final canEdit = ref.watch(canEditProvider);
+    return MaterialApp(
+      home: Scaffold(
+        body: canEdit
+            ? const ElevatedButton(
+                onPressed: null,
+                child: Text('Edit'),
+              )
+            : const SizedBox.shrink(),
+      ),
+    );
+  }
+}
+
+void _widgetSmokeTests() {
+  group('Widget smoke tests', () {
+    testWidgets('canEdit=false hides edit button in widget', (tester) async {
+      final perms = pb_model.MemberPermissions()
+        ..canView = true
+        ..canCreate = true
+        ..canEdit = false
+        ..canDelete = false
+        ..canManageAccounts = false;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentFamilyIdProvider.overrideWith((ref) => 'fam1'),
+            familyProvider.overrideWith(
+                (_) => _FixedFamilyNotifier(FamilyState(myPermissions: perms))),
+          ],
+          child: const _PermissionTestWidget(),
+        ),
+      );
+
+      expect(find.text('Edit'), findsNothing);
+    });
+
+    testWidgets('canEdit=true shows edit button in widget', (tester) async {
+      final perms = pb_model.MemberPermissions()
+        ..canView = true
+        ..canCreate = true
+        ..canEdit = true
+        ..canDelete = true
+        ..canManageAccounts = true;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentFamilyIdProvider.overrideWith((ref) => 'fam1'),
+            familyProvider.overrideWith(
+                (_) => _FixedFamilyNotifier(FamilyState(myPermissions: perms))),
+          ],
+          child: const _PermissionTestWidget(),
+        ),
+      );
+
+      expect(find.text('Edit'), findsOneWidget);
+    });
+  });
 }

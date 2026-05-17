@@ -64,14 +64,17 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   final String _userId;
   final String? _familyId;
   final pb.TransactionServiceClient? _txnClient;
-  final void Function()? _onSyncNeeded;
   final _uuid = const Uuid();
   StreamSubscription? _sub;
   static final _callOpts = CallOptions(timeout: const Duration(seconds: 5));
 
-  TransactionNotifier(this._db, this._userId, this._familyId, this._txnClient, {void Function()? onSyncNeeded})
-      : _onSyncNeeded = onSyncNeeded,
-        super(const TransactionState()) {
+  /// Stream that fires whenever an offline sync op is queued.
+  /// External listeners (e.g. SyncEngine) can subscribe to trigger immediate push.
+  final _syncRequestedController = StreamController<void>.broadcast();
+  Stream<void> get syncRequested => _syncRequestedController.stream;
+
+  TransactionNotifier(this._db, this._userId, this._familyId, this._txnClient)
+      : super(const TransactionState()) {
     _load();
     _sub = _db.watchTransactions(_userId, familyId: _familyId).listen((txns) {
       state = state.copyWith(transactions: txns);
@@ -288,6 +291,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     String tags = '',
     String imageUrls = '',
   }) async {
+    // TODO: inject Clock for testability
     final now = DateTime.now();
     final account = await _db.getDefaultAccount(_userId, familyId: _familyId);
     if (account == null) {
@@ -371,7 +375,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         clientId: syncOpId,
         timestamp: now,
       ));
-      _onSyncNeeded?.call();
+      _syncRequestedController.add(null);
     }
   }
 
@@ -459,7 +463,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         clientId: syncOpId,
         timestamp: DateTime.now(),
       ));
-      _onSyncNeeded?.call();
+      _syncRequestedController.add(null);
     }
 
     // 5. 刷新摘要
@@ -500,7 +504,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         clientId: syncOpId,
         timestamp: DateTime.now(),
       ));
-      _onSyncNeeded?.call();
+      _syncRequestedController.add(null);
     }
 
     // 5. 刷新摘要
@@ -542,7 +546,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           timestamp: DateTime.now(),
         ));
       }
-      _onSyncNeeded?.call();
+      _syncRequestedController.add(null);
     }
 
     // 3. 刷新摘要
@@ -566,6 +570,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   @override
   void dispose() {
     _sub?.cancel();
+    _syncRequestedController.close();
     super.dispose();
   }
 }
@@ -618,16 +623,20 @@ final transactionProvider =
     return TransactionNotifier(db, '', null, null);
   }
 
-  // Inject sync trigger: fire-and-forget push when offline ops are queued
-  void onSyncNeeded() {
+  final notifier = TransactionNotifier(db, userId, familyId, txnClient);
+
+  // Listen to sync requests and forward to SyncEngine.
+  // TransactionNotifier has zero dependency on SyncEngine.
+  StreamSubscription<void>? syncSub;
+  syncSub = notifier.syncRequested.listen((_) {
     try {
       final engine = ref.read(syncEngineProvider);
       unawaited(engine.syncNow());
-    } catch (_) {
+    } on StateError catch (_) {
       // SyncEngine not initialized yet — will pick up ops on next timer cycle
     }
-  }
+  });
+  ref.onDispose(() => syncSub?.cancel());
 
-  return TransactionNotifier(db, userId, familyId, txnClient,
-      onSyncNeeded: onSyncNeeded);
+  return notifier;
 });
