@@ -309,14 +309,16 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   }
 
   // TODO: i18n — date format strings are hardcoded in Chinese
+  static const _kToday = '今天';
+
   String _formatDateLabel(DateTime? date, DateTime now) {
-    if (date == null) return '今天';
+    if (date == null) return _kToday;
     final hourStr = date.hour.toString().padLeft(2, '0');
     final minStr = date.minute.toString().padLeft(2, '0');
     final time = '$hourStr:$minStr';
 
     if (date.year == now.year && date.month == now.month && date.day == now.day) {
-      return '今天 $time';
+      return '$_kToday $time';
     } else if (date.year == now.year) {
       return '${date.month}月${date.day}日 $time';
     } else {
@@ -927,6 +929,16 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
         if (mounted) {
           Navigator.of(context).pop(_isEditMode ? true : null);
         }
+      }
+    } on ArgumentError catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('日期无效: ${e.message}'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
