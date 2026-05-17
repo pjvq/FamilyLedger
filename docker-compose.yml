@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       POSTGRES_DB: ${DB_NAME:-familyledger}
     ports:
-      - "5432:5432"
+      - "5432:5432"  # Dev only — remove in production (server accesses DB via Docker network)
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

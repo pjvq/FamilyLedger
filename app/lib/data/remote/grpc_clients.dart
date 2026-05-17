@@ -180,6 +180,7 @@ final authInterceptorProvider = Provider<AuthInterceptor>((ref) {
 });
 
 /// Helper: create a gRPC client provider with auth interceptor.
+/// TODO: Forward CallOptions if a client needs custom timeouts.
 Provider<T> _grpcClientProvider<T extends Client>(
   T Function(ClientChannel, {Iterable<ClientInterceptor> interceptors}) ctor,
 ) {
