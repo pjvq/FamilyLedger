@@ -305,6 +305,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
     final effectiveAmountCny = amountCny ?? amount;
     final effectiveTxnDate = txnDate ?? now;
+    _validateTxnDate(effectiveTxnDate);
 
     // Try server-first approach to avoid ID mismatch flicker
     String transactionId;
@@ -399,12 +400,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   }) async {
     // Validate txnDate range if provided (use UTC to match server-side validation)
     if (txnDate != null) {
-      final earliest = DateTime.utc(2000);
-      final latest = DateTime.now().toUtc().add(const Duration(days: 1));
-      final utc = txnDate.toUtc();
-      if (utc.isBefore(earliest) || utc.isAfter(latest)) {
-        throw ArgumentError('txnDate out of range: ${utc.toIso8601String()}');
-      }
+      _validateTxnDate(txnDate);
     }
 
     // 1. 获取旧交易记录（用于回退余额）
@@ -593,6 +589,17 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     _sub?.cancel();
     _syncRequestedController.close();
     super.dispose();
+  }
+}
+
+/// Validate txnDate is within [2000-01-01 UTC, now+1d UTC].
+/// Shared by addTransaction and updateTransaction.
+void _validateTxnDate(DateTime txnDate) {
+  final earliest = DateTime.utc(2000);
+  final latest = DateTime.now().toUtc().add(const Duration(days: 1));
+  final utc = txnDate.toUtc();
+  if (utc.isBefore(earliest) || utc.isAfter(latest)) {
+    throw ArgumentError('txnDate out of range: ${utc.toIso8601String()}');
   }
 }
 

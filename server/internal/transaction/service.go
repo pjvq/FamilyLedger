@@ -149,6 +149,18 @@ func (s *Service) getAccountFamilyID(ctx context.Context, accountID uuid.UUID) (
 	return getAccountFamilyIDFrom(ctx, s.pool, accountID)
 }
 
+// validateTxnDate checks a protobuf Timestamp for validity and range [2000-01-01, now+1d].
+func validateTxnDate(ts *timestamppb.Timestamp) (time.Time, error) {
+	if err := ts.CheckValid(); err != nil {
+		return time.Time{}, status.Error(codes.InvalidArgument, "txn_date: invalid or out of range")
+	}
+	t := ts.AsTime()
+	if t.Before(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)) || t.After(time.Now().AddDate(0, 0, 1)) {
+		return time.Time{}, status.Error(codes.InvalidArgument, "txn_date: invalid or out of range")
+	}
+	return t, nil
+}
+
 func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransactionRequest) (*pb.CreateTransactionResponse, error) {
 	userID, err := middleware.GetUserID(ctx)
 	if err != nil {
@@ -219,7 +231,11 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 
 	txnDate := time.Now()
 	if req.TxnDate != nil {
-		txnDate = req.TxnDate.AsTime()
+		var err error
+		txnDate, err = validateTxnDate(req.TxnDate)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	txnType := "expense"
@@ -592,12 +608,9 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 	}
 
 	if req.TxnDate != nil {
-		if err := req.TxnDate.CheckValid(); err != nil {
-			return nil, status.Error(codes.InvalidArgument, "txn_date: invalid or out of range")
-		}
-		t := req.TxnDate.AsTime()
-		if t.Before(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)) || t.After(time.Now().AddDate(0, 0, 1)) {
-			return nil, status.Error(codes.InvalidArgument, "txn_date: invalid or out of range")
+		t, err := validateTxnDate(req.TxnDate)
+		if err != nil {
+			return nil, err
 		}
 		args = append(args, t)
 		setClauses = append(setClauses, fmt.Sprintf("txn_date = $%d", argIdx))
