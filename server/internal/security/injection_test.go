@@ -101,12 +101,10 @@ func TestCreateTransaction_SQLInjection_Note(t *testing.T) {
 					WithArgs(pgxmock.AnyArg(), accountID).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
-				// Sync operations
-				mock.ExpectExec("SAVEPOINT sync_insert").WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
+				// Sync operations — now part of the main transaction (no savepoint)
 				mock.ExpectExec("INSERT INTO sync_operations").
 					WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
-				mock.ExpectExec("RELEASE SAVEPOINT sync_insert").WillReturnResult(pgxmock.NewResult("RELEASE", 0))
 
 				mock.ExpectCommit()
 			}
@@ -240,6 +238,11 @@ func TestUpdateTransaction_SQLInjection_Note(t *testing.T) {
 			mock.ExpectExec("UPDATE transactions SET").
 				WithArgs(payload, txnID). // note = payload as parameter
 				WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+			// Sync operations — now part of the main transaction
+			mock.ExpectExec("INSERT INTO sync_operations").
+				WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+				WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 			mock.ExpectCommit()
 

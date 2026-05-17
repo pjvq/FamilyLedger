@@ -548,6 +548,10 @@ func TestBatchDelete_Success(t *testing.T) {
 	mock.ExpectExec("UPDATE accounts SET balance").
 		WithArgs(int64(5000), accID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
 	resp, err := svc.BatchDeleteTransactions(authedCtx(), &pb.BatchDeleteTransactionsRequest{TransactionIds: []string{txnID.String()}})
@@ -784,6 +788,10 @@ func TestUpdateTransaction_Tags_JSON(t *testing.T) {
 	mock.ExpectExec("UPDATE transactions SET").
 		WithArgs(pgxmock.AnyArg(), txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	// Fetch updated
 	mock.ExpectQuery("SELECT id, user_id, account_id").
@@ -816,6 +824,10 @@ func TestUpdateTransaction_Tags_CommaSeparated(t *testing.T) {
 	mock.ExpectExec("UPDATE transactions SET").
 		WithArgs(pgxmock.AnyArg(), txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	mock.ExpectQuery("SELECT id, user_id, account_id").
 		WithArgs(txnID).
@@ -847,6 +859,10 @@ func TestUpdateTransaction_Tags_Empty(t *testing.T) {
 	mock.ExpectExec("UPDATE transactions SET").
 		WithArgs(pgxmock.AnyArg(), txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	mock.ExpectQuery("SELECT id, user_id, account_id").
 		WithArgs(txnID).
@@ -878,6 +894,10 @@ func TestUpdateTransaction_Currency(t *testing.T) {
 	mock.ExpectExec("UPDATE transactions SET").
 		WithArgs("USD", txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	mock.ExpectQuery("SELECT id, user_id, account_id").
 		WithArgs(txnID).
@@ -963,6 +983,10 @@ func TestUpdateTransaction_TypeChange(t *testing.T) {
 	mock.ExpectExec("UPDATE accounts SET balance").
 		WithArgs(int64(2000), accID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	mock.ExpectQuery("SELECT id, user_id, account_id").
 		WithArgs(txnID).

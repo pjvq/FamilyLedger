@@ -368,15 +368,8 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	}
 
 	// Write sync_operations record so PullChanges can discover this transaction.
-	//
-	// DESIGN: Intentional degraded-sync strategy — if sync_operations INSERT fails,
-	// we still commit the main transaction. Rationale: "degraded sync > lost data".
-	// The transaction is created but won't appear in PullChanges until a repair job
-	// or manual re-sync. This is acceptable for gRPC-created transactions.
-	//
-	// WARNING: If sync_operations schema changes (e.g. column rename), ALL gRPC-created
-	// transactions will silently become invisible to PullChanges. Monitor the error
-	// counter below and alert on any non-zero rate.
+	// sync_operations INSERT is part of the transaction — failure rolls back everything.
+	// This prevents silent data loss where transactions exist but are invisible to sync.
 	syncPayload, _ := json.Marshal(map[string]interface{}{
 		"id":            txnID.String(),
 		"account_id":    accountID.String(),
@@ -389,19 +382,13 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		"note":          req.Note,
 		"txn_date":      txnDate.Format("2006-01-02"),
 	})
-	// Use savepoint so failure doesn't abort the main transaction (see DESIGN note above)
-	_, _ = tx.Exec(ctx, "SAVEPOINT sync_insert")
-	_, syncErr := tx.Exec(ctx,
+	if _, err := tx.Exec(ctx,
 		`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
 		 VALUES ($1, 'transaction', $2, 'create'::sync_op_type, $3, $4, NOW())`,
 		uid, txnID, string(syncPayload), "grpc-create-"+uuid.New().String(),
-	)
-	if syncErr != nil {
-		// TODO: increment metrics counter sync_operations_insert_failures_total
-		log.Printf("ERROR: transaction: sync_operations insert FAILED (transaction %s will NOT be visible via PullChanges): %v", txnID.String(), syncErr)
-		_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT sync_insert")
-	} else {
-		_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT sync_insert")
+	); err != nil {
+		log.Printf("ERROR: transaction: sync_operations insert failed for %s: %v", txnID, err)
+		return nil, status.Error(codes.Internal, "failed to record sync operation")
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -685,17 +672,13 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 			"currency":     syncCurrency,
 			"txn_date":     syncTxnDate.Format("2006-01-02"),
 		})
-		_, _ = tx.Exec(ctx, "SAVEPOINT sync_insert")
-		_, syncErr := tx.Exec(ctx,
+		if _, err := tx.Exec(ctx,
 			`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
 			 VALUES ($1, 'transaction', $2, 'update'::sync_op_type, $3, $4, NOW())`,
 			uid, txnID, string(syncPayload), "grpc-update-"+uuid.New().String(),
-		)
-		if syncErr != nil {
-			log.Printf("ERROR: transaction: sync_operations update insert FAILED (transaction %s): %v", txnID.String(), syncErr)
-			_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT sync_insert")
-		} else {
-			_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT sync_insert")
+		); err != nil {
+			log.Printf("ERROR: transaction: sync_operations update insert failed for %s: %v", txnID, err)
+			return nil, status.Error(codes.Internal, "failed to record sync operation")
 		}
 	}
 
@@ -816,17 +799,13 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 	syncPayload, _ := json.Marshal(map[string]interface{}{
 		"id": txnID.String(),
 	})
-	_, _ = tx.Exec(ctx, "SAVEPOINT sync_insert")
-	_, syncErr := tx.Exec(ctx,
+	if _, err := tx.Exec(ctx,
 		`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
 		 VALUES ($1, 'transaction', $2, 'delete'::sync_op_type, $3, $4, NOW())`,
 		uid, txnID, string(syncPayload), "grpc-delete-"+uuid.New().String(),
-	)
-	if syncErr != nil {
-		log.Printf("ERROR: transaction: sync_operations delete insert FAILED (transaction %s): %v", txnID.String(), syncErr)
-		_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT sync_insert")
-	} else {
-		_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT sync_insert")
+	); err != nil {
+		log.Printf("ERROR: transaction: sync_operations delete insert failed for %s: %v", txnID, err)
+		return nil, status.Error(codes.Internal, "failed to record sync operation")
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -863,7 +842,10 @@ func (s *Service) BatchCreateTransactions(ctx context.Context, req *pb.BatchCrea
 	var created []*pb.Transaction
 	var errors []string
 
-	// Skip overdraft check in batch mode (import scenario)
+	// Batch mode: skip per-transaction overdraft for performance, but log a
+	// warning if any account balance goes negative after the batch.
+	// This prevents batch imports from silently creating unbounded negative balances
+	// while still allowing CSV imports to complete (the user can review after).
 	batchCtx := context.WithValue(ctx, skipOverdraftKey, true)
 
 	for i, txnReq := range req.Transactions {
@@ -879,6 +861,23 @@ func (s *Service) BatchCreateTransactions(ctx context.Context, req *pb.BatchCrea
 			continue
 		}
 		created = append(created, resp.Transaction)
+	}
+
+	// Post-batch: warn about accounts that went negative
+	if len(created) > 0 {
+		affectedAccounts := make(map[string]bool)
+		for _, txn := range created {
+			affectedAccounts[txn.AccountId] = true
+		}
+		for acctID := range affectedAccounts {
+			var balance int64
+			if err := s.pool.QueryRow(ctx,
+				"SELECT balance FROM accounts WHERE id = $1", acctID,
+			).Scan(&balance); err == nil && balance < 0 {
+				log.Printf("WARNING: batch-create: account %s balance went negative (%d cents) after import for user %s",
+					acctID, balance, userID)
+			}
+		}
 	}
 
 	return &pb.BatchCreateTransactionsResponse{
@@ -1004,24 +1003,16 @@ func (s *Service) BatchDeleteTransactions(ctx context.Context, req *pb.BatchDele
 	}
 
 	// Write sync_operations for each deleted transaction
-	_, _ = tx.Exec(ctx, "SAVEPOINT sync_batch_delete")
-	var syncBatchErr error
 	for _, info := range toDelete {
 		payload, _ := json.Marshal(map[string]interface{}{"id": info.id.String()})
-		_, syncBatchErr = tx.Exec(ctx,
+		if _, err := tx.Exec(ctx,
 			`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
 			 VALUES ($1, 'transaction', $2, 'delete'::sync_op_type, $3, $4, NOW())`,
 			uid, info.id, string(payload), "grpc-batchdel-"+uuid.New().String(),
-		)
-		if syncBatchErr != nil {
-			log.Printf("ERROR: transaction: sync_operations batch-delete insert FAILED (transaction %s): %v", info.id.String(), syncBatchErr)
-			break
+		); err != nil {
+			log.Printf("ERROR: transaction: sync_operations batch-delete insert failed for %s: %v", info.id, err)
+			return nil, status.Error(codes.Internal, "failed to record sync operation")
 		}
-	}
-	if syncBatchErr != nil {
-		_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT sync_batch_delete")
-	} else {
-		_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT sync_batch_delete")
 	}
 
 	if err := tx.Commit(ctx); err != nil {

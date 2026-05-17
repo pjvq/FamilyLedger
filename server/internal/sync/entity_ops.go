@@ -551,8 +551,24 @@ func (s *Service) applyBudgetUpdate(ctx context.Context, tx pgx.Tx, userID uuid.
 
 // ── Shared helpers ──────────────────────────────────────────────────────────
 
+// allowedTables is the exhaustive allowlist for dynamic table name queries.
+// Any table not in this set will be rejected to prevent SQL injection.
+var allowedTables = map[string]bool{
+	"transactions": true,
+	"accounts":     true,
+	"categories":   true,
+	"loans":        true,
+	"loan_groups":  true,
+	"investments":  true,
+	"fixed_assets": true,
+	"budgets":      true,
+}
+
 // verifyOwnership checks that the entity in the given table belongs to the user.
 func (s *Service) verifyOwnership(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, table string) error {
+	if !allowedTables[table] {
+		return fmt.Errorf("invalid table name: %s", table)
+	}
 	var ownerID uuid.UUID
 	query := fmt.Sprintf("SELECT user_id FROM %s WHERE id = $1 AND deleted_at IS NULL", table)
 	err := tx.QueryRow(ctx, query, entityID).Scan(&ownerID)
@@ -570,6 +586,9 @@ func (s *Service) verifyOwnership(ctx context.Context, tx pgx.Tx, userID uuid.UU
 
 // applyGenericSoftDelete performs a soft delete on the given table.
 func (s *Service) applyGenericSoftDelete(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, table string) error {
+	if !allowedTables[table] {
+		return fmt.Errorf("invalid table name: %s", table)
+	}
 	query := fmt.Sprintf(
 		"UPDATE %s SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL",
 		table,
