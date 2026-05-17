@@ -179,100 +179,28 @@ final authInterceptorProvider = Provider<AuthInterceptor>((ref) {
   return AuthInterceptor(tokenStorage, channel);
 });
 
-/// Auth gRPC client
-final authClientProvider = Provider<AuthServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(authInterceptorProvider);
-  return AuthServiceClient(channel, interceptors: [interceptor]);
-});
+/// Helper: create a gRPC client provider with auth interceptor.
+Provider<T> _grpcClientProvider<T extends Client>(
+  T Function(ClientChannel, {Iterable<ClientInterceptor> interceptors}) ctor,
+) {
+  return Provider<T>((ref) {
+    final channel = ref.watch(grpcChannelProvider);
+    final interceptor = ref.watch(authInterceptorProvider);
+    return ctor(channel, interceptors: [interceptor]);
+  });
+}
 
-/// Transaction gRPC client
-final transactionClientProvider = Provider<TransactionServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(authInterceptorProvider);
-  return TransactionServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Sync gRPC client
-final syncClientProvider = Provider<SyncServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(authInterceptorProvider);
-  return SyncServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Family gRPC client
-final familyClientProvider = Provider<FamilyServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(authInterceptorProvider);
-  return FamilyServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Account gRPC client
-final accountClientProvider = Provider<AccountServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(authInterceptorProvider);
-  return AccountServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Budget gRPC client
-final budgetClientProvider = Provider<BudgetServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(authInterceptorProvider);
-  return BudgetServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Notify gRPC client
-final notifyClientProvider = Provider<NotifyServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(authInterceptorProvider);
-  return NotifyServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Loan gRPC client
-final loanClientProvider = Provider<LoanServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(authInterceptorProvider);
-  return LoanServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Investment gRPC client
-final investmentClientProvider = Provider<InvestmentServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(authInterceptorProvider);
-  return InvestmentServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// MarketData gRPC client
-final marketDataClientProvider = Provider<MarketDataServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(authInterceptorProvider);
-  return MarketDataServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Asset gRPC client
-final assetClientProvider = Provider<AssetServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(authInterceptorProvider);
-  return AssetServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Dashboard gRPC client
-final dashboardClientProvider = Provider<DashboardServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(authInterceptorProvider);
-  return DashboardServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Export gRPC client
-final exportClientProvider = Provider<ExportServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(authInterceptorProvider);
-  return ExportServiceClient(channel, interceptors: [interceptor]);
-});
-
-/// Import gRPC client
-final importClientProvider = Provider<ImportServiceClient>((ref) {
-  final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(authInterceptorProvider);
-  return ImportServiceClient(channel, interceptors: [interceptor]);
-});
+final authClientProvider = _grpcClientProvider(AuthServiceClient.new);
+final transactionClientProvider = _grpcClientProvider(TransactionServiceClient.new);
+final syncClientProvider = _grpcClientProvider(SyncServiceClient.new);
+final familyClientProvider = _grpcClientProvider(FamilyServiceClient.new);
+final accountClientProvider = _grpcClientProvider(AccountServiceClient.new);
+final budgetClientProvider = _grpcClientProvider(BudgetServiceClient.new);
+final notifyClientProvider = _grpcClientProvider(NotifyServiceClient.new);
+final loanClientProvider = _grpcClientProvider(LoanServiceClient.new);
+final investmentClientProvider = _grpcClientProvider(InvestmentServiceClient.new);
+final marketDataClientProvider = _grpcClientProvider(MarketDataServiceClient.new);
+final assetClientProvider = _grpcClientProvider(AssetServiceClient.new);
+final dashboardClientProvider = _grpcClientProvider(DashboardServiceClient.new);
+final exportClientProvider = _grpcClientProvider(ExportServiceClient.new);
+final importClientProvider = _grpcClientProvider(ImportServiceClient.new);

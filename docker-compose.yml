@@ -6,7 +6,7 @@ services:
     container_name: familyledger-db
     environment:
       POSTGRES_USER: ${DB_USER:-familyledger}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-familyledger}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       POSTGRES_DB: ${DB_NAME:-familyledger}
     ports:
       - "5432:5432"
@@ -31,7 +31,7 @@ services:
       DB_HOST: db
       DB_PORT: "5432"
       DB_USER: ${DB_USER:-familyledger}
-      DB_PASSWORD: ${DB_PASSWORD:-familyledger}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       DB_NAME: ${DB_NAME:-familyledger}
       DB_SSLMODE: disable  # Internal Docker network; TLS not needed between containers
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}

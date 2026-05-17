@@ -401,13 +401,6 @@ AppDatabase _createTestDb() =>
 
 // ─── Test Suite ──────────────────────────────────────────────
 
-/// Dummy channel for AuthInterceptor in tests (never actually used).
-final _dummyChannel = ClientChannel(
-  'localhost',
-  port: 1,
-  options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
-);
-
 void main() {
   late AppDatabase db;
   late SharedPreferences prefs;
@@ -417,6 +410,7 @@ void main() {
   late FakeTransactionClient txnClient;
   late FakeFamilyClient familyClient;
   late ProviderContainer container;
+  late ClientChannel dummyChannel;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -427,6 +421,11 @@ void main() {
     accountClient = FakeAccountClient();
     txnClient = FakeTransactionClient();
     familyClient = FakeFamilyClient();
+    dummyChannel = ClientChannel(
+      'localhost',
+      port: 1,
+      options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
+    );
 
     container = ProviderContainer(
       overrides: [
@@ -434,7 +433,7 @@ void main() {
         sharedPreferencesProvider.overrideWithValue(prefs),
         secureTokenStorageProvider.overrideWithValue(fakeTokenStorage),
         authInterceptorProvider.overrideWithValue(
-          AuthInterceptor(fakeTokenStorage, _dummyChannel),
+          AuthInterceptor(fakeTokenStorage, dummyChannel),
         ),
         authClientProvider.overrideWithValue(authClient),
         accountClientProvider.overrideWithValue(accountClient),
@@ -446,6 +445,7 @@ void main() {
 
   tearDown(() async {
     container.dispose();
+    await dummyChannel.shutdown();
     await db.close();
   });
 

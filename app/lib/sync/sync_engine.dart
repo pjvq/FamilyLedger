@@ -724,8 +724,9 @@ class SyncEngine {
     if (token == null) return;
 
     try {
+      final scheme = AppConstants.useTls ? 'wss' : 'ws';
       final uri = Uri.parse(
-        'ws://${AppConstants.serverHost}:${AppConstants.wsPort}/ws?token=$token',
+        '$scheme://${AppConstants.serverHost}:${AppConstants.wsPort}/ws?token=$token',
       );
       _wsChannel = WebSocketChannel.connect(uri);
 

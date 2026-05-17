@@ -17,7 +17,12 @@ abstract class TokenStorage {
 /// Secure token storage — uses Keychain (iOS) / EncryptedSharedPreferences (Android).
 /// Migrates tokens from plain SharedPreferences on first access.
 class SecureTokenStorage implements TokenStorage {
+  // Android: v10.2+ auto-migrates from EncryptedSharedPreferences to custom
+  // AES-GCM ciphers on first access. The deprecated `encryptedSharedPreferences`
+  // parameter is no longer needed (removed in v11).
+  // iOS: first_unlock_this_device prevents iCloud backup of tokens.
   static const _storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(resetOnError: true),
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock_this_device,
     ),
