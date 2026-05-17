@@ -71,7 +71,7 @@ func (s *Service) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.Re
 	}
 
 	// Hash password
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), 12) // cost=12 for financial app
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to hash password")
 	}

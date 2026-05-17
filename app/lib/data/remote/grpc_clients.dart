@@ -2,9 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:grpc/grpc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_constants.dart';
-import '../../domain/providers/app_providers.dart';
+import '../local/secure_token_storage.dart';
 import '../../generated/proto/auth.pbgrpc.dart';
 import '../../generated/proto/transaction.pbgrpc.dart';
 import '../../generated/proto/sync.pbgrpc.dart';
@@ -41,13 +40,13 @@ final grpcChannelProvider = Provider<ClientChannel>((ref) {
 /// Concurrency-safe: if multiple calls trigger refresh simultaneously,
 /// only one refresh runs; the rest await the same Completer.
 class AuthInterceptor extends ClientInterceptor {
-  final SharedPreferences _prefs;
+  final SecureTokenStorage _tokenStorage;
   final ClientChannel _channel;
 
   /// Guards concurrent refresh — only one in-flight at a time.
   Completer<bool>? _refreshCompleter;
 
-  AuthInterceptor(this._prefs, this._channel);
+  AuthInterceptor(this._tokenStorage, this._channel);
 
   @override
   ResponseFuture<R> interceptUnary<Q, R>(
@@ -62,7 +61,7 @@ class AuthInterceptor extends ClientInterceptor {
         providers: [
           (metadata, uri) async {
             await _ensureFreshToken();
-            final token = _prefs.getString(AppConstants.accessTokenKey);
+            final token = await _tokenStorage.getAccessToken();
             if (token != null) {
               metadata['authorization'] = 'Bearer $token';
             }
@@ -75,7 +74,7 @@ class AuthInterceptor extends ClientInterceptor {
 
   /// Ensures access token is fresh. If it expires within 60s, refreshes it.
   Future<void> _ensureFreshToken() async {
-    final accessToken = _prefs.getString(AppConstants.accessTokenKey);
+    final accessToken = await _tokenStorage.getAccessToken();
     if (accessToken == null) return;
 
     // Decode JWT exp without verification (client-side convenience only)
@@ -100,7 +99,7 @@ class AuthInterceptor extends ClientInterceptor {
 
     _refreshCompleter = Completer<bool>();
     try {
-      final refreshToken = _prefs.getString(AppConstants.refreshTokenKey);
+      final refreshToken = await _tokenStorage.getRefreshToken();
       if (refreshToken == null || refreshToken.isEmpty) {
         _refreshCompleter!.complete(false);
         return false;
@@ -112,16 +111,15 @@ class AuthInterceptor extends ClientInterceptor {
         RefreshTokenRequest(refreshToken: refreshToken),
       );
 
-      // Store new tokens
-      await _prefs.setString(AppConstants.accessTokenKey, resp.accessToken);
-      await _prefs.setString(AppConstants.refreshTokenKey, resp.refreshToken);
+      // Store new tokens securely
+      await _tokenStorage.setAccessToken(resp.accessToken);
+      await _tokenStorage.setRefreshToken(resp.refreshToken);
 
       _refreshCompleter!.complete(true);
       return true;
     } catch (_) {
       // Refresh failed — clear tokens, user needs to re-login
-      await _prefs.remove(AppConstants.accessTokenKey);
-      await _prefs.remove(AppConstants.refreshTokenKey);
+      await _tokenStorage.clearTokens();
       _refreshCompleter!.complete(false);
       return false;
     } finally {
@@ -161,9 +159,9 @@ class AuthInterceptor extends ClientInterceptor {
 /// Shared interceptor singleton — all clients use the same instance
 /// so concurrent refresh coordination works correctly.
 final _authInterceptorProvider = Provider<AuthInterceptor>((ref) {
-  final prefs = ref.watch(sharedPreferencesProvider);
+  final tokenStorage = ref.watch(secureTokenStorageProvider);
   final channel = ref.watch(grpcChannelProvider);
-  return AuthInterceptor(prefs, channel);
+  return AuthInterceptor(tokenStorage, channel);
 });
 
 /// Auth gRPC client

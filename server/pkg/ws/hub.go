@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -29,9 +31,28 @@ const (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all origins in dev
-	},
+	CheckOrigin:     checkOrigin,
+}
+
+// checkOrigin validates the request origin against ALLOWED_ORIGINS env var.
+// If ALLOWED_ORIGINS is empty or "*", all origins are allowed (dev mode).
+func checkOrigin(r *http.Request) bool {
+	allowed := os.Getenv("ALLOWED_ORIGINS")
+	if allowed == "" || allowed == "*" {
+		if os.Getenv("APP_ENV") == "production" {
+			log.Printf("ws: WARNING: ALLOWED_ORIGINS not set in production, rejecting connection")
+			return false
+		}
+		return true
+	}
+	origin := r.Header.Get("Origin")
+	for _, o := range strings.Split(allowed, ",") {
+		if strings.TrimSpace(o) == origin {
+			return true
+		}
+	}
+	log.Printf("ws: rejected origin %q (allowed: %s)", origin, allowed)
+	return false
 }
 
 // HubConfig holds configurable timeouts for the Hub.
@@ -93,8 +114,14 @@ func NewHub(jwtManager *jwtpkg.Manager, configs ...HubConfig) *Hub {
 }
 
 func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	// Authenticate via JWT token query param
-	token := r.URL.Query().Get("token")
+	// Authenticate via Sec-WebSocket-Protocol header (preferred) or query param (legacy)
+	token := r.Header.Get("Sec-WebSocket-Protocol")
+	if token == "" {
+		token = r.URL.Query().Get("token")
+		if token != "" {
+			log.Printf("ws: WARNING: token passed via query string (deprecated, use Sec-WebSocket-Protocol header)")
+		}
+	}
 	if token == "" {
 		http.Error(w, "missing token", http.StatusUnauthorized)
 		return

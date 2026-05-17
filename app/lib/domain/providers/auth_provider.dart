@@ -7,6 +7,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:uuid/uuid.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/local/database.dart';
+import '../../data/local/secure_token_storage.dart';
 import '../../data/remote/grpc_clients.dart';
 import '../../generated/proto/auth.pbgrpc.dart';
 import '../../generated/proto/account.pb.dart' as acc_pb;
@@ -53,10 +54,11 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final AppDatabase _db;
   final SharedPreferences _prefs;
+  final SecureTokenStorage _tokenStorage;
   final Ref _ref;
   final AuthServiceClient _authClient;
 
-  AuthNotifier(this._db, this._prefs, this._ref, this._authClient)
+  AuthNotifier(this._db, this._prefs, this._tokenStorage, this._ref, this._authClient)
       : super(const AuthState()) {
     _init();
   }
@@ -106,8 +108,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       // 保存 tokens
-      await _prefs.setString(AppConstants.accessTokenKey, resp.accessToken);
-      await _prefs.setString(AppConstants.refreshTokenKey, resp.refreshToken);
+      await _tokenStorage.setAccessToken(resp.accessToken);
+      await _tokenStorage.setRefreshToken(resp.refreshToken);
       await _prefs.setString(AppConstants.userIdKey, resp.userId);
 
       // 本地也存一份 user（离线时需要）
@@ -227,8 +229,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         await _db.clearAllData();
       }
 
-      await _prefs.setString(AppConstants.accessTokenKey, resp.accessToken);
-      await _prefs.setString(AppConstants.refreshTokenKey, resp.refreshToken);
+      await _tokenStorage.setAccessToken(resp.accessToken);
+      await _tokenStorage.setRefreshToken(resp.refreshToken);
       await _prefs.setString(AppConstants.userIdKey, resp.userId);
 
       // 本地缓存 user
@@ -321,8 +323,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await _db.clearAllData();
     // Clear preferences
     await _prefs.remove(AppConstants.userIdKey);
-    await _prefs.remove(AppConstants.accessTokenKey);
-    await _prefs.remove(AppConstants.refreshTokenKey);
+    await _tokenStorage.clearTokens();
     await _prefs.remove(AppConstants.familyIdKey);
     _ref.read(currentUserIdProvider.notifier).state = null;
     _ref.read(currentFamilyIdProvider.notifier).state = null;
@@ -344,8 +345,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           ..redirectUri = redirectUri,
       );
 
-      await _prefs.setString(AppConstants.accessTokenKey, resp.accessToken);
-      await _prefs.setString(AppConstants.refreshTokenKey, resp.refreshToken);
+      await _tokenStorage.setAccessToken(resp.accessToken);
+      await _tokenStorage.setRefreshToken(resp.refreshToken);
       await _prefs.setString(AppConstants.userIdKey, resp.userId);
 
       // Cache user locally
@@ -528,6 +529,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final db = ref.watch(databaseProvider);
   final prefs = ref.watch(sharedPreferencesProvider);
+  final tokenStorage = ref.watch(secureTokenStorageProvider);
   final authClient = ref.watch(authClientProvider);
-  return AuthNotifier(db, prefs, ref, authClient);
+  return AuthNotifier(db, prefs, tokenStorage, ref, authClient);
 });

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 
 	"github.com/familyledger/server/internal/account"
@@ -57,14 +58,19 @@ func main() {
 	// Initialize structured logging
 	logger.Setup(getEnv("APP_ENV", "development"))
 
-	// Config from environment
+	// Config from environment — no hardcoded defaults for sensitive fields
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	if dbUser == "" || dbPassword == "" {
+		log.Fatal("FATAL: DB_USER and DB_PASSWORD environment variables are required")
+	}
 	dbCfg := db.Config{
 		Host:     getEnv("DB_HOST", "localhost"),
 		Port:     5432,
-		User:     getEnv("DB_USER", "familyledger"),
-		Password: getEnv("DB_PASSWORD", "familyledger"),
+		User:     dbUser,
+		Password: dbPassword,
 		DBName:   getEnv("DB_NAME", "familyledger"),
-		SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		SSLMode:  getEnv("DB_SSLMODE", "require"),
 	}
 
 	jwtSecret := config.ValidateJWTSecret()
@@ -121,8 +127,25 @@ func main() {
 	rateLimiter := middleware.NewRateLimiter(middleware.DefaultRateLimiterConfig())
 	defer rateLimiter.Stop()
 
-	// gRPC Server
-	grpcServer := grpc.NewServer(
+	// gRPC Server — TLS if certs provided
+	var grpcOpts []grpc.ServerOption
+
+	if certFile := os.Getenv("GRPC_TLS_CERT"); certFile != "" {
+		keyFile := os.Getenv("GRPC_TLS_KEY")
+		if keyFile == "" {
+			log.Fatal("FATAL: GRPC_TLS_CERT set but GRPC_TLS_KEY missing")
+		}
+		creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
+		if err != nil {
+			log.Fatalf("failed to load TLS credentials: %v", err)
+		}
+		grpcOpts = append(grpcOpts, grpc.Creds(creds))
+		log.Println("gRPC: TLS enabled")
+	} else {
+		log.Println("gRPC: WARNING: running without TLS (set GRPC_TLS_CERT/GRPC_TLS_KEY for production)")
+	}
+
+	grpcOpts = append(grpcOpts,
 		grpc.ChainUnaryInterceptor(
 			middleware.UnaryRateLimitInterceptor(rateLimiter),
 			middleware.UnaryValidationInterceptor(),
@@ -130,6 +153,7 @@ func main() {
 		),
 		grpc.StreamInterceptor(middleware.StreamAuthInterceptor(jwtManager)),
 	)
+	grpcServer := grpc.NewServer(grpcOpts...)
 
 	authpb.RegisterAuthServiceServer(grpcServer, authService)
 	txnpb.RegisterTransactionServiceServer(grpcServer, txnService)

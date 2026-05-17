@@ -116,18 +116,18 @@ func (p *AppleProvider) ExchangeCode(_ context.Context, _ string) (*OAuthUserInf
 type OAuthProviders map[string]OAuthProvider
 
 // NewOAuthProviders creates OAuth providers based on the OAUTH_MODE environment variable.
-// OAUTH_MODE=mock (default): uses MockProvider for all providers.
-// OAUTH_MODE=production: uses real providers (WeChatProvider, AppleProvider).
+// OAUTH_MODE=mock: uses MockProvider (must be explicitly set).
+// OAUTH_MODE=production or unset: uses real providers (WeChatProvider, AppleProvider).
 func NewOAuthProviders() OAuthProviders {
 	mode := os.Getenv("OAUTH_MODE")
 	if mode == "" {
-		mode = "mock"
+		mode = "production"
 	}
 
 	providers := make(OAuthProviders)
 
 	if mode == "mock" {
-		log.Printf("auth: OAuth mode=mock — using mock providers for development")
+		log.Printf("auth: WARNING: OAuth mode=mock — using mock providers (NOT for production!)")
 		providers["wechat"] = NewMockProvider("wechat")
 		providers["apple"] = NewMockProvider("apple")
 		return providers

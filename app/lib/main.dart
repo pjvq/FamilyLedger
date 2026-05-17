@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/constants/app_constants.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'data/local/secure_token_storage.dart';
 import 'domain/providers/app_providers.dart';
 import 'domain/providers/theme_provider.dart';
 import 'sync/sync_engine.dart';
@@ -40,6 +41,10 @@ void main() async {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     final prefs = await SharedPreferences.getInstance();
+
+    // Migrate tokens from SharedPreferences to secure storage (one-time)
+    final tokenStorage = SecureTokenStorage(prefs);
+    await tokenStorage.migrateIfNeeded();
 
     // Restore persisted family mode
     final savedFamilyId = prefs.getString(AppConstants.familyIdKey);

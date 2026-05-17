@@ -99,13 +99,14 @@ func TestNewOAuthProviders_ProductionMode_NotConfigured(t *testing.T) {
 	assert.Equal(t, codes.Unimplemented, status.Code(err))
 }
 
-func TestNewOAuthProviders_DefaultIsMock(t *testing.T) {
+func TestNewOAuthProviders_DefaultIsProduction(t *testing.T) {
 	os.Unsetenv("OAUTH_MODE")
 
 	providers := NewOAuthProviders()
 
-	// Should use mock by default
-	info, err := providers["wechat"].ExchangeCode(context.Background(), "test")
-	require.NoError(t, err)
-	assert.Equal(t, "wx_mock_openid_001", info.OAuthID)
+	// Default should be production mode (not mock)
+	// Without real credentials configured, provider may fail but shouldn't be a mock
+	_, err := providers["wechat"].ExchangeCode(context.Background(), "test")
+	// Production provider should fail since no real credentials are set
+	assert.Error(t, err, "expected production provider to fail without credentials")
 }
