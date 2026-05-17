@@ -67,23 +67,35 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void _init() {
     final userId = _prefs.getString(AppConstants.userIdKey);
     if (userId != null) {
-      // Check for secure storage reset: userId exists in prefs but tokens gone.
-      // This happens when Android master key changes (factory reset, etc.)
-      // and resetOnError: true cleared the keychain.
-      _tokenStorage.getAccessToken().then((token) {
-        if (token == null && _prefs.getString(AppConstants.userIdKey) != null) {
-          print(
-            'auth: secure storage was reset (token=null but userId exists). '
-            'Forcing re-login.',
-          );
-          logout();
-        }
-      });
-      state = AuthState(status: AuthStatus.authenticated, userId: userId);
-      // Load email from DB asynchronously
-      _loadEmail(userId);
+      // Start in loading state while verifying secure storage.
+      // Prevents UI from triggering gRPC calls with null tokens.
+      state = AuthState(status: AuthStatus.loading, userId: userId);
+      _verifyTokenAndRestore(userId);
     } else {
       state = const AuthState(status: AuthStatus.unauthenticated);
+    }
+  }
+
+  /// Verify secure storage has a valid token, then set authenticated.
+  /// If tokens were wiped (e.g. Android master key change + resetOnError),
+  /// force re-login instead of silently failing.
+  Future<void> _verifyTokenAndRestore(String userId) async {
+    try {
+      final token = await _tokenStorage.getAccessToken();
+      if (token == null && _prefs.getString(AppConstants.userIdKey) != null) {
+        developer.log(
+          'secure storage was reset (token=null but userId exists). '
+          'Forcing re-login.',
+          name: 'auth',
+        );
+        await logout();
+        return;
+      }
+      state = AuthState(status: AuthStatus.authenticated, userId: userId);
+      _loadEmail(userId);
+    } catch (e) {
+      developer.log('token verification failed: $e', name: 'auth');
+      await logout();
     }
   }
 
