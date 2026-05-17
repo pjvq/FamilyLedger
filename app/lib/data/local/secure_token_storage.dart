@@ -18,7 +18,9 @@ abstract class TokenStorage {
 /// Migrates tokens from plain SharedPreferences on first access.
 class SecureTokenStorage implements TokenStorage {
   static const _storage = FlutterSecureStorage(
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    iOptions: IOSOptions(
+      accessibility: KeychainAccessibility.first_unlock_this_device,
+    ),
   );
   static const _migratedKey = 'secure_storage_migrated';
 
@@ -89,8 +91,14 @@ class FakeSecureTokenStorage implements TokenStorage {
   Future<void> migrateIfNeeded() async {
     final accessToken = _prefs.getString(AppConstants.accessTokenKey);
     final refreshToken = _prefs.getString(AppConstants.refreshTokenKey);
-    if (accessToken != null) _store[AppConstants.accessTokenKey] = accessToken;
-    if (refreshToken != null) _store[AppConstants.refreshTokenKey] = refreshToken;
+    if (accessToken != null) {
+      _store[AppConstants.accessTokenKey] = accessToken;
+      await _prefs.remove(AppConstants.accessTokenKey);
+    }
+    if (refreshToken != null) {
+      _store[AppConstants.refreshTokenKey] = refreshToken;
+      await _prefs.remove(AppConstants.refreshTokenKey);
+    }
   }
 
   @override

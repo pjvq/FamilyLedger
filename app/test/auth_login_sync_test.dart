@@ -401,6 +401,13 @@ AppDatabase _createTestDb() =>
 
 // ─── Test Suite ──────────────────────────────────────────────
 
+/// Dummy channel for AuthInterceptor in tests (never actually used).
+final _dummyChannel = ClientChannel(
+  'localhost',
+  port: 1,
+  options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
+);
+
 void main() {
   late AppDatabase db;
   late SharedPreferences prefs;
@@ -426,6 +433,9 @@ void main() {
         databaseProvider.overrideWithValue(db),
         sharedPreferencesProvider.overrideWithValue(prefs),
         secureTokenStorageProvider.overrideWithValue(fakeTokenStorage),
+        authInterceptorProvider.overrideWithValue(
+          AuthInterceptor(fakeTokenStorage, _dummyChannel),
+        ),
         authClientProvider.overrideWithValue(authClient),
         accountClientProvider.overrideWithValue(accountClient),
         transactionClientProvider.overrideWithValue(txnClient),

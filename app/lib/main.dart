@@ -53,6 +53,7 @@ void main() async {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
+          secureTokenStorageProvider.overrideWithValue(tokenStorage),
           if (savedFamilyId != null)
             currentFamilyIdProvider.overrideWith((ref) => savedFamilyId),
         ],

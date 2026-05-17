@@ -152,11 +152,14 @@ func (s *Service) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginRes
 	// This transparently upgrades passwords on successful login.
 	if cost, _ := bcrypt.Cost([]byte(passwordHash)); cost < bcryptCost {
 		if newHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcryptCost); err == nil {
-			_, _ = s.pool.Exec(ctx,
+			if _, err := s.pool.Exec(ctx,
 				"UPDATE users SET password_hash = $1 WHERE id = $2",
 				string(newHash), userID,
-			)
-			log.Printf("auth: upgraded password hash cost %d→%d for user %s", cost, bcryptCost, userID)
+			); err != nil {
+				log.Printf("auth: WARNING: failed to upgrade password hash for user %s: %v", userID, err)
+			} else {
+				log.Printf("auth: upgraded password hash cost %d→%d for user %s", cost, bcryptCost, userID)
+			}
 		}
 	}
 

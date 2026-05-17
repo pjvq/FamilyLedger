@@ -55,10 +55,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final AppDatabase _db;
   final SharedPreferences _prefs;
   final TokenStorage _tokenStorage;
+  final AuthInterceptor _authInterceptor;
   final Ref _ref;
   final AuthServiceClient _authClient;
 
-  AuthNotifier(this._db, this._prefs, this._tokenStorage, this._ref, this._authClient)
+  AuthNotifier(this._db, this._prefs, this._tokenStorage, this._authInterceptor, this._ref, this._authClient)
       : super(const AuthState()) {
     _init();
   }
@@ -324,6 +325,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     // Clear preferences
     await _prefs.remove(AppConstants.userIdKey);
     await _tokenStorage.clearTokens();
+    _authInterceptor.invalidateCache();
     await _prefs.remove(AppConstants.familyIdKey);
     _ref.read(currentUserIdProvider.notifier).state = null;
     _ref.read(currentFamilyIdProvider.notifier).state = null;
@@ -530,6 +532,7 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final db = ref.watch(databaseProvider);
   final prefs = ref.watch(sharedPreferencesProvider);
   final tokenStorage = ref.watch(secureTokenStorageProvider);
+  final authInterceptor = ref.watch(authInterceptorProvider);
   final authClient = ref.watch(authClientProvider);
-  return AuthNotifier(db, prefs, tokenStorage, ref, authClient);
+  return AuthNotifier(db, prefs, tokenStorage, authInterceptor, ref, authClient);
 });

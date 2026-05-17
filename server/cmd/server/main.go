@@ -67,11 +67,11 @@ func main() {
 	}
 	dbPort := 5432
 	if p := os.Getenv("DB_PORT"); p != "" {
-		if v, err := strconv.Atoi(p); err == nil {
-			dbPort = v
-		} else {
-			log.Fatalf("FATAL: invalid DB_PORT %q: %v", p, err)
+		v, err := strconv.Atoi(p)
+		if err != nil || v < 1 || v > 65535 {
+			log.Fatalf("FATAL: invalid DB_PORT %q (must be 1-65535)", p)
 		}
+		dbPort = v
 	}
 	dbCfg := db.Config{
 		Host:     getEnv("DB_HOST", "localhost"),

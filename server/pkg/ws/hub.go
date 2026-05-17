@@ -29,6 +29,8 @@ const (
 )
 
 // allowedOrigins is parsed once at init from ALLOWED_ORIGINS env var.
+// NOTE: kept at package level for websocket.Upgrader.CheckOrigin function signature.
+// Hub.NewHub() does NOT re-parse; these are immutable for process lifetime.
 var (
 	allowedOrigins map[string]struct{}
 	allowAllOrigins bool
@@ -40,6 +42,9 @@ func init() {
 	raw := os.Getenv("ALLOWED_ORIGINS")
 	if raw == "" || raw == "*" {
 		allowAllOrigins = true
+		if isProduction {
+			log.Printf("ws: WARNING: ALLOWED_ORIGINS not set in production — connections will be rejected")
+		}
 		return
 	}
 	allowedOrigins = make(map[string]struct{})
@@ -48,6 +53,7 @@ func init() {
 			allowedOrigins[trimmed] = struct{}{}
 		}
 	}
+	log.Printf("ws: allowed origins: %d entries", len(allowedOrigins))
 }
 
 var upgrader = websocket.Upgrader{

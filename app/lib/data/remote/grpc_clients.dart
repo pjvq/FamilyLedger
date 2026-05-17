@@ -23,8 +23,10 @@ final grpcChannelProvider = Provider<ClientChannel>((ref) {
   final channel = ClientChannel(
     AppConstants.serverHost,
     port: AppConstants.grpcPort,
-    options: const ChannelOptions(
-      credentials: ChannelCredentials.insecure(),
+    options: ChannelOptions(
+      credentials: AppConstants.useTls
+          ? const ChannelCredentials.secure()
+          : const ChannelCredentials.insecure(),
     ),
   );
   ref.onDispose(() => channel.shutdown());
@@ -51,6 +53,11 @@ class AuthInterceptor extends ClientInterceptor {
   String? _cachedToken;
 
   AuthInterceptor(this._tokenStorage, this._channel);
+
+  /// Invalidate cached token. Must be called on logout.
+  void invalidateCache() {
+    _cachedToken = null;
+  }
 
   @override
   ResponseFuture<R> interceptUnary<Q, R>(
@@ -166,7 +173,7 @@ class AuthInterceptor extends ClientInterceptor {
 
 /// Shared interceptor singleton — all clients use the same instance
 /// so concurrent refresh coordination works correctly.
-final _authInterceptorProvider = Provider<AuthInterceptor>((ref) {
+final authInterceptorProvider = Provider<AuthInterceptor>((ref) {
   final tokenStorage = ref.watch(secureTokenStorageProvider);
   final channel = ref.watch(grpcChannelProvider);
   return AuthInterceptor(tokenStorage, channel);
@@ -175,97 +182,97 @@ final _authInterceptorProvider = Provider<AuthInterceptor>((ref) {
 /// Auth gRPC client
 final authClientProvider = Provider<AuthServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
+  final interceptor = ref.watch(authInterceptorProvider);
   return AuthServiceClient(channel, interceptors: [interceptor]);
 });
 
 /// Transaction gRPC client
 final transactionClientProvider = Provider<TransactionServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
+  final interceptor = ref.watch(authInterceptorProvider);
   return TransactionServiceClient(channel, interceptors: [interceptor]);
 });
 
 /// Sync gRPC client
 final syncClientProvider = Provider<SyncServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
+  final interceptor = ref.watch(authInterceptorProvider);
   return SyncServiceClient(channel, interceptors: [interceptor]);
 });
 
 /// Family gRPC client
 final familyClientProvider = Provider<FamilyServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
+  final interceptor = ref.watch(authInterceptorProvider);
   return FamilyServiceClient(channel, interceptors: [interceptor]);
 });
 
 /// Account gRPC client
 final accountClientProvider = Provider<AccountServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
+  final interceptor = ref.watch(authInterceptorProvider);
   return AccountServiceClient(channel, interceptors: [interceptor]);
 });
 
 /// Budget gRPC client
 final budgetClientProvider = Provider<BudgetServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
+  final interceptor = ref.watch(authInterceptorProvider);
   return BudgetServiceClient(channel, interceptors: [interceptor]);
 });
 
 /// Notify gRPC client
 final notifyClientProvider = Provider<NotifyServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
+  final interceptor = ref.watch(authInterceptorProvider);
   return NotifyServiceClient(channel, interceptors: [interceptor]);
 });
 
 /// Loan gRPC client
 final loanClientProvider = Provider<LoanServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
+  final interceptor = ref.watch(authInterceptorProvider);
   return LoanServiceClient(channel, interceptors: [interceptor]);
 });
 
 /// Investment gRPC client
 final investmentClientProvider = Provider<InvestmentServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
+  final interceptor = ref.watch(authInterceptorProvider);
   return InvestmentServiceClient(channel, interceptors: [interceptor]);
 });
 
 /// MarketData gRPC client
 final marketDataClientProvider = Provider<MarketDataServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
+  final interceptor = ref.watch(authInterceptorProvider);
   return MarketDataServiceClient(channel, interceptors: [interceptor]);
 });
 
 /// Asset gRPC client
 final assetClientProvider = Provider<AssetServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
+  final interceptor = ref.watch(authInterceptorProvider);
   return AssetServiceClient(channel, interceptors: [interceptor]);
 });
 
 /// Dashboard gRPC client
 final dashboardClientProvider = Provider<DashboardServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
+  final interceptor = ref.watch(authInterceptorProvider);
   return DashboardServiceClient(channel, interceptors: [interceptor]);
 });
 
 /// Export gRPC client
 final exportClientProvider = Provider<ExportServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
+  final interceptor = ref.watch(authInterceptorProvider);
   return ExportServiceClient(channel, interceptors: [interceptor]);
 });
 
 /// Import gRPC client
 final importClientProvider = Provider<ImportServiceClient>((ref) {
   final channel = ref.watch(grpcChannelProvider);
-  final interceptor = ref.watch(_authInterceptorProvider);
+  final interceptor = ref.watch(authInterceptorProvider);
   return ImportServiceClient(channel, interceptors: [interceptor]);
 });
