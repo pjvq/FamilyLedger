@@ -311,9 +311,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   // TODO: i18n — date format strings are hardcoded in Chinese
   String _formatDateLabel(DateTime? date, DateTime now) {
     if (date == null) return '今天';
-    final hh = date.hour.toString().padLeft(2, '0');
-    final mm = date.minute.toString().padLeft(2, '0');
-    final time = '$hh:$mm';
+    final hourStr = date.hour.toString().padLeft(2, '0');
+    final minStr = date.minute.toString().padLeft(2, '0');
+    final time = '$hourStr:$minStr';
 
     if (date.year == now.year && date.month == now.month && date.day == now.day) {
       return '今天 $time';
@@ -368,7 +368,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                   icon: Icon(Icons.close_rounded, size: 14, color: muted),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                  splashRadius: 14,
+                  style: IconButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                 ),
               ],
             ],
@@ -386,6 +388,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       context: context,
       initialDate: initial,
       firstDate: DateTime(2000),
+      // Small buffer to prevent cross-midnight edge case where
+      // DatePicker render time causes 'today' to become invalid.
       lastDate: now.add(const Duration(minutes: 5)),
       locale: const Locale('zh', 'CN'),
     );

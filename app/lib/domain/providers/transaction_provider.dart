@@ -401,8 +401,9 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     if (txnDate != null) {
       final earliest = DateTime.utc(2000);
       final latest = DateTime.now().toUtc().add(const Duration(days: 1));
-      if (txnDate.toUtc().isBefore(earliest) || txnDate.toUtc().isAfter(latest)) {
-        throw ArgumentError('txnDate out of range: ${txnDate.toUtc().toIso8601String()}');
+      final utc = txnDate.toUtc();
+      if (utc.isBefore(earliest) || utc.isAfter(latest)) {
+        throw ArgumentError('txnDate out of range: ${utc.toIso8601String()}');
       }
     }
 
