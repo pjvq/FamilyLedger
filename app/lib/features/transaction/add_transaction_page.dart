@@ -308,68 +308,72 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     );
   }
 
+  // TODO: i18n — date format strings are hardcoded in Chinese
+  String _formatDateLabel(DateTime? date) {
+    if (date == null) return '今天';
+    final now = DateTime.now();
+    final hh = date.hour.toString().padLeft(2, '0');
+    final mm = date.minute.toString().padLeft(2, '0');
+    final time = '$hh:$mm';
+
+    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+      return '今天 $time';
+    } else if (date.year == now.year) {
+      return '${date.month}月${date.day}日 $time';
+    } else {
+      return '${date.year}/${date.month}/${date.day} $time';
+    }
+  }
+
+  bool _isSelectedToday() {
+    if (_selectedDate == null) return true;
+    final now = DateTime.now();
+    return _selectedDate!.year == now.year &&
+        _selectedDate!.month == now.month &&
+        _selectedDate!.day == now.day;
+  }
+
   Widget _buildDateRow(BuildContext context) {
     final theme = Theme.of(context);
-    final now = DateTime.now();
-    final display = _selectedDate ?? now;
-    final isToday = _selectedDate == null ||
-        (display.year == now.year &&
-            display.month == now.month &&
-            display.day == now.day &&
-            (display.hour - now.hour).abs() < 1);
+    final isToday = _isSelectedToday();
+    final label = _formatDateLabel(_selectedDate);
+    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.4);
 
-    String label;
-    if (_selectedDate == null) {
-      label = '今天';
-    } else if (display.year == now.year &&
-        display.month == now.month &&
-        display.day == now.day) {
-      label = '今天 ${display.hour.toString().padLeft(2, '0')}:${display.minute.toString().padLeft(2, '0')}';
-    } else if (display.year == now.year) {
-      label =
-          '${display.month}月${display.day}日 ${display.hour.toString().padLeft(2, '0')}:${display.minute.toString().padLeft(2, '0')}';
-    } else {
-      label =
-          '${display.year}/${display.month}/${display.day} ${display.hour.toString().padLeft(2, '0')}:${display.minute.toString().padLeft(2, '0')}';
-    }
-
-    return GestureDetector(
+    return InkWell(
       onTap: () => _pickDateTime(context),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.calendar_today_rounded,
-              size: 14,
-              color: isToday
-                  ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
-                  : theme.colorScheme.primary,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: isToday
-                    ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
-                    : theme.colorScheme.primary,
-                fontWeight: isToday ? FontWeight.normal : FontWeight.w500,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.calendar_today_rounded,
+                size: 14,
+                color: isToday ? muted : theme.colorScheme.primary,
               ),
-            ),
-            if (_selectedDate != null) ...[
               const SizedBox(width: 4),
-              GestureDetector(
-                onTap: () => setState(() => _selectedDate = null),
-                child: Icon(
-                  Icons.close_rounded,
-                  size: 14,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isToday ? muted : theme.colorScheme.primary,
+                  fontWeight: isToday ? FontWeight.normal : FontWeight.w500,
                 ),
               ),
+              if (_selectedDate != null) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: () => setState(() => _selectedDate = null),
+                  icon: Icon(Icons.close_rounded, size: 14, color: muted),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  splashRadius: 14,
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -383,7 +387,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       context: context,
       initialDate: initial,
       firstDate: DateTime(2000),
-      lastDate: now.add(const Duration(days: 1)), // 允许选到明天（时区差异）
+      lastDate: now,
       locale: const Locale('zh', 'CN'),
     );
     if (date == null || !mounted) return;
@@ -392,15 +396,16 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       context: context,
       initialTime: TimeOfDay.fromDateTime(initial),
     );
-    if (!mounted) return;
+    // User cancelled time picker → don't change anything
+    if (time == null || !mounted) return;
 
     setState(() {
       _selectedDate = DateTime(
         date.year,
         date.month,
         date.day,
-        time?.hour ?? initial.hour,
-        time?.minute ?? initial.minute,
+        time.hour,
+        time.minute,
       );
     });
   }

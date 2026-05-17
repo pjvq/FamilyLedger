@@ -592,7 +592,14 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 	}
 
 	if req.TxnDate != nil {
-		args = append(args, req.TxnDate.AsTime())
+		if err := req.TxnDate.CheckValid(); err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid txn_date")
+		}
+		t := req.TxnDate.AsTime()
+		if t.Before(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)) || t.After(time.Now().AddDate(0, 0, 1)) {
+			return nil, status.Error(codes.InvalidArgument, "txn_date out of range")
+		}
+		args = append(args, t)
 		setClauses = append(setClauses, fmt.Sprintf("txn_date = $%d", argIdx))
 		argIdx++
 	}

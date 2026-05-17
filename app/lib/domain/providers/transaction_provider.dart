@@ -397,6 +397,15 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     String? imageUrls,
     DateTime? txnDate,
   }) async {
+    // Validate txnDate range if provided
+    if (txnDate != null) {
+      final earliest = DateTime(2000);
+      final latest = DateTime.now().add(const Duration(days: 1));
+      if (txnDate.isBefore(earliest) || txnDate.isAfter(latest)) {
+        throw ArgumentError('txnDate out of range: $txnDate');
+      }
+    }
+
     // 1. 获取旧交易记录（用于回退余额）
     final oldTxn = await _db.getTransactionById(id);
     if (oldTxn == null) return;
@@ -468,7 +477,11 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           if (note != null) 'note': note,
           if (tags != null) 'tags': tags,
           if (txnDate != null)
-            'txn_date': txnDate.toUtc().toIso8601String(),
+            // Truncate to milliseconds to match protobuf Timestamp precision
+            'txn_date': DateTime.fromMillisecondsSinceEpoch(
+              txnDate.toUtc().millisecondsSinceEpoch,
+              isUtc: true,
+            ).toIso8601String(),
         }),
         clientId: syncOpId,
         timestamp: DateTime.now(),
