@@ -9,6 +9,7 @@ import '../../generated/proto/google/protobuf/timestamp.pb.dart'
     as proto_ts;
 import '../../data/local/database.dart';
 import 'package:grpc/grpc.dart';
+import '../../core/utils/input_sanitizer.dart';
 import '../../data/remote/grpc_clients.dart';
 import '../../sync/sync_engine.dart';
 import '../../generated/proto/transaction.pbgrpc.dart' as pb;
@@ -297,6 +298,10 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     String tags = '',
     String imageUrls = '',
   }) async {
+    // Sanitize user input before any persistence or network call
+    final cleanNote = sanitizeNote(note);
+    final cleanTags = sanitizeTags(tags);
+
     final now = DateTime.now();
     final account = await _db.getDefaultAccount(_userId, familyId: _familyId);
     if (account == null) {
@@ -323,7 +328,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           ..type = type == 'income'
               ? pbe.TransactionType.TRANSACTION_TYPE_INCOME
               : pbe.TransactionType.TRANSACTION_TYPE_EXPENSE
-          ..note = note
+          ..note = cleanNote
           ..txnDate = _toTimestamp(effectiveTxnDate);
         final resp = await _txnClient.createTransaction(req, options: _callOpts);
         // Use server-assigned ID directly — no delete+re-insert needed
@@ -347,8 +352,8 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       amount: amount,
       amountCny: effectiveAmountCny,
       type: type,
-      note: Value(note),
-      tags: Value(tags),
+      note: Value(cleanNote),
+      tags: Value(cleanTags),
       imageUrls: Value(imageUrls),
       txnDate: effectiveTxnDate,
     );
@@ -375,7 +380,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           'amount_cny': effectiveAmountCny,
           'exchange_rate': amount > 0 ? effectiveAmountCny / amount : 1.0,
           'type': type,
-          'note': note,
+          'note': cleanNote,
           'txn_date': effectiveTxnDate.toUtc().toIso8601String(),
         }),
         clientId: syncOpId,
@@ -403,6 +408,10 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       _validateTxnDate(txnDate);
     }
 
+    // Sanitize user input
+    final cleanNote = note != null ? sanitizeNote(note) : null;
+    final cleanTags = tags != null ? sanitizeTags(tags) : null;
+
     // 1. 获取旧交易记录（用于回退余额）
     final oldTxn = await _db.getTransactionById(id);
     if (oldTxn == null) return;
@@ -415,9 +424,9 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           ? Value(amountCny)
           : (amount != null ? Value(amount) : const Value.absent()),
       type: type != null ? Value(type) : const Value.absent(),
-      note: note != null ? Value(note) : const Value.absent(),
+      note: cleanNote != null ? Value(cleanNote) : const Value.absent(),
       currency: currency != null ? Value(currency) : const Value.absent(),
-      tags: tags != null ? Value(tags) : const Value.absent(),
+      tags: cleanTags != null ? Value(cleanTags) : const Value.absent(),
       imageUrls: imageUrls != null ? Value(imageUrls) : const Value.absent(),
       txnDate: txnDate != null ? Value(txnDate) : const Value.absent(),
       updatedAt: Value(DateTime.now()),
@@ -444,8 +453,8 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         );
         if (amount != null) req.amount = Int64(amount);
         if (categoryId != null) req.categoryId = categoryId;
-        if (note != null) req.note = note;
-        if (tags != null) req.tags = tags;
+        if (cleanNote != null) req.note = cleanNote;
+        if (cleanTags != null) req.tags = cleanTags;
         if (currency != null) req.currency = currency;
         if (type != null) {
           req.type = type == 'income'
@@ -471,8 +480,8 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           if (amountCny != null) 'amount_cny': amountCny,
           if (currency != null) 'currency': currency,
           if (type != null) 'type': type,
-          if (note != null) 'note': note,
-          if (tags != null) 'tags': tags,
+          if (cleanNote != null) 'note': cleanNote,
+          if (cleanTags != null) 'tags': cleanTags,
           if (txnDate != null)
             'txn_date': txnDate.toUtc().toIso8601String(),
         }),

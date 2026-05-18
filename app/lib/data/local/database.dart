@@ -146,7 +146,8 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 17) {
             // v16 → v17: drop legacy 'synced' bool column (replaced by syncStatus text)
-            await customStatement('ALTER TABLE transactions DROP COLUMN synced');
+            // Guarded: column may already be absent from a previous interrupted migration.
+            await _safeDropColumn('transactions', 'synced');
           }
           if (from < 18) {
             // v17 → v18: add retry columns to sync_queue
@@ -155,7 +156,8 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 19) {
             // v18 → v19: remove legacy icon column from categories
-            await customStatement('ALTER TABLE categories DROP COLUMN icon');
+            // Guarded: column may already be absent from a previous interrupted migration.
+            await _safeDropColumn('categories', 'icon');
             // Backfill empty iconKey based on category name
             await _backfillEmptyIconKeys();
           }
@@ -174,6 +176,18 @@ class AppDatabase extends _$AppDatabase {
           );
         },
       );
+
+  /// Safely drops a column, ignoring errors if the column doesn't exist.
+  /// SQLite does not support IF EXISTS for DROP COLUMN, so we catch the error.
+  Future<void> _safeDropColumn(String table, String column) async {
+    try {
+      await customStatement('ALTER TABLE $table DROP COLUMN $column');
+    } catch (e) {
+      // Column likely already dropped (previous interrupted migration).
+      // SQLite error: "no such column: ..."
+      // This is safe to ignore — the desired state is already achieved.
+    }
+  }
 
   /// Remove duplicate categories (same name+type+parentId).
   /// Keeps the one with isPreset=true, or earliest createdAt.
