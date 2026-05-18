@@ -1,7 +1,6 @@
 import 'package:drift/drift.dart';
 
 import '../database.dart';
-import '../tables.dart';
 import '../../../core/utils/category_uuid.dart';
 
 /// Preset category seeding logic — extracted from AppDatabase.
@@ -16,11 +15,16 @@ class CategorySeeder {
   const CategorySeeder(this._db);
 
   /// Seed preset categories if none exist yet.
+  ///
+  /// Runs check + insert atomically in a single transaction to prevent
+  /// partial seeding on mid-execution crash (iOS background kill).
   Future<void> seedForOwner(String ownerID) async {
-    final existing = await (_db.select(_db.categories)..limit(1)).get();
-    if (existing.isNotEmpty) return;
-    await _seedCategories(ownerID);
-    await _seedSubcategories(ownerID);
+    await _db.transaction(() async {
+      final existing = await (_db.select(_db.categories)..limit(1)).get();
+      if (existing.isNotEmpty) return;
+      await _seedCategories(ownerID);
+      await _seedSubcategories(ownerID);
+    });
   }
 
   Future<void> _seedCategories(String ownerID) async {

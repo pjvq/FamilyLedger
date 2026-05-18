@@ -2,6 +2,7 @@
 ///
 /// Used by migration backfill and category seeding.
 /// Extracted to avoid polluting AppDatabase with 100+ static map entries.
+library;
 
 /// Full mapping (subcategories included) — used in `_backfillEmptyIconKeys`.
 const categoryIconMap = <String, String>{
@@ -13,7 +14,7 @@ const categoryIconMap = <String, String>{
   '投资收益': 'investment_income', '兼职': 'freelance',
   '红包': 'red_packet', '报销': 'reimbursement', '其他': 'other',
   '早餐': 'food_breakfast', '午餐': 'food_lunch', '晚餐': 'food_dinner',
-  '夜孵': 'food_midnight', '饮品': 'food_drink', '零食': 'food_snack',
+  '夜宵': 'food_midnight', '饮品': 'food_drink', '零食': 'food_snack',
   '外卖': 'food_takeout', '咖啡': 'food_drink', '快餐': 'food_fastfood',
   '地铁': 'transport_metro', '打车': 'transport_taxi', '加油': 'transport_fuel',
   '停车': 'transport_parking', '公交': 'transport_bus',
@@ -47,13 +48,25 @@ const categoryIconMap = <String, String>{
   '日常': 'daily', '生活': 'daily',
 };
 
-/// Parent-level only mapping — used in `_backfillParentIconKeys`.
-const parentCategoryIconMap = <String, String>{
-  '餐饮': 'food', '交通': 'transport', '购物': 'shopping',
-  '居住': 'housing', '娱乐': 'entertainment', '医疗': 'medical',
-  '教育': 'education', '通讯': 'communication', '人情': 'gift',
-  '服饰': 'clothing', '日用': 'daily', '旅行': 'travel',
-  '宠物': 'pet', '工资': 'salary', '奖金': 'bonus',
-  '投资收益': 'investment_income', '兼职': 'freelance',
-  '红包': 'red_packet', '报销': 'reimbursement', '其他': 'other',
-};
+/// Parent-level only mapping — derived from `categoryIconMap`.
+/// Used in `_backfillParentIconKeys`.
+final Map<String, String> parentCategoryIconMap = Map.unmodifiable({
+  for (final name in const [
+    '餐饮', '交通', '购物', '居住', '娱乐', '医疗', '教育', '通讯',
+    '人情', '服饰', '日用', '旅行', '宠物', '工资', '奖金',
+    '投资收益', '兼职', '红包', '报销', '其他',
+  ])
+    name: categoryIconMap[name]!,
+});
+
+/// Entries sorted by key length descending — longest-match-first
+/// for fuzzy `contains()` matching in `_backfillEmptyIconKeys`.
+///
+/// Example: "日常清洁" matches "清洁" (len=2, daily_cleaning)
+///          before "日常" (len=2, daily) since "清洁" appears first
+///          when same-length entries are sorted by insertion order.
+final List<MapEntry<String, String>> categoryIconEntriesByLength =
+    List.unmodifiable(
+      categoryIconMap.entries.toList()
+        ..sort((a, b) => b.key.length.compareTo(a.key.length)),
+    );

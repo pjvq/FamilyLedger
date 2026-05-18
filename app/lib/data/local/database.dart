@@ -307,7 +307,8 @@ class AppDatabase extends _$AppDatabase {
     for (final cat in emptyCats) {
       var key = categoryIconMap[cat.name];
       if (key == null) {
-        for (final entry in categoryIconMap.entries) {
+        // Longest-match-first: avoids '日常清洁' matching '日常' over '清洁'.
+        for (final entry in categoryIconEntriesByLength) {
           if (cat.name.contains(entry.key)) {
             key = entry.value;
             break;
@@ -405,7 +406,7 @@ class AppDatabase extends _$AppDatabase {
           .toList();
     }
     // Personal mode: exclude family accounts
-    final familyAccountIds = await getFamilyAccountIdSet(userId);
+    final familyAccountIds = await _getFamilyAccountIds(userId);
     final rows = await (select(transactions)
           ..where((t) => t.userId.equals(userId) & t.deletedAt.isNull())
           ..orderBy([(t) => OrderingTerm.desc(t.txnDate)])
@@ -417,7 +418,7 @@ class AppDatabase extends _$AppDatabase {
         .toList();
   }
 
-  Future<Set<String>> getFamilyAccountIdSet(String userId) async {
+  Future<Set<String>> _getFamilyAccountIds(String userId) async {
     final rows = await (select(accounts)
           ..where((a) =>
               a.userId.equals(userId) &
