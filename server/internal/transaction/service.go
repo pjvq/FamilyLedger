@@ -858,7 +858,9 @@ func (s *Service) BatchCreateTransactions(ctx context.Context, req *pb.BatchCrea
 	if len(created) > 0 {
 		accountSet := make(map[uuid.UUID]struct{})
 		for _, txn := range created {
-			if uid, err := uuid.Parse(txn.AccountId); err == nil {
+			if uid, err := uuid.Parse(txn.AccountId); err != nil {
+				log.Printf("WARNING: batch-create: invalid account_id in created transaction: %s", txn.AccountId)
+			} else {
 				accountSet[uid] = struct{}{}
 			}
 		}
@@ -883,6 +885,9 @@ func (s *Service) BatchCreateTransactions(ctx context.Context, req *pb.BatchCrea
 				warn := fmt.Sprintf("account %s balance is negative (%d cents) after import", acctID, balance)
 				warnings = append(warnings, warn)
 				log.Printf("batch-create: WARNING: %s for user %s", warn, userID)
+			}
+			if err := rows.Err(); err != nil {
+				log.Printf("WARNING: batch-create: rows iteration error: %v", err)
 			}
 			rows.Close()
 		}
@@ -1891,8 +1896,6 @@ func scanTransactionWithDeleted(rows pgx.Rows) (*pb.Transaction, error) {
 	}
 	return txn, nil
 }
-
-
 
 // validSyncOpTypes is the exhaustive set of allowed sync operation types.
 var validSyncOpTypes = map[string]struct{}{
