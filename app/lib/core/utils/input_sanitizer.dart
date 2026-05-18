@@ -73,7 +73,7 @@ String sanitizeImageUrls(String? input) {
   final urls = input
       .split(',')
       .map((u) => u.trim().replaceAll(RegExp(r'[\x00-\x1F\x7F]'), ''))
-      .where((u) => u.startsWith('http://') || u.startsWith('https://'))
+      .where((u) => u.startsWith('https://'))
       .toList();
 
   final joined = urls.join(',');

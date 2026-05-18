@@ -34,9 +34,13 @@ class LogoutCoordinator {
   Future<List<String>> execute() async {
     final failures = <String>[];
 
-    // Step 1: Clear secure tokens — most critical
+    // Step 1: Clear secure tokens — most critical, retry once on failure
     if (!await _safeStep('clearTokens', () => _tokenStorage.clearTokens())) {
-      failures.add('clearTokens');
+      // Single retry after brief delay — Keychain can transiently fail
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      if (!await _safeStep('clearTokens_retry', () => _tokenStorage.clearTokens())) {
+        failures.add('clearTokens');
+      }
     }
 
     // Step 2: Clear auth preferences

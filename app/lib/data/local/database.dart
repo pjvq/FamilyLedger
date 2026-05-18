@@ -190,10 +190,12 @@ class AppDatabase extends _$AppDatabase {
   /// any possibility of SQL injection via string interpolation.
   /// Rethrows non-column-missing errors (disk full, DB corruption, etc.).
   Future<void> _safeDropColumn(String table, String column) async {
-    assert(
-      _droppableColumns.contains((table, column)),
-      'Unexpected drop target: $table.$column — add to _droppableColumns first',
-    );
+    if (!_droppableColumns.contains((table, column))) {
+      throw StateError(
+        'Unauthorized DROP COLUMN target: $table.$column. '
+        'Add to _droppableColumns whitelist before calling.',
+      );
+    }
     try {
       await customStatement('ALTER TABLE $table DROP COLUMN $column');
     } catch (e) {
