@@ -672,7 +672,7 @@ void main() {
       expect(expCatsBefore.length, greaterThan(10));
 
       // Create TransactionNotifier
-      final notifier = TransactionNotifier(db, 'user_1', null, txnClient);
+      final notifier = TransactionNotifier.fromDb(db, 'user_1', null, txnClient);
       await Future.delayed(const Duration(milliseconds: 200));
 
       // Local categories exist, so UI loads without waiting for server.
@@ -696,7 +696,7 @@ void main() {
       expect(expCatsBefore, isEmpty);
 
       // Create TransactionNotifier with empty local DB
-      final notifier = TransactionNotifier(db, 'user_1', null, txnClient);
+      final notifier = TransactionNotifier.fromDb(db, 'user_1', null, txnClient);
       await Future.delayed(const Duration(milliseconds: 500));
 
       // getCategories should have been called
@@ -715,7 +715,7 @@ void main() {
       await (db.delete(db.categories)).go();
       txnClient.categoriesError = GrpcError.unavailable('down');
 
-      final notifier = TransactionNotifier(db, 'user_1', null, txnClient);
+      final notifier = TransactionNotifier.fromDb(db, 'user_1', null, txnClient);
       await Future.delayed(const Duration(milliseconds: 300));
 
       expect(notifier.state.expenseCategories, isEmpty);
@@ -735,7 +735,7 @@ void main() {
 
       // Create TransactionNotifier in family mode
       final notifier =
-          TransactionNotifier(db, 'user_1', 'fam_1', txnClient);
+          TransactionNotifier.fromDb(db, 'user_1', 'fam_1', txnClient);
       await Future.delayed(const Duration(milliseconds: 500));
 
       // In family mode, _syncFamilyTransactionsIncremental calls _syncCategoriesFromServer

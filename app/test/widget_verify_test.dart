@@ -228,7 +228,7 @@ void main() {
 
     test('addTransaction → verify createTransaction 被调用且参数正确', () async {
       final client = TrackingTransactionClient();
-      final notifier = TransactionNotifier(db, 'user1', null, client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
       await Future.delayed(const Duration(milliseconds: 200));
 
       // Act
@@ -256,7 +256,7 @@ void main() {
 
     test('addTransaction 带外币 → verify exchangeRate 参数正确', () async {
       final client = TrackingTransactionClient();
-      final notifier = TransactionNotifier(db, 'user1', null, client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
       await Future.delayed(const Duration(milliseconds: 200));
 
       // Act: 10 USD, 手动指定 amountCny
@@ -284,7 +284,7 @@ void main() {
     test('deleteTransaction → verify deleteTransaction 被调用且 txnId 正确',
         () async {
       final client = TrackingTransactionClient();
-      final notifier = TransactionNotifier(db, 'user1', null, client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
       await Future.delayed(const Duration(milliseconds: 200));
 
       // Add a transaction first
@@ -313,7 +313,7 @@ void main() {
 
     test('deleteTransaction 对不存在的 txnId → 不调用 gRPC', () async {
       final client = TrackingTransactionClient();
-      final notifier = TransactionNotifier(db, 'user1', null, client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
       await Future.delayed(const Duration(milliseconds: 200));
 
       // Act: delete non-existent
@@ -331,7 +331,7 @@ void main() {
       final client = TrackingTransactionClient(
         createError: GrpcError.unavailable('offline'),
       );
-      final notifier = TransactionNotifier(db, 'user1', null, client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
       await Future.delayed(const Duration(milliseconds: 200));
 
       // Act: should not throw
@@ -356,7 +356,7 @@ void main() {
 
     test('addTransaction 多次调用 → 每次都精确 verify', () async {
       final client = TrackingTransactionClient();
-      final notifier = TransactionNotifier(db, 'user1', null, client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
       await Future.delayed(const Duration(milliseconds: 200));
 
       // Act: 两次 addTransaction
@@ -511,7 +511,7 @@ void main() {
       // 新模式展示: Tracking client 能精确验证
       final db = await _setupDb();
       final client = TrackingTransactionClient();
-      final notifier = TransactionNotifier(db, 'user1', null, client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
       await Future.delayed(const Duration(milliseconds: 200));
 
       await notifier.addTransaction(

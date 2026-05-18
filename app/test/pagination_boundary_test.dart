@@ -191,7 +191,7 @@ void main() {
         ],
       );
 
-      final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
       await Future.delayed(const Duration(milliseconds: 500));
 
       // First call should have empty pageToken
@@ -213,7 +213,7 @@ void main() {
         ],
       );
 
-      final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Should have made exactly 2 calls (second page returns empty nextPageToken)
@@ -230,7 +230,7 @@ void main() {
         ],
       );
 
-      final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Only 1 call, no next page
@@ -247,7 +247,7 @@ void main() {
           _generateTransactions(1, prefix: 'page$i'));
       final client = PaginationTrackingClient(pages: manyPages);
 
-      final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
       // Give it more time since it's doing 200 iterations
       await Future.delayed(const Duration(milliseconds: 2000));
 
@@ -265,7 +265,7 @@ void main() {
         ],
       );
 
-      final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
       await Future.delayed(const Duration(milliseconds: 500));
 
       final initialCount = client.callCount;
@@ -296,7 +296,7 @@ void main() {
         ],
       );
 
-      final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Verify tokens are sequential
@@ -316,7 +316,7 @@ void main() {
         ],
       );
 
-      final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Only 1 page fetched since nextPageToken is empty
@@ -337,7 +337,7 @@ void main() {
       );
 
       // No familyId → no server sync
-      final notifier = TransactionNotifier(db, 'user1', null, client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
       await Future.delayed(const Duration(milliseconds: 500));
 
       expect(client.callCount, 0);
@@ -352,7 +352,7 @@ void main() {
       );
 
       // Empty familyId → no server sync
-      final notifier = TransactionNotifier(db, 'user1', '', client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', '', client);
       await Future.delayed(const Duration(milliseconds: 500));
 
       expect(client.callCount, 0);
@@ -365,7 +365,7 @@ void main() {
       // A client that throws on first call
       final client = _ErrorOnNthCallClient(errorOnCall: 0);
 
-      final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Should not crash, state should not have error (it's caught)

@@ -314,7 +314,7 @@ void main() {
         final client = FakeTransactionClient()
           ..createError = GrpcError.unauthenticated('token expired');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.addTransaction(
@@ -348,7 +348,7 @@ void main() {
         final client = FakeTransactionClient()
           ..createError = GrpcError.permissionDenied('no access');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.addTransaction(
@@ -374,7 +374,7 @@ void main() {
         final client = FakeTransactionClient()
           ..createError = GrpcError.deadlineExceeded('timeout');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.addTransaction(
@@ -398,7 +398,7 @@ void main() {
         final client = FakeTransactionClient()
           ..createError = GrpcError.internal('server crash');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.addTransaction(
@@ -425,7 +425,7 @@ void main() {
         final client = FakeTransactionClient()
           ..createError = GrpcError.invalidArgument('invalid category_id');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.addTransaction(
@@ -449,7 +449,7 @@ void main() {
         final client = FakeTransactionClient()
           ..createError = GrpcError.notFound('account not found');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.addTransaction(
@@ -496,7 +496,7 @@ void main() {
         final client = FakeTransactionClient()
           ..updateError = GrpcError.unauthenticated('token expired');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.updateTransaction(
@@ -526,7 +526,7 @@ void main() {
         final client = FakeTransactionClient()
           ..updateError = GrpcError.permissionDenied('not allowed');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.updateTransaction(
@@ -548,7 +548,7 @@ void main() {
         final client = FakeTransactionClient()
           ..updateError = GrpcError.deadlineExceeded('timeout');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.updateTransaction(
@@ -572,7 +572,7 @@ void main() {
         final client = FakeTransactionClient()
           ..updateError = GrpcError.notFound('transaction not found on server');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.updateTransaction(
@@ -593,7 +593,7 @@ void main() {
         final client = FakeTransactionClient()
           ..updateError = GrpcError.internal('500 error');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.updateTransaction(
@@ -615,7 +615,7 @@ void main() {
         final client = FakeTransactionClient()
           ..updateError = GrpcError.invalidArgument('bad data');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.updateTransaction(
@@ -661,7 +661,7 @@ void main() {
         final client = FakeTransactionClient()
           ..deleteError = GrpcError.unauthenticated('token expired');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.deleteTransaction('txn_del_test');
@@ -683,7 +683,7 @@ void main() {
         final client = FakeTransactionClient()
           ..deleteError = GrpcError.permissionDenied('no permission');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.deleteTransaction('txn_del_test');
@@ -702,7 +702,7 @@ void main() {
         final client = FakeTransactionClient()
           ..deleteError = GrpcError.deadlineExceeded('timeout');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.deleteTransaction('txn_del_test');
@@ -722,7 +722,7 @@ void main() {
         final client = FakeTransactionClient()
           ..deleteError = GrpcError.notFound('already deleted');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.deleteTransaction('txn_del_test');
@@ -740,7 +740,7 @@ void main() {
         final client = FakeTransactionClient()
           ..deleteError = GrpcError.internal('server error');
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.deleteTransaction('txn_del_test');
@@ -762,7 +762,7 @@ void main() {
         final client = FakeTransactionClient()
           ..listError = GrpcError.unauthenticated('expired');
 
-        final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
         await Future.delayed(const Duration(milliseconds: 300));
 
         expect(notifier.state.isLoading, false);
@@ -779,7 +779,7 @@ void main() {
         final client = FakeTransactionClient()
           ..listError = GrpcError.permissionDenied('not a family member');
 
-        final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
         await Future.delayed(const Duration(milliseconds: 300));
 
         expect(notifier.state.isLoading, false);
@@ -795,7 +795,7 @@ void main() {
         final client = FakeTransactionClient()
           ..listError = GrpcError.deadlineExceeded('slow network');
 
-        final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
         await Future.delayed(const Duration(milliseconds: 300));
 
         expect(notifier.state.isLoading, false);
@@ -811,7 +811,7 @@ void main() {
         final client = FakeTransactionClient()
           ..listError = GrpcError.internal('server panic');
 
-        final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
         await Future.delayed(const Duration(milliseconds: 300));
 
         expect(notifier.state.isLoading, false);
@@ -1216,7 +1216,7 @@ void main() {
 
         for (final error in errors) {
           final client = FakeTransactionClient()..createError = error;
-          final notifier = TransactionNotifier(db, 'user1', null, client);
+          final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
           await Future.delayed(const Duration(milliseconds: 100));
 
           // Should not throw
