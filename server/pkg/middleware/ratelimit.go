@@ -199,15 +199,23 @@ func UnaryRateLimitInterceptor(rl *RateLimiter) grpc.UnaryServerInterceptor {
 }
 
 // extractIP gets the client IP, optionally trusting proxy headers.
+// When TrustProxy is enabled, uses the rightmost IP in X-Forwarded-For
+// (the one appended by the trusted reverse proxy closest to us).
 func extractIP(ctx context.Context, trustProxy bool) string {
 	// If behind a trusted proxy, check forwarded headers first
 	if trustProxy {
 		if md, ok := metadata.FromIncomingContext(ctx); ok {
-			// X-Forwarded-For: client, proxy1, proxy2 — first entry is the real client
+			// X-Forwarded-For: client, proxy1, proxy2
+			// Rightmost entry is appended by our trusted proxy = real client IP.
+			// Leftmost can be spoofed by the client.
 			if xff := md.Get("x-forwarded-for"); len(xff) > 0 {
-				ip := strings.TrimSpace(strings.Split(xff[0], ",")[0])
-				if ip != "" && net.ParseIP(ip) != nil {
-					return ip
+				parts := strings.Split(xff[0], ",")
+				// Walk from right to left, take first valid public IP
+				for i := len(parts) - 1; i >= 0; i-- {
+					ip := strings.TrimSpace(parts[i])
+					if ip != "" && net.ParseIP(ip) != nil {
+						return ip
+					}
 				}
 			}
 			// X-Real-IP: single IP set by nginx/envoy

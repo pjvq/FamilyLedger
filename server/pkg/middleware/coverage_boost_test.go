@@ -45,9 +45,9 @@ func TestExtractIP_NoPort(t *testing.T) {
 func TestExtractIP_TrustProxy_XForwardedFor(t *testing.T) {
 	md := metadata.Pairs("x-forwarded-for", "203.0.113.50, 10.0.0.1")
 	ctx := metadata.NewIncomingContext(context.Background(), md)
-	// With TrustProxy=true, should use first IP from X-Forwarded-For
+	// With TrustProxy=true, should use rightmost IP (appended by our proxy)
 	ip := extractIP(ctx, true)
-	assert.Equal(t, "203.0.113.50", ip)
+	assert.Equal(t, "10.0.0.1", ip)
 	// With TrustProxy=false, should ignore header
 	ip = extractIP(ctx, false)
 	assert.Equal(t, "unknown", ip) // no peer info

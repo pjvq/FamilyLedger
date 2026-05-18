@@ -8,6 +8,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Pool defaults — single source of truth.
+const (
+	DefaultMaxConns        int32         = 20
+	DefaultMinConns        int32         = 2
+	DefaultMaxConnLifetime time.Duration = 1 * time.Hour
+	DefaultMaxConnIdleTime time.Duration = 30 * time.Minute
+)
+
 type Config struct {
 	Host     string
 	Port     int
@@ -15,11 +23,11 @@ type Config struct {
 	Password string
 	DBName   string
 	SSLMode  string
-	// Pool configuration
-	MaxConns        int32 // default 20
-	MinConns        int32 // default 2
-	MaxConnLifetime time.Duration // default 1h
-	MaxConnIdleTime time.Duration // default 30m
+	// Pool configuration (zero value = use defaults above)
+	MaxConns        int32
+	MinConns        int32
+	MaxConnLifetime time.Duration
+	MaxConnIdleTime time.Duration
 }
 
 func NewPool(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
@@ -34,19 +42,28 @@ func NewPool(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
 	}
 
 	// Apply pool settings with sensible defaults
-	poolCfg.MaxConns = 20
+	maxConns := DefaultMaxConns
 	if cfg.MaxConns > 0 {
-		poolCfg.MaxConns = cfg.MaxConns
+		maxConns = cfg.MaxConns
 	}
-	poolCfg.MinConns = 2
+	minConns := DefaultMinConns
 	if cfg.MinConns > 0 {
-		poolCfg.MinConns = cfg.MinConns
+		minConns = cfg.MinConns
 	}
-	poolCfg.MaxConnLifetime = 1 * time.Hour
+
+	// Validate: MinConns must not exceed MaxConns
+	if minConns > maxConns {
+		return nil, fmt.Errorf("db pool config: MinConns (%d) must not exceed MaxConns (%d)", minConns, maxConns)
+	}
+
+	poolCfg.MaxConns = maxConns
+	poolCfg.MinConns = minConns
+
+	poolCfg.MaxConnLifetime = DefaultMaxConnLifetime
 	if cfg.MaxConnLifetime > 0 {
 		poolCfg.MaxConnLifetime = cfg.MaxConnLifetime
 	}
-	poolCfg.MaxConnIdleTime = 30 * time.Minute
+	poolCfg.MaxConnIdleTime = DefaultMaxConnIdleTime
 	if cfg.MaxConnIdleTime > 0 {
 		poolCfg.MaxConnIdleTime = cfg.MaxConnIdleTime
 	}
