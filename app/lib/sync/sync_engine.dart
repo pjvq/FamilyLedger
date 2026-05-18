@@ -725,8 +725,9 @@ class SyncEngine {
 
     try {
       final scheme = AppConstants.useTls ? 'wss' : 'ws';
+      // First-message auth: connect without token in URL
       final uri = Uri.parse(
-        '$scheme://${AppConstants.serverHost}:${AppConstants.wsPort}/ws?token=$token',
+        '$scheme://${AppConstants.serverHost}:${AppConstants.wsPort}/ws',
       );
       _wsChannel = WebSocketChannel.connect(uri);
 
@@ -740,6 +741,9 @@ class SyncEngine {
       }
 
       if (_disposed) return;
+
+      // Send auth message as first message
+      _wsChannel!.sink.add(jsonEncode({'type': 'auth', 'token': token}));
 
       _wsSub = _wsChannel!.stream.listen(
         (message) {
@@ -756,14 +760,8 @@ class SyncEngine {
         },
       );
 
-      dev.log('SyncEngine: ws connected', name: 'sync');
-      _reconnectAttempts = 0;
-      onStatusChanged?.call(wsConnected: true);
-
-      // Pull immediately after reconnect to catch up on changes
-      // that were broadcast while we were disconnected.
-      // Fire-and-forget: don't block the WS message loop.
-      unawaited(_pullChanges());
+      // Note: auth_ok is handled in _handleWsMessage which sets wsConnected
+      dev.log('SyncEngine: ws connected, awaiting auth_ok', name: 'sync');
     } catch (e) {
       dev.log('SyncEngine: ws connect failed: $e', name: 'sync');
       _scheduleReconnect();
@@ -774,6 +772,15 @@ class SyncEngine {
     try {
       final data = jsonDecode(message as String) as Map<String, dynamic>;
       final type = data['type'] as String?;
+
+      if (type == 'auth_ok') {
+        dev.log('SyncEngine: ws auth_ok received', name: 'sync');
+        _reconnectAttempts = 0;
+        onStatusChanged?.call(wsConnected: true);
+        // Pull immediately after auth to catch up on changes
+        unawaited(_pullChanges());
+        return;
+      }
 
       if (type == 'sync_notify' || type == 'change') {
         // 服务端通知有新变更，触发增量拉取
