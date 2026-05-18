@@ -232,7 +232,7 @@ func (s *Service) GetNetWorth(ctx context.Context, req *pb.GetNetWorthRequest) (
 }
 
 // estimateLastMonthNetWorth 估算上月末净资产。
-// 简化方案：查询上月末的各项汇总。
+// Simplified approach: query summaries as of end of last month.
 func (s *Service) estimateLastMonthNetWorth(ctx context.Context, ff *familyFilter) int64 {
 	now := time.Now()
 	lastMonthEnd := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).Add(-time.Second)
@@ -878,7 +878,7 @@ func (s *Service) GetNetWorthTrend(ctx context.Context, req *pb.TrendRequest) (*
 
 	now := time.Now()
 
-	// 计算查询起始日期
+	// Calculate query start date
 	var startDate time.Time
 	if req.Period == "yearly" {
 		startDate = time.Date(now.Year()-count+1, 1, 1, 0, 0, 0, 0, time.UTC)
