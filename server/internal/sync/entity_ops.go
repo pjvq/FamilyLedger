@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
+	"github.com/familyledger/server/pkg/dynupdate"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -108,44 +108,17 @@ func (s *Service) applyLoanUpdate(ctx context.Context, tx pgx.Tx, userID uuid.UU
 		return fmt.Errorf("invalid loan update payload: %w", err)
 	}
 
-	// Verify ownership
 	if err := s.verifyOwnership(ctx, tx, userID, entityID, "loans"); err != nil {
 		return err
 	}
 
-	setClauses := []string{"updated_at = NOW()"}
-	args := []interface{}{}
-	argIdx := 1
+	var b dynupdate.Builder
+	b.SetString("name", p.Name)
+	b.SetInt64NonZero("remaining_principal", p.RemainingPrincipal)
+	b.SetIntNonZero("paid_months", p.PaidMonths)
+	b.SetFloat64NonZero("annual_rate", p.AnnualRate)
 
-	if p.Name != "" {
-		args = append(args, p.Name)
-		setClauses = append(setClauses, fmt.Sprintf("name = $%d", argIdx))
-		argIdx++
-	}
-	if p.RemainingPrincipal > 0 {
-		args = append(args, p.RemainingPrincipal)
-		setClauses = append(setClauses, fmt.Sprintf("remaining_principal = $%d", argIdx))
-		argIdx++
-	}
-	if p.PaidMonths > 0 {
-		args = append(args, p.PaidMonths)
-		setClauses = append(setClauses, fmt.Sprintf("paid_months = $%d", argIdx))
-		argIdx++
-	}
-	if p.AnnualRate > 0 {
-		args = append(args, p.AnnualRate)
-		setClauses = append(setClauses, fmt.Sprintf("annual_rate = $%d", argIdx))
-		argIdx++
-	}
-
-	if len(args) == 0 {
-		_, err := tx.Exec(ctx, "UPDATE loans SET updated_at = NOW() WHERE id = $1", entityID)
-		return err
-	}
-
-	args = append(args, entityID)
-	query := fmt.Sprintf("UPDATE loans SET %s WHERE id = $%d AND deleted_at IS NULL",
-		strings.Join(setClauses, ", "), argIdx)
+	query, args := b.BuildOrNoOp("loans", entityID)
 	_, err := tx.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to update loan: %w", err)
@@ -232,29 +205,11 @@ func (s *Service) applyLoanGroupUpdate(ctx context.Context, tx pgx.Tx, userID uu
 		return err
 	}
 
-	setClauses := []string{"updated_at = NOW()"}
-	args := []interface{}{}
-	argIdx := 1
+	var b dynupdate.Builder
+	b.SetString("name", p.Name)
+		b.SetInt64NonZero("total_principal", p.TotalPrincipal)
 
-	if p.Name != "" {
-		args = append(args, p.Name)
-		setClauses = append(setClauses, fmt.Sprintf("name = $%d", argIdx))
-		argIdx++
-	}
-	if p.TotalPrincipal > 0 {
-		args = append(args, p.TotalPrincipal)
-		setClauses = append(setClauses, fmt.Sprintf("total_principal = $%d", argIdx))
-		argIdx++
-	}
-
-	if len(args) == 0 {
-		_, err := tx.Exec(ctx, "UPDATE loan_groups SET updated_at = NOW() WHERE id = $1", entityID)
-		return err
-	}
-
-	args = append(args, entityID)
-	query := fmt.Sprintf("UPDATE loan_groups SET %s WHERE id = $%d AND deleted_at IS NULL",
-		strings.Join(setClauses, ", "), argIdx)
+	query, args := b.BuildOrNoOp("loan_groups", entityID)
 	_, err := tx.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to update loan_group: %w", err)
@@ -322,34 +277,12 @@ func (s *Service) applyInvestmentUpdate(ctx context.Context, tx pgx.Tx, userID u
 		return err
 	}
 
-	setClauses := []string{"updated_at = NOW()"}
-	args := []interface{}{}
-	argIdx := 1
+	var b dynupdate.Builder
+	b.SetString("name", p.Name)
+	b.Set("quantity", p.Quantity, p.Quantity != 0)
+	b.Set("cost_basis", p.CostBasis, p.CostBasis != 0)
 
-	if p.Name != "" {
-		args = append(args, p.Name)
-		setClauses = append(setClauses, fmt.Sprintf("name = $%d", argIdx))
-		argIdx++
-	}
-	if p.Quantity != 0 {
-		args = append(args, p.Quantity)
-		setClauses = append(setClauses, fmt.Sprintf("quantity = $%d", argIdx))
-		argIdx++
-	}
-	if p.CostBasis != 0 {
-		args = append(args, p.CostBasis)
-		setClauses = append(setClauses, fmt.Sprintf("cost_basis = $%d", argIdx))
-		argIdx++
-	}
-
-	if len(args) == 0 {
-		_, err := tx.Exec(ctx, "UPDATE investments SET updated_at = NOW() WHERE id = $1", entityID)
-		return err
-	}
-
-	args = append(args, entityID)
-	query := fmt.Sprintf("UPDATE investments SET %s WHERE id = $%d AND deleted_at IS NULL",
-		strings.Join(setClauses, ", "), argIdx)
+	query, args := b.BuildOrNoOp("investments", entityID)
 	_, err := tx.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to update investment: %w", err)
@@ -428,34 +361,12 @@ func (s *Service) applyFixedAssetUpdate(ctx context.Context, tx pgx.Tx, userID u
 		return err
 	}
 
-	setClauses := []string{"updated_at = NOW()"}
-	args := []interface{}{}
-	argIdx := 1
+	var b dynupdate.Builder
+	b.SetString("name", p.Name)
+	b.SetInt64NonZero("current_value", p.CurrentValue)
+	b.SetString("description", p.Description)
 
-	if p.Name != "" {
-		args = append(args, p.Name)
-		setClauses = append(setClauses, fmt.Sprintf("name = $%d", argIdx))
-		argIdx++
-	}
-	if p.CurrentValue > 0 {
-		args = append(args, p.CurrentValue)
-		setClauses = append(setClauses, fmt.Sprintf("current_value = $%d", argIdx))
-		argIdx++
-	}
-	if p.Description != "" {
-		args = append(args, p.Description)
-		setClauses = append(setClauses, fmt.Sprintf("description = $%d", argIdx))
-		argIdx++
-	}
-
-	if len(args) == 0 {
-		_, err := tx.Exec(ctx, "UPDATE fixed_assets SET updated_at = NOW() WHERE id = $1", entityID)
-		return err
-	}
-
-	args = append(args, entityID)
-	query := fmt.Sprintf("UPDATE fixed_assets SET %s WHERE id = $%d AND deleted_at IS NULL",
-		strings.Join(setClauses, ", "), argIdx)
+	query, args := b.BuildOrNoOp("fixed_assets", entityID)
 	_, err := tx.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to update fixed_asset: %w", err)

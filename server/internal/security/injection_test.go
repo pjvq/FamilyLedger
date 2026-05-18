@@ -72,10 +72,17 @@ func TestCreateTransaction_SQLInjection_Note(t *testing.T) {
 					WithArgs(accountID).
 					WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id", "type"}).AddRow(userUUID, nil, "cash"))
 
-				// Key assertion: the INSERT should receive the malicious string as a
-				// parameterized argument ($9 = note), NOT spliced into the SQL.
+				// Category existence check
 				mock.ExpectQuery("SELECT EXISTS").WithArgs(categoryID).
 					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+
+				// Overdraft check with FOR UPDATE lock (now BEFORE insert)
+				mock.ExpectQuery("SELECT balance FROM accounts WHERE id").
+					WithArgs(accountID).
+					WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
+
+				// Key assertion: the INSERT should receive the malicious string as a
+				// parameterized argument ($9 = note), NOT spliced into the SQL.
 				mock.ExpectQuery("INSERT INTO transactions").
 					WithArgs(
 						userUUID, accountID, categoryID,
@@ -91,11 +98,6 @@ func TestCreateTransaction_SQLInjection_Note(t *testing.T) {
 					).
 					WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 						AddRow(txnID, now, now))
-
-				// Overdraft check with FOR UPDATE lock
-				mock.ExpectQuery("SELECT balance FROM accounts WHERE id").
-					WithArgs(accountID).
-					WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
 
 				mock.ExpectExec("UPDATE accounts SET balance").
 					WithArgs(pgxmock.AnyArg(), accountID).

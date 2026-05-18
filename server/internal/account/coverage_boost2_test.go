@@ -900,12 +900,8 @@ func TestCheckAccountAccess_InvalidFamilyUUID(t *testing.T) {
 	err := svc.checkAccountAccess(ctxWithUser(testUser), uuid.New().String(), "bad-family-id", testUser)
 	assert.Error(t, err)
 	st, _ := status.FromError(err)
-	assert.Equal(t, codes.Internal, st.Code())
+	assert.Equal(t, codes.InvalidArgument, st.Code())
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// requireFamilyPermission — DB error path, bad JSON
-// ═══════════════════════════════════════════════════════════════════════════════
 
 func TestRequireFamilyPermission_DBError(t *testing.T) {
 	svc, mock := newTestService(t)
