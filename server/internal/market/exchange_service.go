@@ -35,6 +35,10 @@ func NewExchangeService(pool db.Pool) *ExchangeService {
 }
 
 // GetExchangeRate returns the exchange rate from one currency to another.
+// Returns (0, error) if the rate is not available in the database.
+// Callers must handle the error — e.g. by refusing the transaction or
+// prompting the user to enter a manual rate. Previously this returned
+// (1.0, nil) as a silent fallback, which produced incorrect amounts.
 // The pair is stored as FROM_TO (e.g., USD_CNY).
 func (s *ExchangeService) GetExchangeRate(ctx context.Context, from, to string) (float64, error) {
 	if from == to {

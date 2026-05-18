@@ -585,23 +585,31 @@ fi
 BATCH=$(grpc_auth investment.proto \
     "familyledger.investment.v1.MarketDataService/BatchGetQuotes" \
     '{"requests":[{"symbol":"600519","market_type":"MARKET_TYPE_A_SHARE"},{"symbol":"000858","market_type":"MARKET_TYPE_A_SHARE"}]}')
-B_CNT=$(echo "$BATCH" | jq '.quotes | length' 2>/dev/null)
-if [ "${B_CNT:-0}" -ge 1 ] 2>/dev/null; then
-    pass "BatchGetQuotes - got $B_CNT quotes"
+if echo "$BATCH" | grep -q "Unavailable\|connection refused"; then
+    fail "BatchGetQuotes" "Server unreachable: $BATCH"
 else
-    echo "[SKIP] BatchGetQuotes - external API unavailable (count=${B_CNT:-0})"
+    B_CNT=$(echo "$BATCH" | jq '.quotes | length' 2>/dev/null)
+    if [ "${B_CNT:-0}" -ge 1 ] 2>/dev/null; then
+        pass "BatchGetQuotes - got $B_CNT quotes"
+    else
+        echo "[SKIP] BatchGetQuotes - external market API unavailable (count=${B_CNT:-0})"
+    fi
 fi
 
 # --- SearchSymbol ---
 SEARCH=$(grpc_auth investment.proto \
     "familyledger.investment.v1.MarketDataService/SearchSymbol" \
     '{"query":"茅台","market_type":"MARKET_TYPE_A_SHARE"}')
-S_CNT=$(echo "$SEARCH" | jq '.symbols | length' 2>/dev/null)
-if [ "${S_CNT:-0}" -ge 1 ] 2>/dev/null; then
-    FIRST_SYM=$(echo "$SEARCH" | jq -r '.symbols[0].symbol // empty')
-    pass "SearchSymbol '茅台' - $S_CNT results, first=$FIRST_SYM"
+if echo "$SEARCH" | grep -q "Unavailable\|connection refused"; then
+    fail "SearchSymbol" "Server unreachable: $SEARCH"
 else
-    echo "[SKIP] SearchSymbol - external API unavailable (count=${S_CNT:-0})"
+    S_CNT=$(echo "$SEARCH" | jq '.symbols | length' 2>/dev/null)
+    if [ "${S_CNT:-0}" -ge 1 ] 2>/dev/null; then
+        FIRST_SYM=$(echo "$SEARCH" | jq -r '.symbols[0].symbol // empty')
+        pass "SearchSymbol '茅台' - $S_CNT results, first=$FIRST_SYM"
+    else
+        echo "[SKIP] SearchSymbol - external market API unavailable (count=${S_CNT:-0})"
+    fi
 fi
 
 # --- GetPriceHistory ---

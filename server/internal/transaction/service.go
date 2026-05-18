@@ -151,13 +151,12 @@ func (s *Service) getAccountFamilyID(ctx context.Context, accountID uuid.UUID) (
 	return getAccountFamilyIDFrom(ctx, s.pool, accountID)
 }
 
-// Transaction date range bounds.
-var (
-	// txnDateEarliest is the earliest accepted transaction date.
-	txnDateEarliest = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
-	// txnDateFutureAllowDays is how many days into the future a txn_date may be.
-	txnDateFutureAllowDays = 1
-)
+// txnDateFutureAllowDays is how many days into the future a txn_date may be.
+const txnDateFutureAllowDays = 1
+
+// txnDateEarliest is the earliest accepted transaction date.
+// Not a const because time.Date is not a compile-time expression.
+var txnDateEarliest = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC) //nolint:gochecknoglobals
 
 // validateTxnDate checks a protobuf Timestamp for validity and range [txnDateEarliest, now+txnDateFutureAllowDays].
 func validateTxnDate(ts *timestamppb.Timestamp) (time.Time, error) {

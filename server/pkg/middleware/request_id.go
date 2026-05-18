@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"log/slog"
+	"regexp"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
@@ -10,6 +10,12 @@ import (
 )
 
 type requestIDKey struct{}
+
+// maxRequestIDLen caps client-provided request IDs to prevent log storage DoS.
+const maxRequestIDLen = 64
+
+// validRequestID allows only safe characters: alphanumeric, hyphens, underscores, dots.
+var validRequestID = regexp.MustCompile(`^[a-zA-Z0-9\-_.]+$`)
 
 // GetRequestID retrieves the request ID from context (empty string if not set).
 func GetRequestID(ctx context.Context) string {
@@ -19,15 +25,29 @@ func GetRequestID(ctx context.Context) string {
 	return ""
 }
 
+// sanitizeRequestID validates a client-provided request ID.
+// Returns empty string if invalid (caller should generate a new one).
+func sanitizeRequestID(id string) string {
+	if len(id) == 0 || len(id) > maxRequestIDLen {
+		return ""
+	}
+	if !validRequestID.MatchString(id) {
+		return ""
+	}
+	return id
+}
+
 // UnaryRequestIDInterceptor assigns a unique request ID to each gRPC call.
 // The ID is propagated via context and response metadata header "x-request-id".
+// Client-provided IDs are validated (alphanumeric + hyphens, max 64 chars);
+// invalid or missing IDs are replaced with a server-generated UUID.
 func UnaryRequestIDInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		// Check if client provided a request ID
+		// Check if client provided a valid request ID
 		reqID := ""
 		if md, ok := metadata.FromIncomingContext(ctx); ok {
 			if vals := md.Get("x-request-id"); len(vals) > 0 {
-				reqID = vals[0]
+				reqID = sanitizeRequestID(vals[0])
 			}
 		}
 		if reqID == "" {
@@ -36,16 +56,10 @@ func UnaryRequestIDInterceptor() grpc.UnaryServerInterceptor {
 
 		ctx = context.WithValue(ctx, requestIDKey{}, reqID)
 
-		// Set response header
+		// Set response header so client can correlate
 		_ = grpc.SetHeader(ctx, metadata.Pairs("x-request-id", reqID))
 
-		// Add to slog context
-		slog.DebugContext(ctx, "grpc request", "method", info.FullMethod, "request_id", reqID)
-
 		resp, err := handler(ctx, req)
-		if err != nil {
-			slog.WarnContext(ctx, "grpc error", "method", info.FullMethod, "request_id", reqID, "error", err)
-		}
 		return resp, err
 	}
 }
