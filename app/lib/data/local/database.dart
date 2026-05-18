@@ -567,31 +567,78 @@ class AppDatabase extends _$AppDatabase {
         .write(entry);
   }
 
-  Stream<List<Transaction>> watchTransactions(String userId, {String? familyId}) {
+  /// Watch transactions with pagination (default 200 per page).
+  /// Use [limit] and [offset] to control the window.
+  Stream<List<Transaction>> watchTransactions(
+    String userId, {
+    String? familyId,
+    int limit = 200,
+    int offset = 0,
+  }) {
     if (familyId != null && familyId.isNotEmpty) {
-      // Family mode: all transactions from family accounts (all members)
       return customSelect(
         'SELECT t.* FROM transactions t '
         'JOIN accounts a ON a.id = t.account_id '
         'WHERE t.deleted_at IS NULL AND a.family_id = ? '
-        'ORDER BY t.txn_date DESC',
-        variables: [Variable.withString(familyId)],
+        'ORDER BY t.txn_date DESC LIMIT ? OFFSET ?',
+        variables: [
+          Variable.withString(familyId),
+          Variable.withInt(limit),
+          Variable.withInt(offset),
+        ],
         readsFrom: {transactions, accounts},
       ).watch().map((rows) => rows.map((row) {
         return transactions.map(row.data);
       }).toList());
     }
-    // Personal mode: only transactions from personal accounts (no family)
     return customSelect(
       'SELECT t.* FROM transactions t '
       'JOIN accounts a ON a.id = t.account_id '
       'WHERE t.user_id = ? AND t.deleted_at IS NULL AND (a.family_id IS NULL OR a.family_id = \'\') '
-      'ORDER BY t.txn_date DESC',
-      variables: [Variable.withString(userId)],
+      'ORDER BY t.txn_date DESC LIMIT ? OFFSET ?',
+      variables: [
+        Variable.withString(userId),
+        Variable.withInt(limit),
+        Variable.withInt(offset),
+      ],
       readsFrom: {transactions, accounts},
     ).watch().map((rows) => rows.map((row) {
       return transactions.map(row.data);
     }).toList());
+  }
+
+  /// Get a page of transactions (non-reactive, for load-more).
+  Future<List<Transaction>> getTransactionPage(
+    String userId, {
+    String? familyId,
+    required int limit,
+    required int offset,
+  }) async {
+    final String sql;
+    final List<Variable> vars;
+    if (familyId != null && familyId.isNotEmpty) {
+      sql = 'SELECT t.* FROM transactions t '
+          'JOIN accounts a ON a.id = t.account_id '
+          'WHERE t.deleted_at IS NULL AND a.family_id = ? '
+          'ORDER BY t.txn_date DESC LIMIT ? OFFSET ?';
+      vars = [
+        Variable.withString(familyId),
+        Variable.withInt(limit),
+        Variable.withInt(offset),
+      ];
+    } else {
+      sql = 'SELECT t.* FROM transactions t '
+          'JOIN accounts a ON a.id = t.account_id '
+          'WHERE t.user_id = ? AND t.deleted_at IS NULL AND (a.family_id IS NULL OR a.family_id = \'\') '
+          'ORDER BY t.txn_date DESC LIMIT ? OFFSET ?';
+      vars = [
+        Variable.withString(userId),
+        Variable.withInt(limit),
+        Variable.withInt(offset),
+      ];
+    }
+    final rows = await customSelect(sql, variables: vars, readsFrom: {transactions, accounts}).get();
+    return rows.map((row) => transactions.map(row.data)).toList();
   }
 
   // Sync queue

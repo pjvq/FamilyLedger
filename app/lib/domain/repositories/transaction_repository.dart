@@ -20,9 +20,24 @@ class TransactionRepository {
 
   // ─── Reads ───────────────────────────────────────────────────────────
 
-  /// Watch all transactions for a user (optionally scoped to family).
-  Stream<List<Transaction>> watchAll(String userId, {String? familyId}) {
-    return _db.watchTransactions(userId, familyId: familyId);
+  /// Watch transactions with pagination (default 200).
+  Stream<List<Transaction>> watchAll(
+    String userId, {
+    String? familyId,
+    int limit = 200,
+    int offset = 0,
+  }) {
+    return _db.watchTransactions(userId, familyId: familyId, limit: limit, offset: offset);
+  }
+
+  /// Load a page of transactions (non-reactive, for infinite scroll).
+  Future<List<Transaction>> getPage(
+    String userId, {
+    String? familyId,
+    required int limit,
+    required int offset,
+  }) {
+    return _db.getTransactionPage(userId, familyId: familyId, limit: limit, offset: offset);
   }
 
   Future<Transaction?> getById(String id) => _db.getTransactionById(id);

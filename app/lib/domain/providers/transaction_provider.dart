@@ -28,6 +28,7 @@ class TransactionState {
   final int todayExpense; // cents (CNY)
   final int monthExpense; // cents (CNY)
   final bool isLoading;
+  final bool hasMore; // pagination: more pages available
   final String? error;
 
   const TransactionState({
@@ -38,6 +39,7 @@ class TransactionState {
     this.todayExpense = 0,
     this.monthExpense = 0,
     this.isLoading = true,
+    this.hasMore = true,
     this.error,
   });
 
@@ -49,6 +51,7 @@ class TransactionState {
     int? todayExpense,
     int? monthExpense,
     bool? isLoading,
+    bool? hasMore,
     String? error,
     bool clearError = false,
   }) =>
@@ -60,6 +63,7 @@ class TransactionState {
         todayExpense: todayExpense ?? this.todayExpense,
         monthExpense: monthExpense ?? this.monthExpense,
         isLoading: isLoading ?? this.isLoading,
+        hasMore: hasMore ?? this.hasMore,
         error: clearError ? null : (error ?? this.error),
       );
 }
@@ -88,6 +92,9 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   final String? _familyId;
 
   StreamSubscription? _dbSub;
+
+  /// Page size for transaction loading.
+  static const int _pageSize = 200;
 
   TransactionNotifier({
     required TransactionRepository repo,
@@ -135,11 +142,37 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   }
 
   void _init() {
-    _dbSub = _repo.watchAll(_userId, familyId: _familyId).listen((txns) {
-      state = state.copyWith(transactions: txns);
+    _dbSub = _repo.watchAll(_userId, familyId: _familyId, limit: _pageSize).listen((txns) {
+      state = state.copyWith(
+        transactions: txns,
+        hasMore: txns.length >= _pageSize,
+      );
       _refreshSummary();
     });
     _load();
+  }
+
+  /// Load more transactions (infinite scroll).
+  Future<void> loadMore() async {
+    if (!state.hasMore || state.isLoading) return;
+    try {
+      final more = await _repo.getPage(
+        _userId,
+        familyId: _familyId,
+        limit: _pageSize,
+        offset: state.transactions.length,
+      );
+      if (more.isEmpty) {
+        state = state.copyWith(hasMore: false);
+      } else {
+        state = state.copyWith(
+          transactions: [...state.transactions, ...more],
+          hasMore: more.length >= _pageSize,
+        );
+      }
+    } catch (e) {
+      dev.log('loadMore failed: $e', name: 'TransactionNotifier');
+    }
   }
 
   // ─── Load ────────────────────────────────────────────────────────────

@@ -1,11 +1,9 @@
 import 'dart:convert';
+import 'package:path/path.dart' as p;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 import '../../generated/proto/transaction.pb.dart' as pb;
 import '../../generated/proto/transaction.pbgrpc.dart' as pbgrpc;
 import '../../core/utils/input_sanitizer.dart' show maxNoteLength;
@@ -19,6 +17,7 @@ import '../../domain/providers/account_provider.dart';
 import '../../core/widgets/success_animation.dart';
 import 'widgets/number_pad.dart';
 import 'widgets/category_grid.dart';
+import 'widgets/transaction_details_panel.dart';
 import 'widgets/icon_picker_sheet.dart';
 import '../../core/constants/category_icons.dart';
 import '../../core/constants/category_icon_widget.dart';
@@ -53,7 +52,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
 
   // Image attachments
   final List<String> _imagePaths = [];
-  final _imagePicker = ImagePicker();
 
   // Show detail panel
   bool _showDetails = false;
@@ -168,7 +166,16 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
           // Detail toggle
           _buildDetailToggle(context),
           // Details panel (note, tags, images)
-          if (_showDetails) _buildDetailsPanel(context),
+          if (_showDetails) TransactionDetailsPanel(
+            noteController: _noteController,
+            tagController: _tagController,
+            tags: _tags,
+            imagePaths: _imagePaths,
+            onTagAdded: () => _addTag(_tagController.text),
+            onTagRemoved: (tag) => setState(() => _tags.remove(tag)),
+            onImageRemoved: (path) => setState(() => _imagePaths.remove(path)),
+            onPickImage: _pickImage,
+          ),
           // Category selector
           Expanded(
             child: CategoryGrid(
@@ -449,138 +456,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     );
   }
 
-  Widget _buildDetailsPanel(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 200),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Note input
-            TextField(
-              controller: _noteController,
-              maxLength: maxNoteLength,
-              decoration: const InputDecoration(
-                hintText: '备注',
-                prefixIcon: Icon(Icons.note_outlined, size: 18),
-                isDense: true,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              ),
-              style: const TextStyle(fontSize: 14),
-              maxLines: 1,
-            ),
-            const SizedBox(height: 8),
-            // Tags
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: [
-                ..._tags.map((tag) => Chip(
-                      label: Text(tag, style: const TextStyle(fontSize: 12)),
-                      deleteIcon: const Icon(Icons.close, size: 14),
-                      onDeleted: () => setState(() => _tags.remove(tag)),
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    )),
-                SizedBox(
-                  width: 100,
-                  height: 32,
-                  child: TextField(
-                    controller: _tagController,
-                    decoration: const InputDecoration(
-                      hintText: '+标签',
-                      isDense: true,
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      border: OutlineInputBorder(),
-                    ),
-                    style: const TextStyle(fontSize: 12),
-                    onSubmitted: _addTag,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Images
-            SizedBox(
-              height: 60,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  ..._imagePaths.map((path) => Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: Image.file(
-                                File(path),
-                                width: 56,
-                                height: 56,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  width: 56, height: 56,
-                                  color: Colors.grey.shade200,
-                                  child: const Icon(Icons.broken_image, size: 24, color: Colors.grey),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: -4,
-                              right: -4,
-                              child: GestureDetector(
-                                onTap: () =>
-                                    setState(() => _imagePaths.remove(path)),
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.close,
-                                    size: 12,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )),
-                  // Add image button
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.add_photo_alternate_outlined,
-                        color:
-                            theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _showCurrencyPicker() {
     showModalBottomSheet(
@@ -630,43 +505,12 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     }
   }
 
-  Future<void> _pickImage() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt_rounded),
-              title: const Text('拍照'),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_rounded),
-              title: const Text('从相册选择'),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (source == null) return;
+    final _imageService = TransactionImageService();
 
-    final picked = await _imagePicker.pickImage(
-      source: source,
-      maxWidth: 1024,
-      imageQuality: 80,
-    );
-    if (picked != null) {
-      // 复制到 app 持久目录
-      final appDir = await getApplicationDocumentsDirectory();
-      final imgDir = Directory('${appDir.path}/transaction_images');
-      if (!imgDir.existsSync()) imgDir.createSync(recursive: true);
-      final ext = p.extension(picked.path).isNotEmpty ? p.extension(picked.path) : '.jpg';
-      final destPath = '${imgDir.path}/${DateTime.now().millisecondsSinceEpoch}$ext';
-      await File(picked.path).copy(destPath);
-      setState(() => _imagePaths.add(destPath));
+  Future<void> _pickImage() async {
+    final path = await _imageService.pickAndSave(context);
+    if (path != null && mounted) {
+      setState(() => _imagePaths.add(path));
     }
   }
 
