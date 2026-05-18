@@ -63,11 +63,15 @@ class RetryPolicy {
     maxDelay: Duration(seconds: 15),
   );
 
+  /// Maximum bit-shift exponent to prevent integer overflow in backoff calculation.
+  /// 2^10 = 1024x multiplier — sufficient headroom before maxDelay caps it.
+  static const _maxExponent = 10;
+
   /// Compute the backoff duration for the given attempt (0-indexed).
   Duration computeDelay(int attempt) {
     if (attempt <= 0) return Duration.zero;
     // Exponential: baseDelay * 2^(attempt-1), capped at maxDelay
-    final exponential = baseDelay * (1 << (attempt - 1).clamp(0, 10));
+    final exponential = baseDelay * (1 << (attempt - 1).clamp(0, _maxExponent));
     final capped = exponential > maxDelay ? maxDelay : exponential;
     // Add jitter: random uniform [0, jitterFactor * capped]
     final jitterMs = (_random.nextDouble() * jitterFactor * capped.inMilliseconds).round();
@@ -76,6 +80,9 @@ class RetryPolicy {
 
   bool isRetryable(GrpcError error) => retryableStatusCodes.contains(error.code);
 
+  // Non-cryptographic PRNG is sufficient for jitter — this is a scheduling
+  // optimization (decorrelating retry bursts), not a security mechanism.
+  // Random.secure() would add syscall overhead on every retry with no benefit.
   static final _random = Random();
 }
 
@@ -148,12 +155,15 @@ extension GrpcRetryExtension<T> on ResponseFuture<T> {
     try {
       return await this;
     } on GrpcError catch (e) {
-      if (retry == null || !policy.isRetryable(e)) rethrow;
+      final remainingAttempts = policy.maxAttempts - 1;
+      if (retry == null || remainingAttempts <= 0 || !policy.isRetryable(e)) {
+        rethrow;
+      }
       // Delegate remaining attempts to grpcRetry
       return grpcRetry(
         () => retry(),
         policy: RetryPolicy(
-          maxAttempts: policy.maxAttempts - 1,
+          maxAttempts: remainingAttempts,
           baseDelay: policy.baseDelay,
           maxDelay: policy.maxDelay,
           jitterFactor: policy.jitterFactor,

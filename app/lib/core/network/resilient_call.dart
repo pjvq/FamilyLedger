@@ -1,3 +1,5 @@
+import 'dart:developer' as dev;
+
 import 'package:grpc/grpc.dart';
 import 'retry_policy.dart';
 
@@ -51,5 +53,15 @@ Future<T> resilientCall<T>(
   return grpcRetry(
     () => fn(callOptionsWithTimeout(timeout: policy.perAttemptTimeout)),
     policy: policy,
+    onRetry: operationName != null
+        ? (attempt, error, delay) {
+            // Structured retry logging tied to operation name for observability.
+            dev.log(
+              '$operationName: retry $attempt/${policy.maxAttempts} '
+              'after ${error.codeName}, next in ${delay.inMilliseconds}ms',
+              name: 'grpc_retry',
+            );
+          }
+        : null,
   );
 }

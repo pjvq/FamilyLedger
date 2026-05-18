@@ -34,6 +34,8 @@ String generateLocalUserId() => _uuid.v4();
 bool isLegacyUserId(String userId) {
   if (!userId.startsWith('user_')) return false;
   final suffix = userId.substring(5);
-  // Legacy IDs have a numeric millisecond timestamp suffix
-  return suffix.isNotEmpty && int.tryParse(suffix) != null;
+  // Legacy IDs have a positive numeric millisecond timestamp suffix
+  if (suffix.isEmpty) return false;
+  final parsed = int.tryParse(suffix);
+  return parsed != null && parsed >= 0;
 }

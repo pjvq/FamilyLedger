@@ -39,6 +39,11 @@ void main() {
       expect(isLegacyUserId('user_'), isFalse);
     });
 
+    test('rejects user_ with negative number suffix', () {
+      expect(isLegacyUserId('user_-1'), isFalse);
+      expect(isLegacyUserId('user_-999'), isFalse);
+    });
+
     test('rejects empty string', () {
       expect(isLegacyUserId(''), isFalse);
     });

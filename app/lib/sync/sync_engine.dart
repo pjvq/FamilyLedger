@@ -65,7 +65,18 @@ class SyncEngine {
         _tokenStorage = tokenStorage,
         _connectivity = connectivity ?? Connectivity();
 
-  /// @visibleForTesting — stub constructor, all methods become no-ops
+  /// Inert engine that performs no operations.
+  /// Used in production when no user is logged in (all methods are safe no-ops
+  /// due to the `if (_disposed) return` / null guards).
+  SyncEngine.inert()
+      : _db = null,
+        _syncClient = null,
+        _prefs = null,
+        _tokenStorage = null,
+        _connectivity = Connectivity();
+
+  /// @visibleForTesting — alias for [inert] with test-friendly semantics.
+  @Deprecated('Use SyncEngine.inert() or provide mocks directly')
   SyncEngine.forTesting()
       : _db = null,
         _syncClient = null,
@@ -1011,7 +1022,7 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
 
   // Not logged in — return inert stub that does nothing.
   if (userId == null) {
-    return SyncEngine.forTesting();
+    return SyncEngine.inert();
   }
 
   final db = ref.watch(databaseProvider);
