@@ -197,7 +197,16 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		return nil, err
 	}
 
-	// 3c: Insert transaction row
+	// 3c: Overdraft check BEFORE insert (lock accounts first → prevents deadlock)
+	balanceDelta := cr.amountCny
+	if cr.txnType == "expense" {
+		balanceDelta = -cr.amountCny
+		if err := checkOverdraft(ctx, tx, cr.accountID, cr.amountCny, acctMeta.acctType); err != nil {
+			return nil, err
+		}
+	}
+
+	// 3d: Insert transaction row
 	var txnID uuid.UUID
 	var createdAt, updatedAt time.Time
 	err = tx.QueryRow(ctx,
@@ -209,15 +218,6 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	if err != nil {
 		log.Printf("transaction: create error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create transaction")
-	}
-
-	// 3d: Overdraft check (expense only, non-credit-card)
-	balanceDelta := cr.amountCny
-	if cr.txnType == "expense" {
-		balanceDelta = -cr.amountCny
-		if err := checkOverdraft(ctx, tx, cr.accountID, cr.amountCny, acctMeta.acctType); err != nil {
-			return nil, err
-		}
 	}
 
 	// 3e: Update account balance

@@ -47,7 +47,14 @@ func mockCreateTxnFlow(mock pgxmock.PgxPoolIface, accountID, categoryID, txnID u
 	mock.ExpectQuery(`SELECT EXISTS`).WithArgs(categoryID).
 		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
 
-	// 4. INSERT transaction (12 args)
+	// 4. Overdraft check with FOR UPDATE lock (only for expense on non-credit-card, BEFORE insert)
+	if txnType == "expense" {
+		mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1 FOR UPDATE`).
+			WithArgs(accountID).
+			WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
+	}
+
+	// 5. INSERT transaction (12 args)
 	mock.ExpectQuery(`INSERT INTO transactions`).
 		WithArgs(
 			userUUID, accountID, categoryID,
@@ -57,13 +64,6 @@ func mockCreateTxnFlow(mock pgxmock.PgxPoolIface, accountID, categoryID, txnID u
 		).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 			AddRow(txnID, now, now))
-
-	// 5. Overdraft check with FOR UPDATE lock (only for expense on non-credit-card)
-	if txnType == "expense" {
-		mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1 FOR UPDATE`).
-			WithArgs(accountID).
-			WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
-	}
 
 	// 6. UPDATE balance
 	mock.ExpectExec(`UPDATE accounts SET balance = balance \+ \$1`).
@@ -461,6 +461,11 @@ func TestW3_CreateTransaction_UsesForUpdateLock(t *testing.T) {
 	mock.ExpectQuery(`SELECT EXISTS`).WithArgs(categoryID).
 		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
 
+	// Overdraft check with FOR UPDATE lock (BEFORE insert)
+	mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1 FOR UPDATE`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
+
 	mock.ExpectQuery(`INSERT INTO transactions`).
 		WithArgs(
 			userUUID, accountID, categoryID,
@@ -470,11 +475,6 @@ func TestW3_CreateTransaction_UsesForUpdateLock(t *testing.T) {
 		).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 			AddRow(txnID, now, now))
-
-	// Overdraft check with FOR UPDATE lock
-	mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1 FOR UPDATE`).
-		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100000)))
 
 	// Balance update is atomic within the transaction
 	mock.ExpectExec(`UPDATE accounts SET balance = balance \+ \$1`).

@@ -798,15 +798,15 @@ func TestBoost2_CreateTransaction_SyncOpFailure(t *testing.T) {
 			AddRow(userUID, nil, "savings"))
 	mock.ExpectQuery("SELECT EXISTS").WithArgs(catID).
 		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+	// Overdraft check (before insert)
+	mock.ExpectQuery("SELECT balance FROM accounts WHERE id.*FOR UPDATE").
+		WithArgs(accID).
+		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(10000)))
 	mock.ExpectQuery("INSERT INTO transactions").
 		WithArgs(userUID, accID, catID, int64(500), "CNY", int64(500), float64(1), "expense",
 			"", pgxmock.AnyArg(), []string{}, []string{}).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 			AddRow(txnID, now, now))
-	// Overdraft check
-	mock.ExpectQuery("SELECT balance FROM accounts WHERE id.*FOR UPDATE").
-		WithArgs(accID).
-		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(10000)))
 	mock.ExpectExec("UPDATE accounts SET balance").
 		WithArgs(int64(-500), accID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
@@ -854,14 +854,14 @@ func TestBoost2_CreateTransaction_FamilyAccountWithAudit(t *testing.T) {
 			AddRow(userUID, &famID, "savings"))
 	mock.ExpectQuery("SELECT EXISTS").WithArgs(catID).
 		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+	mock.ExpectQuery("SELECT balance FROM accounts WHERE id.*FOR UPDATE").
+		WithArgs(accID).
+		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(10000)))
 	mock.ExpectQuery("INSERT INTO transactions").
 		WithArgs(userUID, accID, catID, int64(200), "CNY", int64(200), float64(1), "expense",
 			"", pgxmock.AnyArg(), []string{}, []string{}).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 			AddRow(txnID, now, now))
-	mock.ExpectQuery("SELECT balance FROM accounts WHERE id.*FOR UPDATE").
-		WithArgs(accID).
-		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(10000)))
 	mock.ExpectExec("UPDATE accounts SET balance").
 		WithArgs(int64(-200), accID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
@@ -903,12 +903,7 @@ func TestBoost2_CreateTransaction_InsufficientBalance(t *testing.T) {
 			AddRow(userUID, nil, "savings"))
 	mock.ExpectQuery("SELECT EXISTS").WithArgs(catID).
 		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
-	mock.ExpectQuery("INSERT INTO transactions").
-		WithArgs(userUID, accID, catID, int64(5000), "CNY", int64(5000), float64(1), "expense",
-			"", pgxmock.AnyArg(), []string{}, []string{}).
-		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
-			AddRow(uuid.New(), time.Now(), time.Now()))
-	// Overdraft check: balance too low
+	// Overdraft check BEFORE insert: balance too low
 	mock.ExpectQuery("SELECT balance FROM accounts WHERE id.*FOR UPDATE").
 		WithArgs(accID).
 		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(100)))

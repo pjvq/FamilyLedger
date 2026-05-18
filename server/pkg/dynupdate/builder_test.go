@@ -28,9 +28,9 @@ func TestBuilder_SetString(t *testing.T) {
 func TestBuilder_MixedTypes(t *testing.T) {
 	var b Builder
 	b.SetString("name", "test")
-	b.SetInt64("amount", 1000)
-	b.SetFloat64("rate", 3.5)
-	b.SetInt("months", 0) // should not be added
+	b.SetInt64NonZero("amount", 1000)
+	b.SetFloat64NonZero("rate", 3.5)
+	b.SetIntNonZero("months", 0) // should not be added
 
 	id := uuid.New()
 	query, args := b.Build("investments", id)
@@ -58,4 +58,45 @@ func TestBuildNoOp(t *testing.T) {
 	query, args := BuildNoOp("loans", id)
 	assert.Equal(t, "UPDATE loans SET updated_at = NOW() WHERE id = $1", query)
 	assert.Equal(t, []interface{}{id}, args)
+}
+
+func TestBuildOrNoOp_NoUpdates(t *testing.T) {
+	var b Builder
+	id := uuid.New()
+	query, args := b.BuildOrNoOp("loans", id)
+	assert.Equal(t, "UPDATE loans SET updated_at = NOW() WHERE id = $1", query)
+	assert.Equal(t, []interface{}{id}, args)
+}
+
+func TestBuildOrNoOp_WithUpdates(t *testing.T) {
+	var b Builder
+	b.SetString("name", "hello")
+	id := uuid.New()
+	query, args := b.BuildOrNoOp("loans", id)
+	assert.Contains(t, query, "name = $1")
+	assert.Contains(t, query, "updated_at = NOW()")
+	assert.Len(t, args, 2)
+}
+
+func TestBuilder_DoubleBuildPanics(t *testing.T) {
+	var b Builder
+	b.SetString("name", "test")
+	id := uuid.New()
+	b.Build("loans", id)
+	assert.Panics(t, func() { b.Build("loans", id) })
+}
+
+func TestBuilder_InvalidTablePanics(t *testing.T) {
+	var b Builder
+	b.SetString("name", "test")
+	assert.Panics(t, func() { b.Build("loans; DROP TABLE--", uuid.New()) })
+}
+
+func TestBuilder_InvalidColumnPanics(t *testing.T) {
+	var b Builder
+	assert.Panics(t, func() { b.Set("name; DROP", "x", true) })
+}
+
+func TestBuildNoOp_InvalidTablePanics(t *testing.T) {
+	assert.Panics(t, func() { BuildNoOp("bad table", uuid.New()) })
 }

@@ -501,19 +501,25 @@ func (s *Service) checkAccountAccess(ctx context.Context, ownerID, familyIDStr, 
 	}
 	// Family account: delegate to the shared permission package
 	if familyIDStr != "" {
-		var required func(permission.Permissions) bool
-		if len(permKeys) > 0 {
-			required = permKeyToFunc(permKeys[0])
-		} else {
+		if len(permKeys) == 0 {
 			// No specific perm required — just membership check
-			required = func(_ permission.Permissions) bool { return true }
+			return permission.Check(ctx, s.pool, callerID, familyIDStr, func(_ permission.Permissions) bool { return true })
 		}
-		return permission.Check(ctx, s.pool, callerID, familyIDStr, required)
+		// OR semantics: any matching permKey grants access
+		return permission.Check(ctx, s.pool, callerID, familyIDStr, func(p permission.Permissions) bool {
+			for _, key := range permKeys {
+				if fn := permKeyToFunc(key); fn != nil && fn(p) {
+					return true
+				}
+			}
+			return false
+		})
 	}
 	return status.Error(codes.PermissionDenied, "no access to this account")
 }
 
 // permKeyToFunc maps legacy string permission keys to typed functions.
+// Returns nil for unknown keys (treated as always-deny).
 func permKeyToFunc(key string) func(permission.Permissions) bool {
 	switch key {
 	case "can_view":
@@ -527,8 +533,7 @@ func permKeyToFunc(key string) func(permission.Permissions) bool {
 	case "can_manage_accounts":
 		return permission.CanManageAccounts
 	default:
-		// Unknown key — deny by default
-		return func(_ permission.Permissions) bool { return false }
+		return nil
 	}
 }
 
@@ -537,42 +542,17 @@ func (s *Service) checkAccountAccessTx(ctx context.Context, tx pgx.Tx, ownerID, 
 		return nil
 	}
 	if familyIDStr != "" {
-		uid, err := uuid.Parse(callerID)
-		if err != nil {
-			return status.Error(codes.Internal, "invalid user id")
+		if len(permKeys) == 0 {
+			return permission.Check(ctx, tx, callerID, familyIDStr, func(_ permission.Permissions) bool { return true })
 		}
-		fid, err := uuid.Parse(familyIDStr)
-		if err != nil {
-			return status.Error(codes.Internal, "invalid family id")
-		}
-		var role string
-		var permsJSON []byte
-		err = tx.QueryRow(ctx,
-			`SELECT role, permissions FROM family_members WHERE family_id = $1 AND user_id = $2`,
-			fid, uid,
-		).Scan(&role, &permsJSON)
-		if err != nil {
-			if err == pgx.ErrNoRows {
-				return status.Error(codes.PermissionDenied, "not a member of this family")
-			}
-			return status.Error(codes.Internal, "failed to check membership")
-		}
-		if role == "owner" || role == "admin" {
-			return nil
-		}
-		if len(permKeys) > 0 {
-			var permsMap map[string]bool
-			if err := json.Unmarshal(permsJSON, &permsMap); err != nil {
-				return status.Error(codes.Internal, "failed to parse permissions")
-			}
+		return permission.Check(ctx, tx, callerID, familyIDStr, func(p permission.Permissions) bool {
 			for _, key := range permKeys {
-				if allowed, ok := permsMap[key]; ok && allowed {
-					return nil
+				if fn := permKeyToFunc(key); fn != nil && fn(p) {
+					return true
 				}
 			}
-			return status.Error(codes.PermissionDenied, "insufficient permissions")
-		}
-		return nil
+			return false
+		})
 	}
 	return status.Error(codes.PermissionDenied, "no access to this account")
 }

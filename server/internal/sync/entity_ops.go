@@ -114,17 +114,11 @@ func (s *Service) applyLoanUpdate(ctx context.Context, tx pgx.Tx, userID uuid.UU
 
 	var b dynupdate.Builder
 	b.SetString("name", p.Name)
-	b.SetInt64("remaining_principal", p.RemainingPrincipal)
-	b.SetInt("paid_months", p.PaidMonths)
-	b.SetFloat64("annual_rate", p.AnnualRate)
+	b.SetInt64NonZero("remaining_principal", p.RemainingPrincipal)
+	b.SetIntNonZero("paid_months", p.PaidMonths)
+	b.SetFloat64NonZero("annual_rate", p.AnnualRate)
 
-	var query string
-	var args []interface{}
-	if !b.HasUpdates() {
-		query, args = dynupdate.BuildNoOp("loans", entityID)
-	} else {
-		query, args = b.Build("loans", entityID)
-	}
+	query, args := b.BuildOrNoOp("loans", entityID)
 	_, err := tx.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to update loan: %w", err)
@@ -213,15 +207,9 @@ func (s *Service) applyLoanGroupUpdate(ctx context.Context, tx pgx.Tx, userID uu
 
 	var b dynupdate.Builder
 	b.SetString("name", p.Name)
-	b.SetInt64("total_principal", p.TotalPrincipal)
+		b.SetInt64NonZero("total_principal", p.TotalPrincipal)
 
-	var query string
-	var args []interface{}
-	if !b.HasUpdates() {
-		query, args = dynupdate.BuildNoOp("loan_groups", entityID)
-	} else {
-		query, args = b.Build("loan_groups", entityID)
-	}
+	query, args := b.BuildOrNoOp("loan_groups", entityID)
 	_, err := tx.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to update loan_group: %w", err)
@@ -294,13 +282,7 @@ func (s *Service) applyInvestmentUpdate(ctx context.Context, tx pgx.Tx, userID u
 	b.Set("quantity", p.Quantity, p.Quantity != 0)
 	b.Set("cost_basis", p.CostBasis, p.CostBasis != 0)
 
-	var query string
-	var args []interface{}
-	if !b.HasUpdates() {
-		query, args = dynupdate.BuildNoOp("investments", entityID)
-	} else {
-		query, args = b.Build("investments", entityID)
-	}
+	query, args := b.BuildOrNoOp("investments", entityID)
 	_, err := tx.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to update investment: %w", err)
@@ -381,16 +363,10 @@ func (s *Service) applyFixedAssetUpdate(ctx context.Context, tx pgx.Tx, userID u
 
 	var b dynupdate.Builder
 	b.SetString("name", p.Name)
-	b.SetInt64("current_value", p.CurrentValue)
+	b.SetInt64NonZero("current_value", p.CurrentValue)
 	b.SetString("description", p.Description)
 
-	var query string
-	var args []interface{}
-	if !b.HasUpdates() {
-		query, args = dynupdate.BuildNoOp("fixed_assets", entityID)
-	} else {
-		query, args = b.Build("fixed_assets", entityID)
-	}
+	query, args := b.BuildOrNoOp("fixed_assets", entityID)
 	_, err := tx.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to update fixed_asset: %w", err)

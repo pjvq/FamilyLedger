@@ -62,6 +62,11 @@ func TestCreateTransaction_Success(t *testing.T) {
 	mock.ExpectQuery(`SELECT EXISTS`).WithArgs(categoryID).
 		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
 
+	// Overdraft check with FOR UPDATE lock (expense on cash account, BEFORE insert)
+	mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1 FOR UPDATE`).
+		WithArgs(accountID).
+		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(5000)))
+
 	// Insert transaction
 	mock.ExpectQuery(`INSERT INTO transactions`).
 		WithArgs(
@@ -78,11 +83,6 @@ func TestCreateTransaction_Success(t *testing.T) {
 		).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 			AddRow(txnID, now, now))
-
-	// Overdraft check with FOR UPDATE lock (expense on cash account)
-	mock.ExpectQuery(`SELECT balance FROM accounts WHERE id = \$1 FOR UPDATE`).
-		WithArgs(accountID).
-		WillReturnRows(pgxmock.NewRows([]string{"balance"}).AddRow(int64(5000)))
 
 	// Update account balance
 	mock.ExpectExec(`UPDATE accounts SET balance = balance \+ \$1`).

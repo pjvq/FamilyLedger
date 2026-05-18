@@ -16,7 +16,9 @@ import (
 )
 
 // createRequest holds validated and parsed inputs for CreateTransaction.
-// Constructed by the validation step, consumed by execution step.
+// Constructed by the validation step, consumed (read-only) by execution step.
+// Note: categoryID is the *requested* category; the actual category used in
+// the transaction may differ (see verifyCategory → resolvedCatID).
 type createRequest struct {
 	userID       uuid.UUID
 	accountID    uuid.UUID
@@ -136,6 +138,7 @@ func checkAccountPermission(ctx context.Context, pool db.Pool, userID uuid.UUID,
 }
 
 // verifyAccountInTx re-checks account ownership within the transaction.
+// For family accounts, verifies membership + create permission (consistent with checkAccountPermission).
 // Returns account metadata needed for subsequent steps.
 type accountMeta struct {
 	ownerID    uuid.UUID
@@ -156,13 +159,9 @@ func verifyAccountInTx(ctx context.Context, tx pgx.Tx, userID, accountID uuid.UU
 		if meta.familyID == nil {
 			return nil, status.Error(codes.PermissionDenied, "account does not belong to user")
 		}
-		var isMember bool
-		err = tx.QueryRow(ctx,
-			"SELECT EXISTS(SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2)",
-			*meta.familyID, userID,
-		).Scan(&isMember)
-		if err != nil || !isMember {
-			return nil, status.Error(codes.PermissionDenied, "account does not belong to user")
+		// Family account: verify membership + create permission via shared permission.Check
+		if err := permission.Check(ctx, tx, userID.String(), meta.familyID.String(), permission.CanCreate); err != nil {
+			return nil, err
 		}
 	}
 	return &meta, nil
