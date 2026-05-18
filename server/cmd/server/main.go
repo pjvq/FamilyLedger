@@ -344,6 +344,7 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 			}
 
 			if ctx.Err() != nil {
+				log.Println("market-scheduler: shutdown during refresh, aborting remaining")
 				cancel()
 				return
 			}
@@ -356,6 +357,7 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 			}
 
 			if ctx.Err() != nil {
+				log.Println("market-scheduler: shutdown during refresh, aborting remaining")
 				cancel()
 				return
 			}
@@ -368,6 +370,7 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 			}
 
 			if ctx.Err() != nil {
+				log.Println("market-scheduler: shutdown during refresh, aborting remaining")
 				cancel()
 				return
 			}

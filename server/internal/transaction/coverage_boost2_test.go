@@ -220,7 +220,7 @@ func TestBoost2_CreateTransaction_IncomeType(t *testing.T) {
 	mock.ExpectExec("UPDATE accounts SET balance").
 		WithArgs(int64(5000), accID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-	// Sync operation (savepoint)
+	// Sync operation
 	mock.ExpectExec("INSERT INTO sync_operations").
 		WithArgs(userUID, txnID, "create", pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
@@ -777,7 +777,7 @@ func TestBoost2_GetAccountOwnershipFrom_DBError(t *testing.T) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// CreateTransaction — sync operation failure path (savepoint rollback)
+// CreateTransaction — sync operation failure path
 // ════════════════════════════════════════════════════════════════════════════
 
 func TestBoost2_CreateTransaction_SyncOpFailure(t *testing.T) {

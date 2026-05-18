@@ -873,16 +873,18 @@ func (s *Service) BatchCreateTransactions(ctx context.Context, req *pb.BatchCrea
 		if err != nil {
 			log.Printf("WARNING: batch-create: failed to check post-import balances for user %s: %v", userID, err)
 		} else {
-			defer rows.Close()
 			for rows.Next() {
 				var acctID uuid.UUID
 				var balance int64
-				if rows.Scan(&acctID, &balance) == nil {
-					warn := fmt.Sprintf("account %s balance is negative (%d cents) after import", acctID, balance)
-					warnings = append(warnings, warn)
-					log.Printf("batch-create: WARNING: %s for user %s", warn, userID)
+				if err := rows.Scan(&acctID, &balance); err != nil {
+					log.Printf("WARNING: batch-create: failed to scan balance row: %v", err)
+					continue
 				}
+				warn := fmt.Sprintf("account %s balance is negative (%d cents) after import", acctID, balance)
+				warnings = append(warnings, warn)
+				log.Printf("batch-create: WARNING: %s for user %s", warn, userID)
 			}
+			rows.Close()
 		}
 	}
 

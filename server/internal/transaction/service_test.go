@@ -89,7 +89,7 @@ func TestCreateTransaction_Success(t *testing.T) {
 		WithArgs(pgxmock.AnyArg(), accountID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
-	// Sync operations savepoint
+	// Sync operation
 	mock.ExpectExec(`INSERT INTO sync_operations`).
 		WithArgs(userUUID, txnID, "create", pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))

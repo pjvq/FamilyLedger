@@ -788,7 +788,6 @@ func TestUpdateTransaction_Tags_JSON(t *testing.T) {
 	mock.ExpectExec("UPDATE transactions SET").
 		WithArgs(pgxmock.AnyArg(), txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-	// Sync operations
 	// Sync: re-query updated fields
 	mock.ExpectQuery(`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date`).
 		WithArgs(txnID).
@@ -830,7 +829,6 @@ func TestUpdateTransaction_Tags_CommaSeparated(t *testing.T) {
 	mock.ExpectExec("UPDATE transactions SET").
 		WithArgs(pgxmock.AnyArg(), txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-	// Sync operations
 	// Sync: re-query updated fields
 	mock.ExpectQuery(`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date`).
 		WithArgs(txnID).
@@ -871,7 +869,6 @@ func TestUpdateTransaction_Tags_Empty(t *testing.T) {
 	mock.ExpectExec("UPDATE transactions SET").
 		WithArgs(pgxmock.AnyArg(), txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-	// Sync operations
 	// Sync: re-query updated fields
 	mock.ExpectQuery(`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date`).
 		WithArgs(txnID).
@@ -912,7 +909,6 @@ func TestUpdateTransaction_Currency(t *testing.T) {
 	mock.ExpectExec("UPDATE transactions SET").
 		WithArgs("USD", txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-	// Sync operations
 	// Sync: re-query updated fields
 	mock.ExpectQuery(`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date`).
 		WithArgs(txnID).
@@ -1007,7 +1003,6 @@ func TestUpdateTransaction_TypeChange(t *testing.T) {
 	mock.ExpectExec("UPDATE accounts SET balance").
 		WithArgs(int64(2000), accID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-	// Sync operations
 	// Sync: re-query updated fields
 	mock.ExpectQuery(`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date`).
 		WithArgs(txnID).
