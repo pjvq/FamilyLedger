@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -47,7 +48,7 @@ class TransactionImageService {
         ? p.extension(picked.path)
         : '.jpg';
     final destPath =
-        '${imgDir.path}/${DateTime.now().millisecondsSinceEpoch}$ext';
+        '${imgDir.path}/${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(99999).toString().padLeft(5, '0')}$ext';
     await File(picked.path).copy(destPath);
     return destPath;
   }

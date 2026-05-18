@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:familyledger/data/local/database.dart' as db;
 import 'package:familyledger/domain/providers/budget_provider.dart';
 import 'package:familyledger/domain/providers/loan_provider.dart';
+import 'package:familyledger/domain/models/loan_models.dart';
+import 'package:familyledger/domain/models/loan_calculator.dart';
 import 'package:familyledger/domain/providers/transaction_provider.dart';
 import 'package:familyledger/domain/providers/account_provider.dart';
 import 'package:familyledger/core/widgets/skeleton_loading.dart';

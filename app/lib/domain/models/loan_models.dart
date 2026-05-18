@@ -1,3 +1,8 @@
+// NOTE: LoanGroupDisplayItem and LoanState use Drift-generated types (db.Loan,
+// db.LoanGroup) directly. This is a known DIP violation kept for pragmatic
+// reasons — creating domain entities for Loan's 20+ fields and mapping them
+// across 30+ UI callsites is a separate effort (tracked as tech debt).
+// ignore_for_file: depend_on_referenced_packages
 import '../../data/local/database.dart' as db;
 
 // ── Local Schedule Item (for display) ──

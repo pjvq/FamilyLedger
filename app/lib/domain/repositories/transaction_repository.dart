@@ -3,6 +3,9 @@ import 'package:uuid/uuid.dart';
 
 import '../../data/local/database.dart';
 
+/// Default page size for transaction queries.
+const int kTransactionPageSize = 200;
+
 /// Pure data-access layer for transactions.
 ///
 /// Responsibilities:
@@ -24,7 +27,7 @@ class TransactionRepository {
   Stream<List<Transaction>> watchAll(
     String userId, {
     String? familyId,
-    int limit = 200,
+    int limit = kTransactionPageSize,
     int offset = 0,
   }) {
     return _db.watchTransactions(userId, familyId: familyId, limit: limit, offset: offset);

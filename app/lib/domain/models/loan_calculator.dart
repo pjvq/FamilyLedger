@@ -1,11 +1,31 @@
 import 'dart:math' as math;
-import '../../data/local/database.dart' as db;
 import 'loan_models.dart';
 
 // ── Loan Calculator (local, offline-capable) ──
 
 class LoanCalculator {
   LoanCalculator._();
+
+  /// Validate common inputs. Throws [ArgumentError] on invalid data.
+  static void _validateInputs({
+    required int principal,
+    required double annualRate,
+    required int totalMonths,
+    required int paymentDay,
+  }) {
+    if (principal <= 0) {
+      throw ArgumentError.value(principal, 'principal', 'must be > 0');
+    }
+    if (totalMonths <= 0) {
+      throw ArgumentError.value(totalMonths, 'totalMonths', 'must be > 0');
+    }
+    if (annualRate < 0) {
+      throw ArgumentError.value(annualRate, 'annualRate', 'must be >= 0');
+    }
+    if (paymentDay < 1 || paymentDay > 31) {
+      throw ArgumentError.value(paymentDay, 'paymentDay', 'must be 1-31');
+    }
+  }
 
   /// 等额本息还款计划
   static List<LoanScheduleDisplayItem> equalInstallment({
@@ -25,14 +45,15 @@ class LoanCalculator {
       var remaining = principal;
       for (var i = 1; i <= totalMonths; i++) {
         final principalPart =
-            i == totalMonths ? remaining : monthlyPayment;
+            i == totalMonths ? remaining : math.min(monthlyPayment, remaining);
         remaining -= principalPart;
+        if (remaining < 0) remaining = 0;
         items.add(LoanScheduleDisplayItem(
           monthNumber: i,
           payment: principalPart,
           principalPart: principalPart,
           interestPart: 0,
-          remainingPrincipal: remaining < 0 ? 0 : remaining,
+          remainingPrincipal: remaining,
           dueDate: calcDueDate(startDate, i, paymentDay),
           isPaid: i <= paidMonths,
         ));
@@ -245,6 +266,7 @@ class LoanCalculator {
     int paidMonths = 0,
     String calcMethod = 'monthly',
   }) {
+    _validateInputs(principal: principal, annualRate: annualRate, totalMonths: totalMonths, paymentDay: paymentDay);
     switch (repaymentMethod) {
       case 'equal_principal':
         return equalPrincipal(
@@ -297,11 +319,16 @@ class LoanCalculator {
   }
 
   /// 计算贷款的有效年利率（考虑 LPR 浮动）
-  static double effectiveRate(db.Loan loan) {
-    if (loan.rateType == 'lpr_floating' && loan.lprBase > 0) {
-      return loan.lprBase + loan.lprSpread;
+  static double effectiveRate({
+    required String rateType,
+    required double annualRate,
+    required double lprBase,
+    required double lprSpread,
+  }) {
+    if (rateType == 'lpr_floating' && lprBase > 0) {
+      return lprBase + lprSpread;
     }
-    return loan.annualRate;
+    return annualRate;
   }
 
   /// 提前还款模拟 — 缩短期限
@@ -375,7 +402,16 @@ class LoanCalculator {
       } else {
         final prm = newRemaining * monthlyRate / monthlyPayment;
         if (prm >= 1) {
-          newMonths = remainingMonths;
+          // 月供不足以覆盖利息，无法缩短期限
+          return PrepaymentSimulationResult(
+            prepaymentAmount: prepaymentAmount,
+            totalInterestBefore: totalInterestBefore,
+            totalInterestAfter: totalInterestBefore,
+            interestSaved: 0,
+            monthsReduced: 0,
+            newMonthlyPayment: monthlyPayment,
+            newSchedule: const [],
+          );
         } else {
           newMonths = (-math.log(1 - prm) / math.log(1 + monthlyRate)).ceil();
         }
@@ -476,12 +512,11 @@ class LoanCalculator {
   }
 
   static DateTime calcDueDate(DateTime startDate, int monthOffset, int paymentDay) {
-    var year = startDate.year;
-    var month = startDate.month + monthOffset;
-    while (month > 12) {
-      month -= 12;
-      year++;
-    }
+    assert(monthOffset >= 0, 'monthOffset must be non-negative');
+    assert(paymentDay >= 1 && paymentDay <= 31, 'paymentDay must be 1-31');
+    final totalMonths = startDate.month - 1 + monthOffset;
+    final year = startDate.year + totalMonths ~/ 12;
+    final month = totalMonths % 12 + 1;
     final maxDay = DateTime(year, month + 1, 0).day;
     final day = paymentDay > maxDay ? maxDay : paymentDay;
     return DateTime(year, month, day);

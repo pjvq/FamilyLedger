@@ -15,8 +15,6 @@ import '../models/loan_models.dart';
 import '../models/loan_calculator.dart';
 import '../models/loan_proto_helpers.dart';
 
-export '../models/loan_models.dart';
-export '../models/loan_calculator.dart';
 
 class LoanNotifier extends StateNotifier<LoanState> {
   final db.AppDatabase _db;

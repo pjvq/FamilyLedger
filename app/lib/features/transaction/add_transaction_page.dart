@@ -1,24 +1,26 @@
 import 'dart:convert';
-import 'package:path/path.dart' as p;
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../generated/proto/transaction.pb.dart' as pb;
-import '../../generated/proto/transaction.pbgrpc.dart' as pbgrpc;
-import '../../core/utils/input_sanitizer.dart' show maxNoteLength;
+import 'package:path/path.dart' as p;
+
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/input_sanitizer.dart' show maxNoteLength;
+import '../../core/widgets/success_animation.dart';
 import '../../data/local/database.dart';
 import '../../data/remote/grpc_clients.dart';
+import '../../domain/providers/account_provider.dart';
+import '../../domain/providers/dashboard_provider.dart';
 import '../../domain/providers/exchange_rate_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
-import '../../domain/providers/dashboard_provider.dart';
-import '../../domain/providers/account_provider.dart';
-import '../../core/widgets/success_animation.dart';
-import 'widgets/number_pad.dart';
+import '../../generated/proto/transaction.pb.dart' as pb;
+import '../../generated/proto/transaction.pbgrpc.dart' as pbgrpc;
 import 'widgets/category_grid.dart';
-import 'widgets/transaction_details_panel.dart';
 import 'widgets/icon_picker_sheet.dart';
+import 'widgets/number_pad.dart';
+import 'widgets/transaction_details_panel.dart';
 import '../../core/constants/category_icons.dart';
 import '../../core/constants/category_icon_widget.dart';
 
@@ -39,6 +41,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   String _amountStr = '0';
   String? _selectedCategoryId;
   bool _isSubmitting = false;
+  final _imageService = TransactionImageService();
 
   // Multi-currency
   String _selectedCurrency = 'CNY';
@@ -169,8 +172,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
           if (_showDetails) TransactionDetailsPanel(
             noteController: _noteController,
             tagController: _tagController,
-            tags: _tags,
-            imagePaths: _imagePaths,
+            tags: List.unmodifiable(_tags),
+            imagePaths: List.unmodifiable(_imagePaths),
             onTagAdded: () => _addTag(_tagController.text),
             onTagRemoved: (tag) => setState(() => _tags.remove(tag)),
             onImageRemoved: (path) => setState(() => _imagePaths.remove(path)),
@@ -505,7 +508,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     }
   }
 
-    final _imageService = TransactionImageService();
 
   Future<void> _pickImage() async {
     final path = await _imageService.pickAndSave(context);

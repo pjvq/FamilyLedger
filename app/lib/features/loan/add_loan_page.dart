@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/loan_provider.dart';
+import '../../domain/models/loan_models.dart';
+import '../../domain/models/loan_calculator.dart';
 import '../shared/family_scope_selector.dart';
 import '../transaction/widgets/number_pad.dart';
 import 'loans_page.dart';

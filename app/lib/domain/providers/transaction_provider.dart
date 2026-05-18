@@ -94,7 +94,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   StreamSubscription? _dbSub;
 
   /// Page size for transaction loading.
-  static const int _pageSize = 200;
+  static const int _pageSize = kTransactionPageSize;
 
   TransactionNotifier({
     required TransactionRepository repo,
@@ -143,6 +143,8 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
   void _init() {
     _dbSub = _repo.watchAll(_userId, familyId: _familyId, limit: _pageSize).listen((txns) {
+      // Only update from stream when we haven't loaded extra pages.
+      // Once loadMore() is called, stream is cancelled to avoid conflicts.
       state = state.copyWith(
         transactions: txns,
         hasMore: txns.length >= _pageSize,
@@ -153,8 +155,15 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   }
 
   /// Load more transactions (infinite scroll).
+  /// Cancels the reactive stream to avoid state conflicts between
+  /// stream-driven first page and manually-appended subsequent pages.
   Future<void> loadMore() async {
     if (!state.hasMore || state.isLoading) return;
+
+    // Cancel stream — from now on, state is manually managed.
+    _dbSub?.cancel();
+    _dbSub = null;
+
     try {
       final more = await _repo.getPage(
         _userId,
@@ -173,6 +182,19 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     } catch (e) {
       dev.log('loadMore failed: $e', name: 'TransactionNotifier');
     }
+  }
+
+  /// Re-subscribe to the first-page watch stream (e.g. after adding a txn).
+  /// Resets pagination state.
+  void _resubscribeWatch() {
+    _dbSub?.cancel();
+    _dbSub = _repo.watchAll(_userId, familyId: _familyId, limit: _pageSize).listen((txns) {
+      state = state.copyWith(
+        transactions: txns,
+        hasMore: txns.length >= _pageSize,
+      );
+      _refreshSummary();
+    });
   }
 
   // ─── Load ────────────────────────────────────────────────────────────
@@ -290,6 +312,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
   Future<void> reload() async {
     state = state.copyWith(isLoading: true, clearError: true);
+    _resubscribeWatch();
     if (_familyId != null && _familyId.isNotEmpty) {
       await _repo.clearFamilySyncTime(_familyId);
     }
