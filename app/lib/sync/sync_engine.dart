@@ -65,7 +65,18 @@ class SyncEngine {
         _tokenStorage = tokenStorage,
         _connectivity = connectivity ?? Connectivity();
 
-  /// @visibleForTesting — stub constructor, all methods become no-ops
+  /// Inert engine that performs no operations.
+  /// Used in production when no user is logged in (all methods are safe no-ops
+  /// due to the `if (_disposed) return` / null guards).
+  SyncEngine.inert()
+      : _db = null,
+        _syncClient = null,
+        _prefs = null,
+        _tokenStorage = null,
+        _connectivity = Connectivity();
+
+  /// @visibleForTesting — alias for [inert] with test-friendly semantics.
+  @Deprecated('Use SyncEngine.inert() or provide mocks directly')
   SyncEngine.forTesting()
       : _db = null,
         _syncClient = null,
@@ -996,7 +1007,24 @@ class SyncEngine {
   }
 }
 
+/// User-scoped sync engine.
+///
+/// This provider watches [currentUserIdProvider]. When the user changes
+/// (login/logout/switch), the old engine is disposed (timer stopped, WS
+/// disconnected) and a new one is created for the new user. This prevents:
+/// - Cross-user data contamination (old engine pushing to wrong account)
+/// - Stale auth tokens being used for gRPC/WS
+/// - Duplicate timer instances accumulating across login cycles
+///
+/// When userId is null (logged out), returns a no-op engine.
 final syncEngineProvider = Provider<SyncEngine>((ref) {
+  final userId = ref.watch(currentUserIdProvider);
+
+  // Not logged in — return inert stub that does nothing.
+  if (userId == null) {
+    return SyncEngine.inert();
+  }
+
   final db = ref.watch(databaseProvider);
   final syncClient = ref.watch(syncClientProvider);
   final prefs = ref.watch(sharedPreferencesProvider);
@@ -1018,6 +1046,12 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
   };
 
   ref.onDispose(() => engine.dispose());
+
+  // Auto-start: engine begins sync cycle + WS connection immediately.
+  // Previously this was triggered manually by home_page.dart — now it's
+  // lifecycle-managed: starts when user logs in, stops when they log out.
+  engine.start();
+
   return engine;
 });
 

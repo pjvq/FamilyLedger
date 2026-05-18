@@ -5,6 +5,7 @@ import 'package:grpc/grpc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:uuid/uuid.dart';
+import '../../core/utils/user_id.dart';
 import '../../core/constants/app_constants.dart';
 import '../../data/auth/category_seed_service.dart';
 import '../../data/auth/logout_coordinator.dart';
@@ -69,6 +70,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void _init() {
     final userId = _prefs.getString(AppConstants.userIdKey);
     if (userId != null) {
+      // Detect legacy non-UUID user IDs from older app versions.
+      // These cannot sync with the server. Force re-login to get a proper ID.
+      if (isLegacyUserId(userId)) {
+        developer.log(
+          'legacy user ID detected ($userId). Forcing re-login to migrate.',
+          name: 'auth',
+        );
+        // Don't wipe data yet — login with same email will trigger user switch
+        // logic which clears data and assigns the server-issued UUID.
+        state = const AuthState(status: AuthStatus.unauthenticated);
+        return;
+      }
       // Start in loading state while verifying secure storage.
       // Prevents UI from triggering gRPC calls with null tokens.
       state = AuthState(status: AuthStatus.loading, userId: userId);
@@ -213,15 +226,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// 本地注册降级
+  ///
+  /// Creates a local-only account with a proper UUID (not timestamp-based).
+  /// When connectivity is restored, the user can login with their email/password
+  /// which links to the server account. Local data is preserved because
+  /// the server sync uses entity IDs (not user IDs) for deduplication.
   Future<void> _registerLocal(String email, String password) async {
     try {
-      final userId = 'user_${DateTime.now().millisecondsSinceEpoch}';
+      final userId = generateLocalUserId();
       await _db.into(_db.users).insert(UsersCompanion.insert(
             id: userId,
             email: email,
           ));
       await _db.insertAccount(AccountsCompanion.insert(
-        id: 'acc_default_$userId',
+        id: const Uuid().v4(),
         userId: userId,
         name: '默认账户',
       ));
