@@ -713,11 +713,11 @@ func (s *Service) DeleteFamily(ctx context.Context, req *pb.DeleteFamilyRequest)
 	}
 	defer tx.Rollback(ctx)
 
-	// 1. Soft-delete transfers referencing family accounts
+	// 1. Delete transfers referencing family accounts (no deleted_at column)
 	_, err = tx.Exec(ctx,
-		`UPDATE transfers SET deleted_at = NOW() WHERE deleted_at IS NULL AND (
+		`DELETE FROM transfers WHERE
 			from_account_id IN (SELECT id FROM accounts WHERE family_id = $1)
-		    OR to_account_id IN (SELECT id FROM accounts WHERE family_id = $1))`,
+		    OR to_account_id IN (SELECT id FROM accounts WHERE family_id = $1)`,
 		familyID,
 	)
 	if err != nil {
@@ -739,11 +739,13 @@ func (s *Service) DeleteFamily(ctx context.Context, req *pb.DeleteFamilyRequest)
 		return nil, status.Error(codes.Internal, "failed to delete family accounts")
 	}
 
-	// 4. Soft-delete other family-scoped entities (check errors)
-	if _, err := tx.Exec(ctx, `UPDATE budgets SET deleted_at = NOW() WHERE family_id = $1 AND deleted_at IS NULL`, familyID); err != nil {
-		log.Printf("family: failed to soft-delete budgets for family %s: %v", familyID, err)
+	// 4. Delete/soft-delete other family-scoped entities
+	// budgets: no deleted_at column → hard delete
+	if _, err := tx.Exec(ctx, `DELETE FROM budgets WHERE family_id = $1`, familyID); err != nil {
+		log.Printf("family: failed to delete budgets for family %s: %v", familyID, err)
 		return nil, status.Error(codes.Internal, "failed to delete family budgets")
 	}
+	// loans, investments, fixed_assets: have deleted_at → soft delete
 	if _, err := tx.Exec(ctx, `UPDATE loans SET deleted_at = NOW() WHERE family_id = $1 AND deleted_at IS NULL`, familyID); err != nil {
 		log.Printf("family: failed to soft-delete loans for family %s: %v", familyID, err)
 		return nil, status.Error(codes.Internal, "failed to delete family loans")

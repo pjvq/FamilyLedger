@@ -703,10 +703,10 @@ func TestBoost_DeleteFamily_Success(t *testing.T) {
 		WillReturnRows(pgxmock.NewRows([]string{"role"}).AddRow("owner"))
 
 	mock.ExpectBegin()
-	// Soft-delete transfers
-	mock.ExpectExec("UPDATE transfers SET deleted_at").
+	// Delete transfers (hard delete, no deleted_at)
+	mock.ExpectExec("DELETE FROM transfers").
 		WithArgs(famID).
-		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+		WillReturnResult(pgxmock.NewResult("DELETE", 0))
 	// Soft-delete transactions
 	mock.ExpectExec("UPDATE transactions SET deleted_at").
 		WithArgs(famID).
@@ -715,10 +715,10 @@ func TestBoost_DeleteFamily_Success(t *testing.T) {
 	mock.ExpectExec("UPDATE accounts SET deleted_at").
 		WithArgs(famID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
-	// Soft-delete budgets
-	mock.ExpectExec("UPDATE budgets SET deleted_at").
+	// Delete budgets (hard delete, no deleted_at)
+	mock.ExpectExec("DELETE FROM budgets").
 		WithArgs(famID).
-		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+		WillReturnResult(pgxmock.NewResult("DELETE", 0))
 	// Soft-delete loans
 	mock.ExpectExec("UPDATE loans SET deleted_at").
 		WithArgs(famID).
