@@ -195,23 +195,25 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Anti-slowloris: check pending auth limit before upgrading
+	// Anti-slowloris: atomically increment pending count, reject if over limit
 	if h.config.MaxPendingAuth > 0 {
-		if h.pendingAuth.Load() >= int64(h.config.MaxPendingAuth) {
+		newCount := h.pendingAuth.Add(1)
+		if newCount > int64(h.config.MaxPendingAuth) {
+			h.pendingAuth.Add(-1)
 			log.Printf("ws: max pending auth connections exceeded, rejecting %s", clientAddr)
 			http.Error(w, "too many pending connections", http.StatusServiceUnavailable)
 			return
 		}
+	} else {
+		h.pendingAuth.Add(1)
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		h.pendingAuth.Add(-1) // release the slot we reserved
 		log.Printf("ws: upgrade error from %s: %v", clientAddr, err)
 		return
 	}
-
-	// Track pending auth (anti-slowloris)
-	h.pendingAuth.Add(1)
 
 	// Run auth handshake in a separate goroutine to not block HTTP handler
 	go h.handleFirstMessageAuth(conn, clientAddr)
@@ -300,18 +302,6 @@ func (h *Hub) handleFirstMessageAuth(conn *websocket.Conn, clientAddr string) {
 
 // registerIfAllowed handles legacy (query-string) auth: upgrades + registers atomically.
 func (h *Hub) registerIfAllowed(w http.ResponseWriter, r *http.Request, userID, token, clientAddr string) bool {
-	// Check max connections under write lock to avoid TOCTOU
-	h.mu.Lock()
-	if h.config.MaxConnsPerUser > 0 {
-		if len(h.clients[userID]) >= h.config.MaxConnsPerUser {
-			h.mu.Unlock()
-			log.Printf("ws: max connections (%d) exceeded for user %s from %s", h.config.MaxConnsPerUser, userID, clientAddr)
-			http.Error(w, "max connections exceeded", http.StatusTooManyRequests)
-			return false
-		}
-	}
-	h.mu.Unlock()
-
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("ws: upgrade error from %s: %v", clientAddr, err)
@@ -327,8 +317,8 @@ func (h *Hub) registerIfAllowed(w http.ResponseWriter, r *http.Request, userID, 
 		hub:    h,
 	}
 
-	// Re-check + register atomically
 	if !h.registerAtomic(client, clientAddr) {
+		// registerAtomic sends close 4005 and closes conn
 		return false
 	}
 

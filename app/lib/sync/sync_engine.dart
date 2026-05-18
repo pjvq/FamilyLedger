@@ -716,6 +716,15 @@ class SyncEngine {
     }
   }
 
+  /// Auth-ok wait timeout — longer than server's AuthTimeout (5s) to account
+  /// for network latency. Server closes with 4002 before this fires normally.
+  static const _authOkTimeout = Duration(seconds: 10);
+
+  /// Set during auth phase to prevent onDone/onError from triggering reconnect
+  /// (the auth catch block handles reconnect itself).
+  bool _awaitingAuth = false;
+  Completer<void>? _authCompleter;
+
   Future<void> _connectWebSocket() async {
     if (_disposed) return;
     _disconnectWebSocket();
@@ -742,26 +751,33 @@ class SyncEngine {
 
       if (_disposed) return;
 
+      // Enter auth phase — suppress onDone/onError reconnect
+      _awaitingAuth = true;
+      _authCompleter = Completer<void>();
+
       // Subscribe BEFORE sending auth (so we don't miss auth_ok)
-      final authCompleter = Completer<void>();
       _wsSub = _wsChannel!.stream.listen(
         (message) {
           dev.log('SyncEngine: ws message: $message', name: 'sync');
-          _handleWsMessage(message, authCompleter: authCompleter);
+          _handleWsMessage(message);
         },
         onError: (error) {
           dev.log('SyncEngine: ws error: $error', name: 'sync');
-          if (!authCompleter.isCompleted) {
-            authCompleter.completeError(error);
+          if (_awaitingAuth) {
+            _authCompleter?.completeError(error);
+          } else {
+            _scheduleReconnect();
           }
-          _scheduleReconnect();
         },
         onDone: () {
           dev.log('SyncEngine: ws closed', name: 'sync');
-          if (!authCompleter.isCompleted) {
-            authCompleter.completeError('connection closed before auth_ok');
+          if (_awaitingAuth) {
+            if (_authCompleter != null && !_authCompleter!.isCompleted) {
+              _authCompleter!.completeError('connection closed before auth_ok');
+            }
+          } else {
+            _scheduleReconnect();
           }
-          _scheduleReconnect();
         },
       );
 
@@ -770,27 +786,34 @@ class SyncEngine {
 
       // Wait for auth_ok with timeout
       try {
-        await authCompleter.future.timeout(
-          const Duration(seconds: 5),
+        await _authCompleter!.future.timeout(
+          _authOkTimeout,
           onTimeout: () {
-            throw TimeoutException('auth_ok timeout');
+            throw TimeoutException('auth_ok timeout', _authOkTimeout);
           },
         );
       } catch (e) {
         dev.log('SyncEngine: auth_ok not received: $e', name: 'sync');
+        _awaitingAuth = false;
+        _authCompleter = null;
         _disconnectWebSocket();
         _scheduleReconnect();
         return;
       }
 
+      // Auth succeeded — exit auth phase
+      _awaitingAuth = false;
+      _authCompleter = null;
       dev.log('SyncEngine: ws authenticated', name: 'sync');
     } catch (e) {
       dev.log('SyncEngine: ws connect failed: $e', name: 'sync');
+      _awaitingAuth = false;
+      _authCompleter = null;
       _scheduleReconnect();
     }
   }
 
-  void _handleWsMessage(dynamic message, {Completer<void>? authCompleter}) {
+  void _handleWsMessage(dynamic message) {
     try {
       final data = jsonDecode(message as String) as Map<String, dynamic>;
       final type = data['type'] as String?;
@@ -799,8 +822,8 @@ class SyncEngine {
         dev.log('SyncEngine: ws auth_ok received', name: 'sync');
         _reconnectAttempts = 0;
         onStatusChanged?.call(wsConnected: true);
-        if (authCompleter != null && !authCompleter.isCompleted) {
-          authCompleter.complete();
+        if (_authCompleter != null && !_authCompleter!.isCompleted) {
+          _authCompleter!.complete();
         }
         // Pull immediately after auth to catch up on changes
         unawaited(_pullChanges());

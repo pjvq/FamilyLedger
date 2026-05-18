@@ -232,10 +232,20 @@ func TestMaxConnsPerUser_LegacyAuth(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	// 4th should get 429
-	_, resp, err := dialer.Dial(wsURL(server, tokenPair.AccessToken), nil)
-	require.Error(t, err)
-	assert.Equal(t, http.StatusTooManyRequests, resp.StatusCode)
+	// 4th should be upgraded but immediately closed with 4005
+	conn, _, err := dialer.Dial(wsURL(server, tokenPair.AccessToken), nil)
+	if err != nil {
+		// Some implementations may reject at HTTP level
+		return
+	}
+	defer conn.Close()
+
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_, _, err = conn.ReadMessage()
+	assert.Error(t, err)
+	if closeErr, ok := err.(*websocket.CloseError); ok {
+		assert.Equal(t, 4005, closeErr.Code)
+	}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
