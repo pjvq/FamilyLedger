@@ -713,40 +713,55 @@ func (s *Service) DeleteFamily(ctx context.Context, req *pb.DeleteFamilyRequest)
 	}
 	defer tx.Rollback(ctx)
 
-	// Delete related data in correct order (foreign key constraints)
-	// 1. Delete transfers referencing family accounts
+	// 1. Soft-delete transfers referencing family accounts
 	_, err = tx.Exec(ctx,
-		`DELETE FROM transfers WHERE from_account_id IN (SELECT id FROM accounts WHERE family_id = $1)
-		    OR to_account_id IN (SELECT id FROM accounts WHERE family_id = $1)`,
+		`UPDATE transfers SET deleted_at = NOW() WHERE deleted_at IS NULL AND (
+			from_account_id IN (SELECT id FROM accounts WHERE family_id = $1)
+		    OR to_account_id IN (SELECT id FROM accounts WHERE family_id = $1))`,
 		familyID,
 	)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to delete family transfers")
 	}
 
-	// 2. Delete transactions on family accounts
+	// 2. Soft-delete transactions on family accounts
 	_, err = tx.Exec(ctx,
-		`DELETE FROM transactions WHERE account_id IN (SELECT id FROM accounts WHERE family_id = $1)`,
+		`UPDATE transactions SET deleted_at = NOW() WHERE deleted_at IS NULL AND account_id IN (SELECT id FROM accounts WHERE family_id = $1)`,
 		familyID,
 	)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to delete family transactions")
 	}
 
-	// 3. Delete family accounts
-	_, err = tx.Exec(ctx, `DELETE FROM accounts WHERE family_id = $1`, familyID)
+	// 3. Soft-delete family accounts
+	_, err = tx.Exec(ctx, `UPDATE accounts SET deleted_at = NOW() WHERE family_id = $1 AND deleted_at IS NULL`, familyID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to delete family accounts")
 	}
 
-	// 4. Delete other family-scoped entities
-	_, _ = tx.Exec(ctx, `DELETE FROM budgets WHERE family_id = $1`, familyID)
-	_, _ = tx.Exec(ctx, `DELETE FROM loans WHERE family_id = $1`, familyID)
-	_, _ = tx.Exec(ctx, `DELETE FROM investments WHERE family_id = $1`, familyID)
-	_, _ = tx.Exec(ctx, `DELETE FROM fixed_assets WHERE family_id = $1`, familyID)
+	// 4. Soft-delete other family-scoped entities (check errors)
+	if _, err := tx.Exec(ctx, `UPDATE budgets SET deleted_at = NOW() WHERE family_id = $1 AND deleted_at IS NULL`, familyID); err != nil {
+		log.Printf("family: failed to soft-delete budgets for family %s: %v", familyID, err)
+		return nil, status.Error(codes.Internal, "failed to delete family budgets")
+	}
+	if _, err := tx.Exec(ctx, `UPDATE loans SET deleted_at = NOW() WHERE family_id = $1 AND deleted_at IS NULL`, familyID); err != nil {
+		log.Printf("family: failed to soft-delete loans for family %s: %v", familyID, err)
+		return nil, status.Error(codes.Internal, "failed to delete family loans")
+	}
+	if _, err := tx.Exec(ctx, `UPDATE investments SET deleted_at = NOW() WHERE family_id = $1 AND deleted_at IS NULL`, familyID); err != nil {
+		log.Printf("family: failed to soft-delete investments for family %s: %v", familyID, err)
+		return nil, status.Error(codes.Internal, "failed to delete family investments")
+	}
+	if _, err := tx.Exec(ctx, `UPDATE fixed_assets SET deleted_at = NOW() WHERE family_id = $1 AND deleted_at IS NULL`, familyID); err != nil {
+		log.Printf("family: failed to soft-delete fixed_assets for family %s: %v", familyID, err)
+		return nil, status.Error(codes.Internal, "failed to delete family fixed_assets")
+	}
 
-	// 5. Delete audit logs
-	_, _ = tx.Exec(ctx, `DELETE FROM audit_logs WHERE family_id = $1`, familyID)
+	// 5. Delete audit logs (hard delete is fine for logs)
+	if _, err := tx.Exec(ctx, `DELETE FROM audit_logs WHERE family_id = $1`, familyID); err != nil {
+		log.Printf("family: failed to delete audit_logs for family %s: %v", familyID, err)
+		// Non-fatal: audit logs are not critical data
+	}
 
 	// 5. Delete family members
 	_, err = tx.Exec(ctx, `DELETE FROM family_members WHERE family_id = $1`, familyID)

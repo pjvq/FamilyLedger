@@ -703,35 +703,35 @@ func TestBoost_DeleteFamily_Success(t *testing.T) {
 		WillReturnRows(pgxmock.NewRows([]string{"role"}).AddRow("owner"))
 
 	mock.ExpectBegin()
-	// Delete transfers
-	mock.ExpectExec("DELETE FROM transfers").
+	// Soft-delete transfers
+	mock.ExpectExec("UPDATE transfers SET deleted_at").
 		WithArgs(famID).
-		WillReturnResult(pgxmock.NewResult("DELETE", 0))
-	// Delete transactions
-	mock.ExpectExec("DELETE FROM transactions").
+		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+	// Soft-delete transactions
+	mock.ExpectExec("UPDATE transactions SET deleted_at").
 		WithArgs(famID).
-		WillReturnResult(pgxmock.NewResult("DELETE", 0))
-	// Delete accounts
-	mock.ExpectExec("DELETE FROM accounts").
+		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+	// Soft-delete accounts
+	mock.ExpectExec("UPDATE accounts SET deleted_at").
 		WithArgs(famID).
-		WillReturnResult(pgxmock.NewResult("DELETE", 0))
-	// Delete budgets
-	mock.ExpectExec("DELETE FROM budgets").
+		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+	// Soft-delete budgets
+	mock.ExpectExec("UPDATE budgets SET deleted_at").
 		WithArgs(famID).
-		WillReturnResult(pgxmock.NewResult("DELETE", 0))
-	// Delete loans
-	mock.ExpectExec("DELETE FROM loans").
+		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+	// Soft-delete loans
+	mock.ExpectExec("UPDATE loans SET deleted_at").
 		WithArgs(famID).
-		WillReturnResult(pgxmock.NewResult("DELETE", 0))
-	// Delete investments
-	mock.ExpectExec("DELETE FROM investments").
+		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+	// Soft-delete investments
+	mock.ExpectExec("UPDATE investments SET deleted_at").
 		WithArgs(famID).
-		WillReturnResult(pgxmock.NewResult("DELETE", 0))
-	// Delete fixed_assets
-	mock.ExpectExec("DELETE FROM fixed_assets").
+		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+	// Soft-delete fixed_assets
+	mock.ExpectExec("UPDATE fixed_assets SET deleted_at").
 		WithArgs(famID).
-		WillReturnResult(pgxmock.NewResult("DELETE", 0))
-	// Delete audit_logs
+		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+	// Delete audit_logs (hard delete ok for logs)
 	mock.ExpectExec("DELETE FROM audit_logs").
 		WithArgs(famID).
 		WillReturnResult(pgxmock.NewResult("DELETE", 0))

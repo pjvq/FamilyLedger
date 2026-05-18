@@ -46,7 +46,7 @@ import (
 	dashpb "github.com/familyledger/server/proto/dashboard"
 	exportpb "github.com/familyledger/server/proto/export"
 	familypb "github.com/familyledger/server/proto/family"
-	importpbpb "github.com/familyledger/server/proto/importpb"
+	importpb "github.com/familyledger/server/proto/importpb"
 	investpb "github.com/familyledger/server/proto/investment"
 	loanpb "github.com/familyledger/server/proto/loan"
 	notifypb "github.com/familyledger/server/proto/notify"
@@ -209,7 +209,7 @@ func main() {
 	assetpb.RegisterAssetServiceServer(grpcServer, assetService)
 	dashpb.RegisterDashboardServiceServer(grpcServer, dashboardService)
 	exportpb.RegisterExportServiceServer(grpcServer, exportService)
-	importpbpb.RegisterImportServiceServer(grpcServer, importService)
+	importpb.RegisterImportServiceServer(grpcServer, importService)
 	// Only enable gRPC reflection in dev/staging (default off for security)
 	if os.Getenv("ENABLE_GRPC_REFLECTION") == "true" {
 		reflection.Register(grpcServer)
@@ -233,6 +233,12 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", hub.HandleWebSocket)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		// Verify DB connectivity
+		if err := pool.Ping(r.Context()); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte("db unhealthy"))
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})

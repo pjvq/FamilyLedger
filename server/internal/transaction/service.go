@@ -912,10 +912,24 @@ var imageSignatures = map[string][][]byte{
 	"image/jpeg": {{0xFF, 0xD8, 0xFF}},
 	"image/png":  {{0x89, 0x50, 0x4E, 0x47}},
 	"image/webp": {{0x52, 0x49, 0x46, 0x46}}, // RIFF
-	"image/heic": {{0x00, 0x00, 0x00}},       // ftyp box (offset 4 = 'ftyp')
+	// HEIC/HEIF: validated separately (ftyp at offset 4)
 }
 
 func validateImageMagic(data []byte, contentType string) bool {
+	// Special case: HEIC/HEIF has "ftyp" at offset 4, not offset 0
+	if contentType == "image/heic" {
+		if len(data) < 12 {
+			return false
+		}
+		// bytes 4-7 must be "ftyp"
+		if string(data[4:8]) != "ftyp" {
+			return false
+		}
+		// bytes 8-11 should be a HEIF brand (heic, heix, mif1, etc.)
+		brand := string(data[8:12])
+		return brand == "heic" || brand == "heix" || brand == "mif1" || brand == "msf1" || brand == "hevc"
+	}
+
 	sigs, ok := imageSignatures[contentType]
 	if !ok {
 		return false
