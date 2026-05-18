@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../../generated/proto/transaction.pb.dart' as pb;
 import '../../generated/proto/transaction.pbgrpc.dart' as pbgrpc;
+import '../../core/utils/input_sanitizer.dart' show maxNoteLength;
 import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart';
 import '../../data/remote/grpc_clients.dart';
@@ -460,7 +461,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
             // Note input
             TextField(
               controller: _noteController,
-              maxLength: 1000,
+              maxLength: maxNoteLength,
               decoration: const InputDecoration(
                 hintText: '备注',
                 prefixIcon: Icon(Icons.note_outlined, size: 18),

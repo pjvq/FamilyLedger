@@ -301,6 +301,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     // Sanitize user input before any persistence or network call
     final cleanNote = sanitizeNote(note);
     final cleanTags = sanitizeTags(tags);
+    final cleanImageUrls = sanitizeImageUrls(imageUrls);
 
     final now = DateTime.now();
     final account = await _db.getDefaultAccount(_userId, familyId: _familyId);
@@ -354,7 +355,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       type: type,
       note: Value(cleanNote),
       tags: Value(cleanTags),
-      imageUrls: Value(imageUrls),
+      imageUrls: Value(cleanImageUrls),
       txnDate: effectiveTxnDate,
     );
     await _db.insertTransaction(companion);
@@ -411,6 +412,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     // Sanitize user input
     final cleanNote = note != null ? sanitizeNote(note) : null;
     final cleanTags = tags != null ? sanitizeTags(tags) : null;
+    final cleanImageUrls = imageUrls != null ? sanitizeImageUrls(imageUrls) : null;
 
     // 1. 获取旧交易记录（用于回退余额）
     final oldTxn = await _db.getTransactionById(id);
@@ -427,7 +429,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       note: cleanNote != null ? Value(cleanNote) : const Value.absent(),
       currency: currency != null ? Value(currency) : const Value.absent(),
       tags: cleanTags != null ? Value(cleanTags) : const Value.absent(),
-      imageUrls: imageUrls != null ? Value(imageUrls) : const Value.absent(),
+      imageUrls: cleanImageUrls != null ? Value(cleanImageUrls) : const Value.absent(),
       txnDate: txnDate != null ? Value(txnDate) : const Value.absent(),
       updatedAt: Value(DateTime.now()),
     );

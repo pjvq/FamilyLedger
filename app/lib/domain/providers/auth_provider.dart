@@ -351,7 +351,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       prefs: _prefs,
       db: _db,
     );
-    await coordinator.execute();
+    final failures = await coordinator.execute();
+    if (failures.isNotEmpty) {
+      developer.log(
+        'Logout partial failures: $failures — user still logged out',
+        name: 'auth',
+        level: 900,
+      );
+    }
     _authInterceptor.invalidateCache();
     _ref.read(currentUserIdProvider.notifier).state = null;
     _ref.read(currentFamilyIdProvider.notifier).state = null;

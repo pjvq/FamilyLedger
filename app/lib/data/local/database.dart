@@ -177,15 +177,33 @@ class AppDatabase extends _$AppDatabase {
         },
       );
 
-  /// Safely drops a column, ignoring errors if the column doesn't exist.
-  /// SQLite does not support IF EXISTS for DROP COLUMN, so we catch the error.
+  /// Allowlisted table/column pairs that may be safely dropped.
+  /// Prevents accidental SQL injection if method signature is ever misused.
+  static const _droppableColumns = {
+    ('transactions', 'synced'),
+    ('categories', 'icon'),
+  };
+
+  /// Safely drops a column, ignoring only "no such column" errors.
+  ///
+  /// Only accepts pre-approved (table, column) pairs to prevent
+  /// any possibility of SQL injection via string interpolation.
+  /// Rethrows non-column-missing errors (disk full, DB corruption, etc.).
   Future<void> _safeDropColumn(String table, String column) async {
+    assert(
+      _droppableColumns.contains((table, column)),
+      'Unexpected drop target: $table.$column — add to _droppableColumns first',
+    );
     try {
       await customStatement('ALTER TABLE $table DROP COLUMN $column');
     } catch (e) {
-      // Column likely already dropped (previous interrupted migration).
-      // SQLite error: "no such column: ..."
-      // This is safe to ignore — the desired state is already achieved.
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('no such column') || msg.contains('no column named')) {
+        // Column already absent — desired state achieved (interrupted migration).
+        return;
+      }
+      // Real error (disk full, corruption) — must not swallow.
+      rethrow;
     }
   }
 
