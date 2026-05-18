@@ -51,16 +51,15 @@ type MarketDataFetcher interface {
 //   - 美股 → Yahoo Finance
 //   - 加密货币 → CoinGecko
 //
-// On error, it falls back to MockFetcher to avoid crashing.
+// RealFetcher fetches market data from external APIs.
+// On error, it returns the error (no silent mock fallback).
 type RealFetcher struct {
 	client *http.Client
-	mock   *MockFetcher // fallback
 }
 
 func NewRealFetcher() *RealFetcher {
 	return &RealFetcher{
 		client: &http.Client{Timeout: 10 * time.Second},
-		mock:   NewMockFetcher(),
 	}
 }
 
@@ -82,18 +81,13 @@ func (r *RealFetcher) FetchQuote(ctx context.Context, symbol string, marketType 
 	case "precious_metal":
 		quote, err = r.fetchPreciousMetal(ctx, symbol)
 	default:
-		log.Printf("market: unknown market type %q, falling back to mock", marketType)
-		return r.mock.FetchQuote(ctx, symbol, marketType)
+		log.Printf("market: unknown market type %q for symbol %s", marketType, symbol)
+		return nil, fmt.Errorf("unsupported market type: %s", marketType)
 	}
 
 	if err != nil {
-		// For precious metals, don't fall back to mock (mock gives misleading fake prices)
-		if marketType == "precious_metal" {
-			log.Printf("market: FetchQuote(%s, %s) error: %v", symbol, marketType, err)
-			return nil, err
-		}
-		log.Printf("market: FetchQuote(%s, %s) error: %v, falling back to mock", symbol, marketType, err)
-		return r.mock.FetchQuote(ctx, symbol, marketType)
+		log.Printf("market: FetchQuote(%s, %s) error: %v", symbol, marketType, err)
+		return nil, fmt.Errorf("fetch %s/%s: %w", marketType, symbol, err)
 	}
 	return quote, nil
 }
@@ -112,13 +106,13 @@ func (r *RealFetcher) SearchSymbol(ctx context.Context, query string, marketType
 	case "precious_metal":
 		results, err = r.searchPreciousMetal(ctx, query)
 	default:
-		log.Printf("market: unknown market type %q for search, falling back to mock", marketType)
-		return r.mock.SearchSymbol(ctx, query, marketType)
+		log.Printf("market: unknown market type %q for search", marketType)
+		return nil, fmt.Errorf("unsupported market type for search: %s", marketType)
 	}
 
 	if err != nil {
-		log.Printf("market: SearchSymbol(%s, %s) error: %v, falling back to mock", query, marketType, err)
-		return r.mock.SearchSymbol(ctx, query, marketType)
+		log.Printf("market: SearchSymbol(%s, %s) error: %v", query, marketType, err)
+		return nil, fmt.Errorf("search %s/%s: %w", marketType, query, err)
 	}
 	return results, nil
 }

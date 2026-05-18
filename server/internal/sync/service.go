@@ -17,6 +17,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/familyledger/server/pkg/middleware"
+	"github.com/familyledger/server/pkg/permission"
 	"github.com/familyledger/server/pkg/ws"
 	pb "github.com/familyledger/server/proto/sync"
 )
@@ -381,7 +382,7 @@ func (s *Service) applyTransactionUpdate(ctx context.Context, tx pgx.Tx, userID 
 	}
 
 	// Fetch existing transaction with lock and verify ownership
-	var ownerID, accountID uuid.UUID
+	var ownerID, oldAccountID uuid.UUID
 	var oldAmountCny int64
 	var oldType, currency string
 	var exchangeRate float64
@@ -389,7 +390,7 @@ func (s *Service) applyTransactionUpdate(ctx context.Context, tx pgx.Tx, userID 
 		`SELECT user_id, account_id, amount_cny, type, currency, exchange_rate
 		 FROM transactions WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
 		entityID,
-	).Scan(&ownerID, &accountID, &oldAmountCny, &oldType, &currency, &exchangeRate)
+	).Scan(&ownerID, &oldAccountID, &oldAmountCny, &oldType, &currency, &exchangeRate)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return fmt.Errorf("transaction %s not found", entityID)
@@ -400,6 +401,10 @@ func (s *Service) applyTransactionUpdate(ctx context.Context, tx pgx.Tx, userID 
 		return fmt.Errorf("transaction %s does not belong to user", entityID)
 	}
 
+	// Track if account is changing
+	newAccountID := oldAccountID
+	accountChanged := false
+
 	// Build dynamic UPDATE
 	setClauses := []string{"updated_at = NOW()"}
 	args := []interface{}{}
@@ -407,6 +412,34 @@ func (s *Service) applyTransactionUpdate(ctx context.Context, tx pgx.Tx, userID 
 
 	newAmountCny := oldAmountCny
 	newType := oldType
+
+	if p.AccountID != "" {
+		parsedAccID, err := uuid.Parse(p.AccountID)
+		if err != nil {
+			return fmt.Errorf("invalid account_id: %w", err)
+		}
+		if parsedAccID != oldAccountID {
+			// Verify new account exists and belongs to user
+			var accOwner uuid.UUID
+			err = tx.QueryRow(ctx,
+				"SELECT user_id FROM accounts WHERE id = $1 AND deleted_at IS NULL",
+				parsedAccID,
+			).Scan(&accOwner)
+			if err != nil {
+				return fmt.Errorf("new account %s not found", parsedAccID)
+			}
+			if accOwner != userID {
+				if err := s.validateCrossAccountAccess(ctx, tx, userID, parsedAccID); err != nil {
+					return err
+				}
+			}
+			newAccountID = parsedAccID
+			accountChanged = true
+			args = append(args, parsedAccID)
+			setClauses = append(setClauses, fmt.Sprintf("account_id = $%d", argIdx))
+			argIdx++
+		}
+	}
 
 	if p.Amount > 0 {
 		args = append(args, p.Amount)
@@ -471,7 +504,7 @@ func (s *Service) applyTransactionUpdate(ctx context.Context, tx pgx.Tx, userID 
 		return fmt.Errorf("failed to update transaction: %w", err)
 	}
 
-	// Recalculate balance: revert old delta, apply new delta
+	// Recalculate balance
 	var oldDelta, newDelta int64
 	if oldType == "income" {
 		oldDelta = oldAmountCny
@@ -483,18 +516,77 @@ func (s *Service) applyTransactionUpdate(ctx context.Context, tx pgx.Tx, userID 
 	} else {
 		newDelta = -newAmountCny
 	}
-	balanceAdjust := newDelta - oldDelta
-	if balanceAdjust != 0 {
-		_, err = tx.Exec(ctx,
-			"UPDATE accounts SET balance = balance + $1, updated_at = NOW() WHERE id = $2",
-			balanceAdjust, accountID,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to update account balance: %w", err)
+
+	if accountChanged {
+		// Revert old delta from old account
+		if oldDelta != 0 {
+			_, err = tx.Exec(ctx,
+				"UPDATE accounts SET balance = balance - $1, updated_at = NOW() WHERE id = $2",
+				oldDelta, oldAccountID,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to revert old account balance: %w", err)
+			}
+		}
+		// Apply new delta to new account
+		if newDelta != 0 {
+			// Overdraft check for expense on new account
+			if newDelta < 0 {
+				var newAccBalance int64
+				var overdraftLimit int64
+				err = tx.QueryRow(ctx,
+					"SELECT balance, COALESCE(overdraft_limit, 0) FROM accounts WHERE id = $1 FOR UPDATE",
+					newAccountID,
+				).Scan(&newAccBalance, &overdraftLimit)
+				if err != nil {
+					return fmt.Errorf("failed to check overdraft on account %s: %w", newAccountID, err)
+				}
+				if newAccBalance+newDelta < -overdraftLimit {
+					return fmt.Errorf("insufficient balance on new account %s (balance=%d, delta=%d, limit=%d)",
+						newAccountID, newAccBalance, newDelta, overdraftLimit)
+				}
+			}
+			_, err = tx.Exec(ctx,
+				"UPDATE accounts SET balance = balance + $1, updated_at = NOW() WHERE id = $2",
+				newDelta, newAccountID,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to update new account balance: %w", err)
+			}
+		}
+	} else {
+		// Same account — apply balance adjustment
+		balanceAdjust := newDelta - oldDelta
+		if balanceAdjust != 0 {
+			_, err = tx.Exec(ctx,
+				"UPDATE accounts SET balance = balance + $1, updated_at = NOW() WHERE id = $2",
+				balanceAdjust, oldAccountID,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to update account balance: %w", err)
+			}
 		}
 	}
 
 	return nil
+}
+
+// validateCrossAccountAccess checks that userID has CanCreate permission on the
+// family that owns accountID. Uses permission.Check for consistency with the
+// rest of the server. Single query to get family_id, then delegates to permission.Check.
+func (s *Service) validateCrossAccountAccess(ctx context.Context, tx pgx.Tx, userID uuid.UUID, accountID uuid.UUID) error {
+	var famID *string
+	err := tx.QueryRow(ctx,
+		"SELECT family_id::text FROM accounts WHERE id = $1", accountID,
+	).Scan(&famID)
+	if err != nil {
+		return fmt.Errorf("failed to look up account %s: %w", accountID, err)
+	}
+	if famID == nil {
+		return fmt.Errorf("account %s is personal and does not belong to user", accountID)
+	}
+	// Delegate to permission.Check (checks membership + role + CanCreate)
+	return permission.Check(ctx, tx, userID.String(), *famID, permission.CanCreate)
 }
 
 func (s *Service) applyTransactionDelete(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID) error {
@@ -771,81 +863,65 @@ func (s *Service) PullChanges(ctx context.Context, req *pb.PullChangesRequest) (
 			return nil, status.Error(codes.PermissionDenied, "user is not a member of this family")
 		}
 
+		// SAFETY: cursorClause is a compile-time constant (never user input).
+		var cursorClause string
+		var queryArgs []interface{}
 		if hasCursor {
-			rows, err = s.pool.Query(ctx,
-				`SELECT so.id, so.entity_type, so.entity_id, so.op_type, so.payload, so.client_id, so.timestamp
-				 FROM sync_operations so
-				 WHERE so.user_id IN (SELECT user_id FROM family_members WHERE family_id = $1)
-				   AND so.timestamp > $2
-				   AND so.client_id != $3
-			   AND (so.timestamp, so.id) > ($5, $6)
-				   AND (
-				     (so.entity_type = 'transaction' AND so.entity_id IN (
-				       SELECT t.id FROM transactions t
-				       JOIN accounts a ON t.account_id = a.id
-				       WHERE a.family_id = $1
-				     ))
-				     OR
-				     (so.entity_type = 'account' AND so.entity_id IN (
-				       SELECT id FROM accounts WHERE family_id = $1
-				     ))
-				     OR
-				     (so.entity_type NOT IN ('transaction', 'account'))
-				   )
-				 ORDER BY so.timestamp ASC, so.id ASC
-				 LIMIT $4`,
-				familyID, since, clientID, pageSize+1, cursorTime, cursorID,
-			)
+			cursorClause = "AND (so.timestamp, so.id) > ($5, $6)"
+			queryArgs = []interface{}{familyID, since, clientID, pageSize + 1, cursorTime, cursorID}
 		} else {
-			rows, err = s.pool.Query(ctx,
-				`SELECT so.id, so.entity_type, so.entity_id, so.op_type, so.payload, so.client_id, so.timestamp
-				 FROM sync_operations so
-				 WHERE so.user_id IN (SELECT user_id FROM family_members WHERE family_id = $1)
-				   AND so.timestamp > $2
-				   AND so.client_id != $3
-				   AND (
-				     (so.entity_type = 'transaction' AND so.entity_id IN (
-				       SELECT t.id FROM transactions t
-				       JOIN accounts a ON t.account_id = a.id
-				       WHERE a.family_id = $1
-				     ))
-				     OR
-				     (so.entity_type = 'account' AND so.entity_id IN (
-				       SELECT id FROM accounts WHERE family_id = $1
-				     ))
-				     OR
-				     (so.entity_type NOT IN ('transaction', 'account'))
-				   )
-				 ORDER BY so.timestamp ASC, so.id ASC
-				 LIMIT $4`,
-				familyID, since, clientID, pageSize+1,
-			)
+			cursorClause = ""
+			queryArgs = []interface{}{familyID, since, clientID, pageSize + 1}
 		}
+
+		rows, err = s.pool.Query(ctx, fmt.Sprintf(
+			`WITH family_accounts AS (
+				SELECT id FROM accounts WHERE family_id = $1
+			), family_txns AS (
+				SELECT t.id FROM transactions t WHERE t.account_id IN (SELECT id FROM family_accounts)
+			)
+			SELECT so.id, so.entity_type, so.entity_id, so.op_type, so.payload, so.client_id, so.timestamp
+			 FROM sync_operations so
+			 WHERE so.user_id IN (SELECT user_id FROM family_members WHERE family_id = $1)
+			   AND so.timestamp > $2
+			   AND so.client_id != $3
+			   %s
+			   AND (
+			     (so.entity_type = 'transaction' AND so.entity_id IN (SELECT id FROM family_txns))
+			     OR
+			     (so.entity_type = 'account' AND so.entity_id IN (SELECT id FROM family_accounts))
+			     OR
+			     (so.entity_type NOT IN ('transaction', 'account'))
+			   )
+			 ORDER BY so.timestamp ASC, so.id ASC
+			 LIMIT $4`, cursorClause),
+			queryArgs...,
+		)
 		if err != nil {
 			return nil, status.Error(codes.Internal, "failed to query family sync operations")
 		}
 	} else {
 		// Personal mode: only pull operations for this user
+		// SAFETY: cursorClause is a compile-time constant (never user input).
+		var cursorClause string
+		var queryArgs []interface{}
 		if hasCursor {
-			rows, err = s.pool.Query(ctx,
-				`SELECT id, entity_type, entity_id, op_type, payload, client_id, timestamp
-				 FROM sync_operations
-				 WHERE user_id = $1 AND timestamp > $2 AND client_id != $3
-				   AND (timestamp, id) > ($5, $6)
-				 ORDER BY timestamp ASC, id ASC
-				 LIMIT $4`,
-				uid, since, clientID, pageSize+1, cursorTime, cursorID,
-			)
+			cursorClause = "AND (timestamp, id) > ($5, $6)"
+			queryArgs = []interface{}{uid, since, clientID, pageSize + 1, cursorTime, cursorID}
 		} else {
-			rows, err = s.pool.Query(ctx,
-				`SELECT id, entity_type, entity_id, op_type, payload, client_id, timestamp
-				 FROM sync_operations
-				 WHERE user_id = $1 AND timestamp > $2 AND client_id != $3
-				 ORDER BY timestamp ASC, id ASC
-				 LIMIT $4`,
-				uid, since, clientID, pageSize+1,
-			)
+			cursorClause = ""
+			queryArgs = []interface{}{uid, since, clientID, pageSize + 1}
 		}
+
+		rows, err = s.pool.Query(ctx, fmt.Sprintf(
+			`SELECT id, entity_type, entity_id, op_type, payload, client_id, timestamp
+			 FROM sync_operations
+			 WHERE user_id = $1 AND timestamp > $2 AND client_id != $3
+			   %s
+			 ORDER BY timestamp ASC, id ASC
+			 LIMIT $4`, cursorClause),
+			queryArgs...,
+		)
 		if err != nil {
 			return nil, status.Error(codes.Internal, "failed to query sync operations")
 		}

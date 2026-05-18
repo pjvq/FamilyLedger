@@ -279,7 +279,13 @@ func (s *Service) CreateNotification(ctx context.Context, userID string, nType, 
 		`INSERT INTO notifications (user_id, type, title, body, data_json) VALUES ($1, $2, $3, $4, $5)`,
 		userID, nType, title, body, dataJSON,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// TODO(M8): Implement push delivery via FCM/APNs.
+	// Currently notifications are stored in DB only — users must poll via ListNotifications.
+	return nil
 }
 
 // CheckBudgets iterates all active budgets (current month), computes execution rates,

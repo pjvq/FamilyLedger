@@ -47,7 +47,17 @@ func TestValidateImageMagic_WebP(t *testing.T) {
 }
 
 func TestValidateImageMagic_HEIC(t *testing.T) {
-	assert.True(t, validateImageMagic([]byte{0x00, 0x00, 0x00, 0x20}, "image/heic"))
+	// Valid HEIC: 4 bytes box size + "ftyp" + brand "heic"
+	heicHeader := []byte{0x00, 0x00, 0x00, 0x20, 'f', 't', 'y', 'p', 'h', 'e', 'i', 'c'}
+	assert.True(t, validateImageMagic(heicHeader, "image/heic"))
+	// mif1 brand also valid
+	mif1Header := []byte{0x00, 0x00, 0x00, 0x1C, 'f', 't', 'y', 'p', 'm', 'i', 'f', '1'}
+	assert.True(t, validateImageMagic(mif1Header, "image/heic"))
+	// Invalid: too short
+	assert.False(t, validateImageMagic([]byte{0x00, 0x00, 0x00, 0x20}, "image/heic"))
+	// Invalid: no ftyp
+	noFtyp := []byte{0x00, 0x00, 0x00, 0x20, 'f', 'r', 'e', 'e', 'h', 'e', 'i', 'c'}
+	assert.False(t, validateImageMagic(noFtyp, "image/heic"))
 }
 
 func TestValidateImageMagic_Unknown(t *testing.T) {

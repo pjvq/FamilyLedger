@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
@@ -252,7 +251,7 @@ func TestBoost_NewRealFetcher(t *testing.T) {
 	f := NewRealFetcher()
 	require.NotNil(t, f)
 	require.NotNil(t, f.client)
-	require.NotNil(t, f.mock)
+	// mock field removed — no more silent fallback
 	assert.Equal(t, 10*time.Second, f.client.Timeout)
 }
 
@@ -809,20 +808,20 @@ func TestBoost_Service_GetQuote_CacheMiss_UpsertError_StillReturns(t *testing.T)
 
 // ── RealFetcher fallback to mock for unknown market type ────────────────────
 
-func TestBoost_RealFetcher_FetchQuote_UnknownType_FallsBackToMock(t *testing.T) {
+func TestBoost_RealFetcher_FetchQuote_UnknownType_ReturnsError(t *testing.T) {
 	f := NewRealFetcher()
 	q, err := f.FetchQuote(context.Background(), "XYZ", "forex")
-	require.NoError(t, err)
-	require.NotNil(t, q)
-	assert.Equal(t, "XYZ", q.Symbol)
-	assert.Equal(t, "forex", q.MarketType)
+	require.Error(t, err)
+	assert.Nil(t, q)
+	assert.Contains(t, err.Error(), "unsupported market type")
 }
 
-func TestBoost_RealFetcher_SearchSymbol_UnknownType_FallsBackToMock(t *testing.T) {
+func TestBoost_RealFetcher_SearchSymbol_UnknownType_ReturnsError(t *testing.T) {
 	f := NewRealFetcher()
 	results, err := f.SearchSymbol(context.Background(), "test", "forex")
-	require.NoError(t, err)
-	require.Len(t, results, 1)
+	require.Error(t, err)
+	assert.Nil(t, results)
+	assert.Contains(t, err.Error(), "unsupported market type")
 }
 
 // ── computeMarketInterval covers the global function ────────────────────────
@@ -868,95 +867,65 @@ func TestBoost_Service_SearchSymbol_FetcherError_ReturnsEmpty(t *testing.T) {
 func newTestRealFetcher(client *http.Client) *RealFetcher {
 	return &RealFetcher{
 		client: client,
-		mock:   NewMockFetcher(),
 	}
 }
 
 // ── fetchEastMoneyStock (A-share & HK-stock paths) ─────────────────────────
 
-func TestBoost_FetchEastMoneyAShare_Success(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("skipping: calls real EastMoney API which is unreachable in CI")
-	}
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := `{"data":{"f43":"25.50","f44":"26.00","f45":"25.00","f46":"25.30","f57":"600519","f58":"贵州茅台","f60":"25.00","f169":"0.50","f170":"2.00"}}`
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(resp))
-	}))
-	defer ts.Close()
-
-	// Monkey-patch: create fetcher and call fetchEastMoneyStock directly
-	f := newTestRealFetcher(ts.Client())
-	// We call the method that makes the URL. Since we can't change the URL,
-	// let's test through FetchQuote with a server that returns error → fallback.
-	// Instead, test fetchEastMoneyStock directly by setting up properly.
-
-	// For direct testing, we need to hit the test server URL.
-	// The real fetcher hardcodes the URL, so we test the fallback path
-	// and the parsing logic through a different approach.
-
-	// Actually, we can test the full flow by verifying the fallback works
-	// when the real API is unreachable (which it is in test).
-	// The "unknown type" fallback is already tested.
-	// Let's test known types that will fail HTTP → fallback to mock.
-
+func TestBoost_FetchEastMoneyAShare_ErrorOnFailure(t *testing.T) {
+	// Real API unreachable → should return error (no silent mock)
+	f := newTestRealFetcher(&http.Client{Timeout: 1 * time.Millisecond})
 	ctx := context.Background()
 
-	// a_share: real API unreachable → fallback to mock
 	q, err := f.FetchQuote(ctx, "600519", "a_share")
-	require.NoError(t, err)
-	assert.Equal(t, "600519", q.Symbol)
-	assert.Equal(t, "a_share", q.MarketType)
+	require.Error(t, err)
+	assert.Nil(t, q)
 }
 
-func TestBoost_FetchEastMoneyHKStock_FallbackToMock(t *testing.T) {
+func TestBoost_FetchEastMoneyHKStock_ReturnsErrorOnFailure(t *testing.T) {
 	f := NewRealFetcher()
 	// Cancel context immediately to force error
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
 	q, err := f.FetchQuote(ctx, "00700", "hk_stock")
-	require.NoError(t, err) // fallback to mock should not error
-	assert.Equal(t, "00700", q.Symbol)
-	assert.Equal(t, "hk_stock", q.MarketType)
+	require.Error(t, err)
+	assert.Nil(t, q)
 }
 
-func TestBoost_FetchEastMoneyFund_FallbackToMock(t *testing.T) {
+func TestBoost_FetchEastMoneyFund_ReturnsErrorOnFailure(t *testing.T) {
 	f := NewRealFetcher()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
 	q, err := f.FetchQuote(ctx, "110011", "fund")
-	require.NoError(t, err)
-	assert.Equal(t, "110011", q.Symbol)
-	assert.Equal(t, "fund", q.MarketType)
+	require.Error(t, err)
+	assert.Nil(t, q)
 }
 
-func TestBoost_FetchYahooQuote_FallbackToMock(t *testing.T) {
+func TestBoost_FetchYahooQuote_ReturnsErrorOnFailure(t *testing.T) {
 	f := NewRealFetcher()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
 	q, err := f.FetchQuote(ctx, "AAPL", "us_stock")
-	require.NoError(t, err)
-	assert.Equal(t, "AAPL", q.Symbol)
-	assert.Equal(t, "us_stock", q.MarketType)
+	require.Error(t, err)
+	assert.Nil(t, q)
 }
 
-func TestBoost_FetchCoinGeckoQuote_FallbackToMock(t *testing.T) {
+func TestBoost_FetchCoinGeckoQuote_ReturnsErrorOnFailure(t *testing.T) {
 	f := NewRealFetcher()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
 	q, err := f.FetchQuote(ctx, "bitcoin", "crypto")
-	require.NoError(t, err)
-	assert.Equal(t, "bitcoin", q.Symbol)
-	assert.Equal(t, "crypto", q.MarketType)
+	require.Error(t, err)
+	assert.Nil(t, q)
 }
 
-// ── SearchSymbol real paths with fallback ────────────────────────────────────
+// ── SearchSymbol real paths return error on failure ────────────────────────────
 
-func TestBoost_RealFetcher_SearchEastMoney_FallbackToMock(t *testing.T) {
+func TestBoost_RealFetcher_SearchEastMoney_ReturnsError(t *testing.T) {
 	f := NewRealFetcher()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -964,30 +933,30 @@ func TestBoost_RealFetcher_SearchEastMoney_FallbackToMock(t *testing.T) {
 	for _, mt := range []string{"a_share", "hk_stock", "fund"} {
 		t.Run(mt, func(t *testing.T) {
 			results, err := f.SearchSymbol(ctx, "test", mt)
-			require.NoError(t, err)
-			require.Len(t, results, 1) // fallback to mock
+			require.Error(t, err)
+			assert.Nil(t, results)
 		})
 	}
 }
 
-func TestBoost_RealFetcher_SearchYahoo_FallbackToMock(t *testing.T) {
+func TestBoost_RealFetcher_SearchYahoo_ReturnsError(t *testing.T) {
 	f := NewRealFetcher()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
 	results, err := f.SearchSymbol(ctx, "AAPL", "us_stock")
-	require.NoError(t, err)
-	require.Len(t, results, 1)
+	require.Error(t, err)
+	assert.Nil(t, results)
 }
 
-func TestBoost_RealFetcher_SearchCoinGecko_FallbackToMock(t *testing.T) {
+func TestBoost_RealFetcher_SearchCoinGecko_ReturnsError(t *testing.T) {
 	f := NewRealFetcher()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
 	results, err := f.SearchSymbol(ctx, "bitcoin", "crypto")
-	require.NoError(t, err)
-	require.Len(t, results, 1)
+	require.Error(t, err)
+	assert.Nil(t, results)
 }
 
 // ── RefreshExchangeRates ────────────────────────────────────────────────────

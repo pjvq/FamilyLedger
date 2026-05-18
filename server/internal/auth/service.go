@@ -253,7 +253,7 @@ func (s *Service) OAuthLogin(ctx context.Context, req *pb.OAuthLoginRequest) (*p
 
 	// Mock implementation: code="test" → create/find test user
 	// In production, exchange code for access_token with the provider
-	oauthID, displayName, avatarURL, err := s.exchangeOAuthCode(ctx, provider, req.Code, req.RedirectUri)
+	oauthID, displayName, avatarURL, err := s.exchangeOAuthCode(ctx, provider, req.Code)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "oauth exchange failed: %v", err)
 	}
@@ -327,7 +327,7 @@ func (s *Service) OAuthLogin(ctx context.Context, req *pb.OAuthLoginRequest) (*p
 }
 
 // exchangeOAuthCode exchanges an OAuth code for user info using the configured provider.
-func (s *Service) exchangeOAuthCode(ctx context.Context, provider, code, _ string) (oauthID, displayName, avatarURL string, err error) {
+func (s *Service) exchangeOAuthCode(ctx context.Context, provider, code string) (oauthID, displayName, avatarURL string, err error) {
 	p, ok := s.oauthProviders[provider]
 	if !ok {
 		return "", "", "", status.Errorf(codes.InvalidArgument, "no oauth provider configured for: %s", provider)
