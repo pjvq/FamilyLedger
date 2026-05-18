@@ -5,8 +5,6 @@
 /// - Boundary conditions
 /// - Precision invariants
 import 'package:flutter_test/flutter_test.dart';
-import 'package:familyledger/domain/providers/loan_provider.dart';
-import 'package:familyledger/domain/models/loan_models.dart';
 import 'package:familyledger/domain/models/loan_calculator.dart';
 
 void main() {

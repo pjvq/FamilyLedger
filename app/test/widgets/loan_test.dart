@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:familyledger/data/local/database.dart' as db;
 import 'package:familyledger/domain/providers/loan_provider.dart';
 import 'package:familyledger/domain/models/loan_models.dart';
-import 'package:familyledger/domain/models/loan_calculator.dart';
 import 'package:familyledger/features/loan/rate_change_dialog.dart';
 import 'package:familyledger/features/loan/loans_page.dart';
 import 'package:familyledger/features/loan/prepayment_page.dart';
