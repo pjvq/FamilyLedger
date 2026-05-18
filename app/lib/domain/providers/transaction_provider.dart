@@ -3,8 +3,8 @@ import 'dart:developer' as dev;
 
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:grpc/grpc.dart';
 
+import '../../core/network/network.dart';
 import '../../core/utils/input_sanitizer.dart';
 import '../../data/local/database.dart';
 import '../../data/remote/grpc_clients.dart';
@@ -88,7 +88,6 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   final String? _familyId;
 
   StreamSubscription? _dbSub;
-  static final _callOpts = CallOptions(timeout: const Duration(seconds: 8));
 
   TransactionNotifier({
     required TransactionRepository repo,
@@ -152,7 +151,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
       // If categories are empty, try server sync before showing UI
       if (expCats.isEmpty && incCats.isEmpty && _categorySvc != null) {
-        await _categorySvc!.syncFromServer();
+        await _categorySvc.syncFromServer();
         expCats = await _repo.getCategoriesByType('expense', userId: _userId);
         incCats = await _repo.getCategoriesByType('income', userId: _userId);
       }
@@ -166,7 +165,9 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       await _refreshSummary();
 
       // Background: sync categories (covers newly added remote categories)
-      _categorySvc?.syncFromServer().then((_) => _reloadCategories());
+      _categorySvc?.syncFromServer().then((_) => _reloadCategories()).catchError(
+        (Object e, StackTrace st) => dev.log('Background category sync failed: $e', name: 'txn'),
+      );
 
       // Background: incremental sync for family mode
       if (_familyId != null && _familyId.isNotEmpty && _txnClient != null) {
@@ -209,13 +210,13 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
       do {
         final req = pb.ListTransactionsRequest()
-          ..familyId = _familyId!
+          ..familyId = _familyId
           ..pageSize = _syncPageSize
           ..includeDeleted = true;
         if (lastSync != null) req.updatedSince = _toTimestamp(lastSync);
         if (pageToken.isNotEmpty) req.pageToken = pageToken;
 
-        final resp = await _txnClient!.listTransactions(req, options: _callOpts);
+        final resp = await _txnClient!.listTransactions(req, options: defaultCallOptions);
 
         final toUpsert = <TransactionUpsertParams>[];
         final toDelete = <String>[];
@@ -257,7 +258,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   Future<void> reload() async {
     state = state.copyWith(isLoading: true, clearError: true);
     if (_familyId != null && _familyId.isNotEmpty) {
-      await _repo.clearFamilySyncTime(_familyId!);
+      await _repo.clearFamilySyncTime(_familyId);
     }
     await _load();
   }
@@ -304,7 +305,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
               : pbe.TransactionType.TRANSACTION_TYPE_EXPENSE
           ..note = cleanNote
           ..txnDate = _toTimestamp(effectiveTxnDate);
-        final resp = await _txnClient!.createTransaction(req, options: _callOpts);
+        final resp = await _txnClient.createTransaction(req, options: defaultCallOptions);
         transactionId = resp.transaction.id;
         syncedToServer = true;
       } catch (e) {
@@ -399,7 +400,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
               : pbe.TransactionType.TRANSACTION_TYPE_EXPENSE;
         }
         if (txnDate != null) req.txnDate = _toTimestamp(txnDate);
-        await _txnClient!.updateTransaction(req);
+        await _txnClient.updateTransaction(req);
       }
     } catch (e) {
       dev.log('updateTransaction: gRPC failed, queueing: $e', name: 'txn');
@@ -429,7 +430,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
     try {
       if (_txnClient != null) {
-        await _txnClient!.deleteTransaction(
+        await _txnClient.deleteTransaction(
           pb.DeleteTransactionRequest(transactionId: id),
         );
       }
@@ -447,7 +448,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
     try {
       if (_txnClient != null) {
-        await _txnClient!.batchDeleteTransactions(
+        await _txnClient.batchDeleteTransactions(
           pb.BatchDeleteTransactionsRequest(transactionIds: ids),
         );
       }
@@ -464,7 +465,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   Future<String?> uploadImage(pb.UploadTransactionImageRequest req) async {
     try {
       if (_txnClient != null) {
-        final resp = await _txnClient!.uploadTransactionImage(req);
+        final resp = await _txnClient.uploadTransactionImage(req);
         return resp.imageUrl;
       }
     } catch (e) {

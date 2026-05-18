@@ -1,5 +1,3 @@
-import 'dart:developer' as dev;
-
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
@@ -140,14 +138,22 @@ class TransactionRepository {
   }
 
   /// Batch soft-delete transactions and reverse their balance impacts.
+  /// All operations run inside a single DB transaction — atomic commit.
   /// Returns the count of actually deleted transactions.
   Future<int> batchSoftDelete(List<String> ids) async {
-    int count = 0;
-    for (final id in ids) {
-      final txn = await softDelete(id);
-      if (txn != null) count++;
-    }
-    return count;
+    if (ids.isEmpty) return 0;
+    return _db.transaction(() async {
+      int count = 0;
+      for (final id in ids) {
+        final txn = await _db.getTransactionById(id);
+        if (txn == null) continue;
+        await _db.softDeleteTransaction(id);
+        final delta = txn.type == 'income' ? -txn.amountCny : txn.amountCny;
+        await _db.updateAccountBalance(txn.accountId, delta);
+        count++;
+      }
+      return count;
+    });
   }
 
   // ─── Category Persistence ────────────────────────────────────────────

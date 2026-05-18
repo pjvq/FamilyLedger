@@ -1,7 +1,6 @@
 import 'dart:developer' as dev;
 
-import 'package:grpc/grpc.dart';
-
+import '../../core/network/network.dart';
 import '../../generated/proto/transaction.pbgrpc.dart' as pb;
 import '../../generated/proto/transaction.pbenum.dart' as pbe;
 import '../repositories/transaction_repository.dart';
@@ -15,8 +14,6 @@ class CategorySyncService {
   final pb.TransactionServiceClient _client;
   final String _userId;
 
-  static final _callOpts = CallOptions(timeout: const Duration(seconds: 8));
-
   CategorySyncService(this._repo, this._client, this._userId);
 
   /// Fetch all categories from server and upsert locally.
@@ -25,11 +22,12 @@ class CategorySyncService {
     try {
       final resp = await _client.getCategories(
         pb.GetCategoriesRequest(),
-        options: _callOpts,
+        options: defaultCallOptions,
       );
-      for (final c in resp.categories) {
-        await _insertRecursive(c, null);
-      }
+      // Top-level categories are independent — parallel upsert.
+      await Future.wait(
+        resp.categories.map((c) => _insertRecursive(c, null)),
+      );
       return true;
     } catch (e) {
       dev.log('CategorySyncService: sync failed: $e', name: 'category_sync');

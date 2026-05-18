@@ -15,15 +15,15 @@ class BalanceCalculator {
   /// Compute all summary values for a user in one call.
   /// Returns a value object — no mutable state.
   Future<BalanceSummary> compute(String userId) async {
-    final results = await Future.wait([
+    final (totalBalance, todayExpense, monthExpense) = await (
       _repo.getTotalBalance(userId),
       _repo.getTodayExpense(userId),
       _repo.getMonthExpense(userId),
-    ]);
+    ).wait;
     return BalanceSummary(
-      totalBalance: results[0],
-      todayExpense: results[1],
-      monthExpense: results[2],
+      totalBalance: totalBalance,
+      todayExpense: todayExpense,
+      monthExpense: monthExpense,
     );
   }
 }
