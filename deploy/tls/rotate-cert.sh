@@ -4,7 +4,7 @@
 # Usage:
 #   ./rotate-cert.sh [certs_dir] [ssh_host]
 #
-# SAN configuration is read from san.conf (same as generate-self-signed.sh).
+# All configuration (IPs, DNS names, validity) is read from san.conf.
 #
 # This script:
 #   1. Generates new server cert (same CA, fresh key)
@@ -22,31 +22,15 @@ SSH_HOST="${2:-ubuntu@124.222.52.10}"
 REMOTE_CERT_DIR="/etc/familyledger/tls"
 CONTAINER_NAME="familyledger-server"
 
-# Load shared SAN configuration (same source of truth as generate-self-signed.sh)
+# Load shared configuration and helpers
 # shellcheck source=san.conf
 source "$SCRIPT_DIR/san.conf"
-
-# Build alt_names block
-build_alt_names() {
-    local idx=1
-    local block=""
-    block+="IP.${idx} = ${SERVER_IP}\n"
-    idx=$((idx + 1))
-    for ip in $EXTRA_IPS; do
-        block+="IP.${idx} = ${ip}\n"
-        idx=$((idx + 1))
-    done
-    idx=1
-    for dns in $EXTRA_DNS; do
-        block+="DNS.${idx} = ${dns}\n"
-        idx=$((idx + 1))
-    done
-    echo -e "$block"
-}
+# shellcheck source=lib.sh
+source "$SCRIPT_DIR/lib.sh"
 
 ALT_NAMES=$(build_alt_names)
 
-echo "=== Generating new server certificate (keeping same CA) ==="
+echo "=== Generating new server certificate (keeping same CA, ${SERVER_DAYS} days) ==="
 
 openssl ecparam -genkey -name prime256v1 -out "$CERTS_DIR/server-key.pem" 2>/dev/null
 
@@ -93,7 +77,7 @@ openssl x509 -req -sha256 \
     -CAkey "$CERTS_DIR/ca-key.pem" \
     -CAcreateserial \
     -out "$CERTS_DIR/server.pem" \
-    -days 3650 \
+    -days "$SERVER_DAYS" \
     -extfile "/tmp/fl-server-ext.conf"
 
 rm -f /tmp/fl-server.csr /tmp/fl-server-csr.conf /tmp/fl-server-ext.conf "$CERTS_DIR/ca.srl"

@@ -121,7 +121,10 @@ class SyncEngine {
     onStatusChanged?.call(syncing: true);
     try {
       final results = await _connectivity.checkConnectivity();
-      if (results.every((r) => r == ConnectivityResult.none)) return;
+      if (results.every((r) => r == ConnectivityResult.none)) {
+        onStatusChanged?.call(syncing: false);
+        return;
+      }
 
       final pendingOps =
           await _db!.getPendingSyncOps(AppConstants.syncBatchSize);
@@ -902,6 +905,11 @@ class SyncEngine {
   /// Drains coalesced push/pull requests after lock release.
   /// Push is checked first (local edits should reach server promptly),
   /// then pull. Each winner re-acquires the lock inside its own call.
+  ///
+  /// Design note: only one pending request is drained per cycle. Under
+  /// extreme high-frequency interleaving, push and pull alternate one-at-a-time
+  /// (theoretical ping-pong). For a household finance app this is a non-issue
+  /// (sync ops are seconds apart, not milliseconds).
   void _drainPendingRequests() {
     if (_disposed) return;
     if (_pushRequested) {

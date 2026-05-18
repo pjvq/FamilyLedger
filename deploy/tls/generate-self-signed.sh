@@ -2,14 +2,9 @@
 # generate-self-signed.sh — Generate self-signed ECDSA certificate for FamilyLedger
 #
 # Usage:
-#   ./generate-self-signed.sh [output_dir] [server_days] [ca_days]
+#   ./generate-self-signed.sh [output_dir]
 #
-# Defaults:
-#   output_dir   = ./certs
-#   server_days  = 3650 (10 years)
-#   ca_days      = 7300 (20 years, 2× server cert lifetime)
-#
-# SAN configuration is read from san.conf (edit to change IPs/DNS).
+# All configuration (IPs, DNS names, validity) is read from san.conf.
 #
 # Generates:
 #   ca.pem         — Self-signed CA certificate
@@ -23,32 +18,14 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OUTPUT_DIR="${1:-./certs}"
-SERVER_DAYS="${2:-3650}"
-CA_DAYS="${3:-7300}"
 
-# Load shared SAN configuration
+# Load shared configuration and helpers
 # shellcheck source=san.conf
 source "$SCRIPT_DIR/san.conf"
+# shellcheck source=lib.sh
+source "$SCRIPT_DIR/lib.sh"
 
 mkdir -p "$OUTPUT_DIR"
-
-# Build OpenSSL alt_names block from san.conf variables
-build_alt_names() {
-    local idx=1
-    local block=""
-    block+="IP.${idx} = ${SERVER_IP}\n"
-    idx=$((idx + 1))
-    for ip in $EXTRA_IPS; do
-        block+="IP.${idx} = ${ip}\n"
-        idx=$((idx + 1))
-    done
-    idx=1
-    for dns in $EXTRA_DNS; do
-        block+="DNS.${idx} = ${dns}\n"
-        idx=$((idx + 1))
-    done
-    echo -e "$block"
-}
 
 ALT_NAMES=$(build_alt_names)
 
