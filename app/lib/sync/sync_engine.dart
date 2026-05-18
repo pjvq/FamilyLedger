@@ -39,9 +39,16 @@ class SyncEngine {
   StreamSubscription? _connectivitySub;
   WebSocketChannel? _wsChannel;
   StreamSubscription? _wsSub;
-  bool _isSyncing = false;
   bool _disposed = false;
   int _reconnectAttempts = 0;
+
+  /// Async mutex — prevents concurrent push/pull from corrupting state.
+  /// At most one sync operation (push or pull) runs at a time.
+  /// Additional requests are coalesced: if a pull is requested while syncing,
+  /// it runs once after the current operation completes (not N times).
+  Completer<void>? _syncLock;
+  bool _pullRequested = false;
+  bool _pushRequested = false;
 
   /// Callback to update sync status UI. Set by the provider.
   void Function({bool? syncing, bool? synced, bool? wsConnected, int? failedCount})?
@@ -105,12 +112,19 @@ class SyncEngine {
   // ─────────── Push: 本地 → 服务端 ───────────
 
   Future<void> _pushPendingOps() async {
-    if (_isSyncing || _disposed) return;
-    _isSyncing = true;
+    if (_disposed) return;
+    if (!_tryAcquireSyncLock()) {
+      // Coalesce: mark that a push is needed after current operation
+      _pushRequested = true;
+      return;
+    }
     onStatusChanged?.call(syncing: true);
     try {
       final results = await _connectivity.checkConnectivity();
-      if (results.every((r) => r == ConnectivityResult.none)) return;
+      if (results.every((r) => r == ConnectivityResult.none)) {
+        onStatusChanged?.call(syncing: false);
+        return;
+      }
 
       final pendingOps =
           await _db!.getPendingSyncOps(AppConstants.syncBatchSize);
@@ -176,8 +190,9 @@ class SyncEngine {
     } catch (e) {
       dev.log('SyncEngine: push failed: $e', name: 'sync');
     } finally {
-      _isSyncing = false;
       onStatusChanged?.call(syncing: false);
+      _releaseSyncLock();
+      _drainPendingRequests();
     }
   }
 
@@ -214,6 +229,20 @@ class SyncEngine {
 
   Future<void> _pullChanges() async {
     if (_disposed) return;
+    if (!_tryAcquireSyncLock()) {
+      // Coalesce: mark that a pull is needed after current operation
+      _pullRequested = true;
+      return;
+    }
+    try {
+      await _doPull();
+    } finally {
+      _releaseSyncLock();
+      _drainPendingRequests();
+    }
+  }
+
+  Future<void> _doPull() async {
     try {
       final lastTsMs = _prefs!.getInt(_lastSyncTsKey) ?? 0;
       final userId = _prefs!.getString(AppConstants.userIdKey);
@@ -851,6 +880,44 @@ class SyncEngine {
     } catch (e) {
       // 非 JSON 消息或未知格式，尝试拉取
       _pullChanges();
+    }
+  }
+
+  // ─────────── Sync Mutex ───────────
+
+  /// Try-lock: returns true if acquired, false if another op holds the lock.
+  /// Synchronous — no async gap between check and acquire.
+  bool _tryAcquireSyncLock() {
+    if (_syncLock != null) return false;
+    _syncLock = Completer<void>();
+    return true;
+  }
+
+  /// Releases the sync lock, allowing the next operation to proceed.
+  void _releaseSyncLock() {
+    final lock = _syncLock;
+    _syncLock = null;
+    if (lock != null && !lock.isCompleted) {
+      lock.complete();
+    }
+  }
+
+  /// Drains coalesced push/pull requests after lock release.
+  /// Push is checked first (local edits should reach server promptly),
+  /// then pull. Each winner re-acquires the lock inside its own call.
+  ///
+  /// Design note: only one pending request is drained per cycle. Under
+  /// extreme high-frequency interleaving, push and pull alternate one-at-a-time
+  /// (theoretical ping-pong). For a household finance app this is a non-issue
+  /// (sync ops are seconds apart, not milliseconds).
+  void _drainPendingRequests() {
+    if (_disposed) return;
+    if (_pushRequested) {
+      _pushRequested = false;
+      unawaited(_pushPendingOps());
+    } else if (_pullRequested) {
+      _pullRequested = false;
+      unawaited(_pullChanges());
     }
   }
 
