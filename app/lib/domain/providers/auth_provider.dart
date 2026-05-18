@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:uuid/uuid.dart';
 import '../../core/constants/app_constants.dart';
+import '../../data/auth/category_seed_service.dart';
+import '../../data/auth/logout_coordinator.dart';
 import '../../data/local/database.dart';
 import '../../data/local/secure_token_storage.dart';
 import '../../data/remote/grpc_clients.dart';
@@ -101,8 +103,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _loadEmail(String userId) async {
     try {
-      // Ensure preset categories exist for this user
-      await _db.seedCategoriesForOwner(userId);
+      // Ensure preset categories exist for this user (with retry)
+      await CategorySeedService(_db).seedForUser(userId);
       final user = await (_db.select(_db.users)
             ..where((u) => u.id.equals(userId)))
           .getSingleOrNull();
@@ -181,7 +183,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         _ref.read(currentFamilyIdProvider.notifier).state = savedFamId;
       }
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId, email: email);
-      _db.seedCategoriesForOwner(resp.userId); // fire-and-forget
+      await CategorySeedService(_db).seedForUser(resp.userId);
     } on GrpcError catch (e) {
       developer.log('[Auth] register: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}');
       if (e.code == StatusCode.alreadyExists) {
@@ -301,7 +303,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         _ref.read(currentFamilyIdProvider.notifier).state = savedFamId;
       }
       state = AuthState(status: AuthStatus.authenticated, userId: resp.userId, email: email);
-      _db.seedCategoriesForOwner(resp.userId); // fire-and-forget
+      await CategorySeedService(_db).seedForUser(resp.userId);
     } on GrpcError catch (e) {
       developer.log('[Auth] login: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}');
       if (e.code == StatusCode.unavailable || e.code == StatusCode.deadlineExceeded) {
@@ -344,13 +346,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    // Clear local database
-    await _db.clearAllData();
-    // Clear preferences
-    await _prefs.remove(AppConstants.userIdKey);
-    await _tokenStorage.clearTokens();
+    final coordinator = LogoutCoordinator(
+      tokenStorage: _tokenStorage,
+      prefs: _prefs,
+      db: _db,
+    );
+    final failures = await coordinator.execute();
+    if (failures.isNotEmpty) {
+      developer.log(
+        'Logout partial failures: $failures — user still logged out',
+        name: 'auth',
+        level: 900,
+      );
+    }
     _authInterceptor.invalidateCache();
-    await _prefs.remove(AppConstants.familyIdKey);
     _ref.read(currentUserIdProvider.notifier).state = null;
     _ref.read(currentFamilyIdProvider.notifier).state = null;
     state = const AuthState(status: AuthStatus.unauthenticated);

@@ -146,7 +146,8 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 17) {
             // v16 → v17: drop legacy 'synced' bool column (replaced by syncStatus text)
-            await customStatement('ALTER TABLE transactions DROP COLUMN synced');
+            // Guarded: column may already be absent from a previous interrupted migration.
+            await _safeDropColumn('transactions', 'synced');
           }
           if (from < 18) {
             // v17 → v18: add retry columns to sync_queue
@@ -155,7 +156,8 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 19) {
             // v18 → v19: remove legacy icon column from categories
-            await customStatement('ALTER TABLE categories DROP COLUMN icon');
+            // Guarded: column may already be absent from a previous interrupted migration.
+            await _safeDropColumn('categories', 'icon');
             // Backfill empty iconKey based on category name
             await _backfillEmptyIconKeys();
           }
@@ -174,6 +176,38 @@ class AppDatabase extends _$AppDatabase {
           );
         },
       );
+
+  /// Allowlisted table/column pairs that may be safely dropped.
+  /// Prevents accidental SQL injection if method signature is ever misused.
+  static const _droppableColumns = {
+    ('transactions', 'synced'),
+    ('categories', 'icon'),
+  };
+
+  /// Safely drops a column, ignoring only "no such column" errors.
+  ///
+  /// Only accepts pre-approved (table, column) pairs to prevent
+  /// any possibility of SQL injection via string interpolation.
+  /// Rethrows non-column-missing errors (disk full, DB corruption, etc.).
+  Future<void> _safeDropColumn(String table, String column) async {
+    if (!_droppableColumns.contains((table, column))) {
+      throw StateError(
+        'Unauthorized DROP COLUMN target: $table.$column. '
+        'Add to _droppableColumns whitelist before calling.',
+      );
+    }
+    try {
+      await customStatement('ALTER TABLE $table DROP COLUMN $column');
+    } catch (e) {
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('no such column') || msg.contains('no column named')) {
+        // Column already absent — desired state achieved (interrupted migration).
+        return;
+      }
+      // Real error (disk full, corruption) — must not swallow.
+      rethrow;
+    }
+  }
 
   /// Remove duplicate categories (same name+type+parentId).
   /// Keeps the one with isPreset=true, or earliest createdAt.
