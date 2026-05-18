@@ -4,25 +4,49 @@
 # Usage:
 #   ./rotate-cert.sh [certs_dir] [ssh_host]
 #
+# SAN configuration is read from san.conf (same as generate-self-signed.sh).
+#
 # This script:
-#   1. Generates new certificates (same CA, new server cert)
+#   1. Generates new server cert (same CA, fresh key)
 #   2. Deploys to remote server (overwrite)
-#   3. Sends SIGHUP to the running process (hot-reload, no restart)
+#   3. Sends SIGHUP to the running container (hot-reload, no restart)
 #
 # The server uses GetCertificate callback with atomic.Pointer,
 # so existing connections continue with old cert, new connections get new cert.
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CERTS_DIR="${1:-./certs}"
-SSH_HOST="${2:-root@124.222.52.10}"
+SSH_HOST="${2:-ubuntu@124.222.52.10}"
 REMOTE_CERT_DIR="/etc/familyledger/tls"
-PROCESS_NAME="familyledger-server"
+CONTAINER_NAME="familyledger-server"
+
+# Load shared SAN configuration (same source of truth as generate-self-signed.sh)
+# shellcheck source=san.conf
+source "$SCRIPT_DIR/san.conf"
+
+# Build alt_names block
+build_alt_names() {
+    local idx=1
+    local block=""
+    block+="IP.${idx} = ${SERVER_IP}\n"
+    idx=$((idx + 1))
+    for ip in $EXTRA_IPS; do
+        block+="IP.${idx} = ${ip}\n"
+        idx=$((idx + 1))
+    done
+    idx=1
+    for dns in $EXTRA_DNS; do
+        block+="DNS.${idx} = ${dns}\n"
+        idx=$((idx + 1))
+    done
+    echo -e "$block"
+}
+
+ALT_NAMES=$(build_alt_names)
 
 echo "=== Generating new server certificate (keeping same CA) ==="
-
-# Keep existing CA, only regenerate server cert
-SERVER_IP="124.222.52.10"
 
 openssl ecparam -genkey -name prime256v1 -out "$CERTS_DIR/server-key.pem" 2>/dev/null
 
@@ -44,10 +68,7 @@ keyUsage = digitalSignature, keyEncipherment
 extendedKeyUsage = serverAuth
 
 [alt_names]
-IP.1 = ${SERVER_IP}
-IP.2 = 127.0.0.1
-DNS.1 = localhost
-DNS.2 = familyledger.local
+${ALT_NAMES}
 EOF
 
 openssl req -new -sha256 \
@@ -63,10 +84,7 @@ keyUsage = digitalSignature, keyEncipherment
 extendedKeyUsage = serverAuth
 
 [alt_names]
-IP.1 = ${SERVER_IP}
-IP.2 = 127.0.0.1
-DNS.1 = localhost
-DNS.2 = familyledger.local
+${ALT_NAMES}
 EOF
 
 openssl x509 -req -sha256 \
@@ -84,10 +102,10 @@ chmod 600 "$CERTS_DIR/server-key.pem"
 echo "=== Deploying new certificate ==="
 scp "$CERTS_DIR/server.pem" "$SSH_HOST:$REMOTE_CERT_DIR/server.pem"
 scp "$CERTS_DIR/server-key.pem" "$SSH_HOST:$REMOTE_CERT_DIR/server-key.pem"
-ssh "$SSH_HOST" "chmod 600 $REMOTE_CERT_DIR/server-key.pem && chmod 644 $REMOTE_CERT_DIR/server.pem"
+ssh "$SSH_HOST" "sudo chmod 600 $REMOTE_CERT_DIR/server-key.pem && sudo chmod 644 $REMOTE_CERT_DIR/server.pem"
 
 echo "=== Sending SIGHUP for hot-reload (zero downtime) ==="
-ssh "$SSH_HOST" "pkill -HUP -f '$PROCESS_NAME' || true"
+ssh "$SSH_HOST" "sudo docker kill --signal=HUP $CONTAINER_NAME"
 
 echo ""
 echo "=== Certificate rotated! ==="

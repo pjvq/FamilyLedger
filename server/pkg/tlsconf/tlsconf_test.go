@@ -22,7 +22,8 @@ import (
 func TestLoadFromEnv_NoConfig(t *testing.T) {
 	t.Setenv("TLS_CERT_FILE", "")
 	t.Setenv("GRPC_TLS_CERT", "")
-	cfg := LoadFromEnv()
+	cfg, err := LoadFromEnv()
+	assert.NoError(t, err)
 	assert.Nil(t, cfg)
 }
 
@@ -30,11 +31,21 @@ func TestLoadFromEnv_WithCert(t *testing.T) {
 	t.Setenv("TLS_CERT_FILE", "/tmp/cert.pem")
 	t.Setenv("TLS_KEY_FILE", "/tmp/key.pem")
 	t.Setenv("TLS_MIN_VERSION", "1.3")
-	cfg := LoadFromEnv()
+	cfg, err := LoadFromEnv()
+	require.NoError(t, err)
 	require.NotNil(t, cfg)
 	assert.Equal(t, "/tmp/cert.pem", cfg.CertFile)
 	assert.Equal(t, "/tmp/key.pem", cfg.KeyFile)
 	assert.Equal(t, "1.3", cfg.MinVersion)
+}
+
+func TestLoadFromEnv_CertWithoutKey(t *testing.T) {
+	t.Setenv("TLS_CERT_FILE", "/tmp/cert.pem")
+	t.Setenv("TLS_KEY_FILE", "")
+	t.Setenv("GRPC_TLS_KEY", "")
+	_, err := LoadFromEnv()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "TLS_KEY_FILE")
 }
 
 func TestLoadFromEnv_LegacyFallback(t *testing.T) {
@@ -42,7 +53,8 @@ func TestLoadFromEnv_LegacyFallback(t *testing.T) {
 	t.Setenv("GRPC_TLS_CERT", "/legacy/cert.pem")
 	t.Setenv("TLS_KEY_FILE", "")
 	t.Setenv("GRPC_TLS_KEY", "/legacy/key.pem")
-	cfg := LoadFromEnv()
+	cfg, err := LoadFromEnv()
+	require.NoError(t, err)
 	require.NotNil(t, cfg)
 	assert.Equal(t, "/legacy/cert.pem", cfg.CertFile)
 	assert.Equal(t, "/legacy/key.pem", cfg.KeyFile)
@@ -91,7 +103,7 @@ func TestProvider_TLS13(t *testing.T) {
 	assert.Equal(t, uint16(tls.VersionTLS13), tlsCfg.MinVersion)
 }
 
-func TestProvider_mTLS(t *testing.T) {
+func TestProvider_mTLS_Required(t *testing.T) {
 	certFile, keyFile := generateTestCert(t)
 	caFile := certFile // self-signed cert is its own CA for testing
 
@@ -101,7 +113,32 @@ func TestProvider_mTLS(t *testing.T) {
 
 	tlsCfg := p.TLSConfig()
 	assert.NotNil(t, tlsCfg.ClientCAs)
+	assert.Equal(t, tls.RequireAndVerifyClientCert, tlsCfg.ClientAuth)
+}
+
+func TestProvider_mTLS_Optional(t *testing.T) {
+	certFile, keyFile := generateTestCert(t)
+	caFile := certFile
+
+	cfg := Config{CertFile: certFile, KeyFile: keyFile, CAFile: caFile, MTLSMode: "optional"}
+	p, err := NewProvider(cfg)
+	require.NoError(t, err)
+
+	tlsCfg := p.TLSConfig()
+	assert.NotNil(t, tlsCfg.ClientCAs)
 	assert.Equal(t, tls.VerifyClientCertIfGiven, tlsCfg.ClientAuth)
+}
+
+func TestProvider_TLSConfig_CachedInstance(t *testing.T) {
+	certFile, keyFile := generateTestCert(t)
+	cfg := Config{CertFile: certFile, KeyFile: keyFile}
+	p, err := NewProvider(cfg)
+	require.NoError(t, err)
+
+	// TLSConfig() should return the same pointer every time
+	cfg1 := p.TLSConfig()
+	cfg2 := p.TLSConfig()
+	assert.Same(t, cfg1, cfg2)
 }
 
 func TestTLSConfig_CipherSuites(t *testing.T) {

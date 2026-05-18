@@ -139,7 +139,11 @@ func main() {
 
 	// Unified TLS configuration (shared between gRPC and WebSocket)
 	var tlsProvider *tlsconf.Provider
-	if tlsCfg := tlsconf.LoadFromEnv(); tlsCfg != nil {
+	tlsCfg, tlsErr := tlsconf.LoadFromEnv()
+	if tlsErr != nil {
+		log.Fatalf("invalid TLS configuration: %v", tlsErr)
+	}
+	if tlsCfg != nil {
 		var err error
 		tlsProvider, err = tlsconf.NewProvider(*tlsCfg)
 		if err != nil {
@@ -147,15 +151,22 @@ func main() {
 		}
 		log.Println("TLS: enabled for gRPC and WebSocket")
 
-		// Reload certificates on SIGHUP (zero-downtime rotation)
+		// Reload certificates on SIGHUP (zero-downtime rotation).
+		// The goroutine exits when ctx is canceled during graceful shutdown.
 		go func() {
 			sighup := make(chan os.Signal, 1)
 			signal.Notify(sighup, syscall.SIGHUP)
-			for range sighup {
-				if err := tlsProvider.Reload(); err != nil {
-					log.Printf("TLS: cert reload failed: %v", err)
-				} else {
-					log.Println("TLS: certificates reloaded successfully")
+			defer signal.Stop(sighup)
+			for {
+				select {
+				case <-sighup:
+					if err := tlsProvider.Reload(); err != nil {
+						log.Printf("TLS: cert reload failed: %v", err)
+					} else {
+						log.Println("TLS: certificates reloaded successfully")
+					}
+				case <-ctx.Done():
+					return
 				}
 			}
 		}()
@@ -230,6 +241,8 @@ func main() {
 		if tlsProvider != nil {
 			wsServer.TLSConfig = tlsProvider.TLSConfig()
 			log.Printf("WebSocket server listening on :%s (TLS)", wsPort)
+			// Empty cert/key paths: TLS is handled by TLSConfig.GetCertificate
+			// which serves the hot-reloadable certificate via atomic.Pointer.
 			if err := wsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 				log.Fatalf("WebSocket server error: %v", err)
 			}

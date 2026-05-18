@@ -48,6 +48,7 @@ class SyncEngine {
   /// it runs once after the current operation completes (not N times).
   Completer<void>? _syncLock;
   bool _pullRequested = false;
+  bool _pushRequested = false;
 
   /// Callback to update sync status UI. Set by the provider.
   void Function({bool? syncing, bool? synced, bool? wsConnected, int? failedCount})?
@@ -112,7 +113,11 @@ class SyncEngine {
 
   Future<void> _pushPendingOps() async {
     if (_disposed) return;
-    if (!await _acquireSyncLock()) return; // Another sync in progress
+    if (!_tryAcquireSyncLock()) {
+      // Coalesce: mark that a push is needed after current operation
+      _pushRequested = true;
+      return;
+    }
     onStatusChanged?.call(syncing: true);
     try {
       final results = await _connectivity.checkConnectivity();
@@ -184,6 +189,7 @@ class SyncEngine {
     } finally {
       onStatusChanged?.call(syncing: false);
       _releaseSyncLock();
+      _drainPendingRequests();
     }
   }
 
@@ -220,7 +226,7 @@ class SyncEngine {
 
   Future<void> _pullChanges() async {
     if (_disposed) return;
-    if (!await _acquireSyncLock()) {
+    if (!_tryAcquireSyncLock()) {
       // Coalesce: mark that a pull is needed after current operation
       _pullRequested = true;
       return;
@@ -229,11 +235,7 @@ class SyncEngine {
       await _doPull();
     } finally {
       _releaseSyncLock();
-      // If a pull was requested while we were syncing, run it now
-      if (_pullRequested && !_disposed) {
-        _pullRequested = false;
-        unawaited(_pullChanges());
-      }
+      _drainPendingRequests();
     }
   }
 
@@ -880,9 +882,9 @@ class SyncEngine {
 
   // ─────────── Sync Mutex ───────────
 
-  /// Attempts to acquire the sync lock. Returns true if acquired.
-  /// Non-blocking: returns false immediately if another operation holds the lock.
-  Future<bool> _acquireSyncLock() async {
+  /// Try-lock: returns true if acquired, false if another op holds the lock.
+  /// Synchronous — no async gap between check and acquire.
+  bool _tryAcquireSyncLock() {
     if (_syncLock != null) return false;
     _syncLock = Completer<void>();
     return true;
@@ -892,7 +894,23 @@ class SyncEngine {
   void _releaseSyncLock() {
     final lock = _syncLock;
     _syncLock = null;
-    lock?.complete();
+    if (lock != null && !lock.isCompleted) {
+      lock.complete();
+    }
+  }
+
+  /// Drains coalesced push/pull requests after lock release.
+  /// Push is checked first (local edits should reach server promptly),
+  /// then pull. Each winner re-acquires the lock inside its own call.
+  void _drainPendingRequests() {
+    if (_disposed) return;
+    if (_pushRequested) {
+      _pushRequested = false;
+      unawaited(_pushPendingOps());
+    } else if (_pullRequested) {
+      _pullRequested = false;
+      unawaited(_pullChanges());
+    }
   }
 
   void _disconnectWebSocket() {
