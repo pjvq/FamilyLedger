@@ -17,6 +17,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/familyledger/server/pkg/middleware"
+	"github.com/familyledger/server/pkg/permission"
 	"github.com/familyledger/server/pkg/ws"
 	pb "github.com/familyledger/server/proto/sync"
 )
@@ -428,31 +429,8 @@ func (s *Service) applyTransactionUpdate(ctx context.Context, tx pgx.Tx, userID 
 				return fmt.Errorf("new account %s not found", parsedAccID)
 			}
 			if accOwner != userID {
-				// Check family membership + CanCreate permission
-				var famID *string
-				_ = tx.QueryRow(ctx,
-					"SELECT family_id::text FROM accounts WHERE id = $1", parsedAccID,
-				).Scan(&famID)
-				if famID == nil {
-					return fmt.Errorf("new account %s does not belong to user", parsedAccID)
-				}
-				// Verify user is a member of this family
-				var isMember bool
-				err := tx.QueryRow(ctx,
-					"SELECT EXISTS(SELECT 1 FROM family_members WHERE family_id = $1::uuid AND user_id = $2)",
-					*famID, userID,
-				).Scan(&isMember)
-				if err != nil || !isMember {
-					return fmt.Errorf("user is not a member of the family owning account %s", parsedAccID)
-				}
-				// Check CanCreate permission
-				var canCreate bool
-				err = tx.QueryRow(ctx,
-					`SELECT COALESCE(can_create, true) FROM family_members WHERE family_id = $1::uuid AND user_id = $2`,
-					*famID, userID,
-				).Scan(&canCreate)
-				if err != nil || !canCreate {
-					return fmt.Errorf("user lacks create permission on family account %s", parsedAccID)
+				if err := s.validateCrossAccountAccess(ctx, tx, userID, parsedAccID); err != nil {
+					return err
 				}
 			}
 			newAccountID = parsedAccID
@@ -560,11 +538,12 @@ func (s *Service) applyTransactionUpdate(ctx context.Context, tx pgx.Tx, userID 
 					"SELECT balance, COALESCE(overdraft_limit, 0) FROM accounts WHERE id = $1 FOR UPDATE",
 					newAccountID,
 				).Scan(&newAccBalance, &overdraftLimit)
-				if err == nil {
-					if newAccBalance+newDelta < -overdraftLimit {
-						return fmt.Errorf("insufficient balance on new account %s (balance=%d, delta=%d, limit=%d)",
-							newAccountID, newAccBalance, newDelta, overdraftLimit)
-					}
+				if err != nil {
+					return fmt.Errorf("failed to check overdraft on account %s: %w", newAccountID, err)
+				}
+				if newAccBalance+newDelta < -overdraftLimit {
+					return fmt.Errorf("insufficient balance on new account %s (balance=%d, delta=%d, limit=%d)",
+						newAccountID, newAccBalance, newDelta, overdraftLimit)
 				}
 			}
 			_, err = tx.Exec(ctx,
@@ -590,6 +569,24 @@ func (s *Service) applyTransactionUpdate(ctx context.Context, tx pgx.Tx, userID 
 	}
 
 	return nil
+}
+
+// validateCrossAccountAccess checks that userID has CanCreate permission on the
+// family that owns accountID. Uses permission.Check for consistency with the
+// rest of the server. Single query to get family_id, then delegates to permission.Check.
+func (s *Service) validateCrossAccountAccess(ctx context.Context, tx pgx.Tx, userID uuid.UUID, accountID uuid.UUID) error {
+	var famID *string
+	err := tx.QueryRow(ctx,
+		"SELECT family_id::text FROM accounts WHERE id = $1", accountID,
+	).Scan(&famID)
+	if err != nil {
+		return fmt.Errorf("failed to look up account %s: %w", accountID, err)
+	}
+	if famID == nil {
+		return fmt.Errorf("account %s is personal and does not belong to user", accountID)
+	}
+	// Delegate to permission.Check (checks membership + role + CanCreate)
+	return permission.Check(ctx, tx, userID.String(), *famID, permission.CanCreate)
 }
 
 func (s *Service) applyTransactionDelete(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID) error {
@@ -866,6 +863,7 @@ func (s *Service) PullChanges(ctx context.Context, req *pb.PullChangesRequest) (
 			return nil, status.Error(codes.PermissionDenied, "user is not a member of this family")
 		}
 
+		// SAFETY: cursorClause is a compile-time constant (never user input).
 		var cursorClause string
 		var queryArgs []interface{}
 		if hasCursor {
@@ -904,6 +902,7 @@ func (s *Service) PullChanges(ctx context.Context, req *pb.PullChangesRequest) (
 		}
 	} else {
 		// Personal mode: only pull operations for this user
+		// SAFETY: cursorClause is a compile-time constant (never user input).
 		var cursorClause string
 		var queryArgs []interface{}
 		if hasCursor {
