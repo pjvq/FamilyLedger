@@ -39,9 +39,15 @@ class SyncEngine {
   StreamSubscription? _connectivitySub;
   WebSocketChannel? _wsChannel;
   StreamSubscription? _wsSub;
-  bool _isSyncing = false;
   bool _disposed = false;
   int _reconnectAttempts = 0;
+
+  /// Async mutex — prevents concurrent push/pull from corrupting state.
+  /// At most one sync operation (push or pull) runs at a time.
+  /// Additional requests are coalesced: if a pull is requested while syncing,
+  /// it runs once after the current operation completes (not N times).
+  Completer<void>? _syncLock;
+  bool _pullRequested = false;
 
   /// Callback to update sync status UI. Set by the provider.
   void Function({bool? syncing, bool? synced, bool? wsConnected, int? failedCount})?
@@ -105,8 +111,8 @@ class SyncEngine {
   // ─────────── Push: 本地 → 服务端 ───────────
 
   Future<void> _pushPendingOps() async {
-    if (_isSyncing || _disposed) return;
-    _isSyncing = true;
+    if (_disposed) return;
+    if (!await _acquireSyncLock()) return; // Another sync in progress
     onStatusChanged?.call(syncing: true);
     try {
       final results = await _connectivity.checkConnectivity();
@@ -176,8 +182,8 @@ class SyncEngine {
     } catch (e) {
       dev.log('SyncEngine: push failed: $e', name: 'sync');
     } finally {
-      _isSyncing = false;
       onStatusChanged?.call(syncing: false);
+      _releaseSyncLock();
     }
   }
 
@@ -214,6 +220,24 @@ class SyncEngine {
 
   Future<void> _pullChanges() async {
     if (_disposed) return;
+    if (!await _acquireSyncLock()) {
+      // Coalesce: mark that a pull is needed after current operation
+      _pullRequested = true;
+      return;
+    }
+    try {
+      await _doPull();
+    } finally {
+      _releaseSyncLock();
+      // If a pull was requested while we were syncing, run it now
+      if (_pullRequested && !_disposed) {
+        _pullRequested = false;
+        unawaited(_pullChanges());
+      }
+    }
+  }
+
+  Future<void> _doPull() async {
     try {
       final lastTsMs = _prefs!.getInt(_lastSyncTsKey) ?? 0;
       final userId = _prefs!.getString(AppConstants.userIdKey);
@@ -852,6 +876,23 @@ class SyncEngine {
       // 非 JSON 消息或未知格式，尝试拉取
       _pullChanges();
     }
+  }
+
+  // ─────────── Sync Mutex ───────────
+
+  /// Attempts to acquire the sync lock. Returns true if acquired.
+  /// Non-blocking: returns false immediately if another operation holds the lock.
+  Future<bool> _acquireSyncLock() async {
+    if (_syncLock != null) return false;
+    _syncLock = Completer<void>();
+    return true;
+  }
+
+  /// Releases the sync lock, allowing the next operation to proceed.
+  void _releaseSyncLock() {
+    final lock = _syncLock;
+    _syncLock = null;
+    lock?.complete();
   }
 
   void _disconnectWebSocket() {

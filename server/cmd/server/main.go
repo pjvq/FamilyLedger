@@ -35,6 +35,7 @@ import (
 	jwtpkg "github.com/familyledger/server/pkg/jwt"
 	"github.com/familyledger/server/pkg/logger"
 	"github.com/familyledger/server/pkg/middleware"
+	"github.com/familyledger/server/pkg/tlsconf"
 	"github.com/familyledger/server/pkg/ws"
 
 	acctpb "github.com/familyledger/server/proto/account"
@@ -136,22 +137,37 @@ func main() {
 	rateLimiter := middleware.NewRateLimiter(middleware.DefaultRateLimiterConfig())
 	defer rateLimiter.Stop()
 
-	// gRPC Server — TLS if certs provided
-	var grpcOpts []grpc.ServerOption
-
-	if certFile := os.Getenv("GRPC_TLS_CERT"); certFile != "" {
-		keyFile := os.Getenv("GRPC_TLS_KEY")
-		if keyFile == "" {
-			log.Fatal("FATAL: GRPC_TLS_CERT set but GRPC_TLS_KEY missing")
-		}
-		creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
+	// Unified TLS configuration (shared between gRPC and WebSocket)
+	var tlsProvider *tlsconf.Provider
+	if tlsCfg := tlsconf.LoadFromEnv(); tlsCfg != nil {
+		var err error
+		tlsProvider, err = tlsconf.NewProvider(*tlsCfg)
 		if err != nil {
-			log.Fatalf("failed to load TLS credentials: %v", err)
+			log.Fatalf("failed to initialize TLS: %v", err)
 		}
-		grpcOpts = append(grpcOpts, grpc.Creds(creds))
-		log.Println("gRPC: TLS enabled")
+		log.Println("TLS: enabled for gRPC and WebSocket")
+
+		// Reload certificates on SIGHUP (zero-downtime rotation)
+		go func() {
+			sighup := make(chan os.Signal, 1)
+			signal.Notify(sighup, syscall.SIGHUP)
+			for range sighup {
+				if err := tlsProvider.Reload(); err != nil {
+					log.Printf("TLS: cert reload failed: %v", err)
+				} else {
+					log.Println("TLS: certificates reloaded successfully")
+				}
+			}
+		}()
 	} else {
-		log.Println("gRPC: WARNING: running without TLS (set GRPC_TLS_CERT/GRPC_TLS_KEY for production)")
+		log.Println("TLS: DISABLED (set TLS_CERT_FILE/TLS_KEY_FILE for production)")
+	}
+
+	// gRPC Server
+	var grpcOpts []grpc.ServerOption
+	if tlsProvider != nil {
+		creds := credentials.NewTLS(tlsProvider.TLSConfig())
+		grpcOpts = append(grpcOpts, grpc.Creds(creds))
 	}
 
 	grpcOpts = append(grpcOpts,
@@ -211,9 +227,17 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("WebSocket server listening on :%s", wsPort)
-		if err := wsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("WebSocket server error: %v", err)
+		if tlsProvider != nil {
+			wsServer.TLSConfig = tlsProvider.TLSConfig()
+			log.Printf("WebSocket server listening on :%s (TLS)", wsPort)
+			if err := wsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("WebSocket server error: %v", err)
+			}
+		} else {
+			log.Printf("WebSocket server listening on :%s (plaintext)", wsPort)
+			if err := wsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("WebSocket server error: %v", err)
+			}
 		}
 	}()
 
