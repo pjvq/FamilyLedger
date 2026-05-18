@@ -716,6 +716,15 @@ class SyncEngine {
     }
   }
 
+  /// Auth-ok wait timeout — longer than server's AuthTimeout (5s) to account
+  /// for network latency. Server closes with 4002 before this fires normally.
+  static const _authOkTimeout = Duration(seconds: 10);
+
+  /// Set during auth phase to prevent onDone/onError from triggering reconnect
+  /// (the auth catch block handles reconnect itself).
+  bool _awaitingAuth = false;
+  Completer<void>? _authCompleter;
+
   Future<void> _connectWebSocket() async {
     if (_disposed) return;
     _disconnectWebSocket();
@@ -725,8 +734,9 @@ class SyncEngine {
 
     try {
       final scheme = AppConstants.useTls ? 'wss' : 'ws';
+      // First-message auth: connect without token in URL
       final uri = Uri.parse(
-        '$scheme://${AppConstants.serverHost}:${AppConstants.wsPort}/ws?token=$token',
+        '$scheme://${AppConstants.serverHost}:${AppConstants.wsPort}/ws',
       );
       _wsChannel = WebSocketChannel.connect(uri);
 
@@ -741,6 +751,11 @@ class SyncEngine {
 
       if (_disposed) return;
 
+      // Enter auth phase — suppress onDone/onError reconnect
+      _awaitingAuth = true;
+      _authCompleter = Completer<void>();
+
+      // Subscribe BEFORE sending auth (so we don't miss auth_ok)
       _wsSub = _wsChannel!.stream.listen(
         (message) {
           dev.log('SyncEngine: ws message: $message', name: 'sync');
@@ -748,24 +763,52 @@ class SyncEngine {
         },
         onError: (error) {
           dev.log('SyncEngine: ws error: $error', name: 'sync');
-          _scheduleReconnect();
+          if (_awaitingAuth) {
+            _authCompleter?.completeError(error);
+          } else {
+            _scheduleReconnect();
+          }
         },
         onDone: () {
           dev.log('SyncEngine: ws closed', name: 'sync');
-          _scheduleReconnect();
+          if (_awaitingAuth) {
+            if (_authCompleter != null && !_authCompleter!.isCompleted) {
+              _authCompleter!.completeError('connection closed before auth_ok');
+            }
+          } else {
+            _scheduleReconnect();
+          }
         },
       );
 
-      dev.log('SyncEngine: ws connected', name: 'sync');
-      _reconnectAttempts = 0;
-      onStatusChanged?.call(wsConnected: true);
+      // Send auth message after listen is registered
+      _wsChannel!.sink.add(jsonEncode({'type': 'auth', 'token': token}));
 
-      // Pull immediately after reconnect to catch up on changes
-      // that were broadcast while we were disconnected.
-      // Fire-and-forget: don't block the WS message loop.
-      unawaited(_pullChanges());
+      // Wait for auth_ok with timeout
+      try {
+        await _authCompleter!.future.timeout(
+          _authOkTimeout,
+          onTimeout: () {
+            throw TimeoutException('auth_ok timeout', _authOkTimeout);
+          },
+        );
+      } catch (e) {
+        dev.log('SyncEngine: auth_ok not received: $e', name: 'sync');
+        _awaitingAuth = false;
+        _authCompleter = null;
+        _disconnectWebSocket();
+        _scheduleReconnect();
+        return;
+      }
+
+      // Auth succeeded — exit auth phase
+      _awaitingAuth = false;
+      _authCompleter = null;
+      dev.log('SyncEngine: ws authenticated', name: 'sync');
     } catch (e) {
       dev.log('SyncEngine: ws connect failed: $e', name: 'sync');
+      _awaitingAuth = false;
+      _authCompleter = null;
       _scheduleReconnect();
     }
   }
@@ -774,6 +817,18 @@ class SyncEngine {
     try {
       final data = jsonDecode(message as String) as Map<String, dynamic>;
       final type = data['type'] as String?;
+
+      if (type == 'auth_ok') {
+        dev.log('SyncEngine: ws auth_ok received', name: 'sync');
+        _reconnectAttempts = 0;
+        onStatusChanged?.call(wsConnected: true);
+        if (_authCompleter != null && !_authCompleter!.isCompleted) {
+          _authCompleter!.complete();
+        }
+        // Pull immediately after auth to catch up on changes
+        unawaited(_pullChanges());
+        return;
+      }
 
       if (type == 'sync_notify' || type == 'change') {
         // 服务端通知有新变更，触发增量拉取
@@ -800,6 +855,14 @@ class SyncEngine {
   }
 
   void _disconnectWebSocket() {
+    // Cancel any pending auth wait
+    if (_awaitingAuth) {
+      _awaitingAuth = false;
+      if (_authCompleter != null && !_authCompleter!.isCompleted) {
+        _authCompleter!.completeError('disconnected');
+      }
+      _authCompleter = null;
+    }
     _wsSub?.cancel();
     _wsSub = null;
     _wsChannel?.sink.close();

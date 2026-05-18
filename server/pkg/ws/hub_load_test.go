@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"math/rand"
 	"net/http"
+	"net/http/httptest"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -13,10 +14,22 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	jwtpkg "github.com/familyledger/server/pkg/jwt"
 )
 
+// setupLoadTestHub creates a hub with high MaxConnsPerUser for load tests.
+func setupLoadTestHub() (*Hub, *httptest.Server) {
+	jwtManager := jwtpkg.NewManager("test-secret-key-for-ws-tests-12345")
+	cfg := fastConfig()
+	cfg.MaxConnsPerUser = 200 // allow many connections for load tests
+	hub := NewHub(jwtManager, cfg)
+	server := httptest.NewServer(http.HandlerFunc(hub.HandleWebSocket))
+	return hub, server
+}
+
 func TestHub_Load_100Clients_Connect(t *testing.T) {
-	hub, server := setupTestHub()
+	hub, server := setupLoadTestHub()
 	defer server.Close()
 
 	const clientCount = 100
@@ -66,7 +79,7 @@ func TestHub_Load_100Clients_Connect(t *testing.T) {
 }
 
 func TestHub_Load_BroadcastToAll(t *testing.T) {
-	hub, server := setupTestHub()
+	hub, server := setupLoadTestHub()
 	defer server.Close()
 
 	const clientCount = 50
@@ -120,7 +133,7 @@ func TestHub_Load_BroadcastToAll(t *testing.T) {
 }
 
 func TestHub_Load_ClientDisconnect_Cleanup(t *testing.T) {
-	hub, server := setupTestHub()
+	hub, server := setupLoadTestHub()
 	defer server.Close()
 
 	const clientCount = 30
@@ -178,7 +191,7 @@ func TestHub_Load_ClientDisconnect_Cleanup(t *testing.T) {
 }
 
 func TestHub_Load_ConcurrentConnectDisconnect_NoPanic(t *testing.T) {
-	hub, server := setupTestHub()
+	hub, server := setupLoadTestHub()
 	defer server.Close()
 
 	const iterations = 50
@@ -235,7 +248,7 @@ func TestHub_Load_ConcurrentConnectDisconnect_NoPanic(t *testing.T) {
 }
 
 func TestHub_Load_MultipleUsers_Isolation(t *testing.T) {
-	hub, server := setupTestHub()
+	hub, server := setupLoadTestHub()
 	defer server.Close()
 
 	const usersCount = 10
@@ -311,7 +324,7 @@ func TestHub_Load_MultipleUsers_Isolation(t *testing.T) {
 }
 
 func TestHub_Load_HandleWebSocket_Unauthorized_UnderLoad(t *testing.T) {
-	_, server := setupTestHub()
+	_, server := setupLoadTestHub()
 	defer server.Close()
 
 	// Spam unauthorized connection attempts
@@ -337,7 +350,7 @@ func TestHub_Load_HandleWebSocket_Unauthorized_UnderLoad(t *testing.T) {
 }
 
 func TestHub_Load_BroadcastToNonexistentUser_NoPanic(t *testing.T) {
-	hub, server := setupTestHub()
+	hub, server := setupLoadTestHub()
 	defer server.Close()
 
 	// Should not panic when broadcasting to a user with no connections
@@ -361,7 +374,7 @@ func TestHub_Load_BroadcastToNonexistentUser_NoPanic(t *testing.T) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 func TestHub_Load_100Clients_RandomDisconnect(t *testing.T) {
-	hub, server := setupTestHub()
+	hub, server := setupLoadTestHub()
 	defer server.Close()
 
 	const clientCount = 100

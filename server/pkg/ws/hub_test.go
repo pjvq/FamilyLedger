@@ -18,9 +18,11 @@ import (
 // fastConfig returns a HubConfig with short timeouts for tests.
 func fastConfig() HubConfig {
 	return HubConfig{
-		WriteWait:  2 * time.Second,
-		PongWait:   3 * time.Second,
-		PingPeriod: 1 * time.Second,
+		WriteWait:       2 * time.Second,
+		PongWait:        3 * time.Second,
+		PingPeriod:      1 * time.Second,
+		AuthTimeout:     2 * time.Second,
+		MaxConnsPerUser: 3,
 	}
 }
 
@@ -32,10 +34,223 @@ func setupTestHub() (*Hub, *httptest.Server) {
 	return hub, server
 }
 
+// wsURL builds a query-string auth URL (legacy/deprecated path).
 func wsURL(server *httptest.Server, token string) string {
 	url := "ws" + strings.TrimPrefix(server.URL, "http") + "?token=" + token
 	return url
 }
+
+// wsURLNoToken builds a URL without token for first-message auth.
+func wsURLNoToken(server *httptest.Server) string {
+	return "ws" + strings.TrimPrefix(server.URL, "http")
+}
+
+// dialFirstMessageAuth connects via first-message auth and returns the authenticated conn.
+func dialFirstMessageAuth(t *testing.T, server *httptest.Server, token string) *websocket.Conn {
+	t.Helper()
+	dialer := websocket.Dialer{}
+	conn, _, err := dialer.Dial(wsURLNoToken(server), nil)
+	require.NoError(t, err)
+
+	// Send auth message
+	authMsg, _ := json.Marshal(map[string]string{"type": "auth", "token": token})
+	err = conn.WriteMessage(websocket.TextMessage, authMsg)
+	require.NoError(t, err)
+
+	// Read auth_ok
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_, msg, err := conn.ReadMessage()
+	require.NoError(t, err)
+
+	var resp map[string]string
+	require.NoError(t, json.Unmarshal(msg, &resp))
+	assert.Equal(t, "auth_ok", resp["type"])
+
+	// Reset deadline
+	conn.SetReadDeadline(time.Time{})
+	return conn
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// First-message auth tests
+// ═══════════════════════════════════════════════════════════════════════════════
+
+func TestFirstMessageAuth_Success(t *testing.T) {
+	hub, server := setupTestHub()
+	defer server.Close()
+
+	tokenPair, err := hub.jwtManager.GenerateTokenPair("user-fma")
+	require.NoError(t, err)
+
+	conn := dialFirstMessageAuth(t, server, tokenPair.AccessToken)
+	defer conn.Close()
+
+	// Verify the client is registered
+	time.Sleep(50 * time.Millisecond)
+	hub.mu.RLock()
+	count := len(hub.clients["user-fma"])
+	hub.mu.RUnlock()
+	assert.Equal(t, 1, count)
+}
+
+func TestFirstMessageAuth_InvalidToken(t *testing.T) {
+	_, server := setupTestHub()
+	defer server.Close()
+
+	dialer := websocket.Dialer{}
+	conn, _, err := dialer.Dial(wsURLNoToken(server), nil)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	authMsg, _ := json.Marshal(map[string]string{"type": "auth", "token": "bad-token"})
+	err = conn.WriteMessage(websocket.TextMessage, authMsg)
+	require.NoError(t, err)
+
+	// Should receive close frame with 4004
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_, _, err = conn.ReadMessage()
+	assert.Error(t, err)
+	if closeErr, ok := err.(*websocket.CloseError); ok {
+		assert.Equal(t, 4004, closeErr.Code)
+	}
+}
+
+func TestFirstMessageAuth_BadMessage(t *testing.T) {
+	_, server := setupTestHub()
+	defer server.Close()
+
+	dialer := websocket.Dialer{}
+	conn, _, err := dialer.Dial(wsURLNoToken(server), nil)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	// Send garbage
+	err = conn.WriteMessage(websocket.TextMessage, []byte(`not json`))
+	require.NoError(t, err)
+
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_, _, err = conn.ReadMessage()
+	assert.Error(t, err)
+	if closeErr, ok := err.(*websocket.CloseError); ok {
+		assert.Equal(t, 4003, closeErr.Code)
+	}
+}
+
+func TestFirstMessageAuth_Timeout(t *testing.T) {
+	_, server := setupTestHub()
+	defer server.Close()
+
+	dialer := websocket.Dialer{}
+	conn, _, err := dialer.Dial(wsURLNoToken(server), nil)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	// Don't send anything — wait for auth timeout (2s in test config)
+	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	_, _, err = conn.ReadMessage()
+	assert.Error(t, err)
+	if closeErr, ok := err.(*websocket.CloseError); ok {
+		assert.Equal(t, 4002, closeErr.Code)
+	}
+}
+
+func TestFirstMessageAuth_MissingTokenField(t *testing.T) {
+	_, server := setupTestHub()
+	defer server.Close()
+
+	dialer := websocket.Dialer{}
+	conn, _, err := dialer.Dial(wsURLNoToken(server), nil)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	// Send auth message with empty token
+	authMsg, _ := json.Marshal(map[string]string{"type": "auth", "token": ""})
+	err = conn.WriteMessage(websocket.TextMessage, authMsg)
+	require.NoError(t, err)
+
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_, _, err = conn.ReadMessage()
+	assert.Error(t, err)
+	if closeErr, ok := err.(*websocket.CloseError); ok {
+		assert.Equal(t, 4003, closeErr.Code)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Max connections per user
+// ═══════════════════════════════════════════════════════════════════════════════
+
+func TestMaxConnsPerUser_FirstMessageAuth(t *testing.T) {
+	hub, server := setupTestHub()
+	defer server.Close()
+
+	tokenPair, err := hub.jwtManager.GenerateTokenPair("user-max")
+	require.NoError(t, err)
+
+	// Open MaxConnsPerUser (3) connections
+	conns := make([]*websocket.Conn, 0, 3)
+	for i := 0; i < 3; i++ {
+		conn := dialFirstMessageAuth(t, server, tokenPair.AccessToken)
+		conns = append(conns, conn)
+		defer conn.Close()
+	}
+
+	time.Sleep(50 * time.Millisecond)
+
+	// 4th should be rejected with 4005
+	dialer := websocket.Dialer{}
+	conn, _, err := dialer.Dial(wsURLNoToken(server), nil)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	authMsg, _ := json.Marshal(map[string]string{"type": "auth", "token": tokenPair.AccessToken})
+	err = conn.WriteMessage(websocket.TextMessage, authMsg)
+	require.NoError(t, err)
+
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_, _, err = conn.ReadMessage()
+	assert.Error(t, err)
+	if closeErr, ok := err.(*websocket.CloseError); ok {
+		assert.Equal(t, 4005, closeErr.Code)
+	}
+}
+
+func TestMaxConnsPerUser_LegacyAuth(t *testing.T) {
+	hub, server := setupTestHub()
+	defer server.Close()
+
+	tokenPair, err := hub.jwtManager.GenerateTokenPair("user-max-legacy")
+	require.NoError(t, err)
+
+	dialer := websocket.Dialer{}
+	// Open 3 connections via legacy auth
+	for i := 0; i < 3; i++ {
+		conn, _, err := dialer.Dial(wsURL(server, tokenPair.AccessToken), nil)
+		require.NoError(t, err)
+		defer conn.Close()
+	}
+
+	time.Sleep(50 * time.Millisecond)
+
+	// 4th should be upgraded but immediately closed with 4005
+	conn, _, err := dialer.Dial(wsURL(server, tokenPair.AccessToken), nil)
+	if err != nil {
+		// Some implementations may reject at HTTP level
+		return
+	}
+	defer conn.Close()
+
+	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	_, _, err = conn.ReadMessage()
+	assert.Error(t, err)
+	if closeErr, ok := err.(*websocket.CloseError); ok {
+		assert.Equal(t, 4005, closeErr.Code)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Legacy query-string auth tests (backwards compatibility)
+// ═══════════════════════════════════════════════════════════════════════════════
 
 func TestHub_PingPong_KeepsConnectionAlive(t *testing.T) {
 	hub, server := setupTestHub()
@@ -135,17 +350,20 @@ func TestHub_PongHandler_ResetsReadDeadline(t *testing.T) {
 	assert.Equal(t, 30*time.Second, defaults.PingPeriod)
 	assert.Equal(t, 60*time.Second, defaults.PongWait)
 	assert.Equal(t, 10*time.Second, defaults.WriteWait)
+	assert.Equal(t, 5*time.Second, defaults.AuthTimeout)
+	assert.Equal(t, 5, defaults.MaxConnsPerUser)
 }
 
 func TestHub_HandleWebSocket_NoToken(t *testing.T) {
-	hub, server := setupTestHub()
+	_, server := setupTestHub()
 	defer server.Close()
-	_ = hub
 
+	// With no token in URL, the server upgrades and waits for first-message auth.
+	// If we close immediately without sending auth, the server detects read error.
 	dialer := websocket.Dialer{}
-	_, resp, err := dialer.Dial("ws"+strings.TrimPrefix(server.URL, "http"), nil)
-	require.Error(t, err)
-	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	conn, _, err := dialer.Dial(wsURLNoToken(server), nil)
+	require.NoError(t, err)
+	conn.Close()
 }
 
 func TestHub_HandleWebSocket_InvalidToken(t *testing.T) {
@@ -193,6 +411,35 @@ func TestHub_BroadcastToUser(t *testing.T) {
 	assert.Equal(t, `{"hello":"world"}`, string(msg))
 }
 
+func TestHub_BroadcastToUser_FirstMessageAuth(t *testing.T) {
+	hub, server := setupTestHub()
+	defer server.Close()
+
+	tokenPair, err := hub.jwtManager.GenerateTokenPair("user-fma-broadcast")
+	require.NoError(t, err)
+
+	conn := dialFirstMessageAuth(t, server, tokenPair.AccessToken)
+	defer conn.Close()
+
+	time.Sleep(50 * time.Millisecond)
+
+	hub.BroadcastToUser("user-fma-broadcast", []byte(`{"test":"fma"}`))
+
+	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	var msg []byte
+	for {
+		_, m, err := conn.ReadMessage()
+		require.NoError(t, err)
+		var parsed map[string]interface{}
+		if json.Unmarshal(m, &parsed) == nil && parsed["type"] == "heartbeat" {
+			continue
+		}
+		msg = m
+		break
+	}
+	assert.Equal(t, `{"test":"fma"}`, string(msg))
+}
+
 func TestHub_WritePump_SendsCloseOnChannelClose(t *testing.T) {
 	hub, server := setupTestHub()
 	defer server.Close()
@@ -236,4 +483,29 @@ func TestHub_WritePump_SendsCloseOnChannelClose(t *testing.T) {
 		t.Errorf("unexpected message after unregister: %s", string(msg))
 		break
 	}
+}
+
+func TestHub_ConnectedUsers_And_TotalConnections(t *testing.T) {
+	hub, server := setupTestHub()
+	defer server.Close()
+
+	assert.Equal(t, 0, hub.ConnectedUsers())
+	assert.Equal(t, 0, hub.TotalConnections())
+
+	tokenPair1, err := hub.jwtManager.GenerateTokenPair("user-stats-1")
+	require.NoError(t, err)
+	tokenPair2, err := hub.jwtManager.GenerateTokenPair("user-stats-2")
+	require.NoError(t, err)
+
+	conn1 := dialFirstMessageAuth(t, server, tokenPair1.AccessToken)
+	defer conn1.Close()
+	conn2 := dialFirstMessageAuth(t, server, tokenPair1.AccessToken)
+	defer conn2.Close()
+	conn3 := dialFirstMessageAuth(t, server, tokenPair2.AccessToken)
+	defer conn3.Close()
+
+	time.Sleep(50 * time.Millisecond)
+
+	assert.Equal(t, 2, hub.ConnectedUsers())
+	assert.Equal(t, 3, hub.TotalConnections())
 }

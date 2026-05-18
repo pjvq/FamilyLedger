@@ -98,17 +98,27 @@ void main() {
       await ws.close();
     });
 
-    test('WS-003: Connect without token → rejected', () async {
-      try {
-        await WebSocket.connect(harness.wsUrl);
-        fail('Should have been rejected');
-      } on WebSocketException catch (_) {
-        // Expected: server returns 401
-      } on HttpException catch (_) {
-        // Also acceptable
-      } on SocketException catch (_) {
-        // Also acceptable
-      }
+    test('WS-003: Connect without token → auth timeout closes connection',
+        () async {
+      // With first-message auth, connecting without token succeeds the upgrade
+      // but server closes with 4002 (auth timeout) if no auth message is sent.
+      final ws = await WebSocket.connect(harness.wsUrl);
+      final completer = Completer<int?>();
+      ws.listen(
+        (_) {},
+        onDone: () {
+          completer.complete(ws.closeCode);
+        },
+        onError: (_) {
+          if (!completer.isCompleted) completer.complete(ws.closeCode);
+        },
+      );
+      // Server auth timeout is 5s; wait up to 10s
+      final closeCode = await completer.future.timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => null,
+      );
+      expect(closeCode, equals(4002)); // auth timeout
     });
 
     test('WS-004: Connect with invalid token → rejected', () async {
