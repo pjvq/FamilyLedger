@@ -250,9 +250,17 @@ if [ -n "$INV_ID" ]; then
 fi
 
 # GetPortfolioSummary
+# NOTE: totalValue depends on real-time market quotes. When market APIs are
+# unavailable in CI, totalValue may be 0 or absent. We check that the response
+# contains valid portfolio structure (holdings array) instead.
 PORTFOLIO=$(grpc_auth investment.proto "familyledger.investment.v1.InvestmentService/GetPortfolioSummary" '{}')
-TOTAL_VAL=$(echo "$PORTFOLIO" | jq -r '.totalValue // .total_value // empty')
-[ -n "$TOTAL_VAL" ] && pass "GetPortfolioSummary (totalValue=$TOTAL_VAL)" || fail "GetPortfolioSummary" "$PORTFOLIO"
+TOTAL_COST=$(echo "$PORTFOLIO" | jq -r '.totalCost // .total_cost // empty')
+HOLDINGS_COUNT=$(echo "$PORTFOLIO" | jq -r '.holdings | length // 0' 2>/dev/null)
+if [ -n "$TOTAL_COST" ] && [ "$HOLDINGS_COUNT" -gt 0 ] 2>/dev/null; then
+  pass "GetPortfolioSummary (totalCost=$TOTAL_COST, holdings=$HOLDINGS_COUNT)"
+else
+  fail "GetPortfolioSummary" "$PORTFOLIO"
+fi
 
 # Market: GetQuote
 # NOTE: Market tests depend on external APIs (EastMoney). Treat API errors as SKIP in CI.
