@@ -331,10 +331,11 @@ func (h *Hub) registerIfAllowed(w http.ResponseWriter, r *http.Request, userID, 
 // Returns false if max connections exceeded (sends close frame and closes conn).
 func (h *Hub) registerAtomic(client *Client, clientAddr string) bool {
 	h.mu.Lock()
-	defer h.mu.Unlock()
 
 	if h.config.MaxConnsPerUser > 0 {
 		if len(h.clients[client.userID]) >= h.config.MaxConnsPerUser {
+			h.mu.Unlock()
+			// Network I/O outside lock to prevent Hub deadlock
 			log.Printf("ws: max connections (%d) exceeded for user %s from %s", h.config.MaxConnsPerUser, client.userID, clientAddr)
 			if wErr := client.conn.WriteControl(
 				websocket.CloseMessage,
@@ -353,6 +354,7 @@ func (h *Hub) registerAtomic(client *Client, clientAddr string) bool {
 	}
 	h.clients[client.userID][client] = true
 	log.Printf("ws: client connected for user %s from %s (total: %d)", client.userID, clientAddr, len(h.clients[client.userID]))
+	h.mu.Unlock()
 	return true
 }
 

@@ -855,6 +855,14 @@ class SyncEngine {
   }
 
   void _disconnectWebSocket() {
+    // Cancel any pending auth wait
+    if (_awaitingAuth) {
+      _awaitingAuth = false;
+      if (_authCompleter != null && !_authCompleter!.isCompleted) {
+        _authCompleter!.completeError('disconnected');
+      }
+      _authCompleter = null;
+    }
     _wsSub?.cancel();
     _wsSub = null;
     _wsChannel?.sink.close();
