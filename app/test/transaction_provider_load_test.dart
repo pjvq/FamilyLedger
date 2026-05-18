@@ -164,7 +164,7 @@ void main() {
       final page3 = [_makeProtoTxn('txn_5')];
       final client = FakeTransactionClient([page1, page2, page3]);
 
-      final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
 
       // Wait for _load() to complete
       await Future.delayed(const Duration(milliseconds: 500));
@@ -191,7 +191,7 @@ void main() {
       final emptyPage = <pb.Transaction>[];
       final client = FakeTransactionClient([page1, emptyPage]);
 
-      final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
       await Future.delayed(const Duration(milliseconds: 500));
 
       // First page returns data with nextPageToken, second is empty
@@ -208,7 +208,7 @@ void main() {
     test('uses pageSize of 100', () async {
       final client = FakeTransactionClient([[]]);
 
-      final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
       await Future.delayed(const Duration(milliseconds: 300));
 
       expect(client.capturedRequests.first.pageSize, 100);
@@ -235,7 +235,7 @@ void main() {
         [_makeProtoTxn('txn_dup', amount: 2000)]
       ]);
 
-      final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Should not crash, and should have updated the record
@@ -250,7 +250,7 @@ void main() {
       final client = OfflineTransactionClient();
 
       // Should not throw
-      final notifier = TransactionNotifier(db, 'user1', 'fam1', client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
       await Future.delayed(const Duration(milliseconds: 300));
 
       // State should not be in error (offline is handled gracefully)
@@ -262,7 +262,7 @@ void main() {
     test('skips server sync when familyId is null', () async {
       final client = FakeTransactionClient([[_makeProtoTxn('txn_x')]]);
 
-      final notifier = TransactionNotifier(db, 'user1', null, client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
       await Future.delayed(const Duration(milliseconds: 300));
 
       // Should never call the client

@@ -179,7 +179,7 @@ void main() {
       final client =
           FakeCreateTransactionClient(serverAssignedId: 'server_txn_42');
 
-      final notifier = TransactionNotifier(db, 'user1', null, client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
       await Future.delayed(const Duration(milliseconds: 200));
 
       // Collect stream events to detect flicker (delete+re-insert)
@@ -228,7 +228,7 @@ void main() {
     test('offline: uses local UUID and queues sync op', () async {
       final client = OfflineCreateTransactionClient();
 
-      final notifier = TransactionNotifier(db, 'user1', null, client);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
       await Future.delayed(const Duration(milliseconds: 200));
 
       await notifier.addTransaction(
@@ -263,7 +263,7 @@ void main() {
 
     test('no client: uses local UUID without attempting server call',
         () async {
-      final notifier = TransactionNotifier(db, 'user1', null, null);
+      final notifier = TransactionNotifier.fromDb(db, 'user1', null, null);
       await Future.delayed(const Duration(milliseconds: 200));
 
       await notifier.addTransaction(

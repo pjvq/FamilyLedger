@@ -208,7 +208,7 @@ void main() {
 
     group('_load (via constructor)', () {
       test('successfully loads categories and sets state', () async {
-        final notifier = TransactionNotifier(db, 'user1', null, null);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, null);
         // Wait for async _load
         await Future.delayed(const Duration(milliseconds: 300));
 
@@ -222,7 +222,7 @@ void main() {
       });
 
       test('loads empty transaction list without error', () async {
-        final notifier = TransactionNotifier(db, 'user1', null, null);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, null);
         await Future.delayed(const Duration(milliseconds: 300));
 
         expect(notifier.state.transactions, isEmpty);
@@ -240,7 +240,7 @@ void main() {
         // Make listTransactions throw
         final errorClient = _ThrowingListClient();
 
-        final notifier = TransactionNotifier(famDb, 'user1', 'fam1', errorClient);
+        final notifier = TransactionNotifier.fromDb(famDb, 'user1', 'fam1', errorClient);
         await Future.delayed(const Duration(milliseconds: 300));
 
         // Should not crash — fallback to local data
@@ -271,7 +271,7 @@ void main() {
           ),
         );
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.addTransaction(
@@ -300,7 +300,7 @@ void main() {
           createError: GrpcError.unavailable('offline'),
         );
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.addTransaction(
@@ -328,7 +328,7 @@ void main() {
       });
 
       test('null client: uses local UUID and queues sync op', () async {
-        final notifier = TransactionNotifier(db, 'user1', null, null);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, null);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.addTransaction(
@@ -349,7 +349,7 @@ void main() {
 
     group('updateTransaction', () {
       test('updates locally and recalculates balance', () async {
-        final notifier = TransactionNotifier(db, 'user1', null, null);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, null);
         await Future.delayed(const Duration(milliseconds: 200));
 
         // First add a transaction
@@ -394,7 +394,7 @@ void main() {
           updateError: GrpcError.unavailable('offline'),
         );
 
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         // Insert transaction directly for testing update
@@ -445,7 +445,7 @@ void main() {
         // Set account balance to reflect this transaction
         await db.updateAccountBalance('acc1', -5000);
 
-        final notifier = TransactionNotifier(db, 'user1', null, null);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, null);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.deleteTransaction('txn_del');
@@ -479,7 +479,7 @@ void main() {
         final client = ConfigurableTransactionClient(
           deleteError: GrpcError.unavailable('offline'),
         );
-        final notifier = TransactionNotifier(db, 'user1', null, client);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
         await notifier.deleteTransaction('txn_del2');
@@ -520,7 +520,7 @@ void main() {
           ],
         );
 
-        final notifier = TransactionNotifier(famDb, 'user1', 'fam1', client);
+        final notifier = TransactionNotifier.fromDb(famDb, 'user1', 'fam1', client);
         await Future.delayed(const Duration(milliseconds: 500));
 
         // Verify the request had familyId
@@ -540,7 +540,7 @@ void main() {
     group('summary calculations', () {
       test('balance, todayExpense, monthExpense are refreshed after add',
           () async {
-        final notifier = TransactionNotifier(db, 'user1', null, null);
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, null);
         await Future.delayed(const Duration(milliseconds: 200));
 
         // Add an expense for today
