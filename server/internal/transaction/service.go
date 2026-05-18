@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -29,8 +30,8 @@ import (
 type Service struct {
 	pb.UnimplementedTransactionServiceServer
 	pool        db.Pool
-	uploadDir   string // 图片上传目录 (kept for quota check)
-	baseURL     string // 图片访问基础 URL
+	uploadDir   string // image upload directory (kept for quota check)
+	baseURL     string // base URL for image access
 	fileStorage storage.FileStorage
 	hub         wsHub  // WebSocket hub for real-time notifications (optional)
 }
@@ -57,6 +58,7 @@ func NewService(pool db.Pool, opts ...ServiceOption) *Service {
 }
 
 // newFileStorageFromEnv creates the appropriate FileStorage based on FILE_STORAGE env var.
+// NOTE: Storage mode is determined once at startup (immutable). To change modes, restart the server.
 func newFileStorageFromEnv(uploadDir, baseURL string) storage.FileStorage {
 	mode := os.Getenv("FILE_STORAGE")
 	switch mode {
@@ -149,13 +151,20 @@ func (s *Service) getAccountFamilyID(ctx context.Context, accountID uuid.UUID) (
 	return getAccountFamilyIDFrom(ctx, s.pool, accountID)
 }
 
-// validateTxnDate checks a protobuf Timestamp for validity and range [2000-01-01, now+1d].
+// txnDateFutureAllowDays is how many days into the future a txn_date may be.
+const txnDateFutureAllowDays = 1
+
+// txnDateEarliest is the earliest accepted transaction date.
+// Not a const because time.Date is not a compile-time expression.
+var txnDateEarliest = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC) //nolint:gochecknoglobals
+
+// validateTxnDate checks a protobuf Timestamp for validity and range [txnDateEarliest, now+txnDateFutureAllowDays].
 func validateTxnDate(ts *timestamppb.Timestamp) (time.Time, error) {
 	if err := ts.CheckValid(); err != nil {
 		return time.Time{}, status.Error(codes.InvalidArgument, "txn_date: invalid or out of range")
 	}
 	t := ts.AsTime()
-	if t.Before(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)) || t.After(time.Now().AddDate(0, 0, 1)) {
+	if t.Before(txnDateEarliest) || t.After(time.Now().AddDate(0, 0, txnDateFutureAllowDays)) {
 		return time.Time{}, status.Error(codes.InvalidArgument, "txn_date: invalid or out of range")
 	}
 	return t, nil
@@ -242,7 +251,7 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		"note":          cr.note,
 		"txn_date":      cr.txnDate.Format("2006-01-02"),
 	}); err != nil {
-		log.Printf("ERROR: transaction: sync create failed for %s: %v", txnID, err)
+		slog.Error("transaction: sync create failed", "txn_id", txnID, "error", err)
 		return nil, status.Error(codes.Internal, "failed to record sync operation")
 	}
 
@@ -515,7 +524,7 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 			 FROM transactions WHERE id = $1`,
 			txnID,
 		).Scan(&syncAccID, &syncCatID, &syncAmount, &syncAmountCny, &syncType, &syncNote, &syncCurrency, &syncTxnDate); err != nil {
-			log.Printf("ERROR: transaction: failed to read updated transaction %s for sync: %v", txnID, err)
+			slog.Error("transaction: failed to read for sync", "txn_id", txnID, "error", err)
 			return nil, status.Error(codes.Internal, "failed to read updated transaction for sync")
 		}
 		if err := insertTransactionSyncOp(ctx, tx, uid, txnID, "update", map[string]interface{}{
@@ -530,7 +539,7 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 			"currency":     syncCurrency,
 			"txn_date":     syncTxnDate.Format("2006-01-02"),
 		}); err != nil {
-			log.Printf("ERROR: transaction: sync update failed for %s: %v", txnID, err)
+			slog.Error("transaction: sync update failed", "txn_id", txnID, "error", err)
 			return nil, status.Error(codes.Internal, "failed to record sync operation")
 		}
 	}
@@ -652,7 +661,7 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 	if err := insertTransactionSyncOp(ctx, tx, uid, txnID, "delete", map[string]interface{}{
 		"id": txnID.String(),
 	}); err != nil {
-		log.Printf("ERROR: transaction: sync delete failed for %s: %v", txnID, err)
+		slog.Error("transaction: sync delete failed", "txn_id", txnID, "error", err)
 		return nil, status.Error(codes.Internal, "failed to record sync operation")
 	}
 
@@ -879,7 +888,7 @@ func (s *Service) BatchDeleteTransactions(ctx context.Context, req *pb.BatchDele
 	// Write sync_operations for each deleted transaction
 	for _, info := range toDelete {
 		if err := insertTransactionSyncOp(ctx, tx, uid, info.id, "delete", map[string]interface{}{"id": info.id.String()}); err != nil {
-			log.Printf("ERROR: transaction: sync batch-delete failed for %s: %v", info.id, err)
+			slog.Error("transaction: sync batch-delete failed", "txn_id", info.id, "error", err)
 			return nil, status.Error(codes.Internal, "failed to record sync operation")
 		}
 	}
@@ -904,10 +913,14 @@ func (s *Service) BatchDeleteTransactions(ctx context.Context, req *pb.BatchDele
 
 // ── UploadTransactionImage ─────────────────────────────────────────────
 
-const maxImageSize = 5 * 1024 * 1024 // 5MB
-const maxImagesPerUser = 500         // 每用户最多图片数
+const (
+	// maxImageSize is the maximum allowed image upload size (5 MB).
+	maxImageSize = 5 * 1024 * 1024
+	// maxImagesPerUser caps the total number of receipt images stored per user.
+	maxImagesPerUser = 500
+)
 
-// imageSignatures 验证文件头 magic bytes
+// imageSignatures validates file-header magic bytes
 var imageSignatures = map[string][][]byte{
 	"image/jpeg": {{0xFF, 0xD8, 0xFF}},
 	"image/png":  {{0x89, 0x50, 0x4E, 0x47}},

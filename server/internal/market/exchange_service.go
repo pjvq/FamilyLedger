@@ -35,6 +35,10 @@ func NewExchangeService(pool db.Pool) *ExchangeService {
 }
 
 // GetExchangeRate returns the exchange rate from one currency to another.
+// Returns (0, error) if the rate is not available in the database.
+// Callers must handle the error — e.g. by refusing the transaction or
+// prompting the user to enter a manual rate. Previously this returned
+// (1.0, nil) as a silent fallback, which produced incorrect amounts.
 // The pair is stored as FROM_TO (e.g., USD_CNY).
 func (s *ExchangeService) GetExchangeRate(ctx context.Context, from, to string) (float64, error) {
 	if from == to {
@@ -57,13 +61,13 @@ func (s *ExchangeService) GetExchangeRate(ctx context.Context, from, to string) 
 			inversePair,
 		).Scan(&inverseRate)
 		if err2 != nil {
-			// Fallback: neither direct nor inverse pair exists → return default 1.0
-			log.Printf("exchange: rate not found for %s or %s, falling back to 1.0", pair, inversePair)
-			return 1.0, nil
+			// Neither direct nor inverse pair exists — cannot convert
+			log.Printf("exchange: rate not found for %s or %s, refusing to guess", pair, inversePair)
+			return 0, fmt.Errorf("exchange rate not available for %s", pair)
 		}
 		if inverseRate == 0 {
-			log.Printf("exchange: inverse rate is zero for %s, falling back to 1.0", inversePair)
-			return 1.0, nil
+			log.Printf("exchange: inverse rate is zero for %s, refusing to guess", inversePair)
+			return 0, fmt.Errorf("exchange rate is zero for %s", inversePair)
 		}
 		return 1.0 / inverseRate, nil
 	}

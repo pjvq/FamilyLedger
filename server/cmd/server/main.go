@@ -188,6 +188,7 @@ func main() {
 
 	grpcOpts = append(grpcOpts,
 		grpc.ChainUnaryInterceptor(
+			middleware.UnaryRequestIDInterceptor(),
 			middleware.UnaryRateLimitInterceptor(rateLimiter),
 			middleware.UnaryValidationInterceptor(),
 			middleware.UnaryAuthInterceptor(jwtManager),

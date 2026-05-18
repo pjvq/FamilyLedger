@@ -59,7 +59,7 @@ func (s *Service) ExportTransactions(ctx context.Context, req *pb.ExportRequest)
 		}
 	}
 
-	// 查询交易记录
+	// Query transaction records
 	rows, err := s.queryTransactions(ctx, userID, req)
 	if err != nil {
 		return nil, err
@@ -227,7 +227,7 @@ func (s *Service) exportExcel(rows []transactionRow) (*pb.ExportResponse, error)
 		return nil, status.Error(codes.Internal, "excel create sheet error")
 	}
 	f.SetActiveSheet(idx)
-	// 删除默认 Sheet1
+	// Delete the default Sheet1
 	f.DeleteSheet("Sheet1")
 
 	// 设置列宽

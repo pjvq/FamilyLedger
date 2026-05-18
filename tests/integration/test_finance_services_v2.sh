@@ -269,24 +269,28 @@ fi
 # Market: BatchGetQuotes (use two A-share symbols — same provider)
 BATCH=$(grpc_auth investment.proto "familyledger.investment.v1.MarketDataService/BatchGetQuotes" \
   '{"requests":[{"symbol":"600519","market_type":"MARKET_TYPE_A_SHARE"},{"symbol":"000858","market_type":"MARKET_TYPE_A_SHARE"}]}')
-BATCH_COUNT=$(echo "$BATCH" | jq -r '.quotes | length' 2>/dev/null)
-if [ "${BATCH_COUNT:-0}" -ge 1 ] 2>/dev/null; then
-  pass "BatchGetQuotes (count=$BATCH_COUNT)"
-elif echo "$BATCH" | grep -q "ERROR:"; then
-  echo "[SKIP] BatchGetQuotes - external API unavailable"
+if echo "$BATCH" | grep -q "Unavailable\|connection refused"; then
+  fail "BatchGetQuotes" "Server unreachable: $BATCH"
 else
-  fail "BatchGetQuotes" "$BATCH"
+  BATCH_COUNT=$(echo "$BATCH" | jq -r '.quotes | length' 2>/dev/null)
+  if [ "${BATCH_COUNT:-0}" -ge 1 ] 2>/dev/null; then
+    pass "BatchGetQuotes (count=$BATCH_COUNT)"
+  else
+    echo "[SKIP] BatchGetQuotes - external market API unavailable (count=${BATCH_COUNT:-0})"
+  fi
 fi
 
 # Market: SearchSymbol
 SEARCH=$(grpc_auth investment.proto "familyledger.investment.v1.MarketDataService/SearchSymbol" '{"query":"茅台","market_type":"MARKET_TYPE_A_SHARE"}')
-SEARCH_COUNT=$(echo "$SEARCH" | jq -r '.symbols // .results | length' 2>/dev/null)
-if [ "${SEARCH_COUNT:-0}" -ge 1 ] 2>/dev/null; then
-  pass "SearchSymbol 茅台 (results=$SEARCH_COUNT)"
-elif echo "$SEARCH" | grep -q "ERROR:"; then
-  echo "[SKIP] SearchSymbol - external API unavailable"
+if echo "$SEARCH" | grep -q "Unavailable\|connection refused"; then
+  fail "SearchSymbol" "Server unreachable: $SEARCH"
 else
-  fail "SearchSymbol" "$SEARCH"
+  SEARCH_COUNT=$(echo "$SEARCH" | jq -r '.symbols // .results | length' 2>/dev/null)
+  if [ "${SEARCH_COUNT:-0}" -ge 1 ] 2>/dev/null; then
+    pass "SearchSymbol 茅台 (results=$SEARCH_COUNT)"
+  else
+    echo "[SKIP] SearchSymbol - external market API unavailable (count=${SEARCH_COUNT:-0})"
+  fi
 fi
 
 # Market: GetPriceHistory

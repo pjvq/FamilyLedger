@@ -511,14 +511,15 @@ func TestBoost_ExchangeRate_InverseWithZeroRate(t *testing.T) {
 		WithArgs("CNY_HKD").
 		WillReturnError(pgx.ErrNoRows)
 
-	// Inverse lookup returns 0 → fallback to 1.0
+	// Inverse lookup returns 0 → error (refuse to guess)
 	mock.ExpectQuery("SELECT rate FROM exchange_rates WHERE currency_pair").
 		WithArgs("HKD_CNY").
 		WillReturnRows(pgxmock.NewRows([]string{"rate"}).AddRow(0.0))
 
 	rate, err := svc.GetExchangeRate(context.Background(), "CNY", "HKD")
-	require.NoError(t, err)
-	assert.Equal(t, 1.0, rate)
+	require.Error(t, err)
+	assert.Equal(t, float64(0), rate)
+	assert.Contains(t, err.Error(), "exchange rate is zero")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
