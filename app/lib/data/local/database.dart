@@ -3,7 +3,8 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import '../../core/utils/category_uuid.dart';
+import 'migration/icon_mappings.dart';
+import 'migration/category_seeder.dart';
 import 'tables.dart';
 
 part 'database.g.dart';
@@ -283,35 +284,11 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> _backfillParentIconKeys() async {
-    const nameToIconKey = {
-      // Expense
-      '餐饮': 'food',
-      '交通': 'transport',
-      '购物': 'shopping',
-      '居住': 'housing',
-      '娱乐': 'entertainment',
-      '医疗': 'medical',
-      '教育': 'education',
-      '通讯': 'communication',
-      '人情': 'gift',
-      '服饰': 'clothing',
-      '日用': 'daily',
-      '旅行': 'travel',
-      '宠物': 'pet',
-      // Income
-      '工资': 'salary',
-      '奖金': 'bonus',
-      '投资收益': 'investment_income',
-      '兼职': 'freelance',
-      '红包': 'red_packet',
-      '报销': 'reimbursement',
-      '其他': 'other',
-    };
     final parents = await (select(categories)
           ..where((c) => c.parentId.isNull() & c.iconKey.equals('')))
         .get();
     for (final cat in parents) {
-      final key = nameToIconKey[cat.name];
+      final key = parentCategoryIconMap[cat.name];
       if (key != null) {
         await (update(categories)..where((c) => c.id.equals(cat.id)))
             .write(CategoriesCompanion(iconKey: Value(key)));
@@ -322,58 +299,16 @@ class AppDatabase extends _$AppDatabase {
   /// Backfill empty iconKey for all categories (user-created or imported).
   /// Uses name-based matching with fuzzy keyword fallback.
   Future<void> _backfillEmptyIconKeys() async {
-    const nameToKey = <String, String>{
-      '餐饮': 'food', '交通': 'transport', '购物': 'shopping',
-      '居住': 'housing', '娱乐': 'entertainment', '医疗': 'medical',
-      '教育': 'education', '通讯': 'communication', '人情': 'gift',
-      '服饰': 'clothing', '日用': 'daily', '旅行': 'travel',
-      '宠物': 'pet', '工资': 'salary', '奖金': 'bonus',
-      '投资收益': 'investment_income', '兼职': 'freelance',
-      '红包': 'red_packet', '报销': 'reimbursement', '其他': 'other',
-      '早餐': 'food_breakfast', '午餐': 'food_lunch', '晚餐': 'food_dinner',
-      '夜孵': 'food_midnight', '饮品': 'food_drink', '零食': 'food_snack',
-      '外卖': 'food_takeout', '咖啡': 'food_drink', '快餐': 'food_fastfood',
-      '地铁': 'transport_metro', '打车': 'transport_taxi', '加油': 'transport_fuel',
-      '停车': 'transport_parking', '公交': 'transport_bus',
-      '数码': 'shopping_digital', '美妆': 'shopping_beauty', '网购': 'shopping_online',
-      '超市': 'shopping_daily', '百货': 'shopping_daily',
-      '房租': 'housing_rent', '物业': 'housing_property',
-      '水电': 'housing_utility', '水费': 'housing_water', '电费': 'housing_utility',
-      '燃气': 'housing_fire', '家政': 'housing_cleaning',
-      '电影': 'entertainment_movie', '游戏': 'entertainment_game',
-      '运动': 'entertainment_sport', '健身': 'entertainment_sport',
-      '音乐': 'entertainment_music', '书籍': 'entertainment_book',
-      '看病': 'medical_clinic', '买药': 'medical_pharmacy',
-      '牙科': 'medical_dental',
-      '学费': 'education_tuition', '课程': 'education_course',
-      '话费': 'communication_phone', '宽带': 'communication_broadband',
-      '订阅': 'communication_subscription',
-      '请客': 'gift_treat', '份子': 'gift_wedding',
-      '生日': 'gift_birthday', '聚会': 'gift_party',
-      '衣服': 'clothing_clothes', '鞋包': 'clothing_shoes', '配饰': 'clothing_accessory',
-      '清洁': 'daily_cleaning', '护理': 'daily_personal', '快递': 'daily_package',
-      '住宿': 'travel_hotel', '景点': 'travel_attraction',
-      '酒店': 'travel_hotel', '机票': 'transport_flight', '车票': 'travel_ticket',
-      '底薪': 'salary_base', '绩效': 'salary_performance',
-      '加班': 'salary_overtime', '提成': 'salary_commission',
-      '年终': 'bonus_annual', '股票': 'investment_stock',
-      '基金': 'investment_fund', '利息': 'investment_interest',
-      '分红': 'investment_dividend',
-      '结婚': 'gift_wedding', '婚礼': 'gift_wedding', '订婚': 'gift_wedding',
-      '水果': 'food_snack', '饮料': 'food_drink',
-      '出租': 'transport_taxi', '出租车': 'transport_taxi',
-      '日常': 'daily', '生活': 'daily',
-    };
-
     final emptyCats = await (select(categories)
           ..where((c) => c.iconKey.equals('') | c.iconKey.isNull()))
         .get();
     if (emptyCats.isEmpty) return;
 
     for (final cat in emptyCats) {
-      var key = nameToKey[cat.name];
+      var key = categoryIconMap[cat.name];
       if (key == null) {
-        for (final entry in nameToKey.entries) {
+        // Longest-match-first: avoids '日常清洁' matching '日常' over '清洁'.
+        for (final entry in categoryIconEntriesByLength) {
           if (cat.name.contains(entry.key)) {
             key = entry.value;
             break;
@@ -388,144 +323,9 @@ class AppDatabase extends _$AppDatabase {
 
   /// Seed preset categories for a user/family. Call after auth succeeds.
   /// [ownerID] is userId (personal) or familyId (family mode).
-  Future<void> seedCategoriesForOwner(String ownerID) async {
-    // Check if already seeded (any categories exist)
-    final existing = await (select(categories)..limit(1)).get();
-    if (existing.isNotEmpty) return;
-    await _seedCategories(ownerID);
-    await _seedSubcategories(ownerID);
-  }
+  Future<void> seedCategoriesForOwner(String ownerID) =>
+      CategorySeeder(this).seedForOwner(ownerID);
 
-  Future<void> _seedCategories(String ownerID) async {
-    final presets = [
-      // Expense
-      _cat(CategoryUUID.generate(ownerID, 'expense', '餐饮'), '餐饮', 'food', 'expense', true, 1),
-      _cat(CategoryUUID.generate(ownerID, 'expense', '交通'), '交通', 'transport', 'expense', true, 2),
-      _cat(CategoryUUID.generate(ownerID, 'expense', '购物'), '购物', 'shopping', 'expense', true, 3),
-      _cat(CategoryUUID.generate(ownerID, 'expense', '居住'), '居住', 'housing', 'expense', true, 4),
-      _cat(CategoryUUID.generate(ownerID, 'expense', '娱乐'), '娱乐', 'entertainment', 'expense', true, 5),
-      _cat(CategoryUUID.generate(ownerID, 'expense', '医疗'), '医疗', 'medical', 'expense', true, 6),
-      _cat(CategoryUUID.generate(ownerID, 'expense', '教育'), '教育', 'education', 'expense', true, 7),
-      _cat(CategoryUUID.generate(ownerID, 'expense', '通讯'), '通讯', 'communication', 'expense', true, 8),
-      _cat(CategoryUUID.generate(ownerID, 'expense', '人情'), '人情', 'gift', 'expense', true, 9),
-      _cat(CategoryUUID.generate(ownerID, 'expense', '服饰'), '服饰', 'clothing', 'expense', true, 10),
-      _cat(CategoryUUID.generate(ownerID, 'expense', '日用'), '日用', 'daily', 'expense', true, 11),
-      _cat(CategoryUUID.generate(ownerID, 'expense', '旅行'), '旅行', 'travel', 'expense', true, 12),
-      _cat(CategoryUUID.generate(ownerID, 'expense', '宠物'), '宠物', 'pet', 'expense', true, 13),
-      _cat(CategoryUUID.generate(ownerID, 'expense', '其他'), '其他', 'other', 'expense', true, 14),
-      // Income
-      _cat(CategoryUUID.generate(ownerID, 'income', '工资'), '工资', 'salary', 'income', true, 1),
-      _cat(CategoryUUID.generate(ownerID, 'income', '奖金'), '奖金', 'bonus', 'income', true, 2),
-      _cat(CategoryUUID.generate(ownerID, 'income', '投资收益'), '投资收益', 'investment_income', 'income', true, 3),
-      _cat(CategoryUUID.generate(ownerID, 'income', '兼职'), '兼职', 'freelance', 'income', true, 4),
-      _cat(CategoryUUID.generate(ownerID, 'income', '红包'), '红包', 'red_packet', 'income', true, 5),
-      _cat(CategoryUUID.generate(ownerID, 'income', '报销'), '报销', 'reimbursement', 'income', true, 6),
-      _cat(CategoryUUID.generate(ownerID, 'income', '其他'), '其他', 'other', 'income', true, 7),
-    ];
-    await batch((b) {
-      b.insertAllOnConflictUpdate(categories, presets);
-    });
-  }
-
-  CategoriesCompanion _cat(
-          String id, String name, String iconKey, String type, bool isPreset, int sort) =>
-      CategoriesCompanion.insert(
-        id: id,
-        name: name,
-        type: type,
-        isPreset: Value(isPreset),
-        sortOrder: Value(sort),
-        iconKey: Value(iconKey),
-      );
-
-  CategoriesCompanion _subcat(
-          String ownerID, String parentType, String parentName, String childName, String iconKey, int sort) {
-    final parentId = CategoryUUID.generate(ownerID, parentType, parentName);
-    final id = CategoryUUID.generate(ownerID, parentType, '$parentId:$childName');
-    return CategoriesCompanion.insert(
-      id: id,
-      name: childName,
-      type: parentType,
-      isPreset: const Value(true),
-      sortOrder: Value(sort),
-      parentId: Value(parentId),
-      iconKey: Value(iconKey),
-    );
-  }
-
-  Future<void> _seedSubcategories(String ownerID) async {
-    final subs = [
-      // 餐饮
-      _subcat(ownerID, 'expense', '餐饮', '早餐', 'food_breakfast', 1),
-      _subcat(ownerID, 'expense', '餐饮', '午餐', 'food_lunch', 2),
-      _subcat(ownerID, 'expense', '餐饮', '晚餐', 'food_dinner', 3),
-      _subcat(ownerID, 'expense', '餐饮', '夜宵', 'food_midnight', 4),
-      _subcat(ownerID, 'expense', '餐饮', '饮品', 'food_drink', 5),
-      _subcat(ownerID, 'expense', '餐饮', '水果零食', 'food_snack', 6),
-      // 交通
-      _subcat(ownerID, 'expense', '交通', '地铁公交', 'transport_metro', 1),
-      _subcat(ownerID, 'expense', '交通', '打车', 'transport_taxi', 2),
-      _subcat(ownerID, 'expense', '交通', '加油', 'transport_fuel', 3),
-      _subcat(ownerID, 'expense', '交通', '停车', 'transport_parking', 4),
-      // 购物
-      _subcat(ownerID, 'expense', '购物', '电器数码', 'shopping_digital', 1),
-      _subcat(ownerID, 'expense', '购物', '日用百货', 'shopping_daily', 2),
-      _subcat(ownerID, 'expense', '购物', '美妆护肤', 'shopping_beauty', 3),
-      // 居住
-      _subcat(ownerID, 'expense', '居住', '房租', 'housing_rent', 1),
-      _subcat(ownerID, 'expense', '居住', '物业', 'housing_property', 2),
-      _subcat(ownerID, 'expense', '居住', '水电燃气', 'housing_utility', 3),
-      _subcat(ownerID, 'expense', '居住', '家政服务', 'housing_cleaning', 4),
-      // 娱乐
-      _subcat(ownerID, 'expense', '娱乐', '电影演出', 'entertainment_movie', 1),
-      _subcat(ownerID, 'expense', '娱乐', '游戏', 'entertainment_game', 2),
-      _subcat(ownerID, 'expense', '娱乐', '运动健身', 'entertainment_sport', 3),
-      _subcat(ownerID, 'expense', '娱乐', '书籍', 'entertainment_book', 4),
-      // 医疗
-      _subcat(ownerID, 'expense', '医疗', '门诊', 'medical_clinic', 1),
-      _subcat(ownerID, 'expense', '医疗', '住院', 'medical_hospital', 2),
-      _subcat(ownerID, 'expense', '医疗', '买药', 'medical_pharmacy', 3),
-      _subcat(ownerID, 'expense', '医疗', '保健', 'medical_health', 4),
-      // 教育
-      _subcat(ownerID, 'expense', '教育', '培训课程', 'education_course', 1),
-      _subcat(ownerID, 'expense', '教育', '书籍资料', 'education_book', 2),
-      _subcat(ownerID, 'expense', '教育', '学费', 'education_tuition', 3),
-      // 通讯
-      _subcat(ownerID, 'expense', '通讯', '话费', 'communication_phone', 1),
-      _subcat(ownerID, 'expense', '通讯', '宽带', 'communication_broadband', 2),
-      _subcat(ownerID, 'expense', '通讯', '会员订阅', 'communication_subscription', 3),
-      // 人情
-      _subcat(ownerID, 'expense', '人情', '红包礼金', 'gift_red_packet', 1),
-      _subcat(ownerID, 'expense', '人情', '请客', 'gift_treat', 2),
-      _subcat(ownerID, 'expense', '人情', '份子钱', 'gift_wedding', 3),
-      // 服饰
-      _subcat(ownerID, 'expense', '服饰', '衣服', 'clothing_clothes', 1),
-      _subcat(ownerID, 'expense', '服饰', '鞋包', 'clothing_shoes', 2),
-      _subcat(ownerID, 'expense', '服饰', '配饰', 'clothing_accessory', 3),
-      // 日用
-      _subcat(ownerID, 'expense', '日用', '清洁用品', 'daily_cleaning', 1),
-      _subcat(ownerID, 'expense', '日用', '个人护理', 'daily_personal', 2),
-      // 旅行
-      _subcat(ownerID, 'expense', '旅行', '住宿', 'travel_hotel', 1),
-      _subcat(ownerID, 'expense', '旅行', '机票火车', 'travel_ticket', 2),
-      _subcat(ownerID, 'expense', '旅行', '门票景点', 'travel_attraction', 3),
-      // 宠物
-      _subcat(ownerID, 'expense', '宠物', '口粮用品', 'pet_food', 1),
-      _subcat(ownerID, 'expense', '宠物', '宠物医疗', 'pet_medical', 2),
-      // 收入
-      _subcat(ownerID, 'income', '工资', '基本工资', 'salary_base', 1),
-      _subcat(ownerID, 'income', '工资', '绩效', 'salary_performance', 2),
-      _subcat(ownerID, 'income', '工资', '加班费', 'salary_overtime', 3),
-      _subcat(ownerID, 'income', '奖金', '年终奖', 'bonus_annual', 1),
-      _subcat(ownerID, 'income', '奖金', '项目奖', 'bonus_project', 2),
-      _subcat(ownerID, 'income', '投资收益', '股票', 'investment_stock', 1),
-      _subcat(ownerID, 'income', '投资收益', '基金', 'investment_fund', 2),
-      _subcat(ownerID, 'income', '投资收益', '利息', 'investment_interest', 3),
-    ];
-    await batch((b) {
-      b.insertAllOnConflictUpdate(categories, subs);
-    });
-  }
 
   Future<void> _migrateCategoryUUIDs() async {
     // Legacy migration — no longer needed since data is cleared.
