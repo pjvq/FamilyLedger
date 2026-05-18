@@ -31,8 +31,10 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
+    // SyncEngine is now auto-started by the provider when user is logged in.
+    // Just read the provider to ensure it's alive (Riverpod is lazy).
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(syncEngineProvider).start();
+      ref.read(syncEngineProvider);
     });
   }
 
