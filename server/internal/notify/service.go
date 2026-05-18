@@ -285,8 +285,6 @@ func (s *Service) CreateNotification(ctx context.Context, userID string, nType, 
 
 	// TODO(M8): Implement push delivery via FCM/APNs.
 	// Currently notifications are stored in DB only — users must poll via ListNotifications.
-	// Push delivery requires: device_tokens table + firebase-admin-go or equivalent.
-	log.Printf("notify: created %s notification for user %s (push delivery not yet implemented)", nType, userID)
 	return nil
 }
 

@@ -582,7 +582,7 @@ BATCH=$(grpc_auth investment.proto \
     "familyledger.investment.v1.MarketDataService/BatchGetQuotes" \
     '{"requests":[{"symbol":"600519","market_type":"MARKET_TYPE_A_SHARE"},{"symbol":"000858","market_type":"MARKET_TYPE_A_SHARE"}]}')
 B_CNT=$(echo "$BATCH" | jq '.quotes | length')
-if [ "${B_CNT:-0}" -ge 1 ] 2>/dev/null; then
+if [ "${B_CNT:-0}" -ge 2 ] 2>/dev/null; then
     pass "BatchGetQuotes - got $B_CNT quotes"
 else
     fail "BatchGetQuotes" "$BATCH"

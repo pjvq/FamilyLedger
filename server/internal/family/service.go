@@ -765,13 +765,13 @@ func (s *Service) DeleteFamily(ctx context.Context, req *pb.DeleteFamilyRequest)
 		// Non-fatal: audit logs are not critical data
 	}
 
-	// 5. Delete family members
+	// 6. Delete family members
 	_, err = tx.Exec(ctx, `DELETE FROM family_members WHERE family_id = $1`, familyID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to delete members")
 	}
 
-	// 6. Delete family itself
+	// 7. Delete family itself
 	_, err = tx.Exec(ctx, `DELETE FROM families WHERE id = $1`, familyID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to delete family")

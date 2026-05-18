@@ -927,7 +927,7 @@ func validateImageMagic(data []byte, contentType string) bool {
 		}
 		// bytes 8-11 should be a HEIF brand (heic, heix, mif1, etc.)
 		brand := string(data[8:12])
-		return brand == "heic" || brand == "heix" || brand == "mif1" || brand == "msf1" || brand == "hevc"
+		return brand == "heic" || brand == "heix" || brand == "mif1" || brand == "msf1" || brand == "hevc" || brand == "heif"
 	}
 
 	sigs, ok := imageSignatures[contentType]

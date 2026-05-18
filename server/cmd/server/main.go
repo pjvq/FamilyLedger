@@ -233,8 +233,10 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", hub.HandleWebSocket)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		// Verify DB connectivity
-		if err := pool.Ping(r.Context()); err != nil {
+		// Independent 3s timeout — never inherit LB timeout
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if err := pool.Ping(ctx); err != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			w.Write([]byte("db unhealthy"))
 			return
