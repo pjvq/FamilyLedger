@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
@@ -18,18 +19,18 @@ import (
 func TestExtractIP_WithPort(t *testing.T) {
 	addr, _ := net.ResolveTCPAddr("tcp", "192.168.1.1:8080")
 	ctx := peer.NewContext(context.Background(), &peer.Peer{Addr: addr})
-	ip := extractIP(ctx)
+	ip := extractIP(ctx, false)
 	assert.Equal(t, "192.168.1.1", ip)
 }
 
 func TestExtractIP_NoPeer(t *testing.T) {
-	ip := extractIP(context.Background())
+	ip := extractIP(context.Background(), false)
 	assert.Equal(t, "unknown", ip)
 }
 
 func TestExtractIP_NilAddr(t *testing.T) {
 	ctx := peer.NewContext(context.Background(), &peer.Peer{Addr: nil})
-	ip := extractIP(ctx)
+	ip := extractIP(ctx, false)
 	assert.Equal(t, "unknown", ip)
 }
 
@@ -37,7 +38,37 @@ func TestExtractIP_NoPort(t *testing.T) {
 	// Address without port (unlikely but test the fallback)
 	addr := &fakeAddr{addr: "192.168.1.1"}
 	ctx := peer.NewContext(context.Background(), &peer.Peer{Addr: addr})
-	ip := extractIP(ctx)
+	ip := extractIP(ctx, false)
+	assert.Equal(t, "192.168.1.1", ip)
+}
+
+func TestExtractIP_TrustProxy_XForwardedFor(t *testing.T) {
+	md := metadata.Pairs("x-forwarded-for", "203.0.113.50, 10.0.0.1")
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	// With TrustProxy=true, should use first IP from X-Forwarded-For
+	ip := extractIP(ctx, true)
+	assert.Equal(t, "203.0.113.50", ip)
+	// With TrustProxy=false, should ignore header
+	ip = extractIP(ctx, false)
+	assert.Equal(t, "unknown", ip) // no peer info
+}
+
+func TestExtractIP_TrustProxy_XRealIP(t *testing.T) {
+	md := metadata.Pairs("x-real-ip", "198.51.100.23")
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	ip := extractIP(ctx, true)
+	assert.Equal(t, "198.51.100.23", ip)
+}
+
+func TestExtractIP_TrustProxy_InvalidIP(t *testing.T) {
+	md := metadata.Pairs("x-forwarded-for", "not-an-ip")
+	addr := &fakeAddr{addr: "192.168.1.1:5000"}
+	ctx := metadata.NewIncomingContext(
+		peer.NewContext(context.Background(), &peer.Peer{Addr: addr}),
+		md,
+	)
+	// Invalid IP in header → falls back to peer
+	ip := extractIP(ctx, true)
 	assert.Equal(t, "192.168.1.1", ip)
 }
 

@@ -81,6 +81,8 @@ func main() {
 		Password: dbPassword,
 		DBName:   getEnv("DB_NAME", "familyledger"),
 		SSLMode:  getEnv("DB_SSLMODE", "require"),
+		MaxConns: int32(getEnvInt("DB_MAX_CONNS", 20)),
+		MinConns: int32(getEnvInt("DB_MIN_CONNS", 2)),
 	}
 
 	jwtSecret := config.ValidateJWTSecret()
@@ -134,7 +136,9 @@ func main() {
 	importService := importcsv.NewService(pool)
 
 	// Rate limiter
-	rateLimiter := middleware.NewRateLimiter(middleware.DefaultRateLimiterConfig())
+	rlCfg := middleware.DefaultRateLimiterConfig()
+	rlCfg.TrustProxy = getEnv("TRUST_PROXY", "") == "true"
+	rateLimiter := middleware.NewRateLimiter(rlCfg)
 	defer rateLimiter.Stop()
 
 	// Unified TLS configuration (shared between gRPC and WebSocket)
@@ -466,6 +470,15 @@ func runDepreciationTask(ctx context.Context, assetService *asset.Service) {
 func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
+	}
+	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	if value, ok := os.LookupEnv(key); ok {
+		if n, err := strconv.Atoi(value); err == nil {
+			return n
+		}
 	}
 	return fallback
 }

@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -14,6 +15,11 @@ type Config struct {
 	Password string
 	DBName   string
 	SSLMode  string
+	// Pool configuration
+	MaxConns        int32 // default 20
+	MinConns        int32 // default 2
+	MaxConnLifetime time.Duration // default 1h
+	MaxConnIdleTime time.Duration // default 30m
 }
 
 func NewPool(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
@@ -27,7 +33,23 @@ func NewPool(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("parse db config: %w", err)
 	}
 
+	// Apply pool settings with sensible defaults
 	poolCfg.MaxConns = 20
+	if cfg.MaxConns > 0 {
+		poolCfg.MaxConns = cfg.MaxConns
+	}
+	poolCfg.MinConns = 2
+	if cfg.MinConns > 0 {
+		poolCfg.MinConns = cfg.MinConns
+	}
+	poolCfg.MaxConnLifetime = 1 * time.Hour
+	if cfg.MaxConnLifetime > 0 {
+		poolCfg.MaxConnLifetime = cfg.MaxConnLifetime
+	}
+	poolCfg.MaxConnIdleTime = 30 * time.Minute
+	if cfg.MaxConnIdleTime > 0 {
+		poolCfg.MaxConnIdleTime = cfg.MaxConnIdleTime
+	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
 	if err != nil {
