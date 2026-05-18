@@ -70,12 +70,10 @@ func mockCreateTxnFlow(mock pgxmock.PgxPoolIface, accountID, categoryID, txnID u
 		WithArgs(pgxmock.AnyArg(), accountID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
-	// 7. Sync operations savepoint
-	mock.ExpectExec(`SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
+	// 7. Sync operations
 	mock.ExpectExec(`INSERT INTO sync_operations`).
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(userUUID, txnID, "create", pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
-	mock.ExpectExec(`RELEASE SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("RELEASE", 0))
 
 	// 8. COMMIT
 	mock.ExpectCommit()
@@ -254,6 +252,10 @@ func TestW3_DeleteTransaction_SoftDeleteRevertsExpense(t *testing.T) {
 		WithArgs(int64(5000), accountID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(userUUID, txnID, "delete", pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
 	_, err = svc.DeleteTransaction(authedCtx(), &pb.DeleteTransactionRequest{
@@ -292,6 +294,10 @@ func TestW3_DeleteTransaction_IncomeRevertsBalance(t *testing.T) {
 		WithArgs(int64(-20000), accountID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(userUUID, txnID, "delete", pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
 	_, err = svc.DeleteTransaction(authedCtx(), &pb.DeleteTransactionRequest{
@@ -382,6 +388,16 @@ func TestW3_UpdateTransaction_AmountChangeRebalance(t *testing.T) {
 		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
+	// Sync: re-query updated fields
+	mock.ExpectQuery(`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"account_id", "category_id", "amount", "amount_cny", "type", "note", "currency", "txn_date",
+		}).AddRow(accountID, categoryID, int64(8000), int64(8000), "expense", "lunch", "CNY", time.Now()))
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(userUUID, txnID, "update", pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
 	// Refetch updated transaction (pool.Query after commit)
@@ -466,11 +482,9 @@ func TestW3_CreateTransaction_UsesForUpdateLock(t *testing.T) {
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
 	// Sync operations
-	mock.ExpectExec(`SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
 	mock.ExpectExec(`INSERT INTO sync_operations`).
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(userUUID, txnID, "create", pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
-	mock.ExpectExec(`RELEASE SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("RELEASE", 0))
 
 	mock.ExpectCommit()
 
@@ -520,6 +534,10 @@ func TestW3_DeleteTransaction_ForUpdateLockOnTransaction(t *testing.T) {
 		WithArgs(int64(5000), accountID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(userUUID, txnID, "delete", pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
 	_, err = svc.DeleteTransaction(authedCtx(), &pb.DeleteTransactionRequest{

@@ -220,14 +220,10 @@ func TestBoost2_CreateTransaction_IncomeType(t *testing.T) {
 	mock.ExpectExec("UPDATE accounts SET balance").
 		WithArgs(int64(5000), accID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-	// Sync operation (savepoint)
-	mock.ExpectExec("SAVEPOINT sync_insert").
-		WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
+	// Sync operation
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(userUID, txnID, pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(userUID, txnID, "create", pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
-	mock.ExpectExec("RELEASE SAVEPOINT sync_insert").
-		WillReturnResult(pgxmock.NewResult("RELEASE", 0))
 	mock.ExpectCommit()
 
 	resp, err := svc.CreateTransaction(authedCtx(), &pb.CreateTransactionRequest{
@@ -617,6 +613,10 @@ func TestBoost2_DeleteTransaction_OwnerOnFamilyAccountPermCheck(t *testing.T) {
 	mock.ExpectExec("UPDATE accounts SET balance").
 		WithArgs(int64(-1000), accID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(userUID, txnID, "delete", pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	// getAccountFamilyID for audit log
 	mock.ExpectQuery("SELECT family_id.*user_id FROM accounts WHERE").
@@ -703,6 +703,10 @@ func TestBoost2_BatchDelete_IncomeRevert(t *testing.T) {
 	mock.ExpectExec("UPDATE accounts SET balance").
 		WithArgs(int64(-3000), accID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(userUID, txnID, "delete", pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
 	resp, err := svc.BatchDeleteTransactions(authedCtx(), &pb.BatchDeleteTransactionsRequest{
@@ -741,6 +745,10 @@ func TestBoost2_BatchDelete_FamilyPermissionCheck(t *testing.T) {
 	mock.ExpectExec("UPDATE accounts SET balance").
 		WithArgs(int64(1000), accID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(userUID, txnID, "delete", pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
 	resp, err := svc.BatchDeleteTransactions(authedCtx(), &pb.BatchDeleteTransactionsRequest{
@@ -769,7 +777,7 @@ func TestBoost2_GetAccountOwnershipFrom_DBError(t *testing.T) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// CreateTransaction — sync operation failure path (savepoint rollback)
+// CreateTransaction — sync operation failure path
 // ════════════════════════════════════════════════════════════════════════════
 
 func TestBoost2_CreateTransaction_SyncOpFailure(t *testing.T) {
@@ -802,23 +810,19 @@ func TestBoost2_CreateTransaction_SyncOpFailure(t *testing.T) {
 	mock.ExpectExec("UPDATE accounts SET balance").
 		WithArgs(int64(-500), accID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-	// Sync operation fails
-	mock.ExpectExec("SAVEPOINT sync_insert").
-		WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
+	// Sync operation fails — now causes the transaction to fail (no silent data loss)
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(userUID, txnID, pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(userUID, txnID, "create", pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnError(fmt.Errorf("sync table error"))
-	mock.ExpectExec("ROLLBACK TO SAVEPOINT sync_insert").
-		WillReturnResult(pgxmock.NewResult("ROLLBACK", 0))
-	mock.ExpectCommit()
+	mock.ExpectRollback()
 
 	resp, err := svc.CreateTransaction(authedCtx(), &pb.CreateTransactionRequest{
 		AccountId:  accID.String(),
 		CategoryId: catID.String(),
 		Amount:     500,
 	})
-	require.NoError(t, err)
-	assert.NotNil(t, resp.Transaction)
+	require.Error(t, err, "sync_operations failure should now abort the transaction")
+	assert.Nil(t, resp)
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -861,13 +865,9 @@ func TestBoost2_CreateTransaction_FamilyAccountWithAudit(t *testing.T) {
 	mock.ExpectExec("UPDATE accounts SET balance").
 		WithArgs(int64(-200), accID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-	mock.ExpectExec("SAVEPOINT sync_insert").
-		WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(userUID, txnID, pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(userUID, txnID, "create", pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
-	mock.ExpectExec("RELEASE SAVEPOINT sync_insert").
-		WillReturnResult(pgxmock.NewResult("RELEASE", 0))
 	mock.ExpectCommit()
 	// Audit log
 	mock.ExpectExec("INSERT INTO audit_logs").

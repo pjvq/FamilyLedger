@@ -89,12 +89,10 @@ func TestCreateTransaction_Success(t *testing.T) {
 		WithArgs(pgxmock.AnyArg(), accountID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
-	// Sync operations savepoint
-	mock.ExpectExec(`SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("SAVEPOINT", 0))
+	// Sync operation
 	mock.ExpectExec(`INSERT INTO sync_operations`).
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(userUUID, txnID, "create", pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
-	mock.ExpectExec(`RELEASE SAVEPOINT sync_insert`).WillReturnResult(pgxmock.NewResult("RELEASE", 0))
 
 	mock.ExpectCommit()
 
@@ -348,6 +346,16 @@ func TestUpdateTransaction_Success(t *testing.T) {
 		WithArgs(pgxmock.AnyArg(), txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
+	// Sync: re-query updated fields
+	mock.ExpectQuery(`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"account_id", "category_id", "amount", "amount_cny", "type", "note", "currency", "txn_date",
+		}).AddRow(accountID, categoryID, int64(5000), int64(5000), "expense", "new note", "CNY", now))
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(userUUID, txnID, "update", pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
 	// Fetch updated transaction (after commit, outside tx)
@@ -438,6 +446,10 @@ func TestDeleteTransaction_Success(t *testing.T) {
 		WithArgs(int64(5000), accountID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(userUUID, txnID, "delete", pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
 	resp, err := svc.DeleteTransaction(authedCtx(), &pb.DeleteTransactionRequest{
@@ -543,6 +555,16 @@ func TestUpdateTransaction_FamilyMemberWithEditPermission(t *testing.T) {
 		WithArgs(pgxmock.AnyArg(), txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
+	// Sync: re-query updated fields
+	mock.ExpectQuery(`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"account_id", "category_id", "amount", "amount_cny", "type", "note", "currency", "txn_date",
+		}).AddRow(accountID, categoryID, int64(5000), int64(5000), "expense", "old note", "CNY", now))
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(uuid.MustParse(testUserID), txnID, "update", pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
 	// Fetch updated transaction
@@ -611,6 +633,16 @@ func TestUpdateTransaction_FamilyAdminCanEdit(t *testing.T) {
 		WithArgs(pgxmock.AnyArg(), txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
+	// Sync: re-query updated fields
+	mock.ExpectQuery(`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"account_id", "category_id", "amount", "amount_cny", "type", "note", "currency", "txn_date",
+		}).AddRow(accountID, categoryID, int64(3000), int64(3000), "income", "updated", "CNY", now))
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(uuid.MustParse(testUserID), txnID, "update", pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
 	mock.ExpectQuery(`SELECT id, user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, created_at, updated_at, tags, image_urls`).
@@ -823,6 +855,11 @@ func TestDeleteTransaction_FamilyMemberWithDeletePermission(t *testing.T) {
 	mock.ExpectExec(`UPDATE accounts SET balance = balance \+ \$1`).
 		WithArgs(int64(3000), accountID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	// Sync operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(uuid.MustParse(testUserID), txnID, "delete", pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
 	mock.ExpectCommit()
 

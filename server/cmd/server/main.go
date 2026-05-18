@@ -276,27 +276,41 @@ func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 			return
 		case <-time.After(waitDuration):
 			log.Println("scheduler: running budget check...")
-			checkCtx, checkCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			checkCtx, checkCancel := context.WithTimeout(ctx, 5*time.Minute)
 			if err := notifyService.CheckBudgets(checkCtx); err != nil {
 				log.Printf("scheduler: budget check error: %v", err)
 			}
 			checkCancel()
 
+			if ctx.Err() != nil {
+				log.Println("scheduler: shutdown during checks, aborting remaining")
+				return
+			}
+
 			log.Println("scheduler: running loan reminder check...")
-			loanCtx, loanCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			loanCtx, loanCancel := context.WithTimeout(ctx, 5*time.Minute)
 			if err := notifyService.CheckLoanReminders(loanCtx); err != nil {
 				log.Printf("scheduler: loan reminder check error: %v", err)
 			}
 			loanCancel()
 
+			if ctx.Err() != nil {
+				log.Println("scheduler: shutdown during checks, aborting remaining")
+				return
+			}
+
 			log.Println("scheduler: running custom reminder check...")
-			reminderCtx, reminderCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			reminderCtx, reminderCancel := context.WithTimeout(ctx, 5*time.Minute)
 			if err := notifyService.CheckCustomReminders(reminderCtx); err != nil {
 				log.Printf("scheduler: custom reminder check error: %v", err)
 			}
 			reminderCancel()
 
-			// TODO: Push notifications via FCM/APNs (placeholder — just logged for now)
+			if ctx.Err() != nil {
+				log.Println("scheduler: shutdown during checks, aborting remaining")
+				return
+			}
+
 			log.Println("scheduler: all checks complete")
 		}
 	}
@@ -322,11 +336,17 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 			return
 		case <-time.After(interval):
 			now = time.Now()
-			refreshCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			refreshCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 
 			// Always refresh crypto (24/7)
 			if err := marketService.RefreshQuotes(refreshCtx, []string{"crypto"}); err != nil {
 				log.Printf("market-scheduler: crypto refresh error: %v", err)
+			}
+
+			if ctx.Err() != nil {
+				log.Println("market-scheduler: shutdown during refresh, aborting remaining")
+				cancel()
+				return
 			}
 
 			// Refresh A-share/fund only during CN trading hours
@@ -336,11 +356,23 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 				}
 			}
 
+			if ctx.Err() != nil {
+				log.Println("market-scheduler: shutdown during refresh, aborting remaining")
+				cancel()
+				return
+			}
+
 			// Refresh HK stocks only during HK trading hours
 			if market.IsTradingHours(now, "hk_stock") {
 				if err := marketService.RefreshQuotes(refreshCtx, []string{"hk_stock"}); err != nil {
 					log.Printf("market-scheduler: hk_stock refresh error: %v", err)
 				}
+			}
+
+			if ctx.Err() != nil {
+				log.Println("market-scheduler: shutdown during refresh, aborting remaining")
+				cancel()
+				return
 			}
 
 			// Refresh US stocks only during US trading hours
@@ -384,7 +416,7 @@ func runDepreciationTask(ctx context.Context, assetService *asset.Service) {
 			return
 		case <-time.After(waitDuration):
 			log.Println("depreciation-scheduler: running monthly depreciation...")
-			depCtx, depCancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			depCtx, depCancel := context.WithTimeout(ctx, 10*time.Minute)
 			if err := assetService.RunMonthlyDepreciationAll(depCtx); err != nil {
 				log.Printf("depreciation-scheduler: error: %v", err)
 			}
@@ -406,7 +438,7 @@ func runExchangeRateRefreshTask(ctx context.Context, exchangeService *market.Exc
 	log.Println("exchange-scheduler: started, refresh every hour")
 
 	// Initial refresh on startup
-	refreshCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	refreshCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	if err := exchangeService.RefreshExchangeRates(refreshCtx); err != nil {
 		log.Printf("exchange-scheduler: initial refresh error: %v", err)
 	}
@@ -418,7 +450,7 @@ func runExchangeRateRefreshTask(ctx context.Context, exchangeService *market.Exc
 			log.Println("exchange-scheduler: stopped")
 			return
 		case <-time.After(1 * time.Hour):
-			refreshCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			refreshCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 			if err := exchangeService.RefreshExchangeRates(refreshCtx); err != nil {
 				log.Printf("exchange-scheduler: refresh error: %v", err)
 			}
@@ -437,7 +469,7 @@ func runImportSessionCleanupTask(ctx context.Context, importService *importcsv.S
 			log.Println("import-cleanup-scheduler: stopped")
 			return
 		case <-time.After(1 * time.Hour):
-			cleanCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			cleanCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 			if err := importService.CleanupExpiredSessions(cleanCtx); err != nil {
 				log.Printf("import-cleanup-scheduler: error: %v", err)
 			}

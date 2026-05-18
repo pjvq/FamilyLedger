@@ -951,7 +951,8 @@ type BatchCreateTransactionsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	CreatedCount  int32                  `protobuf:"varint,1,opt,name=created_count,json=createdCount,proto3" json:"created_count,omitempty"`
 	Transactions  []*Transaction         `protobuf:"bytes,2,rep,name=transactions,proto3" json:"transactions,omitempty"`
-	Errors        []string               `protobuf:"bytes,3,rep,name=errors,proto3" json:"errors,omitempty"` // 失败的错误信息
+	Errors        []string               `protobuf:"bytes,3,rep,name=errors,proto3" json:"errors,omitempty"`     // 创建失败的错误信息
+	Warnings      []string               `protobuf:"bytes,4,rep,name=warnings,proto3" json:"warnings,omitempty"` // 非致命警告（如透支提示），不影响创建结果
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1003,6 +1004,13 @@ func (x *BatchCreateTransactionsResponse) GetTransactions() []*Transaction {
 func (x *BatchCreateTransactionsResponse) GetErrors() []string {
 	if x != nil {
 		return x.Errors
+	}
+	return nil
+}
+
+func (x *BatchCreateTransactionsResponse) GetWarnings() []string {
+	if x != nil {
+		return x.Warnings
 	}
 	return nil
 }
@@ -1833,11 +1841,12 @@ const file_transaction_proto_rawDesc = "" +
 	"\x1eBatchCreateTransactionsRequest\x12Y\n" +
 	"\ftransactions\x18\x01 \x03(\v25.familyledger.transaction.v1.CreateTransactionRequestR\ftransactions\x12\x1d\n" +
 	"\n" +
-	"account_id\x18\x02 \x01(\tR\taccountId\"\xac\x01\n" +
+	"account_id\x18\x02 \x01(\tR\taccountId\"\xc8\x01\n" +
 	"\x1fBatchCreateTransactionsResponse\x12#\n" +
 	"\rcreated_count\x18\x01 \x01(\x05R\fcreatedCount\x12L\n" +
 	"\ftransactions\x18\x02 \x03(\v2(.familyledger.transaction.v1.TransactionR\ftransactions\x12\x16\n" +
-	"\x06errors\x18\x03 \x03(\tR\x06errors\"I\n" +
+	"\x06errors\x18\x03 \x03(\tR\x06errors\x12\x1a\n" +
+	"\bwarnings\x18\x04 \x03(\tR\bwarnings\"I\n" +
 	"\x1eBatchDeleteTransactionsRequest\x12'\n" +
 	"\x0ftransaction_ids\x18\x01 \x03(\tR\x0etransactionIds\"F\n" +
 	"\x1fBatchDeleteTransactionsResponse\x12#\n" +
