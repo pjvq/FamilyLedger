@@ -21,8 +21,8 @@ void main() {
       await db.close();
     });
 
-    test('schemaVersion is 15', () {
-      expect(db.schemaVersion, 18);
+    test('schemaVersion is 19', () {
+      expect(db.schemaVersion, 19);
     });
 
     test('fresh database creates all tables without error', () async {
