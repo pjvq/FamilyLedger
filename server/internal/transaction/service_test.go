@@ -162,10 +162,7 @@ func TestCreateTransaction_MissingFields(t *testing.T) {
 	st, _ = status.FromError(err)
 	assert.Equal(t, codes.InvalidArgument, st.Code())
 
-	// Zero amount — needs family_id mock since parse succeeds
-	mock.ExpectQuery(`SELECT family_id::text, user_id FROM accounts WHERE id = \$1 AND deleted_at IS NULL`).
-		WithArgs(pgxmock.AnyArg()).
-		WillReturnRows(pgxmock.NewRows([]string{"family_id", "user_id"}).AddRow(nil, userUUID))
+	// Zero amount — now caught in input validation before DB access
 	resp, err = svc.CreateTransaction(authedCtx(), &pb.CreateTransactionRequest{
 		AccountId:  uuid.New().String(),
 		CategoryId: uuid.New().String(),

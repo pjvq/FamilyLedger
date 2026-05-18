@@ -167,220 +167,80 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		return nil, err
 	}
 
-	uid, err := uuid.Parse(userID)
+	// Step 1: Validate and parse all inputs
+	cr, err := validateCreateInput(userID, req)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "invalid user id")
+		return nil, err
 	}
 
-	accountID, err := uuid.Parse(req.AccountId)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid account_id")
+	// Step 2: Permission check (outside transaction — read-only)
+	if err := checkAccountPermission(ctx, s.pool, cr.userID, cr.accountID); err != nil {
+		return nil, err
 	}
 
-	categoryID, err := uuid.Parse(req.CategoryId)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid category_id")
-	}
-
-	// Ownership + Permission check
-	own, err := getAccountOwnershipFrom(ctx, s.pool, accountID)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, status.Error(codes.NotFound, "account not found")
-		}
-		return nil, status.Error(codes.Internal, "failed to check account ownership")
-	}
-	if own.familyID == "" {
-		// Personal account: only the owner can create transactions
-		if own.ownerID != uid {
-			return nil, status.Error(codes.PermissionDenied, "account does not belong to user")
-		}
-	} else {
-		// Family account: check family membership + permissions
-		if err := permission.Check(ctx, s.pool, userID, own.familyID, permission.CanCreate); err != nil {
-			return nil, err
-		}
-	}
-
-	if req.Amount <= 0 {
-		return nil, status.Error(codes.InvalidArgument, "amount must be positive")
-	}
-	if req.Amount > 99999999999 {
-		return nil, status.Error(codes.InvalidArgument, "amount exceeds maximum allowed (10 billion CNY)")
-	}
-
-	// Note length limit
-	if len(req.Note) > 1000 {
-		return nil, status.Error(codes.InvalidArgument, "note exceeds maximum length of 1000 characters")
-	}
-
-	currency := req.Currency
-	if currency == "" {
-		currency = "CNY"
-	}
-
-	amountCny := req.AmountCny
-	exchangeRate := req.ExchangeRate
-	if currency == "CNY" {
-		amountCny = req.Amount
-		exchangeRate = 1.0
-	} else if amountCny <= 0 {
-		// Foreign currency must provide amountCny
-		return nil, status.Error(codes.InvalidArgument, "amount_cny is required for non-CNY currency")
-	}
-
-	txnDate := time.Now()
-	if req.TxnDate != nil {
-		var err error
-		txnDate, err = validateTxnDate(req.TxnDate)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	txnType := "expense"
-	if req.Type == pb.TransactionType_TRANSACTION_TYPE_INCOME {
-		txnType = "income"
-	}
-
-	// Begin transaction
+	// Step 3: Execute within database transaction
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to begin transaction")
 	}
 	defer tx.Rollback(ctx)
 
-	// Verify account belongs to user or user is a family member
-	var ownerID uuid.UUID
-	var acctFamilyID *uuid.UUID
-	var acctType string
-	err = tx.QueryRow(ctx,
-		"SELECT user_id, family_id, type FROM accounts WHERE id = $1 AND deleted_at IS NULL",
-		accountID,
-	).Scan(&ownerID, &acctFamilyID, &acctType)
+	// 3a: Re-verify account within tx (serializable check)
+	acctMeta, err := verifyAccountInTx(ctx, tx, cr.userID, cr.accountID)
 	if err != nil {
-		return nil, status.Error(codes.NotFound, "account not found")
-	}
-	if ownerID != uid {
-		// For family accounts, check membership instead of ownership
-		if acctFamilyID == nil {
-			return nil, status.Error(codes.PermissionDenied, "account does not belong to user")
-		}
-		var isMember bool
-		err = tx.QueryRow(ctx,
-			"SELECT EXISTS(SELECT 1 FROM family_members WHERE family_id = $1 AND user_id = $2)",
-			*acctFamilyID, uid,
-		).Scan(&isMember)
-		if err != nil || !isMember {
-			return nil, status.Error(codes.PermissionDenied, "account does not belong to user")
-		}
+		return nil, err
 	}
 
-	// Verify category exists
-	var catExists bool
-	err = tx.QueryRow(ctx,
-		"SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1 AND deleted_at IS NULL)", categoryID,
-	).Scan(&catExists)
-	if err != nil || !catExists {
-		// In batch mode, auto-create a placeholder category to avoid FK violation.
-		// Try to find a default category of the same type first; only create
-		// a placeholder as last resort.
-		if ctx.Value(skipOverdraftKey) != nil {
-			var fallbackID uuid.UUID
-			fallbackErr := tx.QueryRow(ctx,
-				`SELECT id FROM categories WHERE type = $1::category_type AND is_preset = true AND deleted_at IS NULL ORDER BY sort_order LIMIT 1`,
-				txnType,
-			).Scan(&fallbackID)
-			if fallbackErr == nil {
-				// Use the default preset category instead of auto-creating a placeholder
-				categoryID = fallbackID
-				log.Printf("batch-create: category not found, falling back to preset %s for user %s", fallbackID, userID)
-			} else {
-				// No preset found either — create placeholder as last resort
-				typeLabel := "支出"
-				if txnType == "income" {
-					typeLabel = "收入"
-				}
-				placeholderName := fmt.Sprintf("未分类-%s-%s", typeLabel, categoryID.String()[:8])
-				_, autoErr := tx.Exec(ctx,
-					`INSERT INTO categories (id, name, icon, icon_key, type, is_preset, sort_order, user_id)
-					 VALUES ($1, $2, '', 'category', $3::category_type, false, 0, $4)
-					 ON CONFLICT (id) DO NOTHING`,
-					categoryID, placeholderName, txnType, uid,
-				)
-				if autoErr != nil {
-					return nil, status.Errorf(codes.InvalidArgument, "category %s not found and auto-create failed: %v", categoryID, autoErr)
-				}
-				log.Printf("batch-create: auto-created placeholder category %s (%s) for user %s", categoryID, placeholderName, userID)
-			}
-		} else {
-			return nil, status.Errorf(codes.InvalidArgument, "category %s not found", categoryID)
-		}
+	// 3b: Verify category
+	resolvedCatID, err := verifyCategory(ctx, tx, cr)
+	if err != nil {
+		return nil, err
 	}
 
-	// Create transaction
+	// 3c: Insert transaction row
 	var txnID uuid.UUID
 	var createdAt, updatedAt time.Time
-	tags := req.Tags
-	if tags == nil {
-		tags = []string{}
-	}
-	imageURLs := req.ImageUrls
-	if imageURLs == nil {
-		imageURLs = []string{}
-	}
 	err = tx.QueryRow(ctx,
 		`INSERT INTO transactions (user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, tags, image_urls)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8::transaction_type, $9, $10, $11, $12)
 		 RETURNING id, created_at, updated_at`,
-		uid, accountID, categoryID, req.Amount, currency, amountCny, exchangeRate, txnType, req.Note, txnDate, tags, imageURLs,
+		cr.userID, cr.accountID, resolvedCatID, cr.amount, cr.currency, cr.amountCny, cr.exchangeRate, cr.txnType, cr.note, cr.txnDate, cr.tags, cr.imageURLs,
 	).Scan(&txnID, &createdAt, &updatedAt)
 	if err != nil {
 		log.Printf("transaction: create error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create transaction")
 	}
 
-	// Overdraft protection: lock row + check balance BEFORE deducting (prevents TOCTOU race)
-	balanceDelta := amountCny
-	if txnType == "expense" {
-		balanceDelta = -amountCny
-	}
-	if txnType == "expense" && acctType != "credit_card" && ctx.Value(skipOverdraftKey) == nil {
-		var currentBalance int64
-		err = tx.QueryRow(ctx,
-			"SELECT balance FROM accounts WHERE id = $1 FOR UPDATE",
-			accountID).Scan(&currentBalance)
-		if err != nil {
-			return nil, status.Error(codes.Internal, "failed to lock account for balance check")
-		}
-		if currentBalance < amountCny {
-			return nil, status.Error(codes.FailedPrecondition, "insufficient balance: account does not allow overdraft")
+	// 3d: Overdraft check (expense only, non-credit-card)
+	balanceDelta := cr.amountCny
+	if cr.txnType == "expense" {
+		balanceDelta = -cr.amountCny
+		if err := checkOverdraft(ctx, tx, cr.accountID, cr.amountCny, acctMeta.acctType); err != nil {
+			return nil, err
 		}
 	}
 
-	// Update account balance (use amountCny — balance is always in CNY)
+	// 3e: Update account balance
 	_, err = tx.Exec(ctx,
 		"UPDATE accounts SET balance = balance + $1, updated_at = NOW() WHERE id = $2",
-		balanceDelta, accountID,
+		balanceDelta, cr.accountID,
 	)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to update account balance")
 	}
 
-	// Write sync_operations record so PullChanges can discover this transaction.
-	// sync_operations INSERT is part of the transaction — failure rolls back everything.
-	// This prevents silent data loss where transactions exist but are invisible to sync.
-	if err := insertTransactionSyncOp(ctx, tx, uid, txnID, "create", map[string]interface{}{
+	// 3f: Record sync operation
+	if err := insertTransactionSyncOp(ctx, tx, cr.userID, txnID, "create", map[string]interface{}{
 		"id":            txnID.String(),
-		"account_id":    accountID.String(),
-		"category_id":   categoryID.String(),
-		"amount":        req.Amount,
-		"currency":      currency,
-		"amount_cny":    amountCny,
-		"exchange_rate":  exchangeRate,
-		"type":          txnType,
-		"note":          req.Note,
-		"txn_date":      txnDate.Format("2006-01-02"),
+		"account_id":    cr.accountID.String(),
+		"category_id":   resolvedCatID.String(),
+		"amount":        cr.amount,
+		"currency":      cr.currency,
+		"amount_cny":    cr.amountCny,
+		"exchange_rate":  cr.exchangeRate,
+		"type":          cr.txnType,
+		"note":          cr.note,
+		"txn_date":      cr.txnDate.Format("2006-01-02"),
 	}); err != nil {
 		log.Printf("ERROR: transaction: sync create failed for %s: %v", txnID, err)
 		return nil, status.Error(codes.Internal, "failed to record sync operation")
@@ -390,13 +250,13 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		return nil, status.Error(codes.Internal, "failed to commit transaction")
 	}
 
-	// Audit log: only for family accounts
-	if acctFamilyID != nil {
-		audit.LogAudit(ctx, s.pool, acctFamilyID.String(), userID, "create", "transaction", txnID.String(), nil)
+	// Step 4: Post-commit side effects (non-critical)
+	if acctMeta.familyID != nil {
+		audit.LogAudit(ctx, s.pool, acctMeta.familyID.String(), userID, "create", "transaction", txnID.String(), nil)
 	}
 
 	pbType := pb.TransactionType_TRANSACTION_TYPE_EXPENSE
-	if txnType == "income" {
+	if cr.txnType == "income" {
 		pbType = pb.TransactionType_TRANSACTION_TYPE_INCOME
 	}
 
@@ -404,19 +264,19 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		Transaction: &pb.Transaction{
 			Id:           txnID.String(),
 			UserId:       userID,
-			AccountId:    accountID.String(),
-			CategoryId:   categoryID.String(),
-			Amount:       req.Amount,
-			Currency:     currency,
-			AmountCny:    amountCny,
-			ExchangeRate: exchangeRate,
+			AccountId:    cr.accountID.String(),
+			CategoryId:   resolvedCatID.String(),
+			Amount:       cr.amount,
+			Currency:     cr.currency,
+			AmountCny:    cr.amountCny,
+			ExchangeRate: cr.exchangeRate,
 			Type:         pbType,
-			Note:         req.Note,
-			TxnDate:      timestamppb.New(txnDate),
+			Note:         cr.note,
+			TxnDate:      timestamppb.New(cr.txnDate),
 			CreatedAt:    timestamppb.New(createdAt),
 			UpdatedAt:    timestamppb.New(updatedAt),
-			Tags:         tags,
-			ImageUrls:    imageURLs,
+			Tags:         cr.tags,
+			ImageUrls:    cr.imageURLs,
 		},
 	}, nil
 }
