@@ -742,33 +742,55 @@ class SyncEngine {
 
       if (_disposed) return;
 
-      // Send auth message as first message
-      _wsChannel!.sink.add(jsonEncode({'type': 'auth', 'token': token}));
-
+      // Subscribe BEFORE sending auth (so we don't miss auth_ok)
+      final authCompleter = Completer<void>();
       _wsSub = _wsChannel!.stream.listen(
         (message) {
           dev.log('SyncEngine: ws message: $message', name: 'sync');
-          _handleWsMessage(message);
+          _handleWsMessage(message, authCompleter: authCompleter);
         },
         onError: (error) {
           dev.log('SyncEngine: ws error: $error', name: 'sync');
+          if (!authCompleter.isCompleted) {
+            authCompleter.completeError(error);
+          }
           _scheduleReconnect();
         },
         onDone: () {
           dev.log('SyncEngine: ws closed', name: 'sync');
+          if (!authCompleter.isCompleted) {
+            authCompleter.completeError('connection closed before auth_ok');
+          }
           _scheduleReconnect();
         },
       );
 
-      // Note: auth_ok is handled in _handleWsMessage which sets wsConnected
-      dev.log('SyncEngine: ws connected, awaiting auth_ok', name: 'sync');
+      // Send auth message after listen is registered
+      _wsChannel!.sink.add(jsonEncode({'type': 'auth', 'token': token}));
+
+      // Wait for auth_ok with timeout
+      try {
+        await authCompleter.future.timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            throw TimeoutException('auth_ok timeout');
+          },
+        );
+      } catch (e) {
+        dev.log('SyncEngine: auth_ok not received: $e', name: 'sync');
+        _disconnectWebSocket();
+        _scheduleReconnect();
+        return;
+      }
+
+      dev.log('SyncEngine: ws authenticated', name: 'sync');
     } catch (e) {
       dev.log('SyncEngine: ws connect failed: $e', name: 'sync');
       _scheduleReconnect();
     }
   }
 
-  void _handleWsMessage(dynamic message) {
+  void _handleWsMessage(dynamic message, {Completer<void>? authCompleter}) {
     try {
       final data = jsonDecode(message as String) as Map<String, dynamic>;
       final type = data['type'] as String?;
@@ -777,6 +799,9 @@ class SyncEngine {
         dev.log('SyncEngine: ws auth_ok received', name: 'sync');
         _reconnectAttempts = 0;
         onStatusChanged?.call(wsConnected: true);
+        if (authCompleter != null && !authCompleter.isCompleted) {
+          authCompleter.complete();
+        }
         // Pull immediately after auth to catch up on changes
         unawaited(_pullChanges());
         return;

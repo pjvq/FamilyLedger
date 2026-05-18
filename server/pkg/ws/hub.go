@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -30,13 +31,17 @@ const (
 	// Default auth timeout: how long a newly connected client has to authenticate.
 	defaultAuthTimeout = 5 * time.Second
 
-	// Default max connections per user.
+	// Default max connections per user. -1 means unlimited.
 	defaultMaxConnsPerUser = 5
+
+	// Default max pending auth connections (anti-slowloris).
+	defaultMaxPendingAuth = 100
 )
 
+// Pre-marshaled messages to avoid repeated json.Marshal in hot paths.
+var authOKMsg = []byte(`{"type":"auth_ok"}`)
+
 // allowedOrigins is parsed once at init from ALLOWED_ORIGINS env var.
-// NOTE: kept at package level for websocket.Upgrader.CheckOrigin function signature.
-// Hub.NewHub() does NOT re-parse; these are immutable for process lifetime.
 var (
 	allowedOrigins  map[string]struct{}
 	allowAllOrigins bool
@@ -92,7 +97,8 @@ type HubConfig struct {
 	PingPeriod         time.Duration
 	TokenCheckInterval time.Duration // 0 = disabled (default); >0 = periodic JWT re-verification
 	AuthTimeout        time.Duration // Time allowed for first-message auth after upgrade (default 5s)
-	MaxConnsPerUser    int           // Max concurrent WebSocket connections per user (default 5, 0 = unlimited)
+	MaxConnsPerUser    int           // Max concurrent WebSocket connections per user (default 5, -1 = unlimited)
+	MaxPendingAuth     int           // Max connections in auth-pending state (anti-slowloris, default 100, -1 = unlimited)
 }
 
 // DefaultHubConfig returns production defaults.
@@ -101,18 +107,20 @@ func DefaultHubConfig() HubConfig {
 		WriteWait:          writeWait,
 		PongWait:           pongWait,
 		PingPeriod:         pingPeriod,
-		TokenCheckInterval: 0, // disabled by default; enable in tests or prod as needed
+		TokenCheckInterval: 0, // disabled by default
 		AuthTimeout:        defaultAuthTimeout,
 		MaxConnsPerUser:    defaultMaxConnsPerUser,
+		MaxPendingAuth:     defaultMaxPendingAuth,
 	}
 }
 
 // Hub manages all WebSocket connections.
 type Hub struct {
-	mu         sync.RWMutex
-	clients    map[string]map[*Client]bool // userID -> clients
-	jwtManager *jwtpkg.Manager
-	config     HubConfig
+	mu          sync.RWMutex
+	clients     map[string]map[*Client]bool // userID -> clients
+	jwtManager  *jwtpkg.Manager
+	config      HubConfig
+	pendingAuth atomic.Int64 // number of connections waiting for auth
 }
 
 type Client struct {
@@ -149,8 +157,12 @@ func NewHub(jwtManager *jwtpkg.Manager, configs ...HubConfig) *Hub {
 	if cfg.AuthTimeout == 0 {
 		cfg.AuthTimeout = defaultAuthTimeout
 	}
+	// MaxConnsPerUser: 0 means "use default", -1 means unlimited
 	if cfg.MaxConnsPerUser == 0 {
 		cfg.MaxConnsPerUser = defaultMaxConnsPerUser
+	}
+	if cfg.MaxPendingAuth == 0 {
+		cfg.MaxPendingAuth = defaultMaxPendingAuth
 	}
 	return &Hub{
 		clients:    make(map[string]map[*Client]bool),
@@ -165,93 +177,98 @@ func NewHub(jwtManager *jwtpkg.Manager, configs ...HubConfig) *Hub {
 //  1. First-message auth (preferred): connect without token in URL, then send
 //     {"type":"auth","token":"<jwt>"} as the first message within AuthTimeout.
 //  2. Query-string auth (deprecated): pass ?token=<jwt> in the URL.
-//     This mode logs a deprecation warning and will be removed in a future version.
 func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	token := r.URL.Query().Get("token")
+	clientAddr := r.RemoteAddr
 
+	token := r.URL.Query().Get("token")
 	if token != "" {
 		// Legacy query-string auth (deprecated)
-		log.Printf("ws: DEPRECATED: token passed via query string — migrate to first-message auth")
+		log.Printf("ws: DEPRECATED: token passed via query string from %s — migrate to first-message auth", clientAddr)
 		claims, err := h.jwtManager.Verify(token)
 		if err != nil {
 			http.Error(w, "invalid token", http.StatusUnauthorized)
 			return
 		}
-		h.upgradeAndRegister(w, r, claims.UserID, token)
+		if !h.registerIfAllowed(w, r, claims.UserID, token, clientAddr) {
+			return // registerIfAllowed already wrote HTTP error
+		}
 		return
 	}
 
-	// First-message auth: upgrade first, then wait for auth message
+	// Anti-slowloris: check pending auth limit before upgrading
+	if h.config.MaxPendingAuth > 0 {
+		if h.pendingAuth.Load() >= int64(h.config.MaxPendingAuth) {
+			log.Printf("ws: max pending auth connections exceeded, rejecting %s", clientAddr)
+			http.Error(w, "too many pending connections", http.StatusServiceUnavailable)
+			return
+		}
+	}
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("ws: upgrade error: %v", err)
+		log.Printf("ws: upgrade error from %s: %v", clientAddr, err)
 		return
 	}
+
+	// Track pending auth (anti-slowloris)
+	h.pendingAuth.Add(1)
+
+	// Run auth handshake in a separate goroutine to not block HTTP handler
+	go h.handleFirstMessageAuth(conn, clientAddr)
+}
+
+// handleFirstMessageAuth waits for the auth message and registers the client.
+func (h *Hub) handleFirstMessageAuth(conn *websocket.Conn, clientAddr string) {
+	defer h.pendingAuth.Add(-1)
+
+	// Set read limit for auth phase (prevent oversized auth messages)
+	conn.SetReadLimit(maxMessageSize)
 
 	// Set a deadline for the auth message
 	conn.SetReadDeadline(time.Now().Add(h.config.AuthTimeout))
 	_, msg, err := conn.ReadMessage()
 	if err != nil {
-		log.Printf("ws: auth timeout or read error: %v", err)
-		conn.WriteControl(
+		log.Printf("ws: auth timeout or read error from %s: %v", clientAddr, err)
+		if wErr := conn.WriteControl(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(4002, "auth timeout"),
 			time.Now().Add(h.config.WriteWait),
-		)
+		); wErr != nil {
+			log.Printf("ws: failed to send close 4002 to %s: %v", clientAddr, wErr)
+		}
 		conn.Close()
 		return
 	}
 
 	var authMsg authMessage
 	if err := json.Unmarshal(msg, &authMsg); err != nil || authMsg.Type != "auth" || authMsg.Token == "" {
-		log.Printf("ws: invalid auth message")
-		conn.WriteControl(
+		log.Printf("ws: invalid auth message from %s", clientAddr)
+		if wErr := conn.WriteControl(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(4003, "invalid auth message"),
 			time.Now().Add(h.config.WriteWait),
-		)
+		); wErr != nil {
+			log.Printf("ws: failed to send close 4003 to %s: %v", clientAddr, wErr)
+		}
 		conn.Close()
 		return
 	}
 
 	claims, err := h.jwtManager.Verify(authMsg.Token)
 	if err != nil {
-		log.Printf("ws: auth failed: invalid token")
-		conn.WriteControl(
+		log.Printf("ws: auth failed from %s: invalid token", clientAddr)
+		if wErr := conn.WriteControl(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(4004, "invalid token"),
 			time.Now().Add(h.config.WriteWait),
-		)
-		conn.Close()
-		return
-	}
-
-	// Check max connections before sending auth_ok
-	if h.config.MaxConnsPerUser > 0 {
-		h.mu.RLock()
-		count := len(h.clients[claims.UserID])
-		h.mu.RUnlock()
-		if count >= h.config.MaxConnsPerUser {
-			log.Printf("ws: max connections (%d) exceeded for user %s", h.config.MaxConnsPerUser, claims.UserID)
-			conn.WriteControl(
-				websocket.CloseMessage,
-				websocket.FormatCloseMessage(4005, "max connections exceeded"),
-				time.Now().Add(h.config.WriteWait),
-			)
-			conn.Close()
-			return
+		); wErr != nil {
+			log.Printf("ws: failed to send close 4004 to %s: %v", clientAddr, wErr)
 		}
-	}
-
-	// Send auth_ok before registering (so client knows auth succeeded)
-	authOK, _ := json.Marshal(map[string]string{"type": "auth_ok"})
-	conn.SetWriteDeadline(time.Now().Add(h.config.WriteWait))
-	if err := conn.WriteMessage(websocket.TextMessage, authOK); err != nil {
-		log.Printf("ws: failed to send auth_ok: %v", err)
 		conn.Close()
 		return
 	}
 
+	// Atomically check max connections and register
 	client := &Client{
 		conn:   conn,
 		userID: claims.UserID,
@@ -261,29 +278,44 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		hub:    h,
 	}
 
-	h.register(client)
+	if !h.registerAtomic(client, clientAddr) {
+		// Max connections exceeded — registerAtomic already sent close frame
+		return
+	}
+
+	// Send auth_ok AFTER register (so client won't miss broadcasts)
+	conn.SetWriteDeadline(time.Now().Add(h.config.WriteWait))
+	if err := conn.WriteMessage(websocket.TextMessage, authOKMsg); err != nil {
+		log.Printf("ws: failed to send auth_ok to %s: %v", clientAddr, err)
+		h.unregister(client)
+		return
+	}
+
+	// Clear read deadline before entering readPump
+	conn.SetReadDeadline(time.Time{})
 
 	go client.writePump()
 	go client.readPump(h)
 }
 
-func (h *Hub) upgradeAndRegister(w http.ResponseWriter, r *http.Request, userID string, token string) {
-	// Check max connections before upgrading
+// registerIfAllowed handles legacy (query-string) auth: upgrades + registers atomically.
+func (h *Hub) registerIfAllowed(w http.ResponseWriter, r *http.Request, userID, token, clientAddr string) bool {
+	// Check max connections under write lock to avoid TOCTOU
+	h.mu.Lock()
 	if h.config.MaxConnsPerUser > 0 {
-		h.mu.RLock()
-		count := len(h.clients[userID])
-		h.mu.RUnlock()
-		if count >= h.config.MaxConnsPerUser {
-			log.Printf("ws: max connections (%d) exceeded for user %s", h.config.MaxConnsPerUser, userID)
+		if len(h.clients[userID]) >= h.config.MaxConnsPerUser {
+			h.mu.Unlock()
+			log.Printf("ws: max connections (%d) exceeded for user %s from %s", h.config.MaxConnsPerUser, userID, clientAddr)
 			http.Error(w, "max connections exceeded", http.StatusTooManyRequests)
-			return
+			return false
 		}
 	}
+	h.mu.Unlock()
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("websocket upgrade error: %v", err)
-		return
+		log.Printf("ws: upgrade error from %s: %v", clientAddr, err)
+		return false
 	}
 
 	client := &Client{
@@ -295,10 +327,43 @@ func (h *Hub) upgradeAndRegister(w http.ResponseWriter, r *http.Request, userID 
 		hub:    h,
 	}
 
-	h.register(client)
+	// Re-check + register atomically
+	if !h.registerAtomic(client, clientAddr) {
+		return false
+	}
 
 	go client.writePump()
 	go client.readPump(h)
+	return true
+}
+
+// registerAtomic checks max connections and registers the client atomically.
+// Returns false if max connections exceeded (sends close frame and closes conn).
+func (h *Hub) registerAtomic(client *Client, clientAddr string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if h.config.MaxConnsPerUser > 0 {
+		if len(h.clients[client.userID]) >= h.config.MaxConnsPerUser {
+			log.Printf("ws: max connections (%d) exceeded for user %s from %s", h.config.MaxConnsPerUser, client.userID, clientAddr)
+			if wErr := client.conn.WriteControl(
+				websocket.CloseMessage,
+				websocket.FormatCloseMessage(4005, "max connections exceeded"),
+				time.Now().Add(h.config.WriteWait),
+			); wErr != nil {
+				log.Printf("ws: failed to send close 4005 to %s: %v", clientAddr, wErr)
+			}
+			client.conn.Close()
+			return false
+		}
+	}
+
+	if h.clients[client.userID] == nil {
+		h.clients[client.userID] = make(map[*Client]bool)
+	}
+	h.clients[client.userID][client] = true
+	log.Printf("ws: client connected for user %s from %s (total: %d)", client.userID, clientAddr, len(h.clients[client.userID]))
+	return true
 }
 
 func (h *Hub) register(client *Client) {
@@ -348,6 +413,11 @@ func (h *Hub) TotalConnections() int {
 	return total
 }
 
+// PendingAuthConnections returns the number of connections waiting for auth.
+func (h *Hub) PendingAuthConnections() int64 {
+	return h.pendingAuth.Load()
+}
+
 // BroadcastToUser sends a message to all connections of a specific user.
 func (h *Hub) BroadcastToUser(userID string, message []byte) {
 	h.mu.RLock()
@@ -376,7 +446,6 @@ func (c *Client) writePump() {
 		case message, ok := <-c.send:
 			c.conn.SetWriteDeadline(time.Now().Add(c.hub.config.WriteWait))
 			if !ok {
-				// Hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
@@ -427,13 +496,10 @@ func (c *Client) readPump(h *Hub) {
 			}
 			return
 		}
-		// For now, we just keep the connection alive by reading.
-		// Client messages can be handled here in the future.
 	}
 }
 
 // tokenCheckLoop periodically re-verifies the client's JWT token.
-// If the token has expired, it sends a close frame (4001 = token expired) and unregisters.
 func (c *Client) tokenCheckLoop(h *Hub) {
 	ticker := time.NewTicker(c.hub.config.TokenCheckInterval)
 	defer ticker.Stop()
@@ -446,14 +512,14 @@ func (c *Client) tokenCheckLoop(h *Hub) {
 			_, err := h.jwtManager.Verify(c.token)
 			if err != nil {
 				log.Printf("ws: token expired for user %s, disconnecting", c.userID)
-				// Send close frame with custom code 4001 (token expired)
-				c.conn.WriteControl(
+				if wErr := c.conn.WriteControl(
 					websocket.CloseMessage,
 					websocket.FormatCloseMessage(4001, "token expired"),
 					time.Now().Add(c.hub.config.WriteWait),
-				)
-				h.unregister(c) // explicit cleanup (sync.Once makes this safe even if readPump also calls it)
-				// Force close the connection so readPump and writePump exit
+				); wErr != nil {
+					log.Printf("ws: failed to send close 4001: %v", wErr)
+				}
+				h.unregister(c)
 				c.conn.Close()
 				return
 			}
