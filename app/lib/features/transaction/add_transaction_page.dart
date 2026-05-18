@@ -461,7 +461,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
             TextField(
               controller: _noteController,
               maxLength: 1000,
-              maxLines: null,
               decoration: const InputDecoration(
                 hintText: '备注',
                 prefixIcon: Icon(Icons.note_outlined, size: 18),
