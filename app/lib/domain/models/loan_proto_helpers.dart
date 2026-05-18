@@ -48,11 +48,11 @@ String rateTypeToString(pb_enum.RateType type) =>
     _rateTypeMap[type] ?? 'fixed';
 
 // Reverse lookups (string → proto)
-late final _loanTypeReverse = {for (final e in _loanTypeMap.entries) e.value: e.key};
-late final _repaymentMethodReverse = {for (final e in _repaymentMethodMap.entries) e.value: e.key};
-late final _interestCalcMethodReverse = {for (final e in _interestCalcMethodMap.entries) e.value: e.key};
-late final _subTypeReverse = {for (final e in _subTypeMap.entries) e.value: e.key};
-late final _rateTypeReverse = {for (final e in _rateTypeMap.entries) e.value: e.key};
+final _loanTypeReverse = {for (final e in _loanTypeMap.entries) e.value: e.key};
+final _repaymentMethodReverse = {for (final e in _repaymentMethodMap.entries) e.value: e.key};
+final _interestCalcMethodReverse = {for (final e in _interestCalcMethodMap.entries) e.value: e.key};
+final _subTypeReverse = {for (final e in _subTypeMap.entries) e.value: e.key};
+final _rateTypeReverse = {for (final e in _rateTypeMap.entries) e.value: e.key};
 
 pb_enum.LoanType stringToLoanType(String type) =>
     _loanTypeReverse[type] ?? pb_enum.LoanType.LOAN_TYPE_OTHER;

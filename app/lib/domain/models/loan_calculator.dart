@@ -28,7 +28,7 @@ class LoanCalculator {
   }
 
   /// 等额本息还款计划
-  static List<LoanScheduleDisplayItem> equalInstallment({
+  static List<LoanScheduleDisplayItem> _equalInstallment({
     required int principal,       // 分
     required double annualRate,   // 如 4.2
     required int totalMonths,
@@ -89,7 +89,7 @@ class LoanCalculator {
   }
 
   /// 等额本金还款计划
-  static List<LoanScheduleDisplayItem> equalPrincipal({
+  static List<LoanScheduleDisplayItem> _equalPrincipal({
     required int principal,       // 分
     required double annualRate,   // 如 4.2
     required int totalMonths,
@@ -123,7 +123,7 @@ class LoanCalculator {
   }
 
   /// 先息后本还款计划
-  static List<LoanScheduleDisplayItem> interestOnly({
+  static List<LoanScheduleDisplayItem> _interestOnly({
     required int principal,
     required double annualRate,
     required int totalMonths,
@@ -177,7 +177,7 @@ class LoanCalculator {
   }
 
   /// 一次性还本付息还款计划
-  static List<LoanScheduleDisplayItem> bullet({
+  static List<LoanScheduleDisplayItem> _bullet({
     required int principal,
     required double annualRate,
     required int totalMonths,
@@ -223,7 +223,7 @@ class LoanCalculator {
   }
 
   /// 等本等息还款计划
-  static List<LoanScheduleDisplayItem> equalInterest({
+  static List<LoanScheduleDisplayItem> _equalInterest({
     required int principal,
     required double annualRate,
     required int totalMonths,
@@ -269,7 +269,7 @@ class LoanCalculator {
     _validateInputs(principal: principal, annualRate: annualRate, totalMonths: totalMonths, paymentDay: paymentDay);
     switch (repaymentMethod) {
       case 'equal_principal':
-        return equalPrincipal(
+        return _equalPrincipal(
           principal: principal,
           annualRate: annualRate,
           totalMonths: totalMonths,
@@ -278,7 +278,7 @@ class LoanCalculator {
           paidMonths: paidMonths,
         );
       case 'interest_only':
-        return interestOnly(
+        return _interestOnly(
           principal: principal,
           annualRate: annualRate,
           totalMonths: totalMonths,
@@ -288,7 +288,7 @@ class LoanCalculator {
           calcMethod: calcMethod,
         );
       case 'bullet':
-        return bullet(
+        return _bullet(
           principal: principal,
           annualRate: annualRate,
           totalMonths: totalMonths,
@@ -298,7 +298,7 @@ class LoanCalculator {
           calcMethod: calcMethod,
         );
       case 'equal_interest':
-        return equalInterest(
+        return _equalInterest(
           principal: principal,
           annualRate: annualRate,
           totalMonths: totalMonths,
@@ -307,7 +307,7 @@ class LoanCalculator {
           paidMonths: paidMonths,
         );
       default:
-        return equalInstallment(
+        return _equalInstallment(
           principal: principal,
           annualRate: annualRate,
           totalMonths: totalMonths,
@@ -512,8 +512,12 @@ class LoanCalculator {
   }
 
   static DateTime calcDueDate(DateTime startDate, int monthOffset, int paymentDay) {
-    assert(monthOffset >= 0, 'monthOffset must be non-negative');
-    assert(paymentDay >= 1 && paymentDay <= 31, 'paymentDay must be 1-31');
+    if (monthOffset < 0) {
+      throw ArgumentError.value(monthOffset, 'monthOffset', 'must be non-negative');
+    }
+    if (paymentDay < 1 || paymentDay > 31) {
+      throw ArgumentError.value(paymentDay, 'paymentDay', 'must be 1-31');
+    }
     final totalMonths = startDate.month - 1 + monthOffset;
     final year = startDate.year + totalMonths ~/ 12;
     final month = totalMonths % 12 + 1;
