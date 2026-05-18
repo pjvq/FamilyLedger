@@ -9,89 +9,9 @@ import '../../generated/proto/dashboard.pb.dart' as pb;
 import '../../generated/proto/dashboard.pbgrpc.dart';
 import '../../generated/proto/investment.pb.dart' as inv_pb;
 import '../../generated/proto/investment.pbgrpc.dart';
+import '../models/dashboard_models.dart';
+export '../models/dashboard_models.dart';
 import 'app_providers.dart';
-
-// ── Display models ──
-
-class NetWorthData {
-  final int total; // 分
-  final int cashAndBank;
-  final int investmentValue;
-  final int fixedAssetValue;
-  final int loanBalance; // 负数
-  final int changeFromLastMonth;
-  final double changePercent;
-  final List<AssetCompositionItem> composition;
-
-  const NetWorthData({
-    this.total = 0,
-    this.cashAndBank = 0,
-    this.investmentValue = 0,
-    this.fixedAssetValue = 0,
-    this.loanBalance = 0,
-    this.changeFromLastMonth = 0,
-    this.changePercent = 0.0,
-    this.composition = const [],
-  });
-}
-
-class AssetCompositionItem {
-  final String category;
-  final String label;
-  final int value;
-  final double weight;
-
-  const AssetCompositionItem({
-    required this.category,
-    required this.label,
-    required this.value,
-    required this.weight,
-  });
-}
-
-class TrendPointData {
-  final String label;
-  final int income;
-  final int expense;
-  final int net;
-
-  const TrendPointData({
-    required this.label,
-    required this.income,
-    required this.expense,
-    required this.net,
-  });
-}
-
-class CategoryBreakdownItem {
-  final String categoryId;
-  final String categoryName;
-  final String iconKey;
-  final int amount;
-  final double weight;
-  final List<CategoryBreakdownItem> children;
-
-  const CategoryBreakdownItem({
-    required this.categoryId,
-    required this.categoryName,
-    this.iconKey = '',
-    required this.amount,
-    required this.weight,
-    this.children = const [],
-  });
-}
-
-class BudgetSummaryData {
-  final int totalBudget;
-  final int totalSpent;
-  final double executionRate;
-
-  const BudgetSummaryData({
-    this.totalBudget = 0,
-    this.totalSpent = 0,
-    this.executionRate = 0.0,
-  });
-}
 
 // ── State ──
 
