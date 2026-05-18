@@ -6,7 +6,7 @@ class AppTheme {
   AppTheme._();
 
   // ---- Light Theme ----
-  static const _pageTransitionsTheme = PageTransitionsTheme(
+  static final _pageTransitionsTheme = PageTransitionsTheme(
     builders: {
       TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
       TargetPlatform.android: CupertinoPageTransitionsBuilder(),
