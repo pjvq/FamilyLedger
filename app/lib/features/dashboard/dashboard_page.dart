@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/dashboard_provider.dart';
+import '../../domain/models/dashboard_models.dart';
 import '../../sync/sync_engine.dart';
 import 'widgets/dashboard_card.dart';
 

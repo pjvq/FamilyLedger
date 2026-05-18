@@ -10,7 +10,6 @@ import '../../generated/proto/dashboard.pbgrpc.dart';
 import '../../generated/proto/investment.pb.dart' as inv_pb;
 import '../../generated/proto/investment.pbgrpc.dart';
 import '../models/dashboard_models.dart';
-export '../models/dashboard_models.dart';
 import 'app_providers.dart';
 
 // ── State ──

@@ -12,6 +12,7 @@ import 'package:familyledger/features/dashboard/widgets/dashboard_card.dart';
 import 'package:familyledger/features/report/report_page.dart';
 import 'package:familyledger/features/import/csv_import_page.dart';
 import 'package:familyledger/domain/providers/dashboard_provider.dart';
+import 'package:familyledger/domain/models/dashboard_models.dart';
 import 'package:familyledger/domain/providers/transaction_provider.dart';
 import 'package:familyledger/domain/providers/app_providers.dart';
 import 'package:familyledger/data/local/database.dart';

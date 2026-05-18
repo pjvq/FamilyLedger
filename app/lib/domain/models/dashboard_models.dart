@@ -32,14 +32,14 @@ class AssetCompositionItem {
   final String category;
   final String label;
   final int value;
-  final double weight; // 0.0–1.0
+  final double weight;
 
   const AssetCompositionItem({
     required this.category,
     required this.label,
     required this.value,
     required this.weight,
-  });
+  }) : assert(weight >= 0.0 && weight <= 1.0, 'weight must be 0.0–1.0');
 }
 
 /// A single data point in income/expense/net-worth trend charts.
@@ -63,7 +63,7 @@ class CategoryBreakdownItem {
   final String categoryName;
   final String iconKey;
   final int amount;
-  final double weight; // 0.0–1.0
+  final double weight;
   final List<CategoryBreakdownItem> children;
 
   const CategoryBreakdownItem({
@@ -73,14 +73,14 @@ class CategoryBreakdownItem {
     required this.amount,
     required this.weight,
     this.children = const [],
-  });
+  }) : assert(weight >= 0.0 && weight <= 1.0, 'weight must be 0.0–1.0');
 }
 
 /// Budget execution summary for the current period.
 class BudgetSummaryData {
   final int totalBudget;
   final int totalSpent;
-  final double executionRate; // 0.0–1.0+
+  final double executionRate; // 0.0+ (>1.0 means overspent)
 
   const BudgetSummaryData({
     this.totalBudget = 0,
