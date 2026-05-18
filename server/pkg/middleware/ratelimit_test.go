@@ -153,7 +153,7 @@ func TestRateLimiter_Cleanup(t *testing.T) {
 
 func TestExtractIP(t *testing.T) {
 	// Without peer info, should return "unknown"
-	ip := extractIP(context.Background())
+	ip := extractIP(context.Background(), false)
 	if ip != "unknown" {
 		t.Fatalf("expected 'unknown', got %s", ip)
 	}

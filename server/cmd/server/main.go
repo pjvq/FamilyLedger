@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -81,6 +82,8 @@ func main() {
 		Password: dbPassword,
 		DBName:   getEnv("DB_NAME", "familyledger"),
 		SSLMode:  getEnv("DB_SSLMODE", "require"),
+		MaxConns: getEnvInt32("DB_MAX_CONNS", db.DefaultMaxConns),
+		MinConns: getEnvInt32("DB_MIN_CONNS", db.DefaultMinConns),
 	}
 
 	jwtSecret := config.ValidateJWTSecret()
@@ -134,7 +137,9 @@ func main() {
 	importService := importcsv.NewService(pool)
 
 	// Rate limiter
-	rateLimiter := middleware.NewRateLimiter(middleware.DefaultRateLimiterConfig())
+	rlCfg := middleware.DefaultRateLimiterConfig()
+	rlCfg.TrustProxy = strings.EqualFold(getEnv("TRUST_PROXY", ""), "true")
+	rateLimiter := middleware.NewRateLimiter(rlCfg)
 	defer rateLimiter.Stop()
 
 	// Unified TLS configuration (shared between gRPC and WebSocket)
@@ -468,6 +473,32 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	if value, ok := os.LookupEnv(key); ok {
+		n, err := strconv.Atoi(value)
+		if err != nil {
+			log.Printf("WARNING: env %s=%q is not a valid integer, using default %d", key, value, fallback)
+			return fallback
+		}
+		return n
+	}
+	return fallback
+}
+
+// getEnvInt32 reads an env var as int32, clamped to [1, math.MaxInt32].
+func getEnvInt32(key string, fallback int32) int32 {
+	n := getEnvInt(key, int(fallback))
+	if n <= 0 {
+		log.Printf("WARNING: env %s=%d is not positive, using default %d", key, n, fallback)
+		return fallback
+	}
+	if n > int(^int32(0)>>1) { // math.MaxInt32 without importing math
+		log.Printf("WARNING: env %s=%d exceeds int32 max, using default %d", key, n, fallback)
+		return fallback
+	}
+	return int32(n)
 }
 
 // runExchangeRateRefreshTask refreshes exchange rates every hour.

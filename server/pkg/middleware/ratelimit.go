@@ -2,13 +2,16 @@ package middleware
 
 import (
 	"context"
+	"net"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
@@ -26,6 +29,9 @@ type RateLimiterConfig struct {
 	CleanupInterval time.Duration
 	// Entry TTL (remove if no requests for this duration)
 	EntryTTL time.Duration
+	// TrustProxy enables reading client IP from X-Forwarded-For / X-Real-IP
+	// headers. Only enable when behind a trusted reverse proxy.
+	TrustProxy bool
 }
 
 // DefaultRateLimiterConfig returns sensible defaults.
@@ -171,7 +177,7 @@ func UnaryRateLimitInterceptor(rl *RateLimiter) grpc.UnaryServerInterceptor {
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
-		ip := extractIP(ctx)
+		ip := extractIP(ctx, rl.config.TrustProxy)
 		entry := rl.getEntry(ip)
 
 		// Check auth-specific rate limit first
@@ -192,19 +198,44 @@ func UnaryRateLimitInterceptor(rl *RateLimiter) grpc.UnaryServerInterceptor {
 	}
 }
 
-// extractIP gets the client IP from gRPC peer info.
-func extractIP(ctx context.Context) string {
+// extractIP gets the client IP, optionally trusting proxy headers.
+// When TrustProxy is enabled, uses the rightmost IP in X-Forwarded-For
+// (the one appended by the trusted reverse proxy closest to us).
+func extractIP(ctx context.Context, trustProxy bool) string {
+	// If behind a trusted proxy, check forwarded headers first
+	if trustProxy {
+		if md, ok := metadata.FromIncomingContext(ctx); ok {
+			// X-Forwarded-For: client, proxy1, proxy2
+			// Rightmost entry is appended by our trusted proxy = real client IP.
+			// Leftmost can be spoofed by the client.
+			if xff := md.Get("x-forwarded-for"); len(xff) > 0 {
+				parts := strings.Split(xff[0], ",")
+				// Walk from right to left, take first valid public IP
+				for i := len(parts) - 1; i >= 0; i-- {
+					ip := strings.TrimSpace(parts[i])
+					if ip != "" && net.ParseIP(ip) != nil {
+						return ip
+					}
+				}
+			}
+			// X-Real-IP: single IP set by nginx/envoy
+			if xri := md.Get("x-real-ip"); len(xri) > 0 {
+				ip := strings.TrimSpace(xri[0])
+				if ip != "" && net.ParseIP(ip) != nil {
+					return ip
+				}
+			}
+		}
+	}
+
+	// Fall back to peer address (direct connection)
 	p, ok := peer.FromContext(ctx)
 	if !ok || p.Addr == nil {
 		return "unknown"
 	}
-	// peer.Addr.String() returns "ip:port"
-	addr := p.Addr.String()
-	// Strip port
-	for i := len(addr) - 1; i >= 0; i-- {
-		if addr[i] == ':' {
-			return addr[:i]
-		}
+	host, _, err := net.SplitHostPort(p.Addr.String())
+	if err != nil {
+		return p.Addr.String()
 	}
-	return addr
+	return host
 }
