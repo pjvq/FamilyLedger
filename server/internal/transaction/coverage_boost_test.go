@@ -550,7 +550,7 @@ func TestBatchDelete_Success(t *testing.T) {
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	// Sync operations
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(userUID, txnID, "delete", pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
@@ -789,8 +789,14 @@ func TestUpdateTransaction_Tags_JSON(t *testing.T) {
 		WithArgs(pgxmock.AnyArg(), txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	// Sync operations
+	// Sync: re-query updated fields
+	mock.ExpectQuery(`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"account_id", "category_id", "amount", "amount_cny", "type", "note", "currency", "txn_date",
+		}).AddRow(accID, catID, int64(100), int64(100), "expense", "", "CNY", time.Now()))
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(userUID, txnID, "update", pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	// Fetch updated
@@ -825,8 +831,14 @@ func TestUpdateTransaction_Tags_CommaSeparated(t *testing.T) {
 		WithArgs(pgxmock.AnyArg(), txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	// Sync operations
+	// Sync: re-query updated fields
+	mock.ExpectQuery(`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"account_id", "category_id", "amount", "amount_cny", "type", "note", "currency", "txn_date",
+		}).AddRow(accID, catID, int64(100), int64(100), "expense", "", "CNY", time.Now()))
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(userUID, txnID, "update", pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	mock.ExpectQuery("SELECT id, user_id, account_id").
@@ -860,8 +872,14 @@ func TestUpdateTransaction_Tags_Empty(t *testing.T) {
 		WithArgs(pgxmock.AnyArg(), txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	// Sync operations
+	// Sync: re-query updated fields
+	mock.ExpectQuery(`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"account_id", "category_id", "amount", "amount_cny", "type", "note", "currency", "txn_date",
+		}).AddRow(accID, catID, int64(100), int64(100), "expense", "", "CNY", time.Now()))
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(userUID, txnID, "update", pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	mock.ExpectQuery("SELECT id, user_id, account_id").
@@ -895,8 +913,14 @@ func TestUpdateTransaction_Currency(t *testing.T) {
 		WithArgs("USD", txnID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	// Sync operations
+	// Sync: re-query updated fields
+	mock.ExpectQuery(`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"account_id", "category_id", "amount", "amount_cny", "type", "note", "currency", "txn_date",
+		}).AddRow(accID, catID, int64(100), int64(100), "expense", "", "CNY", time.Now()))
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(userUID, txnID, "update", pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	mock.ExpectQuery("SELECT id, user_id, account_id").
@@ -984,8 +1008,14 @@ func TestUpdateTransaction_TypeChange(t *testing.T) {
 		WithArgs(int64(2000), accID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	// Sync operations
+	// Sync: re-query updated fields
+	mock.ExpectQuery(`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date`).
+		WithArgs(txnID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"account_id", "category_id", "amount", "amount_cny", "type", "note", "currency", "txn_date",
+		}).AddRow(accID, catID, int64(100), int64(100), "expense", "", "CNY", time.Now()))
 	mock.ExpectExec("INSERT INTO sync_operations").
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WithArgs(userUID, txnID, "update", pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 	mock.ExpectQuery("SELECT id, user_id, account_id").

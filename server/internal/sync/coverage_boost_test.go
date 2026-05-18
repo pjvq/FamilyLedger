@@ -61,7 +61,7 @@ func TestVerifyOwnership_WrongUser(t *testing.T) {
 		WillReturnRows(pgxmock.NewRows([]string{"user_id"}).AddRow(otherUID))
 	err := svc.verifyOwnership(context.Background(), tx, uid, eid, "loans")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "does not belong")
+	assert.Contains(t, err.Error(), "access denied")
 }
 
 func TestVerifyOwnership_DBError(t *testing.T) {
@@ -72,7 +72,7 @@ func TestVerifyOwnership_DBError(t *testing.T) {
 		WillReturnError(fmt.Errorf("db down"))
 	err := svc.verifyOwnership(context.Background(), tx, uid, eid, "loans")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to fetch")
+	assert.Contains(t, err.Error(), "failed to verify entity ownership")
 }
 
 // ── applyLoanUpdate ─────────────────────────────────────────────────────────

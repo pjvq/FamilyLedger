@@ -553,18 +553,16 @@ func (s *Service) applyBudgetUpdate(ctx context.Context, tx pgx.Tx, userID uuid.
 
 // allowedTables is the exhaustive allowlist for dynamic table name queries.
 // Any table not in this set will be rejected to prevent SQL injection.
-var allowedTables = func() map[string]struct{} {
-	return map[string]struct{}{
-		"transactions": {},
-		"accounts":     {},
-		"categories":   {},
-		"loans":        {},
-		"loan_groups":  {},
-		"investments":  {},
-		"fixed_assets": {},
-		"budgets":      {},
-	}
-}()
+var allowedTables = map[string]struct{}{
+	"transactions": {},
+	"accounts":     {},
+	"categories":   {},
+	"loans":        {},
+	"loan_groups":  {},
+	"investments":  {},
+	"fixed_assets": {},
+	"budgets":      {},
+}
 
 func isAllowedTable(name string) bool {
 	_, ok := allowedTables[name]
@@ -581,12 +579,13 @@ func (s *Service) verifyOwnership(ctx context.Context, tx pgx.Tx, userID uuid.UU
 	err := tx.QueryRow(ctx, query, entityID).Scan(&ownerID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return fmt.Errorf("%s %s not found", table, entityID)
+			return fmt.Errorf("entity not found")
 		}
-		return fmt.Errorf("failed to fetch %s for update: %w", table, err)
+		log.Printf("sync: verifyOwnership query failed for %s %s: %v", table, entityID, err)
+		return fmt.Errorf("failed to verify entity ownership")
 	}
 	if ownerID != userID {
-		return fmt.Errorf("%s %s does not belong to user", table, entityID)
+		return fmt.Errorf("access denied")
 	}
 	return nil
 }
@@ -602,7 +601,8 @@ func (s *Service) applyGenericSoftDelete(ctx context.Context, tx pgx.Tx, userID 
 	)
 	tag, err := tx.Exec(ctx, query, entityID, userID)
 	if err != nil {
-		return fmt.Errorf("failed to soft-delete %s: %w", table, err)
+		log.Printf("sync: soft-delete failed for %s %s: %v", table, entityID, err)
+		return fmt.Errorf("failed to delete entity")
 	}
 	if tag.RowsAffected() == 0 {
 		log.Printf("sync: %s %s already deleted or not owned by user, skipping", table, entityID)

@@ -370,7 +370,7 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	// Write sync_operations record so PullChanges can discover this transaction.
 	// sync_operations INSERT is part of the transaction — failure rolls back everything.
 	// This prevents silent data loss where transactions exist but are invisible to sync.
-	if err := insertSyncOp(ctx, tx, uid, txnID, "create", map[string]interface{}{
+	if err := insertTransactionSyncOp(ctx, tx, uid, txnID, "create", map[string]interface{}{
 		"id":            txnID.String(),
 		"account_id":    accountID.String(),
 		"category_id":   categoryID.String(),
@@ -650,12 +650,15 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 		var syncAmount, syncAmountCny int64
 		var syncType, syncNote, syncCurrency string
 		var syncTxnDate time.Time
-		_ = tx.QueryRow(ctx,
+		if err := tx.QueryRow(ctx,
 			`SELECT account_id, category_id, amount, amount_cny, type, note, currency, txn_date
 			 FROM transactions WHERE id = $1`,
 			txnID,
-		).Scan(&syncAccID, &syncCatID, &syncAmount, &syncAmountCny, &syncType, &syncNote, &syncCurrency, &syncTxnDate)
-		if err := insertSyncOp(ctx, tx, uid, txnID, "update", map[string]interface{}{
+		).Scan(&syncAccID, &syncCatID, &syncAmount, &syncAmountCny, &syncType, &syncNote, &syncCurrency, &syncTxnDate); err != nil {
+			log.Printf("ERROR: transaction: failed to read updated transaction %s for sync: %v", txnID, err)
+			return nil, status.Error(codes.Internal, "failed to read updated transaction for sync")
+		}
+		if err := insertTransactionSyncOp(ctx, tx, uid, txnID, "update", map[string]interface{}{
 			"id":           txnID.String(),
 			"user_id":      uid.String(),
 			"account_id":   syncAccID.String(),
@@ -786,7 +789,7 @@ func (s *Service) DeleteTransaction(ctx context.Context, req *pb.DeleteTransacti
 	}
 
 	// Write sync_operations record for delete
-	if err := insertSyncOp(ctx, tx, uid, txnID, "delete", map[string]interface{}{
+	if err := insertTransactionSyncOp(ctx, tx, uid, txnID, "delete", map[string]interface{}{
 		"id": txnID.String(),
 	}); err != nil {
 		log.Printf("ERROR: transaction: sync delete failed for %s: %v", txnID, err)
@@ -851,12 +854,15 @@ func (s *Service) BatchCreateTransactions(ctx context.Context, req *pb.BatchCrea
 	// Post-batch: check for accounts that went negative and include in response warnings.
 	// NOTE: This is a best-effort check (TOCTOU possible with concurrent requests),
 	// but sufficient for import scenarios where the user reviews results.
+	var warnings []string
 	if len(created) > 0 {
-		accountSet := make(map[string]struct{})
+		accountSet := make(map[uuid.UUID]struct{})
 		for _, txn := range created {
-			accountSet[txn.AccountId] = struct{}{}
+			if uid, err := uuid.Parse(txn.AccountId); err == nil {
+				accountSet[uid] = struct{}{}
+			}
 		}
-		accountIDs := make([]string, 0, len(accountSet))
+		accountIDs := make([]uuid.UUID, 0, len(accountSet))
 		for id := range accountSet {
 			accountIDs = append(accountIDs, id)
 		}
@@ -864,15 +870,17 @@ func (s *Service) BatchCreateTransactions(ctx context.Context, req *pb.BatchCrea
 			"SELECT id, balance FROM accounts WHERE id = ANY($1) AND balance < 0",
 			accountIDs,
 		)
-		if err == nil {
+		if err != nil {
+			log.Printf("WARNING: batch-create: failed to check post-import balances for user %s: %v", userID, err)
+		} else {
 			defer rows.Close()
 			for rows.Next() {
-				var acctID string
+				var acctID uuid.UUID
 				var balance int64
 				if rows.Scan(&acctID, &balance) == nil {
-					warn := fmt.Sprintf("WARNING: account %s balance is negative (%d cents) after import", acctID, balance)
-					errors = append(errors, warn)
-					log.Printf("batch-create: %s for user %s", warn, userID)
+					warn := fmt.Sprintf("account %s balance is negative (%d cents) after import", acctID, balance)
+					warnings = append(warnings, warn)
+					log.Printf("batch-create: WARNING: %s for user %s", warn, userID)
 				}
 			}
 		}
@@ -882,6 +890,7 @@ func (s *Service) BatchCreateTransactions(ctx context.Context, req *pb.BatchCrea
 		CreatedCount:  int32(len(created)),
 		Transactions:  created,
 		Errors:        errors,
+		Warnings:      warnings,
 	}, nil
 }
 
@@ -1002,7 +1011,7 @@ func (s *Service) BatchDeleteTransactions(ctx context.Context, req *pb.BatchDele
 
 	// Write sync_operations for each deleted transaction
 	for _, info := range toDelete {
-		if err := insertSyncOp(ctx, tx, uid, info.id, "delete", map[string]interface{}{"id": info.id.String()}); err != nil {
+		if err := insertTransactionSyncOp(ctx, tx, uid, info.id, "delete", map[string]interface{}{"id": info.id.String()}); err != nil {
 			log.Printf("ERROR: transaction: sync batch-delete failed for %s: %v", info.id, err)
 			return nil, status.Error(codes.Internal, "failed to record sync operation")
 		}
@@ -1883,16 +1892,25 @@ func scanTransactionWithDeleted(rows pgx.Rows) (*pb.Transaction, error) {
 
 
 
-// notifyFamilyChange sends a WS change notification to all family members
-// (or just the user if not in a family). Best-effort: never returns error.
+// validSyncOpTypes is the exhaustive set of allowed sync operation types.
+var validSyncOpTypes = map[string]struct{}{
+	"create": {},
+	"update": {},
+	"delete": {},
+}
+
 // syncClientID generates a unique client_id for sync_operations records created via gRPC.
 func syncClientID(op string) string {
 	return "grpc-" + op + "-" + uuid.New().String()
 }
 
-// insertSyncOp inserts a sync_operations record within the given transaction.
-// Failure aborts the parent transaction to prevent silent data loss.
-func insertSyncOp(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, opType string, payload map[string]interface{}) error {
+// insertTransactionSyncOp inserts a sync_operations record for a transaction
+// within the given database transaction. Failure aborts the parent transaction
+// to prevent silent data loss.
+func insertTransactionSyncOp(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, opType string, payload map[string]interface{}) error {
+	if _, ok := validSyncOpTypes[opType]; !ok {
+		return fmt.Errorf("invalid sync op type: %q", opType)
+	}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal sync payload: %w", err)
@@ -1907,6 +1925,8 @@ func insertSyncOp(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uui
 	return nil
 }
 
+// notifyFamilyChange sends a WS change notification to all family members
+// (or just the user if not in a family). Best-effort: never returns error.
 func (s *Service) notifyFamilyChange(ctx context.Context, userID string, accountID uuid.UUID, opType string, entityID string) {
 	if s.hub == nil {
 		return

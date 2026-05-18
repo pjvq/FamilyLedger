@@ -306,6 +306,11 @@ func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 			}
 			reminderCancel()
 
+			if ctx.Err() != nil {
+				log.Println("scheduler: shutdown during checks, aborting remaining")
+				return
+			}
+
 			log.Println("scheduler: all checks complete")
 		}
 	}
@@ -338,6 +343,11 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 				log.Printf("market-scheduler: crypto refresh error: %v", err)
 			}
 
+			if ctx.Err() != nil {
+				cancel()
+				return
+			}
+
 			// Refresh A-share/fund only during CN trading hours
 			if market.IsTradingHours(now, "a_share") {
 				if err := marketService.RefreshQuotes(refreshCtx, []string{"a_share", "fund"}); err != nil {
@@ -345,11 +355,21 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 				}
 			}
 
+			if ctx.Err() != nil {
+				cancel()
+				return
+			}
+
 			// Refresh HK stocks only during HK trading hours
 			if market.IsTradingHours(now, "hk_stock") {
 				if err := marketService.RefreshQuotes(refreshCtx, []string{"hk_stock"}); err != nil {
 					log.Printf("market-scheduler: hk_stock refresh error: %v", err)
 				}
+			}
+
+			if ctx.Err() != nil {
+				cancel()
+				return
 			}
 
 			// Refresh US stocks only during US trading hours
