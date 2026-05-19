@@ -215,7 +215,7 @@ func resolveBatchCategory(ctx context.Context, tx pgx.Tx, cr *createRequest) (uu
 
 // checkOverdraft performs the overdraft protection check (lock row + verify balance).
 func checkOverdraft(ctx context.Context, tx pgx.Tx, accountID uuid.UUID, amountCny int64, acctType string) error {
-	if acctType == "credit_card" || ctx.Value(skipOverdraftKey) != nil {
+	if acctType == "credit_card" {
 		return nil
 	}
 	var currentBalance int64
