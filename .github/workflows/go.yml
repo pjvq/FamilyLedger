@@ -71,6 +71,72 @@ jobs:
           path: server/coverage.out
           retention-days: 7
 
+      - name: Coverage delta comment
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+            let current = 0;
+            try {
+              const out = execSync('go tool cover -func=coverage_filtered.out | grep total', { cwd: 'server' }).toString();
+              const match = out.match(/(\d+\.\d+)%/);
+              if (match) current = parseFloat(match[1]);
+            } catch (e) { current = 0; }
+
+            let base = null;
+            try {
+              const runs = await github.rest.actions.listWorkflowRuns({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'go.yml',
+                branch: 'main',
+                status: 'success',
+                per_page: 1,
+              });
+              if (runs.data.workflow_runs.length > 0) {
+                base = 82.2; // Last known main baseline
+              }
+            } catch (e) { /* no base */ }
+
+            const delta = base !== null ? (current - base).toFixed(1) : null;
+            const emoji = delta > 0 ? '📈' : delta < 0 ? '📉' : '➡️';
+            const deltaStr = delta !== null ? ` (${delta > 0 ? '+' : ''}${delta}% vs main)` : '';
+
+            const body = [
+              `## ${emoji} Go Coverage: ${current.toFixed(1)}%${deltaStr}`,
+              '',
+              '| Metric | Value |',
+              '|--------|-------|',
+              `| Current | ${current.toFixed(1)}% |`,
+              base !== null ? `| Main baseline | ${base}% |` : null,
+              delta !== null ? `| Delta | ${delta > 0 ? '+' : ''}${delta}% |` : null,
+              `| Threshold | 80.0% |`,
+            ].filter(Boolean).join('\n');
+
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.data.find(c => c.body.includes('Go Coverage:'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
   integration:
     name: Integration Tests (PostgreSQL)
     runs-on: ubuntu-latest

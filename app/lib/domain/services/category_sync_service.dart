@@ -3,16 +3,18 @@ import 'dart:developer' as dev;
 import '../../core/network/network.dart';
 import '../../generated/proto/transaction.pbgrpc.dart' as pb;
 import '../../generated/proto/transaction.pbenum.dart' as pbe;
-import '../repositories/transaction_repository.dart';
+import '../entities/entities.dart';
+import '../interfaces/interfaces.dart';
 
 /// Syncs categories from the remote server to local storage.
 ///
-/// Stateless service — holds no mutable state. Safe to call from any isolate
-/// (if we move to multi-isolate architecture in the future).
+/// Depends on [ICategoryRepository] (DIP) for data access.
+/// Stateless service — holds no mutable state. Safe to call from any isolate.
 class CategorySyncService {
-  final TransactionRepository _repo;
+  final ICategoryRepository _repo;
   final pb.TransactionServiceClient _client;
-  final String _userId;
+  // ignore: unused_field
+  final String _userId; // Retained for future seedForOwner() calls
 
   CategorySyncService(this._repo, this._client, this._userId);
 
@@ -39,34 +41,21 @@ class CategorySyncService {
     final type = c.type == pbe.TransactionType.TRANSACTION_TYPE_INCOME
         ? 'income'
         : 'expense';
-    final children = c.children
-        .map((child) => CategoryChild(
-              id: child.id,
-              name: child.name,
-              sortOrder: child.sortOrder,
-              iconKey: child.iconKey.isNotEmpty ? child.iconKey : null,
-              children: _mapChildren(child.children),
-            ))
-        .toList();
-    await _repo.upsertCategoryTree(
-      c.id,
-      c.name,
-      type,
-      c.sortOrder,
-      parentId ?? (c.parentId.isNotEmpty ? c.parentId : null),
-      c.iconKey.isNotEmpty ? c.iconKey : null,
-      _userId,
-      children,
-    );
-  }
 
-  List<CategoryChild> _mapChildren(List<pb.Category> cats) {
-    return cats.map((c) => CategoryChild(
+    // Upsert this category via interface
+    await _repo.upsert(CategoryEntity(
       id: c.id,
       name: c.name,
+      type: type,
+      parentId: parentId ?? (c.parentId.isNotEmpty ? c.parentId : null),
+      iconKey: c.iconKey.isNotEmpty ? c.iconKey : '',
       sortOrder: c.sortOrder,
-      iconKey: c.iconKey.isNotEmpty ? c.iconKey : null,
-      children: _mapChildren(c.children),
-    )).toList();
+      isPreset: true,
+    ));
+
+    // Recurse for children
+    for (final child in c.children) {
+      await _insertRecursive(child, c.id);
+    }
   }
 }

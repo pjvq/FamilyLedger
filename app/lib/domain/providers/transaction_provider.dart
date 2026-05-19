@@ -13,6 +13,7 @@ import '../../generated/proto/transaction.pbenum.dart' as pbe;
 import '../../generated/proto/google/protobuf/timestamp.pb.dart' as proto_ts;
 import '../../sync/sync_engine.dart';
 import '../repositories/transaction_repository.dart';
+import '../repositories/category_repository.dart';
 import '../services/balance_calculator.dart';
 import '../services/category_sync_service.dart';
 import '../services/offline_sync_queue.dart';
@@ -128,7 +129,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     final syncQueue = OfflineSyncQueue(db);
     CategorySyncService? categorySvc;
     if (txnClient != null && userId.isNotEmpty) {
-      categorySvc = CategorySyncService(repo, txnClient, userId);
+      categorySvc = CategorySyncService(CategoryRepository(db), txnClient, userId);
     }
     return TransactionNotifier(
       repo: repo,
@@ -589,7 +590,8 @@ final transactionProvider =
 
   CategorySyncService? categorySvc;
   if (txnClient != null && userId != null) {
-    categorySvc = CategorySyncService(repo, txnClient, userId);
+    final categoryRepo = ref.watch(categoryRepositoryProvider);
+    categorySvc = CategorySyncService(categoryRepo, txnClient, userId);
   }
 
   if (userId == null) {
