@@ -1,5 +1,9 @@
 /// Drift table definitions — split by domain for maintainability.
 ///
+/// All tables are registered in `database.dart` via
+/// `@DriftDatabase(tables: [...])`. When adding a new table,
+/// update that annotation as well.
+///
 /// Domain modules:
 ///   - core_tables.dart: Users, Accounts, Categories, Transactions, Transfers
 ///   - family_tables.dart: Families, FamilyMembers

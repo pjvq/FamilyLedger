@@ -30,7 +30,7 @@ class InvestmentTrades extends Table {
 
   TextColumn get id => text()();
   TextColumn get investmentId => text().references(Investments, #id)();
-  TextColumn get tradeType => text()();
+  TextColumn get tradeType => text()(); // buy, sell, dividend
   RealColumn get quantity => real()();
   IntColumn get price => integer()();
   IntColumn get totalAmount => integer()();
@@ -104,7 +104,7 @@ class DepreciationRules extends Table {
 
   TextColumn get id => text()();
   TextColumn get assetId => text().references(FixedAssets, #id)();
-  TextColumn get method => text().withDefault(const Constant('none'))();
+  TextColumn get method => text().withDefault(const Constant('none'))(); // none, straight_line, declining_balance
   IntColumn get usefulLifeYears => integer().withDefault(const Constant(5))();
   RealColumn get salvageRate => real().withDefault(const Constant(0.05))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();

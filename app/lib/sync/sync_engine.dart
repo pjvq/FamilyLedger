@@ -21,6 +21,7 @@ import '../generated/proto/google/protobuf/timestamp.pb.dart' as proto_ts;
 import '../generated/proto/sync.pb.dart' as sync_pb;
 import '../generated/proto/sync.pbgrpc.dart';
 import '../generated/proto/sync.pbenum.dart' as sync_enum;
+import 'sync_event.dart';
 
 /// 离线同步引擎
 ///
@@ -51,8 +52,7 @@ class SyncEngine {
   bool _pushRequested = false;
 
   /// Callback to update sync status UI. Set by the provider.
-  void Function({bool? syncing, bool? synced, bool? wsConnected, bool? serverReachable, int? failedCount})?
-      onStatusChanged;
+  void Function(SyncEvent event)? onSyncEvent;
 
   /// 最后一次成功拉取的服务端时间戳（毫秒）
   static const _lastSyncTsKey = 'sync_last_pull_ts';
@@ -129,11 +129,10 @@ class SyncEngine {
       _pushRequested = true;
       return;
     }
-    onStatusChanged?.call(syncing: true);
+    onSyncEvent?.call(const SyncEvent.syncStarted());
     try {
       final results = await _connectivity.checkConnectivity();
       if (results.every((r) => r == ConnectivityResult.none)) {
-        onStatusChanged?.call(syncing: false);
         return;
       }
 
@@ -191,19 +190,18 @@ class SyncEngine {
         if (deadTxnIds.isNotEmpty) {
           await _db!.markTransactionsFailed(deadTxnIds);
         }
-        onStatusChanged?.call(failedCount: failedIds.length);
+        onSyncEvent?.call(PushFailed(failedIds.length));
       }
 
       dev.log(
         'SyncEngine: pushed ${succeededIds.length}/${pendingOps.length} ops',
         name: 'sync',
       );
-      onStatusChanged?.call(serverReachable: true);
+      onSyncEvent?.call(const SyncEvent.serverReachable());
     } catch (e) {
       dev.log('SyncEngine: push failed: $e', name: 'sync');
-      onStatusChanged?.call(serverReachable: false);
+      onSyncEvent?.call(const SyncEvent.serverUnreachable());
     } finally {
-      onStatusChanged?.call(syncing: false);
       _releaseSyncLock();
       _drainPendingRequests();
     }
@@ -310,10 +308,11 @@ class SyncEngine {
         'SyncEngine: pulled $totalPulled changes',
         name: 'sync',
       );
-      onStatusChanged?.call(synced: true, serverReachable: true);
+      onSyncEvent?.call(const SyncEvent.syncCompleted());
+      onSyncEvent?.call(const SyncEvent.serverReachable());
     } catch (e) {
       dev.log('SyncEngine: pull failed: $e', name: 'sync');
-      onStatusChanged?.call(serverReachable: false);
+      onSyncEvent?.call(const SyncEvent.serverUnreachable());
     }
   }
 
@@ -864,7 +863,7 @@ class SyncEngine {
       if (type == 'auth_ok') {
         dev.log('SyncEngine: ws auth_ok received', name: 'sync');
         _reconnectAttempts = 0;
-        onStatusChanged?.call(wsConnected: true);
+        onSyncEvent?.call(const SyncEvent.wsStateChanged(true));
         if (_authCompleter != null && !_authCompleter!.isCompleted) {
           _authCompleter!.complete();
         }
@@ -948,7 +947,7 @@ class SyncEngine {
     _wsSub = null;
     _wsChannel?.sink.close();
     _wsChannel = null;
-    onStatusChanged?.call(wsConnected: false);
+    onSyncEvent?.call(const SyncEvent.wsStateChanged(false));
   }
 
   void _scheduleReconnect() {
@@ -1036,18 +1035,21 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
 
   // Wire status callbacks to SyncStatusNotifier
   final statusNotifier = ref.read(syncStatusProvider.notifier);
-  engine.onStatusChanged = ({
-    bool? syncing,
-    bool? synced,
-    bool? wsConnected,
-    bool? serverReachable,
-    int? failedCount,
-  }) {
-    if (syncing == true) statusNotifier.markSyncing();
-    if (synced == true) statusNotifier.markSynced();
-    if (wsConnected != null) statusNotifier.updateWsConnected(wsConnected);
-    if (serverReachable != null) statusNotifier.updateServerReachable(serverReachable);
-    if (failedCount != null && failedCount > 0) statusNotifier.markFailed(failedCount);
+  engine.onSyncEvent = (SyncEvent event) {
+    switch (event) {
+      case SyncStarted():
+        statusNotifier.markSyncing();
+      case SyncCompleted():
+        statusNotifier.markSynced();
+      case ServerReachable():
+        statusNotifier.updateServerReachable(true);
+      case ServerUnreachable():
+        statusNotifier.updateServerReachable(false);
+      case WsStateChanged(:final connected):
+        statusNotifier.updateWsConnected(connected);
+      case PushFailed(:final failedCount):
+        statusNotifier.markFailed(failedCount);
+    }
   };
 
   ref.onDispose(() => engine.dispose());

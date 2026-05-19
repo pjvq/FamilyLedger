@@ -34,6 +34,7 @@ class SyncState {
     int? pendingCount,
     int? failedCount,
     DateTime? lastSyncTime,
+    bool clearLastSyncTime = false,
     bool? wsConnected,
     bool? serverReachable,
   }) =>
@@ -41,7 +42,7 @@ class SyncState {
         status: status ?? this.status,
         pendingCount: pendingCount ?? this.pendingCount,
         failedCount: failedCount ?? this.failedCount,
-        lastSyncTime: lastSyncTime ?? this.lastSyncTime,
+        lastSyncTime: clearLastSyncTime ? null : (lastSyncTime ?? this.lastSyncTime),
         wsConnected: wsConnected ?? this.wsConnected,
         serverReachable: serverReachable ?? this.serverReachable,
       );
@@ -131,10 +132,14 @@ class SyncStatusNotifier extends StateNotifier<SyncState> {
 
   void updateServerReachable(bool reachable) {
     state = state.copyWith(serverReachable: reachable);
-    // If server became unreachable and we're not already offline/failed,
-    // reflect this in the overall status.
     if (!reachable && state.status == SyncStatus.synced) {
       state = state.copyWith(status: SyncStatus.pending);
+    } else if (reachable &&
+        state.status == SyncStatus.pending &&
+        state.pendingCount == 0 &&
+        state.failedCount == 0) {
+      // Server became reachable again with nothing pending → restore synced.
+      state = state.copyWith(status: SyncStatus.synced);
     }
   }
 

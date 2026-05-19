@@ -31,8 +31,9 @@ void main() async {
   };
 
   // Catch unhandled async errors (platform-level).
-  // Log with full context; return true only in release to prevent crash.
-  // In debug mode, let the error propagate so developers notice immediately.
+  // Log with full context; always return true to mark as "handled".
+  // runZonedGuarded below is the fallback zone — returning false here would
+  // cause duplicate reporting (once here, once in the Zone handler).
   PlatformDispatcher.instance.onError = (error, stack) {
     dev.log(
       'PlatformDispatcher error: $error',
@@ -40,9 +41,9 @@ void main() async {
       error: error,
       stackTrace: stack,
     );
-    // In release: swallow to keep app alive.
-    // In debug: rethrow (return false) so the error is visible.
-    return !kDebugMode;
+    // Always mark handled. In debug, dev.log already makes it visible;
+    // in release, this prevents crash. Zone handler won't double-report.
+    return true;
   };
 
   // Wrap everything in a guarded zone for belt-and-suspenders safety

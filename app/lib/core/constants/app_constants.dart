@@ -6,11 +6,11 @@ class AppConstants {
   // Resolved at compile-time via --dart-define or .env flavor.
   // Usage: flutter run --dart-define=SERVER_HOST=192.168.1.100
   //
-  // Defaults are production values; override for dev/staging.
+  // Defaults point to localhost for safety; CI/CD injects production values.
 
   static const serverHost = String.fromEnvironment(
     'SERVER_HOST',
-    defaultValue: '124.222.52.10',
+    defaultValue: 'localhost',
   );
 
   static const grpcPort = int.fromEnvironment(

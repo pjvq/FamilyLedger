@@ -17,8 +17,8 @@ class Accounts extends Table {
   TextColumn get userId => text().references(Users, #id)();
   TextColumn get familyId => text().withDefault(const Constant(''))();
   TextColumn get name => text().withLength(min: 1, max: 50)();
-  TextColumn get accountType => text().withDefault(const Constant('other'))();
-  TextColumn get icon => text().withDefault(const Constant('💳'))();
+  TextColumn get accountType => text().withDefault(const Constant('other'))(); // cash, bank_card, alipay, wechat, credit_card, investment, other
+  TextColumn get icon => text().withDefault(const Constant('💳'))(); // emoji icon
   IntColumn get balance => integer().withDefault(const Constant(0))();
   TextColumn get currency => text().withDefault(const Constant('CNY'))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
@@ -33,7 +33,7 @@ class Accounts extends Table {
 class Categories extends Table {
   TextColumn get id => text()();
   TextColumn get name => text().withLength(min: 1, max: 30)();
-  TextColumn get type => text()();
+  TextColumn get type => text()(); // income, expense
   BoolColumn get isPreset => boolean().withDefault(const Constant(true))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   TextColumn get parentId => text().nullable().references(Categories, #id)();
@@ -55,14 +55,14 @@ class Transactions extends Table {
   TextColumn get currency => text().withDefault(const Constant('CNY'))();
   IntColumn get amountCny => integer()();
   RealColumn get exchangeRate => real().withDefault(const Constant(1.0))();
-  TextColumn get type => text()();
+  TextColumn get type => text()(); // income, expense, transfer
   TextColumn get note => text().withDefault(const Constant(''))();
   TextColumn get tags => text().withDefault(const Constant(''))();
   TextColumn get imageUrls => text().withDefault(const Constant(''))();
   DateTimeColumn get txnDate => dateTime()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
-  TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
+  TextColumn get syncStatus => text().withDefault(const Constant('pending'))(); // pending, synced, failed
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
   @override

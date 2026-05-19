@@ -1,9 +1,11 @@
 import 'package:drift/drift.dart';
 
+import 'core_tables.dart';
+
 /// 预算表
 class Budgets extends Table {
   TextColumn get id => text()();
-  TextColumn get userId => text()();
+  TextColumn get userId => text().references(Users, #id)();
   TextColumn get familyId => text().withDefault(const Constant(''))();
   IntColumn get year => integer()();
   IntColumn get month => integer()();
@@ -32,7 +34,7 @@ class CategoryBudgetsTable extends Table {
 /// 通知表
 class Notifications extends Table {
   TextColumn get id => text()();
-  TextColumn get userId => text()();
+  TextColumn get userId => text().references(Users, #id)();
   TextColumn get type => text()();
   TextColumn get title => text()();
   TextColumn get body => text()();
@@ -49,7 +51,7 @@ class NotificationSettingsTable extends Table {
   @override
   String get tableName => 'notification_settings';
 
-  TextColumn get userId => text()();
+  TextColumn get userId => text().references(Users, #id)();
   BoolColumn get budgetAlert => boolean().withDefault(const Constant(true))();
   BoolColumn get budgetWarning => boolean().withDefault(const Constant(true))();
   BoolColumn get dailySummary => boolean().withDefault(const Constant(false))();
@@ -65,7 +67,7 @@ class SyncQueue extends Table {
   TextColumn get id => text()();
   TextColumn get entityType => text()();
   TextColumn get entityId => text()();
-  TextColumn get opType => text()();
+  TextColumn get opType => text()(); // create, update, delete
   TextColumn get payload => text()();
   TextColumn get clientId => text()();
   DateTimeColumn get timestamp => dateTime()();
