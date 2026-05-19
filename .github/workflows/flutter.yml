@@ -38,7 +38,7 @@ jobs:
         timeout-minutes: 8
         run: bash ../scripts/run-flutter-tests.sh
 
-      - name: Coverage report (target 80% by W15)
+      - name: Coverage report
         run: |
           if [ ! -f coverage/lcov.info ]; then
             echo "::warning::No coverage file found (skipping gate)"
@@ -50,8 +50,10 @@ jobs:
             exit 0
           fi
           COVERAGE=$(echo "scale=1; $HIT * 100 / $TOTAL" | bc)
+          echo "## 📈 Flutter Coverage: ${COVERAGE}% ($HIT/$TOTAL lines)" >> $GITHUB_STEP_SUMMARY
           echo "Dart coverage: ${COVERAGE}% ($HIT/$TOTAL lines)"
-          echo "📈 Target: 80% by W15. Current gate: 20% (prevent regression)"
+          # Regression gate: fail if coverage drops below 20%.
+          # Target: 65% (tracked in Issue #64 — requires DIP completion).
           if (( $(echo "$COVERAGE < 20.0" | bc -l) )); then
             echo "::error::Coverage ${COVERAGE}% is below 20% minimum threshold"
             exit 1

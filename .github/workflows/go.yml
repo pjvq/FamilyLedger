@@ -45,13 +45,15 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      - name: Coverage report (target 85% by W15)
+      - name: Coverage report
         run: |
           COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "## 📈 Go Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
           echo "Total coverage: ${COVERAGE}%"
-          echo "📈 Target: 85% by W15. Current gate: 20% (prevent regression)"
-          if (( $(echo "$COVERAGE < 20.0" | bc -l) )); then
-            echo "::error::Coverage ${COVERAGE}% is below 20% minimum threshold"
+          # Regression gate: fail if coverage drops below 40%.
+          # Target: 75% (tracked in Issue #64 — requires pipeline refactor).
+          if (( $(echo "$COVERAGE < 40.0" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below 40% minimum threshold"
             exit 1
           fi
 
