@@ -44,18 +44,30 @@ jobs:
             echo "::warning::No coverage file found (skipping gate)"
             exit 0
           fi
-          read HIT TOTAL <<< $(awk -F, '/^DA:/{total++; if($2>0)hit++} END{print hit+0, total+0}' coverage/lcov.info)
+          # Filter out generated code (proto .pb.dart, drift .g.dart) for accurate metrics
+          if command -v lcov &>/dev/null; then
+            lcov --remove coverage/lcov.info \
+              '*/generated/*' '*/*.g.dart' '*/*.pb.dart' '*/*.pbenum.dart' '*/*.pbgrpc.dart' '*/*.pbjson.dart' \
+              -o coverage/lcov_filtered.info --quiet
+            COV_FILE=coverage/lcov_filtered.info
+          else
+            # Fallback: awk-based filter if lcov not installed
+            awk '/^SF:/{skip=0; if($0 ~ /generated\/|.g.dart|.pb.dart|.pbenum.dart|.pbgrpc.dart|.pbjson.dart/) skip=1} !skip' \
+              coverage/lcov.info > coverage/lcov_filtered.info
+            COV_FILE=coverage/lcov_filtered.info
+          fi
+          read HIT TOTAL <<< $(awk -F, '/^DA:/{total++; if($2>0)hit++} END{print hit+0, total+0}' "$COV_FILE")
           if [ "$TOTAL" -eq 0 ]; then
             echo "::warning::No coverage data found"
             exit 0
           fi
           COVERAGE=$(echo "scale=1; $HIT * 100 / $TOTAL" | bc)
-          echo "## 📈 Flutter Coverage: ${COVERAGE}% ($HIT/$TOTAL lines)" >> $GITHUB_STEP_SUMMARY
-          echo "Dart coverage: ${COVERAGE}% ($HIT/$TOTAL lines)"
-          # Regression gate: fail if coverage drops below 20%.
-          # Target: 65% (tracked in Issue #64 — requires DIP completion).
-          if (( $(echo "$COVERAGE < 20.0" | bc -l) )); then
-            echo "::error::Coverage ${COVERAGE}% is below 20% minimum threshold"
+          echo "## 📈 Flutter Coverage (source only): ${COVERAGE}% ($HIT/$TOTAL lines)" >> $GITHUB_STEP_SUMMARY
+          echo "Dart coverage (excl. generated): ${COVERAGE}% ($HIT/$TOTAL lines)"
+          # Regression gate: fail if coverage drops below 40% (source-only baseline ~43%).
+          # Target: 65% after DIP completion (Issue #64.4).
+          if (( $(echo "$COVERAGE < 40.0" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below 40% minimum threshold"
             exit 1
           fi
 
