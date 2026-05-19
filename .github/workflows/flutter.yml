@@ -88,7 +88,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            // Read current coverage from step summary or re-compute
+            // Read current coverage from filtered lcov
             let current = 0;
             try {
               const info = fs.readFileSync('app/coverage/lcov_filtered.info', 'utf8');
@@ -102,6 +102,12 @@ jobs:
               }
               current = total > 0 ? (hit * 100 / total) : 0;
             } catch (e) { current = 0; }
+
+            // Skip comment if no coverage data (e.g. test runner crashed/OOM)
+            if (current === 0) {
+              core.info('No coverage data available — skipping PR comment');
+              return;
+            }
 
             // Try to get base coverage from previous main run artifact
             let base = null;
