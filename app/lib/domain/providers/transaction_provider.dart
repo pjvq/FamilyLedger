@@ -14,6 +14,7 @@ import '../../generated/proto/google/protobuf/timestamp.pb.dart' as proto_ts;
 import '../../sync/sync_engine.dart';
 import '../repositories/transaction_repository.dart';
 import '../repositories/category_repository.dart';
+import '../interfaces/interfaces.dart';
 import '../services/balance_calculator.dart';
 import '../services/category_sync_service.dart';
 import '../services/offline_sync_queue.dart';
@@ -118,18 +119,21 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
   /// Convenience constructor for tests that only have a DB and client.
   /// Creates internal dependencies from the DB automatically.
+  /// [categoryRepo] allows DI override; defaults to `CategoryRepository(db)`.
   factory TransactionNotifier.fromDb(
     AppDatabase db,
     String userId,
     String? familyId,
-    pb.TransactionServiceClient? txnClient,
-  ) {
+    pb.TransactionServiceClient? txnClient, {
+    ICategoryRepository? categoryRepo,
+  }) {
     final repo = TransactionRepository(db);
     final balanceCalc = BalanceCalculator(repo);
     final syncQueue = OfflineSyncQueue(db);
     CategorySyncService? categorySvc;
     if (txnClient != null && userId.isNotEmpty) {
-      categorySvc = CategorySyncService(CategoryRepository(db), txnClient, userId);
+      categorySvc = CategorySyncService(
+        categoryRepo ?? CategoryRepository(db), txnClient, userId);
     }
     return TransactionNotifier(
       repo: repo,

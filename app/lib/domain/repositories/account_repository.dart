@@ -40,7 +40,6 @@ class AccountRepository implements IAccountRepository {
       id: entity.id,
       userId: entity.userId,
       name: entity.name,
-      icon: Value(entity.type), // icon stored in type field for now
       balance: Value(entity.balance),
       familyId: Value(entity.familyId ?? ''),
       accountType: Value(entity.type),
@@ -65,7 +64,7 @@ class AccountRepository implements IAccountRepository {
         name: row.name,
         type: row.accountType,
         balance: row.balance,
-        currency: 'CNY',
+        currency: row.currency,
         familyId: row.familyId.isNotEmpty ? row.familyId : null,
       );
 }

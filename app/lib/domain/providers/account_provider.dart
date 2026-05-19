@@ -132,7 +132,12 @@ class AccountNotifier extends StateNotifier<AccountState> {
     if (_userId.isEmpty) return;
     state = state.copyWith(isLoading: true);
     try {
-      // Sync from server first (uses _db for drift-specific companion writes)
+      // Sync from server first.
+      // NOTE: Uses _db directly for gRPC→local sync writes because
+      // AccountsCompanion carries drift-specific fields (icon, isActive,
+      // createdAt) that AccountEntity doesn't model yet.
+      // TODO(DIP): Migrate AccountEntity to carry all fields, then replace
+      // _db.insertAccount with _repo.upsert here.
       if (_accountClient != null) {
         try {
           final resp = await _accountClient.listAccounts(
@@ -156,7 +161,10 @@ class AccountNotifier extends StateNotifier<AccountState> {
         }
       }
 
-      // Load accounts (drift model for UI state)
+      // Load accounts.
+      // TODO(DIP): AccountState should hold List<AccountEntity> instead of
+      // drift Account models. Until UI widgets are migrated, we keep using
+      // _db for the full drift model that includes icon/isActive/timestamps.
       final accounts = await _loadAccountsFromDb();
       state = state.copyWith(accounts: accounts, isLoading: false);
     } catch (e) {
@@ -164,7 +172,8 @@ class AccountNotifier extends StateNotifier<AccountState> {
     }
   }
 
-  /// Load drift Account models from DB (UI state needs full drift model).
+  /// Load drift Account models from DB.
+  /// TODO(DIP): Replace with _repo calls once AccountState uses AccountEntity.
   Future<List<Account>> _loadAccountsFromDb() async {
     if (_familyId != null && _familyId.isNotEmpty) {
       return _db.getAccountsByFamily(_familyId);

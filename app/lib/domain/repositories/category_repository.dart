@@ -75,9 +75,14 @@ class CategoryRepository implements ICategoryRepository {
 
   @override
   Future<void> seedForOwner(String ownerID) async {
-    // Delegate to existing seed logic in TransactionRepository if needed,
-    // or provide default categories inline. For now this is a no-op —
-    // seeding is handled by the server on user creation.
+    // Category seeding is handled server-side on user creation.
+    // If called, it's a programming error — interface should not expose
+    // methods that are never meant to be called (ISP). Retained for now
+    // to satisfy the interface contract; will be removed or implemented
+    // when client-side offline registration is supported.
+    throw UnimplementedError(
+      'CategoryRepository.seedForOwner: seeding is server-side only',
+    );
   }
 
   /// Convert Drift model to domain entity.

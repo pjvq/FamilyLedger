@@ -83,7 +83,7 @@ jobs:
           retention-days: 7
 
       - name: Coverage delta comment
-        if: github.event_name == 'pull_request' && always()
+        if: github.event_name == 'pull_request' && (success() || failure())
         uses: actions/github-script@v7
         with:
           script: |
@@ -131,7 +131,7 @@ jobs:
                 if (cov) {
                   // Note: can't easily download & parse in JS action without extra deps.
                   // Use step summary from that run instead — approximate from our threshold.
-                  base = 42.9; // Last known main baseline (updated manually or via cache)
+                  base = 42.9; // TODO: auto-update from main run artifacts or .github/baselines.json
                 }
               }
             } catch (e) { /* no base available */ }

@@ -82,14 +82,16 @@ run_shard() {
     cp coverage/lcov.info "$shard_cov"
   fi
 
-  # Count results from compact reporter output
+  # Count results from compact reporter final summary line: "+N -M: ..."
   local last_line
   last_line=$(grep -oE '\+[0-9]+' "test_output_shard_${SHARD_NUM}.txt" | tail -1 || echo "+0")
   local passed=${last_line#+}
   TOTAL_PASSED=$((TOTAL_PASSED + passed))
 
   local failed_line
-  failed_line=$(grep -oE '\-[0-9]+' "test_output_shard_${SHARD_NUM}.txt" | tail -1 || echo "-0")
+  # Match "-N" only at start of a word (compact reporter format: "+X -Y: test name")
+  failed_line=$(grep -oE ' -[0-9]+' "test_output_shard_${SHARD_NUM}.txt" | tail -1 || echo " -0")
+  failed_line=${failed_line## }  # trim leading space
   local failed=${failed_line#-}
   TOTAL_FAILED=$((TOTAL_FAILED + failed))
 

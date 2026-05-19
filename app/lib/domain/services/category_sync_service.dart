@@ -14,7 +14,7 @@ class CategorySyncService {
   final ICategoryRepository _repo;
   final pb.TransactionServiceClient _client;
   // ignore: unused_field
-  final String _userId; // Retained for future seedForOwner() calls
+  final String _userId; // Retained for future seedForOwner() use
 
   CategorySyncService(this._repo, this._client, this._userId);
 
@@ -26,10 +26,13 @@ class CategorySyncService {
         pb.GetCategoriesRequest(),
         options: defaultCallOptions,
       );
-      // Top-level categories are independent — parallel upsert.
-      await Future.wait(
-        resp.categories.map((c) => _insertRecursive(c, null)),
-      );
+
+      // Flatten the tree (BFS, parents before children) then batch upsert.
+      final entities = <CategoryEntity>[];
+      for (final c in resp.categories) {
+        _flattenTree(c, null, entities);
+      }
+      await _repo.batchUpsert(entities);
       return true;
     } catch (e) {
       dev.log('CategorySyncService: sync failed: $e', name: 'category_sync');
@@ -37,13 +40,14 @@ class CategorySyncService {
     }
   }
 
-  Future<void> _insertRecursive(pb.Category c, String? parentId) async {
+  /// DFS flatten: parent is added before children, guaranteeing FK order.
+  void _flattenTree(
+      pb.Category c, String? parentId, List<CategoryEntity> out) {
     final type = c.type == pbe.TransactionType.TRANSACTION_TYPE_INCOME
         ? 'income'
         : 'expense';
 
-    // Upsert this category via interface
-    await _repo.upsert(CategoryEntity(
+    out.add(CategoryEntity(
       id: c.id,
       name: c.name,
       type: type,
@@ -53,9 +57,8 @@ class CategorySyncService {
       isPreset: true,
     ));
 
-    // Recurse for children
     for (final child in c.children) {
-      await _insertRecursive(child, c.id);
+      _flattenTree(child, c.id, out);
     }
   }
 }
