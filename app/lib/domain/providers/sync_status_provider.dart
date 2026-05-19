@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/local/database.dart';
+import '../../sync/sync_event.dart';
 import '../providers/app_providers.dart';
 
 enum SyncStatus {
@@ -46,6 +47,105 @@ class SyncState {
         wsConnected: wsConnected ?? this.wsConnected,
         serverReachable: serverReachable ?? this.serverReachable,
       );
+
+  /// Pure state machine transition function.
+  ///
+  /// Given the current state and an event, returns the next state.
+  /// This is the **single source of truth** for state transitions —
+  /// both production code and tests use this same function.
+  ///
+  /// State transition diagram:
+  /// ```
+  /// synced  →  syncing (SyncStarted)
+  /// synced  →  pending (ServerUnreachable)
+  /// syncing →  synced  (SyncStopped [pending=0, failed=0, reachable])
+  /// syncing →  pending (SyncStopped [pending>0 OR !reachable])
+  /// syncing →  failed  (SyncStopped [failed>0])
+  /// pending →  syncing (SyncStarted)
+  /// pending →  synced  (ServerReachable [pending=0, failed=0])
+  /// failed  →  syncing (SyncStarted)
+  /// any     →  failed  (PushFailed)
+  /// any     →  synced  (SyncCompleted)
+  /// ```
+  static SyncState applyEvent(SyncState state, SyncEvent event) {
+    switch (event) {
+      case SyncStarted():
+        return state.copyWith(status: SyncStatus.syncing);
+      case SyncStopped():
+        if (state.status != SyncStatus.syncing) return state;
+        if (state.failedCount > 0) {
+          return state.copyWith(status: SyncStatus.failed);
+        } else if (state.pendingCount > 0 || !state.serverReachable) {
+          return state.copyWith(status: SyncStatus.pending);
+        } else {
+          return state.copyWith(status: SyncStatus.synced);
+        }
+      case SyncCompleted():
+        return state.copyWith(
+          status: SyncStatus.synced,
+          pendingCount: 0,
+          lastSyncTime: DateTime.now(),
+        );
+      case ServerReachable():
+        final s = state.copyWith(serverReachable: true);
+        if ((s.status == SyncStatus.pending || s.status == SyncStatus.syncing) &&
+            s.pendingCount == 0 &&
+            s.failedCount == 0) {
+          return s.copyWith(status: SyncStatus.synced);
+        }
+        return s;
+      case ServerUnreachable():
+        final s = state.copyWith(serverReachable: false);
+        if (s.status == SyncStatus.synced) {
+          return s.copyWith(status: SyncStatus.pending);
+        }
+        return s;
+      case WsStateChanged(:final connected):
+        return state.copyWith(wsConnected: connected);
+      case PushFailed(:final failedCount):
+        return state.copyWith(status: SyncStatus.failed, failedCount: failedCount);
+    }
+  }
+
+  /// Connectivity change transition (offline ↔ online).
+  ///
+  /// Separated from [applyEvent] because connectivity is an external
+  /// system-level signal, not a domain event from the sync engine.
+  static SyncState applyConnectivity(SyncState state, {required bool online}) {
+    if (!online) {
+      return state.copyWith(status: SyncStatus.offline);
+    }
+    // Restoring connectivity — determine resting state from current counts
+    if (state.failedCount > 0) {
+      return state.copyWith(status: SyncStatus.failed);
+    } else if (state.pendingCount > 0) {
+      return state.copyWith(status: SyncStatus.pending);
+    } else {
+      return state.copyWith(status: SyncStatus.synced);
+    }
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SyncState &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          pendingCount == other.pendingCount &&
+          failedCount == other.failedCount &&
+          lastSyncTime == other.lastSyncTime &&
+          wsConnected == other.wsConnected &&
+          serverReachable == other.serverReachable;
+
+  @override
+  int get hashCode => Object.hash(
+        status, pendingCount, failedCount, lastSyncTime, wsConnected, serverReachable,
+      );
+
+  @override
+  String toString() =>
+      'SyncState(status: $status, pending: $pendingCount, failed: $failedCount, '
+      'ws: $wsConnected, reachable: $serverReachable, lastSync: $lastSyncTime)';
 }
 
 final syncStatusProvider =
@@ -71,15 +171,20 @@ class SyncStatusNotifier extends StateNotifier<SyncState> {
     // React to connectivity changes
     _connectivitySub = _connectivity.onConnectivityChanged.listen((results) {
       final isOffline = results.every((r) => r == ConnectivityResult.none);
-      if (isOffline) {
-        state = state.copyWith(status: SyncStatus.offline);
-      } else {
-        refresh();
-      }
+      state = SyncState.applyConnectivity(state, online: !isOffline);
+      if (!isOffline) refresh();
     });
 
     // Initial check
     refresh();
+  }
+
+  /// Dispatches a [SyncEvent] through the state machine.
+  ///
+  /// This is the primary API for the sync engine to communicate state changes.
+  /// All transitions go through [SyncState.applyEvent] for consistency.
+  void dispatch(SyncEvent event) {
+    state = SyncState.applyEvent(state, event);
   }
 
   Future<void> refresh() async {
@@ -90,72 +195,45 @@ class SyncStatusNotifier extends StateNotifier<SyncState> {
       final pendingOps = await _db.getPendingSyncOps(1000);
       final count = pendingOps.length;
 
+      // Update pending count first
+      state = state.copyWith(pendingCount: count);
+
       if (isOffline) {
-        state = state.copyWith(status: SyncStatus.offline, pendingCount: count);
+        state = SyncState.applyConnectivity(state, online: false);
+      } else if (state.status == SyncStatus.syncing) {
+        // Don't interrupt active sync
       } else if (state.failedCount > 0) {
-        state = state.copyWith(status: SyncStatus.failed, pendingCount: count);
+        state = state.copyWith(status: SyncStatus.failed);
       } else if (count > 0) {
-        state = state.copyWith(status: SyncStatus.pending, pendingCount: count);
+        state = state.copyWith(status: SyncStatus.pending);
       } else {
-        state = state.copyWith(
-          status: SyncStatus.synced,
-          pendingCount: 0,
-        );
+        state = state.copyWith(status: SyncStatus.synced);
       }
     } catch (_) {
       // DB not ready yet
     }
   }
 
-  void markSyncing() {
-    state = state.copyWith(status: SyncStatus.syncing);
-  }
+  // ─── Legacy convenience methods (delegate to dispatch) ────────────
+  // These exist for backward compatibility with existing callers.
+  // New code should prefer `dispatch(SyncEvent.xxx())`.
 
-  void markSynced() {
-    state = state.copyWith(
-      status: SyncStatus.synced,
-      pendingCount: 0,
-      lastSyncTime: DateTime.now(),
-    );
-  }
+  void markSyncing() => dispatch(const SyncEvent.syncStarted());
 
-  void markFailed(int failedCount) {
-    state = state.copyWith(
-      status: SyncStatus.failed,
-      failedCount: failedCount,
-    );
-  }
+  void markSynced() => dispatch(const SyncEvent.syncCompleted());
 
-  void updateWsConnected(bool connected) {
-    state = state.copyWith(wsConnected: connected);
-  }
+  void markFailed(int failedCount) => dispatch(PushFailed(failedCount));
 
-  /// Called when a sync cycle ends (SyncStopped event).
-  /// Restores status from syncing based on current state.
-  void markSyncStopped() {
-    if (state.status != SyncStatus.syncing) return;
-    // Determine correct resting state after sync cycle ends.
-    if (state.failedCount > 0) {
-      state = state.copyWith(status: SyncStatus.failed);
-    } else if (state.pendingCount > 0 || !state.serverReachable) {
-      state = state.copyWith(status: SyncStatus.pending);
-    } else {
-      state = state.copyWith(status: SyncStatus.synced);
-    }
-  }
+  void updateWsConnected(bool connected) =>
+      dispatch(SyncEvent.wsStateChanged(connected));
 
-  void updateServerReachable(bool reachable) {
-    state = state.copyWith(serverReachable: reachable);
-    if (!reachable && state.status == SyncStatus.synced) {
-      state = state.copyWith(status: SyncStatus.pending);
-    } else if (reachable &&
-        (state.status == SyncStatus.pending || state.status == SyncStatus.syncing) &&
-        state.pendingCount == 0 &&
-        state.failedCount == 0) {
-      // Server became reachable again with nothing pending → restore synced.
-      state = state.copyWith(status: SyncStatus.synced);
-    }
-  }
+  void markSyncStopped() => dispatch(const SyncEvent.syncStopped());
+
+  void updateServerReachable(bool reachable) => dispatch(
+        reachable
+            ? const SyncEvent.serverReachable()
+            : const SyncEvent.serverUnreachable(),
+      );
 
   @override
   void dispose() {

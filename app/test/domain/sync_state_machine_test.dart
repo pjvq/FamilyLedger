@@ -6,6 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Formal state machine verification for SyncStatus.
 ///
+/// These tests exercise the **production** [SyncState.applyEvent] and
+/// [SyncState.applyConnectivity] methods — the same code that runs in
+/// [SyncStatusNotifier]. No separate "test-only" transition function exists.
+///
 /// State transition diagram (Mermaid):
 /// ```mermaid
 /// stateDiagram-v2
@@ -30,125 +34,57 @@ import 'package:flutter_test/flutter_test.dart';
 ///     offline --> synced : connectivity_restored [pending=0, failed=0]
 ///     offline --> failed : connectivity_restored [failed>0]
 /// ```
-///
-/// Illegal transitions (must never occur):
-///   - offline → synced (direct jump without connectivity check)
-///   - offline → syncing (cannot sync without network)
-///   - Any state → null/undefined
-///
-/// Invariants:
-///   - SyncStarted always has a matching SyncStopped
-///   - After SyncStopped, status != syncing
-///   - Status == offline IFF network is unavailable
 void main() {
-  // ─── Helpers ───────────────────────────────────────────────────────────
-
-  /// Simulates applying a SyncEvent to the state machine (mirrors SyncStatusNotifier logic).
-  SyncState applyEvent(SyncState state, SyncEvent event) {
-    switch (event) {
-      case SyncStarted():
-        return state.copyWith(status: SyncStatus.syncing);
-      case SyncStopped():
-        if (state.status != SyncStatus.syncing) return state;
-        if (state.failedCount > 0) {
-          return state.copyWith(status: SyncStatus.failed);
-        } else if (state.pendingCount > 0 || !state.serverReachable) {
-          return state.copyWith(status: SyncStatus.pending);
-        } else {
-          return state.copyWith(status: SyncStatus.synced);
-        }
-      case SyncCompleted():
-        return state.copyWith(
-          status: SyncStatus.synced,
-          pendingCount: 0,
-          lastSyncTime: DateTime.now(),
-        );
-      case ServerReachable():
-        final s = state.copyWith(serverReachable: true);
-        if ((s.status == SyncStatus.pending || s.status == SyncStatus.syncing) &&
-            s.pendingCount == 0 &&
-            s.failedCount == 0) {
-          return s.copyWith(status: SyncStatus.synced);
-        }
-        return s;
-      case ServerUnreachable():
-        final s = state.copyWith(serverReachable: false);
-        if (s.status == SyncStatus.synced) {
-          return s.copyWith(status: SyncStatus.pending);
-        }
-        return s;
-      case WsStateChanged(:final connected):
-        return state.copyWith(wsConnected: connected);
-      case PushFailed(:final failedCount):
-        return state.copyWith(status: SyncStatus.failed, failedCount: failedCount);
-    }
-  }
-
-  /// Simulates connectivity change.
-  SyncState applyConnectivity(SyncState state, {required bool online, int pendingCount = 0}) {
-    if (!online) {
-      return state.copyWith(status: SyncStatus.offline, pendingCount: pendingCount);
-    }
-    // Restoring connectivity
-    if (state.failedCount > 0) {
-      return state.copyWith(status: SyncStatus.failed, pendingCount: pendingCount);
-    } else if (pendingCount > 0) {
-      return state.copyWith(status: SyncStatus.pending, pendingCount: pendingCount);
-    } else {
-      return state.copyWith(status: SyncStatus.synced, pendingCount: 0);
-    }
-  }
-
   // ─── Deterministic Transition Tests ────────────────────────────────────
 
   group('SyncStatus state machine — deterministic transitions', () {
     test('synced → syncing via SyncStarted', () {
       const state = SyncState(status: SyncStatus.synced);
-      final next = applyEvent(state, const SyncEvent.syncStarted());
+      final next = SyncState.applyEvent(state, const SyncEvent.syncStarted());
       expect(next.status, SyncStatus.syncing);
     });
 
     test('syncing → synced via SyncStopped (nothing pending)', () {
       const state = SyncState(status: SyncStatus.syncing, pendingCount: 0, failedCount: 0, serverReachable: true);
-      final next = applyEvent(state, const SyncEvent.syncStopped());
+      final next = SyncState.applyEvent(state, const SyncEvent.syncStopped());
       expect(next.status, SyncStatus.synced);
     });
 
     test('syncing → pending via SyncStopped (pending > 0)', () {
       const state = SyncState(status: SyncStatus.syncing, pendingCount: 3, failedCount: 0, serverReachable: true);
-      final next = applyEvent(state, const SyncEvent.syncStopped());
+      final next = SyncState.applyEvent(state, const SyncEvent.syncStopped());
       expect(next.status, SyncStatus.pending);
     });
 
     test('syncing → pending via SyncStopped (server unreachable)', () {
       const state = SyncState(status: SyncStatus.syncing, pendingCount: 0, failedCount: 0, serverReachable: false);
-      final next = applyEvent(state, const SyncEvent.syncStopped());
+      final next = SyncState.applyEvent(state, const SyncEvent.syncStopped());
       expect(next.status, SyncStatus.pending);
     });
 
     test('syncing → failed via SyncStopped (failed > 0)', () {
       const state = SyncState(status: SyncStatus.syncing, pendingCount: 0, failedCount: 2, serverReachable: true);
-      final next = applyEvent(state, const SyncEvent.syncStopped());
+      final next = SyncState.applyEvent(state, const SyncEvent.syncStopped());
       expect(next.status, SyncStatus.failed);
     });
 
     test('synced → pending via ServerUnreachable', () {
       const state = SyncState(status: SyncStatus.synced);
-      final next = applyEvent(state, const SyncEvent.serverUnreachable());
+      final next = SyncState.applyEvent(state, const SyncEvent.serverUnreachable());
       expect(next.status, SyncStatus.pending);
       expect(next.serverReachable, false);
     });
 
     test('pending → synced via ServerReachable (nothing pending)', () {
       const state = SyncState(status: SyncStatus.pending, pendingCount: 0, failedCount: 0, serverReachable: false);
-      final next = applyEvent(state, const SyncEvent.serverReachable());
+      final next = SyncState.applyEvent(state, const SyncEvent.serverReachable());
       expect(next.status, SyncStatus.synced);
       expect(next.serverReachable, true);
     });
 
     test('pending stays pending via ServerReachable (still has pending)', () {
       const state = SyncState(status: SyncStatus.pending, pendingCount: 5, failedCount: 0, serverReachable: false);
-      final next = applyEvent(state, const SyncEvent.serverReachable());
+      final next = SyncState.applyEvent(state, const SyncEvent.serverReachable());
       expect(next.status, SyncStatus.pending);
     });
 
@@ -156,26 +92,26 @@ void main() {
       for (final status in SyncStatus.values) {
         if (status == SyncStatus.offline) continue;
         final state = SyncState(status: status);
-        final next = applyConnectivity(state, online: false);
+        final next = SyncState.applyConnectivity(state, online: false);
         expect(next.status, SyncStatus.offline, reason: 'from $status');
       }
     });
 
     test('offline → synced via connectivity restored (nothing pending)', () {
       const state = SyncState(status: SyncStatus.offline, pendingCount: 0, failedCount: 0);
-      final next = applyConnectivity(state, online: true, pendingCount: 0);
+      final next = SyncState.applyConnectivity(state, online: true);
       expect(next.status, SyncStatus.synced);
     });
 
     test('offline → pending via connectivity restored (has pending)', () {
       const state = SyncState(status: SyncStatus.offline, pendingCount: 5);
-      final next = applyConnectivity(state, online: true, pendingCount: 5);
+      final next = SyncState.applyConnectivity(state, online: true);
       expect(next.status, SyncStatus.pending);
     });
 
     test('offline → failed via connectivity restored (has failures)', () {
       const state = SyncState(status: SyncStatus.offline, failedCount: 3);
-      final next = applyConnectivity(state, online: true, pendingCount: 0);
+      final next = SyncState.applyConnectivity(state, online: true);
       expect(next.status, SyncStatus.failed);
     });
 
@@ -183,7 +119,7 @@ void main() {
       for (final status in SyncStatus.values) {
         if (status == SyncStatus.syncing) continue;
         final state = SyncState(status: status);
-        final next = applyEvent(state, const SyncEvent.syncStopped());
+        final next = SyncState.applyEvent(state, const SyncEvent.syncStopped());
         expect(next.status, status, reason: 'SyncStopped should be no-op in $status');
       }
     });
@@ -191,7 +127,7 @@ void main() {
     test('WsStateChanged does not affect sync status', () {
       for (final status in SyncStatus.values) {
         final state = SyncState(status: status, wsConnected: false);
-        final next = applyEvent(state, const SyncEvent.wsStateChanged(true));
+        final next = SyncState.applyEvent(state, const SyncEvent.wsStateChanged(true));
         expect(next.status, status);
         expect(next.wsConnected, true);
       }
@@ -204,15 +140,11 @@ void main() {
     test('SyncStarted/SyncStopped always pair: status != syncing after stop', () {
       var state = const SyncState(status: SyncStatus.synced);
 
-      // Start sync
-      state = applyEvent(state, const SyncEvent.syncStarted());
+      state = SyncState.applyEvent(state, const SyncEvent.syncStarted());
       expect(state.status, SyncStatus.syncing);
 
-      // Mid-sync events
-      state = applyEvent(state, const SyncEvent.serverReachable());
-
-      // Stop sync
-      state = applyEvent(state, const SyncEvent.syncStopped());
+      state = SyncState.applyEvent(state, const SyncEvent.serverReachable());
+      state = SyncState.applyEvent(state, const SyncEvent.syncStopped());
       expect(state.status, isNot(SyncStatus.syncing));
     });
 
@@ -220,48 +152,76 @@ void main() {
       var state = const SyncState(status: SyncStatus.synced);
 
       for (int i = 0; i < 100; i++) {
-        state = applyEvent(state, const SyncEvent.syncStarted());
+        state = SyncState.applyEvent(state, const SyncEvent.syncStarted());
         expect(state.status, SyncStatus.syncing);
 
-        // Random mid-cycle events
         if (i % 3 == 0) {
-          state = applyEvent(state, const SyncEvent.serverUnreachable());
+          state = SyncState.applyEvent(state, const SyncEvent.serverUnreachable());
         }
         if (i % 5 == 0) {
-          state = applyEvent(state, PushFailed(i % 4));
+          state = SyncState.applyEvent(state, PushFailed(i % 4));
         }
 
-        state = applyEvent(state, const SyncEvent.syncStopped());
+        state = SyncState.applyEvent(state, const SyncEvent.syncStopped());
         expect(state.status, isNot(SyncStatus.syncing),
             reason: 'Cycle $i left status stuck in syncing');
       }
     });
   });
 
-  // ─── Property-Based: Random Event Sequences ────────────────────────────
+  // ─── Value Equality ────────────────────────────────────────────────────
+
+  group('SyncState — value equality', () {
+    test('equal states have same hashCode and ==', () {
+      const a = SyncState(status: SyncStatus.pending, pendingCount: 3);
+      const b = SyncState(status: SyncStatus.pending, pendingCount: 3);
+      expect(a, equals(b));
+      expect(a.hashCode, b.hashCode);
+    });
+
+    test('different states are not equal', () {
+      const a = SyncState(status: SyncStatus.synced);
+      const b = SyncState(status: SyncStatus.pending);
+      expect(a, isNot(equals(b)));
+    });
+
+    test('toString includes all fields', () {
+      const state = SyncState(status: SyncStatus.failed, failedCount: 2, pendingCount: 1);
+      expect(state.toString(), contains('failed'));
+      expect(state.toString(), contains('pending: 1'));
+      expect(state.toString(), contains('failed: 2'));
+    });
+  });
+
+  // ─── Property-Based: Random Event Sequences (including connectivity) ──
 
   group('SyncStatus state machine — property-based (random sequences)', () {
-    final rng = Random(42); // Deterministic seed for reproducibility
+    final rng = Random(42);
 
-    List<SyncEvent> randomEvents(int count) {
-      final events = <SyncEvent>[
-        const SyncEvent.syncStarted(),
-        const SyncEvent.syncStopped(),
-        const SyncEvent.syncCompleted(),
-        const SyncEvent.serverReachable(),
-        const SyncEvent.serverUnreachable(),
-        const SyncEvent.wsStateChanged(true),
-        const SyncEvent.wsStateChanged(false),
-        const PushFailed(1),
-        const PushFailed(0),
+    /// Generates a random mix of sync events AND connectivity changes.
+    /// Returns a list of functions that apply either applyEvent or applyConnectivity.
+    List<SyncState Function(SyncState)> randomTransitions(int count) {
+      final transitions = <SyncState Function(SyncState)>[
+        (s) => SyncState.applyEvent(s, const SyncEvent.syncStarted()),
+        (s) => SyncState.applyEvent(s, const SyncEvent.syncStopped()),
+        (s) => SyncState.applyEvent(s, const SyncEvent.syncCompleted()),
+        (s) => SyncState.applyEvent(s, const SyncEvent.serverReachable()),
+        (s) => SyncState.applyEvent(s, const SyncEvent.serverUnreachable()),
+        (s) => SyncState.applyEvent(s, const SyncEvent.wsStateChanged(true)),
+        (s) => SyncState.applyEvent(s, const SyncEvent.wsStateChanged(false)),
+        (s) => SyncState.applyEvent(s, const PushFailed(1)),
+        (s) => SyncState.applyEvent(s, const PushFailed(0)),
+        // Connectivity events (m4 fix: include offline transitions)
+        (s) => SyncState.applyConnectivity(s, online: false),
+        (s) => SyncState.applyConnectivity(s, online: true),
       ];
-      return List.generate(count, (_) => events[rng.nextInt(events.length)]);
+      return List.generate(count, (_) => transitions[rng.nextInt(transitions.length)]);
     }
 
     test('no event sequence produces null or undefined status', () {
       var state = const SyncState();
-      for (final event in randomEvents(500)) {
-        state = applyEvent(state, event);
+      for (final transition in randomTransitions(500)) {
+        state = transition(state);
         expect(state.status, isNotNull);
         expect(SyncStatus.values, contains(state.status));
       }
@@ -269,8 +229,8 @@ void main() {
 
     test('status is always one of the 5 defined values', () {
       var state = const SyncState();
-      for (final event in randomEvents(500)) {
-        state = applyEvent(state, event);
+      for (final transition in randomTransitions(500)) {
+        state = transition(state);
         expect(
           [SyncStatus.synced, SyncStatus.syncing, SyncStatus.pending, SyncStatus.failed, SyncStatus.offline],
           contains(state.status),
@@ -278,66 +238,65 @@ void main() {
       }
     });
 
+    test('offline status IS reachable via random sequences', () {
+      // Verifies m4: connectivity events are included in random sequences
+      var state = const SyncState();
+      bool hitOffline = false;
+      for (final transition in randomTransitions(500)) {
+        state = transition(state);
+        if (state.status == SyncStatus.offline) {
+          hitOffline = true;
+          break;
+        }
+      }
+      expect(hitOffline, true, reason: 'Random sequences should include offline transitions');
+    });
+
     test('SyncStarted followed by SyncStopped never results in syncing', () {
       var state = const SyncState();
-      final events = randomEvents(200);
+      final transitions = randomTransitions(200);
 
-      for (int i = 0; i < events.length - 1; i++) {
-        state = applyEvent(state, events[i]);
-        if (events[i] is SyncStarted && events[i + 1] is SyncStopped) {
-          final afterStop = applyEvent(state, events[i + 1]);
+      for (int i = 0; i < transitions.length; i++) {
+        final before = state;
+        state = transitions[i](state);
+
+        // If we just entered syncing, apply SyncStopped and verify
+        if (before.status != SyncStatus.syncing && state.status == SyncStatus.syncing) {
+          final afterStop = SyncState.applyEvent(state, const SyncEvent.syncStopped());
           expect(afterStop.status, isNot(SyncStatus.syncing),
-              reason: 'SyncStarted→SyncStopped left syncing at index $i');
+              reason: 'SyncStopped should always exit syncing at step $i');
         }
       }
     });
 
     test('convergence: long event sequence reaches stable state', () {
       var state = const SyncState();
-
-      // Apply many random events
-      for (final event in randomEvents(1000)) {
-        state = applyEvent(state, event);
+      for (final transition in randomTransitions(1000)) {
+        state = transition(state);
       }
-
-      // Then apply SyncStopped to drain any syncing state
-      state = applyEvent(state, const SyncEvent.syncStopped());
-
-      // Status should be a resting state
+      state = SyncState.applyEvent(state, const SyncEvent.syncStopped());
       expect(state.status, isNot(SyncStatus.syncing));
     });
 
     test('serverReachable=true + pendingCount=0 + failedCount=0 → eventually synced', () {
-      // Start from any non-offline state with good conditions
       var state = const SyncState(
         status: SyncStatus.pending,
         pendingCount: 0,
         failedCount: 0,
         serverReachable: true,
       );
-
-      // Apply serverReachable event
-      state = applyEvent(state, const SyncEvent.serverReachable());
+      state = SyncState.applyEvent(state, const SyncEvent.serverReachable());
       expect(state.status, SyncStatus.synced);
-    });
-
-    test('illegal transition: offline cannot jump directly to syncing', () {
-      const state = SyncState(status: SyncStatus.offline);
-      // SyncStarted should transition to syncing even from offline (engine wouldn't fire it, but FSM shouldn't crash)
-      final next = applyEvent(state, const SyncEvent.syncStarted());
-      // The real SyncEngine would never emit SyncStarted when offline,
-      // but the FSM must handle it without crashing.
-      expect(next.status, SyncStatus.syncing);
     });
   });
 
-  // ─── Illegal Transition Guards ─────────────────────────────────────────
+  // ─── Guard Invariants ──────────────────────────────────────────────────
 
   group('SyncStatus state machine — guard invariants', () {
     test('PushFailed always results in failed status', () {
       for (final status in SyncStatus.values) {
         final state = SyncState(status: status);
-        final next = applyEvent(state, const PushFailed(3));
+        final next = SyncState.applyEvent(state, const PushFailed(3));
         expect(next.status, SyncStatus.failed);
         expect(next.failedCount, 3);
       }
@@ -346,7 +305,7 @@ void main() {
     test('SyncCompleted always results in synced regardless of previous state', () {
       for (final status in SyncStatus.values) {
         final state = SyncState(status: status);
-        final next = applyEvent(state, const SyncEvent.syncCompleted());
+        final next = SyncState.applyEvent(state, const SyncEvent.syncCompleted());
         expect(next.status, SyncStatus.synced);
         expect(next.pendingCount, 0);
       }
@@ -355,20 +314,30 @@ void main() {
     test('pendingCount is never negative after any event sequence', () {
       var state = const SyncState();
       final rng2 = Random(123);
-      final events = List.generate(300, (_) => [
-        const SyncEvent.syncStarted(),
-        const SyncEvent.syncStopped(),
-        const SyncEvent.syncCompleted(),
-        const SyncEvent.serverReachable(),
-        const SyncEvent.serverUnreachable(),
-        const PushFailed(1),
-      ][rng2.nextInt(6)]);
+      final transitions = <SyncState Function(SyncState)>[
+        (s) => SyncState.applyEvent(s, const SyncEvent.syncStarted()),
+        (s) => SyncState.applyEvent(s, const SyncEvent.syncStopped()),
+        (s) => SyncState.applyEvent(s, const SyncEvent.syncCompleted()),
+        (s) => SyncState.applyEvent(s, const SyncEvent.serverReachable()),
+        (s) => SyncState.applyEvent(s, const SyncEvent.serverUnreachable()),
+        (s) => SyncState.applyEvent(s, const PushFailed(1)),
+        (s) => SyncState.applyConnectivity(s, online: false),
+        (s) => SyncState.applyConnectivity(s, online: true),
+      ];
 
-      for (final event in events) {
-        state = applyEvent(state, event);
+      for (int i = 0; i < 300; i++) {
+        state = transitions[rng2.nextInt(transitions.length)](state);
         expect(state.pendingCount, greaterThanOrEqualTo(0));
         expect(state.failedCount, greaterThanOrEqualTo(0));
       }
+    });
+
+    test('offline → online respects current pendingCount (no external param needed)', () {
+      // M4 fix verification: applyConnectivity reads state.pendingCount
+      const state = SyncState(status: SyncStatus.offline, pendingCount: 7, failedCount: 0);
+      final next = SyncState.applyConnectivity(state, online: true);
+      expect(next.status, SyncStatus.pending);
+      expect(next.pendingCount, 7); // preserved from state, not from param
     });
   });
 }

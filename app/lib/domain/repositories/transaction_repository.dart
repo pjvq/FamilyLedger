@@ -64,11 +64,11 @@ class TransactionRepository implements ITransactionRepository {
 
   // ─── Balance Queries ─────────────────────────────────────────────────
 
-    @override
+  @override
   Future<int> getTotalBalance(String userId) => _db.getTotalBalance(userId);
-    @override
+  @override
   Future<int> getTodayExpense(String userId) => _db.getTodayExpense(userId);
-    @override
+  @override
   Future<int> getMonthExpense(String userId) => _db.getMonthExpense(userId);
 
   // ─── Writes ──────────────────────────────────────────────────────────
@@ -126,6 +126,9 @@ class TransactionRepository implements ITransactionRepository {
       type: entity.type,
       txnDate: entity.txnDate,
       note: entity.note,
+      currency: entity.currency,
+      tags: entity.tags,
+      imageUrls: entity.imageUrls,
     );
   }
 
@@ -277,7 +280,7 @@ class TransactionRepository implements ITransactionRepository {
   }
 
   /// Batch hard-delete by IDs (for sync tombstones).
-    @override
+  @override
   Future<void> batchHardDelete(List<String> ids) async {
     if (ids.isEmpty) return;
     await _db.batchHardDeleteTransactions(ids);
@@ -346,6 +349,9 @@ class TransactionRepository implements ITransactionRepository {
       amountCny: row.amountCny,
       type: row.type,
       note: row.note,
+      currency: row.currency,
+      tags: row.tags,
+      imageUrls: row.imageUrls,
       txnDate: row.txnDate,
       syncStatus: row.syncStatus,
       deletedAt: row.deletedAt,
