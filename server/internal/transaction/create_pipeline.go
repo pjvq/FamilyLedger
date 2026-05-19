@@ -168,14 +168,15 @@ func verifyAccountInTx(ctx context.Context, tx pgx.Tx, userID, accountID uuid.UU
 }
 
 // verifyCategory checks that the category exists, with auto-creation fallback in batch mode.
-func verifyCategory(ctx context.Context, tx pgx.Tx, cr *createRequest) (uuid.UUID, error) {
+// verifyCategory checks that the category exists, with auto-creation fallback when batchMode is true.
+func verifyCategory(ctx context.Context, tx pgx.Tx, cr *createRequest, batchMode bool) (uuid.UUID, error) {
 	var catExists bool
 	err := tx.QueryRow(ctx,
 		"SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1 AND deleted_at IS NULL)",
 		cr.categoryID,
 	).Scan(&catExists)
 	if err != nil || !catExists {
-		if ctx.Value(skipOverdraftKey) != nil {
+		if batchMode {
 			return resolveBatchCategory(ctx, tx, cr)
 		}
 		return uuid.Nil, status.Errorf(codes.InvalidArgument, "category %s not found", cr.categoryID)

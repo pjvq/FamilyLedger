@@ -177,12 +177,14 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	}
 
 	// Build pipeline state
+	isBatch := ctx.Value(skipOverdraftKey) != nil
 	state := &PipelineState{
 		Pool:          s.pool,
 		UserID:        userID,
 		Request:       req,
 		Hub:           s.hub,
-		SkipOverdraft: ctx.Value(skipOverdraftKey) != nil,
+		SkipOverdraft: isBatch,
+		BatchMode:     isBatch,
 	}
 
 	// Run the creation pipeline
@@ -192,23 +194,27 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	}
 
 	// Post-commit: best-effort notifications (non-critical)
-	_ = (NotifyStage{Pool: s.pool}).Execute(ctx, state)
+	notifyPostCommit(ctx, s.pool, s.hub, state)
 
 	return buildCreateResponse(state), nil
 }
 
+// createPipeline is the singleton pipeline for CreateTransaction.
+// Safe for concurrent use because all stages are stateless value-type structs.
+var createPipeline = NewPipeline(
+	ValidateStage{},
+	PermissionStage{},
+	BeginTxStage{},
+	CategoryStage{},
+	OverdraftStage{},
+	PersistStage{},
+	SyncStage{},
+)
+
 // NewCreatePipeline returns the standard pipeline for creating a transaction.
-// Batch mode can replace this with NewBatchCreatePipeline() which skips overdraft.
+// Returns the shared singleton (stages are stateless, Pipeline is goroutine-safe).
 func NewCreatePipeline() *Pipeline {
-	return NewPipeline(
-		ValidateStage{},
-		PermissionStage{},
-		BeginTxStage{},
-		CategoryStage{},
-		OverdraftStage{},
-		PersistStage{},
-		SyncStage{},
-	)
+	return createPipeline
 }
 
 // buildCreateResponse converts PipelineState into the gRPC response proto.

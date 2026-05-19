@@ -2,7 +2,9 @@ package transaction
 
 import (
 	"context"
+	"encoding/json"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -67,17 +69,14 @@ func (BeginTxStage) Execute(ctx context.Context, state *PipelineState) error {
 // ─── Stage 4: CategoryStage ────────────────────────────────────────────────
 
 // CategoryStage resolves the category, with auto-creation fallback in batch mode.
-// Reads: state.Tx, state.Parsed
+// Reads: state.Tx, state.Parsed, state.BatchMode
 // Writes: state.ResolvedCatID
 type CategoryStage struct{}
 
 func (CategoryStage) Name() string { return "category" }
 
 func (CategoryStage) Execute(ctx context.Context, state *PipelineState) error {
-	if state.SkipOverdraft {
-		ctx = context.WithValue(ctx, skipOverdraftKey, true)
-	}
-	resolvedID, err := verifyCategory(ctx, state.Tx, state.Parsed)
+	resolvedID, err := verifyCategory(ctx, state.Tx, state.Parsed, state.BatchMode)
 	if err != nil {
 		return err
 	}
@@ -89,6 +88,10 @@ func (CategoryStage) Execute(ctx context.Context, state *PipelineState) error {
 
 // OverdraftStage checks account balance before allowing expense transactions.
 // Skipped entirely when state.SkipOverdraft is true (batch import mode).
+//
+// Note: "transfer" type is handled by a separate TransferTransaction RPC,
+// not by CreateTransaction. The pipeline only sees "income" or "expense".
+//
 // Reads: state.Parsed, state.AccountMeta
 // Writes: state.BalanceDelta
 type OverdraftStage struct{}
@@ -162,30 +165,54 @@ func (SyncStage) Execute(ctx context.Context, state *PipelineState) error {
 		"type":          cr.txnType,
 		"note":          cr.note,
 		"txn_date":      cr.txnDate.Format("2006-01-02"),
+		"tags":          cr.tags,
+		"image_urls":    cr.imageURLs,
 	})
 }
 
-// ─── Stage 8: NotifyStage (post-commit, best-effort) ────────────────────────
+// ─── Post-Commit Hook (NOT a Stage) ─────────────────────────────────────────
 
-// NotifyStage sends WebSocket notifications and audit logs after commit.
-// This stage runs AFTER the pipeline commits — failures here are non-critical.
-// It is called separately (not in the pipeline) to ensure it only runs post-commit.
-type NotifyStage struct {
-	Pool db.Pool
+// notifyPostCommit performs best-effort post-commit side effects:
+// audit logging for family accounts and WebSocket change notifications.
+// This is NOT a pipeline Stage because it must run AFTER commit — placing it
+// inside the pipeline would execute it before commit (wrong timing).
+// Failures here are non-critical and silently ignored.
+func notifyPostCommit(ctx context.Context, pool db.Pool, hub wsHub, state *PipelineState) {
+	if state.AccountMeta != nil && state.AccountMeta.familyID != nil {
+		audit.LogAudit(ctx, pool, state.AccountMeta.familyID.String(), state.Parsed.userID.String(), "create", "transaction", state.TxnID.String(), nil)
+	}
+	if hub != nil {
+		broadcastFamilyChange(ctx, pool, hub, state.Parsed.userID.String(), state.Parsed.accountID, "create", state.TxnID.String())
+	}
 }
 
-func (NotifyStage) Name() string { return "notify" }
+// broadcastFamilyChange sends a WS notification to all family members (or just the user).
+// Extracted as a package-level function to avoid creating half-initialized Service instances.
+func broadcastFamilyChange(ctx context.Context, pool db.Pool, hub wsHub, userID string, accountID uuid.UUID, opType, entityID string) {
+	notification, _ := json.Marshal(map[string]interface{}{
+		"type":        "sync_notify",
+		"entity_type": "transaction",
+		"entity_id":   entityID,
+		"op_type":     opType,
+		"user_id":     userID,
+	})
 
-func (n NotifyStage) Execute(ctx context.Context, state *PipelineState) error {
-	// Audit log for family accounts
-	if state.AccountMeta != nil && state.AccountMeta.familyID != nil {
-		audit.LogAudit(ctx, n.Pool, state.AccountMeta.familyID.String(), state.Parsed.userID.String(), "create", "transaction", state.TxnID.String(), nil)
+	familyID, _ := getAccountFamilyIDFrom(ctx, pool, accountID)
+	if familyID != "" {
+		rows, err := pool.Query(ctx,
+			"SELECT user_id::text FROM family_members WHERE family_id = $1",
+			familyID,
+		)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var memberID string
+				if rows.Scan(&memberID) == nil {
+					hub.BroadcastToUser(memberID, notification)
+				}
+			}
+			return
+		}
 	}
-
-	// WebSocket notification
-	if state.Hub != nil {
-		notifyService := &Service{pool: n.Pool, hub: state.Hub}
-		notifyService.notifyFamilyChange(ctx, state.Parsed.userID.String(), state.Parsed.accountID, "create", state.TxnID.String())
-	}
-	return nil
+	hub.BroadcastToUser(userID, notification)
 }
