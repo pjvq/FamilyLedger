@@ -10,6 +10,7 @@ import 'package:grpc/grpc.dart';
 import '../../generated/proto/account.pbgrpc.dart' as pb;
 import '../../generated/proto/account.pb.dart' as pb_model;
 import '../../generated/proto/account.pbenum.dart' as pb_enum;
+import '../interfaces/interfaces.dart';
 import 'app_providers.dart';
 
 /// Account type helpers
@@ -115,13 +116,14 @@ class AccountState {
 
 class AccountNotifier extends StateNotifier<AccountState> {
   final AppDatabase _db;
+  final IAccountRepository _repo;
   final String _userId;
   final String? _familyId;
   final pb.AccountServiceClient? _accountClient;
   final _uuid = const Uuid();
   static final _callOpts = CallOptions(timeout: const Duration(seconds: 5));
 
-  AccountNotifier(this._db, this._userId, this._familyId, this._accountClient)
+  AccountNotifier(this._db, this._repo, this._userId, this._familyId, this._accountClient)
       : super(const AccountState()) {
     _load();
   }
@@ -130,7 +132,12 @@ class AccountNotifier extends StateNotifier<AccountState> {
     if (_userId.isEmpty) return;
     state = state.copyWith(isLoading: true);
     try {
-      // Sync from server first
+      // Sync from server first.
+      // NOTE: Uses _db directly for gRPC→local sync writes because
+      // AccountsCompanion carries drift-specific fields (icon, isActive,
+      // createdAt) that AccountEntity doesn't model yet.
+      // TODO(DIP): Migrate AccountEntity to carry all fields, then replace
+      // _db.insertAccount with _repo.upsert here.
       if (_accountClient != null) {
         try {
           final resp = await _accountClient.listAccounts(
@@ -154,16 +161,24 @@ class AccountNotifier extends StateNotifier<AccountState> {
         }
       }
 
-      List<Account> accounts;
-      if (_familyId != null && _familyId.isNotEmpty) {
-        accounts = await _db.getAccountsByFamily(_familyId);
-      } else {
-        accounts = await _db.getActiveAccounts(_userId);
-      }
+      // Load accounts.
+      // TODO(DIP): AccountState should hold List<AccountEntity> instead of
+      // drift Account models. Until UI widgets are migrated, we keep using
+      // _db for the full drift model that includes icon/isActive/timestamps.
+      final accounts = await _loadAccountsFromDb();
       state = state.copyWith(accounts: accounts, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
+  }
+
+  /// Load drift Account models from DB.
+  /// TODO(DIP): Replace with _repo calls once AccountState uses AccountEntity.
+  Future<List<Account>> _loadAccountsFromDb() async {
+    if (_familyId != null && _familyId.isNotEmpty) {
+      return _db.getAccountsByFamily(_familyId);
+    }
+    return _db.getActiveAccounts(_userId);
   }
 
   Future<void> refresh() => _load();
@@ -274,7 +289,7 @@ class AccountNotifier extends StateNotifier<AccountState> {
               name: 'account');
         }
       }
-      await _db.softDeleteAccount(accountId);
+      await _repo.delete(accountId);
       await _load();
     } catch (e) {
       state = state.copyWith(error: '删除账户失败: $e');
@@ -329,11 +344,12 @@ class AccountNotifier extends StateNotifier<AccountState> {
 final accountProvider =
     StateNotifierProvider<AccountNotifier, AccountState>((ref) {
   final db = ref.watch(databaseProvider);
+  final repo = ref.watch(accountRepositoryProvider);
   final userId = ref.watch(currentUserIdProvider);
   final familyId = ref.watch(currentFamilyIdProvider);
   pb.AccountServiceClient? accountClient;
   try {
     accountClient = ref.watch(accountClientProvider);
   } catch (_) {}
-  return AccountNotifier(db, userId ?? '', familyId, accountClient);
+  return AccountNotifier(db, repo, userId ?? '', familyId, accountClient);
 });
