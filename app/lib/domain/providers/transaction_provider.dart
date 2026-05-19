@@ -294,7 +294,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           }
         }
 
-        await _repo.batchUpsert(toUpsert);
+        await _repo.batchUpsertParams(toUpsert);
         await _repo.batchHardDelete(toDelete);
 
         pageToken = resp.nextPageToken;
@@ -373,7 +373,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     }
 
     // Persist locally
-    await _repo.insert(
+    await _repo.insertWithBalance(
       id: transactionId,
       userId: _userId,
       accountId: account.id,
@@ -481,7 +481,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   }
 
   Future<void> deleteTransaction(String id) async {
-    final txn = await _repo.softDelete(id);
+    final txn = await _repo.softDeleteWithBalance(id);
     if (txn == null) return;
 
     try {
