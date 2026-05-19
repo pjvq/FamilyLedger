@@ -47,13 +47,15 @@ jobs:
 
       - name: Coverage report
         run: |
-          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
-          echo "## 📈 Go Coverage: ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
-          echo "Total coverage: ${COVERAGE}%"
-          # Regression gate: fail if coverage drops below 40%.
-          # Target: 75% (tracked in Issue #64 — requires pipeline refactor).
-          if (( $(echo "$COVERAGE < 40.0" | bc -l) )); then
-            echo "::error::Coverage ${COVERAGE}% is below 40% minimum threshold"
+          # Filter out generated proto code for accurate coverage metrics
+          grep -v '^github.com/familyledger/server/proto/' coverage.out > coverage_filtered.out
+          COVERAGE=$(go tool cover -func=coverage_filtered.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "## 📈 Go Coverage (source only): ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          echo "Total coverage (excl. proto): ${COVERAGE}%"
+          # Regression gate: fail if source coverage drops below 75%.
+          # Current baseline: ~82%. Target: 85% (Issue #64.6).
+          if (( $(echo "$COVERAGE < 75.0" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below 75% minimum threshold"
             exit 1
           fi
 
