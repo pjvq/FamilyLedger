@@ -11,9 +11,6 @@ class TransactionEntity {
   final int amountCny;
   final String type; // 'income' | 'expense' | 'transfer'
   final String note;
-  final String currency;
-  final String tags;
-  final String imageUrls;
   final DateTime txnDate;
   final String syncStatus;
   final DateTime? deletedAt;
@@ -29,9 +26,6 @@ class TransactionEntity {
     required this.amountCny,
     required this.type,
     this.note = '',
-    this.currency = 'CNY',
-    this.tags = '',
-    this.imageUrls = '',
     required this.txnDate,
     this.syncStatus = 'pending',
     this.deletedAt,
@@ -48,9 +42,6 @@ class TransactionEntity {
     int? amountCny,
     String? type,
     String? note,
-    String? currency,
-    String? tags,
-    String? imageUrls,
     DateTime? txnDate,
     String? syncStatus,
     DateTime? deletedAt,
@@ -67,9 +58,6 @@ class TransactionEntity {
       amountCny: amountCny ?? this.amountCny,
       type: type ?? this.type,
       note: note ?? this.note,
-      currency: currency ?? this.currency,
-      tags: tags ?? this.tags,
-      imageUrls: imageUrls ?? this.imageUrls,
       txnDate: txnDate ?? this.txnDate,
       syncStatus: syncStatus ?? this.syncStatus,
       deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),

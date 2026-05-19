@@ -13,7 +13,6 @@ import 'package:familyledger/domain/providers/app_providers.dart';
 import 'package:familyledger/domain/providers/auth_provider.dart';
 import 'package:familyledger/domain/providers/theme_provider.dart';
 import 'package:familyledger/domain/providers/sync_status_provider.dart';
-import 'package:familyledger/sync/sync_event.dart';
 import 'package:familyledger/domain/providers/family_provider.dart';
 import 'package:familyledger/domain/providers/account_provider.dart';
 import 'package:familyledger/domain/providers/notification_provider.dart';
@@ -296,13 +295,9 @@ class _FakeSyncStatusNotifier extends StateNotifier<SyncState>
   @override
   void updateWsConnected(bool connected) {}
   @override
-    void updateServerReachable(bool reachable) {}
+  void updateServerReachable(bool reachable) {}
   @override
   void markSyncStopped() {}
-  @override
-  void dispatch(SyncEvent event) {
-    state = SyncState.applyEvent(state, event);
-  }
 }
 
 class _FakeThemeModeNotifier extends StateNotifier<ThemeMode>

@@ -1,16 +1,14 @@
-import '../interfaces/interfaces.dart';
+import '../repositories/transaction_repository.dart';
 
 /// Computes balance summaries (total, today, month) from the repository.
 ///
 /// Pure computation service — no side effects, no network, no state mutation.
-/// Depends on [ITransactionRepository] (DIP) — no Drift/SQLite knowledge.
-///
 /// Extracted from TransactionNotifier to enable:
 /// - Independent testing without UI framework
 /// - Reuse in dashboard, reports, widgets
 /// - Potential caching layer insertion without touching UI code
 class BalanceCalculator {
-  final ITransactionRepository _repo;
+  final TransactionRepository _repo;
 
   BalanceCalculator(this._repo);
 

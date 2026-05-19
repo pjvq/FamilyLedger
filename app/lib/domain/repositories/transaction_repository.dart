@@ -2,8 +2,6 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/local/database.dart';
-import '../entities/entities.dart';
-import '../interfaces/interfaces.dart';
 
 /// Default page size for transaction queries.
 const int kTransactionPageSize = 200;
@@ -17,10 +15,7 @@ const int kTransactionPageSize = 200;
 ///
 /// All methods are idempotent where possible (upsert semantics).
 /// Callers handle gRPC coordination and offline queue.
-///
-/// Also implements [ITransactionRepository] for DIP compatibility.
-/// Methods with differing signatures delegate to the interface-compliant version.
-class TransactionRepository implements ITransactionRepository {
+class TransactionRepository {
   final AppDatabase _db;
   static const _uuid = Uuid();
 
@@ -48,15 +43,7 @@ class TransactionRepository implements ITransactionRepository {
     return _db.getTransactionPage(userId, familyId: familyId, limit: limit, offset: offset);
   }
 
-  /// Get raw Drift Transaction by ID (legacy callers).
-  Future<Transaction?> getTransactionById(String id) => _db.getTransactionById(id);
-
-  /// ITransactionRepository: returns domain entity.
-  @override
-  Future<TransactionEntity?> getById(String id) async {
-    final row = await _db.getTransactionById(id);
-    return row == null ? null : _toEntity(row);
-  }
+  Future<Transaction?> getById(String id) => _db.getTransactionById(id);
 
   Future<List<Category>> getCategoriesByType(String type, {required String userId}) {
     return _db.getCategoriesByType(type, userId: userId);
@@ -64,11 +51,8 @@ class TransactionRepository implements ITransactionRepository {
 
   // ─── Balance Queries ─────────────────────────────────────────────────
 
-  @override
   Future<int> getTotalBalance(String userId) => _db.getTotalBalance(userId);
-  @override
   Future<int> getTodayExpense(String userId) => _db.getTodayExpense(userId);
-  @override
   Future<int> getMonthExpense(String userId) => _db.getMonthExpense(userId);
 
   // ─── Writes ──────────────────────────────────────────────────────────
@@ -80,9 +64,7 @@ class TransactionRepository implements ITransactionRepository {
   ///
   /// [amountCny] is the canonical amount in CNY cents used for balance.
   /// [type] must be 'income' or 'expense'.
-  ///
-  /// Legacy named-parameter API. For interface-compliant usage, see [insert].
-  Future<void> insertWithBalance({
+  Future<void> insert({
     required String id,
     required String userId,
     required String accountId,
@@ -111,25 +93,6 @@ class TransactionRepository implements ITransactionRepository {
     );
     await _db.insertTransaction(companion);
     await _adjustBalance(accountId, type, amountCny);
-  }
-
-  /// ITransactionRepository: insert from entity.
-  @override
-  Future<void> insert(TransactionEntity entity) async {
-    await insertWithBalance(
-      id: entity.id,
-      userId: entity.userId,
-      accountId: entity.accountId,
-      categoryId: entity.categoryId,
-      amount: entity.amount,
-      amountCny: entity.amountCny,
-      type: entity.type,
-      txnDate: entity.txnDate,
-      note: entity.note,
-      currency: entity.currency,
-      tags: entity.tags,
-      imageUrls: entity.imageUrls,
-    );
   }
 
   /// Update specific fields of a transaction.
@@ -182,7 +145,7 @@ class TransactionRepository implements ITransactionRepository {
 
   /// Soft-delete a transaction and reverse its balance impact.
   /// Returns the deleted transaction (null if not found).
-  Future<Transaction?> softDeleteWithBalance(String id) async {
+  Future<Transaction?> softDelete(String id) async {
     final txn = await _db.getTransactionById(id);
     if (txn == null) return null;
 
@@ -190,12 +153,6 @@ class TransactionRepository implements ITransactionRepository {
     final delta = txn.type == 'income' ? -txn.amountCny : txn.amountCny;
     await _db.updateAccountBalance(txn.accountId, delta);
     return txn;
-  }
-
-  /// ITransactionRepository: soft-delete without returning the transaction.
-  @override
-  Future<void> softDelete(String id) async {
-    await softDeleteWithBalance(id);
   }
 
   /// Batch soft-delete transactions and reverse their balance impacts.
@@ -253,34 +210,12 @@ class TransactionRepository implements ITransactionRepository {
   // ─── Bulk Operations (Sync) ──────────────────────────────────────────
 
   /// Batch upsert transactions from remote sync.
-  /// Legacy batch upsert using [TransactionUpsertParams].
-  Future<void> batchUpsertParams(List<TransactionUpsertParams> params) async {
+  Future<void> batchUpsert(List<TransactionUpsertParams> params) async {
     if (params.isEmpty) return;
     await _db.batchUpsertTransactions(params);
   }
 
-  /// ITransactionRepository: batch upsert from entities.
-  @override
-  Future<void> batchUpsert(List<TransactionEntity> transactions) async {
-    if (transactions.isEmpty) return;
-    final params = transactions
-        .map((t) => TransactionUpsertParams(
-              id: t.id,
-              userId: t.userId,
-              accountId: t.accountId,
-              categoryId: t.categoryId,
-              amount: t.amount,
-              amountCny: t.amountCny,
-              type: t.type,
-              note: t.note,
-              txnDate: t.txnDate,
-            ))
-        .toList();
-    await _db.batchUpsertTransactions(params);
-  }
-
   /// Batch hard-delete by IDs (for sync tombstones).
-  @override
   Future<void> batchHardDelete(List<String> ids) async {
     if (ids.isEmpty) return;
     await _db.batchHardDeleteTransactions(ids);
@@ -307,57 +242,6 @@ class TransactionRepository implements ITransactionRepository {
   Future<void> _adjustBalance(String accountId, String type, int amountCny) async {
     final delta = type == 'income' ? amountCny : -amountCny;
     await _db.updateAccountBalance(accountId, delta);
-  }
-
-  // ─── ITransactionRepository Interface Implementation ─────────────────
-  // These methods fulfill the domain interface contract.
-  // Legacy callers continue using the named-parameter versions above.
-
-  @override
-  Future<void> hardDelete(String id) => _db.hardDeleteTransaction(id);
-
-  @override
-  Future<void> markSynced(List<String> ids) => _db.markTransactionsSynced(ids);
-
-  @override
-  Future<void> markFailed(List<String> ids) => _db.markTransactionsFailed(ids);
-
-  @override
-  Future<List<TransactionEntity>> getRecent(
-    String userId,
-    int limit, {
-    String? familyId,
-  }) async {
-    final rows = await _db.getTransactionPage(userId, familyId: familyId, limit: limit, offset: 0);
-    return rows.map(_toEntity).toList();
-  }
-
-  @override
-  Stream<List<TransactionEntity>> watch(String userId, {String? familyId}) {
-    return _db
-        .watchTransactions(userId, familyId: familyId)
-        .map((rows) => rows.map(_toEntity).toList());
-  }
-
-  TransactionEntity _toEntity(Transaction row) {
-    return TransactionEntity(
-      id: row.id,
-      userId: row.userId,
-      accountId: row.accountId,
-      categoryId: row.categoryId,
-      amount: row.amount,
-      amountCny: row.amountCny,
-      type: row.type,
-      note: row.note,
-      currency: row.currency,
-      tags: row.tags,
-      imageUrls: row.imageUrls,
-      txnDate: row.txnDate,
-      syncStatus: row.syncStatus,
-      deletedAt: row.deletedAt,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    );
   }
 }
 
