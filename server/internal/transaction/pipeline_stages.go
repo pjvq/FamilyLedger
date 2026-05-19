@@ -87,7 +87,7 @@ func (CategoryStage) Execute(ctx context.Context, state *PipelineState) error {
 // ─── Stage 5: OverdraftStage ────────────────────────────────────────────────
 
 // OverdraftStage checks account balance before allowing expense transactions.
-// Skipped entirely when state.SkipOverdraft is true (batch import mode).
+// Skipped entirely when state.BatchMode is true (batch import mode).
 //
 // Note: "transfer" type is handled by a separate TransferTransaction RPC,
 // not by CreateTransaction. The pipeline only sees "income" or "expense".
@@ -102,7 +102,7 @@ func (OverdraftStage) Execute(ctx context.Context, state *PipelineState) error {
 	state.BalanceDelta = state.Parsed.amountCny
 	if state.Parsed.txnType == "expense" {
 		state.BalanceDelta = -state.Parsed.amountCny
-		if state.SkipOverdraft {
+		if state.BatchMode {
 			return nil
 		}
 		if err := checkOverdraft(ctx, state.Tx, state.Parsed.accountID, state.Parsed.amountCny, state.AccountMeta.acctType); err != nil {
@@ -189,13 +189,16 @@ func notifyPostCommit(ctx context.Context, pool db.Pool, hub wsHub, state *Pipel
 // broadcastFamilyChange sends a WS notification to all family members (or just the user).
 // Extracted as a package-level function to avoid creating half-initialized Service instances.
 func broadcastFamilyChange(ctx context.Context, pool db.Pool, hub wsHub, userID string, accountID uuid.UUID, opType, entityID string) {
-	notification, _ := json.Marshal(map[string]interface{}{
+	notification, err := json.Marshal(map[string]interface{}{
 		"type":        "sync_notify",
 		"entity_type": "transaction",
 		"entity_id":   entityID,
 		"op_type":     opType,
 		"user_id":     userID,
 	})
+	if err != nil {
+		return
+	}
 
 	familyID, _ := getAccountFamilyIDFrom(ctx, pool, accountID)
 	if familyID != "" {

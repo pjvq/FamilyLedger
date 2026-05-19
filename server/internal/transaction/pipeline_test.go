@@ -65,10 +65,10 @@ func TestPipeline_AbortsOnFirstError(t *testing.T) {
 }
 
 func TestPipeline_SkipsOverdraftWhenFlagSet(t *testing.T) {
-	// Verify that OverdraftStage respects SkipOverdraft
+	// Verify that OverdraftStage respects BatchMode
 	stage := OverdraftStage{}
 	state := &PipelineState{
-		SkipOverdraft: true,
+		BatchMode: true,
 		Parsed: &createRequest{
 			txnType:   "expense",
 			amountCny: 9999,
@@ -78,7 +78,7 @@ func TestPipeline_SkipsOverdraftWhenFlagSet(t *testing.T) {
 	// Should not error even though there's no Tx to query balance from
 	err := stage.Execute(context.Background(), state)
 	if err != nil {
-		t.Fatalf("expected nil error with SkipOverdraft=true, got %v", err)
+		t.Fatalf("expected nil error with BatchMode=true, got %v", err)
 	}
 	if state.BalanceDelta != -9999 {
 		t.Fatalf("expected BalanceDelta=-9999, got %d", state.BalanceDelta)

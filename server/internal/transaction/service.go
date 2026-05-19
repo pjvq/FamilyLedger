@@ -177,14 +177,12 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 	}
 
 	// Build pipeline state
-	isBatch := ctx.Value(skipOverdraftKey) != nil
 	state := &PipelineState{
-		Pool:          s.pool,
-		UserID:        userID,
-		Request:       req,
-		Hub:           s.hub,
-		SkipOverdraft: isBatch,
-		BatchMode:     isBatch,
+		Pool:      s.pool,
+		UserID:    userID,
+		Request:   req,
+		Hub:       s.hub,
+		BatchMode: ctx.Value(skipOverdraftKey) != nil,
 	}
 
 	// Run the creation pipeline

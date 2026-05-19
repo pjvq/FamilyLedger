@@ -53,8 +53,7 @@ type PipelineState struct {
 	UpdatedAt time.Time
 
 	// ─── Options ─────────────────────────────────────────────────────────
-	SkipOverdraft bool // batch import: skip balance check in OverdraftStage
-	BatchMode     bool // batch import: enable category auto-create fallback in CategoryStage
+	BatchMode bool // batch import: skip overdraft check + enable category auto-create fallback
 }
 
 // Pipeline orchestrates an ordered chain of stages.

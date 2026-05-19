@@ -167,7 +167,6 @@ func verifyAccountInTx(ctx context.Context, tx pgx.Tx, userID, accountID uuid.UU
 	return &meta, nil
 }
 
-// verifyCategory checks that the category exists, with auto-creation fallback in batch mode.
 // verifyCategory checks that the category exists, with auto-creation fallback when batchMode is true.
 func verifyCategory(ctx context.Context, tx pgx.Tx, cr *createRequest, batchMode bool) (uuid.UUID, error) {
 	var catExists bool
