@@ -183,6 +183,12 @@ func (r *RealFetcher) fetchEastMoneyStock(ctx context.Context, secid string, sym
 	changeAmount := yuanToCents(result.Data.F169)
 	changePercent, _ := result.Data.F170.Float64()
 
+	// When market is closed (pre-open / after-hours), currentPrice may be 0.
+	// Fall back to prevClose so callers always get a meaningful price.
+	if currentPrice == 0 && prevClose > 0 {
+		currentPrice = prevClose
+	}
+
 	name := result.Data.F58
 	if name == "" {
 		name = symbol
