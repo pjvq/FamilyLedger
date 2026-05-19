@@ -33,8 +33,10 @@ if [ "$TOTAL" -eq 0 ]; then
   exit 0
 fi
 
-# Split into shards of ~15 files each to limit memory per flutter_tester process
-SHARD_SIZE="${FLUTTER_TEST_SHARD_SIZE:-15}"
+# Split into shards to limit memory per flutter_tester process.
+# Widget tests (pumpWidget) consume significantly more memory than unit tests,
+# so we use a smaller shard size for widget-heavy files.
+SHARD_SIZE="${FLUTTER_TEST_SHARD_SIZE:-10}"
 SHARD_NUM=0
 OVERALL_EXIT=0
 TOTAL_PASSED=0

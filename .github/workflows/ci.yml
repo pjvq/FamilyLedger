@@ -64,8 +64,8 @@ jobs:
           fi
 
       # ── Flutter Unit Tests ──
-      - name: Install system deps (SQLite)
-        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+      - name: Install system deps (SQLite + lcov)
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev lcov
 
       - uses: subosito/flutter-action@v2
         with:
@@ -92,13 +92,24 @@ jobs:
             echo "::warning::No coverage file found (skipping gate)"
             exit 0
           fi
-          read HIT TOTAL <<< $(awk -F, '/^DA:/{total++; if($2>0)hit++} END{print hit+0, total+0}' coverage/lcov.info)
+          # Filter generated code for accurate source-only metrics
+          if command -v lcov &>/dev/null; then
+            lcov --remove coverage/lcov.info \
+              '*/generated/*' '*/*.g.dart' '*/*.pb.dart' '*/*.pbenum.dart' '*/*.pbgrpc.dart' '*/*.pbjson.dart' \
+              -o coverage/lcov_filtered.info --quiet --ignore-errors unused 2>/dev/null || \
+              cp coverage/lcov.info coverage/lcov_filtered.info
+          else
+            cp coverage/lcov.info coverage/lcov_filtered.info
+          fi
+          read HIT TOTAL <<< $(awk -F, '/^DA:/{total++; if($2>0)hit++} END{print hit+0, total+0}' coverage/lcov_filtered.info)
           if [ "$TOTAL" -eq 0 ]; then
             echo "::warning::No coverage data"
             exit 0
           fi
           COVERAGE=$(echo "scale=1; $HIT * 100 / $TOTAL" | bc)
-          echo "Dart coverage: ${COVERAGE}%"
+          echo "Dart coverage (source only): ${COVERAGE}%"
+          # Use a lower threshold (25%) to tolerate partial coverage from OOM shards.
+          # The authoritative gate is in flutter.yml (40%, source-only).
           if (( $(echo "$COVERAGE < 25.0" | bc -l) )); then
             echo "::error::Dart coverage ${COVERAGE}% below 25% threshold"
             exit 1
