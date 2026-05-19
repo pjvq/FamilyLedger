@@ -298,9 +298,11 @@ class _FakeSyncStatusNotifier extends StateNotifier<SyncState>
   @override
   void updateServerReachable(bool reachable) {}
   @override
-  void markSyncStopped() {}
+    void markSyncStopped() {}
   @override
-    void dispatch(SyncEvent event) {}
+  void dispatch(SyncEvent event) {
+    state = SyncState.applyEvent(state, event);
+  }
 }
 
 class _FakeThemeModeNotifier extends StateNotifier<ThemeMode>

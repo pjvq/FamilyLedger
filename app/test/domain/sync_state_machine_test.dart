@@ -211,7 +211,9 @@ void main() {
         (s) => SyncState.applyEvent(s, const SyncEvent.wsStateChanged(false)),
         (s) => SyncState.applyEvent(s, const PushFailed(1)),
         (s) => SyncState.applyEvent(s, const PushFailed(0)),
-        // Connectivity events (m4 fix: include offline transitions)
+        (s) => SyncState.applyEvent(s, const PendingCountUpdated(3)),
+        (s) => SyncState.applyEvent(s, const PendingCountUpdated(0)),
+        // Connectivity events
         (s) => SyncState.applyConnectivity(s, online: false),
         (s) => SyncState.applyConnectivity(s, online: true),
       ];
@@ -321,6 +323,8 @@ void main() {
         (s) => SyncState.applyEvent(s, const SyncEvent.serverReachable()),
         (s) => SyncState.applyEvent(s, const SyncEvent.serverUnreachable()),
         (s) => SyncState.applyEvent(s, const PushFailed(1)),
+        (s) => SyncState.applyEvent(s, const PendingCountUpdated(5)),
+        (s) => SyncState.applyEvent(s, const PendingCountUpdated(0)),
         (s) => SyncState.applyConnectivity(s, online: false),
         (s) => SyncState.applyConnectivity(s, online: true),
       ];
@@ -338,6 +342,65 @@ void main() {
       final next = SyncState.applyConnectivity(state, online: true);
       expect(next.status, SyncStatus.pending);
       expect(next.pendingCount, 7); // preserved from state, not from param
+    });
+
+    test('SyncStarted is no-op when offline (guard)', () {
+      const state = SyncState(status: SyncStatus.offline);
+      final next = SyncState.applyEvent(state, const SyncEvent.syncStarted());
+      expect(next.status, SyncStatus.offline, reason: 'Cannot start sync while offline');
+    });
+
+    test('SyncCompleted uses provided timestamp (deterministic)', () {
+      final ts = DateTime(2026, 1, 1, 12, 0);
+      const state = SyncState(status: SyncStatus.syncing);
+      final next = SyncState.applyEvent(state, SyncEvent.syncCompleted(timestamp: ts));
+      expect(next.status, SyncStatus.synced);
+      expect(next.lastSyncTime, ts);
+    });
+
+    test('SyncCompleted without timestamp falls back to DateTime.now()', () {
+      const state = SyncState(status: SyncStatus.syncing);
+      final before = DateTime.now();
+      final next = SyncState.applyEvent(state, const SyncEvent.syncCompleted());
+      final after = DateTime.now();
+      expect(next.lastSyncTime, isNotNull);
+      expect(next.lastSyncTime!.isAfter(before.subtract(const Duration(seconds: 1))), true);
+      expect(next.lastSyncTime!.isBefore(after.add(const Duration(seconds: 1))), true);
+    });
+
+    test('PendingCountUpdated updates count and recalculates resting state', () {
+      const state = SyncState(status: SyncStatus.synced, pendingCount: 0);
+      final next = SyncState.applyEvent(state, const PendingCountUpdated(5));
+      expect(next.status, SyncStatus.pending);
+      expect(next.pendingCount, 5);
+    });
+
+    test('PendingCountUpdated to 0 transitions to synced', () {
+      const state = SyncState(status: SyncStatus.pending, pendingCount: 3);
+      final next = SyncState.applyEvent(state, const PendingCountUpdated(0));
+      expect(next.status, SyncStatus.synced);
+      expect(next.pendingCount, 0);
+    });
+
+    test('PendingCountUpdated does not interrupt syncing', () {
+      const state = SyncState(status: SyncStatus.syncing, pendingCount: 0);
+      final next = SyncState.applyEvent(state, const PendingCountUpdated(10));
+      expect(next.status, SyncStatus.syncing);
+      expect(next.pendingCount, 10);
+    });
+
+    test('PendingCountUpdated does not interrupt offline', () {
+      const state = SyncState(status: SyncStatus.offline, pendingCount: 0);
+      final next = SyncState.applyEvent(state, const PendingCountUpdated(3));
+      expect(next.status, SyncStatus.offline);
+      expect(next.pendingCount, 3);
+    });
+
+    test('PendingCountUpdated with failedCount > 0 stays failed', () {
+      const state = SyncState(status: SyncStatus.failed, pendingCount: 2, failedCount: 1);
+      final next = SyncState.applyEvent(state, const PendingCountUpdated(0));
+      expect(next.status, SyncStatus.failed);
+      expect(next.pendingCount, 0);
     });
   });
 }

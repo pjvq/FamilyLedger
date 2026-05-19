@@ -70,6 +70,8 @@ class SyncState {
   static SyncState applyEvent(SyncState state, SyncEvent event) {
     switch (event) {
       case SyncStarted():
+        // Guard: cannot start sync while offline
+        if (state.status == SyncStatus.offline) return state;
         return state.copyWith(status: SyncStatus.syncing);
       case SyncStopped():
         if (state.status != SyncStatus.syncing) return state;
@@ -80,11 +82,11 @@ class SyncState {
         } else {
           return state.copyWith(status: SyncStatus.synced);
         }
-      case SyncCompleted():
+      case SyncCompleted(:final timestamp):
         return state.copyWith(
           status: SyncStatus.synced,
           pendingCount: 0,
-          lastSyncTime: DateTime.now(),
+          lastSyncTime: timestamp ?? DateTime.now(),
         );
       case ServerReachable():
         final s = state.copyWith(serverReachable: true);
@@ -104,6 +106,20 @@ class SyncState {
         return state.copyWith(wsConnected: connected);
       case PushFailed(:final failedCount):
         return state.copyWith(status: SyncStatus.failed, failedCount: failedCount);
+      case PendingCountUpdated(:final count):
+        final s = state.copyWith(pendingCount: count);
+        // Don't interrupt active sync or offline state
+        if (s.status == SyncStatus.syncing || s.status == SyncStatus.offline) {
+          return s;
+        }
+        // Recalculate resting state based on counts
+        if (s.failedCount > 0) {
+          return s.copyWith(status: SyncStatus.failed);
+        } else if (count > 0) {
+          return s.copyWith(status: SyncStatus.pending);
+        } else {
+          return s.copyWith(status: SyncStatus.synced);
+        }
     }
   }
 
@@ -192,23 +208,17 @@ class SyncStatusNotifier extends StateNotifier<SyncState> {
       final results = await _connectivity.checkConnectivity();
       final isOffline = results.every((r) => r == ConnectivityResult.none);
 
-      final pendingOps = await _db.getPendingSyncOps(1000);
-      final count = pendingOps.length;
-
-      // Update pending count first
-      state = state.copyWith(pendingCount: count);
-
       if (isOffline) {
         state = SyncState.applyConnectivity(state, online: false);
-      } else if (state.status == SyncStatus.syncing) {
-        // Don't interrupt active sync
-      } else if (state.failedCount > 0) {
-        state = state.copyWith(status: SyncStatus.failed);
-      } else if (count > 0) {
-        state = state.copyWith(status: SyncStatus.pending);
-      } else {
-        state = state.copyWith(status: SyncStatus.synced);
+        return;
       }
+
+      // Ensure we're marked online
+      state = SyncState.applyConnectivity(state, online: true);
+
+      // Update pending count through the state machine
+      final pendingOps = await _db.getPendingSyncOps(1000);
+      dispatch(PendingCountUpdated(pendingOps.length));
     } catch (_) {
       // DB not ready yet
     }

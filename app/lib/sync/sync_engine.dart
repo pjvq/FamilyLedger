@@ -1052,6 +1052,9 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
         statusNotifier.updateWsConnected(connected);
       case PushFailed(:final failedCount):
         statusNotifier.markFailed(failedCount);
+      case PendingCountUpdated():
+        // Handled internally by SyncStatusNotifier.refresh(), not from engine
+        break;
     }
   };
 

@@ -12,7 +12,7 @@ sealed class SyncEvent {
   const factory SyncEvent.syncStopped() = SyncStopped;
 
   /// Pull completed successfully — data is up to date.
-  const factory SyncEvent.syncCompleted() = SyncCompleted;
+  const factory SyncEvent.syncCompleted({DateTime? timestamp}) = SyncCompleted;
 
   /// A gRPC call succeeded — server is reachable.
   const factory SyncEvent.serverReachable() = ServerReachable;
@@ -25,6 +25,10 @@ sealed class SyncEvent {
 
   /// Some sync operations failed after push.
   const factory SyncEvent.pushFailed(int failedCount) = PushFailed;
+
+  /// Pending operation count refreshed from DB.
+  /// Triggers resting-state recalculation without bypassing the state machine.
+  const factory SyncEvent.pendingCountUpdated(int count) = PendingCountUpdated;
 }
 
 class SyncStarted extends SyncEvent {
@@ -42,10 +46,11 @@ class SyncStopped extends SyncEvent {
 }
 
 class SyncCompleted extends SyncEvent {
-  const SyncCompleted();
+  final DateTime? timestamp;
+  const SyncCompleted({this.timestamp});
 
   @override
-  String toString() => 'SyncEvent.syncCompleted()';
+  String toString() => 'SyncEvent.syncCompleted(timestamp: $timestamp)';
 }
 
 class ServerReachable extends SyncEvent {
@@ -92,4 +97,20 @@ class PushFailed extends SyncEvent {
 
   @override
   String toString() => 'SyncEvent.pushFailed($failedCount)';
+}
+
+class PendingCountUpdated extends SyncEvent {
+  final int count;
+  const PendingCountUpdated(this.count);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PendingCountUpdated && other.count == count);
+
+  @override
+  int get hashCode => count.hashCode;
+
+  @override
+  String toString() => 'SyncEvent.pendingCountUpdated($count)';
 }
