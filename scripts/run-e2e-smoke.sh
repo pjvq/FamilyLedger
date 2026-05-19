@@ -16,11 +16,12 @@
 #   1 — test failures
 #   2 — infrastructure failure (Docker/server didn't start)
 # ─────────────────────────────────────────────────────────────────────────────
-set -euo pipefail
+set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
+ENV_FILE="$PROJECT_DIR/.env.e2e"
 
 # Colors for output
 RED='\033[0;31m'
@@ -34,12 +35,11 @@ ok()   { printf "${GREEN}[E2E]${NC} ✅ %s\n" "$*"; }
 warn() { printf "${YELLOW}[E2E]${NC} ⚠️  %s\n" "$*"; }
 err()  { printf "${RED}[E2E]${NC} ❌ %s\n" "$*"; }
 
-# ─── Ensure .env exists ──────────────────────────────────────────────────────
+# ─── Ensure .env.e2e exists (isolated from user's .env) ─────────────────────
 ensure_env() {
-  local env_file="$PROJECT_DIR/.env"
-  if [[ ! -f "$env_file" ]]; then
-    log "Creating .env with test defaults..."
-    cat > "$env_file" <<'EOF'
+  if [[ ! -f "$ENV_FILE" ]]; then
+    log "Creating .env.e2e with test defaults..."
+    cat > "$ENV_FILE" <<'EOF'
 # Auto-generated for E2E testing. DO NOT use in production.
 DB_USER=familyledger
 DB_PASSWORD=e2e_test_password
@@ -56,7 +56,7 @@ services_up() {
   ensure_env
 
   cd "$PROJECT_DIR"
-  docker compose -f "$COMPOSE_FILE" up -d --build --wait 2>&1 | while read -r line; do
+  docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build --wait 2>&1 | while read -r line; do
     printf "  %s\n" "$line"
   done
 
@@ -69,7 +69,7 @@ services_up() {
     elapsed=$((elapsed + 1))
     if [[ $elapsed -ge $max_wait ]]; then
       err "Server did not start within ${max_wait}s"
-      docker compose -f "$COMPOSE_FILE" logs server | tail -20
+      docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs server | tail -20
       return 2
     fi
   done
@@ -87,7 +87,7 @@ services_up() {
 services_down() {
   log "Stopping Docker Compose services..."
   cd "$PROJECT_DIR"
-  docker compose -f "$COMPOSE_FILE" down -v --remove-orphans 2>&1 | while read -r line; do
+  docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down -v --remove-orphans 2>&1 | while read -r line; do
     printf "  %s\n" "$line"
   done
   ok "Services stopped"
@@ -95,7 +95,7 @@ services_down() {
 
 # ─── Run Tests ───────────────────────────────────────────────────────────────
 run_tests() {
-  log "Running E2E smoke tests (5 golden paths, 19 tests)..."
+  log "Running E2E smoke tests (5 golden paths)..."
   cd "$PROJECT_DIR/app"
 
   local exit_code=0
@@ -127,11 +127,14 @@ main() {
       run_tests
       ;;
     full|*)
-      # Full cycle: up → test → down (with cleanup on failure)
-      trap 'services_down' EXIT
+      # Full cycle: up → test → down
+      # Trap preserves the test exit code even if cleanup has issues.
+      local test_exit=0
+      trap 'services_down; exit $test_exit' EXIT
 
       services_up || exit 2
-      run_tests
+      run_tests || test_exit=$?
+      # EXIT trap will run services_down and exit with test_exit
       ;;
   esac
 }

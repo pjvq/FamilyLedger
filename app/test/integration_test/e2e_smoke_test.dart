@@ -16,9 +16,9 @@
 ///   - OAUTH_MODE=mock on server
 ///
 /// Design decisions:
-///   - Each golden path is self-contained (creates own test data)
-///   - Uses unique emails per test run (timestamp suffix) to avoid collisions
-///   - Ordered execution (concurrency=1) — tests within a group share state
+///   - Each golden path is a single self-contained test (no cross-test state)
+///   - Uses UUID-only emails for guaranteed uniqueness
+///   - Ordered execution (concurrency=1) for deterministic CI
 ///   - 3-minute CI timeout enforced at workflow level
 ///   - No Flutter widget dependencies — pure Dart gRPC client
 ///   - Graceful skip when server is unreachable (local dev without Docker)
@@ -54,10 +54,14 @@ import 'harness.dart';
 const _uuid = Uuid();
 
 /// Generates a unique email for test isolation.
-String _testEmail(String prefix) =>
-    '${prefix}_${DateTime.now().millisecondsSinceEpoch}_${_uuid.v4().substring(0, 8)}@e2e.test';
+/// UUID v4 guarantees uniqueness even across parallel CI runs.
+String _testEmail(String prefix) => '${prefix}_${_uuid.v4()}@e2e.test';
 
-/// Creates a Timestamp from DateTime.
+/// Creates a protobuf Timestamp from DateTime.
+///
+/// Note: [DateTime.millisecondsSinceEpoch] is always relative to Unix epoch
+/// (UTC) regardless of whether the DateTime is local or UTC, so no `.toUtc()`
+/// conversion is needed here.
 ts_pb.Timestamp _toTimestamp(DateTime dt) => ts_pb.Timestamp()
   ..seconds = Int64(dt.millisecondsSinceEpoch ~/ 1000)
   ..nanos = (dt.millisecondsSinceEpoch % 1000) * 1000000;
@@ -115,10 +119,22 @@ sync_pb.SyncOperation? _findOp(
   return null;
 }
 
+/// Server-availability-aware test wrapper. Eliminates repeated skip boilerplate.
+late bool _serverAvailable;
+
+void e2eTest(String name, Future<void> Function() body) {
+  test(name, () async {
+    if (!_serverAvailable) {
+      markTestSkipped('Server unavailable');
+      return;
+    }
+    await body();
+  });
+}
+
 // ─── Test Entry Point ────────────────────────────────────────────────────────
 
 void main() {
-  late final bool serverAvailable;
   late final E2EHarness harness;
   late final auth_grpc.AuthServiceClient authClient;
   late final sync_grpc.SyncServiceClient syncClient;
@@ -137,9 +153,9 @@ void main() {
         timeout: const Duration(seconds: 5),
       );
       socket.destroy();
-      serverAvailable = true;
+      _serverAvailable = true;
     } on SocketException {
-      serverAvailable = false;
+      _serverAvailable = false;
       return;
     }
 
@@ -150,522 +166,343 @@ void main() {
   });
 
   tearDownAll(() async {
-    if (serverAvailable) {
+    if (_serverAvailable) {
       await harness.tearDown();
     }
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GP-1: Register → Login → Authenticated API Call
+  //
+  // Single test: exercises the complete auth flow as one atomic scenario.
+  // No cross-test state leakage.
   // ═══════════════════════════════════════════════════════════════════════════
 
-  group('GP-1: Auth Flow', () {
-    late String userId;
-    late String accessToken;
-    late String refreshToken;
+  e2eTest('GP-1: Register → Login → Auth call succeeds → Unauth fails',
+      () async {
     final email = _testEmail('gp1');
     const password = 'SecurePass!99';
 
-    test('GP-1a: Register creates user and returns valid tokens', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
+    // Step 1: Register
+    final regResult = await _registerUser(authClient, email, password);
+    expect(regResult.userId, isNotEmpty);
+    expect(regResult.userId.length, greaterThanOrEqualTo(36));
+    expect(regResult.accessToken, isNotEmpty);
+    expect(regResult.refreshToken, isNotEmpty);
 
-      final result = await _registerUser(authClient, email, password);
-      userId = result.userId;
-      accessToken = result.accessToken;
-      refreshToken = result.refreshToken;
+    // Step 2: Login with same credentials
+    final loginResp = await authClient.login(auth_pb.LoginRequest()
+      ..email = email
+      ..password = password);
+    expect(loginResp.userId, regResult.userId);
+    expect(loginResp.accessToken, isNotEmpty);
+    expect(loginResp.refreshToken, isNotEmpty);
 
-      expect(userId, isNotEmpty);
-      expect(accessToken, isNotEmpty);
-      expect(refreshToken, isNotEmpty);
-      expect(userId.length, greaterThanOrEqualTo(36));
-    });
+    // Step 3: Authenticated call succeeds
+    final pullResp = await syncClient.pullChanges(
+      sync_pb.PullChangesRequest(),
+      options: _authOpts(loginResp.accessToken),
+    );
+    expect(pullResp, isNotNull);
 
-    test('GP-1b: Login with same credentials returns new tokens', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
-
-      final resp = await authClient.login(auth_pb.LoginRequest()
-        ..email = email
-        ..password = password);
-
-      expect(resp.userId, userId);
-      expect(resp.accessToken, isNotEmpty);
-      expect(resp.refreshToken, isNotEmpty);
-      // Note: JWT may be identical if issued within same second (same iat/exp).
-      // We only assert tokens are valid, not necessarily different.
-      accessToken = resp.accessToken;
-      refreshToken = resp.refreshToken;
-    });
-
-    test('GP-1c: Authenticated PullChanges succeeds', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
-
-      final resp = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest(),
-        options: _authOpts(accessToken),
-      );
-      // Fresh user — no changes yet (operations list empty or has seed data)
-      expect(resp, isNotNull);
-    });
-
-    test('GP-1d: Unauthenticated call fails with UNAUTHENTICATED', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
-
-      try {
-        await syncClient.pullChanges(sync_pb.PullChangesRequest());
-        fail('Should have thrown');
-      } on GrpcError catch (e) {
-        expect(e.code, StatusCode.unauthenticated);
-      }
-    });
+    // Step 4: Unauthenticated call fails
+    try {
+      await syncClient.pullChanges(sync_pb.PullChangesRequest());
+      fail('Unauthenticated call should have thrown');
+    } on GrpcError catch (e) {
+      expect(e.code, StatusCode.unauthenticated);
+    }
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GP-2: Create Transaction → PullChanges → Visible
   // ═══════════════════════════════════════════════════════════════════════════
 
-  group('GP-2: Transaction Lifecycle', () {
-    late String accessToken;
-    late String accountId;
-    late String categoryId;
-    late String txnId;
+  e2eTest(
+      'GP-2: CreateTransaction → PullChanges → transaction visible with correct payload',
+      () async {
+    // Setup: register + account + category
+    final auth =
+        await _registerUser(authClient, _testEmail('gp2'), 'Pass123!');
+    final opts = _authOpts(auth.accessToken);
 
-    test('GP-2a: Setup — register + create account + category', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
+    final accountId = _uuid.v4();
+    await _pushOp(syncClient, opts,
+        entityType: 'account',
+        entityId: accountId,
+        opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
+        payload: {
+          'id': accountId,
+          'name': 'GP2 Checking',
+          'type': 'bank',
+          'balance': 1000000, // 10000.00 CNY — sufficient for expense
+          'currency': 'CNY',
+        });
 
-      final email = _testEmail('gp2');
-      final auth = await _registerUser(authClient, email, 'Pass123!');
-      accessToken = auth.accessToken;
-      final opts = _authOpts(accessToken);
+    final categoryId = _uuid.v4();
+    await _pushOp(syncClient, opts,
+        entityType: 'category',
+        entityId: categoryId,
+        opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
+        payload: {
+          'id': categoryId,
+          'name': 'GP2 Food',
+          'type': 'expense',
+          'icon': '🍕',
+        });
 
-      // Create account via sync push
-      accountId = _uuid.v4();
-      await _pushOp(syncClient, opts,
-          entityType: 'account',
-          entityId: accountId,
-          opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
-          payload: {
-            'id': accountId,
-            'name': 'GP2 Checking',
-            'type': 'bank',
-            'balance': 1000000,
-            'currency': 'CNY',
-          });
+    // Act: Create transaction via dedicated RPC
+    final createResp = await txnClient.createTransaction(
+      txn_pb.CreateTransactionRequest()
+        ..accountId = accountId
+        ..categoryId = categoryId
+        ..amount = Int64(5000)
+        ..amountCny = Int64(5000)
+        ..type = txn_enum.TransactionType.TRANSACTION_TYPE_EXPENSE
+        ..note = 'GP-2 smoke test'
+        ..txnDate = _toTimestamp(DateTime.now()),
+      options: opts,
+    );
+    final txnId = createResp.transaction.id;
+    expect(txnId, isNotEmpty);
 
-      // Create category
-      categoryId = _uuid.v4();
-      await _pushOp(syncClient, opts,
-          entityType: 'category',
-          entityId: categoryId,
-          opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
-          payload: {
-            'id': categoryId,
-            'name': 'GP2 Food',
-            'type': 'expense',
-            'icon': '🍕',
-          });
-    });
+    // Assert: PullChanges returns it
+    final pullResp = await syncClient.pullChanges(
+      sync_pb.PullChangesRequest(),
+      options: opts,
+    );
+    final op = _findOp(pullResp.operations, txnId);
+    expect(op, isNotNull,
+        reason: 'Created transaction $txnId should appear in PullChanges');
 
-    test('GP-2b: CreateTransaction via gRPC succeeds', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
-
-      final opts = _authOpts(accessToken);
-      txnId = _uuid.v4();
-
-      final resp = await txnClient.createTransaction(
-        txn_pb.CreateTransactionRequest()
-          ..accountId = accountId
-          ..categoryId = categoryId
-          ..amount = Int64(5000)
-          ..amountCny = Int64(5000)
-          ..type = txn_enum.TransactionType.TRANSACTION_TYPE_EXPENSE
-          ..note = 'GP-2 smoke test'
-          ..txnDate = _toTimestamp(DateTime.now()),
-        options: opts,
-      );
-
-      // Response contains the created transaction
-      expect(resp.transaction.id, isNotEmpty);
-      txnId = resp.transaction.id;
-    });
-
-    test('GP-2c: PullChanges returns the created transaction', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
-
-      final opts = _authOpts(accessToken);
-      final resp = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest(),
-        options: opts,
-      );
-
-      // Find our transaction in the operations list
-      final found = resp.operations.any((op) =>
-          op.entityType == 'transaction' && op.entityId == txnId);
-      expect(found, true,
-          reason: 'Created transaction should appear in PullChanges');
-    });
-
-    test('GP-2d: Transaction payload matches what was sent', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
-
-      final opts = _authOpts(accessToken);
-      final resp = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest(),
-        options: opts,
-      );
-
-      final op = _findOp(resp.operations, txnId);
-      expect(op, isNotNull, reason: 'Transaction $txnId not found in pull');
-
-      final payload = jsonDecode(op!.payload) as Map<String, dynamic>;
-      expect(payload['account_id'], accountId);
-      expect(payload['category_id'], categoryId);
-      expect(payload['note'], 'GP-2 smoke test');
-    });
+    // Verify payload integrity
+    final payload = jsonDecode(op!.payload) as Map<String, dynamic>;
+    expect(payload['account_id'], accountId);
+    expect(payload['category_id'], categoryId);
+    expect(payload['note'], 'GP-2 smoke test');
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GP-3: Family — Create → Invite → Member Sees Shared Transaction
   // ═══════════════════════════════════════════════════════════════════════════
 
-  group('GP-3: Family Collaboration', () {
-    late String ownerToken;
-    late String memberToken;
-    late String familyId;
-    late String sharedTxnId;
+  e2eTest(
+      'GP-3: CreateFamily → Invite → Member PullChanges sees family transaction',
+      () async {
+    // Owner setup
+    final ownerAuth =
+        await _registerUser(authClient, _testEmail('gp3_owner'), 'Pass123!');
+    final ownerOpts = _authOpts(ownerAuth.accessToken);
 
-    test('GP-3a: Owner registers and creates family', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
+    // Create family
+    final familyResp = await familyClient.createFamily(
+      family_pb.CreateFamilyRequest()..name = 'GP3 Test Family',
+      options: ownerOpts,
+    );
+    final familyId = familyResp.family.id;
+    expect(familyId, isNotEmpty);
 
-      final ownerAuth =
-          await _registerUser(authClient, _testEmail('gp3_owner'), 'Pass123!');
-      ownerToken = ownerAuth.accessToken;
+    // Generate invite + member joins
+    final inviteResp = await familyClient.generateInviteCode(
+      family_pb.GenerateInviteCodeRequest()..familyId = familyId,
+      options: ownerOpts,
+    );
+    expect(inviteResp.inviteCode, isNotEmpty);
 
-      final resp = await familyClient.createFamily(
-        family_pb.CreateFamilyRequest()..name = 'GP3 Test Family',
-        options: _authOpts(ownerToken),
-      );
-      familyId = resp.family.id;
-      expect(familyId, isNotEmpty);
-    });
+    final memberAuth =
+        await _registerUser(authClient, _testEmail('gp3_member'), 'Pass123!');
+    await familyClient.joinFamily(
+      family_pb.JoinFamilyRequest()..inviteCode = inviteResp.inviteCode,
+      options: _authOpts(memberAuth.accessToken),
+    );
 
-    test('GP-3b: Owner invites, member joins', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
+    // Owner pushes family-scoped transaction
+    final accountId = _uuid.v4();
+    await _pushOp(syncClient, ownerOpts,
+        entityType: 'account',
+        entityId: accountId,
+        opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
+        payload: {
+          'id': accountId,
+          'name': 'GP3 Shared Wallet',
+          'type': 'cash',
+          'balance': 0,
+          'currency': 'CNY',
+          'family_id': familyId,
+        });
 
-      final inviteResp = await familyClient.generateInviteCode(
-        family_pb.GenerateInviteCodeRequest()..familyId = familyId,
-        options: _authOpts(ownerToken),
-      );
-      expect(inviteResp.inviteCode, isNotEmpty);
+    final categoryId = _uuid.v4();
+    await _pushOp(syncClient, ownerOpts,
+        entityType: 'category',
+        entityId: categoryId,
+        opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
+        payload: {
+          'id': categoryId,
+          'name': 'GP3 Groceries',
+          'type': 'expense',
+          'icon': '🛒',
+          'family_id': familyId,
+        });
 
-      // Member registers and joins
-      final memberAuth =
-          await _registerUser(authClient, _testEmail('gp3_member'), 'Pass123!');
-      memberToken = memberAuth.accessToken;
+    final sharedTxnId = _uuid.v4();
+    await _pushOp(syncClient, ownerOpts,
+        entityType: 'transaction',
+        entityId: sharedTxnId,
+        opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
+        payload: {
+          'id': sharedTxnId,
+          'account_id': accountId,
+          'category_id': categoryId,
+          'amount': 8800,
+          'amount_cny': 8800,
+          'type': 'expense',
+          'note': 'GP3 family purchase',
+          'txn_date': DateTime.now().toIso8601String(),
+          'family_id': familyId,
+        });
 
-      await familyClient.joinFamily(
-        family_pb.JoinFamilyRequest()..inviteCode = inviteResp.inviteCode,
-        options: _authOpts(memberToken),
-      );
-    });
-
-    test('GP-3c: Owner pushes a family transaction', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
-
-      final opts = _authOpts(ownerToken);
-
-      // Setup account + category with familyId
-      final accountId = _uuid.v4();
-      await _pushOp(syncClient, opts,
-          entityType: 'account',
-          entityId: accountId,
-          opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
-          payload: {
-            'id': accountId,
-            'name': 'GP3 Shared Wallet',
-            'type': 'cash',
-            'balance': 0,
-            'currency': 'CNY',
-            'family_id': familyId,
-          });
-
-      final categoryId = _uuid.v4();
-      await _pushOp(syncClient, opts,
-          entityType: 'category',
-          entityId: categoryId,
-          opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
-          payload: {
-            'id': categoryId,
-            'name': 'GP3 Groceries',
-            'type': 'expense',
-            'icon': '🛒',
-            'family_id': familyId,
-          });
-
-      // Push transaction tagged to family
-      sharedTxnId = _uuid.v4();
-      await _pushOp(syncClient, opts,
-          entityType: 'transaction',
-          entityId: sharedTxnId,
-          opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
-          payload: {
-            'id': sharedTxnId,
-            'account_id': accountId,
-            'category_id': categoryId,
-            'amount': 8800,
-            'amount_cny': 8800,
-            'type': 'expense',
-            'note': 'GP3 family purchase',
-            'txn_date': DateTime.now().toIso8601String(),
-            'family_id': familyId,
-          });
-    });
-
-    test('GP-3d: Member can see the family transaction', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
-
-      // Member pulls changes with familyId — family transactions should be visible
-      final resp = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest()..familyId = familyId,
-        options: _authOpts(memberToken),
-      );
-
-      final found = resp.operations.any((op) =>
-          op.entityType == 'transaction' && op.entityId == sharedTxnId);
-      expect(found, true,
-          reason: 'Family member should see transactions shared via familyId');
-    });
+    // Assert: Member can see it via family-scoped pull
+    final memberPull = await syncClient.pullChanges(
+      sync_pb.PullChangesRequest()..familyId = familyId,
+      options: _authOpts(memberAuth.accessToken),
+    );
+    final found = memberPull.operations
+        .any((op) => op.entityType == 'transaction' && op.entityId == sharedTxnId);
+    expect(found, true,
+        reason: 'Family member should see owner\'s transaction via familyId pull');
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GP-4: Offline Create → Batch Push → Server Has It
   // ═══════════════════════════════════════════════════════════════════════════
 
-  group('GP-4: Offline → Sync', () {
-    late String accessToken;
-    late String accountId;
-    late String categoryId;
-    late List<String> txnIds;
+  e2eTest('GP-4: Batch push 3 offline-queued transactions → all accepted',
+      () async {
+    // Setup
+    final auth =
+        await _registerUser(authClient, _testEmail('gp4'), 'Pass123!');
+    final opts = _authOpts(auth.accessToken);
 
-    test('GP-4a: Setup user + account + category', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
+    final accountId = _uuid.v4();
+    await _pushOp(syncClient, opts,
+        entityType: 'account',
+        entityId: accountId,
+        opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
+        payload: {
+          'id': accountId,
+          'name': 'GP4 Offline Account',
+          'type': 'cash',
+          'balance': 0,
+          'currency': 'CNY',
+        });
 
-      final auth =
-          await _registerUser(authClient, _testEmail('gp4'), 'Pass123!');
-      accessToken = auth.accessToken;
-      final opts = _authOpts(accessToken);
+    final categoryId = _uuid.v4();
+    await _pushOp(syncClient, opts,
+        entityType: 'category',
+        entityId: categoryId,
+        opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
+        payload: {
+          'id': categoryId,
+          'name': 'GP4 Transport',
+          'type': 'expense',
+          'icon': '🚕',
+        });
 
-      accountId = _uuid.v4();
-      await _pushOp(syncClient, opts,
-          entityType: 'account',
-          entityId: accountId,
-          opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
-          payload: {
-            'id': accountId,
-            'name': 'GP4 Offline Account',
-            'type': 'cash',
-            'balance': 0,
-            'currency': 'CNY',
-          });
-
-      categoryId = _uuid.v4();
-      await _pushOp(syncClient, opts,
-          entityType: 'category',
-          entityId: categoryId,
-          opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
-          payload: {
-            'id': categoryId,
-            'name': 'GP4 Transport',
+    // Act: Simulate offline queue — push 3 transactions in one batch
+    final txnIds = List.generate(3, (_) => _uuid.v4());
+    final operations = txnIds
+        .map((id) => sync_pb.SyncOperation()
+          ..entityType = 'transaction'
+          ..entityId = id
+          ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+          ..payload = jsonEncode({
+            'id': id,
+            'account_id': accountId,
+            'category_id': categoryId,
+            'amount': 1500,
+            'amount_cny': 1500,
             'type': 'expense',
-            'icon': '🚕',
-          });
-    });
+            'note': 'GP4 offline txn',
+            'txn_date': DateTime.now().toIso8601String(),
+          })
+          ..clientId = _uuid.v4())
+        .toList();
 
-    test('GP-4b: Batch push of 3 offline-queued transactions', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
+    final pushResp = await syncClient.pushOperations(
+      sync_pb.PushOperationsRequest()..operations.addAll(operations),
+      options: opts,
+    );
+    expect(pushResp.acceptedCount, 3);
+    expect(pushResp.failedIds, isEmpty);
+
+    // Assert: PullChanges returns all 3
+    final pullResp = await syncClient.pullChanges(
+      sync_pb.PullChangesRequest(),
+      options: opts,
+    );
+    int foundCount = 0;
+    for (final id in txnIds) {
+      if (pullResp.operations
+          .any((op) => op.entityType == 'transaction' && op.entityId == id)) {
+        foundCount++;
       }
-
-      final opts = _authOpts(accessToken);
-      txnIds = List.generate(3, (_) => _uuid.v4());
-
-      // Simulate: client was offline, queued 3 txns, now pushes all at once
-      final operations = txnIds
-          .map((id) => sync_pb.SyncOperation()
-            ..entityType = 'transaction'
-            ..entityId = id
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': id,
-              'account_id': accountId,
-              'category_id': categoryId,
-              'amount': 1500,
-              'amount_cny': 1500,
-              'type': 'expense',
-              'note': 'GP4 offline txn',
-              'txn_date': DateTime.now().toIso8601String(),
-            })
-            ..clientId = _uuid.v4())
-          .toList();
-
-      final resp = await syncClient.pushOperations(
-        sync_pb.PushOperationsRequest()..operations.addAll(operations),
-        options: opts,
-      );
-
-      // acceptedCount should be 3, failedIds should be empty
-      expect(resp.acceptedCount, 3);
-      expect(resp.failedIds, isEmpty);
-    });
-
-    test('GP-4c: PullChanges shows all 3 synced transactions', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
-
-      final resp = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest(),
-        options: _authOpts(accessToken),
-      );
-
-      int foundCount = 0;
-      for (final id in txnIds) {
-        if (resp.operations.any(
-            (op) => op.entityType == 'transaction' && op.entityId == id)) {
-          foundCount++;
-        }
-      }
-      expect(foundCount, 3,
-          reason: 'All 3 offline-created transactions should be visible');
-    });
+    }
+    expect(foundCount, 3,
+        reason: 'All 3 offline-created transactions should be visible');
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // GP-5: Token Expired → Refresh → Request Succeeds
+  // GP-5: Token Expired → Refresh → Request Succeeds + Rotation Enforced
   // ═══════════════════════════════════════════════════════════════════════════
 
-  group('GP-5: Token Refresh', () {
-    late String refreshToken;
+  e2eTest('GP-5a: RefreshToken returns new valid access token', () async {
+    final auth =
+        await _registerUser(authClient, _testEmail('gp5a'), 'Pass123!');
 
-    test('GP-5a: Register and get initial tokens', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
-
-      final auth =
-          await _registerUser(authClient, _testEmail('gp5'), 'Pass123!');
-      refreshToken = auth.refreshToken;
-      expect(refreshToken, isNotEmpty);
-    });
-
-    test('GP-5b: Invalid access token gets UNAUTHENTICATED', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
-
-      try {
-        await syncClient.pullChanges(
-          sync_pb.PullChangesRequest(),
-          options: _authOpts('clearly.invalid.token.value'),
-        );
-        fail('Should have thrown');
-      } on GrpcError catch (e) {
-        expect(e.code, StatusCode.unauthenticated);
-      }
-    });
-
-    test('GP-5c: RefreshToken returns new valid access token', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
-
-      final resp = await authClient.refreshToken(
-        auth_pb.RefreshTokenRequest()..refreshToken = refreshToken,
-      );
-
-      expect(resp.accessToken, isNotEmpty);
-      expect(resp.refreshToken, isNotEmpty);
-
-      // New access token should work for authenticated calls
-      final pullResp = await syncClient.pullChanges(
+    // Invalid token → UNAUTHENTICATED
+    try {
+      await syncClient.pullChanges(
         sync_pb.PullChangesRequest(),
-        options: _authOpts(resp.accessToken),
+        options: _authOpts('clearly.invalid.token.value'),
       );
-      expect(pullResp, isNotNull);
+      fail('Invalid token should have thrown');
+    } on GrpcError catch (e) {
+      expect(e.code, StatusCode.unauthenticated);
+    }
 
-      // Store the new refresh token for next test
-      refreshToken = resp.refreshToken;
-    });
+    // Refresh → new access token works
+    final refreshResp = await authClient.refreshToken(
+      auth_pb.RefreshTokenRequest()..refreshToken = auth.refreshToken,
+    );
+    expect(refreshResp.accessToken, isNotEmpty);
+    expect(refreshResp.refreshToken, isNotEmpty);
 
-    test('GP-5d: Refresh token rotation — old token invalidated', () async {
-      if (!serverAvailable) {
-        markTestSkipped('Server unavailable');
-        return;
-      }
+    final pullResp = await syncClient.pullChanges(
+      sync_pb.PullChangesRequest(),
+      options: _authOpts(refreshResp.accessToken),
+    );
+    expect(pullResp, isNotNull);
+  });
 
-      // Register a fresh user to get a clean token pair
-      final freshAuth =
-          await _registerUser(authClient, _testEmail('gp5d'), 'Pass123!');
-      final originalRefresh = freshAuth.refreshToken;
+  e2eTest('GP-5b: Refresh token rotation — old token invalidated', () async {
+    final auth =
+        await _registerUser(authClient, _testEmail('gp5b'), 'Pass123!');
+    final originalRefresh = auth.refreshToken;
 
-      // First refresh — should succeed and rotate the token
-      final resp1 = await authClient.refreshToken(
+    // First refresh — consumes and rotates the token
+    final resp1 = await authClient.refreshToken(
+      auth_pb.RefreshTokenRequest()..refreshToken = originalRefresh,
+    );
+    expect(resp1.accessToken, isNotEmpty);
+
+    // Reuse the ORIGINAL refresh token — must fail (rotation enforced)
+    try {
+      await authClient.refreshToken(
         auth_pb.RefreshTokenRequest()..refreshToken = originalRefresh,
       );
-      expect(resp1.accessToken, isNotEmpty);
-
-      // Reuse the ORIGINAL refresh token — should fail (rotation)
-      try {
-        await authClient.refreshToken(
-          auth_pb.RefreshTokenRequest()..refreshToken = originalRefresh,
-        );
-        // If server doesn't rotate, this is a known security gap but not a test failure
-      } on GrpcError catch (e) {
-        expect(e.code, StatusCode.unauthenticated);
-      }
-    });
+      fail('Old refresh token should be invalidated after rotation');
+    } on GrpcError catch (e) {
+      expect(e.code, StatusCode.unauthenticated);
+    }
   });
 }
