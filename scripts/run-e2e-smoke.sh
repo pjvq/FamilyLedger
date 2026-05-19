@@ -16,7 +16,7 @@
 #   1 — test failures
 #   2 — infrastructure failure (Docker/server didn't start)
 # ─────────────────────────────────────────────────────────────────────────────
-set -uo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -133,7 +133,7 @@ main() {
       trap 'services_down; exit $test_exit' EXIT
 
       services_up || exit 2
-      run_tests || test_exit=$?
+      run_tests && test_exit=0 || test_exit=$?
       # EXIT trap will run services_down and exit with test_exit
       ;;
   esac

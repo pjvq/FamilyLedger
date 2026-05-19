@@ -120,7 +120,7 @@ sync_pb.SyncOperation? _findOp(
 }
 
 /// Server-availability-aware test wrapper. Eliminates repeated skip boilerplate.
-late bool _serverAvailable;
+bool _serverAvailable = false;
 
 void e2eTest(String name, Future<void> Function() body) {
   test(name, () async {
@@ -156,6 +156,8 @@ void main() {
       _serverAvailable = true;
     } on SocketException {
       _serverAvailable = false;
+      // authClient/syncClient/etc. NOT initialized when server unavailable.
+      // All tests must use e2eTest() wrapper which checks _serverAvailable first.
       return;
     }
 
