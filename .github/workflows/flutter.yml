@@ -52,7 +52,7 @@ jobs:
           # Filter out generated code (proto, drift) for accurate source-only metrics.
           lcov --remove coverage/lcov.info \
             '*/generated/*' '*/*.g.dart' '*/*.pb.dart' '*/*.pbenum.dart' '*/*.pbgrpc.dart' '*/*.pbjson.dart' \
-            -o coverage/lcov_filtered.info --quiet
+            -o coverage/lcov_filtered.info --quiet --ignore-errors unused
           read HIT TOTAL <<< $(awk -F, '/^DA:/{total++; if($2>0)hit++} END{print hit+0, total+0}' coverage/lcov_filtered.info)
           if [ "$TOTAL" -eq 0 ]; then
             echo "::warning::No coverage data found"
