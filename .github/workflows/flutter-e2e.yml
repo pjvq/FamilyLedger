@@ -113,9 +113,9 @@ jobs:
             --timeout 30s \
             --concurrency 1
         env:
-          GRPC_HOST: localhost
+          GRPC_HOST: '127.0.0.1'
           GRPC_PORT: '50051'
-          WS_HOST: localhost
+          WS_HOST: '127.0.0.1'
           WS_PORT: '8080'
 
       # --- Cleanup ---
