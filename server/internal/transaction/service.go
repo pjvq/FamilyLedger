@@ -176,105 +176,54 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 		return nil, err
 	}
 
-	// Step 1: Validate and parse all inputs
-	cr, err := validateCreateInput(userID, req)
-	if err != nil {
+	// Build pipeline state
+	state := &PipelineState{
+		Pool:          s.pool,
+		UserID:        userID,
+		Request:       req,
+		Hub:           s.hub,
+		SkipOverdraft: ctx.Value(skipOverdraftKey) != nil,
+	}
+
+	// Run the creation pipeline
+	pipeline := NewCreatePipeline()
+	if err := pipeline.Run(ctx, state); err != nil {
 		return nil, err
 	}
 
-	// Step 2: Permission check (outside transaction — read-only)
-	if err := checkAccountPermission(ctx, s.pool, cr.userID, cr.accountID); err != nil {
-		return nil, err
-	}
+	// Post-commit: best-effort notifications (non-critical)
+	_ = (NotifyStage{Pool: s.pool}).Execute(ctx, state)
 
-	// Step 3: Execute within database transaction
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to begin transaction")
-	}
-	defer tx.Rollback(ctx)
+	return buildCreateResponse(state), nil
+}
 
-	// 3a: Re-verify account within tx (serializable check)
-	acctMeta, err := verifyAccountInTx(ctx, tx, cr.userID, cr.accountID)
-	if err != nil {
-		return nil, err
-	}
-
-	// 3b: Verify category
-	resolvedCatID, err := verifyCategory(ctx, tx, cr)
-	if err != nil {
-		return nil, err
-	}
-
-	// 3c: Overdraft check BEFORE insert (lock accounts first → prevents deadlock)
-	balanceDelta := cr.amountCny
-	if cr.txnType == "expense" {
-		balanceDelta = -cr.amountCny
-		if err := checkOverdraft(ctx, tx, cr.accountID, cr.amountCny, acctMeta.acctType); err != nil {
-			return nil, err
-		}
-	}
-
-	// 3d: Insert transaction row
-	var txnID uuid.UUID
-	var createdAt, updatedAt time.Time
-	err = tx.QueryRow(ctx,
-		`INSERT INTO transactions (user_id, account_id, category_id, amount, currency, amount_cny, exchange_rate, type, note, txn_date, tags, image_urls)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8::transaction_type, $9, $10, $11, $12)
-		 RETURNING id, created_at, updated_at`,
-		cr.userID, cr.accountID, resolvedCatID, cr.amount, cr.currency, cr.amountCny, cr.exchangeRate, cr.txnType, cr.note, cr.txnDate, cr.tags, cr.imageURLs,
-	).Scan(&txnID, &createdAt, &updatedAt)
-	if err != nil {
-		log.Printf("transaction: create error: %v", err)
-		return nil, status.Error(codes.Internal, "failed to create transaction")
-	}
-
-	// 3e: Update account balance
-	_, err = tx.Exec(ctx,
-		"UPDATE accounts SET balance = balance + $1, updated_at = NOW() WHERE id = $2",
-		balanceDelta, cr.accountID,
+// NewCreatePipeline returns the standard pipeline for creating a transaction.
+// Batch mode can replace this with NewBatchCreatePipeline() which skips overdraft.
+func NewCreatePipeline() *Pipeline {
+	return NewPipeline(
+		ValidateStage{},
+		PermissionStage{},
+		BeginTxStage{},
+		CategoryStage{},
+		OverdraftStage{},
+		PersistStage{},
+		SyncStage{},
 	)
-	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to update account balance")
-	}
+}
 
-	// 3f: Record sync operation
-	if err := insertTransactionSyncOp(ctx, tx, cr.userID, txnID, "create", map[string]interface{}{
-		"id":            txnID.String(),
-		"account_id":    cr.accountID.String(),
-		"category_id":   resolvedCatID.String(),
-		"amount":        cr.amount,
-		"currency":      cr.currency,
-		"amount_cny":    cr.amountCny,
-		"exchange_rate":  cr.exchangeRate,
-		"type":          cr.txnType,
-		"note":          cr.note,
-		"txn_date":      cr.txnDate.Format("2006-01-02"),
-	}); err != nil {
-		slog.Error("transaction: sync create failed", "txn_id", txnID, "error", err)
-		return nil, status.Error(codes.Internal, "failed to record sync operation")
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return nil, status.Error(codes.Internal, "failed to commit transaction")
-	}
-
-	// Step 4: Post-commit side effects (non-critical)
-	if acctMeta.familyID != nil {
-		audit.LogAudit(ctx, s.pool, acctMeta.familyID.String(), userID, "create", "transaction", txnID.String(), nil)
-	}
-
+// buildCreateResponse converts PipelineState into the gRPC response proto.
+func buildCreateResponse(state *PipelineState) *pb.CreateTransactionResponse {
+	cr := state.Parsed
 	pbType := pb.TransactionType_TRANSACTION_TYPE_EXPENSE
 	if cr.txnType == "income" {
 		pbType = pb.TransactionType_TRANSACTION_TYPE_INCOME
 	}
-
 	return &pb.CreateTransactionResponse{
 		Transaction: &pb.Transaction{
-			Id:           txnID.String(),
-			UserId:       userID,
+			Id:           state.TxnID.String(),
+			UserId:       state.UserID,
 			AccountId:    cr.accountID.String(),
-			CategoryId:   resolvedCatID.String(),
+			CategoryId:   state.ResolvedCatID.String(),
 			Amount:       cr.amount,
 			Currency:     cr.currency,
 			AmountCny:    cr.amountCny,
@@ -282,12 +231,12 @@ func (s *Service) CreateTransaction(ctx context.Context, req *pb.CreateTransacti
 			Type:         pbType,
 			Note:         cr.note,
 			TxnDate:      timestamppb.New(cr.txnDate),
-			CreatedAt:    timestamppb.New(createdAt),
-			UpdatedAt:    timestamppb.New(updatedAt),
+			CreatedAt:    timestamppb.New(state.CreatedAt),
+			UpdatedAt:    timestamppb.New(state.UpdatedAt),
 			Tags:         cr.tags,
 			ImageUrls:    cr.imageURLs,
 		},
-	}, nil
+	}
 }
 
 func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransactionRequest) (*pb.UpdateTransactionResponse, error) {
