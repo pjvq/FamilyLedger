@@ -18,6 +18,7 @@ class SyncState {
   final int failedCount;
   final DateTime? lastSyncTime;
   final bool wsConnected;
+  final bool serverReachable;
 
   const SyncState({
     this.status = SyncStatus.synced,
@@ -25,6 +26,7 @@ class SyncState {
     this.failedCount = 0,
     this.lastSyncTime,
     this.wsConnected = false,
+    this.serverReachable = true,
   });
 
   SyncState copyWith({
@@ -33,6 +35,7 @@ class SyncState {
     int? failedCount,
     DateTime? lastSyncTime,
     bool? wsConnected,
+    bool? serverReachable,
   }) =>
       SyncState(
         status: status ?? this.status,
@@ -40,6 +43,7 @@ class SyncState {
         failedCount: failedCount ?? this.failedCount,
         lastSyncTime: lastSyncTime ?? this.lastSyncTime,
         wsConnected: wsConnected ?? this.wsConnected,
+        serverReachable: serverReachable ?? this.serverReachable,
       );
 }
 
@@ -123,6 +127,15 @@ class SyncStatusNotifier extends StateNotifier<SyncState> {
 
   void updateWsConnected(bool connected) {
     state = state.copyWith(wsConnected: connected);
+  }
+
+  void updateServerReachable(bool reachable) {
+    state = state.copyWith(serverReachable: reachable);
+    // If server became unreachable and we're not already offline/failed,
+    // reflect this in the overall status.
+    if (!reachable && state.status == SyncStatus.synced) {
+      state = state.copyWith(status: SyncStatus.pending);
+    }
   }
 
   @override

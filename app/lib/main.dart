@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as dev;
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,10 +24,15 @@ void main() async {
       error: details.exception,
       stackTrace: details.stack,
     );
-    // Don't rethrow — prevents crash
+    // In debug mode, also dump to console for immediate visibility
+    if (kDebugMode) {
+      FlutterError.dumpErrorToConsole(details);
+    }
   };
 
-  // Catch all unhandled async errors (platform-level)
+  // Catch unhandled async errors (platform-level).
+  // Log with full context; return true only in release to prevent crash.
+  // In debug mode, let the error propagate so developers notice immediately.
   PlatformDispatcher.instance.onError = (error, stack) {
     dev.log(
       'PlatformDispatcher error: $error',
@@ -34,7 +40,9 @@ void main() async {
       error: error,
       stackTrace: stack,
     );
-    return true; // Mark as handled — prevents crash
+    // In release: swallow to keep app alive.
+    // In debug: rethrow (return false) so the error is visible.
+    return !kDebugMode;
   };
 
   // Wrap everything in a guarded zone for belt-and-suspenders safety

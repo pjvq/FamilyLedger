@@ -51,7 +51,7 @@ class SyncEngine {
   bool _pushRequested = false;
 
   /// Callback to update sync status UI. Set by the provider.
-  void Function({bool? syncing, bool? synced, bool? wsConnected, int? failedCount})?
+  void Function({bool? syncing, bool? synced, bool? wsConnected, bool? serverReachable, int? failedCount})?
       onStatusChanged;
 
   /// 最后一次成功拉取的服务端时间戳（毫秒）
@@ -198,8 +198,10 @@ class SyncEngine {
         'SyncEngine: pushed ${succeededIds.length}/${pendingOps.length} ops',
         name: 'sync',
       );
+      onStatusChanged?.call(serverReachable: true);
     } catch (e) {
       dev.log('SyncEngine: push failed: $e', name: 'sync');
+      onStatusChanged?.call(serverReachable: false);
     } finally {
       onStatusChanged?.call(syncing: false);
       _releaseSyncLock();
@@ -308,9 +310,10 @@ class SyncEngine {
         'SyncEngine: pulled $totalPulled changes',
         name: 'sync',
       );
-      onStatusChanged?.call(synced: true);
+      onStatusChanged?.call(synced: true, serverReachable: true);
     } catch (e) {
       dev.log('SyncEngine: pull failed: $e', name: 'sync');
+      onStatusChanged?.call(serverReachable: false);
     }
   }
 
@@ -1037,11 +1040,13 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
     bool? syncing,
     bool? synced,
     bool? wsConnected,
+    bool? serverReachable,
     int? failedCount,
   }) {
     if (syncing == true) statusNotifier.markSyncing();
     if (synced == true) statusNotifier.markSynced();
     if (wsConnected != null) statusNotifier.updateWsConnected(wsConnected);
+    if (serverReachable != null) statusNotifier.updateServerReachable(serverReachable);
     if (failedCount != null && failedCount > 0) statusNotifier.markFailed(failedCount);
   };
 

@@ -2,33 +2,48 @@
 class AppConstants {
   AppConstants._();
 
-  // Server
-  static const serverHost = '124.222.52.10';
-  static const grpcPort = 50051;
-  static const wsPort = 8080;
+  // ─── Server Configuration ─────────────────────────────────────────────────
+  // Resolved at compile-time via --dart-define or .env flavor.
+  // Usage: flutter run --dart-define=SERVER_HOST=192.168.1.100
+  //
+  // Defaults are production values; override for dev/staging.
+
+  static const serverHost = String.fromEnvironment(
+    'SERVER_HOST',
+    defaultValue: '124.222.52.10',
+  );
+
+  static const grpcPort = int.fromEnvironment(
+    'GRPC_PORT',
+    defaultValue: 50051,
+  );
+
+  static const wsPort = int.fromEnvironment(
+    'WS_PORT',
+    defaultValue: 8080,
+  );
 
   /// Whether to use TLS for gRPC and WebSocket connections.
-  /// Set to true when server TLS is deployed (TLS_CERT_FILE/TLS_KEY_FILE configured).
-  ///
-  /// Effects:
-  ///   - gRPC: ChannelCredentials.secure() vs ChannelCredentials.insecure()
-  ///   - WebSocket: wss:// vs ws://
-  static const useTls = false; // Flip to true after server cert deployment
+  /// Override: --dart-define=USE_TLS=true
+  static const useTls = bool.fromEnvironment(
+    'USE_TLS',
+    defaultValue: false,
+  );
 
-  // Auth
+  // ─── Auth ─────────────────────────────────────────────────────────────────
   static const accessTokenKey = 'access_token';
   static const refreshTokenKey = 'refresh_token';
   static const userIdKey = 'user_id';
 
-  // Family
+  // ─── Family ───────────────────────────────────────────────────────────────
   static const familyIdKey = 'current_family_id';
 
-  // Sync
+  // ─── Sync ─────────────────────────────────────────────────────────────────
   static const syncBatchSize = 50;
   static const syncIntervalSeconds = 30;
   static const clientIdKey = 'client_id';
 
-  // UI
+  // ─── UI ───────────────────────────────────────────────────────────────────
   static const currencySymbol = '¥';
   static const defaultCurrency = 'CNY';
   static const pageSize = 20;
