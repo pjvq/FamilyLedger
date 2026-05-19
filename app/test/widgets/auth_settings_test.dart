@@ -296,9 +296,9 @@ class _FakeSyncStatusNotifier extends StateNotifier<SyncState>
   @override
   void updateWsConnected(bool connected) {}
   @override
-  void updateServerReachable(bool reachable) {}
+    void updateServerReachable(bool reachable) {}
   @override
-    void markSyncStopped() {}
+  void markSyncStopped() {}
   @override
   void dispatch(SyncEvent event) {
     state = SyncState.applyEvent(state, event);

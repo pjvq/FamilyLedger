@@ -132,6 +132,20 @@ void main() {
         expect(next.wsConnected, true);
       }
     });
+
+    test('applyConnectivity(online: true) does not interrupt syncing', () {
+      const state = SyncState(status: SyncStatus.syncing, pendingCount: 0, failedCount: 0);
+      final next = SyncState.applyConnectivity(state, online: true);
+      expect(next.status, SyncStatus.syncing,
+          reason: 'Timer refresh must not clobber active sync');
+    });
+
+    test('applyConnectivity(online: false) CAN interrupt syncing (network lost)', () {
+      const state = SyncState(status: SyncStatus.syncing);
+      final next = SyncState.applyConnectivity(state, online: false);
+      expect(next.status, SyncStatus.offline,
+          reason: 'Network loss always takes precedence');
+    });
   });
 
   // ─── Pairing Property: SyncStarted always has SyncStopped ─────────────

@@ -131,6 +131,8 @@ class SyncState {
     if (!online) {
       return state.copyWith(status: SyncStatus.offline);
     }
+    // Don't interrupt active sync — timer-based refresh must not clobber syncing
+    if (state.status == SyncStatus.syncing) return state;
     // Restoring connectivity — determine resting state from current counts
     if (state.failedCount > 0) {
       return state.copyWith(status: SyncStatus.failed);

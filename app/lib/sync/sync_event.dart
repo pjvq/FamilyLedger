@@ -50,6 +50,14 @@ class SyncCompleted extends SyncEvent {
   const SyncCompleted({this.timestamp});
 
   @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncCompleted && other.timestamp == timestamp);
+
+  @override
+  int get hashCode => timestamp.hashCode;
+
+  @override
   String toString() => 'SyncEvent.syncCompleted(timestamp: $timestamp)';
 }
 
