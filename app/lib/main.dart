@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as dev;
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,10 +24,16 @@ void main() async {
       error: details.exception,
       stackTrace: details.stack,
     );
-    // Don't rethrow — prevents crash
+    // In debug mode, also dump to console for immediate visibility
+    if (kDebugMode) {
+      FlutterError.dumpErrorToConsole(details);
+    }
   };
 
-  // Catch all unhandled async errors (platform-level)
+  // Catch unhandled async errors (platform-level).
+  // Log with full context; always return true to mark as "handled".
+  // runZonedGuarded below is the fallback zone — returning false here would
+  // cause duplicate reporting (once here, once in the Zone handler).
   PlatformDispatcher.instance.onError = (error, stack) {
     dev.log(
       'PlatformDispatcher error: $error',
@@ -34,7 +41,9 @@ void main() async {
       error: error,
       stackTrace: stack,
     );
-    return true; // Mark as handled — prevents crash
+    // Always mark handled. In debug, dev.log already makes it visible;
+    // in release, this prevents crash. Zone handler won't double-report.
+    return true;
   };
 
   // Wrap everything in a guarded zone for belt-and-suspenders safety

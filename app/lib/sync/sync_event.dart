@@ -1,0 +1,95 @@
+/// Events emitted by [SyncEngine] to communicate status changes.
+///
+/// Sealed hierarchy — add new variants without changing the callback signature.
+sealed class SyncEvent {
+  const SyncEvent();
+
+  /// Push/pull cycle started.
+  const factory SyncEvent.syncStarted() = SyncStarted;
+
+  /// Push/pull cycle ended (regardless of success/failure).
+  /// Always emitted in finally blocks to prevent state-machine deadlock.
+  const factory SyncEvent.syncStopped() = SyncStopped;
+
+  /// Pull completed successfully — data is up to date.
+  const factory SyncEvent.syncCompleted() = SyncCompleted;
+
+  /// A gRPC call succeeded — server is reachable.
+  const factory SyncEvent.serverReachable() = ServerReachable;
+
+  /// A gRPC call failed — server may be unreachable.
+  const factory SyncEvent.serverUnreachable() = ServerUnreachable;
+
+  /// WebSocket connection state changed.
+  const factory SyncEvent.wsStateChanged(bool connected) = WsStateChanged;
+
+  /// Some sync operations failed after push.
+  const factory SyncEvent.pushFailed(int failedCount) = PushFailed;
+}
+
+class SyncStarted extends SyncEvent {
+  const SyncStarted();
+
+  @override
+  String toString() => 'SyncEvent.syncStarted()';
+}
+
+class SyncStopped extends SyncEvent {
+  const SyncStopped();
+
+  @override
+  String toString() => 'SyncEvent.syncStopped()';
+}
+
+class SyncCompleted extends SyncEvent {
+  const SyncCompleted();
+
+  @override
+  String toString() => 'SyncEvent.syncCompleted()';
+}
+
+class ServerReachable extends SyncEvent {
+  const ServerReachable();
+
+  @override
+  String toString() => 'SyncEvent.serverReachable()';
+}
+
+class ServerUnreachable extends SyncEvent {
+  const ServerUnreachable();
+
+  @override
+  String toString() => 'SyncEvent.serverUnreachable()';
+}
+
+class WsStateChanged extends SyncEvent {
+  final bool connected;
+  const WsStateChanged(this.connected);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WsStateChanged && other.connected == connected);
+
+  @override
+  int get hashCode => connected.hashCode;
+
+  @override
+  String toString() => 'SyncEvent.wsStateChanged($connected)';
+}
+
+class PushFailed extends SyncEvent {
+  final int failedCount;
+  const PushFailed(this.failedCount);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PushFailed && other.failedCount == failedCount);
+
+  @override
+  int get hashCode => failedCount.hashCode;
+
+  @override
+  String toString() => 'SyncEvent.pushFailed($failedCount)';
+}

@@ -18,6 +18,7 @@ class SyncState {
   final int failedCount;
   final DateTime? lastSyncTime;
   final bool wsConnected;
+  final bool serverReachable;
 
   const SyncState({
     this.status = SyncStatus.synced,
@@ -25,6 +26,7 @@ class SyncState {
     this.failedCount = 0,
     this.lastSyncTime,
     this.wsConnected = false,
+    this.serverReachable = true,
   });
 
   SyncState copyWith({
@@ -32,14 +34,17 @@ class SyncState {
     int? pendingCount,
     int? failedCount,
     DateTime? lastSyncTime,
+    bool clearLastSyncTime = false,
     bool? wsConnected,
+    bool? serverReachable,
   }) =>
       SyncState(
         status: status ?? this.status,
         pendingCount: pendingCount ?? this.pendingCount,
         failedCount: failedCount ?? this.failedCount,
-        lastSyncTime: lastSyncTime ?? this.lastSyncTime,
+        lastSyncTime: clearLastSyncTime ? null : (lastSyncTime ?? this.lastSyncTime),
         wsConnected: wsConnected ?? this.wsConnected,
+        serverReachable: serverReachable ?? this.serverReachable,
       );
 }
 
@@ -123,6 +128,33 @@ class SyncStatusNotifier extends StateNotifier<SyncState> {
 
   void updateWsConnected(bool connected) {
     state = state.copyWith(wsConnected: connected);
+  }
+
+  /// Called when a sync cycle ends (SyncStopped event).
+  /// Restores status from syncing based on current state.
+  void markSyncStopped() {
+    if (state.status != SyncStatus.syncing) return;
+    // Determine correct resting state after sync cycle ends.
+    if (state.failedCount > 0) {
+      state = state.copyWith(status: SyncStatus.failed);
+    } else if (state.pendingCount > 0 || !state.serverReachable) {
+      state = state.copyWith(status: SyncStatus.pending);
+    } else {
+      state = state.copyWith(status: SyncStatus.synced);
+    }
+  }
+
+  void updateServerReachable(bool reachable) {
+    state = state.copyWith(serverReachable: reachable);
+    if (!reachable && state.status == SyncStatus.synced) {
+      state = state.copyWith(status: SyncStatus.pending);
+    } else if (reachable &&
+        (state.status == SyncStatus.pending || state.status == SyncStatus.syncing) &&
+        state.pendingCount == 0 &&
+        state.failedCount == 0) {
+      // Server became reachable again with nothing pending → restore synced.
+      state = state.copyWith(status: SyncStatus.synced);
+    }
   }
 
   @override
