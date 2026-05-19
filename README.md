@@ -22,81 +22,145 @@
 | 🔐 认证 | JWT + OAuth(微信/Apple) + Provider 接口抽象 |
 | 🔄 同步 | WebSocket 实时推送(Ping-Pong 心跳) + gRPC 增量同步 + LWW 冲突解决 + 分页拉取 |
 
+## 架构
+
+### 整体架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Flutter Client (iOS/Android)                                │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
+│  │ Features │→ │ Domain   │→ │ Data     │→ │ Generated  │  │
+│  │ (UI)     │  │ (Logic)  │  │ (Drift)  │  │ (Proto)    │  │
+│  └──────────┘  └──────────┘  └──────────┘  └────────────┘  │
+│        ↕ gRPC + WebSocket                                    │
+├─────────────────────────────────────────────────────────────┤
+│  Go Server                                                   │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
+│  │ gRPC API │→ │ Business │→ │ Pipeline │→ │ PostgreSQL │  │
+│  │ (proto)  │  │ (19 pkg) │  │ (stages) │  │ (46 migr)  │  │
+│  └──────────┘  └──────────┘  └──────────┘  └────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 客户端 — Clean Architecture + DIP
+
+```
+features/ (UI层)
+    ↓ depends on
+domain/ (业务层 — 纯 Dart，无框架依赖)
+    ├── entities/       纯 domain 实体 (AccountEntity, TransactionEntity, CategoryEntity)
+    ├── interfaces/     抽象 repository 接口 (ITransactionRepository, IAccountRepository, ICategoryRepository)
+    ├── services/       业务服务 (BalanceCalculator, CategorySyncService, OfflineSyncQueue)
+    ├── providers/      StateNotifier (依赖接口，不依赖 concrete)
+    └── repositories/   接口实现 (Drift-backed, 可替换为 mock)
+    ↑ implements
+data/ (基础设施层 — Drift DB, gRPC clients)
+```
+
+**依赖倒置原则 (DIP)：** Domain 层定义接口，Data 层实现接口，Provider 层通过 Riverpod 注入——测试时 mock 替换，零 DB 依赖。
+
+### 服务端 — Pipeline Pattern
+
+`CreateTransaction` 采用有序 Stage Pipeline：
+
+```
+Request → ValidateStage → PermissionStage → BeginTxStage → CategoryStage
+        → OverdraftStage → PersistStage → SyncStage → [Commit]
+        → notifyPostCommit() (best-effort)
+```
+
+每个 Stage 实现 `Stage` interface，独立可测，新增 concern 只需实现 + 注册 (OCP)。
+
+### 同步引擎 — 形式化状态机
+
+```
+offline ↔ pending ↔ syncing → synced
+                  ↔ syncing → failed
+```
+
+状态变更唯一路径：`SyncState.applyEvent()` + `SyncState.applyConnectivity()` 纯函数。37 个 property-based 测试覆盖所有合法/非法转换。
+
 ## 技术栈
 
-- **后端**: Go 1.25 / gRPC / PostgreSQL 16 / golang-migrate / WebSocket
-- **客户端**: Flutter 3.41 / Dart 3.11 / Riverpod / Drift (SQLite) / Material 3
-- **协议**: Protocol Buffers 3 (13 个 proto 文件)
-- **部署**: Docker Compose (golang:1.25-alpine + postgres:16-alpine)
-- **数据库**: 45 个 migration 文件，软删除模式
-- **测试**: Go 1,485 test functions (19 packages) + Flutter 972 tests + E2E 集成测试
+| 层 | 技术 |
+|----|------|
+| 后端 | Go 1.25 / gRPC / PostgreSQL 16 / golang-migrate / WebSocket |
+| 客户端 | Flutter 3.41 / Dart 3.11 / Riverpod / Drift (SQLite) / Material 3 |
+| 协议 | Protocol Buffers 3 (13 个 proto 文件) |
+| 部署 | Docker Compose (golang:1.25-alpine + postgres:16-alpine) |
+| 数据库 | 46 个 migration 文件，软删除模式 |
+| CI | GitHub Actions — Flutter (shard + coverage ≥40%) + Go (coverage ≥80%) + E2E |
+| 测试 | Go 29 packages + Flutter 50 test files + E2E 6 golden-path smoke tests |
 
 ## 项目结构
 
 ```
 FamilyLedger/
-├── proto/                    # Proto 定义 (13 files)
-│   ├── auth.proto
-│   ├── transaction.proto
-│   ├── account.proto
-│   ├── family.proto
-│   ├── sync.proto
-│   ├── budget.proto
-│   ├── notify.proto
-│   ├── loan.proto
-│   ├── investment.proto
-│   ├── asset.proto
-│   ├── dashboard.proto
-│   ├── export.proto
-│   └── import.proto
-├── server/                   # Go 后端 (~78,000 行)
-│   ├── cmd/server/           # 入口 + 定时任务注册
-│   ├── internal/             # 业务逻辑 (19 packages)
-│   │   ├── auth/             # 认证 + OAuth Provider 接口
-│   │   ├── transaction/      # 交易 CRUD + 家庭权限
-│   │   ├── account/          # 账户管理
-│   │   ├── family/           # 家庭组 + 审计日志
-│   │   ├── sync/             # 增量同步 + entity_ops (7 种实体)
-│   │   ├── budget/           # 预算 + 家庭执行率
-│   │   ├── notify/           # 通知 + 自定义提醒 + 信用卡提醒
-│   │   ├── loan/             # 贷款 + 组合贷
-│   │   ├── investment/       # 投资 + IRR 计算
-│   │   ├── market/           # 行情拉取 + 交易时段调度
-│   │   ├── asset/            # 固定资产 + 折旧
-│   │   ├── dashboard/        # 仪表盘聚合 + 汇率 API + 投资曲线
-│   │   ├── export/           # 导出(CSV/Excel/PDF/全量备份)
-│   │   ├── importcsv/        # CSV 导入 (session 持久化)
-│   │   ├── security/         # 安全策略
-│   │   ├── migration/        # 数据库迁移管理
-│   │   └── integration/      # 集成测试 (testcontainers)
-│   ├── pkg/                  # 公共包
-│   │   ├── audit/            # 审计日志 helper
-│   │   ├── config/           # JWT 配置校验
-│   │   ├── db/               # 数据库连接池
-│   │   ├── jwt/              # JWT 签发/验证
-│   │   ├── middleware/       # gRPC 拦截器
-│   │   ├── permission/       # 家庭权限检查
-│   │   ├── storage/          # FileStorage 接口 (Local + S3)
-│   │   ├── category/         # 预设分类 UUID
-│   │   └── ws/               # WebSocket Hub + Ping-Pong
-│   ├── migrations/           # 45 个 SQL migration
+├── proto/                        # Proto 定义 (13 files)
+├── server/                       # Go 后端 (~61,000 行源码)
+│   ├── cmd/server/               # 入口 + 定时任务注册
+│   ├── internal/                 # 业务逻辑
+│   │   ├── auth/                 # 认证 + OAuth Provider 接口
+│   │   ├── transaction/          # 交易 Pipeline (7 stages)
+│   │   ├── account/              # 账户管理
+│   │   ├── family/               # 家庭组 + 审计日志
+│   │   ├── sync/                 # 增量同步 + entity_ops (7 种实体)
+│   │   ├── budget/               # 预算 + 家庭执行率
+│   │   ├── notify/               # 通知 + 自定义提醒 + 信用卡提醒
+│   │   ├── loan/                 # 贷款 + 组合贷
+│   │   ├── investment/           # 投资 + IRR 计算
+│   │   ├── market/               # 行情拉取 + 交易时段调度
+│   │   ├── asset/                # 固定资产 + 折旧
+│   │   ├── dashboard/            # 仪表盘聚合 + 汇率 API
+│   │   ├── export/               # 导出(CSV/Excel/PDF/全量备份)
+│   │   ├── importcsv/            # CSV 导入 (session 持久化)
+│   │   ├── security/             # 安全策略
+│   │   ├── migration/            # 数据库迁移管理
+│   │   ├── integration/          # 集成测试 (testcontainers)
+│   │   ├── testutil/             # 测试工具
+│   │   └── benchmark/            # 性能基准测试
+│   ├── pkg/                      # 公共包
+│   │   ├── audit/                # 审计日志 helper
+│   │   ├── config/               # JWT 配置校验
+│   │   ├── db/                   # 数据库连接池
+│   │   ├── jwt/                  # JWT 签发/验证
+│   │   ├── middleware/           # gRPC 拦截器
+│   │   ├── permission/           # 家庭权限检查
+│   │   ├── storage/              # FileStorage 接口 (Local + S3)
+│   │   ├── category/             # 预设分类 UUID
+│   │   └── ws/                   # WebSocket Hub + Ping-Pong
+│   ├── migrations/               # 46 个 SQL migration (up/down)
 │   ├── Makefile
-│   ├── Dockerfile
-│   └── entrypoint.sh
-├── app/                      # Flutter 客户端 (~80,000 行)
+│   └── Dockerfile
+├── app/                          # Flutter 客户端 (~64,000 行源码)
 │   ├── lib/
-│   │   ├── core/             # 常量、主题、路由
-│   │   ├── data/             # Drift 数据库 + gRPC clients
-│   │   ├── domain/           # Providers (StateNotifier)
-│   │   ├── features/         # 14 个功能页面
-│   │   ├── generated/        # Proto 生成代码
-│   │   ├── sync/             # SyncEngine (LWW + 分页)
+│   │   ├── core/                 # 常量、主题、路由
+│   │   ├── data/                 # Drift 数据库 + gRPC clients
+│   │   ├── domain/              # Clean Architecture 业务层
+│   │   │   ├── entities/         # 纯 domain 实体 (无框架依赖)
+│   │   │   ├── interfaces/       # Repository 抽象接口 (DIP)
+│   │   │   ├── repositories/     # 接口 concrete 实现
+│   │   │   ├── services/         # BalanceCalculator, CategorySyncService
+│   │   │   ├── providers/        # StateNotifier (Riverpod)
+│   │   │   └── models/           # DTO / ViewModel
+│   │   ├── features/             # 16 个功能模块页面
+│   │   ├── generated/            # Proto 生成代码
+│   │   ├── sync/                 # SyncEngine 状态机
 │   │   └── main.dart
-│   ├── test/                 # 972 单元/Widget 测试
-│   ├── integration_test/     # E2E 集成测试
-│   └── pubspec.yaml
-├── docs/                     # 项目文档
+│   ├── test/                     # 单元/Widget 测试 (50 files)
+│   └── test/integration_test/    # E2E golden-path 测试
+├── scripts/                      # 自动化脚本
+│   ├── run-e2e-smoke.sh          # E2E 测试运行器 (docker up → test → down)
+│   └── run-flutter-tests.sh      # Flutter 分片测试 (CI OOM 防护)
+├── .github/workflows/            # CI 配置
+│   ├── ci.yml                    # 主 CI (lint + test + coverage gate)
+│   ├── flutter.yml               # Flutter 专属 (coverage ≥40% + delta comment)
+│   ├── go.yml                    # Go 专属 (coverage ≥80% + delta comment)
+│   └── flutter-e2e.yml           # E2E 冒烟测试 (Docker Compose)
+├── docs/                         # 项目文档
 ├── docker-compose.yml
+├── deploy.sh                     # 一键部署脚本
 └── README.md
 ```
 
@@ -151,9 +215,6 @@ flutter run -d iphone
 
 # Android (需要连接设备或启动模拟器)
 flutter run -d android
-
-# 查看可用设备
-flutter devices
 ```
 
 > - 客户端默认连接 `localhost:50051` (gRPC) 和 `localhost:8080` (WebSocket)
@@ -164,22 +225,27 @@ flutter devices
 ### 3. 运行测试
 
 ```bash
-# 后端 (19 packages, 1,485 test functions)
+# Go 后端 (29 packages)
 cd server && go test ./... -count=1
 
-# 前端 (972 tests)
+# Flutter 单元测试
 cd app && flutter test
 
-# 集成测试 (需要 Docker 跑后端)
-cd app && flutter test test/integration_test/ --concurrency=1
+# Flutter 分片测试 (CI 环境，防 OOM)
+cd app && ../scripts/run-flutter-tests.sh
+
+# E2E 冒烟测试 (需要 Docker)
+./scripts/run-e2e-smoke.sh full
+# 或分步:
+./scripts/run-e2e-smoke.sh --up    # 启动服务
+./scripts/run-e2e-smoke.sh --test  # 运行测试
+./scripts/run-e2e-smoke.sh --down  # 停止服务
 ```
 
 ### 4. 部署到服务器
 
-一键部署：本地构建 Docker 镜像 → 传输到服务器 → 启动服务。
-
 ```bash
-# 基本用法（默认 root 用户，22 端口）
+# 基本用法
 ./deploy.sh <HOST>
 
 # 指定用户和端口
@@ -187,30 +253,26 @@ cd app && flutter test test/integration_test/ --concurrency=1
 
 # 或者用 make
 make deploy HOST=1.2.3.4
-make deploy HOST=1.2.3.4 USER=ubuntu PORT=2222
 ```
 
-**前置条件：**
-- 本地已安装 Docker
-- 目标服务器已安装 docker + docker compose
-- 本地 SSH key 可免密登录目标服务器
-
-**生产环境配置：**
-
-创建 `.env.production` 放在项目根目录，脚本会自动传到服务器：
+**生产环境配置** — 创建 `.env.production`：
 
 ```env
 JWT_SECRET=your-production-secret-at-least-32-chars
-DB_PASSWORD=your-secure-db-password
+DB_PASSWORD=your-secure-password
 APP_ENV=production
 ```
 
-**部署流程：**
-1. 本地构建 `familyledger-server:<git-short-hash>` 镜像
-2. 压缩导出并 scp 到服务器 `/opt/familyledger/`
-3. 远端 `docker load` 加载镜像
-4. `docker compose up -d` 启动/重启服务（自动执行 migration）
-5. 验证容器运行状态
+## CI/CD
+
+| Workflow | 触发条件 | 内容 |
+|----------|----------|------|
+| `ci.yml` | push/PR (any) | Lint + Test + Coverage gate (25%) |
+| `flutter.yml` | push/PR (app/**) | Flutter 分片测试 + Coverage ≥40% + PR delta comment |
+| `go.yml` | push/PR (server/**) | Go test + Coverage ≥80% + PR delta comment |
+| `flutter-e2e.yml` | push/PR (app/test/integration_test/**) | Docker Compose + 6 E2E golden-path tests |
+
+覆盖率门禁：PR 合并前必须达到阈值，否则 CI 红灯。PR comment 自动报告覆盖率变化。
 
 ## 后端开发
 
@@ -281,8 +343,6 @@ export GOPROXY=https://goproxy.cn,direct
 
 ## 文档
 
-所有项目文档在 [`docs/`](docs/) 目录：
-
 | 文档 | 内容 |
 |------|------|
 | [progress-report.md](docs/progress-report.md) | 项目进展报告 |
@@ -291,6 +351,7 @@ export GOPROXY=https://goproxy.cn,direct
 | [family-finance-implementation-plan.md](docs/family-finance-implementation-plan.md) | 实施计划 |
 | [e2e-testing.md](docs/e2e-testing.md) | 测试体系 |
 | [frontend-audit.md](docs/frontend-audit.md) | 前端审计 |
+| [backend-audit.md](docs/backend-audit.md) | 后端审计 |
 | [import-export-design.md](docs/import-export-design.md) | 导入导出设计 |
 | [loan-enhancement-research.md](docs/loan-enhancement-research.md) | 贷款增强研究 |
 
