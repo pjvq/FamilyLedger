@@ -296,6 +296,8 @@ class _FakeSyncStatusNotifier extends StateNotifier<SyncState>
   void updateWsConnected(bool connected) {}
   @override
   void updateServerReachable(bool reachable) {}
+  @override
+  void markSyncStopped() {}
 }
 
 class _FakeThemeModeNotifier extends StateNotifier<ThemeMode>

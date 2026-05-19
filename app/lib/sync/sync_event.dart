@@ -7,7 +7,11 @@ sealed class SyncEvent {
   /// Push/pull cycle started.
   const factory SyncEvent.syncStarted() = SyncStarted;
 
-  /// Pull completed successfully.
+  /// Push/pull cycle ended (regardless of success/failure).
+  /// Always emitted in finally blocks to prevent state-machine deadlock.
+  const factory SyncEvent.syncStopped() = SyncStopped;
+
+  /// Pull completed successfully — data is up to date.
   const factory SyncEvent.syncCompleted() = SyncCompleted;
 
   /// A gRPC call succeeded — server is reachable.
@@ -25,26 +29,67 @@ sealed class SyncEvent {
 
 class SyncStarted extends SyncEvent {
   const SyncStarted();
+
+  @override
+  String toString() => 'SyncEvent.syncStarted()';
+}
+
+class SyncStopped extends SyncEvent {
+  const SyncStopped();
+
+  @override
+  String toString() => 'SyncEvent.syncStopped()';
 }
 
 class SyncCompleted extends SyncEvent {
   const SyncCompleted();
+
+  @override
+  String toString() => 'SyncEvent.syncCompleted()';
 }
 
 class ServerReachable extends SyncEvent {
   const ServerReachable();
+
+  @override
+  String toString() => 'SyncEvent.serverReachable()';
 }
 
 class ServerUnreachable extends SyncEvent {
   const ServerUnreachable();
+
+  @override
+  String toString() => 'SyncEvent.serverUnreachable()';
 }
 
 class WsStateChanged extends SyncEvent {
   final bool connected;
   const WsStateChanged(this.connected);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WsStateChanged && other.connected == connected);
+
+  @override
+  int get hashCode => connected.hashCode;
+
+  @override
+  String toString() => 'SyncEvent.wsStateChanged($connected)';
 }
 
 class PushFailed extends SyncEvent {
   final int failedCount;
   const PushFailed(this.failedCount);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PushFailed && other.failedCount == failedCount);
+
+  @override
+  int get hashCode => failedCount.hashCode;
+
+  @override
+  String toString() => 'SyncEvent.pushFailed($failedCount)';
 }

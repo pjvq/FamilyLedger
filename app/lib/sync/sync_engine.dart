@@ -202,6 +202,7 @@ class SyncEngine {
       dev.log('SyncEngine: push failed: $e', name: 'sync');
       onSyncEvent?.call(const SyncEvent.serverUnreachable());
     } finally {
+      onSyncEvent?.call(const SyncEvent.syncStopped());
       _releaseSyncLock();
       _drainPendingRequests();
     }
@@ -1039,6 +1040,8 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
     switch (event) {
       case SyncStarted():
         statusNotifier.markSyncing();
+      case SyncStopped():
+        statusNotifier.markSyncStopped();
       case SyncCompleted():
         statusNotifier.markSynced();
       case ServerReachable():

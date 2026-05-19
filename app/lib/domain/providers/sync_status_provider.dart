@@ -130,12 +130,26 @@ class SyncStatusNotifier extends StateNotifier<SyncState> {
     state = state.copyWith(wsConnected: connected);
   }
 
+  /// Called when a sync cycle ends (SyncStopped event).
+  /// Restores status from syncing based on current state.
+  void markSyncStopped() {
+    if (state.status != SyncStatus.syncing) return;
+    // Determine correct resting state after sync cycle ends.
+    if (state.failedCount > 0) {
+      state = state.copyWith(status: SyncStatus.failed);
+    } else if (state.pendingCount > 0 || !state.serverReachable) {
+      state = state.copyWith(status: SyncStatus.pending);
+    } else {
+      state = state.copyWith(status: SyncStatus.synced);
+    }
+  }
+
   void updateServerReachable(bool reachable) {
     state = state.copyWith(serverReachable: reachable);
     if (!reachable && state.status == SyncStatus.synced) {
       state = state.copyWith(status: SyncStatus.pending);
     } else if (reachable &&
-        state.status == SyncStatus.pending &&
+        (state.status == SyncStatus.pending || state.status == SyncStatus.syncing) &&
         state.pendingCount == 0 &&
         state.failedCount == 0) {
       // Server became reachable again with nothing pending → restore synced.

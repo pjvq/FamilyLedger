@@ -34,13 +34,13 @@ class Loans extends Table {
   RealColumn get annualRate => real()();
   IntColumn get totalMonths => integer()();
   IntColumn get paidMonths => integer().withDefault(const Constant(0))();
-  TextColumn get repaymentMethod => text().withDefault(const Constant('equal_installment'))(); // equal_installment, equal_principal
+  TextColumn get repaymentMethod => text().withDefault(const Constant('equal_installment'))(); // equal_installment, equal_principal, interest_only, bullet, equal_interest
   IntColumn get paymentDay => integer()();
   DateTimeColumn get startDate => dateTime()();
   TextColumn get accountId => text().withDefault(const Constant(''))();
   TextColumn get groupId => text().withDefault(const Constant(''))();
   TextColumn get subType => text().withDefault(const Constant(''))();
-  TextColumn get rateType => text().withDefault(const Constant('fixed'))(); // fixed, lpr
+  TextColumn get rateType => text().withDefault(const Constant('fixed'))(); // fixed, lpr_floating
   RealColumn get lprBase => real().withDefault(const Constant(0.0))();
   RealColumn get lprSpread => real().withDefault(const Constant(0.0))();
   IntColumn get rateAdjustMonth => integer().withDefault(const Constant(1))();
