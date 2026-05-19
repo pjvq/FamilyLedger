@@ -45,13 +45,21 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      - name: Coverage report (target 85% by W15)
+      - name: Coverage report
         run: |
-          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
-          echo "Total coverage: ${COVERAGE}%"
-          echo "📈 Target: 85% by W15. Current gate: 20% (prevent regression)"
-          if (( $(echo "$COVERAGE < 20.0" | bc -l) )); then
-            echo "::error::Coverage ${COVERAGE}% is below 20% minimum threshold"
+          if [ ! -f coverage.out ]; then
+            echo "::warning::No coverage file found (skipping gate)"
+            exit 0
+          fi
+          # Filter out generated proto code for accurate coverage metrics
+          grep -v '^github.com/familyledger/server/proto/' coverage.out > coverage_filtered.out
+          COVERAGE=$(go tool cover -func=coverage_filtered.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "## 📈 Go Coverage (source only): ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          echo "Total coverage (excl. proto): ${COVERAGE}%"
+          # Regression gate: fail if source coverage drops below 80%.
+          # Current baseline: ~82%. Target: 85% (Issue #64.6).
+          if (( $(echo "$COVERAGE < 80.0" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below 80% minimum threshold"
             exit 1
           fi
 
