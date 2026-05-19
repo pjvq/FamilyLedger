@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:familyledger/data/local/database.dart' as db;
 import 'package:familyledger/domain/providers/budget_provider.dart';
 import 'package:familyledger/domain/providers/loan_provider.dart';
+import 'package:familyledger/domain/models/loan_models.dart';
+import 'package:familyledger/domain/models/loan_calculator.dart';
 import 'package:familyledger/domain/providers/transaction_provider.dart';
 import 'package:familyledger/domain/providers/account_provider.dart';
 import 'package:familyledger/core/widgets/skeleton_loading.dart';
@@ -1358,7 +1360,7 @@ void main() {
 
   group('LoanCalculator', () {
     test('equalInstallment: zero rate', () {
-      final schedule = LoanCalculator.equalInstallment(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_installment', 
         principal: 120000,
         annualRate: 0.0,
         totalMonths: 12,
@@ -1373,7 +1375,7 @@ void main() {
     });
 
     test('equalInstallment: standard rate', () {
-      final schedule = LoanCalculator.equalInstallment(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_installment', 
         principal: 100000000,
         annualRate: 4.2,
         totalMonths: 360,
@@ -1391,7 +1393,7 @@ void main() {
     });
 
     test('equalPrincipal: payments decrease over time', () {
-      final schedule = LoanCalculator.equalPrincipal(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_principal', 
         principal: 120000,
         annualRate: 12.0,
         totalMonths: 12,
@@ -1429,7 +1431,7 @@ void main() {
     });
 
     test('paidMonths marks items as paid', () {
-      final schedule = LoanCalculator.equalInstallment(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_installment', 
         principal: 120000,
         annualRate: 4.0,
         totalMonths: 12,

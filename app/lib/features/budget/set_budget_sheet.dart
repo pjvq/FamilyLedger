@@ -346,13 +346,16 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                       const SizedBox(height: 20),
 
                       // Category budgets toggle
-                      SwitchListTile(
-                        title: const Text('分类预算'),
-                        subtitle: const Text('为每个支出分类设置独立预算'),
-                        value: _showCategories,
-                        onChanged: (v) =>
-                            setState(() => _showCategories = v),
-                        contentPadding: EdgeInsets.zero,
+                      Material(
+                        type: MaterialType.transparency,
+                        child: SwitchListTile(
+                          title: const Text('分类预算'),
+                          subtitle: const Text('为每个支出分类设置独立预算'),
+                          value: _showCategories,
+                          onChanged: (v) =>
+                              setState(() => _showCategories = v),
+                          contentPadding: EdgeInsets.zero,
+                        ),
                       ),
 
                       // Category budget list — grouped by parent

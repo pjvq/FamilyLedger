@@ -5,14 +5,14 @@
 /// - Boundary conditions
 /// - Precision invariants
 import 'package:flutter_test/flutter_test.dart';
-import 'package:familyledger/domain/providers/loan_provider.dart';
+import 'package:familyledger/domain/models/loan_calculator.dart';
 
 void main() {
   group('LoanCalculator — 等额本息 (equal installment)', () {
     test('500,000 yuan at 4.1% for 30 years — monthly payment ≈ 2,413.66',
         () {
       // 50万 = 50000000分, 4.1%, 360 months
-      final schedule = LoanCalculator.equalInstallment(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_installment', 
         principal: 50000000, // 50万元 = 50,000,000 分
         annualRate: 4.1,
         totalMonths: 360,
@@ -31,7 +31,7 @@ void main() {
     });
 
     test('precision: total principal + total interest = total payments', () {
-      final schedule = LoanCalculator.equalInstallment(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_installment', 
         principal: 50000000,
         annualRate: 4.1,
         totalMonths: 360,
@@ -54,7 +54,7 @@ void main() {
     });
 
     test('remaining principal is 0 after last payment', () {
-      final schedule = LoanCalculator.equalInstallment(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_installment', 
         principal: 50000000,
         annualRate: 4.1,
         totalMonths: 360,
@@ -66,7 +66,7 @@ void main() {
     });
 
     test('month numbers are sequential from 1 to totalMonths', () {
-      final schedule = LoanCalculator.equalInstallment(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_installment', 
         principal: 10000000,
         annualRate: 3.5,
         totalMonths: 120,
@@ -85,7 +85,7 @@ void main() {
       // 首月月供 = 本金/360 + 本金*月利率
       // = 50000000/360 + 50000000*(4.1/100/12)
       // = 138889 + 170833 = 309722 分 ≈ 3097.22 元
-      final schedule = LoanCalculator.equalPrincipal(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_principal', 
         principal: 50000000,
         annualRate: 4.1,
         totalMonths: 360,
@@ -101,7 +101,7 @@ void main() {
     });
 
     test('monthly principal is roughly constant', () {
-      final schedule = LoanCalculator.equalPrincipal(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_principal', 
         principal: 50000000,
         annualRate: 4.1,
         totalMonths: 360,
@@ -118,7 +118,7 @@ void main() {
     });
 
     test('payments decrease over time (interest part decreases)', () {
-      final schedule = LoanCalculator.equalPrincipal(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_principal', 
         principal: 50000000,
         annualRate: 4.1,
         totalMonths: 360,
@@ -132,7 +132,7 @@ void main() {
     });
 
     test('precision: total principal paid = original principal', () {
-      final schedule = LoanCalculator.equalPrincipal(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_principal', 
         principal: 50000000,
         annualRate: 4.1,
         totalMonths: 360,
@@ -146,7 +146,7 @@ void main() {
     });
 
     test('remaining principal is 0 after last payment', () {
-      final schedule = LoanCalculator.equalPrincipal(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_principal', 
         principal: 50000000,
         annualRate: 4.1,
         totalMonths: 360,
@@ -160,7 +160,7 @@ void main() {
 
   group('LoanCalculator — boundary conditions', () {
     test('0% interest rate — no interest, equal payments', () {
-      final schedule = LoanCalculator.equalInstallment(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_installment', 
         principal: 12000000, // 12万
         annualRate: 0.0,
         totalMonths: 12,
@@ -182,7 +182,7 @@ void main() {
     });
 
     test('1 month term', () {
-      final schedule = LoanCalculator.equalInstallment(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_installment', 
         principal: 10000000, // 10万
         annualRate: 5.0,
         totalMonths: 1,
@@ -199,7 +199,7 @@ void main() {
     });
 
     test('equal principal with 0% interest', () {
-      final schedule = LoanCalculator.equalPrincipal(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_principal', 
         principal: 6000000, // 6万
         annualRate: 0.0,
         totalMonths: 6,
@@ -359,7 +359,7 @@ void main() {
 
   group('LoanCalculator — due date calculation', () {
     test('correctly handles month overflow', () {
-      final schedule = LoanCalculator.equalInstallment(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_installment', 
         principal: 1200000,
         annualRate: 5.0,
         totalMonths: 14,
@@ -373,7 +373,7 @@ void main() {
     });
 
     test('payment day capped at max days in month (Feb)', () {
-      final schedule = LoanCalculator.equalInstallment(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_installment', 
         principal: 600000,
         annualRate: 5.0,
         totalMonths: 3,
@@ -390,7 +390,7 @@ void main() {
 
   group('LoanCalculator — 先息后本 (interest only)', () {
     test('基本计算: 50万, 5%, 12个月', () {
-      final schedule = LoanCalculator.interestOnly(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'interest_only', 
         principal: 50000000, // 50万
         annualRate: 5.0,
         totalMonths: 12,
@@ -418,7 +418,7 @@ void main() {
 
   group('LoanCalculator — 一次性还本付息 (bullet)', () {
     test('基本计算: 10万, 6%, 6个月', () {
-      final schedule = LoanCalculator.bullet(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'bullet', 
         principal: 10000000, // 10万
         annualRate: 6.0,
         totalMonths: 6,
@@ -447,7 +447,7 @@ void main() {
 
   group('LoanCalculator — 等本等息 (equal interest)', () {
     test('基本计算: 12万, 12%, 12个月', () {
-      final schedule = LoanCalculator.equalInterest(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_interest', 
         principal: 12000000, // 12万
         annualRate: 12.0,
         totalMonths: 12,
@@ -503,7 +503,7 @@ void main() {
 
   group('LoanCalculator — 先息后本按日计息 (daily_act_365)', () {
     test('每月利息随天数变化', () {
-      final schedule = LoanCalculator.interestOnly(
+      final schedule = LoanCalculator.calculate(repaymentMethod: 'interest_only', 
         principal: 50000000, // 50万
         annualRate: 5.0,
         totalMonths: 12,
@@ -527,7 +527,7 @@ void main() {
 
   group('LoanCalculator — 一次性还本付息按日计息 (daily_act_365)', () {
     test('总利息与按月计息不同', () {
-      final daily = LoanCalculator.bullet(
+      final daily = LoanCalculator.calculate(repaymentMethod: 'bullet', 
         principal: 50000000,
         annualRate: 6.0,
         totalMonths: 6,
@@ -535,7 +535,7 @@ void main() {
         paymentDay: 1,
         calcMethod: 'daily_act_365',
       );
-      final monthly = LoanCalculator.bullet(
+      final monthly = LoanCalculator.calculate(repaymentMethod: 'bullet', 
         principal: 50000000,
         annualRate: 6.0,
         totalMonths: 6,
@@ -553,7 +553,7 @@ void main() {
 
   group('LoanCalculator — ACT/360 利息大于 ACT/365', () {
     test('ACT/360 日利率更高', () {
-      final act365 = LoanCalculator.interestOnly(
+      final act365 = LoanCalculator.calculate(repaymentMethod: 'interest_only', 
         principal: 50000000,
         annualRate: 5.0,
         totalMonths: 12,
@@ -561,7 +561,7 @@ void main() {
         paymentDay: 15,
         calcMethod: 'daily_act_365',
       );
-      final act360 = LoanCalculator.interestOnly(
+      final act360 = LoanCalculator.calculate(repaymentMethod: 'interest_only', 
         principal: 50000000,
         annualRate: 5.0,
         totalMonths: 12,

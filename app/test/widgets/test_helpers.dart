@@ -10,6 +10,7 @@ import 'package:familyledger/domain/providers/account_provider.dart';
 import 'package:familyledger/domain/providers/transaction_provider.dart';
 import 'package:familyledger/domain/providers/family_provider.dart';
 import 'package:familyledger/domain/providers/loan_provider.dart';
+import 'package:familyledger/domain/models/loan_models.dart';
 import 'package:familyledger/domain/providers/notification_provider.dart';
 import 'package:familyledger/domain/providers/budget_provider.dart';
 import 'package:familyledger/domain/providers/dashboard_provider.dart';

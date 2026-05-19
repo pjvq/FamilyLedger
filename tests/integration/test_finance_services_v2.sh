@@ -265,8 +265,8 @@ fi
 # Market: GetQuote
 # NOTE: Market tests depend on external APIs (EastMoney). Treat API errors as SKIP in CI.
 QUOTE=$(grpc_auth investment.proto "familyledger.investment.v1.MarketDataService/GetQuote" '{"symbol":"600519","market_type":"MARKET_TYPE_A_SHARE"}')
-PRICE=$(echo "$QUOTE" | jq -r '.currentPrice // .price // empty' 2>/dev/null)
-if [ -n "$PRICE" ]; then
+PRICE=$(echo "$QUOTE" | jq -r '.currentPrice // .price // .prevClose // empty' 2>/dev/null)
+if [ -n "$PRICE" ] && [ "$PRICE" != "0" ]; then
   pass "GetQuote 600519 (price=$PRICE)"
 elif echo "$QUOTE" | grep -q "ERROR:"; then
   echo "[SKIP] GetQuote - external API unavailable"

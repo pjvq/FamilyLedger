@@ -1,5 +1,4 @@
 import 'dart:developer' as developer;
-import 'dart:math' as math;
 import 'package:grpc/grpc.dart' show CallOptions;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -12,744 +11,10 @@ import '../../generated/proto/loan.pbgrpc.dart';
 import '../../generated/proto/loan.pbenum.dart' as pb_enum;
 import '../../generated/proto/google/protobuf/timestamp.pb.dart' as ts_pb;
 import 'app_providers.dart';
+import '../models/loan_models.dart';
+import '../models/loan_calculator.dart';
+import '../models/loan_proto_helpers.dart';
 
-// ── Local Schedule Item (for display) ──
-
-class LoanScheduleDisplayItem {
-  final int monthNumber;
-  final int payment;         // 分
-  final int principalPart;   // 分
-  final int interestPart;    // 分
-  final int remainingPrincipal; // 分
-  final DateTime dueDate;
-  final bool isPaid;
-  final DateTime? paidDate;
-
-  const LoanScheduleDisplayItem({
-    required this.monthNumber,
-    required this.payment,
-    required this.principalPart,
-    required this.interestPart,
-    required this.remainingPrincipal,
-    required this.dueDate,
-    this.isPaid = false,
-    this.paidDate,
-  });
-}
-
-// ── Prepayment Simulation Result ──
-
-class PrepaymentSimulationResult {
-  final int prepaymentAmount;     // 分
-  final int totalInterestBefore;  // 分
-  final int totalInterestAfter;   // 分
-  final int interestSaved;        // 分
-  final int monthsReduced;
-  final int newMonthlyPayment;    // 分
-  final List<LoanScheduleDisplayItem> newSchedule;
-
-  const PrepaymentSimulationResult({
-    required this.prepaymentAmount,
-    required this.totalInterestBefore,
-    required this.totalInterestAfter,
-    required this.interestSaved,
-    required this.monthsReduced,
-    required this.newMonthlyPayment,
-    required this.newSchedule,
-  });
-}
-
-// ── Loan Group Display Model ──
-
-class LoanGroupDisplayItem {
-  final db.LoanGroup group;
-  final List<db.Loan> subLoans;
-  final int totalMonthlyPayment; // 分
-  final int totalRemainingPrincipal; // 分
-  final double overallProgress; // 0.0 ~ 1.0
-
-  const LoanGroupDisplayItem({
-    required this.group,
-    required this.subLoans,
-    required this.totalMonthlyPayment,
-    required this.totalRemainingPrincipal,
-    required this.overallProgress,
-  });
-
-  db.Loan? get commercialLoan =>
-      subLoans.where((l) => l.subType == 'commercial').firstOrNull;
-
-  db.Loan? get providentLoan =>
-      subLoans.where((l) => l.subType == 'provident').firstOrNull;
-}
-
-// ── State ──
-
-class LoanState {
-  final List<db.Loan> loans; // standalone loans
-  final List<LoanGroupDisplayItem> loanGroups;
-  final db.Loan? currentLoan;
-  final LoanGroupDisplayItem? currentGroup;
-  final List<LoanScheduleDisplayItem> schedule;
-  final PrepaymentSimulationResult? simulation;
-  final bool isLoading;
-  final String? error;
-
-  const LoanState({
-    this.loans = const [],
-    this.loanGroups = const [],
-    this.currentLoan,
-    this.currentGroup,
-    this.schedule = const [],
-    this.simulation,
-    this.isLoading = false,
-    this.error,
-  });
-
-  LoanState copyWith({
-    List<db.Loan>? loans,
-    List<LoanGroupDisplayItem>? loanGroups,
-    db.Loan? currentLoan,
-    LoanGroupDisplayItem? currentGroup,
-    List<LoanScheduleDisplayItem>? schedule,
-    PrepaymentSimulationResult? simulation,
-    bool? isLoading,
-    String? error,
-    bool clearCurrentLoan = false,
-    bool clearCurrentGroup = false,
-    bool clearSimulation = false,
-    bool clearError = false,
-  }) =>
-      LoanState(
-        loans: loans ?? this.loans,
-        loanGroups: loanGroups ?? this.loanGroups,
-        currentLoan:
-            clearCurrentLoan ? null : (currentLoan ?? this.currentLoan),
-        currentGroup:
-            clearCurrentGroup ? null : (currentGroup ?? this.currentGroup),
-        schedule: schedule ?? this.schedule,
-        simulation:
-            clearSimulation ? null : (simulation ?? this.simulation),
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-      );
-}
-
-// ── Loan Calculator (local, offline-capable) ──
-
-class LoanCalculator {
-  LoanCalculator._();
-
-  /// 等额本息还款计划
-  static List<LoanScheduleDisplayItem> equalInstallment({
-    required int principal,       // 分
-    required double annualRate,   // 如 4.2
-    required int totalMonths,
-    required DateTime startDate,
-    required int paymentDay,
-    int paidMonths = 0,
-  }) {
-    final monthlyRate = annualRate / 100 / 12;
-    final items = <LoanScheduleDisplayItem>[];
-
-    if (monthlyRate == 0) {
-      // 0利率
-      final monthlyPayment = (principal / totalMonths).round();
-      var remaining = principal;
-      for (var i = 1; i <= totalMonths; i++) {
-        final principalPart =
-            i == totalMonths ? remaining : monthlyPayment;
-        remaining -= principalPart;
-        items.add(LoanScheduleDisplayItem(
-          monthNumber: i,
-          payment: principalPart,
-          principalPart: principalPart,
-          interestPart: 0,
-          remainingPrincipal: remaining < 0 ? 0 : remaining,
-          dueDate: _dueDate(startDate, i, paymentDay),
-          isPaid: i <= paidMonths,
-        ));
-      }
-      return items;
-    }
-
-    // 标准等额本息: M = P * r * (1+r)^n / ((1+r)^n - 1)
-    final pow = math.pow(1 + monthlyRate, totalMonths);
-    final monthlyPayment =
-        (principal * monthlyRate * pow / (pow - 1)).round();
-
-    var remaining = principal;
-    for (var i = 1; i <= totalMonths; i++) {
-      final interestPart = (remaining * monthlyRate).round();
-      final principalPart = i == totalMonths
-          ? remaining
-          : monthlyPayment - interestPart;
-      remaining -= principalPart;
-      if (remaining < 0) remaining = 0;
-
-      items.add(LoanScheduleDisplayItem(
-        monthNumber: i,
-        payment: i == totalMonths ? principalPart + interestPart : monthlyPayment,
-        principalPart: principalPart,
-        interestPart: interestPart,
-        remainingPrincipal: remaining,
-        dueDate: _dueDate(startDate, i, paymentDay),
-        isPaid: i <= paidMonths,
-      ));
-    }
-    return items;
-  }
-
-  /// 等额本金还款计划
-  static List<LoanScheduleDisplayItem> equalPrincipal({
-    required int principal,       // 分
-    required double annualRate,   // 如 4.2
-    required int totalMonths,
-    required DateTime startDate,
-    required int paymentDay,
-    int paidMonths = 0,
-  }) {
-    final monthlyRate = annualRate / 100 / 12;
-    final monthlyPrincipal = (principal / totalMonths).round();
-    final items = <LoanScheduleDisplayItem>[];
-
-    var remaining = principal;
-    for (var i = 1; i <= totalMonths; i++) {
-      final interestPart = (remaining * monthlyRate).round();
-      final principalPart =
-          i == totalMonths ? remaining : monthlyPrincipal;
-      remaining -= principalPart;
-      if (remaining < 0) remaining = 0;
-
-      items.add(LoanScheduleDisplayItem(
-        monthNumber: i,
-        payment: principalPart + interestPart,
-        principalPart: principalPart,
-        interestPart: interestPart,
-        remainingPrincipal: remaining,
-        dueDate: _dueDate(startDate, i, paymentDay),
-        isPaid: i <= paidMonths,
-      ));
-    }
-    return items;
-  }
-
-  /// 先息后本还款计划
-  static List<LoanScheduleDisplayItem> interestOnly({
-    required int principal,
-    required double annualRate,
-    required int totalMonths,
-    required DateTime startDate,
-    required int paymentDay,
-    int paidMonths = 0,
-    String calcMethod = 'monthly',
-  }) {
-    final items = <LoanScheduleDisplayItem>[];
-
-    if (calcMethod == 'daily_act_365' || calcMethod == 'daily_act_360') {
-      final divisor = calcMethod == 'daily_act_365' ? 365.0 : 360.0;
-      final dailyRate = annualRate / 100.0 / divisor;
-      var periodStart = startDate;
-      for (var i = 1; i <= totalMonths; i++) {
-        final dueDate = _dueDate(startDate, i, paymentDay);
-        var days = dueDate.difference(periodStart).inDays;
-        if (days <= 0) days = 30;
-        final interest = (principal * dailyRate * days).round();
-        final isLast = i == totalMonths;
-        final principalPart = isLast ? principal : 0;
-        items.add(LoanScheduleDisplayItem(
-          monthNumber: i,
-          payment: principalPart + interest,
-          principalPart: principalPart,
-          interestPart: interest,
-          remainingPrincipal: isLast ? 0 : principal,
-          dueDate: dueDate,
-          isPaid: i <= paidMonths,
-        ));
-        periodStart = dueDate;
-      }
-    } else {
-      final monthlyRate = annualRate / 100 / 12;
-      final monthlyInterest = (principal * monthlyRate).round();
-      for (var i = 1; i <= totalMonths; i++) {
-        final isLast = i == totalMonths;
-        final principalPart = isLast ? principal : 0;
-        items.add(LoanScheduleDisplayItem(
-          monthNumber: i,
-          payment: principalPart + monthlyInterest,
-          principalPart: principalPart,
-          interestPart: monthlyInterest,
-          remainingPrincipal: isLast ? 0 : principal,
-          dueDate: _dueDate(startDate, i, paymentDay),
-          isPaid: i <= paidMonths,
-        ));
-      }
-    }
-    return items;
-  }
-
-  /// 一次性还本付息还款计划
-  static List<LoanScheduleDisplayItem> bullet({
-    required int principal,
-    required double annualRate,
-    required int totalMonths,
-    required DateTime startDate,
-    required int paymentDay,
-    int paidMonths = 0,
-    String calcMethod = 'monthly',
-  }) {
-    final items = <LoanScheduleDisplayItem>[];
-    int totalInterest;
-
-    if (calcMethod == 'daily_act_365' || calcMethod == 'daily_act_360') {
-      final divisor = calcMethod == 'daily_act_365' ? 365.0 : 360.0;
-      final dailyRate = annualRate / 100.0 / divisor;
-      // 累计实际天数的利息
-      var prevDate = startDate;
-      totalInterest = 0;
-      for (var i = 1; i <= totalMonths; i++) {
-        final dueDate = _dueDate(startDate, i, paymentDay);
-        var days = dueDate.difference(prevDate).inDays;
-        if (days <= 0) days = 30;
-        totalInterest += (principal * dailyRate * days).round();
-        prevDate = dueDate;
-      }
-    } else {
-      final monthlyRate = annualRate / 100 / 12;
-      totalInterest = (principal * monthlyRate * totalMonths).round();
-    }
-
-    for (var i = 1; i <= totalMonths; i++) {
-      final isLast = i == totalMonths;
-      items.add(LoanScheduleDisplayItem(
-        monthNumber: i,
-        payment: isLast ? principal + totalInterest : 0,
-        principalPart: isLast ? principal : 0,
-        interestPart: isLast ? totalInterest : 0,
-        remainingPrincipal: isLast ? 0 : principal,
-        dueDate: _dueDate(startDate, i, paymentDay),
-        isPaid: i <= paidMonths,
-      ));
-    }
-    return items;
-  }
-
-  /// 等本等息还款计划
-  static List<LoanScheduleDisplayItem> equalInterest({
-    required int principal,
-    required double annualRate,
-    required int totalMonths,
-    required DateTime startDate,
-    required int paymentDay,
-    int paidMonths = 0,
-  }) {
-    final monthlyRate = annualRate / 100 / 12;
-    final monthlyPrincipal = (principal / totalMonths).round();
-    final monthlyInterest = (principal * monthlyRate).round();
-    final items = <LoanScheduleDisplayItem>[];
-
-    var remaining = principal;
-    for (var i = 1; i <= totalMonths; i++) {
-      final principalPart = i == totalMonths ? remaining : monthlyPrincipal;
-      remaining -= principalPart;
-      if (remaining < 0) remaining = 0;
-
-      items.add(LoanScheduleDisplayItem(
-        monthNumber: i,
-        payment: principalPart + monthlyInterest,
-        principalPart: principalPart,
-        interestPart: monthlyInterest,
-        remainingPrincipal: remaining,
-        dueDate: _dueDate(startDate, i, paymentDay),
-        isPaid: i <= paidMonths,
-      ));
-    }
-    return items;
-  }
-
-  /// 计算还款计划
-  static List<LoanScheduleDisplayItem> calculate({
-    required int principal,
-    required double annualRate,
-    required int totalMonths,
-    required String repaymentMethod,
-    required DateTime startDate,
-    required int paymentDay,
-    int paidMonths = 0,
-    String calcMethod = 'monthly',
-  }) {
-    switch (repaymentMethod) {
-      case 'equal_principal':
-        return equalPrincipal(
-          principal: principal,
-          annualRate: annualRate,
-          totalMonths: totalMonths,
-          startDate: startDate,
-          paymentDay: paymentDay,
-          paidMonths: paidMonths,
-        );
-      case 'interest_only':
-        return interestOnly(
-          principal: principal,
-          annualRate: annualRate,
-          totalMonths: totalMonths,
-          startDate: startDate,
-          paymentDay: paymentDay,
-          paidMonths: paidMonths,
-          calcMethod: calcMethod,
-        );
-      case 'bullet':
-        return bullet(
-          principal: principal,
-          annualRate: annualRate,
-          totalMonths: totalMonths,
-          startDate: startDate,
-          paymentDay: paymentDay,
-          paidMonths: paidMonths,
-          calcMethod: calcMethod,
-        );
-      case 'equal_interest':
-        return equalInterest(
-          principal: principal,
-          annualRate: annualRate,
-          totalMonths: totalMonths,
-          startDate: startDate,
-          paymentDay: paymentDay,
-          paidMonths: paidMonths,
-        );
-      default:
-        return equalInstallment(
-          principal: principal,
-          annualRate: annualRate,
-          totalMonths: totalMonths,
-          startDate: startDate,
-          paymentDay: paymentDay,
-          paidMonths: paidMonths,
-        );
-    }
-  }
-
-  /// 计算贷款的有效年利率（考虑 LPR 浮动）
-  static double effectiveRate(db.Loan loan) {
-    if (loan.rateType == 'lpr_floating' && loan.lprBase > 0) {
-      return loan.lprBase + loan.lprSpread;
-    }
-    return loan.annualRate;
-  }
-
-  /// 提前还款模拟 — 缩短期限
-  static PrepaymentSimulationResult simulateReduceMonths({
-    required int remainingPrincipal,
-    required double annualRate,
-    required int remainingMonths,
-    required int paidMonths,
-    required int prepaymentAmount,
-    required String repaymentMethod,
-    required DateTime startDate,
-    required int paymentDay,
-    required int originalPrincipal,
-    required int originalTotalMonths,
-  }) {
-    // 原方案总利息
-    final originalSchedule = calculate(
-      principal: originalPrincipal,
-      annualRate: annualRate,
-      totalMonths: originalTotalMonths,
-      repaymentMethod: repaymentMethod,
-      startDate: startDate,
-      paymentDay: paymentDay,
-    );
-    final totalInterestBefore =
-        originalSchedule.fold<int>(0, (s, i) => s + i.interestPart);
-
-    // 提前还款后剩余本金
-    final newRemaining = remainingPrincipal - prepaymentAmount;
-    if (newRemaining <= 0) {
-      return PrepaymentSimulationResult(
-        prepaymentAmount: prepaymentAmount,
-        totalInterestBefore: totalInterestBefore,
-        totalInterestAfter: originalSchedule
-            .where((i) => i.monthNumber <= paidMonths)
-            .fold<int>(0, (s, i) => s + i.interestPart),
-        interestSaved: totalInterestBefore -
-            originalSchedule
-                .where((i) => i.monthNumber <= paidMonths)
-                .fold<int>(0, (s, i) => s + i.interestPart),
-        monthsReduced: remainingMonths,
-        newMonthlyPayment: 0,
-        newSchedule: [],
-      );
-    }
-
-    // 缩短期限: 月供不变，重新算期数
-    final monthlyRate = annualRate / 100 / 12;
-    int newMonths;
-    int monthlyPayment;
-
-    if (repaymentMethod == 'equal_principal') {
-      monthlyPayment = (newRemaining / remainingMonths).round();
-      var rem = newRemaining;
-      newMonths = 0;
-      while (rem > 0 && newMonths < remainingMonths) {
-        newMonths++;
-        final pPart = newMonths == remainingMonths ? rem : monthlyPayment;
-        rem -= pPart;
-        if (rem < 0) rem = 0;
-      }
-    } else {
-      final origMonthlyPayment = originalSchedule
-          .firstWhere((i) => i.monthNumber == paidMonths + 1,
-              orElse: () => originalSchedule.last)
-          .payment;
-      monthlyPayment = origMonthlyPayment;
-
-      if (monthlyRate == 0) {
-        newMonths = (newRemaining / monthlyPayment).ceil();
-      } else {
-        final prm = newRemaining * monthlyRate / monthlyPayment;
-        if (prm >= 1) {
-          newMonths = remainingMonths;
-        } else {
-          newMonths = (-math.log(1 - prm) / math.log(1 + monthlyRate)).ceil();
-        }
-      }
-    }
-
-    final newSchedule = calculate(
-      principal: newRemaining,
-      annualRate: annualRate,
-      totalMonths: newMonths,
-      repaymentMethod: repaymentMethod,
-      startDate: _dueDate(startDate, paidMonths, paymentDay),
-      paymentDay: paymentDay,
-    );
-
-    final totalInterestAfter =
-        originalSchedule
-            .where((i) => i.monthNumber <= paidMonths)
-            .fold<int>(0, (s, i) => s + i.interestPart) +
-        newSchedule.fold<int>(0, (s, i) => s + i.interestPart);
-
-    return PrepaymentSimulationResult(
-      prepaymentAmount: prepaymentAmount,
-      totalInterestBefore: totalInterestBefore,
-      totalInterestAfter: totalInterestAfter,
-      interestSaved: totalInterestBefore - totalInterestAfter,
-      monthsReduced: remainingMonths - newMonths,
-      newMonthlyPayment: newSchedule.isNotEmpty ? newSchedule.first.payment : 0,
-      newSchedule: newSchedule,
-    );
-  }
-
-  /// 提前还款模拟 — 减少月供
-  static PrepaymentSimulationResult simulateReducePayment({
-    required int remainingPrincipal,
-    required double annualRate,
-    required int remainingMonths,
-    required int paidMonths,
-    required int prepaymentAmount,
-    required String repaymentMethod,
-    required DateTime startDate,
-    required int paymentDay,
-    required int originalPrincipal,
-    required int originalTotalMonths,
-  }) {
-    final originalSchedule = calculate(
-      principal: originalPrincipal,
-      annualRate: annualRate,
-      totalMonths: originalTotalMonths,
-      repaymentMethod: repaymentMethod,
-      startDate: startDate,
-      paymentDay: paymentDay,
-    );
-    final totalInterestBefore =
-        originalSchedule.fold<int>(0, (s, i) => s + i.interestPart);
-
-    final newRemaining = remainingPrincipal - prepaymentAmount;
-    if (newRemaining <= 0) {
-      final paidInterest = originalSchedule
-          .where((i) => i.monthNumber <= paidMonths)
-          .fold<int>(0, (s, i) => s + i.interestPart);
-      return PrepaymentSimulationResult(
-        prepaymentAmount: prepaymentAmount,
-        totalInterestBefore: totalInterestBefore,
-        totalInterestAfter: paidInterest,
-        interestSaved: totalInterestBefore - paidInterest,
-        monthsReduced: remainingMonths,
-        newMonthlyPayment: 0,
-        newSchedule: [],
-      );
-    }
-
-    // 减少月供: 期数不变，重新算月供
-    final newSchedule = calculate(
-      principal: newRemaining,
-      annualRate: annualRate,
-      totalMonths: remainingMonths,
-      repaymentMethod: repaymentMethod,
-      startDate: _dueDate(startDate, paidMonths, paymentDay),
-      paymentDay: paymentDay,
-    );
-
-    final totalInterestAfter =
-        originalSchedule
-            .where((i) => i.monthNumber <= paidMonths)
-            .fold<int>(0, (s, i) => s + i.interestPart) +
-        newSchedule.fold<int>(0, (s, i) => s + i.interestPart);
-
-    return PrepaymentSimulationResult(
-      prepaymentAmount: prepaymentAmount,
-      totalInterestBefore: totalInterestBefore,
-      totalInterestAfter: totalInterestAfter,
-      interestSaved: totalInterestBefore - totalInterestAfter,
-      monthsReduced: 0,
-      newMonthlyPayment: newSchedule.isNotEmpty ? newSchedule.first.payment : 0,
-      newSchedule: newSchedule,
-    );
-  }
-
-  static DateTime _dueDate(DateTime startDate, int monthOffset, int paymentDay) {
-    var year = startDate.year;
-    var month = startDate.month + monthOffset;
-    while (month > 12) {
-      month -= 12;
-      year++;
-    }
-    final maxDay = DateTime(year, month + 1, 0).day;
-    final day = paymentDay > maxDay ? maxDay : paymentDay;
-    return DateTime(year, month, day);
-  }
-}
-
-// ── Helper: Proto LoanType ↔ String ──
-
-String _loanTypeToString(pb_enum.LoanType type) {
-  switch (type) {
-    case pb_enum.LoanType.LOAN_TYPE_MORTGAGE:
-      return 'mortgage';
-    case pb_enum.LoanType.LOAN_TYPE_CAR_LOAN:
-      return 'car_loan';
-    case pb_enum.LoanType.LOAN_TYPE_CREDIT_CARD:
-      return 'credit_card';
-    case pb_enum.LoanType.LOAN_TYPE_CONSUMER:
-      return 'consumer';
-    case pb_enum.LoanType.LOAN_TYPE_BUSINESS:
-      return 'business';
-    default:
-      return 'other';
-  }
-}
-
-pb_enum.LoanType _stringToLoanType(String type) {
-  switch (type) {
-    case 'mortgage':
-      return pb_enum.LoanType.LOAN_TYPE_MORTGAGE;
-    case 'car_loan':
-      return pb_enum.LoanType.LOAN_TYPE_CAR_LOAN;
-    case 'credit_card':
-      return pb_enum.LoanType.LOAN_TYPE_CREDIT_CARD;
-    case 'consumer':
-      return pb_enum.LoanType.LOAN_TYPE_CONSUMER;
-    case 'business':
-      return pb_enum.LoanType.LOAN_TYPE_BUSINESS;
-    default:
-      return pb_enum.LoanType.LOAN_TYPE_OTHER;
-  }
-}
-
-String _repaymentMethodToString(pb_enum.RepaymentMethod method) {
-  switch (method) {
-    case pb_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_PRINCIPAL:
-      return 'equal_principal';
-    case pb_enum.RepaymentMethod.REPAYMENT_METHOD_INTEREST_ONLY:
-      return 'interest_only';
-    case pb_enum.RepaymentMethod.REPAYMENT_METHOD_BULLET:
-      return 'bullet';
-    case pb_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_INTEREST:
-      return 'equal_interest';
-    default:
-      return 'equal_installment';
-  }
-}
-
-pb_enum.RepaymentMethod _stringToRepaymentMethod(String method) {
-  switch (method) {
-    case 'equal_principal':
-      return pb_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_PRINCIPAL;
-    case 'interest_only':
-      return pb_enum.RepaymentMethod.REPAYMENT_METHOD_INTEREST_ONLY;
-    case 'bullet':
-      return pb_enum.RepaymentMethod.REPAYMENT_METHOD_BULLET;
-    case 'equal_interest':
-      return pb_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_INTEREST;
-    default:
-      return pb_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_INSTALLMENT;
-  }
-}
-
-pb_enum.InterestCalcMethod _stringToInterestCalcMethod(String method) {
-  switch (method) {
-    case 'daily_act_365':
-      return pb_enum.InterestCalcMethod.INTEREST_CALC_DAILY_ACT_365;
-    case 'daily_act_360':
-      return pb_enum.InterestCalcMethod.INTEREST_CALC_DAILY_ACT_360;
-    default:
-      return pb_enum.InterestCalcMethod.INTEREST_CALC_MONTHLY;
-  }
-}
-
-String _subTypeToString(pb_enum.LoanSubType type) {
-  switch (type) {
-    case pb_enum.LoanSubType.LOAN_SUB_TYPE_COMMERCIAL:
-      return 'commercial';
-    case pb_enum.LoanSubType.LOAN_SUB_TYPE_PROVIDENT:
-      return 'provident';
-    default:
-      return '';
-  }
-}
-
-pb_enum.LoanSubType _stringToSubType(String type) {
-  switch (type) {
-    case 'commercial':
-      return pb_enum.LoanSubType.LOAN_SUB_TYPE_COMMERCIAL;
-    case 'provident':
-      return pb_enum.LoanSubType.LOAN_SUB_TYPE_PROVIDENT;
-    default:
-      return pb_enum.LoanSubType.LOAN_SUB_TYPE_UNSPECIFIED;
-  }
-}
-
-String _rateTypeToString(pb_enum.RateType type) {
-  switch (type) {
-    case pb_enum.RateType.RATE_TYPE_FIXED:
-      return 'fixed';
-    case pb_enum.RateType.RATE_TYPE_LPR_FLOATING:
-      return 'lpr_floating';
-    default:
-      return 'fixed';
-  }
-}
-
-pb_enum.RateType _stringToRateType(String type) {
-  switch (type) {
-    case 'lpr_floating':
-      return pb_enum.RateType.RATE_TYPE_LPR_FLOATING;
-    default:
-      return pb_enum.RateType.RATE_TYPE_FIXED;
-  }
-}
-
-ts_pb.Timestamp _toTimestamp(DateTime dt) {
-  final seconds = dt.millisecondsSinceEpoch ~/ 1000;
-  return ts_pb.Timestamp(seconds: Int64(seconds));
-}
-
-DateTime _fromTimestamp(ts_pb.Timestamp ts) {
-  return DateTime.fromMillisecondsSinceEpoch(ts.seconds.toInt() * 1000);
-}
-
-// ── Notifier ──
 
 class LoanNotifier extends StateNotifier<LoanState> {
   final db.AppDatabase _db;
@@ -824,7 +89,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
           groupType: group.groupType,
           totalPrincipal: group.totalPrincipal.toInt(),
           paymentDay: group.paymentDay,
-          startDate: _fromTimestamp(group.startDate),
+          startDate: fromTimestamp(group.startDate),
           accountId: Value(group.accountId),
         ));
         for (final loan in group.subLoans) {
@@ -865,14 +130,14 @@ class LoanNotifier extends StateNotifier<LoanState> {
       annualRate: loan.annualRate,
       totalMonths: loan.totalMonths,
       paymentDay: loan.paymentDay,
-      startDate: _fromTimestamp(loan.startDate),
-      loanType: Value(_loanTypeToString(loan.loanType)),
+      startDate: fromTimestamp(loan.startDate),
+      loanType: Value(loanTypeToString(loan.loanType)),
       paidMonths: Value(loan.paidMonths),
-      repaymentMethod: Value(_repaymentMethodToString(loan.repaymentMethod)),
+      repaymentMethod: Value(repaymentMethodToString(loan.repaymentMethod)),
       accountId: Value(loan.accountId),
       groupId: Value(loan.groupId),
-      subType: Value(_subTypeToString(loan.subType)),
-      rateType: Value(_rateTypeToString(loan.rateType)),
+      subType: Value(subTypeToString(loan.subType)),
+      rateType: Value(rateTypeToString(loan.rateType)),
       lprBase: Value(loan.lprBase),
       lprSpread: Value(loan.lprSpread),
       rateAdjustMonth: Value(loan.rateAdjustMonth),
@@ -932,16 +197,16 @@ class LoanNotifier extends StateNotifier<LoanState> {
     try {
       final resp = await _client.createLoan(pb.CreateLoanRequest()
         ..name = name
-        ..loanType = _stringToLoanType(loanType)
+        ..loanType = stringToLoanType(loanType)
         ..principal = Int64(principal)
         ..annualRate = annualRate
         ..totalMonths = totalMonths
-        ..repaymentMethod = _stringToRepaymentMethod(repaymentMethod)
+        ..repaymentMethod = stringToRepaymentMethod(repaymentMethod)
         ..paymentDay = paymentDay
-        ..startDate = _toTimestamp(startDate)
+        ..startDate = toTimestamp(startDate)
         ..accountId = accountId ?? ''
         ..familyId = familyId ?? ''
-        ..interestCalcMethod = _stringToInterestCalcMethod(interestCalcMethod ?? 'monthly'));
+        ..interestCalcMethod = stringToInterestCalcMethod(interestCalcMethod ?? 'monthly'));
       loanId = resp.id;
       await _db.upsertLoan(_loanFromProto(resp));
     } catch (e, st) {
@@ -1018,24 +283,24 @@ class LoanNotifier extends StateNotifier<LoanState> {
         ..name = name
         ..groupType = groupType
         ..paymentDay = paymentDay
-        ..startDate = _toTimestamp(startDate)
+        ..startDate = toTimestamp(startDate)
         ..accountId = accountId ?? ''
-        ..loanType = _stringToLoanType(loanType)
+        ..loanType = stringToLoanType(loanType)
         ..familyId = familyId ?? '';
 
       for (final sub in subLoans) {
         req.subLoans.add(pb.SubLoanSpec()
           ..name = sub.name
-          ..subType = _stringToSubType(sub.subType)
+          ..subType = stringToSubType(sub.subType)
           ..principal = Int64(sub.principal)
           ..annualRate = sub.annualRate
           ..totalMonths = sub.totalMonths
-          ..repaymentMethod = _stringToRepaymentMethod(sub.repaymentMethod)
-          ..rateType = _stringToRateType(sub.rateType)
+          ..repaymentMethod = stringToRepaymentMethod(sub.repaymentMethod)
+          ..rateType = stringToRateType(sub.rateType)
           ..lprBase = sub.lprBase
           ..lprSpread = sub.lprSpread
           ..rateAdjustMonth = sub.rateAdjustMonth
-          ..interestCalcMethod = _stringToInterestCalcMethod(sub.interestCalcMethod));
+          ..interestCalcMethod = stringToInterestCalcMethod(sub.interestCalcMethod));
       }
 
       final resp = await _client.createLoanGroup(req);
@@ -1046,17 +311,17 @@ class LoanNotifier extends StateNotifier<LoanState> {
         groupType: resp.groupType,
         totalPrincipal: resp.totalPrincipal.toInt(),
         paymentDay: resp.paymentDay,
-        startDate: _fromTimestamp(resp.startDate),
+        startDate: fromTimestamp(resp.startDate),
         accountId: Value(resp.accountId),
         familyId: Value(resp.familyId),
-        loanType: Value(_loanTypeToString(resp.loanType)),
+        loanType: Value(loanTypeToString(resp.loanType)),
       ));
       for (final loan in resp.subLoans) {
         await _db.upsertLoan(_loanFromProto(loan));
         await _generateScheduleForLoan(loan.id, loan.principal.toInt(),
             loan.annualRate, loan.totalMonths,
-            _repaymentMethodToString(loan.repaymentMethod),
-            _fromTimestamp(loan.startDate), loan.paymentDay);
+            repaymentMethodToString(loan.repaymentMethod),
+            fromTimestamp(loan.startDate), loan.paymentDay);
       }
     } catch (_) {
       // Offline: save locally
@@ -1185,9 +450,9 @@ class LoanNotifier extends StateNotifier<LoanState> {
           principalPart: item.principalPart.toInt(),
           interestPart: item.interestPart.toInt(),
           remainingPrincipal: item.remainingPrincipal.toInt(),
-          dueDate: _fromTimestamp(item.dueDate),
+          dueDate: fromTimestamp(item.dueDate),
           isPaid: item.isPaid,
-          paidDate: item.hasPaidDate() ? _fromTimestamp(item.paidDate) : null,
+          paidDate: item.hasPaidDate() ? fromTimestamp(item.paidDate) : null,
         )).toList();
       } catch (_) {
         // Local fallback
@@ -1296,7 +561,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
             principalPart: item.principalPart.toInt(),
             interestPart: item.interestPart.toInt(),
             remainingPrincipal: item.remainingPrincipal.toInt(),
-            dueDate: _fromTimestamp(item.dueDate),
+            dueDate: fromTimestamp(item.dueDate),
             isPaid: item.isPaid,
           )).toList(),
         ),
@@ -1358,7 +623,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
       await _client.recordRateChange(pb.RecordRateChangeRequest()
         ..loanId = loanId
         ..newRate = newRate
-        ..effectiveDate = _toTimestamp(effectiveDate));
+        ..effectiveDate = toTimestamp(effectiveDate));
     } catch (_) {
       // Offline
     }
@@ -1386,7 +651,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
       annualRate: newRate,
       totalMonths: remainingMonths,
       repaymentMethod: loan.repaymentMethod,
-      startDate: LoanCalculator._dueDate(
+      startDate: LoanCalculator.calcDueDate(
           loan.startDate, loan.paidMonths, loan.paymentDay),
       paymentDay: loan.paymentDay,
     );
@@ -1571,7 +836,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
   /// 下次还款日
   DateTime? getNextPaymentDate(db.Loan loan) {
     if (loan.paidMonths >= loan.totalMonths) return null;
-    return LoanCalculator._dueDate(
+    return LoanCalculator.calcDueDate(
         loan.startDate, loan.paidMonths + 1, loan.paymentDay);
   }
 }

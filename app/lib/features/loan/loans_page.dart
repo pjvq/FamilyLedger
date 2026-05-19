@@ -7,6 +7,8 @@ import '../../core/theme/app_colors.dart';
 import '../../data/local/database.dart' as db;
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/loan_provider.dart';
+import '../../domain/models/loan_models.dart';
+import '../../domain/models/loan_calculator.dart';
 import '../../sync/sync_engine.dart';
 
 class LoansPage extends ConsumerWidget {

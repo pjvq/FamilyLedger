@@ -6,12 +6,9 @@ class AppTheme {
   AppTheme._();
 
   // ---- Light Theme ----
-  static const _pageTransitionsTheme = PageTransitionsTheme(
-    builders: {
-      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-    },
-  );
+  // Use platform-default page transitions.
+  // CupertinoPageTransitionsBuilder was removed from material.dart in Flutter 3.44.
+  static const _pageTransitionsTheme = PageTransitionsTheme();
 
   static ThemeData get light => ThemeData(
         useMaterial3: true,

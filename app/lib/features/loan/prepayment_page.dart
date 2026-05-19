@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/providers/loan_provider.dart';
+import '../../domain/models/loan_models.dart';
+import '../../domain/models/loan_calculator.dart';
 import '../transaction/widgets/number_pad.dart';
 
 class PrepaymentPage extends ConsumerStatefulWidget {

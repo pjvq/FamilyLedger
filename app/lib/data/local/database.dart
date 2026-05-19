@@ -567,31 +567,62 @@ class AppDatabase extends _$AppDatabase {
         .write(entry);
   }
 
-  Stream<List<Transaction>> watchTransactions(String userId, {String? familyId}) {
+  /// Build transaction query SQL + variables based on mode.
+  ({String sql, List<Variable> vars}) _buildTransactionQuery(
+    String userId, {
+    String? familyId,
+    required int limit,
+    required int offset,
+  }) {
     if (familyId != null && familyId.isNotEmpty) {
-      // Family mode: all transactions from family accounts (all members)
-      return customSelect(
-        'SELECT t.* FROM transactions t '
-        'JOIN accounts a ON a.id = t.account_id '
-        'WHERE t.deleted_at IS NULL AND a.family_id = ? '
-        'ORDER BY t.txn_date DESC',
-        variables: [Variable.withString(familyId)],
-        readsFrom: {transactions, accounts},
-      ).watch().map((rows) => rows.map((row) {
-        return transactions.map(row.data);
-      }).toList());
+      return (
+        sql: 'SELECT t.* FROM transactions t '
+            'JOIN accounts a ON a.id = t.account_id '
+            'WHERE t.deleted_at IS NULL AND a.family_id = ? '
+            'ORDER BY t.txn_date DESC LIMIT ? OFFSET ?',
+        vars: [
+          Variable.withString(familyId),
+          Variable.withInt(limit),
+          Variable.withInt(offset),
+        ],
+      );
     }
-    // Personal mode: only transactions from personal accounts (no family)
-    return customSelect(
-      'SELECT t.* FROM transactions t '
-      'JOIN accounts a ON a.id = t.account_id '
-      'WHERE t.user_id = ? AND t.deleted_at IS NULL AND (a.family_id IS NULL OR a.family_id = \'\') '
-      'ORDER BY t.txn_date DESC',
-      variables: [Variable.withString(userId)],
-      readsFrom: {transactions, accounts},
-    ).watch().map((rows) => rows.map((row) {
-      return transactions.map(row.data);
-    }).toList());
+    return (
+      sql: 'SELECT t.* FROM transactions t '
+          'JOIN accounts a ON a.id = t.account_id '
+          'WHERE t.user_id = ? AND t.deleted_at IS NULL AND (a.family_id IS NULL OR a.family_id = \'\') '
+          'ORDER BY t.txn_date DESC LIMIT ? OFFSET ?',
+      vars: [
+        Variable.withString(userId),
+        Variable.withInt(limit),
+        Variable.withInt(offset),
+      ],
+    );
+  }
+
+  /// Watch transactions with pagination (default 200 per page).
+  Stream<List<Transaction>> watchTransactions(
+    String userId, {
+    String? familyId,
+    int limit = 200,
+    int offset = 0,
+  }) {
+    final (:sql, :vars) = _buildTransactionQuery(userId, familyId: familyId, limit: limit, offset: offset);
+    return customSelect(sql, variables: vars, readsFrom: {transactions, accounts})
+        .watch()
+        .map((rows) => rows.map((row) => transactions.map(row.data)).toList());
+  }
+
+  /// Get a page of transactions (non-reactive, for load-more).
+  Future<List<Transaction>> getTransactionPage(
+    String userId, {
+    String? familyId,
+    required int limit,
+    required int offset,
+  }) async {
+    final (:sql, :vars) = _buildTransactionQuery(userId, familyId: familyId, limit: limit, offset: offset);
+    final rows = await customSelect(sql, variables: vars, readsFrom: {transactions, accounts}).get();
+    return rows.map((row) => transactions.map(row.data)).toList();
   }
 
   // Sync queue
