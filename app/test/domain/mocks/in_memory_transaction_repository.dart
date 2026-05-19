@@ -25,7 +25,6 @@ class InMemoryTransactionRepository implements ITransactionRepository {
 
   @override
   Future<void> insert(TransactionEntity entity) async {
-    // Reject duplicates (idempotent: last-write-wins).
     _store.removeWhere((t) => t.id == entity.id);
     _store.add(entity);
     _notify();
@@ -35,20 +34,8 @@ class InMemoryTransactionRepository implements ITransactionRepository {
   Future<void> softDelete(String id) async {
     final idx = _store.indexWhere((t) => t.id == id);
     if (idx == -1) return;
-    final old = _store[idx];
-    _store[idx] = TransactionEntity(
-      id: old.id,
-      userId: old.userId,
-      accountId: old.accountId,
-      categoryId: old.categoryId,
-      amount: old.amount,
-      amountCny: old.amountCny,
-      type: old.type,
-      note: old.note,
-      txnDate: old.txnDate,
-      syncStatus: old.syncStatus,
+    _store[idx] = _store[idx].copyWith(
       deletedAt: DateTime.now(),
-      createdAt: old.createdAt,
       updatedAt: DateTime.now(),
     );
     _notify();
@@ -62,11 +49,10 @@ class InMemoryTransactionRepository implements ITransactionRepository {
 
   @override
   Future<TransactionEntity?> getById(String id) async {
-    try {
-      return _active.firstWhere((t) => t.id == id);
-    } on StateError {
-      return null;
+    for (final t in _store) {
+      if (t.id == id && t.deletedAt == null) return t;
     }
+    return null;
   }
 
   @override
@@ -75,18 +61,20 @@ class InMemoryTransactionRepository implements ITransactionRepository {
     int limit, {
     String? familyId,
   }) async {
-    final filtered = _active.where((t) => t.userId == userId).toList()
-      ..sort((a, b) => b.txnDate.compareTo(a.txnDate));
+    final filtered = <TransactionEntity>[];
+    for (final t in _store) {
+      if (t.userId == userId && t.deletedAt == null) {
+        filtered.add(t);
+      }
+    }
+    filtered.sort((a, b) => b.txnDate.compareTo(a.txnDate));
     return filtered.take(limit).toList();
   }
 
   @override
   Stream<List<TransactionEntity>> watch(String userId, {String? familyId}) {
-    // Emit current state immediately, then updates.
     return _watchController.stream.map(
-      (all) => all
-          .where((t) => t.userId == userId && t.deletedAt == null)
-          .toList(),
+      (all) => [for (final t in all) if (t.userId == userId && t.deletedAt == null) t],
     );
   }
 
@@ -107,24 +95,10 @@ class InMemoryTransactionRepository implements ITransactionRepository {
 
   @override
   Future<void> markSynced(List<String> ids) async {
+    final idSet = ids.toSet();
     for (int i = 0; i < _store.length; i++) {
-      if (ids.contains(_store[i].id)) {
-        final old = _store[i];
-        _store[i] = TransactionEntity(
-          id: old.id,
-          userId: old.userId,
-          accountId: old.accountId,
-          categoryId: old.categoryId,
-          amount: old.amount,
-          amountCny: old.amountCny,
-          type: old.type,
-          note: old.note,
-          txnDate: old.txnDate,
-          syncStatus: 'synced',
-          deletedAt: old.deletedAt,
-          createdAt: old.createdAt,
-          updatedAt: DateTime.now(),
-        );
+      if (idSet.contains(_store[i].id)) {
+        _store[i] = _store[i].copyWith(syncStatus: 'synced', updatedAt: DateTime.now());
       }
     }
     _notify();
@@ -132,24 +106,10 @@ class InMemoryTransactionRepository implements ITransactionRepository {
 
   @override
   Future<void> markFailed(List<String> ids) async {
+    final idSet = ids.toSet();
     for (int i = 0; i < _store.length; i++) {
-      if (ids.contains(_store[i].id)) {
-        final old = _store[i];
-        _store[i] = TransactionEntity(
-          id: old.id,
-          userId: old.userId,
-          accountId: old.accountId,
-          categoryId: old.categoryId,
-          amount: old.amount,
-          amountCny: old.amountCny,
-          type: old.type,
-          note: old.note,
-          txnDate: old.txnDate,
-          syncStatus: 'failed',
-          deletedAt: old.deletedAt,
-          createdAt: old.createdAt,
-          updatedAt: DateTime.now(),
-        );
+      if (idSet.contains(_store[i].id)) {
+        _store[i] = _store[i].copyWith(syncStatus: 'failed', updatedAt: DateTime.now());
       }
     }
     _notify();
@@ -158,33 +118,44 @@ class InMemoryTransactionRepository implements ITransactionRepository {
   @override
   Future<int> getTodayExpense(String userId) async {
     final now = DateTime.now();
-    return _active
-        .where((t) =>
-            t.userId == userId &&
-            t.type == 'expense' &&
-            t.txnDate.year == now.year &&
-            t.txnDate.month == now.month &&
-            t.txnDate.day == now.day)
-        .fold<int>(0, (sum, t) => sum + t.amountCny);
+    int sum = 0;
+    for (final t in _store) {
+      if (t.deletedAt != null) continue;
+      if (t.userId != userId) continue;
+      if (t.type != 'expense') continue;
+      if (t.txnDate.year == now.year &&
+          t.txnDate.month == now.month &&
+          t.txnDate.day == now.day) {
+        sum += t.amountCny;
+      }
+    }
+    return sum;
   }
 
   @override
   Future<int> getMonthExpense(String userId) async {
     final now = DateTime.now();
-    return _active
-        .where((t) =>
-            t.userId == userId &&
-            t.type == 'expense' &&
-            t.txnDate.year == now.year &&
-            t.txnDate.month == now.month)
-        .fold<int>(0, (sum, t) => sum + t.amountCny);
+    int sum = 0;
+    for (final t in _store) {
+      if (t.deletedAt != null) continue;
+      if (t.userId != userId) continue;
+      if (t.type != 'expense') continue;
+      if (t.txnDate.year == now.year && t.txnDate.month == now.month) {
+        sum += t.amountCny;
+      }
+    }
+    return sum;
   }
 
   @override
   Future<int> getTotalBalance(String userId) async {
-    return _active.where((t) => t.userId == userId).fold<int>(0, (sum, t) {
-      return sum + (t.type == 'income' ? t.amountCny : -t.amountCny);
-    });
+    int sum = 0;
+    for (final t in _store) {
+      if (t.deletedAt != null) continue;
+      if (t.userId != userId) continue;
+      sum += (t.type == 'income' ? t.amountCny : -t.amountCny);
+    }
+    return sum;
   }
 
   void dispose() {
@@ -192,9 +163,6 @@ class InMemoryTransactionRepository implements ITransactionRepository {
   }
 
   // ─── Private ─────────────────────────────────────────────────────────
-
-  List<TransactionEntity> get _active =>
-      _store.where((t) => t.deletedAt == null).toList();
 
   void _notify() {
     if (!_watchController.isClosed) {

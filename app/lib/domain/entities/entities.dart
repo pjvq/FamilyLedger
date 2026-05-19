@@ -32,6 +32,39 @@ class TransactionEntity {
     this.createdAt,
     this.updatedAt,
   });
+
+  TransactionEntity copyWith({
+    String? id,
+    String? userId,
+    String? accountId,
+    String? categoryId,
+    int? amount,
+    int? amountCny,
+    String? type,
+    String? note,
+    DateTime? txnDate,
+    String? syncStatus,
+    DateTime? deletedAt,
+    bool clearDeletedAt = false,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return TransactionEntity(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      accountId: accountId ?? this.accountId,
+      categoryId: categoryId ?? this.categoryId,
+      amount: amount ?? this.amount,
+      amountCny: amountCny ?? this.amountCny,
+      type: type ?? this.type,
+      note: note ?? this.note,
+      txnDate: txnDate ?? this.txnDate,
+      syncStatus: syncStatus ?? this.syncStatus,
+      deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }
 
 /// Domain entity for a financial account.

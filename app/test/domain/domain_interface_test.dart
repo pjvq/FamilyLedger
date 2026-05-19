@@ -15,6 +15,34 @@ import 'mocks/mocks.dart';
 /// 3. CategoryRepository hierarchy
 /// 4. BalanceCalculator parallel computation
 /// 5. Boundary conditions: empty state, duplicates, concurrent ops
+
+// ─── Shared Test Helpers ───────────────────────────────────────────────────
+
+TransactionEntity makeTxn({
+  String id = 'txn-1',
+  String userId = 'user-1',
+  String accountId = 'acc-1',
+  String categoryId = 'cat-1',
+  int amountCny = 5000, // ¥50.00
+  String type = 'expense',
+  DateTime? txnDate,
+  String syncStatus = 'pending',
+  DateTime? deletedAt,
+}) {
+  return TransactionEntity(
+    id: id,
+    userId: userId,
+    accountId: accountId,
+    categoryId: categoryId,
+    amount: amountCny,
+    amountCny: amountCny,
+    type: type,
+    txnDate: txnDate ?? DateTime.now(),
+    syncStatus: syncStatus,
+    deletedAt: deletedAt,
+  );
+}
+
 void main() {
   // ═══════════════════════════════════════════════════════════════════════════
   // Transaction Repository
@@ -31,29 +59,8 @@ void main() {
       repo.dispose();
     });
 
-    TransactionEntity _makeTxn({
-      String id = 'txn-1',
-      String userId = 'user-1',
-      String accountId = 'acc-1',
-      String categoryId = 'cat-1',
-      int amountCny = 5000, // ¥50.00
-      String type = 'expense',
-      DateTime? txnDate,
-    }) {
-      return TransactionEntity(
-        id: id,
-        userId: userId,
-        accountId: accountId,
-        categoryId: categoryId,
-        amount: amountCny,
-        amountCny: amountCny,
-        type: type,
-        txnDate: txnDate ?? DateTime.now(),
-      );
-    }
-
     test('insert stores transaction and is retrievable by ID', () async {
-      final txn = _makeTxn();
+      final txn = makeTxn();
       await repo.insert(txn);
 
       final found = await repo.getById('txn-1');
@@ -63,8 +70,8 @@ void main() {
     });
 
     test('insert is idempotent (last-write-wins on duplicate ID)', () async {
-      final txn1 = _makeTxn(amountCny: 1000);
-      final txn2 = _makeTxn(amountCny: 2000); // same ID
+      final txn1 = makeTxn(amountCny: 1000);
+      final txn2 = makeTxn(amountCny: 2000); // same ID
 
       await repo.insert(txn1);
       await repo.insert(txn2);
@@ -75,7 +82,7 @@ void main() {
     });
 
     test('softDelete sets deletedAt, getById returns null for soft-deleted', () async {
-      await repo.insert(_makeTxn());
+      await repo.insert(makeTxn());
       await repo.softDelete('txn-1');
 
       final found = await repo.getById('txn-1');
@@ -87,7 +94,7 @@ void main() {
     });
 
     test('hardDelete removes permanently', () async {
-      await repo.insert(_makeTxn());
+      await repo.insert(makeTxn());
       await repo.hardDelete('txn-1');
 
       expect(repo.store.length, 0);
@@ -106,9 +113,9 @@ void main() {
 
     test('getRecent returns user transactions sorted by date desc', () async {
       final now = DateTime.now();
-      await repo.insert(_makeTxn(id: 'a', txnDate: now.subtract(const Duration(days: 2))));
-      await repo.insert(_makeTxn(id: 'b', txnDate: now.subtract(const Duration(days: 1))));
-      await repo.insert(_makeTxn(id: 'c', txnDate: now));
+      await repo.insert(makeTxn(id: 'a', txnDate: now.subtract(const Duration(days: 2))));
+      await repo.insert(makeTxn(id: 'b', txnDate: now.subtract(const Duration(days: 1))));
+      await repo.insert(makeTxn(id: 'c', txnDate: now));
 
       final recent = await repo.getRecent('user-1', 10);
       expect(recent.map((t) => t.id).toList(), ['c', 'b', 'a']);
@@ -116,7 +123,7 @@ void main() {
 
     test('getRecent respects limit', () async {
       for (int i = 0; i < 20; i++) {
-        await repo.insert(_makeTxn(
+        await repo.insert(makeTxn(
           id: 'txn-$i',
           txnDate: DateTime.now().subtract(Duration(hours: i)),
         ));
@@ -127,8 +134,8 @@ void main() {
     });
 
     test('getRecent filters by userId', () async {
-      await repo.insert(_makeTxn(id: 'a', userId: 'user-1'));
-      await repo.insert(_makeTxn(id: 'b', userId: 'user-2'));
+      await repo.insert(makeTxn(id: 'a', userId: 'user-1'));
+      await repo.insert(makeTxn(id: 'b', userId: 'user-2'));
 
       final result = await repo.getRecent('user-1', 10);
       expect(result.length, 1);
@@ -136,8 +143,8 @@ void main() {
     });
 
     test('getRecent excludes soft-deleted', () async {
-      await repo.insert(_makeTxn(id: 'a'));
-      await repo.insert(_makeTxn(id: 'b'));
+      await repo.insert(makeTxn(id: 'a'));
+      await repo.insert(makeTxn(id: 'b'));
       await repo.softDelete('a');
 
       final result = await repo.getRecent('user-1', 10);
@@ -146,12 +153,12 @@ void main() {
     });
 
     test('batchUpsert inserts multiple, overwrites existing', () async {
-      await repo.insert(_makeTxn(id: 'existing', amountCny: 100));
+      await repo.insert(makeTxn(id: 'existing', amountCny: 100));
 
       await repo.batchUpsert([
-        _makeTxn(id: 'existing', amountCny: 999),
-        _makeTxn(id: 'new-1', amountCny: 200),
-        _makeTxn(id: 'new-2', amountCny: 300),
+        makeTxn(id: 'existing', amountCny: 999),
+        makeTxn(id: 'new-1', amountCny: 200),
+        makeTxn(id: 'new-2', amountCny: 300),
       ]);
 
       expect(repo.store.length, 3);
@@ -160,15 +167,15 @@ void main() {
     });
 
     test('batchUpsert with empty list is no-op', () async {
-      await repo.insert(_makeTxn());
+      await repo.insert(makeTxn());
       await repo.batchUpsert([]);
       expect(repo.store.length, 1);
     });
 
     test('batchHardDelete removes multiple', () async {
-      await repo.insert(_makeTxn(id: 'a'));
-      await repo.insert(_makeTxn(id: 'b'));
-      await repo.insert(_makeTxn(id: 'c'));
+      await repo.insert(makeTxn(id: 'a'));
+      await repo.insert(makeTxn(id: 'b'));
+      await repo.insert(makeTxn(id: 'c'));
 
       await repo.batchHardDelete(['a', 'c']);
       expect(repo.store.length, 1);
@@ -176,14 +183,14 @@ void main() {
     });
 
     test('batchHardDelete with non-existent IDs is safe', () async {
-      await repo.insert(_makeTxn(id: 'a'));
+      await repo.insert(makeTxn(id: 'a'));
       await repo.batchHardDelete(['does-not-exist', 'also-missing']);
       expect(repo.store.length, 1);
     });
 
     test('markSynced updates syncStatus to synced', () async {
-      await repo.insert(_makeTxn(id: 'a'));
-      await repo.insert(_makeTxn(id: 'b'));
+      await repo.insert(makeTxn(id: 'a'));
+      await repo.insert(makeTxn(id: 'b'));
 
       await repo.markSynced(['a']);
 
@@ -192,7 +199,7 @@ void main() {
     });
 
     test('markFailed updates syncStatus to failed', () async {
-      await repo.insert(_makeTxn(id: 'a'));
+      await repo.insert(makeTxn(id: 'a'));
       await repo.markFailed(['a']);
       expect(repo.store.firstWhere((t) => t.id == 'a').syncStatus, 'failed');
     });
@@ -203,10 +210,10 @@ void main() {
       final today = DateTime.now();
       final yesterday = today.subtract(const Duration(days: 1));
 
-      await repo.insert(_makeTxn(id: 'a', amountCny: 1000, type: 'expense', txnDate: today));
-      await repo.insert(_makeTxn(id: 'b', amountCny: 2000, type: 'expense', txnDate: today));
-      await repo.insert(_makeTxn(id: 'c', amountCny: 500, type: 'income', txnDate: today));
-      await repo.insert(_makeTxn(id: 'd', amountCny: 3000, type: 'expense', txnDate: yesterday));
+      await repo.insert(makeTxn(id: 'a', amountCny: 1000, type: 'expense', txnDate: today));
+      await repo.insert(makeTxn(id: 'b', amountCny: 2000, type: 'expense', txnDate: today));
+      await repo.insert(makeTxn(id: 'c', amountCny: 500, type: 'income', txnDate: today));
+      await repo.insert(makeTxn(id: 'd', amountCny: 3000, type: 'expense', txnDate: yesterday));
 
       final todayExp = await repo.getTodayExpense('user-1');
       expect(todayExp, 3000); // 1000 + 2000, ignores income and yesterday
@@ -215,20 +222,21 @@ void main() {
     test('getMonthExpense sums current month expenses', () async {
       final now = DateTime.now();
       final thisMonth = DateTime(now.year, now.month, 5);
-      final lastMonth = DateTime(now.year, now.month - 1, 15);
+      // Use subtract to avoid month=0 edge case in January
+      final lastMonth = thisMonth.subtract(const Duration(days: 35));
 
-      await repo.insert(_makeTxn(id: 'a', amountCny: 1000, type: 'expense', txnDate: thisMonth));
-      await repo.insert(_makeTxn(id: 'b', amountCny: 2000, type: 'expense', txnDate: thisMonth));
-      await repo.insert(_makeTxn(id: 'c', amountCny: 9000, type: 'expense', txnDate: lastMonth));
+      await repo.insert(makeTxn(id: 'a', amountCny: 1000, type: 'expense', txnDate: thisMonth));
+      await repo.insert(makeTxn(id: 'b', amountCny: 2000, type: 'expense', txnDate: thisMonth));
+      await repo.insert(makeTxn(id: 'c', amountCny: 9000, type: 'expense', txnDate: lastMonth));
 
       final monthExp = await repo.getMonthExpense('user-1');
       expect(monthExp, 3000);
     });
 
     test('getTotalBalance computes income minus expense', () async {
-      await repo.insert(_makeTxn(id: 'income-1', amountCny: 10000, type: 'income'));
-      await repo.insert(_makeTxn(id: 'expense-1', amountCny: 3000, type: 'expense'));
-      await repo.insert(_makeTxn(id: 'expense-2', amountCny: 2000, type: 'expense'));
+      await repo.insert(makeTxn(id: 'income-1', amountCny: 10000, type: 'income'));
+      await repo.insert(makeTxn(id: 'expense-1', amountCny: 3000, type: 'expense'));
+      await repo.insert(makeTxn(id: 'expense-2', amountCny: 2000, type: 'expense'));
 
       final balance = await repo.getTotalBalance('user-1');
       expect(balance, 5000); // 10000 - 3000 - 2000
@@ -241,7 +249,7 @@ void main() {
     });
 
     test('balance queries exclude soft-deleted transactions', () async {
-      await repo.insert(_makeTxn(id: 'a', amountCny: 5000, type: 'expense'));
+      await repo.insert(makeTxn(id: 'a', amountCny: 5000, type: 'expense'));
       await repo.softDelete('a');
 
       expect(await repo.getTodayExpense('user-1'), 0);
@@ -254,10 +262,10 @@ void main() {
       final emissions = <List<TransactionEntity>>[];
       final sub = repo.watch('user-1').listen(emissions.add);
 
-      await repo.insert(_makeTxn(id: 'a'));
+      await repo.insert(makeTxn(id: 'a'));
       await Future.delayed(Duration.zero); // Let stream propagate
 
-      await repo.insert(_makeTxn(id: 'b'));
+      await repo.insert(makeTxn(id: 'b'));
       await Future.delayed(Duration.zero);
 
       await sub.cancel();
@@ -490,18 +498,9 @@ void main() {
     test('compute aggregates income and expense correctly', () async {
       final now = DateTime.now();
       txnRepo.seed([
-        TransactionEntity(
-          id: 'i1', userId: 'user-1', accountId: 'a', categoryId: 'c',
-          amount: 100000, amountCny: 100000, type: 'income', txnDate: now,
-        ),
-        TransactionEntity(
-          id: 'e1', userId: 'user-1', accountId: 'a', categoryId: 'c',
-          amount: 30000, amountCny: 30000, type: 'expense', txnDate: now,
-        ),
-        TransactionEntity(
-          id: 'e2', userId: 'user-1', accountId: 'a', categoryId: 'c',
-          amount: 20000, amountCny: 20000, type: 'expense', txnDate: now,
-        ),
+        makeTxn(id: 'i1', amountCny: 100000, type: 'income', txnDate: now),
+        makeTxn(id: 'e1', amountCny: 30000, type: 'expense', txnDate: now),
+        makeTxn(id: 'e2', amountCny: 20000, type: 'expense', txnDate: now),
       ]);
 
       final result = await calculator.compute('user-1');
@@ -513,14 +512,8 @@ void main() {
     test('compute isolates per user (no cross-contamination)', () async {
       final now = DateTime.now();
       txnRepo.seed([
-        TransactionEntity(
-          id: 'u1', userId: 'user-1', accountId: 'a', categoryId: 'c',
-          amount: 5000, amountCny: 5000, type: 'expense', txnDate: now,
-        ),
-        TransactionEntity(
-          id: 'u2', userId: 'user-2', accountId: 'a', categoryId: 'c',
-          amount: 99000, amountCny: 99000, type: 'expense', txnDate: now,
-        ),
+        makeTxn(id: 'u1', userId: 'user-1', amountCny: 5000, type: 'expense', txnDate: now),
+        makeTxn(id: 'u2', userId: 'user-2', amountCny: 99000, type: 'expense', txnDate: now),
       ]);
 
       final r1 = await calculator.compute('user-1');
@@ -531,13 +524,8 @@ void main() {
     });
 
     test('compute executes three queries in parallel (timing sanity)', () async {
-      // All three queries resolve instantly in-memory.
-      // Primarily verifies no deadlock in parallel execution.
       txnRepo.seed([
-        TransactionEntity(
-          id: 'x', userId: 'u', accountId: 'a', categoryId: 'c',
-          amount: 1, amountCny: 1, type: 'expense', txnDate: DateTime.now(),
-        ),
+        makeTxn(id: 'x', userId: 'u', amountCny: 1, type: 'expense'),
       ]);
 
       // Should not throw or hang.
@@ -551,15 +539,8 @@ void main() {
     test('compute excludes soft-deleted from all summaries', () async {
       final now = DateTime.now();
       txnRepo.seed([
-        TransactionEntity(
-          id: 'alive', userId: 'u', accountId: 'a', categoryId: 'c',
-          amount: 1000, amountCny: 1000, type: 'expense', txnDate: now,
-        ),
-        TransactionEntity(
-          id: 'dead', userId: 'u', accountId: 'a', categoryId: 'c',
-          amount: 9999, amountCny: 9999, type: 'expense', txnDate: now,
-          deletedAt: now, // soft-deleted
-        ),
+        makeTxn(id: 'alive', userId: 'u', amountCny: 1000, type: 'expense', txnDate: now),
+        makeTxn(id: 'dead', userId: 'u', amountCny: 9999, type: 'expense', txnDate: now, deletedAt: now),
       ]);
 
       final result = await calculator.compute('u');
@@ -588,12 +569,7 @@ void main() {
     });
 
     test('insert followed by markSynced transitions status correctly', () async {
-      final txn = TransactionEntity(
-        id: 'q1', userId: 'u', accountId: 'a', categoryId: 'c',
-        amount: 100, amountCny: 100, type: 'expense',
-        txnDate: DateTime.now(), syncStatus: 'pending',
-      );
-      await repo.insert(txn);
+      await repo.insert(makeTxn(id: 'q1', userId: 'u', amountCny: 100));
       expect(repo.store.first.syncStatus, 'pending');
 
       await repo.markSynced(['q1']);
@@ -601,12 +577,7 @@ void main() {
     });
 
     test('markFailed then markSynced recovers to synced', () async {
-      final txn = TransactionEntity(
-        id: 'q2', userId: 'u', accountId: 'a', categoryId: 'c',
-        amount: 100, amountCny: 100, type: 'expense',
-        txnDate: DateTime.now(), syncStatus: 'pending',
-      );
-      await repo.insert(txn);
+      await repo.insert(makeTxn(id: 'q2', userId: 'u', amountCny: 100));
       await repo.markFailed(['q2']);
       expect(repo.store.first.syncStatus, 'failed');
 
@@ -615,12 +586,7 @@ void main() {
     });
 
     test('sync status transitions: pending → synced, pending → failed → synced', () async {
-      // State machine verification
-      await repo.insert(TransactionEntity(
-        id: 's1', userId: 'u', accountId: 'a', categoryId: 'c',
-        amount: 1, amountCny: 1, type: 'expense',
-        txnDate: DateTime.now(), syncStatus: 'pending',
-      ));
+      await repo.insert(makeTxn(id: 's1', userId: 'u', amountCny: 1));
 
       // pending → synced
       await repo.markSynced(['s1']);
