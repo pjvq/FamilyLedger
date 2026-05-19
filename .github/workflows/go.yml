@@ -11,6 +11,10 @@ on:
       - 'proto/**'
       - '.github/workflows/go.yml'
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   unit:
     name: Unit Tests
