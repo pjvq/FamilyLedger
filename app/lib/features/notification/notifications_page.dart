@@ -257,10 +257,12 @@ class _NotificationTile extends StatelessWidget {
               ),
             ],
           ),
-          child: ListTile(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: Stack(
+          child: Material(
+            type: MaterialType.transparency,
+            child: ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              leading: Stack(
               children: [
                 Container(
                   width: 44,
@@ -333,6 +335,7 @@ class _NotificationTile extends StatelessWidget {
             onTap: () {
               if (!notification.isRead) onMarkRead();
             },
+          ),
           ),
         ),
       ),
