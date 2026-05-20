@@ -72,7 +72,6 @@ func init() {
 	log.Printf("ws: allowed origins: %d entries", len(allowedOrigins))
 }
 
-
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,

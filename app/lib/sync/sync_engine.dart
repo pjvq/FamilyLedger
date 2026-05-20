@@ -6,6 +6,7 @@ import 'dart:math';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:fixnum/fixnum.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -117,12 +118,9 @@ class SyncEngine {
       return;
     }
     dev.log('[Sync] _pushPendingOps: started');
-    // Defer syncStarted event to next microtask to avoid provider rebuild loop
     onSyncEvent?.call(const SyncEvent.syncStarted());
 
     try {
-  
-
       final pendingOps =
           await _db!.getPendingSyncOps(AppConstants.syncBatchSize);
       dev.log('[Sync] _pushPendingOps: pendingOps count=${pendingOps.length}');
@@ -136,12 +134,10 @@ class SyncEngine {
       final request = sync_pb.PushOperationsRequest()
         ..operations.addAll(protoOps);
 
-
       final response = await _syncClient!.pushOperations(
         request,
         options: CallOptions(timeout: const Duration(seconds: 10)),
       );
-
 
       // 标记成功上传的
       final failedSet = response.failedIds.toSet();
@@ -940,19 +936,14 @@ class SyncEngine {
 
   /// Create an HttpClient with our pinned CA for WebSocket TLS.
   HttpClient _createSecureHttpClient() {
-    final caBytes = caCertBytes;
-    if (caBytes != null) {
-      final ctx = SecurityContext()
-        ..setTrustedCertificatesBytes(caBytes);
-      final client = HttpClient(context: ctx)
-        ..badCertificateCallback = (cert, host, port) {
-          // Allow certs issued by our CA (IP SAN may not be validated)
-          return cert.issuer.contains('FamilyLedger CA');
-        };
-      return client;
-    }
-    // Fallback: system trust store (if CA not loaded)
-    return HttpClient();
+    final ctx = SecurityContext()
+      ..setTrustedCertificatesBytes(caCertBytes);
+    return HttpClient(context: ctx)
+      ..badCertificateCallback = (cert, host, port) {
+        // CA chain validated by SecurityContext. This callback fires
+        // only for non-chain issues (e.g. IP SAN). Allow in debug only.
+        return !kReleaseMode;
+      };
   }
 
   void _disconnectWebSocket() {

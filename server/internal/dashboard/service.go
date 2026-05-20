@@ -234,7 +234,7 @@ func (s *Service) GetNetWorth(ctx context.Context, req *pb.GetNetWorthRequest) (
 // investmentValuation queries the estimated market value of investments
 // as of a given date using price_history for historical prices.
 // Returns (totalCostBasis, totalMarketValue).
-func (s *Service) investmentValuation(ctx context.Context, ff *familyFilter, asOf interface{}, includeQuantityFilter bool) (int64, int64) {
+func (s *Service) investmentValuation(ctx context.Context, ff *familyFilter, asOf time.Time, includeQuantityFilter bool) (int64, int64) {
 	var whereClause string
 	var arg interface{}
 	if ff.isFamilyMode {
@@ -250,7 +250,7 @@ func (s *Service) investmentValuation(ctx context.Context, ff *familyFilter, asO
 	}
 
 	var totalCost, totalValue int64
-	_ = s.pool.QueryRow(ctx,
+	if err := s.pool.QueryRow(ctx,
 		`SELECT COALESCE(SUM(i.cost_basis), 0),
 				COALESCE(SUM(
 					CASE WHEN ph.close_price > 0 THEN CAST(i.quantity * ph.close_price AS BIGINT)
@@ -265,7 +265,9 @@ func (s *Service) investmentValuation(ctx context.Context, ff *familyFilter, asO
 		 ) ph ON true
 		 WHERE `+whereClause+` AND i.deleted_at IS NULL`+quantityFilter,
 		arg, asOf,
-	).Scan(&totalCost, &totalValue)
+	).Scan(&totalCost, &totalValue); err != nil {
+		log.Printf("investmentValuation: %v", err)
+	}
 	return totalCost, totalValue
 }
 

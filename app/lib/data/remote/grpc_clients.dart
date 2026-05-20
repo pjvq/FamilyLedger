@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:grpc/grpc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,9 +33,12 @@ Future<void> loadTlsCertificate() async {
 }
 
 /// Expose loaded CA cert bytes for WebSocket SecurityContext.
-Uint8List? get caCertBytes => _caCertBytes;
-
-/// Expected issuer of our server certificate.
+/// Must only be called after [loadTlsCertificate] completes.
+Uint8List get caCertBytes {
+  assert(_caCertBytes != null,
+      'loadTlsCertificate() must be called before accessing caCertBytes');
+  return _caCertBytes!;
+}
 
 /// gRPC channel singleton
 final grpcChannelProvider = Provider<ClientChannel>((ref) {
@@ -47,11 +51,10 @@ final grpcChannelProvider = Provider<ClientChannel>((ref) {
               certificates: _caCertBytes,
               authority: AppConstants.serverHost,
               onBadCertificate: (cert, host) {
-                // Allow certificates issued by our CA.
-                // onBadCertificate fires when the standard chain validation
-                // fails (e.g. IP SAN not matched by BoringSSL). We accept
-                // if the issuer matches our known CA.
-                return cert.issuer.contains('FamilyLedger CA');
+                // CA chain validation is done by BoringSSL via `certificates`.
+                // This callback only fires for non-chain issues (e.g. IP SAN).
+                // In release builds we reject; in debug we allow for dev servers.
+                return !kReleaseMode;
               },
             )
           : const ChannelCredentials.insecure(),
