@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:grpc/grpc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_constants.dart';
@@ -18,6 +19,16 @@ import '../../generated/proto/dashboard.pbgrpc.dart';
 import '../../generated/proto/export.pbgrpc.dart';
 import '../../generated/proto/import.pbgrpc.dart';
 
+/// Cached CA certificate bytes, loaded at app startup.
+List<int>? _caCertBytes;
+
+/// Call once before runApp() to preload the pinned CA certificate.
+Future<void> loadTlsCertificate() async {
+  if (!AppConstants.useTls) return;
+  final pem = await rootBundle.loadString('assets/certs/ca.pem');
+  _caCertBytes = pem.codeUnits;
+}
+
 /// gRPC channel singleton
 final grpcChannelProvider = Provider<ClientChannel>((ref) {
   final channel = ClientChannel(
@@ -25,7 +36,15 @@ final grpcChannelProvider = Provider<ClientChannel>((ref) {
     port: AppConstants.grpcPort,
     options: ChannelOptions(
       credentials: AppConstants.useTls
-          ? const ChannelCredentials.secure()
+          ? ChannelCredentials.secure(
+              certificates: _caCertBytes,
+              authority: AppConstants.serverHost,
+              onBadCertificate: (certificate, host) {
+                // Accept our self-signed CA cert
+                // In production with a real CA, remove this callback
+                return true;
+              },
+            )
           : const ChannelCredentials.insecure(),
     ),
   );

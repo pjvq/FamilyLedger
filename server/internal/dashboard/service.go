@@ -290,16 +290,16 @@ func (s *Service) estimateLastMonthNetWorth(ctx context.Context, ff *familyFilte
 		_ = s.pool.QueryRow(ctx,
 			`SELECT COALESCE(SUM(
 				CASE
-					WHEN ph.price > 0 THEN CAST(i.quantity * ph.price AS BIGINT)
+					WHEN ph.close_price > 0 THEN CAST(i.quantity * ph.close_price AS BIGINT)
 					ELSE i.cost_basis
 				END
 			), 0)
 			 FROM investments i
 			 LEFT JOIN LATERAL (
-				SELECT price FROM price_history
+				SELECT close_price FROM price_history
 				WHERE symbol = i.symbol AND market_type = i.market_type
-				  AND timestamp <= $2
-				ORDER BY timestamp DESC LIMIT 1
+				  AND price_date <= $2
+				ORDER BY price_date DESC LIMIT 1
 			 ) ph ON true
 			 WHERE i.family_id = $1 AND i.deleted_at IS NULL`,
 			ff.familyID, lastMonthEnd,
@@ -308,16 +308,16 @@ func (s *Service) estimateLastMonthNetWorth(ctx context.Context, ff *familyFilte
 		_ = s.pool.QueryRow(ctx,
 			`SELECT COALESCE(SUM(
 				CASE
-					WHEN ph.price > 0 THEN CAST(i.quantity * ph.price AS BIGINT)
+					WHEN ph.close_price > 0 THEN CAST(i.quantity * ph.close_price AS BIGINT)
 					ELSE i.cost_basis
 				END
 			), 0)
 			 FROM investments i
 			 LEFT JOIN LATERAL (
-				SELECT price FROM price_history
+				SELECT close_price FROM price_history
 				WHERE symbol = i.symbol AND market_type = i.market_type
-				  AND timestamp <= $2
-				ORDER BY timestamp DESC LIMIT 1
+				  AND price_date <= $2
+				ORDER BY price_date DESC LIMIT 1
 			 ) ph ON true
 			 WHERE i.user_id = $1 AND i.deleted_at IS NULL AND i.family_id IS NULL`,
 			ff.userID, lastMonthEnd,
@@ -1169,15 +1169,15 @@ func (s *Service) GetInvestmentTrend(ctx context.Context, req *pb.InvestmentTren
 				_ = s.pool.QueryRow(ctx,
 					`SELECT COALESCE(SUM(i.cost_basis), 0),
 							COALESCE(SUM(
-								CASE WHEN ph.price > 0 THEN CAST(i.quantity * ph.price AS BIGINT)
+								CASE WHEN ph.close_price > 0 THEN CAST(i.quantity * ph.close_price AS BIGINT)
 								ELSE i.cost_basis END
 							), 0)
 					 FROM investments i
 					 LEFT JOIN LATERAL (
-						SELECT price FROM price_history
+						SELECT close_price FROM price_history
 						WHERE symbol = i.symbol AND market_type = i.market_type
-						  AND timestamp <= $2
-						ORDER BY timestamp DESC LIMIT 1
+						  AND price_date <= $2
+						ORDER BY price_date DESC LIMIT 1
 					 ) ph ON true
 					 WHERE i.family_id = $1 AND i.deleted_at IS NULL AND i.quantity > 0`,
 					ff.familyID, monthEnd,
@@ -1186,15 +1186,15 @@ func (s *Service) GetInvestmentTrend(ctx context.Context, req *pb.InvestmentTren
 				_ = s.pool.QueryRow(ctx,
 					`SELECT COALESCE(SUM(i.cost_basis), 0),
 							COALESCE(SUM(
-								CASE WHEN ph.price > 0 THEN CAST(i.quantity * ph.price AS BIGINT)
+								CASE WHEN ph.close_price > 0 THEN CAST(i.quantity * ph.close_price AS BIGINT)
 								ELSE i.cost_basis END
 							), 0)
 					 FROM investments i
 					 LEFT JOIN LATERAL (
-						SELECT price FROM price_history
+						SELECT close_price FROM price_history
 						WHERE symbol = i.symbol AND market_type = i.market_type
-						  AND timestamp <= $2
-						ORDER BY timestamp DESC LIMIT 1
+						  AND price_date <= $2
+						ORDER BY price_date DESC LIMIT 1
 					 ) ph ON true
 					 WHERE i.user_id = $1 AND i.deleted_at IS NULL AND i.family_id IS NULL AND i.quantity > 0`,
 					ff.userID, monthEnd,

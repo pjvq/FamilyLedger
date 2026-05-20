@@ -24,10 +24,10 @@ class AppConstants {
   );
 
   /// Whether to use TLS for gRPC and WebSocket connections.
-  /// Override: --dart-define=USE_TLS=true
+  /// Override: --dart-define=USE_TLS=false (for local dev)
   static const useTls = bool.fromEnvironment(
     'USE_TLS',
-    defaultValue: false,
+    defaultValue: true,
   );
 
   // ─── Auth ─────────────────────────────────────────────────────────────────

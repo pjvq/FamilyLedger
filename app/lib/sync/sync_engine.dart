@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
+import 'dart:io';
 import 'dart:math';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -10,11 +11,13 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/local/secure_token_storage.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../core/constants/app_constants.dart';
 import '../data/local/database.dart';
 import '../data/remote/grpc_clients.dart';
+import 'package:grpc/grpc.dart' show CallOptions;
 import '../domain/providers/app_providers.dart';
 import '../domain/providers/sync_status_provider.dart';
 import '../generated/proto/google/protobuf/timestamp.pb.dart' as proto_ts;
@@ -129,23 +132,34 @@ class SyncEngine {
       _pushRequested = true;
       return;
     }
-    onSyncEvent?.call(const SyncEvent.syncStarted());
+    dev.log('[Sync] _pushPendingOps: started');
+    // Defer syncStarted event to next microtask to avoid provider rebuild loop
+    Future.microtask(() => onSyncEvent?.call(const SyncEvent.syncStarted()));
+
     try {
-      final results = await _connectivity.checkConnectivity();
-      if (results.every((r) => r == ConnectivityResult.none)) {
-        return;
-      }
+      // Skip connectivity check - if gRPC works, network is fine
+      // (connectivity_plus hangs on iOS 26)
+  
 
       final pendingOps =
           await _db!.getPendingSyncOps(AppConstants.syncBatchSize);
-      if (pendingOps.isEmpty) return;
+      dev.log('[Sync] _pushPendingOps: pendingOps count=${pendingOps.length}');
+      if (pendingOps.isEmpty) {
+        onSyncEvent?.call(const SyncEvent.syncCompleted());
+        return;
+      }
 
       // 转换为 proto SyncOperation
       final protoOps = pendingOps.map(_toProtoOp).toList();
       final request = sync_pb.PushOperationsRequest()
         ..operations.addAll(protoOps);
 
-      final response = await _syncClient!.pushOperations(request);
+
+      final response = await _syncClient!.pushOperations(
+        request,
+        options: CallOptions(timeout: const Duration(seconds: 10)),
+      );
+
 
       // 标记成功上传的
       final failedSet = response.failedIds.toSet();
@@ -193,15 +207,13 @@ class SyncEngine {
         onSyncEvent?.call(PushFailed(failedIds.length));
       }
 
-      dev.log(
-        'SyncEngine: pushed ${succeededIds.length}/${pendingOps.length} ops',
-        name: 'sync',
-      );
+      dev.log('[Sync] _pushPendingOps: pushed ${succeededIds.length}/${pendingOps.length} ops');
       onSyncEvent?.call(const SyncEvent.serverReachable());
     } catch (e) {
-      dev.log('SyncEngine: push failed: $e', name: 'sync');
+      dev.log('[Sync] _pushPendingOps: push failed: $e');
       onSyncEvent?.call(const SyncEvent.serverUnreachable());
     } finally {
+      dev.log('[Sync] _pushPendingOps: finished');
       onSyncEvent?.call(const SyncEvent.syncStopped());
       _releaseSyncLock();
       _drainPendingRequests();
@@ -255,6 +267,7 @@ class SyncEngine {
   }
 
   Future<void> _doPull() async {
+    dev.log('[Sync] _doPull: started');
     try {
       final lastTsMs = _prefs!.getInt(_lastSyncTsKey) ?? 0;
       final userId = _prefs!.getString(AppConstants.userIdKey);
@@ -305,14 +318,11 @@ class SyncEngine {
         }
       } while (pageToken.isNotEmpty); // Use nextPageToken (not has_more) as loop guard — more reliable
 
-      dev.log(
-        'SyncEngine: pulled $totalPulled changes',
-        name: 'sync',
-      );
+      dev.log('[Sync] _doPull: pulled $totalPulled changes, done');
       onSyncEvent?.call(const SyncEvent.syncCompleted());
       onSyncEvent?.call(const SyncEvent.serverReachable());
     } catch (e) {
-      dev.log('SyncEngine: pull failed: $e', name: 'sync');
+      dev.log('[Sync] _doPull: pull failed: $e');
       onSyncEvent?.call(const SyncEvent.serverUnreachable());
     }
   }
@@ -773,7 +783,10 @@ class SyncEngine {
     _disconnectWebSocket();
 
     final token = await _tokenStorage?.getAccessToken();
-    if (token == null) return;
+    if (token == null) {
+      dev.log('[WS] _connectWebSocket: no token, skipping');
+      return;
+    }
 
     try {
       final scheme = AppConstants.useTls ? 'wss' : 'ws';
@@ -781,13 +794,21 @@ class SyncEngine {
       final uri = Uri.parse(
         '$scheme://${AppConstants.serverHost}:${AppConstants.wsPort}/ws',
       );
-      _wsChannel = WebSocketChannel.connect(uri);
+      dev.log('[WS] connecting to $uri ...');
+      _wsChannel = IOWebSocketChannel.connect(
+        uri,
+        customClient: AppConstants.useTls
+            ? (HttpClient()
+              ..badCertificateCallback = (cert, host, port) => true)
+            : null,
+      );
 
       // Await the ready future to catch connection failures early
       try {
         await _wsChannel!.ready;
+        dev.log('[WS] connected successfully');
       } catch (e) {
-        dev.log('SyncEngine: ws handshake failed: $e', name: 'sync');
+        dev.log('[WS] handshake failed: $e');
         _scheduleReconnect();
         return;
       }
@@ -847,7 +868,13 @@ class SyncEngine {
       // Auth succeeded — exit auth phase
       _awaitingAuth = false;
       _authCompleter = null;
-      dev.log('SyncEngine: ws authenticated', name: 'sync');
+      dev.log('[WS] authenticated, marking ws connected');
+      onSyncEvent?.call(const SyncEvent.wsStateChanged(true));
+      // If no pending ops, mark as synced
+      final pending = await _db?.getPendingSyncOps(1) ?? [];
+      if (pending.isEmpty) {
+        onSyncEvent?.call(const SyncEvent.syncCompleted());
+      }
     } catch (e) {
       dev.log('SyncEngine: ws connect failed: $e', name: 'sync');
       _awaitingAuth = false;
