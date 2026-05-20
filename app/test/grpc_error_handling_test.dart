@@ -4,7 +4,6 @@ library;
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:fixnum/fixnum.dart';
@@ -196,10 +195,8 @@ class FakeSyncClient implements SyncServiceClient {
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName} not implemented');
 }
-
 // ─── Mock Connectivity ───────────────────────────────────────
 
-class MockConnectivity extends Mock implements Connectivity {}
 
 // ─── Test Helpers ────────────────────────────────────────────
 
@@ -1058,7 +1055,6 @@ void main() {
 
       late AppDatabase db;
       late SharedPreferences prefs;
-      late MockConnectivity mockConnectivity;
 
       setUp(() async {
         SharedPreferences.setMockInitialValues({
@@ -1066,11 +1062,6 @@ void main() {
         });
         prefs = await SharedPreferences.getInstance();
         db = await _setupDb();
-        mockConnectivity = MockConnectivity();
-        when(() => mockConnectivity.checkConnectivity())
-            .thenAnswer((_) async => [ConnectivityResult.wifi]);
-        when(() => mockConnectivity.onConnectivityChanged)
-            .thenAnswer((_) => Stream.value([ConnectivityResult.wifi]));
         // Insert a pending sync op
         await db.insertSyncOp(SyncQueueCompanion.insert(
           id: 'op_1',
@@ -1099,7 +1090,7 @@ void main() {
           ..pushError = GrpcError.unauthenticated('expired token');
 
         final engine = SyncEngine(db, syncClient, prefs,
-            connectivity: mockConnectivity);
+            );
 
         // Manually trigger push (normally done by timer)
         await engine.syncNow();
@@ -1117,7 +1108,7 @@ void main() {
           ..pushError = GrpcError.permissionDenied('no access');
 
         final engine = SyncEngine(db, syncClient, prefs,
-            connectivity: mockConnectivity);
+            );
 
         await engine.syncNow();
 
@@ -1133,7 +1124,7 @@ void main() {
           ..pushError = GrpcError.deadlineExceeded('timeout');
 
         final engine = SyncEngine(db, syncClient, prefs,
-            connectivity: mockConnectivity);
+            );
 
         await engine.syncNow();
 
@@ -1149,7 +1140,7 @@ void main() {
           ..pushError = GrpcError.internal('server error');
 
         final engine = SyncEngine(db, syncClient, prefs,
-            connectivity: mockConnectivity);
+            );
 
         await engine.syncNow();
 
@@ -1165,7 +1156,7 @@ void main() {
           ..pushError = GrpcError.invalidArgument('malformed op');
 
         final engine = SyncEngine(db, syncClient, prefs,
-            connectivity: mockConnectivity);
+            );
 
         await engine.syncNow();
 
@@ -1181,7 +1172,7 @@ void main() {
           ..pushError = GrpcError.unavailable('offline');
 
         final engine = SyncEngine(db, syncClient, prefs,
-            connectivity: mockConnectivity);
+            );
 
         await engine.syncNow();
 

@@ -4,7 +4,6 @@ import 'dart:developer' as dev;
 import 'dart:io';
 import 'dart:math';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
@@ -37,10 +36,8 @@ class SyncEngine {
   final SyncServiceClient? _syncClient;
   final SharedPreferences? _prefs;
   final TokenStorage? _tokenStorage;
-  final Connectivity _connectivity;
 
   Timer? _syncTimer;
-  StreamSubscription? _connectivitySub;
   WebSocketChannel? _wsChannel;
   StreamSubscription? _wsSub;
   bool _disposed = false;
@@ -61,12 +58,11 @@ class SyncEngine {
   static const _lastSyncTsKey = 'sync_last_pull_ts';
 
   SyncEngine(AppDatabase db, SyncServiceClient syncClient, SharedPreferences prefs,
-      {Connectivity? connectivity, TokenStorage? tokenStorage})
+      {TokenStorage? tokenStorage})
       : _db = db,
         _syncClient = syncClient,
         _prefs = prefs,
-        _tokenStorage = tokenStorage,
-        _connectivity = connectivity ?? Connectivity();
+        _tokenStorage = tokenStorage;
 
   /// Inert engine that performs no operations.
   /// Used in production when no user is logged in (all methods are safe no-ops
@@ -75,8 +71,7 @@ class SyncEngine {
       : _db = null,
         _syncClient = null,
         _prefs = null,
-        _tokenStorage = null,
-        _connectivity = Connectivity();
+        _tokenStorage = null;
 
   /// @visibleForTesting — alias for [inert] with test-friendly semantics.
   @Deprecated('Use SyncEngine.inert() or provide mocks directly')
@@ -84,8 +79,7 @@ class SyncEngine {
       : _db = null,
         _syncClient = null,
         _prefs = null,
-        _tokenStorage = null,
-        _connectivity = Connectivity();
+        _tokenStorage = null;
 
   void start() {
     if (_disposed) return;
@@ -95,16 +89,6 @@ class SyncEngine {
       const Duration(seconds: AppConstants.syncIntervalSeconds),
       (_) => _syncCycle(),
     );
-
-    // 网络变化时触发推送 + 重连 WebSocket
-    _connectivitySub = _connectivity.onConnectivityChanged.listen((results) {
-      if (results.any((r) => r != ConnectivityResult.none)) {
-        _syncCycle();
-        _connectWebSocket();
-      } else {
-        _disconnectWebSocket();
-      }
-    });
 
     // 启动时立即尝试
     _syncCycle();
@@ -134,11 +118,9 @@ class SyncEngine {
     }
     dev.log('[Sync] _pushPendingOps: started');
     // Defer syncStarted event to next microtask to avoid provider rebuild loop
-    Future.microtask(() => onSyncEvent?.call(const SyncEvent.syncStarted()));
+    onSyncEvent?.call(const SyncEvent.syncStarted());
 
     try {
-      // Skip connectivity check - if gRPC works, network is fine
-      // (connectivity_plus hangs on iOS 26)
   
 
       final pendingOps =
@@ -798,8 +780,7 @@ class SyncEngine {
       _wsChannel = IOWebSocketChannel.connect(
         uri,
         customClient: AppConstants.useTls
-            ? (HttpClient()
-              ..badCertificateCallback = (cert, host, port) => true)
+            ? _createSecureHttpClient()
             : null,
       );
 
@@ -870,11 +851,6 @@ class SyncEngine {
       _authCompleter = null;
       dev.log('[WS] authenticated, marking ws connected');
       onSyncEvent?.call(const SyncEvent.wsStateChanged(true));
-      // If no pending ops, mark as synced
-      final pending = await _db?.getPendingSyncOps(1) ?? [];
-      if (pending.isEmpty) {
-        onSyncEvent?.call(const SyncEvent.syncCompleted());
-      }
     } catch (e) {
       dev.log('SyncEngine: ws connect failed: $e', name: 'sync');
       _awaitingAuth = false;
@@ -962,6 +938,18 @@ class SyncEngine {
     }
   }
 
+  /// Create an HttpClient with our pinned CA for WebSocket TLS.
+  HttpClient _createSecureHttpClient() {
+    final caBytes = caCertBytes;
+    if (caBytes != null) {
+      final ctx = SecurityContext()
+        ..setTrustedCertificatesBytes(caBytes);
+      return HttpClient(context: ctx);
+    }
+    // Fallback: system trust store (if CA not loaded)
+    return HttpClient();
+  }
+
   void _disconnectWebSocket() {
     // Cancel any pending auth wait
     if (_awaitingAuth) {
@@ -1032,7 +1020,6 @@ class SyncEngine {
     _disposed = true;
     _reconnectAttempts = 0;
     _syncTimer?.cancel();
-    _connectivitySub?.cancel();
     _disconnectWebSocket();
   }
 }
@@ -1061,28 +1048,32 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
   final tokenStorage = ref.watch(secureTokenStorageProvider);
   final engine = SyncEngine(db, syncClient, prefs, tokenStorage: tokenStorage);
 
-  // Wire status callbacks to SyncStatusNotifier
+  // Wire status callbacks to SyncStatusNotifier.
+  // All state updates are deferred to next microtask to break the
+  // synchronous call chain that could trigger provider rebuild loops
+  // (engine.onSyncEvent → notifier.markX → widget rebuild → provider rebuild → engine dispose).
   final statusNotifier = ref.read(syncStatusProvider.notifier);
   engine.onSyncEvent = (SyncEvent event) {
-    switch (event) {
-      case SyncStarted():
-        statusNotifier.markSyncing();
-      case SyncStopped():
-        statusNotifier.markSyncStopped();
-      case SyncCompleted():
-        statusNotifier.markSynced();
-      case ServerReachable():
-        statusNotifier.updateServerReachable(true);
-      case ServerUnreachable():
-        statusNotifier.updateServerReachable(false);
-      case WsStateChanged(:final connected):
-        statusNotifier.updateWsConnected(connected);
-      case PushFailed(:final failedCount):
-        statusNotifier.markFailed(failedCount);
-      case PendingCountUpdated():
-        assert(false, 'PendingCountUpdated should not be dispatched by SyncEngine');
-        break;
-    }
+    Future.microtask(() {
+      switch (event) {
+        case SyncStarted():
+          statusNotifier.markSyncing();
+        case SyncStopped():
+          statusNotifier.markSyncStopped();
+        case SyncCompleted():
+          statusNotifier.markSynced();
+        case ServerReachable():
+          statusNotifier.updateServerReachable(true);
+        case ServerUnreachable():
+          statusNotifier.updateServerReachable(false);
+        case WsStateChanged(:final connected):
+          statusNotifier.updateWsConnected(connected);
+        case PushFailed(:final failedCount):
+          statusNotifier.markFailed(failedCount);
+        case PendingCountUpdated():
+          break;
+      }
+    });
   };
 
   ref.onDispose(() => engine.dispose());
