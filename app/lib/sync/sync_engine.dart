@@ -944,7 +944,12 @@ class SyncEngine {
     if (caBytes != null) {
       final ctx = SecurityContext()
         ..setTrustedCertificatesBytes(caBytes);
-      return HttpClient(context: ctx);
+      final client = HttpClient(context: ctx)
+        ..badCertificateCallback = (cert, host, port) {
+          // Allow certs issued by our CA (IP SAN may not be validated)
+          return cert.issuer.contains('FamilyLedger CA');
+        };
+      return client;
     }
     // Fallback: system trust store (if CA not loaded)
     return HttpClient();

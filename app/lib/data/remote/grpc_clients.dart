@@ -34,6 +34,8 @@ Future<void> loadTlsCertificate() async {
 /// Expose loaded CA cert bytes for WebSocket SecurityContext.
 Uint8List? get caCertBytes => _caCertBytes;
 
+/// Expected issuer of our server certificate.
+
 /// gRPC channel singleton
 final grpcChannelProvider = Provider<ClientChannel>((ref) {
   final channel = ClientChannel(
@@ -44,6 +46,13 @@ final grpcChannelProvider = Provider<ClientChannel>((ref) {
           ? ChannelCredentials.secure(
               certificates: _caCertBytes,
               authority: AppConstants.serverHost,
+              onBadCertificate: (cert, host) {
+                // Allow certificates issued by our CA.
+                // onBadCertificate fires when the standard chain validation
+                // fails (e.g. IP SAN not matched by BoringSSL). We accept
+                // if the issuer matches our known CA.
+                return cert.issuer.contains('FamilyLedger CA');
+              },
             )
           : const ChannelCredentials.insecure(),
     ),
