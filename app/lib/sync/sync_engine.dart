@@ -52,12 +52,14 @@ class SyncEngine {
   /// Consecutive sync failures — used for exponential backoff.
   int _consecutiveFailures = 0;
   static const _maxBackoffSeconds = 300; // 5 minutes cap
+  static const _wsReconnectBaseDelay = 1; // seconds
+  static const _wsReconnectMaxDelay = 60; // seconds
 
   /// Async mutex — prevents concurrent push/pull from corrupting state.
   /// At most one sync operation (push or pull) runs at a time.
   /// Additional requests are coalesced: if a pull is requested while syncing,
   /// it runs once after the current operation completes (not N times).
-  Completer<void>? _syncLock;
+  bool _syncing = false;
   bool _pullRequested = false;
   bool _pushRequested = false;
 
@@ -334,9 +336,8 @@ class SyncEngine {
         final isLocallyDeleted = await _isEntityDeleted(op.entityType, op.entityId);
         if (isLocallyDeleted) {
           dev.log(
-            'SyncEngine: R9 terminal skip ${op.entityType}/${op.entityId} '
+            '[Sync] R9 terminal skip ${op.entityType}/${op.entityId} '
             '(locally deleted, ignoring ${op.opType})',
-            name: 'sync',
           );
           return;
         }
@@ -353,9 +354,8 @@ class SyncEngine {
             localUpdatedAt.millisecondsSinceEpoch > remoteTimestampMs) {
           // Local is newer — skip this remote operation
           dev.log(
-            'SyncEngine: LWW skip ${op.entityType}/${op.entityId} '
+            '[Sync] LWW skip ${op.entityType}/${op.entityId} '
             '(local=${localUpdatedAt.millisecondsSinceEpoch}, remote=$remoteTimestampMs)',
-            name: 'sync',
           );
           return;
         }
@@ -387,10 +387,10 @@ class SyncEngine {
           await _applyBudgetOp(op.opType, op.entityId, payload);
           break;
         default:
-          dev.log('SyncEngine: unknown entity_type ${op.entityType}', name: 'sync');
+          dev.log('[Sync] unknown entity_type ${op.entityType}');
       }
     } catch (e) {
-      dev.log('SyncEngine: apply op failed: $e', name: 'sync');
+      dev.log('[Sync] apply op failed: $e');
     }
   }
 
@@ -808,11 +808,11 @@ class SyncEngine {
       // Subscribe BEFORE sending auth (so we don't miss auth_ok)
       _wsSub = _wsChannel!.stream.listen(
         (message) {
-          dev.log('SyncEngine: ws message: $message', name: 'sync');
+          dev.log('[WS] message: $message');
           _handleWsMessage(message);
         },
         onError: (error) {
-          dev.log('SyncEngine: ws error: $error', name: 'sync');
+          dev.log('[WS] error: $error');
           if (_awaitingAuth) {
             _authCompleter?.completeError(error);
           } else {
@@ -820,7 +820,7 @@ class SyncEngine {
           }
         },
         onDone: () {
-          dev.log('SyncEngine: ws closed', name: 'sync');
+          dev.log('[WS] closed');
           if (_awaitingAuth) {
             if (_authCompleter != null && !_authCompleter!.isCompleted) {
               _authCompleter!.completeError('connection closed before auth_ok');
@@ -843,7 +843,7 @@ class SyncEngine {
           },
         );
       } catch (e) {
-        dev.log('SyncEngine: auth_ok not received: $e', name: 'sync');
+        dev.log('[Sync] auth_ok not received: $e');
         _awaitingAuth = false;
         _authCompleter = null;
         _disconnectWebSocket();
@@ -854,10 +854,9 @@ class SyncEngine {
       // Auth succeeded — exit auth phase
       _awaitingAuth = false;
       _authCompleter = null;
-      dev.log('[WS] authenticated, marking ws connected');
-      onSyncEvent?.call(const SyncEvent.wsStateChanged(true));
+      dev.log('[WS] authenticated');
     } catch (e) {
-      dev.log('SyncEngine: ws connect failed: $e', name: 'sync');
+      dev.log('[WS] connect failed: $e');
       _awaitingAuth = false;
       _authCompleter = null;
       _scheduleReconnect();
@@ -870,7 +869,7 @@ class SyncEngine {
       final type = data['type'] as String?;
 
       if (type == 'auth_ok') {
-        dev.log('SyncEngine: ws auth_ok received', name: 'sync');
+        dev.log('[WS] auth_ok received');
         _reconnectAttempts = 0;
         onSyncEvent?.call(const SyncEvent.wsStateChanged(true));
         if (_authCompleter != null && !_authCompleter!.isCompleted) {
@@ -892,8 +891,7 @@ class SyncEngine {
           if (serverTimeMs > localTs) {
             // We're behind — pull to catch up
             dev.log(
-              'SyncEngine: heartbeat watermark ahead (server=$serverTimeMs, local=$localTs), pulling',
-              name: 'sync',
+              '[Sync] heartbeat watermark ahead (server=$serverTimeMs, local=$localTs), pulling',
             );
             _pullChanges();
           }
@@ -910,18 +908,14 @@ class SyncEngine {
   /// Try-lock: returns true if acquired, false if another op holds the lock.
   /// Synchronous — no async gap between check and acquire.
   bool _tryAcquireSyncLock() {
-    if (_syncLock != null) return false;
-    _syncLock = Completer<void>();
+    if (_syncing) return false;
+    _syncing = true;
     return true;
   }
 
   /// Releases the sync lock, allowing the next operation to proceed.
   void _releaseSyncLock() {
-    final lock = _syncLock;
-    _syncLock = null;
-    if (lock != null && !lock.isCompleted) {
-      lock.complete();
-    }
+    _syncing = false;
   }
 
   /// Drains coalesced push/pull requests after lock release.
@@ -1006,16 +1000,13 @@ class SyncEngine {
   void _scheduleReconnect() {
     if (_disposed) return;
 
-    final baseDelay = 1; // seconds
-    final maxDelay = 60; // seconds
-    final exponentialDelay = baseDelay * (1 << _reconnectAttempts.clamp(0, 6));
-    final delay = exponentialDelay.clamp(baseDelay, maxDelay);
+    final exponentialDelay = _wsReconnectBaseDelay * (1 << _reconnectAttempts.clamp(0, 6));
+    final delay = exponentialDelay.clamp(_wsReconnectBaseDelay, _wsReconnectMaxDelay);
     final jitter = Random().nextInt((delay * 0.5).ceil() + 1);
     final totalDelay = (delay + jitter).clamp(0, 90);
 
     dev.log(
-      'SyncEngine: reconnecting in ${totalDelay}s (attempt ${_reconnectAttempts + 1})',
-      name: 'sync',
+      '[WS] reconnecting in ${totalDelay}s (attempt ${_reconnectAttempts + 1})',
     );
     _reconnectAttempts++;
 
@@ -1033,7 +1024,7 @@ class SyncEngine {
   /// App 回到前台时调用：立即同步 + 重启 timer + 重连 WS
   void onAppResumed() {
     if (_disposed) return;
-    dev.log('SyncEngine: app resumed, syncing...', name: 'sync');
+    dev.log('[Sync] app resumed, syncing...');
     // Restart timer if it was cancelled
     _syncTimer?.cancel();
     _syncTimer = Timer.periodic(
@@ -1048,7 +1039,7 @@ class SyncEngine {
   /// App 进入后台时调用：停止 timer 省电，保持 WS（会自然断开）
   void onAppPaused() {
     if (_disposed) return;
-    dev.log('SyncEngine: app paused, stopping timer', name: 'sync');
+    dev.log('[Sync] app paused, stopping timer');
     _syncTimer?.cancel();
     _syncTimer = null;
   }
