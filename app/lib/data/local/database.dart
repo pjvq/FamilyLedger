@@ -948,7 +948,9 @@ class AppDatabase extends _$AppDatabase {
     int balance = 0,
     String currency = 'CNY',
     bool isActive = true,
+    DateTime? updatedAt,
   }) async {
+    final effectiveUpdatedAt = updatedAt ?? DateTime.now();
     final existing = await getAccountById(id);
     if (existing != null) {
       await (update(accounts)..where((a) => a.id.equals(id))).write(
@@ -959,7 +961,7 @@ class AppDatabase extends _$AppDatabase {
           balance: Value(balance),
           currency: Value(currency),
           isActive: Value(isActive),
-          updatedAt: Value(DateTime.now()),
+          updatedAt: Value(effectiveUpdatedAt),
         ),
       );
     } else {

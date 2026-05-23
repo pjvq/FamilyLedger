@@ -492,10 +492,11 @@ class SyncEngine {
     // For CREATE/UPDATE: decode payload + apply LWW/R9 checks.
     Map<String, dynamic> payload;
     if (isDelete) {
-      // Defensive: skip if already deleted (idempotent, avoids relying on
-      // each handler to individually guard against double-delete).
       final state = await _getLocalEntityState(op.entityType, op.entityId);
-      if (state.isDeleted) return;
+      if (state.isDeleted) return; // Already deleted — idempotent
+      // Entity doesn't exist locally — nothing to delete (safe no-op).
+      // All softDelete methods use UPDATE WHERE id=? which affects 0 rows.
+      if (state.updatedAt == null) return;
       payload = const {};
     } else {
       payload = jsonDecode(op.payload) as Map<String, dynamic>;
@@ -711,6 +712,7 @@ class SyncEngine {
           balance: (payload['balance'] as num?)?.toInt() ?? 0,
           currency: payload['currency'] ?? 'CNY',
           isActive: payload['is_active'] ?? true,
+          updatedAt: DateTime.tryParse(payload['updated_at'] ?? ''),
         );
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
