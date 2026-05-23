@@ -8,21 +8,21 @@ import 'package:drift/drift.dart' show Value;
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:grpc/grpc.dart' show CallOptions;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../data/local/secure_token_storage.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../core/constants/app_constants.dart';
 import '../data/local/database.dart';
+import '../data/local/secure_token_storage.dart';
 import '../data/remote/grpc_clients.dart';
-import 'package:grpc/grpc.dart' show CallOptions;
 import '../domain/providers/app_providers.dart';
 import '../domain/providers/sync_status_provider.dart';
 import '../generated/proto/google/protobuf/timestamp.pb.dart' as proto_ts;
 import '../generated/proto/sync.pb.dart' as sync_pb;
-import '../generated/proto/sync.pbgrpc.dart';
 import '../generated/proto/sync.pbenum.dart' as sync_enum;
+import '../generated/proto/sync.pbgrpc.dart';
 import 'sync_event.dart';
 
 /// 离线同步引擎
@@ -289,9 +289,13 @@ class SyncEngine {
 
         final response = await _syncClient!.pullChanges(request);
 
-        for (final op in response.operations) {
-          await _applyRemoteOp(op);
-        }
+        // Apply all ops in a single DB transaction for atomicity and performance.
+        // If app crashes mid-page, entire page is rolled back — no partial state.
+        await _db!.transaction(() async {
+          for (final op in response.operations) {
+            await _applyRemoteOp(op);
+          }
+        });
         totalPulled += response.operations.length;
 
         pageToken = response.nextPageToken;
@@ -809,7 +813,7 @@ class SyncEngine {
       // Subscribe BEFORE sending auth (so we don't miss auth_ok)
       _wsSub = _wsChannel!.stream.listen(
         (message) {
-          dev.log('[WS] message: $message');
+          dev.log('[WS] message received (${(message as String).length} chars)');
           _handleWsMessage(message);
         },
         onError: (error) {
@@ -1016,10 +1020,7 @@ class SyncEngine {
   }
 
   /// 手动触发完整同步（推送 + 拉取）
-  Future<void> syncNow() async {
-    await _pushPendingOps();
-    await _pullChanges();
-  }
+  Future<void> syncNow() => _syncCycle();
 
   /// App 回到前台时调用：立即同步 + 重启 timer + 重连 WS
   void onAppResumed() {
