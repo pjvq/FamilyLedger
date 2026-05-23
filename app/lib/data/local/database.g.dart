@@ -13229,6 +13229,27 @@ class $SyncDeadLettersTable extends SyncDeadLetters
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _opTypeMeta = const VerificationMeta('opType');
+  @override
+  late final GeneratedColumn<String> opType = GeneratedColumn<String>(
+    'op_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _timestampMsMeta = const VerificationMeta(
+    'timestampMs',
+  );
+  @override
+  late final GeneratedColumn<int> timestampMs = GeneratedColumn<int>(
+    'timestamp_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _errorMeta = const VerificationMeta('error');
   @override
   late final GeneratedColumn<String> error = GeneratedColumn<String>(
@@ -13273,27 +13294,30 @@ class $SyncDeadLettersTable extends SyncDeadLetters
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
-  static const VerificationMeta _lastRetryAtMeta = const VerificationMeta(
-    'lastRetryAt',
+  static const VerificationMeta _nextRetryAfterMeta = const VerificationMeta(
+    'nextRetryAfter',
   );
   @override
-  late final GeneratedColumn<DateTime> lastRetryAt = GeneratedColumn<DateTime>(
-    'last_retry_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
+  late final GeneratedColumn<DateTime> nextRetryAfter =
+      GeneratedColumn<DateTime>(
+        'next_retry_after',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     opId,
     entityType,
     entityId,
+    opType,
+    timestampMs,
     error,
     payload,
     createdAt,
     retryCount,
-    lastRetryAt,
+    nextRetryAfter,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -13331,6 +13355,23 @@ class $SyncDeadLettersTable extends SyncDeadLetters
     } else if (isInserting) {
       context.missing(_entityIdMeta);
     }
+    if (data.containsKey('op_type')) {
+      context.handle(
+        _opTypeMeta,
+        opType.isAcceptableOrUnknown(data['op_type']!, _opTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_opTypeMeta);
+    }
+    if (data.containsKey('timestamp_ms')) {
+      context.handle(
+        _timestampMsMeta,
+        timestampMs.isAcceptableOrUnknown(
+          data['timestamp_ms']!,
+          _timestampMsMeta,
+        ),
+      );
+    }
     if (data.containsKey('error')) {
       context.handle(
         _errorMeta,
@@ -13359,12 +13400,12 @@ class $SyncDeadLettersTable extends SyncDeadLetters
         retryCount.isAcceptableOrUnknown(data['retry_count']!, _retryCountMeta),
       );
     }
-    if (data.containsKey('last_retry_at')) {
+    if (data.containsKey('next_retry_after')) {
       context.handle(
-        _lastRetryAtMeta,
-        lastRetryAt.isAcceptableOrUnknown(
-          data['last_retry_at']!,
-          _lastRetryAtMeta,
+        _nextRetryAfterMeta,
+        nextRetryAfter.isAcceptableOrUnknown(
+          data['next_retry_after']!,
+          _nextRetryAfterMeta,
         ),
       );
     }
@@ -13389,6 +13430,14 @@ class $SyncDeadLettersTable extends SyncDeadLetters
         DriftSqlType.string,
         data['${effectivePrefix}entity_id'],
       )!,
+      opType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}op_type'],
+      )!,
+      timestampMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}timestamp_ms'],
+      )!,
       error: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}error'],
@@ -13405,9 +13454,9 @@ class $SyncDeadLettersTable extends SyncDeadLetters
         DriftSqlType.int,
         data['${effectivePrefix}retry_count'],
       )!,
-      lastRetryAt: attachedDatabase.typeMapping.read(
+      nextRetryAfter: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
-        data['${effectivePrefix}last_retry_at'],
+        data['${effectivePrefix}next_retry_after'],
       ),
     );
   }
@@ -13422,20 +13471,30 @@ class SyncDeadLetter extends DataClass implements Insertable<SyncDeadLetter> {
   final String opId;
   final String entityType;
   final String entityId;
+
+  /// Original proto opType (e.g. 'OPERATION_TYPE_CREATE').
+  final String opType;
+
+  /// Original operation timestamp in milliseconds since epoch.
+  final int timestampMs;
   final String error;
   final String payload;
   final DateTime createdAt;
   final int retryCount;
-  final DateTime? lastRetryAt;
+
+  /// Next allowed retry time (NOT "last retry time"). Null = immediately eligible.
+  final DateTime? nextRetryAfter;
   const SyncDeadLetter({
     required this.opId,
     required this.entityType,
     required this.entityId,
+    required this.opType,
+    required this.timestampMs,
     required this.error,
     required this.payload,
     required this.createdAt,
     required this.retryCount,
-    this.lastRetryAt,
+    this.nextRetryAfter,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -13443,12 +13502,14 @@ class SyncDeadLetter extends DataClass implements Insertable<SyncDeadLetter> {
     map['op_id'] = Variable<String>(opId);
     map['entity_type'] = Variable<String>(entityType);
     map['entity_id'] = Variable<String>(entityId);
+    map['op_type'] = Variable<String>(opType);
+    map['timestamp_ms'] = Variable<int>(timestampMs);
     map['error'] = Variable<String>(error);
     map['payload'] = Variable<String>(payload);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['retry_count'] = Variable<int>(retryCount);
-    if (!nullToAbsent || lastRetryAt != null) {
-      map['last_retry_at'] = Variable<DateTime>(lastRetryAt);
+    if (!nullToAbsent || nextRetryAfter != null) {
+      map['next_retry_after'] = Variable<DateTime>(nextRetryAfter);
     }
     return map;
   }
@@ -13458,13 +13519,15 @@ class SyncDeadLetter extends DataClass implements Insertable<SyncDeadLetter> {
       opId: Value(opId),
       entityType: Value(entityType),
       entityId: Value(entityId),
+      opType: Value(opType),
+      timestampMs: Value(timestampMs),
       error: Value(error),
       payload: Value(payload),
       createdAt: Value(createdAt),
       retryCount: Value(retryCount),
-      lastRetryAt: lastRetryAt == null && nullToAbsent
+      nextRetryAfter: nextRetryAfter == null && nullToAbsent
           ? const Value.absent()
-          : Value(lastRetryAt),
+          : Value(nextRetryAfter),
     );
   }
 
@@ -13477,11 +13540,13 @@ class SyncDeadLetter extends DataClass implements Insertable<SyncDeadLetter> {
       opId: serializer.fromJson<String>(json['opId']),
       entityType: serializer.fromJson<String>(json['entityType']),
       entityId: serializer.fromJson<String>(json['entityId']),
+      opType: serializer.fromJson<String>(json['opType']),
+      timestampMs: serializer.fromJson<int>(json['timestampMs']),
       error: serializer.fromJson<String>(json['error']),
       payload: serializer.fromJson<String>(json['payload']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       retryCount: serializer.fromJson<int>(json['retryCount']),
-      lastRetryAt: serializer.fromJson<DateTime?>(json['lastRetryAt']),
+      nextRetryAfter: serializer.fromJson<DateTime?>(json['nextRetryAfter']),
     );
   }
   @override
@@ -13491,11 +13556,13 @@ class SyncDeadLetter extends DataClass implements Insertable<SyncDeadLetter> {
       'opId': serializer.toJson<String>(opId),
       'entityType': serializer.toJson<String>(entityType),
       'entityId': serializer.toJson<String>(entityId),
+      'opType': serializer.toJson<String>(opType),
+      'timestampMs': serializer.toJson<int>(timestampMs),
       'error': serializer.toJson<String>(error),
       'payload': serializer.toJson<String>(payload),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'retryCount': serializer.toJson<int>(retryCount),
-      'lastRetryAt': serializer.toJson<DateTime?>(lastRetryAt),
+      'nextRetryAfter': serializer.toJson<DateTime?>(nextRetryAfter),
     };
   }
 
@@ -13503,20 +13570,26 @@ class SyncDeadLetter extends DataClass implements Insertable<SyncDeadLetter> {
     String? opId,
     String? entityType,
     String? entityId,
+    String? opType,
+    int? timestampMs,
     String? error,
     String? payload,
     DateTime? createdAt,
     int? retryCount,
-    Value<DateTime?> lastRetryAt = const Value.absent(),
+    Value<DateTime?> nextRetryAfter = const Value.absent(),
   }) => SyncDeadLetter(
     opId: opId ?? this.opId,
     entityType: entityType ?? this.entityType,
     entityId: entityId ?? this.entityId,
+    opType: opType ?? this.opType,
+    timestampMs: timestampMs ?? this.timestampMs,
     error: error ?? this.error,
     payload: payload ?? this.payload,
     createdAt: createdAt ?? this.createdAt,
     retryCount: retryCount ?? this.retryCount,
-    lastRetryAt: lastRetryAt.present ? lastRetryAt.value : this.lastRetryAt,
+    nextRetryAfter: nextRetryAfter.present
+        ? nextRetryAfter.value
+        : this.nextRetryAfter,
   );
   SyncDeadLetter copyWithCompanion(SyncDeadLettersCompanion data) {
     return SyncDeadLetter(
@@ -13525,15 +13598,19 @@ class SyncDeadLetter extends DataClass implements Insertable<SyncDeadLetter> {
           ? data.entityType.value
           : this.entityType,
       entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      opType: data.opType.present ? data.opType.value : this.opType,
+      timestampMs: data.timestampMs.present
+          ? data.timestampMs.value
+          : this.timestampMs,
       error: data.error.present ? data.error.value : this.error,
       payload: data.payload.present ? data.payload.value : this.payload,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       retryCount: data.retryCount.present
           ? data.retryCount.value
           : this.retryCount,
-      lastRetryAt: data.lastRetryAt.present
-          ? data.lastRetryAt.value
-          : this.lastRetryAt,
+      nextRetryAfter: data.nextRetryAfter.present
+          ? data.nextRetryAfter.value
+          : this.nextRetryAfter,
     );
   }
 
@@ -13543,11 +13620,13 @@ class SyncDeadLetter extends DataClass implements Insertable<SyncDeadLetter> {
           ..write('opId: $opId, ')
           ..write('entityType: $entityType, ')
           ..write('entityId: $entityId, ')
+          ..write('opType: $opType, ')
+          ..write('timestampMs: $timestampMs, ')
           ..write('error: $error, ')
           ..write('payload: $payload, ')
           ..write('createdAt: $createdAt, ')
           ..write('retryCount: $retryCount, ')
-          ..write('lastRetryAt: $lastRetryAt')
+          ..write('nextRetryAfter: $nextRetryAfter')
           ..write(')'))
         .toString();
   }
@@ -13557,11 +13636,13 @@ class SyncDeadLetter extends DataClass implements Insertable<SyncDeadLetter> {
     opId,
     entityType,
     entityId,
+    opType,
+    timestampMs,
     error,
     payload,
     createdAt,
     retryCount,
-    lastRetryAt,
+    nextRetryAfter,
   );
   @override
   bool operator ==(Object other) =>
@@ -13570,69 +13651,82 @@ class SyncDeadLetter extends DataClass implements Insertable<SyncDeadLetter> {
           other.opId == this.opId &&
           other.entityType == this.entityType &&
           other.entityId == this.entityId &&
+          other.opType == this.opType &&
+          other.timestampMs == this.timestampMs &&
           other.error == this.error &&
           other.payload == this.payload &&
           other.createdAt == this.createdAt &&
           other.retryCount == this.retryCount &&
-          other.lastRetryAt == this.lastRetryAt);
+          other.nextRetryAfter == this.nextRetryAfter);
 }
 
 class SyncDeadLettersCompanion extends UpdateCompanion<SyncDeadLetter> {
   final Value<String> opId;
   final Value<String> entityType;
   final Value<String> entityId;
+  final Value<String> opType;
+  final Value<int> timestampMs;
   final Value<String> error;
   final Value<String> payload;
   final Value<DateTime> createdAt;
   final Value<int> retryCount;
-  final Value<DateTime?> lastRetryAt;
+  final Value<DateTime?> nextRetryAfter;
   final Value<int> rowid;
   const SyncDeadLettersCompanion({
     this.opId = const Value.absent(),
     this.entityType = const Value.absent(),
     this.entityId = const Value.absent(),
+    this.opType = const Value.absent(),
+    this.timestampMs = const Value.absent(),
     this.error = const Value.absent(),
     this.payload = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.retryCount = const Value.absent(),
-    this.lastRetryAt = const Value.absent(),
+    this.nextRetryAfter = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SyncDeadLettersCompanion.insert({
     required String opId,
     required String entityType,
     required String entityId,
+    required String opType,
+    this.timestampMs = const Value.absent(),
     required String error,
     required String payload,
     this.createdAt = const Value.absent(),
     this.retryCount = const Value.absent(),
-    this.lastRetryAt = const Value.absent(),
+    this.nextRetryAfter = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : opId = Value(opId),
        entityType = Value(entityType),
        entityId = Value(entityId),
+       opType = Value(opType),
        error = Value(error),
        payload = Value(payload);
   static Insertable<SyncDeadLetter> custom({
     Expression<String>? opId,
     Expression<String>? entityType,
     Expression<String>? entityId,
+    Expression<String>? opType,
+    Expression<int>? timestampMs,
     Expression<String>? error,
     Expression<String>? payload,
     Expression<DateTime>? createdAt,
     Expression<int>? retryCount,
-    Expression<DateTime>? lastRetryAt,
+    Expression<DateTime>? nextRetryAfter,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (opId != null) 'op_id': opId,
       if (entityType != null) 'entity_type': entityType,
       if (entityId != null) 'entity_id': entityId,
+      if (opType != null) 'op_type': opType,
+      if (timestampMs != null) 'timestamp_ms': timestampMs,
       if (error != null) 'error': error,
       if (payload != null) 'payload': payload,
       if (createdAt != null) 'created_at': createdAt,
       if (retryCount != null) 'retry_count': retryCount,
-      if (lastRetryAt != null) 'last_retry_at': lastRetryAt,
+      if (nextRetryAfter != null) 'next_retry_after': nextRetryAfter,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -13641,22 +13735,26 @@ class SyncDeadLettersCompanion extends UpdateCompanion<SyncDeadLetter> {
     Value<String>? opId,
     Value<String>? entityType,
     Value<String>? entityId,
+    Value<String>? opType,
+    Value<int>? timestampMs,
     Value<String>? error,
     Value<String>? payload,
     Value<DateTime>? createdAt,
     Value<int>? retryCount,
-    Value<DateTime?>? lastRetryAt,
+    Value<DateTime?>? nextRetryAfter,
     Value<int>? rowid,
   }) {
     return SyncDeadLettersCompanion(
       opId: opId ?? this.opId,
       entityType: entityType ?? this.entityType,
       entityId: entityId ?? this.entityId,
+      opType: opType ?? this.opType,
+      timestampMs: timestampMs ?? this.timestampMs,
       error: error ?? this.error,
       payload: payload ?? this.payload,
       createdAt: createdAt ?? this.createdAt,
       retryCount: retryCount ?? this.retryCount,
-      lastRetryAt: lastRetryAt ?? this.lastRetryAt,
+      nextRetryAfter: nextRetryAfter ?? this.nextRetryAfter,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -13673,6 +13771,12 @@ class SyncDeadLettersCompanion extends UpdateCompanion<SyncDeadLetter> {
     if (entityId.present) {
       map['entity_id'] = Variable<String>(entityId.value);
     }
+    if (opType.present) {
+      map['op_type'] = Variable<String>(opType.value);
+    }
+    if (timestampMs.present) {
+      map['timestamp_ms'] = Variable<int>(timestampMs.value);
+    }
     if (error.present) {
       map['error'] = Variable<String>(error.value);
     }
@@ -13685,8 +13789,8 @@ class SyncDeadLettersCompanion extends UpdateCompanion<SyncDeadLetter> {
     if (retryCount.present) {
       map['retry_count'] = Variable<int>(retryCount.value);
     }
-    if (lastRetryAt.present) {
-      map['last_retry_at'] = Variable<DateTime>(lastRetryAt.value);
+    if (nextRetryAfter.present) {
+      map['next_retry_after'] = Variable<DateTime>(nextRetryAfter.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -13700,11 +13804,13 @@ class SyncDeadLettersCompanion extends UpdateCompanion<SyncDeadLetter> {
           ..write('opId: $opId, ')
           ..write('entityType: $entityType, ')
           ..write('entityId: $entityId, ')
+          ..write('opType: $opType, ')
+          ..write('timestampMs: $timestampMs, ')
           ..write('error: $error, ')
           ..write('payload: $payload, ')
           ..write('createdAt: $createdAt, ')
           ..write('retryCount: $retryCount, ')
-          ..write('lastRetryAt: $lastRetryAt, ')
+          ..write('nextRetryAfter: $nextRetryAfter, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -24633,11 +24739,13 @@ typedef $$SyncDeadLettersTableCreateCompanionBuilder =
       required String opId,
       required String entityType,
       required String entityId,
+      required String opType,
+      Value<int> timestampMs,
       required String error,
       required String payload,
       Value<DateTime> createdAt,
       Value<int> retryCount,
-      Value<DateTime?> lastRetryAt,
+      Value<DateTime?> nextRetryAfter,
       Value<int> rowid,
     });
 typedef $$SyncDeadLettersTableUpdateCompanionBuilder =
@@ -24645,11 +24753,13 @@ typedef $$SyncDeadLettersTableUpdateCompanionBuilder =
       Value<String> opId,
       Value<String> entityType,
       Value<String> entityId,
+      Value<String> opType,
+      Value<int> timestampMs,
       Value<String> error,
       Value<String> payload,
       Value<DateTime> createdAt,
       Value<int> retryCount,
-      Value<DateTime?> lastRetryAt,
+      Value<DateTime?> nextRetryAfter,
       Value<int> rowid,
     });
 
@@ -24677,6 +24787,16 @@ class $$SyncDeadLettersTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get opType => $composableBuilder(
+    column: $table.opType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get timestampMs => $composableBuilder(
+    column: $table.timestampMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get error => $composableBuilder(
     column: $table.error,
     builder: (column) => ColumnFilters(column),
@@ -24697,8 +24817,8 @@ class $$SyncDeadLettersTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<DateTime> get lastRetryAt => $composableBuilder(
-    column: $table.lastRetryAt,
+  ColumnFilters<DateTime> get nextRetryAfter => $composableBuilder(
+    column: $table.nextRetryAfter,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -24727,6 +24847,16 @@ class $$SyncDeadLettersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get opType => $composableBuilder(
+    column: $table.opType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get timestampMs => $composableBuilder(
+    column: $table.timestampMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get error => $composableBuilder(
     column: $table.error,
     builder: (column) => ColumnOrderings(column),
@@ -24747,8 +24877,8 @@ class $$SyncDeadLettersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<DateTime> get lastRetryAt => $composableBuilder(
-    column: $table.lastRetryAt,
+  ColumnOrderings<DateTime> get nextRetryAfter => $composableBuilder(
+    column: $table.nextRetryAfter,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -24773,6 +24903,14 @@ class $$SyncDeadLettersTableAnnotationComposer
   GeneratedColumn<String> get entityId =>
       $composableBuilder(column: $table.entityId, builder: (column) => column);
 
+  GeneratedColumn<String> get opType =>
+      $composableBuilder(column: $table.opType, builder: (column) => column);
+
+  GeneratedColumn<int> get timestampMs => $composableBuilder(
+    column: $table.timestampMs,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get error =>
       $composableBuilder(column: $table.error, builder: (column) => column);
 
@@ -24787,8 +24925,8 @@ class $$SyncDeadLettersTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<DateTime> get lastRetryAt => $composableBuilder(
-    column: $table.lastRetryAt,
+  GeneratedColumn<DateTime> get nextRetryAfter => $composableBuilder(
+    column: $table.nextRetryAfter,
     builder: (column) => column,
   );
 }
@@ -24833,21 +24971,25 @@ class $$SyncDeadLettersTableTableManager
                 Value<String> opId = const Value.absent(),
                 Value<String> entityType = const Value.absent(),
                 Value<String> entityId = const Value.absent(),
+                Value<String> opType = const Value.absent(),
+                Value<int> timestampMs = const Value.absent(),
                 Value<String> error = const Value.absent(),
                 Value<String> payload = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> retryCount = const Value.absent(),
-                Value<DateTime?> lastRetryAt = const Value.absent(),
+                Value<DateTime?> nextRetryAfter = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SyncDeadLettersCompanion(
                 opId: opId,
                 entityType: entityType,
                 entityId: entityId,
+                opType: opType,
+                timestampMs: timestampMs,
                 error: error,
                 payload: payload,
                 createdAt: createdAt,
                 retryCount: retryCount,
-                lastRetryAt: lastRetryAt,
+                nextRetryAfter: nextRetryAfter,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -24855,21 +24997,25 @@ class $$SyncDeadLettersTableTableManager
                 required String opId,
                 required String entityType,
                 required String entityId,
+                required String opType,
+                Value<int> timestampMs = const Value.absent(),
                 required String error,
                 required String payload,
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> retryCount = const Value.absent(),
-                Value<DateTime?> lastRetryAt = const Value.absent(),
+                Value<DateTime?> nextRetryAfter = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SyncDeadLettersCompanion.insert(
                 opId: opId,
                 entityType: entityType,
                 entityId: entityId,
+                opType: opType,
+                timestampMs: timestampMs,
                 error: error,
                 payload: payload,
                 createdAt: createdAt,
                 retryCount: retryCount,
-                lastRetryAt: lastRetryAt,
+                nextRetryAfter: nextRetryAfter,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

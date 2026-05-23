@@ -56,6 +56,9 @@ class SyncEngine {
   /// Sync cycle counter for periodic dead-letter retry.
   int _syncCycleCount = 0;
 
+  /// Guard against concurrent sync operations (pull + retry interleaving).
+  bool _isSyncing = false;
+
   /// In-memory cache of lastSyncTs for fast heartbeat comparison.
   /// Authoritative value lives in SQLite (sync_metadata table).
   int _lastSyncTsMs = 0;
@@ -105,20 +108,23 @@ class SyncEngine {
     // 启动时立即尝试
     _syncCycle();
     _connectWebSocket();
-
-    // Retry dead-letter ops on startup (may succeed after app update)
-    _retryDeadLetterOps();
   }
 
   /// Full sync cycle: push pending ops then pull remote changes.
   Future<void> _syncCycle() async {
-    _syncCycleCount++;
-    await _pushPendingOps();
-    await _pullChanges();
+    if (_isSyncing) return; // Prevent interleaving from WS triggers
+    _isSyncing = true;
+    try {
+      _syncCycleCount++;
+      await _pushPendingOps();
+      await _pullChanges();
 
-    // Retry dead-letter ops every 10th sync cycle
-    if (_syncCycleCount % 10 == 0) {
-      await _retryDeadLetterOps();
+      // Retry dead-letter ops on first cycle (startup) and every 10th cycle
+      if (_syncCycleCount == 1 || _syncCycleCount % 10 == 0) {
+        await _retryDeadLetterOps();
+      }
+    } finally {
+      _isSyncing = false;
     }
   }
 
@@ -319,10 +325,16 @@ class SyncEngine {
               );
               dev.log('[Sync] stacktrace: $st');
               // Insert into dead-letter table (idempotent)
+              final opTimestampMs = op.hasTimestamp()
+                  ? op.timestamp.seconds.toInt() * 1000 +
+                      op.timestamp.nanos ~/ 1000000
+                  : 0;
               await _db!.insertDeadLetterOp(
                 opId: op.id,
                 entityType: op.entityType,
                 entityId: op.entityId,
+                opType: op.opType.name,
+                timestampMs: opTimestampMs,
                 error: e.toString(),
                 payload: op.payload,
               );
@@ -384,16 +396,25 @@ class SyncEngine {
       for (final deadOp in ops) {
         if (_disposed) return;
         try {
-          // Reconstruct a SyncOperation proto-like call
+          // Reconstruct the original SyncOperation with preserved opType + timestamp
+          final resolvedOpType = sync_enum.OperationType.values.firstWhere(
+            (v) => v.name == deadOp.opType,
+            orElse: () => sync_enum.OperationType.OPERATION_TYPE_UPDATE,
+          );
           final opProto = sync_pb.SyncOperation(
             id: deadOp.opId,
             entityType: deadOp.entityType,
             entityId: deadOp.entityId,
             payload: deadOp.payload,
-            // Default to UPDATE for retries; _applyRemoteOp handles
-            // the actual logic based on entityType and payload content
-            opType: sync_enum.OperationType.OPERATION_TYPE_UPDATE,
+            opType: resolvedOpType,
           );
+          // Restore original timestamp so LWW comparison works correctly
+          if (deadOp.timestampMs > 0) {
+            opProto.timestamp = proto_ts.Timestamp(
+              seconds: Int64(deadOp.timestampMs ~/ 1000),
+              nanos: (deadOp.timestampMs % 1000) * 1000000,
+            );
+          }
           await _db!.transaction(() async {
             await _applyRemoteOp(opProto);
           });

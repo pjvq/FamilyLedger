@@ -102,11 +102,16 @@ class SyncDeadLetters extends Table {
   TextColumn get opId => text()();
   TextColumn get entityType => text()();
   TextColumn get entityId => text()();
+  /// Original proto opType (e.g. 'OPERATION_TYPE_CREATE').
+  TextColumn get opType => text()();
+  /// Original operation timestamp in milliseconds since epoch.
+  IntColumn get timestampMs => integer().withDefault(const Constant(0))();
   TextColumn get error => text()();
   TextColumn get payload => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   IntColumn get retryCount => integer().withDefault(const Constant(0))();
-  DateTimeColumn get lastRetryAt => dateTime().nullable()();
+  /// Next allowed retry time (NOT "last retry time"). Null = immediately eligible.
+  DateTimeColumn get nextRetryAfter => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {opId};
