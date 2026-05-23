@@ -54,6 +54,7 @@ class SyncEngine {
   static const _maxBackoffSeconds = 300; // 5 minutes cap
   static const _wsReconnectBaseDelay = 1; // seconds
   static const _wsReconnectMaxDelay = 60; // seconds
+  static const _wsReconnectMaxTotalDelay = 90; // seconds (includes jitter)
 
   /// Async mutex — prevents concurrent push/pull from corrupting state.
   /// At most one sync operation (push or pull) runs at a time.
@@ -898,8 +899,7 @@ class SyncEngine {
         }
       }
     } catch (e) {
-      // 非 JSON 消息或未知格式，尝试拉取
-      _pullChanges();
+      dev.log('[WS] failed to parse message: $e');
     }
   }
 
@@ -947,7 +947,7 @@ class SyncEngine {
         // CA chain validated by SecurityContext (pinned CA only).
         // This callback fires only for non-chain issues (e.g. IP SAN
         // mismatch). Accept if issued by our pinned CA.
-        return cert.issuer.contains('FamilyLedger CA');
+        return cert.issuer.contains(AppConstants.pinnedCaIssuer);
       };
     return _secureHttpClient!;
   }
@@ -1003,7 +1003,7 @@ class SyncEngine {
     final exponentialDelay = _wsReconnectBaseDelay * (1 << _reconnectAttempts.clamp(0, 6));
     final delay = exponentialDelay.clamp(_wsReconnectBaseDelay, _wsReconnectMaxDelay);
     final jitter = Random().nextInt((delay * 0.5).ceil() + 1);
-    final totalDelay = (delay + jitter).clamp(0, 90);
+    final totalDelay = (delay + jitter).clamp(0, _wsReconnectMaxTotalDelay);
 
     dev.log(
       '[WS] reconnecting in ${totalDelay}s (attempt ${_reconnectAttempts + 1})',
@@ -1025,7 +1025,9 @@ class SyncEngine {
   void onAppResumed() {
     if (_disposed) return;
     dev.log('[Sync] app resumed, syncing...');
-    // Restart timer if it was cancelled
+    // Reset backoff — user returning to foreground deserves a fresh start
+    _consecutiveFailures = 0;
+    // Restart timer at normal interval
     _syncTimer?.cancel();
     _syncTimer = Timer.periodic(
       const Duration(seconds: AppConstants.syncIntervalSeconds),

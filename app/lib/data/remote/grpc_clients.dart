@@ -56,7 +56,7 @@ final grpcChannelProvider = Provider<ClientChannel>((ref) {
                 // This callback only fires for non-chain issues (e.g. IP SAN
                 // mismatch with IP address). Since we pinned our CA as the
                 // sole trust anchor, accepting certs issued by it is safe.
-                return cert.issuer.contains('FamilyLedger CA');
+                return cert.issuer.contains(AppConstants.pinnedCaIssuer);
               },
             )
           : const ChannelCredentials.insecure(),

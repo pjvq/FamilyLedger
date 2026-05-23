@@ -43,6 +43,10 @@ class AppConstants {
   static const syncIntervalSeconds = 30;
   static const clientIdKey = 'client_id';
 
+  // ─── TLS ──────────────────────────────────────────────────────────────────
+  /// Expected issuer substring in server certificate for onBadCertificate.
+  static const pinnedCaIssuer = 'FamilyLedger CA';
+
   // ─── UI ───────────────────────────────────────────────────────────────────
   static const currencySymbol = '¥';
   static const defaultCurrency = 'CNY';

@@ -355,6 +355,9 @@ void main() {
 // ─── Testable subclass ──────────────────────────────────────
 
 /// Exposes _applyRemoteOp for testing.
+/// Note: super.inert() sets the parent _db to null. This subclass uses its own
+/// _testDb field. Since the test re-implements _applyRemoteOp logic (cannot call
+/// private parent methods), the null parent _db is never accessed.
 class _TestableSyncEngine extends SyncEngine {
   final AppDatabase _testDb;
 
