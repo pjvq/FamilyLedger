@@ -101,7 +101,7 @@ if [[ "${HAS_TLS}" == "true" ]]; then
   ${SCP_CMD} "${TLS_CERTS_DIR}/ca.pem" "${USER}@${HOST}:${REMOTE_TLS_DIR}/ca.pem"
   ${SCP_CMD} "${TLS_CERTS_DIR}/server.pem" "${USER}@${HOST}:${REMOTE_TLS_DIR}/server.pem"
   ${SCP_CMD} "${TLS_CERTS_DIR}/server-key.pem" "${USER}@${HOST}:${REMOTE_TLS_DIR}/server-key.pem"
-  ${SSH_CMD} "sudo chmod 644 ${REMOTE_TLS_DIR}/ca.pem ${REMOTE_TLS_DIR}/server.pem && sudo chmod 600 ${REMOTE_TLS_DIR}/server-key.pem"
+  ${SSH_CMD} "sudo chmod 644 '${REMOTE_TLS_DIR}/ca.pem' '${REMOTE_TLS_DIR}/server.pem' && sudo chmod 600 '${REMOTE_TLS_DIR}/server-key.pem'"
   echo "   ✓ ca.pem, server.pem, server-key.pem → ${REMOTE_TLS_DIR}/"
 else
   echo ""

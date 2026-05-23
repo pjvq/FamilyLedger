@@ -46,6 +46,9 @@ class SyncEngine {
   /// Cached SecurityContext for WebSocket TLS (avoids re-parsing PEM on every reconnect).
   SecurityContext? _securityContext;
 
+  /// Cached HttpClient for WebSocket TLS (avoids connection pool leaks on reconnect).
+  HttpClient? _secureHttpClient;
+
   /// Consecutive sync failures — used for exponential backoff.
   int _consecutiveFailures = 0;
   static const _maxBackoffSeconds = 300; // 5 minutes cap
@@ -75,14 +78,6 @@ class SyncEngine {
   /// Used in production when no user is logged in (all methods are safe no-ops
   /// due to the `if (_disposed) return` / null guards).
   SyncEngine.inert()
-      : _db = null,
-        _syncClient = null,
-        _prefs = null,
-        _tokenStorage = null;
-
-  /// @visibleForTesting — alias for [inert] with test-friendly semantics.
-  @Deprecated('Use SyncEngine.inert() or provide mocks directly')
-  SyncEngine.forTesting()
       : _db = null,
         _syncClient = null,
         _prefs = null,
@@ -134,6 +129,7 @@ class SyncEngine {
           await _db!.getPendingSyncOps(AppConstants.syncBatchSize);
       dev.log('[Sync] _pushPendingOps: pendingOps count=${pendingOps.length}');
       if (pendingOps.isEmpty) {
+        _onSyncSuccess(); // Reset backoff — no pending ops is not a failure
         onSyncEvent?.call(const SyncEvent.syncCompleted());
         return;
       }
@@ -947,22 +943,25 @@ class SyncEngine {
     }
   }
 
-  /// Create an HttpClient with our pinned CA for WebSocket TLS.
+  /// Create or reuse an HttpClient with our pinned CA for WebSocket TLS.
   HttpClient _createSecureHttpClient() {
+    if (_secureHttpClient != null) return _secureHttpClient!;
     _securityContext ??= SecurityContext()
       ..setTrustedCertificatesBytes(caCertBytes);
-    return HttpClient(context: _securityContext!)
+    _secureHttpClient = HttpClient(context: _securityContext!)
       ..badCertificateCallback = (cert, host, port) {
         // CA chain validated by SecurityContext (pinned CA only).
         // This callback fires only for non-chain issues (e.g. IP SAN
         // mismatch). Accept if issued by our pinned CA.
         return cert.issuer.contains('FamilyLedger CA');
       };
+    return _secureHttpClient!;
   }
 
   // ─────────── Backoff: 连续失败时延长重试间隔 ───────────
 
   void _onSyncSuccess() {
+    if (_disposed) return;
     if (_consecutiveFailures > 0) {
       _consecutiveFailures = 0;
       _rescheduleTimer(AppConstants.syncIntervalSeconds);
@@ -970,6 +969,7 @@ class SyncEngine {
   }
 
   void _onSyncFailure() {
+    if (_disposed) return;
     _consecutiveFailures++;
     // Exponential backoff: 30s, 60s, 120s, 240s, capped at 300s
     final backoff = (AppConstants.syncIntervalSeconds * pow(2, _consecutiveFailures - 1))
@@ -1058,6 +1058,8 @@ class SyncEngine {
     _reconnectAttempts = 0;
     _syncTimer?.cancel();
     _disconnectWebSocket();
+    _secureHttpClient?.close();
+    _secureHttpClient = null;
   }
 }
 

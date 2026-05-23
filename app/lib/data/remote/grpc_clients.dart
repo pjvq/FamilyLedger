@@ -34,8 +34,10 @@ Future<void> loadTlsCertificate() async {
 /// Expose loaded CA cert bytes for WebSocket SecurityContext.
 /// Must only be called after [loadTlsCertificate] completes.
 Uint8List get caCertBytes {
-  assert(_caCertBytes != null,
-      'loadTlsCertificate() must be called before accessing caCertBytes');
+  if (_caCertBytes == null) {
+    throw StateError(
+        'loadTlsCertificate() must be called before accessing caCertBytes');
+  }
   return _caCertBytes!;
 }
 
