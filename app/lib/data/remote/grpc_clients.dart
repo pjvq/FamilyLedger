@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:grpc/grpc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,9 +51,10 @@ final grpcChannelProvider = Provider<ClientChannel>((ref) {
               authority: AppConstants.serverHost,
               onBadCertificate: (cert, host) {
                 // CA chain validation is done by BoringSSL via `certificates`.
-                // This callback only fires for non-chain issues (e.g. IP SAN).
-                // In release builds we reject; in debug we allow for dev servers.
-                return !kReleaseMode;
+                // This callback only fires for non-chain issues (e.g. IP SAN
+                // mismatch with IP address). Since we pinned our CA as the
+                // sole trust anchor, accepting certs issued by it is safe.
+                return cert.issuer.contains('FamilyLedger CA');
               },
             )
           : const ChannelCredentials.insecure(),

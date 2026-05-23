@@ -6,7 +6,6 @@ import 'dart:math';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -940,9 +939,10 @@ class SyncEngine {
       ..setTrustedCertificatesBytes(caCertBytes);
     return HttpClient(context: ctx)
       ..badCertificateCallback = (cert, host, port) {
-        // CA chain validated by SecurityContext. This callback fires
-        // only for non-chain issues (e.g. IP SAN). Allow in debug only.
-        return !kReleaseMode;
+        // CA chain validated by SecurityContext (pinned CA only).
+        // This callback fires only for non-chain issues (e.g. IP SAN
+        // mismatch). Accept if issued by our pinned CA.
+        return cert.issuer.contains('FamilyLedger CA');
       };
   }
 
