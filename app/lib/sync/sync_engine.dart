@@ -52,6 +52,10 @@ class SyncEngine {
   /// Consecutive sync failures — used for exponential backoff.
   int _consecutiveFailures = 0;
   static const _maxBackoffSeconds = 300; // 5 minutes cap
+
+  /// In-memory cache of lastSyncTs for fast heartbeat comparison.
+  /// Authoritative value lives in SQLite (sync_metadata table).
+  int _lastSyncTsMs = 0;
   static const _wsReconnectBaseDelay = 1; // seconds
   static const _wsReconnectMaxDelay = 60; // seconds
   static const _wsReconnectMaxTotalDelay = 90; // seconds (includes jitter)
@@ -257,7 +261,8 @@ class SyncEngine {
   Future<void> _doPull() async {
     dev.log('[Sync] _doPull: started');
     try {
-      final lastTsMs = _prefs!.getInt(_lastSyncTsKey) ?? 0;
+      final lastTsMs = await _db!.getSyncMetaInt(_lastSyncTsKey) ?? 0;
+      _lastSyncTsMs = lastTsMs;
       final userId = _prefs!.getString(AppConstants.userIdKey);
       if (userId == null) return;
 
@@ -289,26 +294,25 @@ class SyncEngine {
 
         final response = await _syncClient!.pullChanges(request);
 
-        // Apply all ops in a single DB transaction for atomicity and performance.
-        // If app crashes mid-page, entire page is rolled back — no partial state.
+        // Apply all ops + update checkpoint in a single DB transaction.
+        // Atomic: if crash occurs, both ops and checkpoint roll back together.
         await _db!.transaction(() async {
           for (final op in response.operations) {
             await _applyRemoteOp(op);
+          }
+          // Save checkpoint inside transaction so it’s atomic with the ops.
+          if (pageToken.isEmpty && response.hasServerTime()) {
+            final serverMs =
+                response.serverTime.seconds.toInt() * 1000 +
+                response.serverTime.nanos ~/ 1000000;
+            await _db!.setSyncMetaInt(_lastSyncTsKey, serverMs);
+            _lastSyncTsMs = serverMs;
           }
         });
         totalPulled += response.operations.length;
 
         pageToken = response.nextPageToken;
-
-        // Only save server_time on the final page to avoid checkpoint
-        // advancing past un-applied ops if crash occurs mid-pagination.
-        if (pageToken.isEmpty && response.hasServerTime()) {
-          final serverMs =
-              response.serverTime.seconds.toInt() * 1000 +
-              response.serverTime.nanos ~/ 1000000;
-          await _prefs!.setInt(_lastSyncTsKey, serverMs);
-        }
-      } while (pageToken.isNotEmpty); // Use nextPageToken (not has_more) as loop guard — more reliable
+      } while (pageToken.isNotEmpty);
 
       dev.log('[Sync] _doPull: pulled $totalPulled changes, done');
       onSyncEvent?.call(const SyncEvent.syncCompleted());
@@ -327,75 +331,106 @@ class SyncEngine {
   /// - DELETE operations are always applied (delete is a terminal state)
   /// - For CREATE/UPDATE: compare remote op timestamp with local entity's
   ///   updated_at. Only apply if remote timestamp >= local updated_at.
+  ///
+  /// Exceptions are NOT caught here — they bubble up to the transaction
+  /// wrapper in _doPull, causing a full page rollback. This ensures no
+  /// partial state from a malformed op.
   Future<void> _applyRemoteOp(sync_pb.SyncOperation op) async {
-    try {
-      final payload = jsonDecode(op.payload) as Map<String, dynamic>;
+    final isDelete =
+        op.opType == sync_enum.OperationType.OPERATION_TYPE_DELETE;
 
-      // DELETE is always applied (terminal state)
-      final isDelete =
-          op.opType == sync_enum.OperationType.OPERATION_TYPE_DELETE;
-
-      if (!isDelete) {
-        // R9 fix: DELETE is terminal — if entity is locally deleted, reject any
-        // subsequent CREATE/UPDATE even with later timestamp.
-        final isLocallyDeleted = await _isEntityDeleted(op.entityType, op.entityId);
-        if (isLocallyDeleted) {
-          dev.log(
-            '[Sync] R9 terminal skip ${op.entityType}/${op.entityId} '
-            '(locally deleted, ignoring ${op.opType})',
-          );
-          return;
-        }
-
-        // LWW check: skip if local data is newer
-        final remoteTimestampMs = op.hasTimestamp()
-            ? op.timestamp.seconds.toInt() * 1000 +
-                op.timestamp.nanos ~/ 1000000
-            : 0;
-        final localUpdatedAt =
-            await _getLocalEntityUpdatedAt(op.entityType, op.entityId);
-
-        if (localUpdatedAt != null &&
-            localUpdatedAt.millisecondsSinceEpoch > remoteTimestampMs) {
-          // Local is newer — skip this remote operation
-          dev.log(
-            '[Sync] LWW skip ${op.entityType}/${op.entityId} '
-            '(local=${localUpdatedAt.millisecondsSinceEpoch}, remote=$remoteTimestampMs)',
-          );
-          return;
-        }
-      }
-
+    // DELETE path: does not require payload parsing.
+    // Short-circuit before jsonDecode to handle empty/null payloads.
+    if (isDelete) {
       switch (op.entityType) {
         case 'transaction':
-          await _applyTransactionOp(op.opType, op.entityId, payload);
+          await _applyTransactionOp(op.opType, op.entityId, const {});
           break;
         case 'account':
-          await _applyAccountOp(op.opType, op.entityId, payload);
+          await _applyAccountOp(op.opType, op.entityId, const {});
           break;
         case 'category':
-          await _applyCategoryOp(op.opType, op.entityId, payload);
+          await _applyCategoryOp(op.opType, op.entityId, const {});
           break;
         case 'loan':
-          await _applyLoanOp(op.opType, op.entityId, payload);
+          await _applyLoanOp(op.opType, op.entityId, const {});
           break;
         case 'loan_group':
-          await _applyLoanGroupOp(op.opType, op.entityId, payload);
+          await _applyLoanGroupOp(op.opType, op.entityId, const {});
           break;
         case 'investment':
-          await _applyInvestmentOp(op.opType, op.entityId, payload);
+          await _applyInvestmentOp(op.opType, op.entityId, const {});
           break;
         case 'fixed_asset':
-          await _applyFixedAssetOp(op.opType, op.entityId, payload);
+          await _applyFixedAssetOp(op.opType, op.entityId, const {});
           break;
         case 'budget':
-          await _applyBudgetOp(op.opType, op.entityId, payload);
+          await _applyBudgetOp(op.opType, op.entityId, const {});
           break;
         default:
           dev.log('[Sync] unknown entity_type ${op.entityType}');
       }
-    } catch (e) {
-      dev.log('[Sync] apply op failed: $e');
+      return;
+    }
+
+    // CREATE/UPDATE path: requires payload.
+    final payload = jsonDecode(op.payload) as Map<String, dynamic>;
+
+    // R9 fix: DELETE is terminal — if entity is locally deleted, reject any
+    // subsequent CREATE/UPDATE even with later timestamp.
+    final isLocallyDeleted = await _isEntityDeleted(op.entityType, op.entityId);
+    if (isLocallyDeleted) {
+      dev.log(
+        '[Sync] R9 terminal skip ${op.entityType}/${op.entityId} '
+        '(locally deleted, ignoring ${op.opType})',
+      );
+      return;
+    }
+
+    // LWW check: skip if local data is newer
+    final remoteTimestampMs = op.hasTimestamp()
+        ? op.timestamp.seconds.toInt() * 1000 +
+            op.timestamp.nanos ~/ 1000000
+        : 0;
+    final localUpdatedAt =
+        await _getLocalEntityUpdatedAt(op.entityType, op.entityId);
+
+    if (localUpdatedAt != null &&
+        localUpdatedAt.millisecondsSinceEpoch > remoteTimestampMs) {
+      dev.log(
+        '[Sync] LWW skip ${op.entityType}/${op.entityId} '
+        '(local=${localUpdatedAt.millisecondsSinceEpoch}, remote=$remoteTimestampMs)',
+      );
+      return;
+    }
+
+    switch (op.entityType) {
+      case 'transaction':
+        await _applyTransactionOp(op.opType, op.entityId, payload);
+        break;
+      case 'account':
+        await _applyAccountOp(op.opType, op.entityId, payload);
+        break;
+      case 'category':
+        await _applyCategoryOp(op.opType, op.entityId, payload);
+        break;
+      case 'loan':
+        await _applyLoanOp(op.opType, op.entityId, payload);
+        break;
+      case 'loan_group':
+        await _applyLoanGroupOp(op.opType, op.entityId, payload);
+        break;
+      case 'investment':
+        await _applyInvestmentOp(op.opType, op.entityId, payload);
+        break;
+      case 'fixed_asset':
+        await _applyFixedAssetOp(op.opType, op.entityId, payload);
+        break;
+      case 'budget':
+        await _applyBudgetOp(op.opType, op.entityId, payload);
+        break;
+      default:
+        dev.log('[Sync] unknown entity_type ${op.entityType}');
     }
   }
 
@@ -499,7 +534,8 @@ class SyncEngine {
         }
         break;
       case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
-        // Get old transaction to revert its balance contribution
+        // IMPORTANT: fetch oldTxn BEFORE overwriting. The insert below
+        // replaces the row, so oldTxn must be captured first for balance revert.
         final oldTxn = await _db!.getTransactionById(entityId);
 
         final txnDateUpdate = DateTime.tryParse(payload['txn_date'] ?? '') ??
@@ -813,7 +849,11 @@ class SyncEngine {
       // Subscribe BEFORE sending auth (so we don't miss auth_ok)
       _wsSub = _wsChannel!.stream.listen(
         (message) {
-          dev.log('[WS] message received (${(message as String).length} chars)');
+          if (message is! String) {
+            dev.log('[WS] ignoring non-text frame (${message.runtimeType})');
+            return;
+          }
+          dev.log('[WS] message received (${message.length} chars)');
           _handleWsMessage(message);
         },
         onError: (error) {
@@ -868,9 +908,9 @@ class SyncEngine {
     }
   }
 
-  void _handleWsMessage(dynamic message) {
+  void _handleWsMessage(String message) {
     try {
-      final data = jsonDecode(message as String) as Map<String, dynamic>;
+      final data = jsonDecode(message) as Map<String, dynamic>;
       final type = data['type'] as String?;
 
       if (type == 'auth_ok') {
@@ -892,7 +932,7 @@ class SyncEngine {
         // Server heartbeat with watermark: compare with our lastSyncTs
         final serverTimeMs = (data['server_time'] as num?)?.toInt();
         if (serverTimeMs != null) {
-          final localTs = _prefs!.getInt(_lastSyncTsKey) ?? 0;
+          final localTs = _lastSyncTsMs;
           if (serverTimeMs > localTs) {
             // We're behind — pull to catch up
             dev.log(

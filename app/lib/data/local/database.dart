@@ -32,6 +32,7 @@ part 'database.g.dart';
   AssetValuations,
   DepreciationRules,
   SyncQueue,
+  SyncMetadata,
   ExchangeRates,
 ])
 class AppDatabase extends _$AppDatabase {
@@ -40,7 +41,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -161,6 +162,10 @@ class AppDatabase extends _$AppDatabase {
             await _safeDropColumn('categories', 'icon');
             // Backfill empty iconKey based on category name
             await _backfillEmptyIconKeys();
+          }
+          if (from < 20) {
+            // v19 → v20: sync_metadata table for atomic checkpoint storage
+            await m.createTable(syncMetadata);
           }
         },
         beforeOpen: (details) async {
@@ -688,6 +693,18 @@ class AppDatabase extends _$AppDatabase {
         .write(const TransactionsCompanion(
           syncStatus: Value('synced'),
         ));
+  }
+
+  // Sync metadata (atomic checkpoint in same DB as ops)
+  Future<int?> getSyncMetaInt(String key) async {
+    final row = await (select(syncMetadata)..where((s) => s.key.equals(key))).getSingleOrNull();
+    return row?.value;
+  }
+
+  Future<void> setSyncMetaInt(String key, int value) async {
+    await into(syncMetadata).insertOnConflictUpdate(
+      SyncMetadataCompanion.insert(key: key, value: value),
+    );
   }
 
   /// Mark transactions as failed (called after push retries exhausted).

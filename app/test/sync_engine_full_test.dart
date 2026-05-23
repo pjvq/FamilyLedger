@@ -473,8 +473,8 @@ void main() {
         final engine = TestableSyncEngine(db, mockClient, prefs);
         await engine.testSyncNow();
 
-        // Verify prefs saved the timestamp
-        final savedTs = prefs.getInt('sync_last_pull_ts');
+        // Verify DB saved the timestamp (migrated from SharedPreferences)
+        final savedTs = await db.getSyncMetaInt('sync_last_pull_ts');
         expect(savedTs, serverTimeMs);
 
         engine.dispose();
