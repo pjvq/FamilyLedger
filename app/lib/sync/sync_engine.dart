@@ -69,6 +69,11 @@ class SyncEngine {
   static const _deadLetterPurgeDays = 30;
   static const _deadLetterRetryCycleInterval = 10;
 
+  static const _knownEntityTypes = {
+    'transaction', 'account', 'category', 'loan',
+    'loan_group', 'investment', 'fixed_asset', 'budget',
+  };
+
   static const _wsReconnectBaseDelay = 1; // seconds
   static const _wsReconnectMaxDelay = 60; // seconds
   static const _wsReconnectMaxTotalDelay = 90; // seconds (includes jitter)
@@ -495,8 +500,15 @@ class SyncEngine {
       final state = await _getLocalEntityState(op.entityType, op.entityId);
       if (state.isDeleted) return; // Already deleted — idempotent
       // Entity doesn't exist locally — nothing to delete (safe no-op).
-      // All softDelete methods use UPDATE WHERE id=? which affects 0 rows.
-      if (state.updatedAt == null) return;
+      // But for unknown entity types, throw to enter dead-letter.
+      if (state.updatedAt == null) {
+        if (!_knownEntityTypes.contains(op.entityType)) {
+          throw UnsupportedError(
+            'Unknown entity_type: ${op.entityType} (op: ${op.id})',
+          );
+        }
+        return;
+      }
       payload = const {};
     } else {
       payload = jsonDecode(op.payload) as Map<String, dynamic>;
@@ -582,8 +594,9 @@ class SyncEngine {
           updatedAt: acc?.updatedAt,
         );
       case 'category':
-        // Categories don't track updatedAt or soft delete.
-        // Check existence so DELETE path can distinguish "exists" from "not exists".
+        // Categories don't track updatedAt (always accept remote ops via LWW).
+        // Use DateTime(0) sentinel to indicate "exists" without LWW protection.
+        // null = doesn't exist; DateTime(0) = exists but no LWW.
         final catExists = await _db!.categoryExists(entityId);
         return (isDeleted: false, updatedAt: catExists ? DateTime(0) : null);
       case 'loan':

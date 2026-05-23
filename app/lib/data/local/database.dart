@@ -1099,10 +1099,12 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
-  /// Check if a category exists by ID.
+  /// Check if a category exists by ID (lightweight, only fetches id column).
   Future<bool> categoryExists(String id) async {
-    final row = await (select(categories)..where((c) => c.id.equals(id)))
-        .getSingleOrNull();
+    final query = selectOnly(categories)
+      ..addColumns([categories.id])
+      ..where(categories.id.equals(id));
+    final row = await query.getSingleOrNull();
     return row != null;
   }
 
