@@ -231,6 +231,46 @@ func (s *Service) GetNetWorth(ctx context.Context, req *pb.GetNetWorthRequest) (
 	}, nil
 }
 
+// investmentValuation queries the estimated market value of investments
+// as of a given date using price_history for historical prices.
+// Returns (totalCostBasis, totalMarketValue).
+func (s *Service) investmentValuation(ctx context.Context, ff *familyFilter, asOf time.Time, includeQuantityFilter bool) (int64, int64) {
+	var whereClause string
+	var arg string
+	if ff.isFamilyMode {
+		whereClause = "i.family_id = $1"
+		arg = ff.familyID
+	} else {
+		whereClause = "i.user_id = $1 AND i.family_id IS NULL"
+		arg = ff.userID
+	}
+	quantityFilter := ""
+	if includeQuantityFilter {
+		quantityFilter = " AND i.quantity > 0"
+	}
+
+	var totalCost, totalValue int64
+	if err := s.pool.QueryRow(ctx,
+		`SELECT COALESCE(SUM(i.cost_basis), 0),
+				COALESCE(SUM(
+					CASE WHEN ph.close_price > 0 THEN CAST(i.quantity * ph.close_price AS BIGINT)
+					ELSE i.cost_basis END
+				), 0)
+		 FROM investments i
+		 LEFT JOIN LATERAL (
+			SELECT close_price FROM price_history
+			WHERE symbol = i.symbol AND market_type = i.market_type
+			  AND price_date <= $2
+			ORDER BY price_date DESC LIMIT 1
+		 ) ph ON true
+		 WHERE `+whereClause+` AND i.deleted_at IS NULL`+quantityFilter,
+		arg, asOf,
+	).Scan(&totalCost, &totalValue); err != nil {
+		log.Printf("investmentValuation: %v", err)
+	}
+	return totalCost, totalValue
+}
+
 // estimateLastMonthNetWorth 估算上月末净资产。
 // Simplified approach: query summaries as of end of last month.
 func (s *Service) estimateLastMonthNetWorth(ctx context.Context, ff *familyFilter) int64 {
@@ -285,44 +325,7 @@ func (s *Service) estimateLastMonthNetWorth(ctx context.Context, ff *familyFilte
 	lastMonthCash := currentCash - monthIncome + monthExpense
 
 	// 上月末投资市值 — 查 price_history 近似
-	var lastMonthInvestment int64
-	if ff.isFamilyMode {
-		_ = s.pool.QueryRow(ctx,
-			`SELECT COALESCE(SUM(
-				CASE
-					WHEN ph.price > 0 THEN CAST(i.quantity * ph.price AS BIGINT)
-					ELSE i.cost_basis
-				END
-			), 0)
-			 FROM investments i
-			 LEFT JOIN LATERAL (
-				SELECT price FROM price_history
-				WHERE symbol = i.symbol AND market_type = i.market_type
-				  AND timestamp <= $2
-				ORDER BY timestamp DESC LIMIT 1
-			 ) ph ON true
-			 WHERE i.family_id = $1 AND i.deleted_at IS NULL`,
-			ff.familyID, lastMonthEnd,
-		).Scan(&lastMonthInvestment)
-	} else {
-		_ = s.pool.QueryRow(ctx,
-			`SELECT COALESCE(SUM(
-				CASE
-					WHEN ph.price > 0 THEN CAST(i.quantity * ph.price AS BIGINT)
-					ELSE i.cost_basis
-				END
-			), 0)
-			 FROM investments i
-			 LEFT JOIN LATERAL (
-				SELECT price FROM price_history
-				WHERE symbol = i.symbol AND market_type = i.market_type
-				  AND timestamp <= $2
-				ORDER BY timestamp DESC LIMIT 1
-			 ) ph ON true
-			 WHERE i.user_id = $1 AND i.deleted_at IS NULL AND i.family_id IS NULL`,
-			ff.userID, lastMonthEnd,
-		).Scan(&lastMonthInvestment)
-	}
+	_, lastMonthInvestment := s.investmentValuation(ctx, ff, lastMonthEnd, false)
 
 	// 上月末固定资产 — 查 asset_valuations
 	var lastMonthAsset int64
@@ -1165,41 +1168,7 @@ func (s *Service) GetInvestmentTrend(ctx context.Context, req *pb.InvestmentTren
 			}
 		} else {
 			// Historical month: use price_history for valuation
-			if ff.isFamilyMode {
-				_ = s.pool.QueryRow(ctx,
-					`SELECT COALESCE(SUM(i.cost_basis), 0),
-							COALESCE(SUM(
-								CASE WHEN ph.price > 0 THEN CAST(i.quantity * ph.price AS BIGINT)
-								ELSE i.cost_basis END
-							), 0)
-					 FROM investments i
-					 LEFT JOIN LATERAL (
-						SELECT price FROM price_history
-						WHERE symbol = i.symbol AND market_type = i.market_type
-						  AND timestamp <= $2
-						ORDER BY timestamp DESC LIMIT 1
-					 ) ph ON true
-					 WHERE i.family_id = $1 AND i.deleted_at IS NULL AND i.quantity > 0`,
-					ff.familyID, monthEnd,
-				).Scan(&totalCost, &totalValue)
-			} else {
-				_ = s.pool.QueryRow(ctx,
-					`SELECT COALESCE(SUM(i.cost_basis), 0),
-							COALESCE(SUM(
-								CASE WHEN ph.price > 0 THEN CAST(i.quantity * ph.price AS BIGINT)
-								ELSE i.cost_basis END
-							), 0)
-					 FROM investments i
-					 LEFT JOIN LATERAL (
-						SELECT price FROM price_history
-						WHERE symbol = i.symbol AND market_type = i.market_type
-						  AND timestamp <= $2
-						ORDER BY timestamp DESC LIMIT 1
-					 ) ph ON true
-					 WHERE i.user_id = $1 AND i.deleted_at IS NULL AND i.family_id IS NULL AND i.quantity > 0`,
-					ff.userID, monthEnd,
-				).Scan(&totalCost, &totalValue)
-			}
+			totalCost, totalValue = s.investmentValuation(ctx, ff, monthEnd, true)
 		}
 
 		var returnRate float64

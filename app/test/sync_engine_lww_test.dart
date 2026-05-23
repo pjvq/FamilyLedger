@@ -63,7 +63,7 @@ void main() {
 
     setUp(() async {
       db = await _setupDb();
-      // Use the forTesting constructor + override _db for our test.
+      // Use the inert constructor + override _db for our test.
       // We need direct access to _applyRemoteOp. Since it's private,
       // we'll test through the public-facing behavior by calling the
       // internal method via a testable subclass.
@@ -355,10 +355,13 @@ void main() {
 // ─── Testable subclass ──────────────────────────────────────
 
 /// Exposes _applyRemoteOp for testing.
+/// Note: super.inert() sets the parent _db to null. This subclass uses its own
+/// _testDb field. Since the test re-implements _applyRemoteOp logic (cannot call
+/// private parent methods), the null parent _db is never accessed.
 class _TestableSyncEngine extends SyncEngine {
   final AppDatabase _testDb;
 
-  _TestableSyncEngine(this._testDb) : super.forTesting();
+  _TestableSyncEngine(this._testDb) : super.inert();
 
   /// Public wrapper around the private _applyRemoteOp for testing.
   Future<void> applyRemoteOp(sync_pb.SyncOperation op) async {

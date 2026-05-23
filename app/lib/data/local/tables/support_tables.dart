@@ -91,3 +91,16 @@ class ExchangeRates extends Table {
   @override
   Set<Column> get primaryKey => {currencyPair};
 }
+
+/// Simple key-value table for sync metadata (e.g. lastSyncTs).
+/// Stored in SQLite so it can participate in the same transaction as ops.
+class SyncMetadata extends Table {
+  @override
+  String get tableName => 'sync_metadata';
+
+  TextColumn get key => text()();
+  IntColumn get value => integer()();
+
+  @override
+  Set<Column> get primaryKey => {key};
+}

@@ -15,6 +15,10 @@ set -euo pipefail
 #   - 本地已安装 docker
 #   - 目标服务器已安装 docker + docker compose
 #   - 本地 SSH key 可免密登录目标服务器
+#
+# TLS:
+#   如果 deploy/tls/certs/ 下存在证书文件，自动部署 TLS 证书到服务器。
+#   首次生成证书: cd deploy/tls && ./generate-self-signed.sh ./certs
 # ─────────────────────────────────────────────────────────────────────────────
 
 HOST="${1:?用法: ./deploy.sh <HOST> [USER] [PORT]}"
@@ -32,11 +36,20 @@ IMAGE_TAG="$(git -C "${PROJECT_DIR}" rev-parse --short HEAD)"
 IMAGE_FULL="${IMAGE_NAME}:${IMAGE_TAG}"
 REMOTE_DIR="/opt/familyledger"
 ARCHIVE="/tmp/${IMAGE_NAME}-${IMAGE_TAG}.tar.gz"
+TLS_CERTS_DIR="${PROJECT_DIR}/deploy/tls/certs"
+REMOTE_TLS_DIR="/etc/familyledger/tls"
+
+# Detect TLS certificates
+HAS_TLS=false
+if [[ -f "${TLS_CERTS_DIR}/server.pem" && -f "${TLS_CERTS_DIR}/server-key.pem" && -f "${TLS_CERTS_DIR}/ca.pem" ]]; then
+  HAS_TLS=true
+fi
 
 echo "══════════════════════════════════════════════════"
 echo "  FamilyLedger Deploy"
 echo "  Target: ${USER}@${HOST}:${PORT}"
 echo "  Image:  ${IMAGE_FULL}"
+echo "  TLS:    ${HAS_TLS}"
 echo "══════════════════════════════════════════════════"
 
 # ─── Step 1: 本地构建 Docker 镜像 ───────────────────────────────────────────
@@ -53,29 +66,59 @@ echo "   Size: ${SIZE}"
 
 # ─── Step 3: 传输到服务器 ────────────────────────────────────────────────────
 echo ""
-echo "🚀 [3/5] Uploading to ${HOST}..."
+echo "🚀 [3/6] Uploading to ${HOST}..."
 ${SSH_CMD} "mkdir -p ${REMOTE_DIR}"
 ${SCP_CMD} "${ARCHIVE}" "${USER}@${HOST}:${REMOTE_DIR}/"
 
-# 传输 docker-compose.yml
-${SCP_CMD} "${PROJECT_DIR}/docker-compose.yml" "${USER}@${HOST}:${REMOTE_DIR}/"
+# 传输 deploy/ 下的 docker-compose.yml（生产版，含 TLS volume mount）
+${SCP_CMD} "${PROJECT_DIR}/deploy/docker-compose.yml" "${USER}@${HOST}:${REMOTE_DIR}/docker-compose.yml"
 
-# 传输 .env.production（如果有）
-if [[ -f "${PROJECT_DIR}/.env.production" ]]; then
+# 传输 .env 文件（按优先级查找）
+if [[ -f "${PROJECT_DIR}/deploy/.env.production" ]]; then
+  ${SCP_CMD} "${PROJECT_DIR}/deploy/.env.production" "${USER}@${HOST}:${REMOTE_DIR}/.env"
+  echo "   deploy/.env.production → .env"
+elif [[ -f "${PROJECT_DIR}/.env.production" ]]; then
   ${SCP_CMD} "${PROJECT_DIR}/.env.production" "${USER}@${HOST}:${REMOTE_DIR}/.env"
   echo "   .env.production → .env"
+elif [[ -f "${PROJECT_DIR}/deploy/.env" ]]; then
+  ${SCP_CMD} "${PROJECT_DIR}/deploy/.env" "${USER}@${HOST}:${REMOTE_DIR}/.env"
+  echo "   deploy/.env → .env"
+else
+  # 检查远端是否已有 .env，没有则报错
+  if ! ${SSH_CMD} "test -f ${REMOTE_DIR}/.env" 2>/dev/null; then
+    echo "   ❌ No .env file found! Create deploy/.env.production or deploy/.env"
+    echo "   See deploy/.env.example for template."
+    exit 1
+  fi
+  echo "   Using existing .env on remote"
 fi
 
-# ─── Step 4: 远端加载镜像 ────────────────────────────────────────────────────
+# ─── Step 4: 部署 TLS 证书 ───────────────────────────────────────────────────
+if [[ "${HAS_TLS}" == "true" ]]; then
+  echo ""
+  echo "🔒 [4/6] Deploying TLS certificates..."
+  ${SSH_CMD} "sudo mkdir -p '${REMOTE_TLS_DIR}' && sudo chmod 700 '${REMOTE_TLS_DIR}' && sudo chown '${USER}:' '${REMOTE_TLS_DIR}'"
+  ${SCP_CMD} "${TLS_CERTS_DIR}/ca.pem" "${USER}@${HOST}:${REMOTE_TLS_DIR}/ca.pem"
+  ${SCP_CMD} "${TLS_CERTS_DIR}/server.pem" "${USER}@${HOST}:${REMOTE_TLS_DIR}/server.pem"
+  ${SCP_CMD} "${TLS_CERTS_DIR}/server-key.pem" "${USER}@${HOST}:${REMOTE_TLS_DIR}/server-key.pem"
+  ${SSH_CMD} "sudo chmod 644 '${REMOTE_TLS_DIR}/ca.pem' '${REMOTE_TLS_DIR}/server.pem' && sudo chmod 600 '${REMOTE_TLS_DIR}/server-key.pem'"
+  echo "   ✓ ca.pem, server.pem, server-key.pem → ${REMOTE_TLS_DIR}/"
+else
+  echo ""
+  echo "⚠️  [4/6] TLS certificates not found in deploy/tls/certs/, skipping TLS."
+  echo "   Run: cd deploy/tls && ./generate-self-signed.sh ./certs"
+fi
+
+# ─── Step 5: 远端加载镜像 ────────────────────────────────────────────────────
 echo ""
-echo "🐳 [4/5] Loading image on remote..."
+echo "🐳 [5/6] Loading image on remote..."
 ${SSH_CMD} "docker load < ${REMOTE_DIR}/${IMAGE_NAME}-${IMAGE_TAG}.tar.gz"
 # 打 latest tag 以便 docker-compose 引用
 ${SSH_CMD} "docker tag ${IMAGE_FULL} ${IMAGE_NAME}:latest"
 
-# ─── Step 5: 启动/重启服务 ───────────────────────────────────────────────────
+# ─── Step 6: 启动/重启服务 ───────────────────────────────────────────────────
 echo ""
-echo "🔄 [5/5] Starting services..."
+echo "🔄 [6/6] Starting services..."
 ${SSH_CMD} "cd ${REMOTE_DIR} && docker compose up -d --force-recreate server"
 
 # ─── 清理本地临时文件 ────────────────────────────────────────────────────────
@@ -86,11 +129,15 @@ echo ""
 echo "⏳ Waiting for server to start..."
 sleep 3
 if ${SSH_CMD} "docker ps --filter name=familyledger-server --format '{{.Status}}'" | grep -q "Up"; then
+  TLS_STATUS="plaintext"
+  if [[ "${HAS_TLS}" == "true" ]]; then
+    TLS_STATUS="TLS enabled"
+  fi
   echo ""
   echo "══════════════════════════════════════════════════"
   echo "  ✅ Deploy SUCCESS"
-  echo "  gRPC: ${HOST}:50051"
-  echo "  WS:   ${HOST}:8080"
+  echo "  gRPC: ${HOST}:50051  (${TLS_STATUS})"
+  echo "  WS:   ${HOST}:8080   (${TLS_STATUS})"
   echo "══════════════════════════════════════════════════"
 else
   echo ""

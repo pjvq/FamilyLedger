@@ -130,7 +130,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// 注册 — 调用 gRPC，失败时降级到本地
   Future<void> register(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
-    developer.log('[Auth] register: attempting gRPC to ${AppConstants.serverHost}:${AppConstants.grpcPort}');
+    developer.log('[Auth] register: attempting gRPC to ${AppConstants.serverHost}:${AppConstants.grpcPort} useTls=${AppConstants.useTls}');
     try {
       final resp = await _authClient.register(
         RegisterRequest()
@@ -158,9 +158,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
             email: email,
           ));
       // 服务端注册时已创建默认账户+分类，同步到本地
+      developer.log('[Auth] register: syncing accounts from server...');
       try {
         final accClient = _ref.read(accountClientProvider);
         final accResp = await accClient.listAccounts(acc_pb.ListAccountsRequest());
+        developer.log('[Auth] register: got ${accResp.accounts.length} accounts');
         for (final a in accResp.accounts) {
           await _db.into(_db.accounts).insertOnConflictUpdate(
             AccountsCompanion.insert(
@@ -175,7 +177,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
             ),
           );
         }
-      } catch (_) {
+      } catch (e) {
+        developer.log('[Auth] register: listAccounts failed: $e');
         // Fallback: create minimal local account
         await _db.insertAccount(AccountsCompanion.insert(
           id: 'acc_default_${resp.userId}',
@@ -185,11 +188,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       // 同步服务端分类（含子分类）
+      developer.log('[Auth] register: syncing categories...');
       await _syncCategoriesToLocal();
 
       // 同步服务端家庭信息到本地
+      developer.log('[Auth] register: syncing families...');
       await _syncFamiliesToLocal();
 
+      developer.log('[Auth] register: setting state to authenticated');
       _ref.read(currentUserIdProvider.notifier).state = resp.userId;
       final savedFamId = _prefs.getString(AppConstants.familyIdKey);
       if (savedFamId != null) {

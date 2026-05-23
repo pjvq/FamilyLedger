@@ -50,12 +50,22 @@ var (
 
 func init() {
 	isProduction = os.Getenv("APP_ENV") == "production"
-	raw := os.Getenv("ALLOWED_ORIGINS")
-	if raw == "" || raw == "*" {
-		allowAllOrigins = true
+	raw, isSet := os.LookupEnv("ALLOWED_ORIGINS")
+	if !isSet || raw == "" {
+		// Not set or explicitly empty:
+		// - Production: secure-by-default — reject browser origins, allow mobile (no Origin).
+		// - Development: allow all origins for convenience.
 		if isProduction {
-			log.Printf("ws: WARNING: ALLOWED_ORIGINS not set in production — connections will be rejected")
+			log.Printf("ws: ALLOWED_ORIGINS not set in production - browser origins will be rejected, mobile (no Origin) allowed")
+		} else {
+			allowAllOrigins = true
+			log.Printf("ws: ALLOWED_ORIGINS not set (non-production) - allowing all origins")
 		}
+		return
+	}
+	if raw == "*" {
+		allowAllOrigins = true
+		log.Printf("ws: ALLOWED_ORIGINS=* - explicitly allowing all origins")
 		return
 	}
 	allowedOrigins = make(map[string]struct{})
@@ -75,17 +85,23 @@ var upgrader = websocket.Upgrader{
 
 // checkOrigin validates the request origin against the pre-parsed allowedOrigins set.
 func checkOrigin(r *http.Request) bool {
-	if allowAllOrigins {
-		if isProduction {
-			log.Printf("ws: WARNING: ALLOWED_ORIGINS not set in production, rejecting connection")
-			return false
-		}
+	origin := r.Header.Get("Origin")
+
+	// Mobile apps don't send Origin header - always allow
+	if origin == "" {
 		return true
 	}
-	origin := r.Header.Get("Origin")
+
+	// Explicit wildcard (*) - allow all origins
+	if allowAllOrigins {
+		return true
+	}
+
+	// Whitelist check
 	if _, ok := allowedOrigins[origin]; ok {
 		return true
 	}
+
 	log.Printf("ws: rejected origin %q", origin)
 	return false
 }

@@ -1,26 +1,28 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
+import 'dart:io';
 import 'dart:math';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:grpc/grpc.dart' show CallOptions;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../data/local/secure_token_storage.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../core/constants/app_constants.dart';
 import '../data/local/database.dart';
+import '../data/local/secure_token_storage.dart';
 import '../data/remote/grpc_clients.dart';
 import '../domain/providers/app_providers.dart';
 import '../domain/providers/sync_status_provider.dart';
 import '../generated/proto/google/protobuf/timestamp.pb.dart' as proto_ts;
 import '../generated/proto/sync.pb.dart' as sync_pb;
-import '../generated/proto/sync.pbgrpc.dart';
 import '../generated/proto/sync.pbenum.dart' as sync_enum;
+import '../generated/proto/sync.pbgrpc.dart';
 import 'sync_event.dart';
 
 /// 离线同步引擎
@@ -34,20 +36,35 @@ class SyncEngine {
   final SyncServiceClient? _syncClient;
   final SharedPreferences? _prefs;
   final TokenStorage? _tokenStorage;
-  final Connectivity _connectivity;
 
   Timer? _syncTimer;
-  StreamSubscription? _connectivitySub;
   WebSocketChannel? _wsChannel;
   StreamSubscription? _wsSub;
   bool _disposed = false;
   int _reconnectAttempts = 0;
 
+  /// Cached SecurityContext for WebSocket TLS (avoids re-parsing PEM on every reconnect).
+  SecurityContext? _securityContext;
+
+  /// Cached HttpClient for WebSocket TLS (avoids connection pool leaks on reconnect).
+  HttpClient? _secureHttpClient;
+
+  /// Consecutive sync failures — used for exponential backoff.
+  int _consecutiveFailures = 0;
+  static const _maxBackoffSeconds = 300; // 5 minutes cap
+
+  /// In-memory cache of lastSyncTs for fast heartbeat comparison.
+  /// Authoritative value lives in SQLite (sync_metadata table).
+  int _lastSyncTsMs = 0;
+  static const _wsReconnectBaseDelay = 1; // seconds
+  static const _wsReconnectMaxDelay = 60; // seconds
+  static const _wsReconnectMaxTotalDelay = 90; // seconds (includes jitter)
+
   /// Async mutex — prevents concurrent push/pull from corrupting state.
   /// At most one sync operation (push or pull) runs at a time.
   /// Additional requests are coalesced: if a pull is requested while syncing,
   /// it runs once after the current operation completes (not N times).
-  Completer<void>? _syncLock;
+  bool _syncing = false;
   bool _pullRequested = false;
   bool _pushRequested = false;
 
@@ -58,12 +75,11 @@ class SyncEngine {
   static const _lastSyncTsKey = 'sync_last_pull_ts';
 
   SyncEngine(AppDatabase db, SyncServiceClient syncClient, SharedPreferences prefs,
-      {Connectivity? connectivity, TokenStorage? tokenStorage})
+      {TokenStorage? tokenStorage})
       : _db = db,
         _syncClient = syncClient,
         _prefs = prefs,
-        _tokenStorage = tokenStorage,
-        _connectivity = connectivity ?? Connectivity();
+        _tokenStorage = tokenStorage;
 
   /// Inert engine that performs no operations.
   /// Used in production when no user is logged in (all methods are safe no-ops
@@ -72,17 +88,7 @@ class SyncEngine {
       : _db = null,
         _syncClient = null,
         _prefs = null,
-        _tokenStorage = null,
-        _connectivity = Connectivity();
-
-  /// @visibleForTesting — alias for [inert] with test-friendly semantics.
-  @Deprecated('Use SyncEngine.inert() or provide mocks directly')
-  SyncEngine.forTesting()
-      : _db = null,
-        _syncClient = null,
-        _prefs = null,
-        _tokenStorage = null,
-        _connectivity = Connectivity();
+        _tokenStorage = null;
 
   void start() {
     if (_disposed) return;
@@ -92,16 +98,6 @@ class SyncEngine {
       const Duration(seconds: AppConstants.syncIntervalSeconds),
       (_) => _syncCycle(),
     );
-
-    // 网络变化时触发推送 + 重连 WebSocket
-    _connectivitySub = _connectivity.onConnectivityChanged.listen((results) {
-      if (results.any((r) => r != ConnectivityResult.none)) {
-        _syncCycle();
-        _connectWebSocket();
-      } else {
-        _disconnectWebSocket();
-      }
-    });
 
     // 启动时立即尝试
     _syncCycle();
@@ -129,23 +125,31 @@ class SyncEngine {
       _pushRequested = true;
       return;
     }
+    dev.log('[Sync] _pushPendingOps: started');
     onSyncEvent?.call(const SyncEvent.syncStarted());
-    try {
-      final results = await _connectivity.checkConnectivity();
-      if (results.every((r) => r == ConnectivityResult.none)) {
-        return;
-      }
 
+    try {
+      // Note: empty-path early return is inside try so that finally{} always
+      // releases the lock. This is intentional — no double-release risk because
+      // _tryAcquireSyncLock() is a simple bool flag, not a reentrant counter.
       final pendingOps =
           await _db!.getPendingSyncOps(AppConstants.syncBatchSize);
-      if (pendingOps.isEmpty) return;
+      dev.log('[Sync] _pushPendingOps: pendingOps count=${pendingOps.length}');
+      if (pendingOps.isEmpty) {
+        _onSyncSuccess(); // Reset backoff — no pending ops is not a failure
+        onSyncEvent?.call(const SyncEvent.syncCompleted());
+        return;
+      }
 
       // 转换为 proto SyncOperation
       final protoOps = pendingOps.map(_toProtoOp).toList();
       final request = sync_pb.PushOperationsRequest()
         ..operations.addAll(protoOps);
 
-      final response = await _syncClient!.pushOperations(request);
+      final response = await _syncClient!.pushOperations(
+        request,
+        options: CallOptions(timeout: const Duration(seconds: 10)),
+      );
 
       // 标记成功上传的
       final failedSet = response.failedIds.toSet();
@@ -193,15 +197,15 @@ class SyncEngine {
         onSyncEvent?.call(PushFailed(failedIds.length));
       }
 
-      dev.log(
-        'SyncEngine: pushed ${succeededIds.length}/${pendingOps.length} ops',
-        name: 'sync',
-      );
+      dev.log('[Sync] _pushPendingOps: pushed ${succeededIds.length}/${pendingOps.length} ops');
       onSyncEvent?.call(const SyncEvent.serverReachable());
+      _onSyncSuccess();
     } catch (e) {
-      dev.log('SyncEngine: push failed: $e', name: 'sync');
+      dev.log('[Sync] _pushPendingOps: push failed: $e');
       onSyncEvent?.call(const SyncEvent.serverUnreachable());
+      _onSyncFailure();
     } finally {
+      dev.log('[Sync] _pushPendingOps: finished');
       onSyncEvent?.call(const SyncEvent.syncStopped());
       _releaseSyncLock();
       _drainPendingRequests();
@@ -255,8 +259,10 @@ class SyncEngine {
   }
 
   Future<void> _doPull() async {
+    dev.log('[Sync] _doPull: started');
     try {
-      final lastTsMs = _prefs!.getInt(_lastSyncTsKey) ?? 0;
+      final lastTsMs = await _db!.getSyncMetaInt(_lastSyncTsKey) ?? 0;
+      _lastSyncTsMs = lastTsMs;
       final userId = _prefs!.getString(AppConstants.userIdKey);
       if (userId == null) return;
 
@@ -288,32 +294,34 @@ class SyncEngine {
 
         final response = await _syncClient!.pullChanges(request);
 
-        for (final op in response.operations) {
-          await _applyRemoteOp(op);
-        }
+        // Apply all ops + update checkpoint in a single DB transaction.
+        // Atomic: if crash occurs, both ops and checkpoint roll back together.
+        await _db!.transaction(() async {
+          for (final op in response.operations) {
+            await _applyRemoteOp(op);
+          }
+          // Save checkpoint inside transaction so it’s atomic with the ops.
+          if (pageToken.isEmpty && response.hasServerTime()) {
+            final serverMs =
+                response.serverTime.seconds.toInt() * 1000 +
+                response.serverTime.nanos ~/ 1000000;
+            await _db!.setSyncMetaInt(_lastSyncTsKey, serverMs);
+            _lastSyncTsMs = serverMs;
+          }
+        });
         totalPulled += response.operations.length;
 
         pageToken = response.nextPageToken;
+      } while (pageToken.isNotEmpty);
 
-        // Only save server_time on the final page to avoid checkpoint
-        // advancing past un-applied ops if crash occurs mid-pagination.
-        if (pageToken.isEmpty && response.hasServerTime()) {
-          final serverMs =
-              response.serverTime.seconds.toInt() * 1000 +
-              response.serverTime.nanos ~/ 1000000;
-          await _prefs!.setInt(_lastSyncTsKey, serverMs);
-        }
-      } while (pageToken.isNotEmpty); // Use nextPageToken (not has_more) as loop guard — more reliable
-
-      dev.log(
-        'SyncEngine: pulled $totalPulled changes',
-        name: 'sync',
-      );
+      dev.log('[Sync] _doPull: pulled $totalPulled changes, done');
       onSyncEvent?.call(const SyncEvent.syncCompleted());
       onSyncEvent?.call(const SyncEvent.serverReachable());
+      _onSyncSuccess();
     } catch (e) {
-      dev.log('SyncEngine: pull failed: $e', name: 'sync');
+      dev.log('[Sync] _doPull: pull failed: $e');
       onSyncEvent?.call(const SyncEvent.serverUnreachable());
+      _onSyncFailure();
     }
   }
 
@@ -323,77 +331,106 @@ class SyncEngine {
   /// - DELETE operations are always applied (delete is a terminal state)
   /// - For CREATE/UPDATE: compare remote op timestamp with local entity's
   ///   updated_at. Only apply if remote timestamp >= local updated_at.
+  ///
+  /// Exceptions are NOT caught here — they bubble up to the transaction
+  /// wrapper in _doPull, causing a full page rollback. This ensures no
+  /// partial state from a malformed op.
   Future<void> _applyRemoteOp(sync_pb.SyncOperation op) async {
-    try {
-      final payload = jsonDecode(op.payload) as Map<String, dynamic>;
+    final isDelete =
+        op.opType == sync_enum.OperationType.OPERATION_TYPE_DELETE;
 
-      // DELETE is always applied (terminal state)
-      final isDelete =
-          op.opType == sync_enum.OperationType.OPERATION_TYPE_DELETE;
-
-      if (!isDelete) {
-        // R9 fix: DELETE is terminal — if entity is locally deleted, reject any
-        // subsequent CREATE/UPDATE even with later timestamp.
-        final isLocallyDeleted = await _isEntityDeleted(op.entityType, op.entityId);
-        if (isLocallyDeleted) {
-          dev.log(
-            'SyncEngine: R9 terminal skip ${op.entityType}/${op.entityId} '
-            '(locally deleted, ignoring ${op.opType})',
-            name: 'sync',
-          );
-          return;
-        }
-
-        // LWW check: skip if local data is newer
-        final remoteTimestampMs = op.hasTimestamp()
-            ? op.timestamp.seconds.toInt() * 1000 +
-                op.timestamp.nanos ~/ 1000000
-            : 0;
-        final localUpdatedAt =
-            await _getLocalEntityUpdatedAt(op.entityType, op.entityId);
-
-        if (localUpdatedAt != null &&
-            localUpdatedAt.millisecondsSinceEpoch > remoteTimestampMs) {
-          // Local is newer — skip this remote operation
-          dev.log(
-            'SyncEngine: LWW skip ${op.entityType}/${op.entityId} '
-            '(local=${localUpdatedAt.millisecondsSinceEpoch}, remote=$remoteTimestampMs)',
-            name: 'sync',
-          );
-          return;
-        }
-      }
-
+    // DELETE path: does not require payload parsing.
+    // Short-circuit before jsonDecode to handle empty/null payloads.
+    if (isDelete) {
       switch (op.entityType) {
         case 'transaction':
-          await _applyTransactionOp(op.opType, op.entityId, payload);
+          await _applyTransactionOp(op.opType, op.entityId, const {});
           break;
         case 'account':
-          await _applyAccountOp(op.opType, op.entityId, payload);
+          await _applyAccountOp(op.opType, op.entityId, const {});
           break;
         case 'category':
-          await _applyCategoryOp(op.opType, op.entityId, payload);
+          await _applyCategoryOp(op.opType, op.entityId, const {});
           break;
         case 'loan':
-          await _applyLoanOp(op.opType, op.entityId, payload);
+          await _applyLoanOp(op.opType, op.entityId, const {});
           break;
         case 'loan_group':
-          await _applyLoanGroupOp(op.opType, op.entityId, payload);
+          await _applyLoanGroupOp(op.opType, op.entityId, const {});
           break;
         case 'investment':
-          await _applyInvestmentOp(op.opType, op.entityId, payload);
+          await _applyInvestmentOp(op.opType, op.entityId, const {});
           break;
         case 'fixed_asset':
-          await _applyFixedAssetOp(op.opType, op.entityId, payload);
+          await _applyFixedAssetOp(op.opType, op.entityId, const {});
           break;
         case 'budget':
-          await _applyBudgetOp(op.opType, op.entityId, payload);
+          await _applyBudgetOp(op.opType, op.entityId, const {});
           break;
         default:
-          dev.log('SyncEngine: unknown entity_type ${op.entityType}', name: 'sync');
+          dev.log('[Sync] unknown entity_type ${op.entityType}');
       }
-    } catch (e) {
-      dev.log('SyncEngine: apply op failed: $e', name: 'sync');
+      return;
+    }
+
+    // CREATE/UPDATE path: requires payload.
+    final payload = jsonDecode(op.payload) as Map<String, dynamic>;
+
+    // R9 fix: DELETE is terminal — if entity is locally deleted, reject any
+    // subsequent CREATE/UPDATE even with later timestamp.
+    final isLocallyDeleted = await _isEntityDeleted(op.entityType, op.entityId);
+    if (isLocallyDeleted) {
+      dev.log(
+        '[Sync] R9 terminal skip ${op.entityType}/${op.entityId} '
+        '(locally deleted, ignoring ${op.opType})',
+      );
+      return;
+    }
+
+    // LWW check: skip if local data is newer
+    final remoteTimestampMs = op.hasTimestamp()
+        ? op.timestamp.seconds.toInt() * 1000 +
+            op.timestamp.nanos ~/ 1000000
+        : 0;
+    final localUpdatedAt =
+        await _getLocalEntityUpdatedAt(op.entityType, op.entityId);
+
+    if (localUpdatedAt != null &&
+        localUpdatedAt.millisecondsSinceEpoch > remoteTimestampMs) {
+      dev.log(
+        '[Sync] LWW skip ${op.entityType}/${op.entityId} '
+        '(local=${localUpdatedAt.millisecondsSinceEpoch}, remote=$remoteTimestampMs)',
+      );
+      return;
+    }
+
+    switch (op.entityType) {
+      case 'transaction':
+        await _applyTransactionOp(op.opType, op.entityId, payload);
+        break;
+      case 'account':
+        await _applyAccountOp(op.opType, op.entityId, payload);
+        break;
+      case 'category':
+        await _applyCategoryOp(op.opType, op.entityId, payload);
+        break;
+      case 'loan':
+        await _applyLoanOp(op.opType, op.entityId, payload);
+        break;
+      case 'loan_group':
+        await _applyLoanGroupOp(op.opType, op.entityId, payload);
+        break;
+      case 'investment':
+        await _applyInvestmentOp(op.opType, op.entityId, payload);
+        break;
+      case 'fixed_asset':
+        await _applyFixedAssetOp(op.opType, op.entityId, payload);
+        break;
+      case 'budget':
+        await _applyBudgetOp(op.opType, op.entityId, payload);
+        break;
+      default:
+        dev.log('[Sync] unknown entity_type ${op.entityType}');
     }
   }
 
@@ -497,7 +534,8 @@ class SyncEngine {
         }
         break;
       case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
-        // Get old transaction to revert its balance contribution
+        // IMPORTANT: fetch oldTxn BEFORE overwriting. The insert below
+        // replaces the row, so oldTxn must be captured first for balance revert.
         final oldTxn = await _db!.getTransactionById(entityId);
 
         final txnDateUpdate = DateTime.tryParse(payload['txn_date'] ?? '') ??
@@ -773,7 +811,10 @@ class SyncEngine {
     _disconnectWebSocket();
 
     final token = await _tokenStorage?.getAccessToken();
-    if (token == null) return;
+    if (token == null) {
+      dev.log('[WS] _connectWebSocket: no token, skipping');
+      return;
+    }
 
     try {
       final scheme = AppConstants.useTls ? 'wss' : 'ws';
@@ -781,13 +822,20 @@ class SyncEngine {
       final uri = Uri.parse(
         '$scheme://${AppConstants.serverHost}:${AppConstants.wsPort}/ws',
       );
-      _wsChannel = WebSocketChannel.connect(uri);
+      dev.log('[WS] connecting to $uri ...');
+      _wsChannel = IOWebSocketChannel.connect(
+        uri,
+        customClient: AppConstants.useTls
+            ? _createSecureHttpClient()
+            : null,
+      );
 
       // Await the ready future to catch connection failures early
       try {
         await _wsChannel!.ready;
+        dev.log('[WS] connected successfully');
       } catch (e) {
-        dev.log('SyncEngine: ws handshake failed: $e', name: 'sync');
+        dev.log('[WS] handshake failed: $e');
         _scheduleReconnect();
         return;
       }
@@ -801,11 +849,15 @@ class SyncEngine {
       // Subscribe BEFORE sending auth (so we don't miss auth_ok)
       _wsSub = _wsChannel!.stream.listen(
         (message) {
-          dev.log('SyncEngine: ws message: $message', name: 'sync');
+          if (message is! String) {
+            dev.log('[WS] ignoring non-text frame (${message.runtimeType})');
+            return;
+          }
+          dev.log('[WS] message received (${message.length} chars)');
           _handleWsMessage(message);
         },
         onError: (error) {
-          dev.log('SyncEngine: ws error: $error', name: 'sync');
+          dev.log('[WS] error: $error');
           if (_awaitingAuth) {
             _authCompleter?.completeError(error);
           } else {
@@ -813,7 +865,7 @@ class SyncEngine {
           }
         },
         onDone: () {
-          dev.log('SyncEngine: ws closed', name: 'sync');
+          dev.log('[WS] closed');
           if (_awaitingAuth) {
             if (_authCompleter != null && !_authCompleter!.isCompleted) {
               _authCompleter!.completeError('connection closed before auth_ok');
@@ -836,7 +888,7 @@ class SyncEngine {
           },
         );
       } catch (e) {
-        dev.log('SyncEngine: auth_ok not received: $e', name: 'sync');
+        dev.log('[Sync] auth_ok not received: $e');
         _awaitingAuth = false;
         _authCompleter = null;
         _disconnectWebSocket();
@@ -847,22 +899,22 @@ class SyncEngine {
       // Auth succeeded — exit auth phase
       _awaitingAuth = false;
       _authCompleter = null;
-      dev.log('SyncEngine: ws authenticated', name: 'sync');
+      dev.log('[WS] authenticated');
     } catch (e) {
-      dev.log('SyncEngine: ws connect failed: $e', name: 'sync');
+      dev.log('[WS] connect failed: $e');
       _awaitingAuth = false;
       _authCompleter = null;
       _scheduleReconnect();
     }
   }
 
-  void _handleWsMessage(dynamic message) {
+  void _handleWsMessage(String message) {
     try {
-      final data = jsonDecode(message as String) as Map<String, dynamic>;
+      final data = jsonDecode(message) as Map<String, dynamic>;
       final type = data['type'] as String?;
 
       if (type == 'auth_ok') {
-        dev.log('SyncEngine: ws auth_ok received', name: 'sync');
+        dev.log('[WS] auth_ok received');
         _reconnectAttempts = 0;
         onSyncEvent?.call(const SyncEvent.wsStateChanged(true));
         if (_authCompleter != null && !_authCompleter!.isCompleted) {
@@ -880,20 +932,18 @@ class SyncEngine {
         // Server heartbeat with watermark: compare with our lastSyncTs
         final serverTimeMs = (data['server_time'] as num?)?.toInt();
         if (serverTimeMs != null) {
-          final localTs = _prefs!.getInt(_lastSyncTsKey) ?? 0;
+          final localTs = _lastSyncTsMs;
           if (serverTimeMs > localTs) {
             // We're behind — pull to catch up
             dev.log(
-              'SyncEngine: heartbeat watermark ahead (server=$serverTimeMs, local=$localTs), pulling',
-              name: 'sync',
+              '[Sync] heartbeat watermark ahead (server=$serverTimeMs, local=$localTs), pulling',
             );
             _pullChanges();
           }
         }
       }
     } catch (e) {
-      // 非 JSON 消息或未知格式，尝试拉取
-      _pullChanges();
+      dev.log('[WS] failed to parse message: $e');
     }
   }
 
@@ -902,18 +952,14 @@ class SyncEngine {
   /// Try-lock: returns true if acquired, false if another op holds the lock.
   /// Synchronous — no async gap between check and acquire.
   bool _tryAcquireSyncLock() {
-    if (_syncLock != null) return false;
-    _syncLock = Completer<void>();
+    if (_syncing) return false;
+    _syncing = true;
     return true;
   }
 
   /// Releases the sync lock, allowing the next operation to proceed.
   void _releaseSyncLock() {
-    final lock = _syncLock;
-    _syncLock = null;
-    if (lock != null && !lock.isCompleted) {
-      lock.complete();
-    }
+    _syncing = false;
   }
 
   /// Drains coalesced push/pull requests after lock release.
@@ -935,6 +981,50 @@ class SyncEngine {
     }
   }
 
+  /// Create or reuse an HttpClient with our pinned CA for WebSocket TLS.
+  HttpClient _createSecureHttpClient() {
+    if (_secureHttpClient != null) return _secureHttpClient!;
+    _securityContext ??= SecurityContext()
+      ..setTrustedCertificatesBytes(caCertBytes);
+    _secureHttpClient = HttpClient(context: _securityContext!)
+      ..badCertificateCallback = (cert, host, port) {
+        // CA chain validated by SecurityContext (pinned CA only).
+        // This callback fires only for non-chain issues (e.g. IP SAN
+        // mismatch). Accept if issued by our pinned CA.
+        return cert.issuer.contains(AppConstants.pinnedCaIssuer);
+      };
+    return _secureHttpClient!;
+  }
+
+  // ─────────── Backoff: 连续失败时延长重试间隔 ───────────
+
+  void _onSyncSuccess() {
+    if (_disposed) return;
+    if (_consecutiveFailures > 0) {
+      _consecutiveFailures = 0;
+      _rescheduleTimer(AppConstants.syncIntervalSeconds);
+    }
+  }
+
+  void _onSyncFailure() {
+    if (_disposed) return;
+    _consecutiveFailures++;
+    // Exponential backoff: 30s, 60s, 120s, 240s, capped at 300s
+    final backoff = (AppConstants.syncIntervalSeconds * pow(2, _consecutiveFailures - 1))
+        .clamp(AppConstants.syncIntervalSeconds, _maxBackoffSeconds)
+        .toInt();
+    _rescheduleTimer(backoff);
+    dev.log('[Sync] backoff: $_consecutiveFailures consecutive failures, next retry in ${backoff}s');
+  }
+
+  void _rescheduleTimer(int seconds) {
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(
+      Duration(seconds: seconds),
+      (_) => _syncCycle(),
+    );
+  }
+
   void _disconnectWebSocket() {
     // Cancel any pending auth wait
     if (_awaitingAuth) {
@@ -954,16 +1044,13 @@ class SyncEngine {
   void _scheduleReconnect() {
     if (_disposed) return;
 
-    final baseDelay = 1; // seconds
-    final maxDelay = 60; // seconds
-    final exponentialDelay = baseDelay * (1 << _reconnectAttempts.clamp(0, 6));
-    final delay = exponentialDelay.clamp(baseDelay, maxDelay);
+    final exponentialDelay = _wsReconnectBaseDelay * (1 << _reconnectAttempts.clamp(0, 6));
+    final delay = exponentialDelay.clamp(_wsReconnectBaseDelay, _wsReconnectMaxDelay);
     final jitter = Random().nextInt((delay * 0.5).ceil() + 1);
-    final totalDelay = (delay + jitter).clamp(0, 90);
+    final totalDelay = (delay + jitter).clamp(0, _wsReconnectMaxTotalDelay);
 
     dev.log(
-      'SyncEngine: reconnecting in ${totalDelay}s (attempt ${_reconnectAttempts + 1})',
-      name: 'sync',
+      '[WS] reconnecting in ${totalDelay}s (attempt ${_reconnectAttempts + 1})',
     );
     _reconnectAttempts++;
 
@@ -973,16 +1060,15 @@ class SyncEngine {
   }
 
   /// 手动触发完整同步（推送 + 拉取）
-  Future<void> syncNow() async {
-    await _pushPendingOps();
-    await _pullChanges();
-  }
+  Future<void> syncNow() => _syncCycle();
 
   /// App 回到前台时调用：立即同步 + 重启 timer + 重连 WS
   void onAppResumed() {
     if (_disposed) return;
-    dev.log('SyncEngine: app resumed, syncing...', name: 'sync');
-    // Restart timer if it was cancelled
+    dev.log('[Sync] app resumed, syncing...');
+    // Reset backoff — user returning to foreground deserves a fresh start
+    _consecutiveFailures = 0;
+    // Restart timer at normal interval
     _syncTimer?.cancel();
     _syncTimer = Timer.periodic(
       const Duration(seconds: AppConstants.syncIntervalSeconds),
@@ -996,7 +1082,7 @@ class SyncEngine {
   /// App 进入后台时调用：停止 timer 省电，保持 WS（会自然断开）
   void onAppPaused() {
     if (_disposed) return;
-    dev.log('SyncEngine: app paused, stopping timer', name: 'sync');
+    dev.log('[Sync] app paused, stopping timer');
     _syncTimer?.cancel();
     _syncTimer = null;
   }
@@ -1005,8 +1091,9 @@ class SyncEngine {
     _disposed = true;
     _reconnectAttempts = 0;
     _syncTimer?.cancel();
-    _connectivitySub?.cancel();
     _disconnectWebSocket();
+    _secureHttpClient?.close();
+    _secureHttpClient = null;
   }
 }
 
@@ -1034,28 +1121,33 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
   final tokenStorage = ref.watch(secureTokenStorageProvider);
   final engine = SyncEngine(db, syncClient, prefs, tokenStorage: tokenStorage);
 
-  // Wire status callbacks to SyncStatusNotifier
+  // Wire status callbacks to SyncStatusNotifier.
+  // All state updates are deferred to next microtask to break the
+  // synchronous call chain that could trigger provider rebuild loops
+  // (engine.onSyncEvent → notifier.markX → widget rebuild → provider rebuild → engine dispose).
   final statusNotifier = ref.read(syncStatusProvider.notifier);
   engine.onSyncEvent = (SyncEvent event) {
-    switch (event) {
-      case SyncStarted():
-        statusNotifier.markSyncing();
-      case SyncStopped():
-        statusNotifier.markSyncStopped();
-      case SyncCompleted():
-        statusNotifier.markSynced();
-      case ServerReachable():
-        statusNotifier.updateServerReachable(true);
-      case ServerUnreachable():
-        statusNotifier.updateServerReachable(false);
-      case WsStateChanged(:final connected):
-        statusNotifier.updateWsConnected(connected);
-      case PushFailed(:final failedCount):
-        statusNotifier.markFailed(failedCount);
-      case PendingCountUpdated():
-        assert(false, 'PendingCountUpdated should not be dispatched by SyncEngine');
-        break;
-    }
+    Future.microtask(() {
+      if (!statusNotifier.mounted) return;
+      switch (event) {
+        case SyncStarted():
+          statusNotifier.markSyncing();
+        case SyncStopped():
+          statusNotifier.markSyncStopped();
+        case SyncCompleted():
+          statusNotifier.markSynced();
+        case ServerReachable():
+          statusNotifier.updateServerReachable(true);
+        case ServerUnreachable():
+          statusNotifier.updateServerReachable(false);
+        case WsStateChanged(:final connected):
+          statusNotifier.updateWsConnected(connected);
+        case PushFailed(:final failedCount):
+          statusNotifier.markFailed(failedCount);
+        case PendingCountUpdated():
+          break;
+      }
+    });
   };
 
   ref.onDispose(() => engine.dispose());

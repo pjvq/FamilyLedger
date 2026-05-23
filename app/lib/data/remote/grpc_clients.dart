@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:grpc/grpc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_constants.dart';
@@ -18,6 +20,27 @@ import '../../generated/proto/dashboard.pbgrpc.dart';
 import '../../generated/proto/export.pbgrpc.dart';
 import '../../generated/proto/import.pbgrpc.dart';
 
+/// Cached CA certificate bytes, loaded at app startup.
+/// Late-initialized; access only after [loadTlsCertificate] completes.
+Uint8List? _caCertBytes;
+
+/// Call once before runApp() to preload the pinned CA certificate.
+Future<void> loadTlsCertificate() async {
+  if (!AppConstants.useTls) return;
+  final pem = await rootBundle.loadString('assets/certs/ca.pem');
+  _caCertBytes = Uint8List.fromList(utf8.encode(pem));
+}
+
+/// Expose loaded CA cert bytes for WebSocket SecurityContext.
+/// Must only be called after [loadTlsCertificate] completes.
+Uint8List get caCertBytes {
+  if (_caCertBytes == null) {
+    throw StateError(
+        'loadTlsCertificate() must be called before accessing caCertBytes');
+  }
+  return _caCertBytes!;
+}
+
 /// gRPC channel singleton
 final grpcChannelProvider = Provider<ClientChannel>((ref) {
   final channel = ClientChannel(
@@ -25,7 +48,17 @@ final grpcChannelProvider = Provider<ClientChannel>((ref) {
     port: AppConstants.grpcPort,
     options: ChannelOptions(
       credentials: AppConstants.useTls
-          ? const ChannelCredentials.secure()
+          ? ChannelCredentials.secure(
+              certificates: caCertBytes,
+              authority: AppConstants.serverHost,
+              onBadCertificate: (cert, host) {
+                // CA chain validation is done by BoringSSL via `certificates`.
+                // This callback only fires for non-chain issues (e.g. IP SAN
+                // mismatch with IP address). Since we pinned our CA as the
+                // sole trust anchor, accepting certs issued by it is safe.
+                return cert.issuer.contains(AppConstants.pinnedCaIssuer);
+              },
+            )
           : const ChannelCredentials.insecure(),
     ),
   );

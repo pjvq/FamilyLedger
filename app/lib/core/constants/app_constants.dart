@@ -24,10 +24,10 @@ class AppConstants {
   );
 
   /// Whether to use TLS for gRPC and WebSocket connections.
-  /// Override: --dart-define=USE_TLS=true
+  /// Override: --dart-define=USE_TLS=false (for local dev)
   static const useTls = bool.fromEnvironment(
     'USE_TLS',
-    defaultValue: false,
+    defaultValue: true,
   );
 
   // ─── Auth ─────────────────────────────────────────────────────────────────
@@ -42,6 +42,10 @@ class AppConstants {
   static const syncBatchSize = 50;
   static const syncIntervalSeconds = 30;
   static const clientIdKey = 'client_id';
+
+  // ─── TLS ──────────────────────────────────────────────────────────────────
+  /// Expected issuer substring in server certificate for onBadCertificate.
+  static const pinnedCaIssuer = 'FamilyLedger CA';
 
   // ─── UI ───────────────────────────────────────────────────────────────────
   static const currencySymbol = '¥';

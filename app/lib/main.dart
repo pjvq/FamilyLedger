@@ -14,6 +14,7 @@ import 'data/local/secure_token_storage.dart';
 import 'domain/providers/app_providers.dart';
 import 'domain/providers/theme_provider.dart';
 import 'sync/sync_engine.dart';
+import 'data/remote/grpc_clients.dart';
 
 void main() async {
   // Catch all synchronous Flutter framework errors
@@ -54,6 +55,9 @@ void main() async {
     // Migrate tokens from SharedPreferences to secure storage (one-time)
     final tokenStorage = SecureTokenStorage(prefs);
     await tokenStorage.migrateIfNeeded();
+
+    // Load TLS certificate for gRPC
+    await loadTlsCertificate();
 
     // Restore persisted family mode
     final savedFamilyId = prefs.getString(AppConstants.familyIdKey);

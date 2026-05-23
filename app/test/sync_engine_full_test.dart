@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:fixnum/fixnum.dart';
@@ -65,7 +64,6 @@ class FakeResponseFuture<T> implements ResponseFuture<T> {
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class MockConnectivity extends Mock implements Connectivity {}
 
 // ─── Testable SyncEngine ─────────────────────────────────────
 
@@ -73,8 +71,8 @@ class MockConnectivity extends Mock implements Connectivity {}
 /// with injected dependencies via the public constructor.
 class TestableSyncEngine extends SyncEngine {
   TestableSyncEngine(AppDatabase db, SyncServiceClient client,
-      SharedPreferences prefs, {Connectivity? connectivity})
-      : super(db, client, prefs, connectivity: connectivity);
+      SharedPreferences prefs)
+      : super(db, client, prefs);
 
   /// Public access to syncNow() for testing push + pull flow
   Future<void> testSyncNow() => syncNow();
@@ -135,16 +133,11 @@ void main() {
   group('SyncEngine full flow', () {
     late AppDatabase db;
     late MockSyncServiceClient mockClient;
-    late MockConnectivity mockConnectivity;
     late SharedPreferences prefs;
 
     setUp(() async {
       db = await _setupDb();
       mockClient = MockSyncServiceClient();
-      mockConnectivity = MockConnectivity();
-      // Default: connectivity is wifi (online)
-      when(() => mockConnectivity.checkConnectivity())
-          .thenAnswer((_) async => [ConnectivityResult.wifi]);
       SharedPreferences.setMockInitialValues({
         'user_id': 'user1',
         'access_token': 'test_token',
@@ -199,7 +192,7 @@ void main() {
                   ),
                 ));
 
-        final engine = TestableSyncEngine(db, mockClient, prefs, connectivity: mockConnectivity);
+        final engine = TestableSyncEngine(db, mockClient, prefs);
 
         // Act
         await engine.testSyncNow();
@@ -242,7 +235,7 @@ void main() {
                   sync_pb.PullChangesResponse(),
                 ));
 
-        final engine = TestableSyncEngine(db, mockClient, prefs, connectivity: mockConnectivity);
+        final engine = TestableSyncEngine(db, mockClient, prefs);
 
         // Act
         await engine.testSyncNow();
@@ -267,7 +260,7 @@ void main() {
                   sync_pb.PullChangesResponse(operations: []),
                 ));
 
-        final engine = TestableSyncEngine(db, mockClient, prefs, connectivity: mockConnectivity);
+        final engine = TestableSyncEngine(db, mockClient, prefs);
 
         // Act — should not throw
         await engine.testSyncNow();
@@ -293,7 +286,7 @@ void main() {
                   GrpcError.deadlineExceeded('timeout'),
                 ));
 
-        final engine = TestableSyncEngine(db, mockClient, prefs, connectivity: mockConnectivity);
+        final engine = TestableSyncEngine(db, mockClient, prefs);
 
         // Act — should not throw
         await engine.testSyncNow();
@@ -315,7 +308,7 @@ void main() {
                   Exception('socket error'),
                 ));
 
-        final engine = TestableSyncEngine(db, mockClient, prefs, connectivity: mockConnectivity);
+        final engine = TestableSyncEngine(db, mockClient, prefs);
 
         // Should not throw
         await engine.testSyncNow();
@@ -345,7 +338,7 @@ void main() {
                   sync_pb.PullChangesResponse(),
                 ));
 
-        final engine = TestableSyncEngine(db, mockClient, prefs, connectivity: mockConnectivity);
+        final engine = TestableSyncEngine(db, mockClient, prefs);
 
         // Act: call syncNow twice concurrently
         final f1 = engine.testSyncNow();
@@ -395,7 +388,7 @@ void main() {
                   sync_pb.PullChangesResponse(),
                 ));
 
-        final engine = TestableSyncEngine(db, mockClient, prefs, connectivity: mockConnectivity);
+        final engine = TestableSyncEngine(db, mockClient, prefs);
 
         // Act
         await engine.testSyncNow();
@@ -437,7 +430,7 @@ void main() {
                   sync_pb.PullChangesResponse(),
                 ));
 
-        final engine = TestableSyncEngine(db, mockClient, prefs, connectivity: mockConnectivity);
+        final engine = TestableSyncEngine(db, mockClient, prefs);
         await engine.testSyncNow();
 
         // R7 fix: Only succeeded ops marked uploaded; failed ops remain for retry
@@ -477,11 +470,11 @@ void main() {
                   ),
                 ));
 
-        final engine = TestableSyncEngine(db, mockClient, prefs, connectivity: mockConnectivity);
+        final engine = TestableSyncEngine(db, mockClient, prefs);
         await engine.testSyncNow();
 
-        // Verify prefs saved the timestamp
-        final savedTs = prefs.getInt('sync_last_pull_ts');
+        // Verify DB saved the timestamp (migrated from SharedPreferences)
+        final savedTs = await db.getSyncMetaInt('sync_last_pull_ts');
         expect(savedTs, serverTimeMs);
 
         engine.dispose();

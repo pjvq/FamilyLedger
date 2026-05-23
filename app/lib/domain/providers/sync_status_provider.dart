@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/local/database.dart';
 import '../../sync/sync_event.dart';
@@ -175,8 +174,6 @@ final syncStatusProvider =
 class SyncStatusNotifier extends StateNotifier<SyncState> {
   final AppDatabase _db;
   Timer? _pollTimer;
-  StreamSubscription? _connectivitySub;
-  final Connectivity _connectivity = Connectivity();
 
   SyncStatusNotifier(this._db) : super(const SyncState()) {
     _startMonitoring();
@@ -185,13 +182,6 @@ class SyncStatusNotifier extends StateNotifier<SyncState> {
   void _startMonitoring() {
     // Check pending count every 5s
     _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => refresh());
-
-    // React to connectivity changes
-    _connectivitySub = _connectivity.onConnectivityChanged.listen((results) {
-      final isOffline = results.every((r) => r == ConnectivityResult.none);
-      state = SyncState.applyConnectivity(state, online: !isOffline);
-      if (!isOffline) refresh();
-    });
 
     // Initial check
     refresh();
@@ -207,17 +197,6 @@ class SyncStatusNotifier extends StateNotifier<SyncState> {
 
   Future<void> refresh() async {
     try {
-      final results = await _connectivity.checkConnectivity();
-      final isOffline = results.every((r) => r == ConnectivityResult.none);
-
-      if (isOffline) {
-        state = SyncState.applyConnectivity(state, online: false);
-        return;
-      }
-
-      // Ensure we're marked online
-      state = SyncState.applyConnectivity(state, online: true);
-
       // Update pending count through the state machine
       final pendingOps = await _db.getPendingSyncOps(1000);
       dispatch(PendingCountUpdated(pendingOps.length));
@@ -250,7 +229,6 @@ class SyncStatusNotifier extends StateNotifier<SyncState> {
   @override
   void dispose() {
     _pollTimer?.cancel();
-    _connectivitySub?.cancel();
     super.dispose();
   }
 }

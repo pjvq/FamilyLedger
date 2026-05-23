@@ -17,7 +17,7 @@ import 'package:grpc/grpc.dart';
 //  No-op SyncEngine – prevents all network calls
 // ───────────────────────────────────────────────────
 class _NoOpSyncEngine extends SyncEngine {
-  _NoOpSyncEngine() : super.forTesting();
+  _NoOpSyncEngine() : super.inert();
 
   @override
   void start() {}
