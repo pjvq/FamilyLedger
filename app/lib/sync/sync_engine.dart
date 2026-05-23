@@ -489,18 +489,22 @@ class SyncEngine {
         op.opType == sync_enum.OperationType.OPERATION_TYPE_DELETE;
 
     // For DELETE: skip payload parsing (payload may be empty/null).
-    // For CREATE/UPDATE: decode payload + apply LWW checks.
+    // For CREATE/UPDATE: decode payload + apply LWW/R9 checks.
     Map<String, dynamic> payload;
     if (isDelete) {
+      // Defensive: skip if already deleted (idempotent, avoids relying on
+      // each handler to individually guard against double-delete).
+      final state = await _getLocalEntityState(op.entityType, op.entityId);
+      if (state.isDeleted) return;
       payload = const {};
     } else {
       payload = jsonDecode(op.payload) as Map<String, dynamic>;
 
-      // R9 fix: DELETE is terminal - if entity is locally deleted, reject any
-      // subsequent CREATE/UPDATE even with later timestamp.
-      final isLocallyDeleted =
-          await _isEntityDeleted(op.entityType, op.entityId);
-      if (isLocallyDeleted) {
+      // Single query for both R9 + LWW checks (halves DB round-trips).
+      final state = await _getLocalEntityState(op.entityType, op.entityId);
+
+      // R9 fix: DELETE is terminal — reject CREATE/UPDATE on deleted entity.
+      if (state.isDeleted) {
         dev.log(
           '[Sync] R9 terminal skip ${op.entityType}/${op.entityId} '
           '(locally deleted, ignoring ${op.opType})',
@@ -513,14 +517,11 @@ class SyncEngine {
           ? op.timestamp.seconds.toInt() * 1000 +
               op.timestamp.nanos ~/ 1000000
           : 0;
-      final localUpdatedAt =
-          await _getLocalEntityUpdatedAt(op.entityType, op.entityId);
-
-      if (localUpdatedAt != null &&
-          localUpdatedAt.millisecondsSinceEpoch > remoteTimestampMs) {
+      if (state.updatedAt != null &&
+          state.updatedAt!.millisecondsSinceEpoch > remoteTimestampMs) {
         dev.log(
           '[Sync] LWW skip ${op.entityType}/${op.entityId} '
-          '(local=${localUpdatedAt.millisecondsSinceEpoch}, remote=$remoteTimestampMs)',
+          '(local=${state.updatedAt!.millisecondsSinceEpoch}, remote=$remoteTimestampMs)',
         );
         return;
       }
@@ -560,66 +561,55 @@ class SyncEngine {
   /// Get the local entity's updated_at timestamp for LWW comparison.
   /// Returns null if the entity doesn't exist locally (new entity),
   /// meaning remote op should always be applied.
-  Future<DateTime?> _getLocalEntityUpdatedAt(
+  /// Get local entity state in a single DB query (avoids double-fetch).
+  /// Returns both deletion status and updatedAt for LWW + R9 checks.
+  Future<({bool isDeleted, DateTime? updatedAt})> _getLocalEntityState(
       String entityType, String entityId) async {
     switch (entityType) {
       case 'transaction':
         final txn = await _db!.getTransactionById(entityId);
-        return txn?.updatedAt;
+        return (
+          isDeleted: txn != null && txn.deletedAt != null,
+          updatedAt: txn?.updatedAt,
+        );
       case 'account':
         final acc = await _db!.getAccountById(entityId);
-        return acc?.updatedAt;
+        return (
+          isDeleted: acc != null && !acc.isActive,
+          updatedAt: acc?.updatedAt,
+        );
       case 'category':
-        // Categories don't have updatedAt - always apply remote ops
-        return null;
+        // Categories don't have updatedAt or soft delete
+        return (isDeleted: false, updatedAt: null);
       case 'loan':
         final loan = await _db!.getLoanById(entityId);
-        return loan?.updatedAt;
+        return (
+          isDeleted: loan != null && loan.deletedAt != null,
+          updatedAt: loan?.updatedAt,
+        );
       case 'loan_group':
         final group = await _db!.getLoanGroupById(entityId);
-        return group?.updatedAt;
+        return (
+          isDeleted: group != null && group.deletedAt != null,
+          updatedAt: group?.updatedAt,
+        );
       case 'investment':
         final inv = await _db!.getInvestmentById(entityId);
-        return inv?.updatedAt;
+        return (
+          isDeleted: inv != null && inv.deletedAt != null,
+          updatedAt: inv?.updatedAt,
+        );
       case 'fixed_asset':
         final asset = await _db!.getFixedAssetById(entityId);
-        return asset?.updatedAt;
+        return (
+          isDeleted: asset != null && asset.deletedAt != null,
+          updatedAt: asset?.updatedAt,
+        );
       case 'budget':
         final budget = await _db!.getBudgetById(entityId);
-        return budget?.updatedAt;
+        return (isDeleted: false, updatedAt: budget?.updatedAt);
       default:
-        return null;
-    }
-  }
-
-  /// R9: Check if entity has been locally deleted (terminal state).
-  /// Returns true if the entity exists with a non-null deleted_at.
-  Future<bool> _isEntityDeleted(String entityType, String entityId) async {
-    switch (entityType) {
-      case 'transaction':
-        final txn = await _db!.getTransactionById(entityId);
-        // getTransactionById returns null for non-existent, but we need to check
-        // if it exists WITH deleted_at set. Use raw query or check deletedAt.
-        return txn != null && txn.deletedAt != null;
-      case 'account':
-        final acc = await _db!.getAccountById(entityId);
-        return acc != null && !acc.isActive;
-      case 'loan':
-        final loan = await _db!.getLoanById(entityId);
-        return loan != null && loan.deletedAt != null;
-      case 'loan_group':
-        final group = await _db!.getLoanGroupById(entityId);
-        return group != null && group.deletedAt != null;
-      case 'investment':
-        final inv = await _db!.getInvestmentById(entityId);
-        return inv != null && inv.deletedAt != null;
-      case 'fixed_asset':
-        final asset = await _db!.getFixedAssetById(entityId);
-        return asset != null && asset.deletedAt != null;
-      default:
-        // category and budget don't have soft delete (hard delete only)
-        // TODO: add budget/category support here if soft-delete is ever added
-        return false;
+        return (isDeleted: false, updatedAt: null);
     }
   }
 
@@ -790,7 +780,7 @@ class SyncEngine {
           lprBase: Value((payload['lpr_base'] as num?)?.toDouble() ?? 0.0),
           lprSpread: Value((payload['lpr_spread'] as num?)?.toDouble() ?? 0.0),
           rateAdjustMonth: Value((payload['rate_adjust_month'] as num?)?.toInt() ?? 1),
-          updatedAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
         ));
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
@@ -821,7 +811,7 @@ class SyncEngine {
           paymentDay: Value((payload['payment_day'] as num?)?.toInt() ?? 1),
           startDate: Value(DateTime.tryParse(payload['start_date'] ?? '') ?? DateTime.now()),
           loanType: Value(payload['loan_type'] ?? 'mortgage'),
-          updatedAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
         ));
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
@@ -851,7 +841,7 @@ class SyncEngine {
           marketType: Value(payload['market_type'] ?? 'a_share'),
           quantity: Value((payload['quantity'] as num?)?.toDouble() ?? 0.0),
           costBasis: Value((payload['cost_basis'] as num?)?.toInt() ?? 0),
-          updatedAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
         ));
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
@@ -881,7 +871,7 @@ class SyncEngine {
           purchasePrice: Value((payload['purchase_price'] as num?)?.toInt() ?? 0),
           currentValue: Value((payload['current_value'] as num?)?.toInt() ?? 0),
           purchaseDate: Value(DateTime.tryParse(payload['purchase_date'] ?? '') ?? DateTime.now()),
-          updatedAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
         ));
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
@@ -909,7 +899,7 @@ class SyncEngine {
           year: Value((payload['year'] as num?)?.toInt() ?? DateTime.now().year),
           month: Value((payload['month'] as num?)?.toInt() ?? DateTime.now().month),
           totalAmount: Value((payload['total_amount'] as num?)?.toInt() ?? 0),
-          updatedAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
         ));
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
