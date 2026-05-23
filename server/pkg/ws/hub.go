@@ -50,9 +50,10 @@ var (
 
 func init() {
 	isProduction = os.Getenv("APP_ENV") == "production"
-	raw := os.Getenv("ALLOWED_ORIGINS")
-	if raw == "" {
-		allowAllOrigins = true
+	raw, isSet := os.LookupEnv("ALLOWED_ORIGINS")
+	if !isSet || raw == "" {
+		// Not set or explicitly empty — mobile apps (no Origin) allowed,
+		// browser origins rejected in production.
 		if isProduction {
 			log.Printf("ws: WARNING: ALLOWED_ORIGINS not set in production - browser origins will be rejected, mobile (no Origin) allowed")
 		}

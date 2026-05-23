@@ -236,7 +236,7 @@ func (s *Service) GetNetWorth(ctx context.Context, req *pb.GetNetWorthRequest) (
 // Returns (totalCostBasis, totalMarketValue).
 func (s *Service) investmentValuation(ctx context.Context, ff *familyFilter, asOf time.Time, includeQuantityFilter bool) (int64, int64) {
 	var whereClause string
-	var arg interface{}
+	var arg string
 	if ff.isFamilyMode {
 		whereClause = "i.family_id = $1"
 		arg = ff.familyID

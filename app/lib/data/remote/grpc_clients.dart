@@ -47,7 +47,7 @@ final grpcChannelProvider = Provider<ClientChannel>((ref) {
     options: ChannelOptions(
       credentials: AppConstants.useTls
           ? ChannelCredentials.secure(
-              certificates: _caCertBytes,
+              certificates: caCertBytes,
               authority: AppConstants.serverHost,
               onBadCertificate: (cert, host) {
                 // CA chain validation is done by BoringSSL via `certificates`.

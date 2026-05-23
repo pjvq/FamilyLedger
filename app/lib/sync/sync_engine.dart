@@ -43,6 +43,13 @@ class SyncEngine {
   bool _disposed = false;
   int _reconnectAttempts = 0;
 
+  /// Cached SecurityContext for WebSocket TLS (avoids re-parsing PEM on every reconnect).
+  SecurityContext? _securityContext;
+
+  /// Consecutive sync failures — used for exponential backoff.
+  int _consecutiveFailures = 0;
+  static const _maxBackoffSeconds = 300; // 5 minutes cap
+
   /// Async mutex — prevents concurrent push/pull from corrupting state.
   /// At most one sync operation (push or pull) runs at a time.
   /// Additional requests are coalesced: if a pull is requested while syncing,
@@ -120,6 +127,9 @@ class SyncEngine {
     onSyncEvent?.call(const SyncEvent.syncStarted());
 
     try {
+      // Note: empty-path early return is inside try so that finally{} always
+      // releases the lock. This is intentional — no double-release risk because
+      // _tryAcquireSyncLock() is a simple bool flag, not a reentrant counter.
       final pendingOps =
           await _db!.getPendingSyncOps(AppConstants.syncBatchSize);
       dev.log('[Sync] _pushPendingOps: pendingOps count=${pendingOps.length}');
@@ -186,9 +196,11 @@ class SyncEngine {
 
       dev.log('[Sync] _pushPendingOps: pushed ${succeededIds.length}/${pendingOps.length} ops');
       onSyncEvent?.call(const SyncEvent.serverReachable());
+      _onSyncSuccess();
     } catch (e) {
       dev.log('[Sync] _pushPendingOps: push failed: $e');
       onSyncEvent?.call(const SyncEvent.serverUnreachable());
+      _onSyncFailure();
     } finally {
       dev.log('[Sync] _pushPendingOps: finished');
       onSyncEvent?.call(const SyncEvent.syncStopped());
@@ -298,9 +310,11 @@ class SyncEngine {
       dev.log('[Sync] _doPull: pulled $totalPulled changes, done');
       onSyncEvent?.call(const SyncEvent.syncCompleted());
       onSyncEvent?.call(const SyncEvent.serverReachable());
+      _onSyncSuccess();
     } catch (e) {
       dev.log('[Sync] _doPull: pull failed: $e');
       onSyncEvent?.call(const SyncEvent.serverUnreachable());
+      _onSyncFailure();
     }
   }
 
@@ -935,15 +949,42 @@ class SyncEngine {
 
   /// Create an HttpClient with our pinned CA for WebSocket TLS.
   HttpClient _createSecureHttpClient() {
-    final ctx = SecurityContext()
+    _securityContext ??= SecurityContext()
       ..setTrustedCertificatesBytes(caCertBytes);
-    return HttpClient(context: ctx)
+    return HttpClient(context: _securityContext!)
       ..badCertificateCallback = (cert, host, port) {
         // CA chain validated by SecurityContext (pinned CA only).
         // This callback fires only for non-chain issues (e.g. IP SAN
         // mismatch). Accept if issued by our pinned CA.
         return cert.issuer.contains('FamilyLedger CA');
       };
+  }
+
+  // ─────────── Backoff: 连续失败时延长重试间隔 ───────────
+
+  void _onSyncSuccess() {
+    if (_consecutiveFailures > 0) {
+      _consecutiveFailures = 0;
+      _rescheduleTimer(AppConstants.syncIntervalSeconds);
+    }
+  }
+
+  void _onSyncFailure() {
+    _consecutiveFailures++;
+    // Exponential backoff: 30s, 60s, 120s, 240s, capped at 300s
+    final backoff = (AppConstants.syncIntervalSeconds * pow(2, _consecutiveFailures - 1))
+        .clamp(AppConstants.syncIntervalSeconds, _maxBackoffSeconds)
+        .toInt();
+    _rescheduleTimer(backoff);
+    dev.log('[Sync] backoff: $_consecutiveFailures consecutive failures, next retry in ${backoff}s');
+  }
+
+  void _rescheduleTimer(int seconds) {
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(
+      Duration(seconds: seconds),
+      (_) => _syncCycle(),
+    );
   }
 
   void _disconnectWebSocket() {
@@ -1051,6 +1092,7 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
   final statusNotifier = ref.read(syncStatusProvider.notifier);
   engine.onSyncEvent = (SyncEvent event) {
     Future.microtask(() {
+      if (!statusNotifier.mounted) return;
       switch (event) {
         case SyncStarted():
           statusNotifier.markSyncing();

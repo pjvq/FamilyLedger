@@ -97,7 +97,7 @@ fi
 if [[ "${HAS_TLS}" == "true" ]]; then
   echo ""
   echo "🔒 [4/6] Deploying TLS certificates..."
-  ${SSH_CMD} "sudo mkdir -p ${REMOTE_TLS_DIR} && sudo chmod 700 ${REMOTE_TLS_DIR} && sudo chown ${USER}: ${REMOTE_TLS_DIR}"
+  ${SSH_CMD} "sudo mkdir -p '${REMOTE_TLS_DIR}' && sudo chmod 700 '${REMOTE_TLS_DIR}' && sudo chown '${USER}:' '${REMOTE_TLS_DIR}'"
   ${SCP_CMD} "${TLS_CERTS_DIR}/ca.pem" "${USER}@${HOST}:${REMOTE_TLS_DIR}/ca.pem"
   ${SCP_CMD} "${TLS_CERTS_DIR}/server.pem" "${USER}@${HOST}:${REMOTE_TLS_DIR}/server.pem"
   ${SCP_CMD} "${TLS_CERTS_DIR}/server-key.pem" "${USER}@${HOST}:${REMOTE_TLS_DIR}/server-key.pem"
