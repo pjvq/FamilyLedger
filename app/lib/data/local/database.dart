@@ -1099,6 +1099,13 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  /// Check if a category exists by ID.
+  Future<bool> categoryExists(String id) async {
+    final row = await (select(categories)..where((c) => c.id.equals(id)))
+        .getSingleOrNull();
+    return row != null;
+  }
+
   // Category Budgets
   Future<int> insertCategoryBudget(CategoryBudgetsTableCompanion entry) =>
       into(categoryBudgetsTable).insert(entry);

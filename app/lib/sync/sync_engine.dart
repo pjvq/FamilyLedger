@@ -555,15 +555,17 @@ class SyncEngine {
         await _applyBudgetOp(op.opType, op.entityId, payload);
         break;
       default:
-        dev.log('[Sync] unknown entity_type ${op.entityType}');
+        // Throw so unknown entity types enter dead-letter table.
+        // When client upgrades with new handler, retry will succeed.
+        throw UnsupportedError(
+          'Unknown entity_type: ${op.entityType} (op: ${op.id})',
+        );
     }
   }
 
-  /// Get the local entity's updated_at timestamp for LWW comparison.
-  /// Returns null if the entity doesn't exist locally (new entity),
-  /// meaning remote op should always be applied.
   /// Get local entity state in a single DB query (avoids double-fetch).
   /// Returns both deletion status and updatedAt for LWW + R9 checks.
+  /// updatedAt == null means entity doesn't exist locally.
   Future<({bool isDeleted, DateTime? updatedAt})> _getLocalEntityState(
       String entityType, String entityId) async {
     switch (entityType) {
@@ -580,8 +582,10 @@ class SyncEngine {
           updatedAt: acc?.updatedAt,
         );
       case 'category':
-        // Categories don't have updatedAt or soft delete
-        return (isDeleted: false, updatedAt: null);
+        // Categories don't track updatedAt or soft delete.
+        // Check existence so DELETE path can distinguish "exists" from "not exists".
+        final catExists = await _db!.categoryExists(entityId);
+        return (isDeleted: false, updatedAt: catExists ? DateTime(0) : null);
       case 'loan':
         final loan = await _db!.getLoanById(entityId);
         return (
