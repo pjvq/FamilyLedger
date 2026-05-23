@@ -119,6 +119,9 @@ class SyncState {
         } else {
           return s.copyWith(status: SyncStatus.synced);
         }
+      case DeadLetterCountUpdated():
+        // Dead-letter count is informational; does not change sync status
+        return state;
     }
   }
 

@@ -34,6 +34,7 @@ part 'database.g.dart';
   SyncQueue,
   SyncMetadata,
   ExchangeRates,
+  SyncDeadLetters,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -41,7 +42,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -166,6 +167,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 20) {
             // v19 → v20: sync_metadata table for atomic checkpoint storage
             await m.createTable(syncMetadata);
+          }
+          if (from < 21) {
+            // v20 → v21: dead-letter table for malformed pull ops
+            await m.createTable(syncDeadLetters);
           }
         },
         beforeOpen: (details) async {
@@ -705,6 +710,80 @@ class AppDatabase extends _$AppDatabase {
     await into(syncMetadata).insertOnConflictUpdate(
       SyncMetadataCompanion.insert(key: key, value: value),
     );
+  }
+
+  // ─────────── Dead-letter CRUD ───────────
+
+  /// Insert a failed op into dead-letter table.
+  /// Idempotent: ON CONFLICT (op_id) updates error/payload/retry info.
+  Future<void> insertDeadLetterOp({
+    required String opId,
+    required String entityType,
+    required String entityId,
+    required String error,
+    required String payload,
+  }) async {
+    await into(syncDeadLetters).insertOnConflictUpdate(
+      SyncDeadLettersCompanion.insert(
+        opId: opId,
+        entityType: entityType,
+        entityId: entityId,
+        error: error,
+        payload: payload,
+      ),
+    );
+  }
+
+  /// Get dead-letter ops eligible for retry (retryCount < maxRetries,
+  /// respecting backoff schedule, not yet expired).
+  Future<List<SyncDeadLetter>> getDeadLetterOps({
+    int maxRetries = 5,
+    int limit = 50,
+  }) async {
+    return (select(syncDeadLetters)
+          ..where((d) =>
+              d.retryCount.isSmallerThanValue(maxRetries) &
+              (d.lastRetryAt.isNull() |
+                  d.lastRetryAt.isSmallerOrEqualValue(DateTime.now())))
+          ..orderBy([(d) => OrderingTerm.asc(d.createdAt)])
+          ..limit(limit))
+        .get();
+  }
+
+  /// Remove a dead-letter op (after successful retry).
+  Future<void> removeDeadLetterOp(String opId) async {
+    await (delete(syncDeadLetters)..where((d) => d.opId.equals(opId))).go();
+  }
+
+  /// Get total count of dead-letter ops.
+  Future<int> getDeadLetterCount() async {
+    final result = await (select(syncDeadLetters)).get();
+    return result.length;
+  }
+
+  /// Increment retry count and set lastRetryAt for a dead-letter op.
+  Future<void> incrementDeadLetterRetry(String opId) async {
+    final op = await (select(syncDeadLetters)
+          ..where((d) => d.opId.equals(opId)))
+        .getSingleOrNull();
+    if (op == null) return;
+    final newCount = op.retryCount + 1;
+    // Exponential backoff: 1h, 4h, 16h, 64h, 256h
+    final delayHours = 1 * (1 << ((newCount - 1) * 2).clamp(0, 8));
+    await (update(syncDeadLetters)..where((d) => d.opId.equals(opId))).write(
+      SyncDeadLettersCompanion(
+        retryCount: Value(newCount),
+        lastRetryAt: Value(DateTime.now().add(Duration(hours: delayHours))),
+      ),
+    );
+  }
+
+  /// Purge dead-letter ops older than [days] days.
+  Future<int> purgeOldDeadLetterOps({int days = 30}) async {
+    final cutoff = DateTime.now().subtract(Duration(days: days));
+    return (delete(syncDeadLetters)
+          ..where((d) => d.createdAt.isSmallerOrEqualValue(cutoff)))
+        .go();
   }
 
   /// Mark transactions as failed (called after push retries exhausted).

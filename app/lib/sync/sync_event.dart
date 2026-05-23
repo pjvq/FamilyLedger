@@ -29,6 +29,10 @@ sealed class SyncEvent {
   /// Pending operation count refreshed from DB.
   /// Triggers resting-state recalculation without bypassing the state machine.
   const factory SyncEvent.pendingCountUpdated(int count) = PendingCountUpdated;
+
+  /// Dead-letter count changed (ops that failed during pull).
+  /// UI can show a warning badge when count > 0.
+  const factory SyncEvent.deadLetterCountUpdated(int count) = DeadLetterCountUpdated;
 }
 
 class SyncStarted extends SyncEvent {
@@ -121,4 +125,20 @@ class PendingCountUpdated extends SyncEvent {
 
   @override
   String toString() => 'SyncEvent.pendingCountUpdated($count)';
+}
+
+class DeadLetterCountUpdated extends SyncEvent {
+  final int count;
+  const DeadLetterCountUpdated(this.count);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DeadLetterCountUpdated && other.count == count);
+
+  @override
+  int get hashCode => count.hashCode;
+
+  @override
+  String toString() => 'SyncEvent.deadLetterCountUpdated($count)';
 }

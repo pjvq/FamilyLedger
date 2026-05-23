@@ -49,9 +49,12 @@ class SyncEngine {
   /// Cached HttpClient for WebSocket TLS (avoids connection pool leaks on reconnect).
   HttpClient? _secureHttpClient;
 
-  /// Consecutive sync failures — used for exponential backoff.
+  /// Consecutive sync failures - used for exponential backoff.
   int _consecutiveFailures = 0;
   static const _maxBackoffSeconds = 300; // 5 minutes cap
+
+  /// Sync cycle counter for periodic dead-letter retry.
+  int _syncCycleCount = 0;
 
   /// In-memory cache of lastSyncTs for fast heartbeat comparison.
   /// Authoritative value lives in SQLite (sync_metadata table).
@@ -60,7 +63,7 @@ class SyncEngine {
   static const _wsReconnectMaxDelay = 60; // seconds
   static const _wsReconnectMaxTotalDelay = 90; // seconds (includes jitter)
 
-  /// Async mutex — prevents concurrent push/pull from corrupting state.
+  /// Async mutex - prevents concurrent push/pull from corrupting state.
   /// At most one sync operation (push or pull) runs at a time.
   /// Additional requests are coalesced: if a pull is requested while syncing,
   /// it runs once after the current operation completes (not N times).
@@ -71,7 +74,7 @@ class SyncEngine {
   /// Callback to update sync status UI. Set by the provider.
   void Function(SyncEvent event)? onSyncEvent;
 
-  /// 最后一次成功拉取的服务端时间戳（毫秒）
+  /// 最后一次成功拉取的服务端时间戳(毫秒)
   static const _lastSyncTsKey = 'sync_last_pull_ts';
 
   SyncEngine(AppDatabase db, SyncServiceClient syncClient, SharedPreferences prefs,
@@ -93,7 +96,7 @@ class SyncEngine {
   void start() {
     if (_disposed) return;
 
-    // 定期 push + pull（pull 作为 WS 通知丢失的兜底）
+    // 定期 push + pull(pull 作为 WS 通知丢失的兜底)
     _syncTimer = Timer.periodic(
       const Duration(seconds: AppConstants.syncIntervalSeconds),
       (_) => _syncCycle(),
@@ -102,12 +105,21 @@ class SyncEngine {
     // 启动时立即尝试
     _syncCycle();
     _connectWebSocket();
+
+    // Retry dead-letter ops on startup (may succeed after app update)
+    _retryDeadLetterOps();
   }
 
   /// Full sync cycle: push pending ops then pull remote changes.
   Future<void> _syncCycle() async {
+    _syncCycleCount++;
     await _pushPendingOps();
     await _pullChanges();
+
+    // Retry dead-letter ops every 10th sync cycle
+    if (_syncCycleCount % 10 == 0) {
+      await _retryDeadLetterOps();
+    }
   }
 
   /// Public API: force an immediate pull from server.
@@ -130,13 +142,13 @@ class SyncEngine {
 
     try {
       // Note: empty-path early return is inside try so that finally{} always
-      // releases the lock. This is intentional — no double-release risk because
+      // releases the lock. This is intentional - no double-release risk because
       // _tryAcquireSyncLock() is a simple bool flag, not a reentrant counter.
       final pendingOps =
           await _db!.getPendingSyncOps(AppConstants.syncBatchSize);
       dev.log('[Sync] _pushPendingOps: pendingOps count=${pendingOps.length}');
       if (pendingOps.isEmpty) {
-        _onSyncSuccess(); // Reset backoff — no pending ops is not a failure
+        _onSyncSuccess(); // Reset backoff - no pending ops is not a failure
         onSyncEvent?.call(const SyncEvent.syncCompleted());
         return;
       }
@@ -294,13 +306,29 @@ class SyncEngine {
 
         final response = await _syncClient!.pullChanges(request);
 
-        // Apply all ops + update checkpoint in a single DB transaction.
-        // Atomic: if crash occurs, both ops and checkpoint roll back together.
+        // Apply ops individually with error isolation.
+        // Failed ops go to dead-letter table; remaining ops + checkpoint still advance.
         await _db!.transaction(() async {
           for (final op in response.operations) {
-            await _applyRemoteOp(op);
+            try {
+              await _applyRemoteOp(op);
+            } catch (e, st) {
+              dev.log(
+                '[Sync] _doPull: failed to apply op ${op.id} '
+                '(${op.entityType}/${op.entityId}): $e',
+              );
+              dev.log('[Sync] stacktrace: $st');
+              // Insert into dead-letter table (idempotent)
+              await _db!.insertDeadLetterOp(
+                opId: op.id,
+                entityType: op.entityType,
+                entityId: op.entityId,
+                error: e.toString(),
+                payload: op.payload,
+              );
+            }
           }
-          // Save checkpoint inside transaction so it’s atomic with the ops.
+          // Save checkpoint inside transaction so it's atomic with the ops.
           if (pageToken.isEmpty && response.hasServerTime()) {
             final serverMs =
                 response.serverTime.seconds.toInt() * 1000 +
@@ -318,10 +346,77 @@ class SyncEngine {
       onSyncEvent?.call(const SyncEvent.syncCompleted());
       onSyncEvent?.call(const SyncEvent.serverReachable());
       _onSyncSuccess();
+
+      // Notify UI of dead-letter count (may have changed during this pull)
+      final dlCount = await _db!.getDeadLetterCount();
+      if (dlCount > 0) {
+        onSyncEvent?.call(SyncEvent.deadLetterCountUpdated(dlCount));
+      }
     } catch (e) {
       dev.log('[Sync] _doPull: pull failed: $e');
       onSyncEvent?.call(const SyncEvent.serverUnreachable());
       _onSyncFailure();
+    }
+  }
+
+  /// Retry dead-letter ops that might succeed after an app update.
+  ///
+  /// Called on engine start and every 10th sync cycle.
+  /// Uses exponential backoff: 1h, 4h, 16h, 64h, 256h between retries.
+  /// Auto-purges ops older than 30 days.
+  Future<void> _retryDeadLetterOps() async {
+    if (_disposed || _db == null) return;
+
+    try {
+      // Purge expired ops first
+      final purged = await _db!.purgeOldDeadLetterOps(days: 30);
+      if (purged > 0) {
+        dev.log('[Sync] _retryDeadLetterOps: purged $purged expired ops');
+      }
+
+      // Get ops eligible for retry (respects backoff via lastRetryAt)
+      final ops = await _db!.getDeadLetterOps(maxRetries: 5, limit: 20);
+      if (ops.isEmpty) return;
+
+      dev.log('[Sync] _retryDeadLetterOps: attempting ${ops.length} ops');
+      int succeeded = 0;
+
+      for (final deadOp in ops) {
+        if (_disposed) return;
+        try {
+          // Reconstruct a SyncOperation proto-like call
+          final opProto = sync_pb.SyncOperation(
+            id: deadOp.opId,
+            entityType: deadOp.entityType,
+            entityId: deadOp.entityId,
+            payload: deadOp.payload,
+            // Default to UPDATE for retries; _applyRemoteOp handles
+            // the actual logic based on entityType and payload content
+            opType: sync_enum.OperationType.OPERATION_TYPE_UPDATE,
+          );
+          await _db!.transaction(() async {
+            await _applyRemoteOp(opProto);
+          });
+          // Success — remove from dead-letter
+          await _db!.removeDeadLetterOp(deadOp.opId);
+          succeeded++;
+        } catch (e) {
+          dev.log(
+            '[Sync] _retryDeadLetterOps: op ${deadOp.opId} still failing: $e',
+          );
+          await _db!.incrementDeadLetterRetry(deadOp.opId);
+        }
+      }
+
+      if (succeeded > 0) {
+        dev.log('[Sync] _retryDeadLetterOps: $succeeded ops recovered');
+      }
+
+      // Emit updated count
+      final remaining = await _db!.getDeadLetterCount();
+      onSyncEvent?.call(SyncEvent.deadLetterCountUpdated(remaining));
+    } catch (e) {
+      dev.log('[Sync] _retryDeadLetterOps: error: $e');
     }
   }
 
@@ -332,9 +427,9 @@ class SyncEngine {
   /// - For CREATE/UPDATE: compare remote op timestamp with local entity's
   ///   updated_at. Only apply if remote timestamp >= local updated_at.
   ///
-  /// Exceptions are NOT caught here — they bubble up to the transaction
-  /// wrapper in _doPull, causing a full page rollback. This ensures no
-  /// partial state from a malformed op.
+  /// Exceptions bubble up to the caller. In _doPull, each op is individually
+  /// try-caught so failures go to the dead-letter table without blocking
+  /// other ops.
   Future<void> _applyRemoteOp(sync_pb.SyncOperation op) async {
     final isDelete =
         op.opType == sync_enum.OperationType.OPERATION_TYPE_DELETE;
@@ -376,7 +471,7 @@ class SyncEngine {
     // CREATE/UPDATE path: requires payload.
     final payload = jsonDecode(op.payload) as Map<String, dynamic>;
 
-    // R9 fix: DELETE is terminal — if entity is locally deleted, reject any
+    // R9 fix: DELETE is terminal - if entity is locally deleted, reject any
     // subsequent CREATE/UPDATE even with later timestamp.
     final isLocallyDeleted = await _isEntityDeleted(op.entityType, op.entityId);
     if (isLocallyDeleted) {
@@ -447,7 +542,7 @@ class SyncEngine {
         final acc = await _db!.getAccountById(entityId);
         return acc?.updatedAt;
       case 'category':
-        // Categories don't have updatedAt — always apply remote ops
+        // Categories don't have updatedAt - always apply remote ops
         return null;
       case 'loan':
         final loan = await _db!.getLoanById(entityId);
@@ -797,7 +892,7 @@ class SyncEngine {
     }
   }
 
-  /// Auth-ok wait timeout — longer than server's AuthTimeout (5s) to account
+  /// Auth-ok wait timeout - longer than server's AuthTimeout (5s) to account
   /// for network latency. Server closes with 4002 before this fires normally.
   static const _authOkTimeout = Duration(seconds: 10);
 
@@ -842,7 +937,7 @@ class SyncEngine {
 
       if (_disposed) return;
 
-      // Enter auth phase — suppress onDone/onError reconnect
+      // Enter auth phase - suppress onDone/onError reconnect
       _awaitingAuth = true;
       _authCompleter = Completer<void>();
 
@@ -896,7 +991,7 @@ class SyncEngine {
         return;
       }
 
-      // Auth succeeded — exit auth phase
+      // Auth succeeded - exit auth phase
       _awaitingAuth = false;
       _authCompleter = null;
       dev.log('[WS] authenticated');
@@ -926,7 +1021,7 @@ class SyncEngine {
       }
 
       if (type == 'sync_notify' || type == 'change') {
-        // 服务端通知有新变更，触发增量拉取
+        // 服务端通知有新变更,触发增量拉取
         _pullChanges();
       } else if (type == 'heartbeat' || type == 'ping') {
         // Server heartbeat with watermark: compare with our lastSyncTs
@@ -934,7 +1029,7 @@ class SyncEngine {
         if (serverTimeMs != null) {
           final localTs = _lastSyncTsMs;
           if (serverTimeMs > localTs) {
-            // We're behind — pull to catch up
+            // We're behind - pull to catch up
             dev.log(
               '[Sync] heartbeat watermark ahead (server=$serverTimeMs, local=$localTs), pulling',
             );
@@ -950,7 +1045,7 @@ class SyncEngine {
   // ─────────── Sync Mutex ───────────
 
   /// Try-lock: returns true if acquired, false if another op holds the lock.
-  /// Synchronous — no async gap between check and acquire.
+  /// Synchronous - no async gap between check and acquire.
   bool _tryAcquireSyncLock() {
     if (_syncing) return false;
     _syncing = true;
@@ -1059,14 +1154,14 @@ class SyncEngine {
     });
   }
 
-  /// 手动触发完整同步（推送 + 拉取）
+  /// 手动触发完整同步(推送 + 拉取)
   Future<void> syncNow() => _syncCycle();
 
-  /// App 回到前台时调用：立即同步 + 重启 timer + 重连 WS
+  /// App 回到前台时调用:立即同步 + 重启 timer + 重连 WS
   void onAppResumed() {
     if (_disposed) return;
     dev.log('[Sync] app resumed, syncing...');
-    // Reset backoff — user returning to foreground deserves a fresh start
+    // Reset backoff - user returning to foreground deserves a fresh start
     _consecutiveFailures = 0;
     // Restart timer at normal interval
     _syncTimer?.cancel();
@@ -1079,7 +1174,7 @@ class SyncEngine {
     if (_wsChannel == null) _connectWebSocket();
   }
 
-  /// App 进入后台时调用：停止 timer 省电，保持 WS（会自然断开）
+  /// App 进入后台时调用:停止 timer 省电,保持 WS(会自然断开)
   void onAppPaused() {
     if (_disposed) return;
     dev.log('[Sync] app paused, stopping timer');
@@ -1110,7 +1205,7 @@ class SyncEngine {
 final syncEngineProvider = Provider<SyncEngine>((ref) {
   final userId = ref.watch(currentUserIdProvider);
 
-  // Not logged in — return inert stub that does nothing.
+  // Not logged in - return inert stub that does nothing.
   if (userId == null) {
     return SyncEngine.inert();
   }
@@ -1146,6 +1241,8 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
           statusNotifier.markFailed(failedCount);
         case PendingCountUpdated():
           break;
+        case DeadLetterCountUpdated():
+          break;
       }
     });
   };
@@ -1153,7 +1250,7 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
   ref.onDispose(() => engine.dispose());
 
   // Auto-start: engine begins sync cycle + WS connection immediately.
-  // Previously this was triggered manually by home_page.dart — now it's
+  // Previously this was triggered manually by home_page.dart - now it's
   // lifecycle-managed: starts when user logs in, stops when they log out.
   engine.start();
 
@@ -1190,7 +1287,7 @@ class _SyncLifecycleObserverState extends ConsumerState<SyncLifecycleObserver>
     if (state == AppLifecycleState.resumed) {
       engine.onAppResumed();
     } else if (state == AppLifecycleState.paused) {
-      // Only pause on actual background (not inactive — e.g. phone call, notification center)
+      // Only pause on actual background (not inactive - e.g. phone call, notification center)
       engine.onAppPaused();
     }
   }
