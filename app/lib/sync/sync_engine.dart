@@ -108,6 +108,14 @@ class SyncEngine {
         _prefs = null,
         _tokenStorage = null;
 
+  /// Test-only constructor: provides a real DB but no network.
+  @visibleForTesting
+  SyncEngine.forTesting(AppDatabase db)
+      : _db = db,
+        _syncClient = null,
+        _prefs = null,
+        _tokenStorage = null;
+
   void start() {
     if (_disposed) return;
 
@@ -358,13 +366,30 @@ class SyncEngine {
               );
             }
           }
-          // Save checkpoint inside transaction so it's atomic with the ops.
+
+          // Per-page checkpoint: advance cursor after each page so that an
+          // interrupted multi-page pull doesn't replay already-applied ops.
+          // On the final page, prefer server_time (authoritative clock);
+          // on intermediate pages, use the last op's timestamp.
           if (pageToken.isEmpty && response.hasServerTime()) {
+            // Final page — use server-provided authoritative time.
             final serverMs =
                 response.serverTime.seconds.toInt() * 1000 +
                 response.serverTime.nanos ~/ 1000000;
             await _db!.setSyncMetaInt(_lastSyncTsKey, serverMs);
             _lastSyncTsMs = serverMs;
+          } else if (response.operations.isNotEmpty) {
+            // Intermediate page — use last op's timestamp as watermark.
+            // Server guarantees ops are ordered by timestamp ASC, id ASC.
+            final lastOp = response.operations.last;
+            final lastOpMs = lastOp.hasTimestamp()
+                ? lastOp.timestamp.seconds.toInt() * 1000 +
+                    lastOp.timestamp.nanos ~/ 1000000
+                : 0;
+            if (lastOpMs > _lastSyncTsMs) {
+              await _db!.setSyncMetaInt(_lastSyncTsKey, lastOpMs);
+              _lastSyncTsMs = lastOpMs;
+            }
           }
         });
         totalPulled += response.operations.length;
@@ -671,30 +696,41 @@ class SyncEngine {
 
         final txnDateUpdate = DateTime.tryParse(payload['txn_date'] ?? '') ??
             DateTime.now();
+        final newAccountId = payload['account_id'] ?? '';
+        final newAmountCny = (payload['amount_cny'] as num?)?.toInt() ?? 0;
+        final newType = payload['type'] ?? 'expense';
+
         await _db!.insertOrUpdateTransaction(
           id: entityId,
           userId: payload['user_id'] ?? '',
-          accountId: payload['account_id'] ?? '',
+          accountId: newAccountId,
           categoryId: payload['category_id'] ?? '',
           amount: (payload['amount'] as num?)?.toInt() ?? 0,
-          amountCny: (payload['amount_cny'] as num?)?.toInt() ?? 0,
-          type: payload['type'] ?? 'expense',
+          amountCny: newAmountCny,
+          type: newType,
           note: payload['note'] ?? '',
           txnDate: txnDateUpdate,
         );
-        // Revert old balance, apply new
-        final updateAccountId = payload['account_id'] ?? '';
-        final updateAmountCny = (payload['amount_cny'] as num?)?.toInt() ?? 0;
-        final updateType = payload['type'] ?? 'expense';
-        if (oldTxn != null && oldTxn.deletedAt == null && oldTxn.type != 'transfer') {
-          // Revert old balance contribution
-          final oldDelta = oldTxn.type == 'income' ? oldTxn.amountCny : -oldTxn.amountCny;
-          await _db!.updateAccountBalance(oldTxn.accountId, -oldDelta);
-        }
-        // Apply new balance delta
-        if (updateAccountId.isNotEmpty && updateAmountCny != 0 && updateType != 'transfer') {
-          final newDelta = updateType == 'income' ? updateAmountCny : -updateAmountCny;
-          await _db!.updateAccountBalance(updateAccountId, newDelta);
+
+        // Idempotent balance adjustment: only revert/apply if the values
+        // that affect balance actually changed. This makes UPDATE replay-safe
+        // even without per-page checkpoint (defense-in-depth).
+        final bool balanceRelevantChanged = oldTxn == null ||
+            oldTxn.accountId != newAccountId ||
+            oldTxn.amountCny != newAmountCny ||
+            oldTxn.type != newType;
+
+        if (balanceRelevantChanged) {
+          // Revert old balance contribution (if old txn existed and was active)
+          if (oldTxn != null && oldTxn.deletedAt == null && oldTxn.type != 'transfer') {
+            final oldDelta = oldTxn.type == 'income' ? oldTxn.amountCny : -oldTxn.amountCny;
+            await _db!.updateAccountBalance(oldTxn.accountId, -oldDelta);
+          }
+          // Apply new balance delta
+          if (newAccountId.isNotEmpty && newAmountCny != 0 && newType != 'transfer') {
+            final newDelta = newType == 'income' ? newAmountCny : -newAmountCny;
+            await _db!.updateAccountBalance(newAccountId, newDelta);
+          }
         }
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
@@ -1217,6 +1253,16 @@ class SyncEngine {
     dev.log('[Sync] app paused, stopping timer');
     _syncTimer?.cancel();
     _syncTimer = null;
+  }
+
+  /// Test-only: apply a remote op directly.
+  /// Only works when engine is constructed with [SyncEngine.forTesting].
+  @visibleForTesting
+  Future<void> applyRemoteOpForTest(
+      AppDatabase testDb, sync_pb.SyncOperation op) async {
+    assert(_db == testDb,
+        'applyRemoteOpForTest: engine must be constructed with forTesting(db)');
+    await _applyRemoteOp(op);
   }
 
   void dispose() {
