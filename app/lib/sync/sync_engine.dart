@@ -62,6 +62,13 @@ class SyncEngine {
   /// In-memory cache of lastSyncTs for fast heartbeat comparison.
   /// Authoritative value lives in SQLite (sync_metadata table).
   int _lastSyncTsMs = 0;
+
+  // Dead-letter retry configuration
+  static const _deadLetterMaxRetries = 5;
+  static const _deadLetterBatchSize = 20;
+  static const _deadLetterPurgeDays = 30;
+  static const _deadLetterRetryCycleInterval = 10;
+
   static const _wsReconnectBaseDelay = 1; // seconds
   static const _wsReconnectMaxDelay = 60; // seconds
   static const _wsReconnectMaxTotalDelay = 90; // seconds (includes jitter)
@@ -111,8 +118,13 @@ class SyncEngine {
   }
 
   /// Full sync cycle: push pending ops then pull remote changes.
+  ///
+  /// Uses `_isSyncing` to prevent timer re-entry. If a timer tick arrives
+  /// while a cycle is in progress, it is silently dropped — acceptable since
+  /// the next tick (30s later) will execute normally. WS-triggered pulls
+  /// use their own coalescing via `_pullRequested`.
   Future<void> _syncCycle() async {
-    if (_isSyncing) return; // Prevent interleaving from WS triggers
+    if (_isSyncing) return;
     _isSyncing = true;
     try {
       _syncCycleCount++;
@@ -120,7 +132,7 @@ class SyncEngine {
       await _pullChanges();
 
       // Retry dead-letter ops on first cycle (startup) and every 10th cycle
-      if (_syncCycleCount == 1 || _syncCycleCount % 10 == 0) {
+      if (_syncCycleCount == 1 || _syncCycleCount % _deadLetterRetryCycleInterval == 0) {
         await _retryDeadLetterOps();
       }
     } finally {
@@ -360,8 +372,8 @@ class SyncEngine {
       onSyncEvent?.call(const SyncEvent.serverReachable());
       _onSyncSuccess();
 
-      // Only query dead-letter count if something actually failed this pull
-      if (deadLetterDirty) {
+      // Emit dead-letter count: on first sync (UI bootstrap) or when something failed
+      if (deadLetterDirty || _syncCycleCount == 1) {
         final dlCount = await _db!.getDeadLetterCount();
         onSyncEvent?.call(SyncEvent.deadLetterCountUpdated(dlCount));
       }
@@ -385,13 +397,13 @@ class SyncEngine {
 
     try {
       // Purge expired ops first
-      final purged = await _db!.purgeOldDeadLetterOps(days: 30);
+      final purged = await _db!.purgeOldDeadLetterOps(days: _deadLetterPurgeDays);
       if (purged > 0) {
         dev.log('[Sync] _retryDeadLetterOps: purged $purged expired ops');
       }
 
       // Get ops eligible for retry (respects backoff via nextRetryAfter)
-      final ops = await _db!.getDeadLetterOps(maxRetries: 5, limit: 20);
+      final ops = await _db!.getDeadLetterOps(maxRetries: _deadLetterMaxRetries, limit: _deadLetterBatchSize);
       if (ops.isEmpty) return;
 
       dev.log('[Sync] _retryDeadLetterOps: attempting ${ops.length} ops');
@@ -431,9 +443,8 @@ class SyncEngine {
           }
           await _db!.transaction(() async {
             await _applyRemoteOp(opProto);
+            await _db!.removeDeadLetterOp(deadOp.opId);
           });
-          // Success — remove from dead-letter
-          await _db!.removeDeadLetterOp(deadOp.opId);
           succeeded++;
           dev.log(
             '[Sync] dead-letter recovered: ${deadOp.opId}, '
@@ -459,6 +470,7 @@ class SyncEngine {
       dev.log('[Sync] _retryDeadLetterOps: error: $e');
     } finally {
       _releaseSyncLock();
+      _drainPendingRequests();
     }
   }
 
@@ -476,71 +488,45 @@ class SyncEngine {
     final isDelete =
         op.opType == sync_enum.OperationType.OPERATION_TYPE_DELETE;
 
-    // DELETE path: does not require payload parsing.
-    // Short-circuit before jsonDecode to handle empty/null payloads.
+    // For DELETE: skip payload parsing (payload may be empty/null).
+    // For CREATE/UPDATE: decode payload + apply LWW checks.
+    Map<String, dynamic> payload;
     if (isDelete) {
-      switch (op.entityType) {
-        case 'transaction':
-          await _applyTransactionOp(op.opType, op.entityId, const {});
-          break;
-        case 'account':
-          await _applyAccountOp(op.opType, op.entityId, const {});
-          break;
-        case 'category':
-          await _applyCategoryOp(op.opType, op.entityId, const {});
-          break;
-        case 'loan':
-          await _applyLoanOp(op.opType, op.entityId, const {});
-          break;
-        case 'loan_group':
-          await _applyLoanGroupOp(op.opType, op.entityId, const {});
-          break;
-        case 'investment':
-          await _applyInvestmentOp(op.opType, op.entityId, const {});
-          break;
-        case 'fixed_asset':
-          await _applyFixedAssetOp(op.opType, op.entityId, const {});
-          break;
-        case 'budget':
-          await _applyBudgetOp(op.opType, op.entityId, const {});
-          break;
-        default:
-          dev.log('[Sync] unknown entity_type ${op.entityType}');
+      payload = const {};
+    } else {
+      payload = jsonDecode(op.payload) as Map<String, dynamic>;
+
+      // R9 fix: DELETE is terminal - if entity is locally deleted, reject any
+      // subsequent CREATE/UPDATE even with later timestamp.
+      final isLocallyDeleted =
+          await _isEntityDeleted(op.entityType, op.entityId);
+      if (isLocallyDeleted) {
+        dev.log(
+          '[Sync] R9 terminal skip ${op.entityType}/${op.entityId} '
+          '(locally deleted, ignoring ${op.opType})',
+        );
+        return;
       }
-      return;
+
+      // LWW check: skip if local data is newer
+      final remoteTimestampMs = op.hasTimestamp()
+          ? op.timestamp.seconds.toInt() * 1000 +
+              op.timestamp.nanos ~/ 1000000
+          : 0;
+      final localUpdatedAt =
+          await _getLocalEntityUpdatedAt(op.entityType, op.entityId);
+
+      if (localUpdatedAt != null &&
+          localUpdatedAt.millisecondsSinceEpoch > remoteTimestampMs) {
+        dev.log(
+          '[Sync] LWW skip ${op.entityType}/${op.entityId} '
+          '(local=${localUpdatedAt.millisecondsSinceEpoch}, remote=$remoteTimestampMs)',
+        );
+        return;
+      }
     }
 
-    // CREATE/UPDATE path: requires payload.
-    final payload = jsonDecode(op.payload) as Map<String, dynamic>;
-
-    // R9 fix: DELETE is terminal - if entity is locally deleted, reject any
-    // subsequent CREATE/UPDATE even with later timestamp.
-    final isLocallyDeleted = await _isEntityDeleted(op.entityType, op.entityId);
-    if (isLocallyDeleted) {
-      dev.log(
-        '[Sync] R9 terminal skip ${op.entityType}/${op.entityId} '
-        '(locally deleted, ignoring ${op.opType})',
-      );
-      return;
-    }
-
-    // LWW check: skip if local data is newer
-    final remoteTimestampMs = op.hasTimestamp()
-        ? op.timestamp.seconds.toInt() * 1000 +
-            op.timestamp.nanos ~/ 1000000
-        : 0;
-    final localUpdatedAt =
-        await _getLocalEntityUpdatedAt(op.entityType, op.entityId);
-
-    if (localUpdatedAt != null &&
-        localUpdatedAt.millisecondsSinceEpoch > remoteTimestampMs) {
-      dev.log(
-        '[Sync] LWW skip ${op.entityType}/${op.entityId} '
-        '(local=${localUpdatedAt.millisecondsSinceEpoch}, remote=$remoteTimestampMs)',
-      );
-      return;
-    }
-
+    // Single dispatch for all op types
     switch (op.entityType) {
       case 'transaction':
         await _applyTransactionOp(op.opType, op.entityId, payload);
