@@ -34,6 +34,7 @@ part 'database.g.dart';
   SyncQueue,
   SyncMetadata,
   ExchangeRates,
+  SyncDeadLetters,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -41,7 +42,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 22;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -166,6 +167,22 @@ class AppDatabase extends _$AppDatabase {
           if (from < 20) {
             // v19 → v20: sync_metadata table for atomic checkpoint storage
             await m.createTable(syncMetadata);
+          }
+          if (from < 21) {
+            // v20 → v21: dead-letter table for malformed pull ops
+            await m.createTable(syncDeadLetters);
+          }
+          if (from < 22) {
+            // v21 → v22: add op_type + timestamp_ms columns, rename lastRetryAt → nextRetryAfter
+            if (from >= 21) {
+              // Table exists from v21 — add new columns + rename
+              await m.addColumn(syncDeadLetters, syncDeadLetters.opType);
+              await m.addColumn(syncDeadLetters, syncDeadLetters.timestampMs);
+              await customStatement(
+                'ALTER TABLE sync_dead_letter RENAME COLUMN last_retry_at TO next_retry_after',
+              );
+            }
+            // If from < 21, table was just created above with the new schema
           }
         },
         beforeOpen: (details) async {
@@ -707,6 +724,95 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  // ─────────── Dead-letter CRUD ───────────
+
+  /// Insert a failed op into dead-letter table.
+  /// Idempotent: ON CONFLICT (op_id) updates error/payload/retry info.
+  Future<void> insertDeadLetterOp({
+    required String opId,
+    required String entityType,
+    required String entityId,
+    required String opType,
+    required int timestampMs,
+    required String error,
+    required String payload,
+  }) async {
+    await into(syncDeadLetters).insert(
+      SyncDeadLettersCompanion.insert(
+        opId: opId,
+        entityType: entityType,
+        entityId: entityId,
+        opType: opType,
+        error: error,
+        payload: payload,
+        timestampMs: Value(timestampMs),
+      ),
+      onConflict: DoUpdate(
+        (old) => SyncDeadLettersCompanion(
+          error: Value(error),
+          // Don't reset createdAt, retryCount, or nextRetryAfter on re-insert
+        ),
+        target: [syncDeadLetters.opId],
+      ),
+    );
+  }
+
+  /// Get dead-letter ops eligible for retry (retryCount < maxRetries,
+  /// respecting backoff schedule, not yet expired).
+  Future<List<SyncDeadLetter>> getDeadLetterOps({
+    int maxRetries = 5,
+    int limit = 50,
+  }) async {
+    return (select(syncDeadLetters)
+          ..where((d) =>
+              d.retryCount.isSmallerThanValue(maxRetries) &
+              (d.nextRetryAfter.isNull() |
+                  d.nextRetryAfter.isSmallerOrEqualValue(DateTime.now())))
+          ..orderBy([(d) => OrderingTerm.asc(d.createdAt)])
+          ..limit(limit))
+        .get();
+  }
+
+  /// Remove a dead-letter op (after successful retry).
+  Future<void> removeDeadLetterOp(String opId) async {
+    await (delete(syncDeadLetters)..where((d) => d.opId.equals(opId))).go();
+  }
+
+  /// Get total count of dead-letter ops using SQL COUNT(*).
+  Future<int> getDeadLetterCount() async {
+    final count = countAll();
+    final query = selectOnly(syncDeadLetters)..addColumns([count]);
+    final row = await query.getSingle();
+    return row.read(count) ?? 0;
+  }
+
+  /// Increment retry count and set nextRetryAfter atomically.
+  /// Exponential backoff: 1h, 4h, 16h, 64h, 256h (1 << (retryIndex * 2)).
+  Future<void> incrementDeadLetterRetry(String opId) async {
+    final op = await (select(syncDeadLetters)
+          ..where((d) => d.opId.equals(opId)))
+        .getSingleOrNull();
+    if (op == null) return;
+    final newCount = op.retryCount + 1;
+    // retryIndex = newCount - 1, clamped to avoid shift overflow
+    final shiftAmount = ((newCount - 1) * 2).clamp(0, 8);
+    final delayHours = 1 << shiftAmount; // 1, 4, 16, 64, 256
+    await (update(syncDeadLetters)..where((d) => d.opId.equals(opId))).write(
+      SyncDeadLettersCompanion(
+        retryCount: Value(newCount),
+        nextRetryAfter: Value(DateTime.now().add(Duration(hours: delayHours))),
+      ),
+    );
+  }
+
+  /// Purge dead-letter ops older than [days] days.
+  Future<int> purgeOldDeadLetterOps({int days = 30}) async {
+    final cutoff = DateTime.now().subtract(Duration(days: days));
+    return (delete(syncDeadLetters)
+          ..where((d) => d.createdAt.isSmallerOrEqualValue(cutoff)))
+        .go();
+  }
+
   /// Mark transactions as failed (called after push retries exhausted).
   Future<void> markTransactionsFailed(List<String> entityIds) async {
     if (entityIds.isEmpty) return;
@@ -842,7 +948,9 @@ class AppDatabase extends _$AppDatabase {
     int balance = 0,
     String currency = 'CNY',
     bool isActive = true,
+    DateTime? updatedAt,
   }) async {
+    final effectiveUpdatedAt = updatedAt ?? DateTime.now();
     final existing = await getAccountById(id);
     if (existing != null) {
       await (update(accounts)..where((a) => a.id.equals(id))).write(
@@ -853,7 +961,7 @@ class AppDatabase extends _$AppDatabase {
           balance: Value(balance),
           currency: Value(currency),
           isActive: Value(isActive),
-          updatedAt: Value(DateTime.now()),
+          updatedAt: Value(effectiveUpdatedAt),
         ),
       );
     } else {
@@ -989,6 +1097,15 @@ class AppDatabase extends _$AppDatabase {
         await deleteCategoryBudgets(d.id);
       }
     }
+  }
+
+  /// Check if a category exists by ID (lightweight, only fetches id column).
+  Future<bool> categoryExists(String id) async {
+    final query = selectOnly(categories)
+      ..addColumns([categories.id])
+      ..where(categories.id.equals(id));
+    final row = await query.getSingleOrNull();
+    return row != null;
   }
 
   // Category Budgets

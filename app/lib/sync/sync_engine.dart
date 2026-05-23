@@ -49,18 +49,36 @@ class SyncEngine {
   /// Cached HttpClient for WebSocket TLS (avoids connection pool leaks on reconnect).
   HttpClient? _secureHttpClient;
 
-  /// Consecutive sync failures — used for exponential backoff.
+  /// Consecutive sync failures - used for exponential backoff.
   int _consecutiveFailures = 0;
   static const _maxBackoffSeconds = 300; // 5 minutes cap
+
+  /// Sync cycle counter for periodic dead-letter retry.
+  int _syncCycleCount = 0;
+
+  /// Guard against concurrent sync operations (pull + retry interleaving).
+  bool _isSyncing = false;
 
   /// In-memory cache of lastSyncTs for fast heartbeat comparison.
   /// Authoritative value lives in SQLite (sync_metadata table).
   int _lastSyncTsMs = 0;
+
+  // Dead-letter retry configuration
+  static const _deadLetterMaxRetries = 5;
+  static const _deadLetterBatchSize = 20;
+  static const _deadLetterPurgeDays = 30;
+  static const _deadLetterRetryCycleInterval = 10;
+
+  static const _knownEntityTypes = {
+    'transaction', 'account', 'category', 'loan',
+    'loan_group', 'investment', 'fixed_asset', 'budget',
+  };
+
   static const _wsReconnectBaseDelay = 1; // seconds
   static const _wsReconnectMaxDelay = 60; // seconds
   static const _wsReconnectMaxTotalDelay = 90; // seconds (includes jitter)
 
-  /// Async mutex — prevents concurrent push/pull from corrupting state.
+  /// Async mutex - prevents concurrent push/pull from corrupting state.
   /// At most one sync operation (push or pull) runs at a time.
   /// Additional requests are coalesced: if a pull is requested while syncing,
   /// it runs once after the current operation completes (not N times).
@@ -71,7 +89,7 @@ class SyncEngine {
   /// Callback to update sync status UI. Set by the provider.
   void Function(SyncEvent event)? onSyncEvent;
 
-  /// 最后一次成功拉取的服务端时间戳（毫秒）
+  /// 最后一次成功拉取的服务端时间戳(毫秒)
   static const _lastSyncTsKey = 'sync_last_pull_ts';
 
   SyncEngine(AppDatabase db, SyncServiceClient syncClient, SharedPreferences prefs,
@@ -93,7 +111,7 @@ class SyncEngine {
   void start() {
     if (_disposed) return;
 
-    // 定期 push + pull（pull 作为 WS 通知丢失的兜底）
+    // 定期 push + pull(pull 作为 WS 通知丢失的兜底)
     _syncTimer = Timer.periodic(
       const Duration(seconds: AppConstants.syncIntervalSeconds),
       (_) => _syncCycle(),
@@ -105,9 +123,26 @@ class SyncEngine {
   }
 
   /// Full sync cycle: push pending ops then pull remote changes.
+  ///
+  /// Uses `_isSyncing` to prevent timer re-entry. If a timer tick arrives
+  /// while a cycle is in progress, it is silently dropped — acceptable since
+  /// the next tick (30s later) will execute normally. WS-triggered pulls
+  /// use their own coalescing via `_pullRequested`.
   Future<void> _syncCycle() async {
-    await _pushPendingOps();
-    await _pullChanges();
+    if (_isSyncing) return;
+    _isSyncing = true;
+    try {
+      _syncCycleCount++;
+      await _pushPendingOps();
+      await _pullChanges();
+
+      // Retry dead-letter ops on first cycle (startup) and every 10th cycle
+      if (_syncCycleCount == 1 || _syncCycleCount % _deadLetterRetryCycleInterval == 0) {
+        await _retryDeadLetterOps();
+      }
+    } finally {
+      _isSyncing = false;
+    }
   }
 
   /// Public API: force an immediate pull from server.
@@ -130,13 +165,13 @@ class SyncEngine {
 
     try {
       // Note: empty-path early return is inside try so that finally{} always
-      // releases the lock. This is intentional — no double-release risk because
+      // releases the lock. This is intentional - no double-release risk because
       // _tryAcquireSyncLock() is a simple bool flag, not a reentrant counter.
       final pendingOps =
           await _db!.getPendingSyncOps(AppConstants.syncBatchSize);
       dev.log('[Sync] _pushPendingOps: pendingOps count=${pendingOps.length}');
       if (pendingOps.isEmpty) {
-        _onSyncSuccess(); // Reset backoff — no pending ops is not a failure
+        _onSyncSuccess(); // Reset backoff - no pending ops is not a failure
         onSyncEvent?.call(const SyncEvent.syncCompleted());
         return;
       }
@@ -277,6 +312,7 @@ class SyncEngine {
       String pageToken = '';
 
       // Paginated pull loop
+      bool deadLetterDirty = false;
       do {
         if (_disposed) return;
 
@@ -294,13 +330,35 @@ class SyncEngine {
 
         final response = await _syncClient!.pullChanges(request);
 
-        // Apply all ops + update checkpoint in a single DB transaction.
-        // Atomic: if crash occurs, both ops and checkpoint roll back together.
+        // Apply ops individually with error isolation.
+        // Failed ops go to dead-letter table; remaining ops + checkpoint still advance.
         await _db!.transaction(() async {
           for (final op in response.operations) {
-            await _applyRemoteOp(op);
+            try {
+              await _applyRemoteOp(op);
+            } catch (e, st) {
+              deadLetterDirty = true;
+              dev.log(
+                '[Sync] _doPull: failed to apply op ${op.id} '
+                '(${op.entityType}/${op.entityId}): $e\n$st',
+              );
+              // Insert into dead-letter table (idempotent)
+              final opTimestampMs = op.hasTimestamp()
+                  ? op.timestamp.seconds.toInt() * 1000 +
+                      op.timestamp.nanos ~/ 1000000
+                  : 0;
+              await _db!.insertDeadLetterOp(
+                opId: op.id,
+                entityType: op.entityType,
+                entityId: op.entityId,
+                opType: op.opType.name,
+                timestampMs: opTimestampMs,
+                error: e.toString(),
+                payload: op.payload,
+              );
+            }
           }
-          // Save checkpoint inside transaction so it’s atomic with the ops.
+          // Save checkpoint inside transaction so it's atomic with the ops.
           if (pageToken.isEmpty && response.hasServerTime()) {
             final serverMs =
                 response.serverTime.seconds.toInt() * 1000 +
@@ -318,10 +376,106 @@ class SyncEngine {
       onSyncEvent?.call(const SyncEvent.syncCompleted());
       onSyncEvent?.call(const SyncEvent.serverReachable());
       _onSyncSuccess();
+
+      // Emit dead-letter count: on first sync (UI bootstrap) or when something failed
+      if (deadLetterDirty || _syncCycleCount == 1) {
+        final dlCount = await _db!.getDeadLetterCount();
+        onSyncEvent?.call(SyncEvent.deadLetterCountUpdated(dlCount));
+      }
     } catch (e) {
       dev.log('[Sync] _doPull: pull failed: $e');
       onSyncEvent?.call(const SyncEvent.serverUnreachable());
       _onSyncFailure();
+    }
+  }
+
+  /// Retry dead-letter ops that might succeed after an app update.
+  ///
+  /// Called on engine start and every 10th sync cycle.
+  /// Uses exponential backoff: 1h, 4h, 16h, 64h, 256h between retries.
+  /// Auto-purges ops older than 30 days.
+  ///
+  /// Acquires the sync lock to prevent interleaving with WS-triggered pulls.
+  Future<void> _retryDeadLetterOps() async {
+    if (_disposed || _db == null) return;
+    if (!_tryAcquireSyncLock()) return; // Skip if sync in progress
+
+    try {
+      // Purge expired ops first
+      final purged = await _db!.purgeOldDeadLetterOps(days: _deadLetterPurgeDays);
+      if (purged > 0) {
+        dev.log('[Sync] _retryDeadLetterOps: purged $purged expired ops');
+      }
+
+      // Get ops eligible for retry (respects backoff via nextRetryAfter)
+      final ops = await _db!.getDeadLetterOps(maxRetries: _deadLetterMaxRetries, limit: _deadLetterBatchSize);
+      if (ops.isEmpty) return;
+
+      dev.log('[Sync] _retryDeadLetterOps: attempting ${ops.length} ops');
+      int succeeded = 0;
+
+      for (final deadOp in ops) {
+        if (_disposed) return;
+        try {
+          // Reconstruct the original SyncOperation with preserved opType + timestamp
+          final resolvedOpType = sync_enum.OperationType.values.firstWhere(
+            (v) => v.name == deadOp.opType,
+            orElse: () => sync_enum.OperationType.OPERATION_TYPE_UNSPECIFIED,
+          );
+          // Skip ops with unresolvable opType (proto version mismatch)
+          if (resolvedOpType ==
+              sync_enum.OperationType.OPERATION_TYPE_UNSPECIFIED) {
+            dev.log(
+              '[Sync] _retryDeadLetterOps: skipping ${deadOp.opId} — '
+              'unresolvable opType "${deadOp.opType}"',
+            );
+            await _db!.incrementDeadLetterRetry(deadOp.opId);
+            continue;
+          }
+          final opProto = sync_pb.SyncOperation(
+            id: deadOp.opId,
+            entityType: deadOp.entityType,
+            entityId: deadOp.entityId,
+            payload: deadOp.payload,
+            opType: resolvedOpType,
+          );
+          // Restore original timestamp so LWW comparison works correctly
+          if (deadOp.timestampMs > 0) {
+            opProto.timestamp = proto_ts.Timestamp(
+              seconds: Int64(deadOp.timestampMs ~/ 1000),
+              nanos: (deadOp.timestampMs % 1000) * 1000000,
+            );
+          }
+          await _db!.transaction(() async {
+            await _applyRemoteOp(opProto);
+            await _db!.removeDeadLetterOp(deadOp.opId);
+          });
+          succeeded++;
+          dev.log(
+            '[Sync] dead-letter recovered: ${deadOp.opId}, '
+            'entityType=${deadOp.entityType}, opType=${deadOp.opType}, '
+            'ts=${deadOp.timestampMs}',
+          );
+        } catch (e) {
+          dev.log(
+            '[Sync] _retryDeadLetterOps: op ${deadOp.opId} still failing: $e',
+          );
+          await _db!.incrementDeadLetterRetry(deadOp.opId);
+        }
+      }
+
+      if (succeeded > 0) {
+        dev.log('[Sync] _retryDeadLetterOps: $succeeded ops recovered');
+      }
+
+      // Emit updated count
+      final remaining = await _db!.getDeadLetterCount();
+      onSyncEvent?.call(SyncEvent.deadLetterCountUpdated(remaining));
+    } catch (e) {
+      dev.log('[Sync] _retryDeadLetterOps: error: $e');
+    } finally {
+      _releaseSyncLock();
+      _drainPendingRequests();
     }
   }
 
@@ -332,78 +486,61 @@ class SyncEngine {
   /// - For CREATE/UPDATE: compare remote op timestamp with local entity's
   ///   updated_at. Only apply if remote timestamp >= local updated_at.
   ///
-  /// Exceptions are NOT caught here — they bubble up to the transaction
-  /// wrapper in _doPull, causing a full page rollback. This ensures no
-  /// partial state from a malformed op.
+  /// Exceptions bubble up to the caller. In _doPull, each op is individually
+  /// try-caught so failures go to the dead-letter table without blocking
+  /// other ops.
   Future<void> _applyRemoteOp(sync_pb.SyncOperation op) async {
     final isDelete =
         op.opType == sync_enum.OperationType.OPERATION_TYPE_DELETE;
 
-    // DELETE path: does not require payload parsing.
-    // Short-circuit before jsonDecode to handle empty/null payloads.
+    // For DELETE: skip payload parsing (payload may be empty/null).
+    // For CREATE/UPDATE: decode payload + apply LWW/R9 checks.
+    Map<String, dynamic> payload;
     if (isDelete) {
-      switch (op.entityType) {
-        case 'transaction':
-          await _applyTransactionOp(op.opType, op.entityId, const {});
-          break;
-        case 'account':
-          await _applyAccountOp(op.opType, op.entityId, const {});
-          break;
-        case 'category':
-          await _applyCategoryOp(op.opType, op.entityId, const {});
-          break;
-        case 'loan':
-          await _applyLoanOp(op.opType, op.entityId, const {});
-          break;
-        case 'loan_group':
-          await _applyLoanGroupOp(op.opType, op.entityId, const {});
-          break;
-        case 'investment':
-          await _applyInvestmentOp(op.opType, op.entityId, const {});
-          break;
-        case 'fixed_asset':
-          await _applyFixedAssetOp(op.opType, op.entityId, const {});
-          break;
-        case 'budget':
-          await _applyBudgetOp(op.opType, op.entityId, const {});
-          break;
-        default:
-          dev.log('[Sync] unknown entity_type ${op.entityType}');
+      final state = await _getLocalEntityState(op.entityType, op.entityId);
+      if (state.isDeleted) return; // Already deleted — idempotent
+      // Entity doesn't exist locally — nothing to delete (safe no-op).
+      // But for unknown entity types, throw to enter dead-letter.
+      if (state.updatedAt == null) {
+        if (!_knownEntityTypes.contains(op.entityType)) {
+          throw UnsupportedError(
+            'Unknown entity_type: ${op.entityType} (op: ${op.id})',
+          );
+        }
+        return;
       }
-      return;
+      payload = const {};
+    } else {
+      payload = jsonDecode(op.payload) as Map<String, dynamic>;
+
+      // Single query for both R9 + LWW checks (halves DB round-trips).
+      final state = await _getLocalEntityState(op.entityType, op.entityId);
+
+      // R9 fix: DELETE is terminal — reject CREATE/UPDATE on deleted entity.
+      if (state.isDeleted) {
+        dev.log(
+          '[Sync] R9 terminal skip ${op.entityType}/${op.entityId} '
+          '(locally deleted, ignoring ${op.opType})',
+        );
+        return;
+      }
+
+      // LWW check: skip if local data is newer
+      final remoteTimestampMs = op.hasTimestamp()
+          ? op.timestamp.seconds.toInt() * 1000 +
+              op.timestamp.nanos ~/ 1000000
+          : 0;
+      if (state.updatedAt != null &&
+          state.updatedAt!.millisecondsSinceEpoch > remoteTimestampMs) {
+        dev.log(
+          '[Sync] LWW skip ${op.entityType}/${op.entityId} '
+          '(local=${state.updatedAt!.millisecondsSinceEpoch}, remote=$remoteTimestampMs)',
+        );
+        return;
+      }
     }
 
-    // CREATE/UPDATE path: requires payload.
-    final payload = jsonDecode(op.payload) as Map<String, dynamic>;
-
-    // R9 fix: DELETE is terminal — if entity is locally deleted, reject any
-    // subsequent CREATE/UPDATE even with later timestamp.
-    final isLocallyDeleted = await _isEntityDeleted(op.entityType, op.entityId);
-    if (isLocallyDeleted) {
-      dev.log(
-        '[Sync] R9 terminal skip ${op.entityType}/${op.entityId} '
-        '(locally deleted, ignoring ${op.opType})',
-      );
-      return;
-    }
-
-    // LWW check: skip if local data is newer
-    final remoteTimestampMs = op.hasTimestamp()
-        ? op.timestamp.seconds.toInt() * 1000 +
-            op.timestamp.nanos ~/ 1000000
-        : 0;
-    final localUpdatedAt =
-        await _getLocalEntityUpdatedAt(op.entityType, op.entityId);
-
-    if (localUpdatedAt != null &&
-        localUpdatedAt.millisecondsSinceEpoch > remoteTimestampMs) {
-      dev.log(
-        '[Sync] LWW skip ${op.entityType}/${op.entityId} '
-        '(local=${localUpdatedAt.millisecondsSinceEpoch}, remote=$remoteTimestampMs)',
-      );
-      return;
-    }
-
+    // Single dispatch for all op types
     switch (op.entityType) {
       case 'transaction':
         await _applyTransactionOp(op.opType, op.entityId, payload);
@@ -430,73 +567,67 @@ class SyncEngine {
         await _applyBudgetOp(op.opType, op.entityId, payload);
         break;
       default:
-        dev.log('[Sync] unknown entity_type ${op.entityType}');
+        // Throw so unknown entity types enter dead-letter table.
+        // When client upgrades with new handler, retry will succeed.
+        throw UnsupportedError(
+          'Unknown entity_type: ${op.entityType} (op: ${op.id})',
+        );
     }
   }
 
-  /// Get the local entity's updated_at timestamp for LWW comparison.
-  /// Returns null if the entity doesn't exist locally (new entity),
-  /// meaning remote op should always be applied.
-  Future<DateTime?> _getLocalEntityUpdatedAt(
+  /// Get local entity state in a single DB query (avoids double-fetch).
+  /// Returns both deletion status and updatedAt for LWW + R9 checks.
+  /// updatedAt == null means entity doesn't exist locally.
+  Future<({bool isDeleted, DateTime? updatedAt})> _getLocalEntityState(
       String entityType, String entityId) async {
     switch (entityType) {
       case 'transaction':
         final txn = await _db!.getTransactionById(entityId);
-        return txn?.updatedAt;
+        return (
+          isDeleted: txn != null && txn.deletedAt != null,
+          updatedAt: txn?.updatedAt,
+        );
       case 'account':
         final acc = await _db!.getAccountById(entityId);
-        return acc?.updatedAt;
+        return (
+          isDeleted: acc != null && !acc.isActive,
+          updatedAt: acc?.updatedAt,
+        );
       case 'category':
-        // Categories don't have updatedAt — always apply remote ops
-        return null;
+        // Categories don't track updatedAt (always accept remote ops via LWW).
+        // Use DateTime(0) sentinel to indicate "exists" without LWW protection.
+        // null = doesn't exist; DateTime(0) = exists but no LWW.
+        final catExists = await _db!.categoryExists(entityId);
+        return (isDeleted: false, updatedAt: catExists ? DateTime(0) : null);
       case 'loan':
         final loan = await _db!.getLoanById(entityId);
-        return loan?.updatedAt;
+        return (
+          isDeleted: loan != null && loan.deletedAt != null,
+          updatedAt: loan?.updatedAt,
+        );
       case 'loan_group':
         final group = await _db!.getLoanGroupById(entityId);
-        return group?.updatedAt;
+        return (
+          isDeleted: group != null && group.deletedAt != null,
+          updatedAt: group?.updatedAt,
+        );
       case 'investment':
         final inv = await _db!.getInvestmentById(entityId);
-        return inv?.updatedAt;
+        return (
+          isDeleted: inv != null && inv.deletedAt != null,
+          updatedAt: inv?.updatedAt,
+        );
       case 'fixed_asset':
         final asset = await _db!.getFixedAssetById(entityId);
-        return asset?.updatedAt;
+        return (
+          isDeleted: asset != null && asset.deletedAt != null,
+          updatedAt: asset?.updatedAt,
+        );
       case 'budget':
         final budget = await _db!.getBudgetById(entityId);
-        return budget?.updatedAt;
+        return (isDeleted: false, updatedAt: budget?.updatedAt);
       default:
-        return null;
-    }
-  }
-
-  /// R9: Check if entity has been locally deleted (terminal state).
-  /// Returns true if the entity exists with a non-null deleted_at.
-  Future<bool> _isEntityDeleted(String entityType, String entityId) async {
-    switch (entityType) {
-      case 'transaction':
-        final txn = await _db!.getTransactionById(entityId);
-        // getTransactionById returns null for non-existent, but we need to check
-        // if it exists WITH deleted_at set. Use raw query or check deletedAt.
-        return txn != null && txn.deletedAt != null;
-      case 'account':
-        final acc = await _db!.getAccountById(entityId);
-        return acc != null && !acc.isActive;
-      case 'loan':
-        final loan = await _db!.getLoanById(entityId);
-        return loan != null && loan.deletedAt != null;
-      case 'loan_group':
-        final group = await _db!.getLoanGroupById(entityId);
-        return group != null && group.deletedAt != null;
-      case 'investment':
-        final inv = await _db!.getInvestmentById(entityId);
-        return inv != null && inv.deletedAt != null;
-      case 'fixed_asset':
-        final asset = await _db!.getFixedAssetById(entityId);
-        return asset != null && asset.deletedAt != null;
-      default:
-        // category and budget don't have soft delete (hard delete only)
-        // TODO: add budget/category support here if soft-delete is ever added
-        return false;
+        return (isDeleted: false, updatedAt: null);
     }
   }
 
@@ -598,6 +729,7 @@ class SyncEngine {
           balance: (payload['balance'] as num?)?.toInt() ?? 0,
           currency: payload['currency'] ?? 'CNY',
           isActive: payload['is_active'] ?? true,
+          updatedAt: DateTime.tryParse(payload['updated_at'] ?? ''),
         );
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
@@ -667,7 +799,7 @@ class SyncEngine {
           lprBase: Value((payload['lpr_base'] as num?)?.toDouble() ?? 0.0),
           lprSpread: Value((payload['lpr_spread'] as num?)?.toDouble() ?? 0.0),
           rateAdjustMonth: Value((payload['rate_adjust_month'] as num?)?.toInt() ?? 1),
-          updatedAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
         ));
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
@@ -698,7 +830,7 @@ class SyncEngine {
           paymentDay: Value((payload['payment_day'] as num?)?.toInt() ?? 1),
           startDate: Value(DateTime.tryParse(payload['start_date'] ?? '') ?? DateTime.now()),
           loanType: Value(payload['loan_type'] ?? 'mortgage'),
-          updatedAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
         ));
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
@@ -728,7 +860,7 @@ class SyncEngine {
           marketType: Value(payload['market_type'] ?? 'a_share'),
           quantity: Value((payload['quantity'] as num?)?.toDouble() ?? 0.0),
           costBasis: Value((payload['cost_basis'] as num?)?.toInt() ?? 0),
-          updatedAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
         ));
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
@@ -758,7 +890,7 @@ class SyncEngine {
           purchasePrice: Value((payload['purchase_price'] as num?)?.toInt() ?? 0),
           currentValue: Value((payload['current_value'] as num?)?.toInt() ?? 0),
           purchaseDate: Value(DateTime.tryParse(payload['purchase_date'] ?? '') ?? DateTime.now()),
-          updatedAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
         ));
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
@@ -786,7 +918,7 @@ class SyncEngine {
           year: Value((payload['year'] as num?)?.toInt() ?? DateTime.now().year),
           month: Value((payload['month'] as num?)?.toInt() ?? DateTime.now().month),
           totalAmount: Value((payload['total_amount'] as num?)?.toInt() ?? 0),
-          updatedAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
         ));
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
@@ -797,7 +929,7 @@ class SyncEngine {
     }
   }
 
-  /// Auth-ok wait timeout — longer than server's AuthTimeout (5s) to account
+  /// Auth-ok wait timeout - longer than server's AuthTimeout (5s) to account
   /// for network latency. Server closes with 4002 before this fires normally.
   static const _authOkTimeout = Duration(seconds: 10);
 
@@ -842,7 +974,7 @@ class SyncEngine {
 
       if (_disposed) return;
 
-      // Enter auth phase — suppress onDone/onError reconnect
+      // Enter auth phase - suppress onDone/onError reconnect
       _awaitingAuth = true;
       _authCompleter = Completer<void>();
 
@@ -896,7 +1028,7 @@ class SyncEngine {
         return;
       }
 
-      // Auth succeeded — exit auth phase
+      // Auth succeeded - exit auth phase
       _awaitingAuth = false;
       _authCompleter = null;
       dev.log('[WS] authenticated');
@@ -926,7 +1058,7 @@ class SyncEngine {
       }
 
       if (type == 'sync_notify' || type == 'change') {
-        // 服务端通知有新变更，触发增量拉取
+        // 服务端通知有新变更,触发增量拉取
         _pullChanges();
       } else if (type == 'heartbeat' || type == 'ping') {
         // Server heartbeat with watermark: compare with our lastSyncTs
@@ -934,7 +1066,7 @@ class SyncEngine {
         if (serverTimeMs != null) {
           final localTs = _lastSyncTsMs;
           if (serverTimeMs > localTs) {
-            // We're behind — pull to catch up
+            // We're behind - pull to catch up
             dev.log(
               '[Sync] heartbeat watermark ahead (server=$serverTimeMs, local=$localTs), pulling',
             );
@@ -950,7 +1082,7 @@ class SyncEngine {
   // ─────────── Sync Mutex ───────────
 
   /// Try-lock: returns true if acquired, false if another op holds the lock.
-  /// Synchronous — no async gap between check and acquire.
+  /// Synchronous - no async gap between check and acquire.
   bool _tryAcquireSyncLock() {
     if (_syncing) return false;
     _syncing = true;
@@ -1059,14 +1191,14 @@ class SyncEngine {
     });
   }
 
-  /// 手动触发完整同步（推送 + 拉取）
+  /// 手动触发完整同步(推送 + 拉取)
   Future<void> syncNow() => _syncCycle();
 
-  /// App 回到前台时调用：立即同步 + 重启 timer + 重连 WS
+  /// App 回到前台时调用:立即同步 + 重启 timer + 重连 WS
   void onAppResumed() {
     if (_disposed) return;
     dev.log('[Sync] app resumed, syncing...');
-    // Reset backoff — user returning to foreground deserves a fresh start
+    // Reset backoff - user returning to foreground deserves a fresh start
     _consecutiveFailures = 0;
     // Restart timer at normal interval
     _syncTimer?.cancel();
@@ -1079,7 +1211,7 @@ class SyncEngine {
     if (_wsChannel == null) _connectWebSocket();
   }
 
-  /// App 进入后台时调用：停止 timer 省电，保持 WS（会自然断开）
+  /// App 进入后台时调用:停止 timer 省电,保持 WS(会自然断开)
   void onAppPaused() {
     if (_disposed) return;
     dev.log('[Sync] app paused, stopping timer');
@@ -1110,7 +1242,7 @@ class SyncEngine {
 final syncEngineProvider = Provider<SyncEngine>((ref) {
   final userId = ref.watch(currentUserIdProvider);
 
-  // Not logged in — return inert stub that does nothing.
+  // Not logged in - return inert stub that does nothing.
   if (userId == null) {
     return SyncEngine.inert();
   }
@@ -1146,6 +1278,8 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
           statusNotifier.markFailed(failedCount);
         case PendingCountUpdated():
           break;
+        case DeadLetterCountUpdated():
+          break;
       }
     });
   };
@@ -1153,7 +1287,7 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
   ref.onDispose(() => engine.dispose());
 
   // Auto-start: engine begins sync cycle + WS connection immediately.
-  // Previously this was triggered manually by home_page.dart — now it's
+  // Previously this was triggered manually by home_page.dart - now it's
   // lifecycle-managed: starts when user logs in, stops when they log out.
   engine.start();
 
@@ -1190,7 +1324,7 @@ class _SyncLifecycleObserverState extends ConsumerState<SyncLifecycleObserver>
     if (state == AppLifecycleState.resumed) {
       engine.onAppResumed();
     } else if (state == AppLifecycleState.paused) {
-      // Only pause on actual background (not inactive — e.g. phone call, notification center)
+      // Only pause on actual background (not inactive - e.g. phone call, notification center)
       engine.onAppPaused();
     }
   }

@@ -92,6 +92,31 @@ class ExchangeRates extends Table {
   Set<Column> get primaryKey => {currencyPair};
 }
 
+/// Dead-letter table for malformed ops that failed during pull.
+/// Stores ops that could not be applied so sync can continue.
+/// Periodically retried (may succeed after app update fixes the handler).
+class SyncDeadLetters extends Table {
+  @override
+  String get tableName => 'sync_dead_letter';
+
+  TextColumn get opId => text()();
+  TextColumn get entityType => text()();
+  TextColumn get entityId => text()();
+  /// Original proto opType (e.g. 'OPERATION_TYPE_CREATE').
+  TextColumn get opType => text()();
+  /// Original operation timestamp in milliseconds since epoch.
+  IntColumn get timestampMs => integer().withDefault(const Constant(0))();
+  TextColumn get error => text()();
+  TextColumn get payload => text()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  IntColumn get retryCount => integer().withDefault(const Constant(0))();
+  /// Next allowed retry time (NOT "last retry time"). Null = immediately eligible.
+  DateTimeColumn get nextRetryAfter => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {opId};
+}
+
 /// Simple key-value table for sync metadata (e.g. lastSyncTs).
 /// Stored in SQLite so it can participate in the same transaction as ops.
 class SyncMetadata extends Table {
