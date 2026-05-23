@@ -295,6 +295,7 @@ class SyncEngine {
       String pageToken = '';
 
       // Paginated pull loop
+      bool deadLetterDirty = false;
       do {
         if (_disposed) return;
 
@@ -319,11 +320,11 @@ class SyncEngine {
             try {
               await _applyRemoteOp(op);
             } catch (e, st) {
+              deadLetterDirty = true;
               dev.log(
                 '[Sync] _doPull: failed to apply op ${op.id} '
-                '(${op.entityType}/${op.entityId}): $e',
+                '(${op.entityType}/${op.entityId}): $e\n$st',
               );
-              dev.log('[Sync] stacktrace: $st');
               // Insert into dead-letter table (idempotent)
               final opTimestampMs = op.hasTimestamp()
                   ? op.timestamp.seconds.toInt() * 1000 +
@@ -359,9 +360,9 @@ class SyncEngine {
       onSyncEvent?.call(const SyncEvent.serverReachable());
       _onSyncSuccess();
 
-      // Notify UI of dead-letter count (may have changed during this pull)
-      final dlCount = await _db!.getDeadLetterCount();
-      if (dlCount > 0) {
+      // Only query dead-letter count if something actually failed this pull
+      if (deadLetterDirty) {
+        final dlCount = await _db!.getDeadLetterCount();
         onSyncEvent?.call(SyncEvent.deadLetterCountUpdated(dlCount));
       }
     } catch (e) {
@@ -376,8 +377,11 @@ class SyncEngine {
   /// Called on engine start and every 10th sync cycle.
   /// Uses exponential backoff: 1h, 4h, 16h, 64h, 256h between retries.
   /// Auto-purges ops older than 30 days.
+  ///
+  /// Acquires the sync lock to prevent interleaving with WS-triggered pulls.
   Future<void> _retryDeadLetterOps() async {
     if (_disposed || _db == null) return;
+    if (!_tryAcquireSyncLock()) return; // Skip if sync in progress
 
     try {
       // Purge expired ops first
@@ -386,7 +390,7 @@ class SyncEngine {
         dev.log('[Sync] _retryDeadLetterOps: purged $purged expired ops');
       }
 
-      // Get ops eligible for retry (respects backoff via lastRetryAt)
+      // Get ops eligible for retry (respects backoff via nextRetryAfter)
       final ops = await _db!.getDeadLetterOps(maxRetries: 5, limit: 20);
       if (ops.isEmpty) return;
 
@@ -399,8 +403,18 @@ class SyncEngine {
           // Reconstruct the original SyncOperation with preserved opType + timestamp
           final resolvedOpType = sync_enum.OperationType.values.firstWhere(
             (v) => v.name == deadOp.opType,
-            orElse: () => sync_enum.OperationType.OPERATION_TYPE_UPDATE,
+            orElse: () => sync_enum.OperationType.OPERATION_TYPE_UNSPECIFIED,
           );
+          // Skip ops with unresolvable opType (proto version mismatch)
+          if (resolvedOpType ==
+              sync_enum.OperationType.OPERATION_TYPE_UNSPECIFIED) {
+            dev.log(
+              '[Sync] _retryDeadLetterOps: skipping ${deadOp.opId} — '
+              'unresolvable opType "${deadOp.opType}"',
+            );
+            await _db!.incrementDeadLetterRetry(deadOp.opId);
+            continue;
+          }
           final opProto = sync_pb.SyncOperation(
             id: deadOp.opId,
             entityType: deadOp.entityType,
@@ -421,6 +435,11 @@ class SyncEngine {
           // Success — remove from dead-letter
           await _db!.removeDeadLetterOp(deadOp.opId);
           succeeded++;
+          dev.log(
+            '[Sync] dead-letter recovered: ${deadOp.opId}, '
+            'entityType=${deadOp.entityType}, opType=${deadOp.opType}, '
+            'ts=${deadOp.timestampMs}',
+          );
         } catch (e) {
           dev.log(
             '[Sync] _retryDeadLetterOps: op ${deadOp.opId} still failing: $e',
@@ -438,6 +457,8 @@ class SyncEngine {
       onSyncEvent?.call(SyncEvent.deadLetterCountUpdated(remaining));
     } catch (e) {
       dev.log('[Sync] _retryDeadLetterOps: error: $e');
+    } finally {
+      _releaseSyncLock();
     }
   }
 
