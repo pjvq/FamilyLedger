@@ -26,11 +26,23 @@ fail() {
 }
 check() {
   local desc="$1" output="$2" expected="$3"
-  echo "$output" | grep -q "$expected" && ok "$desc" || fail "$desc — expected: $expected"
+  # grep -q exits immediately after first match. Under pipefail, if echo
+  # hasn't finished writing to the pipe (output exceeds pipe buffer), the
+  # broken pipe gives echo exit code 141, which pipefail surfaces.
+  # Use grep -F (fixed string) without -q: reads all stdin, no SIGPIPE.
+  if printf '%s\n' "$output" | grep -F "$expected" >/dev/null; then
+    ok "$desc"
+  else
+    fail "$desc — expected: $expected"
+  fi
 }
 check_not() {
   local desc="$1" output="$2" unexpected="$3"
-  echo "$output" | grep -q "$unexpected" && fail "$desc — found unexpected: $unexpected" || ok "$desc"
+  if printf '%s\n' "$output" | grep -F "$unexpected" >/dev/null; then
+    fail "$desc — found unexpected: $unexpected"
+  else
+    ok "$desc"
+  fi
 }
 check_eq() {
   local desc="$1" actual="$2" expected="$3"
