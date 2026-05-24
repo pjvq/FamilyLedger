@@ -371,8 +371,8 @@ class SyncEngine {
           // interrupted multi-page pull doesn't replay already-applied ops.
           // On the final page, prefer server_time (authoritative clock);
           // on intermediate pages, use the last op's timestamp.
-          if (pageToken.isEmpty && response.hasServerTime()) {
-            // Final page — use server-provided authoritative time.
+          if (response.nextPageToken.isEmpty && response.hasServerTime()) {
+            // Final page (no more pages) — use server-provided authoritative time.
             final serverMs =
                 response.serverTime.seconds.toInt() * 1000 +
                 response.serverTime.nanos ~/ 1000000;
