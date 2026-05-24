@@ -65,6 +65,8 @@ class AppRouter {
   static const transactionDetail = '/transaction-detail';
   static const categoryManage = '/settings/categories';
 
+  @Deprecated('Use routerProvider from core/router/router.dart instead. '
+      'Kept for reference during migration.')
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case login:

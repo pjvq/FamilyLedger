@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/constants/app_constants.dart';
 import 'core/router/app_router.dart';
+import 'core/router/router.dart';
 import 'core/theme/app_theme.dart';
 import 'data/local/secure_token_storage.dart';
 import 'domain/providers/app_providers.dart';
@@ -88,11 +89,11 @@ class FamilyLedgerApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isLoggedIn = ref.watch(isLoggedInProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final router = ref.watch(routerProvider);
 
     return SyncLifecycleObserver(
-      child: MaterialApp(
+      child: MaterialApp.router(
       title: 'FamilyLedger',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
@@ -108,8 +109,7 @@ class FamilyLedgerApp extends ConsumerWidget {
         Locale('en', 'US'),
       ],
       locale: const Locale('zh', 'CN'),
-      initialRoute: isLoggedIn ? AppRouter.home : AppRouter.login,
-      onGenerateRoute: AppRouter.onGenerateRoute,
+      routerConfig: router,
     ),
     );
   }
