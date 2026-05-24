@@ -42,6 +42,8 @@ sync_pb.SyncOperation _makeOp({
 
 Future<AppDatabase> _createDb() async {
   final db = AppDatabase.forTesting(NativeDatabase.memory());
+  // NOTE: Drift is configured with DateTimeColumn storing unix seconds (int).
+  // Raw SQL below uses seconds since epoch, matching that configuration.
   await db.customStatement(
       "INSERT OR IGNORE INTO users (id, email, created_at) "
       "VALUES ('u1', 'test@test.com', ${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
@@ -96,6 +98,7 @@ void main() {
       await db.customStatement(
           "UPDATE accounts SET balance = 1000 WHERE id = 'acc1'");
       // Set txn updatedAt to past so LWW doesn't skip the remote op
+      // Drift DateTimeColumn stores unix seconds (int) in this project config.
       final pastTs = DateTime(2020, 1, 1).millisecondsSinceEpoch ~/ 1000;
       await db.customStatement(
           "UPDATE transactions SET updated_at = $pastTs WHERE id = 'txn1'");
@@ -122,7 +125,7 @@ void main() {
 
       // Apply the UPDATE op via _applyRemoteOp (exposed through transaction)
       await db.transaction(() async {
-        await engine.applyRemoteOpForTest(db, updateOp);
+        await engine.applyRemoteOpForTest(updateOp);
       });
 
       // After first apply: balance should be 1000 - (-100 revert) + (-200 apply)
@@ -132,7 +135,7 @@ void main() {
 
       // Replay the SAME op (simulating interrupted pull replay)
       await db.transaction(() async {
-        await engine.applyRemoteOpForTest(db, updateOp);
+        await engine.applyRemoteOpForTest(updateOp);
       });
 
       // After replay: balance should STILL be 900 (idempotent — no change
@@ -159,6 +162,7 @@ void main() {
       await db.customStatement(
           "UPDATE accounts SET balance = 500 WHERE id = 'acc2'");
       // Set txn updatedAt to past so LWW doesn't skip
+      // Drift DateTimeColumn stores unix seconds (int) in this project config.
       final pastTs = DateTime(2020, 1, 1).millisecondsSinceEpoch ~/ 1000;
       await db.customStatement(
           "UPDATE transactions SET updated_at = $pastTs WHERE id = 'txn2'");
@@ -184,7 +188,7 @@ void main() {
       );
 
       await db.transaction(() async {
-        await engine.applyRemoteOpForTest(db, moveOp);
+        await engine.applyRemoteOpForTest(moveOp);
       });
 
       // acc1: 1000 + 50 (revert expense) = 1050
@@ -196,7 +200,7 @@ void main() {
 
       // Replay — account differs from stored (acc2 vs acc2 now) → no change
       await db.transaction(() async {
-        await engine.applyRemoteOpForTest(db, moveOp);
+        await engine.applyRemoteOpForTest(moveOp);
       });
 
       acc1 = await db.getAccountById('acc1');
@@ -230,17 +234,17 @@ void main() {
       );
 
       await db.transaction(() async {
-        await engine.applyRemoteOpForTest(db, op);
+        await engine.applyRemoteOpForTest(op);
       });
 
-      // oldTxn == null, so balanceRelevantChanged == true
+      // oldTxn == null, so shouldAdjustBalance == true
       // No revert, apply +300 (income)
       var acc = await db.getAccountById('acc1');
       expect(acc!.balance, 1300);
 
       // Replay: now oldTxn exists with same values → no change
       await db.transaction(() async {
-        await engine.applyRemoteOpForTest(db, op);
+        await engine.applyRemoteOpForTest(op);
       });
 
       acc = await db.getAccountById('acc1');

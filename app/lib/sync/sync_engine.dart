@@ -379,16 +379,40 @@ class SyncEngine {
             await _db!.setSyncMetaInt(_lastSyncTsKey, serverMs);
             _lastSyncTsMs = serverMs;
           } else if (response.operations.isNotEmpty) {
-            // Intermediate page — use last op's timestamp as watermark.
-            // Server guarantees ops are ordered by timestamp ASC, id ASC.
-            final lastOp = response.operations.last;
-            final lastOpMs = lastOp.hasTimestamp()
-                ? lastOp.timestamp.seconds.toInt() * 1000 +
-                    lastOp.timestamp.nanos ~/ 1000000
-                : 0;
-            if (lastOpMs > _lastSyncTsMs) {
-              await _db!.setSyncMetaInt(_lastSyncTsKey, lastOpMs);
-              _lastSyncTsMs = lastOpMs;
+            // Intermediate page — use max op timestamp as watermark.
+            // Server uses strict `> since` semantics, so same-timestamp ops
+            // spanning pages could be skipped. We subtract 1ms to turn the
+            // next pull into `> (T-1ms)` ≡ `>= T`, accepting redundant re-
+            // delivery of at most a few same-timestamp ops (handled by
+            // idempotent balance logic). We use max() rather than last-op
+            // in case a malformed op without timestamp appears at the tail.
+            final maxOpMs = response.operations.fold<int>(0, (acc, op) {
+              if (!op.hasTimestamp()) return acc;
+              final ms = op.timestamp.seconds.toInt() * 1000 +
+                  op.timestamp.nanos ~/ 1000000;
+              return max(acc, ms);
+            });
+            // Debug: verify ops are ordered by timestamp ASC
+            assert(() {
+              int prev = 0;
+              for (final op in response.operations) {
+                if (!op.hasTimestamp()) continue;
+                final ms = op.timestamp.seconds.toInt() * 1000 +
+                    op.timestamp.nanos ~/ 1000000;
+                if (ms < prev) {
+                  dev.log('WARNING: ops not sorted by timestamp',
+                      name: 'SyncEngine');
+                  break;
+                }
+                prev = ms;
+              }
+              return true;
+            }());
+            // Subtract 1ms so next `> since` includes ops at maxOpMs.
+            final checkpointMs = maxOpMs > 0 ? maxOpMs - 1 : 0;
+            if (checkpointMs > _lastSyncTsMs) {
+              await _db!.setSyncMetaInt(_lastSyncTsKey, checkpointMs);
+              _lastSyncTsMs = checkpointMs;
             }
           }
         });
@@ -713,14 +737,14 @@ class SyncEngine {
         );
 
         // Idempotent balance adjustment: only revert/apply if the values
-        // that affect balance actually changed. This makes UPDATE replay-safe
-        // even without per-page checkpoint (defense-in-depth).
-        final bool balanceRelevantChanged = oldTxn == null ||
+        // that affect balance actually changed (or txn is new). This makes
+        // UPDATE replay-safe even without per-page checkpoint (defense-in-depth).
+        final bool shouldAdjustBalance = oldTxn == null ||
             oldTxn.accountId != newAccountId ||
             oldTxn.amountCny != newAmountCny ||
             oldTxn.type != newType;
 
-        if (balanceRelevantChanged) {
+        if (shouldAdjustBalance) {
           // Revert old balance contribution (if old txn existed and was active)
           if (oldTxn != null && oldTxn.deletedAt == null && oldTxn.type != 'transfer') {
             final oldDelta = oldTxn.type == 'income' ? oldTxn.amountCny : -oldTxn.amountCny;
@@ -1258,9 +1282,8 @@ class SyncEngine {
   /// Test-only: apply a remote op directly.
   /// Only works when engine is constructed with [SyncEngine.forTesting].
   @visibleForTesting
-  Future<void> applyRemoteOpForTest(
-      AppDatabase testDb, sync_pb.SyncOperation op) async {
-    assert(_db == testDb,
+  Future<void> applyRemoteOpForTest(sync_pb.SyncOperation op) async {
+    assert(_db != null,
         'applyRemoteOpForTest: engine must be constructed with forTesting(db)');
     await _applyRemoteOp(op);
   }
