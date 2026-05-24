@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'app_colors.dart';
+import 'design_tokens.dart';
 
 class AppTheme {
   AppTheme._();
@@ -13,64 +12,61 @@ class AppTheme {
   static ThemeData get light => ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
-        colorSchemeSeed: AppColors.primary,
-        scaffoldBackgroundColor: AppColors.surfaceLight,
-        fontFamily: GoogleFonts.dmSans().fontFamily,
+        colorSchemeSeed: ColorTokens.primary,
+        scaffoldBackgroundColor: NeutralColorsLight.neutral1,
         pageTransitionsTheme: _pageTransitionsTheme,
-        cardTheme: const CardThemeData(
-          color: AppColors.cardLight,
+        cardTheme: CardThemeData(
+          color: NeutralColorsLight.neutral0,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16)),
+            borderRadius: BorderRadius.all(Radius.circular(RadiusTokens.lg)),
           ),
-          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          margin: EdgeInsets.symmetric(
+            horizontal: SpacingTokens.base,
+            vertical: SpacingTokens.xs,
+          ),
         ),
         appBarTheme: AppBarTheme(
-          backgroundColor: AppColors.surfaceLight,
+          backgroundColor: NeutralColorsLight.neutral1,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          titleTextStyle: TextStyle(
-            fontFamily: GoogleFonts.dmSans().fontFamily,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+          titleTextStyle: TypographyTokens.titleLg(
+            color: NeutralColorsLight.neutral7,
           ),
         ),
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          backgroundColor: AppColors.cardLight,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.textSecondary,
+          backgroundColor: NeutralColorsLight.neutral0,
+          selectedItemColor: ColorTokens.primary,
+          unselectedItemColor: NeutralColorsLight.neutral5,
           type: BottomNavigationBarType.fixed,
           elevation: 0,
         ),
-        dividerTheme: const DividerThemeData(
-          color: AppColors.divider,
+        dividerTheme: DividerThemeData(
+          color: NeutralColorsLight.neutral3,
           thickness: 0.5,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.grey.shade100,
+          fillColor: NeutralColorsLight.neutral2,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(RadiusTokens.md),
             borderSide: BorderSide.none,
           ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: SpacingTokens.base,
+            vertical: SpacingTokens.base, // 16px — comfortable touch target
+          ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
+            backgroundColor: ColorTokens.primary,
             foregroundColor: Colors.white,
             minimumSize: const Size(double.infinity, 52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(RadiusTokens.md),
             ),
-            textStyle: TextStyle(
-              fontFamily: GoogleFonts.dmSans().fontFamily,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            textStyle: TypographyTokens.titleMd(),
           ),
         ),
       );
@@ -79,64 +75,61 @@ class AppTheme {
   static ThemeData get dark => ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        colorSchemeSeed: AppColors.primaryDark,
-        scaffoldBackgroundColor: AppColors.surfaceDark,
-        fontFamily: GoogleFonts.dmSans().fontFamily,
+        colorSchemeSeed: ColorTokens.primaryLight,
+        scaffoldBackgroundColor: NeutralColorsDark.neutral0,
         pageTransitionsTheme: _pageTransitionsTheme,
-        cardTheme: const CardThemeData(
-          color: AppColors.cardDark,
+        cardTheme: CardThemeData(
+          color: NeutralColorsDark.neutral2,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16)),
+            borderRadius: BorderRadius.all(Radius.circular(RadiusTokens.lg)),
           ),
-          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          margin: EdgeInsets.symmetric(
+            horizontal: SpacingTokens.base,
+            vertical: SpacingTokens.xs,
+          ),
         ),
         appBarTheme: AppBarTheme(
-          backgroundColor: AppColors.surfaceDark,
+          backgroundColor: NeutralColorsDark.neutral0,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          titleTextStyle: TextStyle(
-            fontFamily: GoogleFonts.dmSans().fontFamily,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimaryDark,
+          titleTextStyle: TypographyTokens.titleLg(
+            color: NeutralColorsDark.neutral7,
           ),
         ),
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          backgroundColor: AppColors.cardDark,
-          selectedItemColor: AppColors.primaryDark,
-          unselectedItemColor: AppColors.textSecondaryDark,
+          backgroundColor: NeutralColorsDark.neutral2,
+          selectedItemColor: ColorTokens.primaryLight,
+          unselectedItemColor: NeutralColorsDark.neutral5,
           type: BottomNavigationBarType.fixed,
           elevation: 0,
         ),
-        dividerTheme: const DividerThemeData(
-          color: AppColors.dividerDark,
+        dividerTheme: DividerThemeData(
+          color: NeutralColorsDark.neutral3,
           thickness: 0.5,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFF3A3A3C),
+          fillColor: NeutralColorsDark.neutral3,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(RadiusTokens.md),
             borderSide: BorderSide.none,
           ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: SpacingTokens.base,
+            vertical: SpacingTokens.base, // 16px — comfortable touch target
+          ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryDark,
+            backgroundColor: ColorTokens.primaryLight,
             foregroundColor: Colors.black,
             minimumSize: const Size(double.infinity, 52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(RadiusTokens.md),
             ),
-            textStyle: TextStyle(
-              fontFamily: GoogleFonts.dmSans().fontFamily,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            textStyle: TypographyTokens.titleMd(),
           ),
         ),
       );

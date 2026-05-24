@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// 金额文字样式扩展
 ///
@@ -12,14 +11,10 @@ import 'package:google_fonts/google_fonts.dart';
 class AmountStyle {
   AmountStyle._();
 
-  /// DM Sans font family for amount display.
-  static String? get _fontFamily => GoogleFonts.dmSans().fontFamily;
-
   /// 大号金额（如卡片标题）
   static TextStyle large(BuildContext context) {
     final theme = Theme.of(context);
     return (theme.textTheme.headlineSmall ?? const TextStyle()).copyWith(
-      fontFamily: _fontFamily,
       fontWeight: FontWeight.bold,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
@@ -29,7 +24,6 @@ class AmountStyle {
   static TextStyle medium(BuildContext context) {
     final theme = Theme.of(context);
     return (theme.textTheme.bodyLarge ?? const TextStyle()).copyWith(
-      fontFamily: _fontFamily,
       fontWeight: FontWeight.bold,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
@@ -39,7 +33,6 @@ class AmountStyle {
   static TextStyle small(BuildContext context) {
     final theme = Theme.of(context);
     return (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
-      fontFamily: _fontFamily,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
   }
@@ -48,7 +41,6 @@ class AmountStyle {
   static TextStyle display(BuildContext context) {
     final theme = Theme.of(context);
     return (theme.textTheme.headlineMedium ?? const TextStyle()).copyWith(
-      fontFamily: _fontFamily,
       fontWeight: FontWeight.bold,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
