@@ -26,11 +26,21 @@ fail() {
 }
 check() {
   local desc="$1" output="$2" expected="$3"
-  echo "$output" | grep -q "$expected" && ok "$desc" || fail "$desc — expected: $expected"
+  # Use grep without -q to avoid SIGPIPE under pipefail (grep -q exits
+  # early, breaking the pipe when output is large).
+  if echo "$output" | grep "$expected" >/dev/null 2>&1; then
+    ok "$desc"
+  else
+    fail "$desc — expected: $expected"
+  fi
 }
 check_not() {
   local desc="$1" output="$2" unexpected="$3"
-  echo "$output" | grep -q "$unexpected" && fail "$desc — found unexpected: $unexpected" || ok "$desc"
+  if echo "$output" | grep "$unexpected" >/dev/null 2>&1; then
+    fail "$desc — found unexpected: $unexpected"
+  else
+    ok "$desc"
+  fi
 }
 check_eq() {
   local desc="$1" actual="$2" expected="$3"
