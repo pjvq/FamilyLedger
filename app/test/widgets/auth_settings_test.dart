@@ -146,6 +146,10 @@ Widget _wrapPage(
     child: MaterialApp(
       theme: theme ?? ThemeData.light(useMaterial3: true),
       home: child,
+      routes: {
+        '/register': (_) => const RegisterPage(),
+        '/login': (_) => const LoginPage(),
+      },
     ),
   );
 }
