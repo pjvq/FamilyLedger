@@ -165,8 +165,11 @@ func TestAuth_OAuthLogin_MockFlow(t *testing.T) {
 	ctx := context.Background()
 
 	jwtManager := jwt.NewManager("test-secret-key-32bytes-long!!")
-	// Use default providers (includes MockProvider for "wechat"/"apple" with code="test")
-	svc := auth.NewService(db.pool, jwtManager)
+	// Explicitly use mock providers so this test doesn't depend on OAUTH_MODE env.
+	svc := auth.NewService(db.pool, jwtManager, auth.WithOAuthProviders(auth.OAuthProviders{
+		"wechat": auth.NewMockProvider("wechat"),
+		"apple":  auth.NewMockProvider("apple"),
+	}))
 
 	// First OAuth login — creates new user
 	resp, err := svc.OAuthLogin(ctx, &pb.OAuthLoginRequest{
