@@ -26,9 +26,11 @@ fail() {
 }
 check() {
   local desc="$1" output="$2" expected="$3"
-  # Use grep without -q to avoid SIGPIPE under pipefail (grep -q exits
-  # early, breaking the pipe when output is large).
-  if echo "$output" | grep "$expected" >/dev/null 2>&1; then
+  # grep -q exits immediately after first match. Under pipefail, if echo
+  # hasn't finished writing to the pipe (output exceeds pipe buffer), the
+  # broken pipe gives echo exit code 141, which pipefail surfaces.
+  # Use grep -F (fixed string) without -q: reads all stdin, no SIGPIPE.
+  if printf '%s\n' "$output" | grep -F "$expected" >/dev/null; then
     ok "$desc"
   else
     fail "$desc — expected: $expected"
@@ -36,7 +38,7 @@ check() {
 }
 check_not() {
   local desc="$1" output="$2" unexpected="$3"
-  if echo "$output" | grep "$unexpected" >/dev/null 2>&1; then
+  if printf '%s\n' "$output" | grep -F "$unexpected" >/dev/null; then
     fail "$desc — found unexpected: $unexpected"
   else
     ok "$desc"
