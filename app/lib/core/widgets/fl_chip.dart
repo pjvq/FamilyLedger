@@ -49,9 +49,12 @@ class FlChip extends StatelessWidget {
         ? ColorTokens.primary
         : (isLight ? NeutralColorsLight.neutral6 : NeutralColorsDark.neutral6);
 
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(RadiusTokens.full),
+        child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         height: 32,
         padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.md),
@@ -74,6 +77,7 @@ class FlChip extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

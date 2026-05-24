@@ -95,11 +95,20 @@ class FlCard extends StatelessWidget {
     if (onTap == null) return container;
 
     return Material(
-      color: Colors.transparent,
+      color: bgColor,
+      borderRadius: radius,
+      elevation: 0,
       child: InkWell(
         onTap: onTap,
         borderRadius: radius,
-        child: container,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            boxShadow: _resolveShadow(brightness),
+          ),
+          padding: padding ?? const EdgeInsets.all(SpacingTokens.base),
+          child: child,
+        ),
       ),
     );
   }

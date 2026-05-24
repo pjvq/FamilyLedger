@@ -59,7 +59,7 @@ class FlDivider extends StatelessWidget {
     if (_isVertical) {
       return Container(
         width: thickness,
-        height: _height ?? double.infinity,
+        height: _height,
         color: dividerColor,
       );
     }

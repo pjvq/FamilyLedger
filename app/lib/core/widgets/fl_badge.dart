@@ -38,6 +38,9 @@ class FlBadge extends StatelessWidget {
     final isDot = count == null || count == 0;
     final displayText =
         count != null && count! > 99 ? '99+' : count?.toString();
+    final badgeColor = Theme.of(context).brightness == Brightness.light
+        ? SemanticColorsLight.error
+        : SemanticColorsDark.error;
 
     return Stack(
       clipBehavior: Clip.none,
@@ -50,8 +53,8 @@ class FlBadge extends StatelessWidget {
               ? Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(
-                    color: SemanticColorsLight.error,
+                  decoration: BoxDecoration(
+                    color: badgeColor,
                     shape: BoxShape.circle,
                   ),
                 )
@@ -64,7 +67,7 @@ class FlBadge extends StatelessWidget {
                     horizontal: SpacingTokens.xs,
                   ),
                   decoration: BoxDecoration(
-                    color: SemanticColorsLight.error,
+                    color: badgeColor,
                     borderRadius: BorderRadius.circular(RadiusTokens.full),
                   ),
                   alignment: Alignment.center,

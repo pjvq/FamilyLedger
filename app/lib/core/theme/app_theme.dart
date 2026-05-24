@@ -23,7 +23,7 @@ class AppTheme {
           ),
           margin: EdgeInsets.symmetric(
             horizontal: SpacingTokens.base,
-            vertical: 6,
+            vertical: SpacingTokens.xs,
           ),
         ),
         appBarTheme: AppBarTheme(
@@ -64,7 +64,7 @@ class AppTheme {
             foregroundColor: Colors.white,
             minimumSize: const Size(double.infinity, 52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(RadiusTokens.md),
             ),
             textStyle: TypographyTokens.titleMd(),
           ),
@@ -86,7 +86,7 @@ class AppTheme {
           ),
           margin: EdgeInsets.symmetric(
             horizontal: SpacingTokens.base,
-            vertical: 6,
+            vertical: SpacingTokens.xs,
           ),
         ),
         appBarTheme: AppBarTheme(
@@ -127,7 +127,7 @@ class AppTheme {
             foregroundColor: Colors.black,
             minimumSize: const Size(double.infinity, 52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(RadiusTokens.md),
             ),
             textStyle: TypographyTokens.titleMd(),
           ),

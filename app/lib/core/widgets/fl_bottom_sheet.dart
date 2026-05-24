@@ -83,7 +83,7 @@ class FlBottomSheet extends StatelessWidget {
                           TypographyTokens.headlineMd(color: titleColor),
                     ),
                   ),
-                  ?trailing,
+                  if (trailing != null) trailing!,
                 ],
               ),
             ),

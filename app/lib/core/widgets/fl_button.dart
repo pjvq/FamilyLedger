@@ -242,9 +242,11 @@ class FlButton extends StatelessWidget {
           foreground: Colors.white,
         );
       case FlButtonVariant.secondary:
-        return const _ButtonColors(
+        return _ButtonColors(
           background: ColorTokens.primaryLight,
-          foreground: ColorTokens.primary,
+          foreground: brightness == Brightness.light
+              ? ColorTokens.primaryDark
+              : Colors.white,
         );
       case FlButtonVariant.outline:
         return const _ButtonColors(

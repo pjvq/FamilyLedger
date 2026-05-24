@@ -101,15 +101,17 @@ class FlInput extends StatelessWidget {
       borderSide: BorderSide.none,
     );
 
-    final errorBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(RadiusTokens.md),
-      borderSide: BorderSide(color: errorColor, width: 1.5),
-    );
-
     final focusedBorder = OutlineInputBorder(
       borderRadius: BorderRadius.circular(RadiusTokens.md),
       borderSide: const BorderSide(color: ColorTokens.primary, width: 1.5),
     );
+
+    final errorBorder = hasError
+        ? OutlineInputBorder(
+            borderRadius: BorderRadius.circular(RadiusTokens.md),
+            borderSide: BorderSide(color: errorColor, width: 1.5),
+          )
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,8 +145,8 @@ class FlInput extends StatelessWidget {
               vertical: SpacingTokens.md,
             ),
             border: border,
-            enabledBorder: hasError ? errorBorder : border,
-            focusedBorder: hasError ? errorBorder : focusedBorder,
+            enabledBorder: errorBorder ?? border,
+            focusedBorder: errorBorder ?? focusedBorder,
             disabledBorder: border,
             prefixIcon: prefixIcon != null
                 ? Icon(prefixIcon, size: IconSizeTokens.md, color: hintColor)

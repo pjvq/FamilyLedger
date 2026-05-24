@@ -77,12 +77,14 @@ class FlAvatar extends StatelessWidget {
   }
 
   String get _initials {
-    if (name == null || name!.isEmpty) return '?';
+    if (name == null || name!.trim().isEmpty) return '?';
     final parts = name!.trim().split(RegExp(r'\s+'));
+    final first = parts.first.characters.firstOrNull ?? '?';
     if (parts.length >= 2) {
-      return '${parts.first[0]}${parts[1][0]}'.toUpperCase();
+      final second = parts[1].characters.firstOrNull ?? '';
+      return '$first$second'.toUpperCase();
     }
-    return parts.first[0].toUpperCase();
+    return first.toUpperCase();
   }
 
   @override
