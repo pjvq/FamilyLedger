@@ -149,6 +149,7 @@ Widget _wrapPage(
       routes: {
         '/register': (_) => const RegisterPage(),
         '/login': (_) => const LoginPage(),
+        '/overview': (_) => const Scaffold(body: Text('Overview')),
       },
     ),
   );
