@@ -48,13 +48,21 @@ final _assetsNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'assets');
 final _mineNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'mine');
 
 /// go_router provider — manages all app routing with auth redirect.
+///
+/// Uses [ref.read] inside redirect to avoid rebuilding the entire GoRouter
+/// instance on auth state changes. Instead, [refreshListenable] triggers
+/// redirect re-evaluation without destroying navigation state.
 final routerProvider = Provider<GoRouter>((ref) {
-  final isLoggedIn = ref.watch(isLoggedInProvider);
+  // Create a listenable that fires when auth state changes.
+  final authNotifier = _AuthChangeNotifier(ref);
+  ref.onDispose(authNotifier.dispose);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/overview',
+    refreshListenable: authNotifier,
     redirect: (context, state) {
+      final isLoggedIn = ref.read(isLoggedInProvider);
       final loggingIn = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
 
@@ -100,7 +108,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'detail',
                     builder: (context, state) {
-                      final args = state.extra as TransactionDetailArgs;
+                      final args = state.extra;
+                      if (args is! TransactionDetailArgs) {
+                        return const Scaffold(
+                          body: Center(child: Text('交易详情不可用')),
+                        );
+                      }
                       return TransactionDetailPage(args: args);
                     },
                   ),
@@ -262,44 +275,54 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/add-transaction',
         pageBuilder: (context, state) {
           final txn = state.extra as Transaction?;
-          return CustomTransitionPage(
-            child: AddTransactionPage(existingTransaction: txn),
-            transitionsBuilder: (context, animation, _, child) =>
-                SlideTransition(
-              position: Tween(
-                begin: const Offset(0, 1),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutCubic,
-              )),
-              child: child,
-            ),
-            transitionDuration: const Duration(milliseconds: 350),
-          );
+          return _slideUpPage(AddTransactionPage(existingTransaction: txn));
         },
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: '/transfer',
         pageBuilder: (context, state) {
-          return CustomTransitionPage(
-            child: const TransferPage(),
-            transitionsBuilder: (context, animation, _, child) =>
-                SlideTransition(
-              position: Tween(
-                begin: const Offset(0, 1),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutCubic,
-              )),
-              child: child,
-            ),
-            transitionDuration: const Duration(milliseconds: 350),
-          );
+          return _slideUpPage(const TransferPage());
         },
       ),
     ],
   );
 });
+
+// ─── Slide-up modal page transition helper ───
+
+CustomTransitionPage<void> _slideUpPage(Widget child) {
+  return CustomTransitionPage(
+    child: child,
+    transitionsBuilder: (context, animation, _, page) => SlideTransition(
+      position: Tween(
+        begin: const Offset(0, 1),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+      )),
+      child: page,
+    ),
+    transitionDuration: const Duration(milliseconds: 350),
+  );
+}
+
+// ─── Auth Change Notifier for GoRouter refreshListenable ───
+
+class _AuthChangeNotifier extends ChangeNotifier {
+  _AuthChangeNotifier(this._ref) {
+    _sub = _ref.listen(isLoggedInProvider, (prev, next) {
+      notifyListeners();
+    });
+  }
+
+  final Ref _ref;
+  late final ProviderSubscription<bool> _sub;
+
+  @override
+  void dispose() {
+    _sub.close();
+    super.dispose();
+  }
+}

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/design_tokens.dart';
+import '../../core/utils/format.dart';
 import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/account_provider.dart';
@@ -135,11 +136,7 @@ class _TotalCard extends StatelessWidget {
     );
   }
 
-  String _fmtAmount(int cents) {
-    final yuan = cents / 100;
-    if (yuan == yuan.truncateToDouble()) return yuan.toInt().toString();
-    return yuan.toStringAsFixed(2);
-  }
+  String _fmtAmount(int cents) => formatCentsCompact(cents);
 }
 
 // ─── Quick Actions ───
@@ -309,9 +306,5 @@ class _AccountTile extends StatelessWidget {
     );
   }
 
-  String _fmtAmount(int cents) {
-    final yuan = cents / 100;
-    if (yuan == yuan.truncateToDouble()) return yuan.toInt().toString();
-    return yuan.toStringAsFixed(2);
-  }
+  String _fmtAmount(int cents) => formatCentsCompact(cents);
 }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/constants/category_icon_widget.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/utils/format.dart';
 import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/transaction_provider.dart';
@@ -374,11 +375,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     ));
   }
 
-  String _fmtAmount(int cents) {
-    final yuan = cents / 100;
-    final sign = yuan >= 0 ? '+' : '';
-    return '$sign${yuan.toStringAsFixed(2)}';
-  }
+  String _fmtAmount(int cents) => formatCents(cents, showSign: true);
 }
 
 // ─── View Mode Bar ───
@@ -478,9 +475,12 @@ class _DateHeader extends StatelessWidget {
     final isToday = date.year == now.year &&
         date.month == now.month &&
         date.day == now.day;
-    final isYesterday = date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day - 1;
+    final isYesterday = () {
+      final yesterday = now.subtract(const Duration(days: 1));
+      return date.year == yesterday.year &&
+          date.month == yesterday.month &&
+          date.day == yesterday.day;
+    }();
 
     String label;
     if (isToday) {
@@ -525,11 +525,7 @@ class _DateHeader extends StatelessWidget {
     );
   }
 
-  String _fmtDayTotal(int cents) {
-    final yuan = cents / 100;
-    final sign = yuan >= 0 ? '+' : '';
-    return '$sign${yuan.toStringAsFixed(2)}';
-  }
+  String _fmtDayTotal(int cents) => formatCents(cents, showSign: true);
 }
 
 // ─── Transaction Tile ───
@@ -599,9 +595,5 @@ class _TransactionTile extends StatelessWidget {
     );
   }
 
-  String _fmtAmount(int cents) {
-    final yuan = cents / 100;
-    final sign = yuan > 0 ? '+' : '';
-    return '$sign${yuan.toStringAsFixed(2)}';
-  }
+  String _fmtAmount(int cents) => formatCents(cents, showSign: true);
 }

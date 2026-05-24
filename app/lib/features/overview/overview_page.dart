@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/sync_status_indicator.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
@@ -101,13 +101,13 @@ class _ModeSwitcher extends StatelessWidget {
           ? '当前为家庭模式，点击切换到个人模式'
           : '当前为个人模式，点击切换到家庭模式',
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-        padding: const EdgeInsets.all(4),
+        margin: const EdgeInsets.fromLTRB(SpacingTokens.base, SpacingTokens.sm, SpacingTokens.base, 0),
+        padding: const EdgeInsets.all(SpacingTokens.xs),
         decoration: BoxDecoration(
           color: isDark
               ? const Color(0xFF2C2C2E)
               : const Color(0xFFF2F2F7),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(RadiusTokens.md),
         ),
         child: Row(
           children: [
@@ -158,12 +158,12 @@ class _SwitcherButton extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: SpacingTokens.md, horizontal: SpacingTokens.base),
         decoration: BoxDecoration(
           color: isActive
-              ? (isDark ? AppColors.cardDark : Colors.white)
+              ? (isDark ? NeutralColorsDark.neutral1 : Colors.white)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(RadiusTokens.sm),
           boxShadow: isActive
               ? [
                   BoxShadow(
@@ -182,12 +182,12 @@ class _SwitcherButton extends StatelessWidget {
               icon,
               size: 18,
               color: isActive
-                  ? (isDark ? AppColors.primaryDark : AppColors.primary)
+                  ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
                   : (isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondary),
+                      ? NeutralColorsDark.neutral4
+                      : NeutralColorsLight.neutral4),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: SpacingTokens.sm),
             Flexible(
               child: Text(
                 label,
@@ -197,11 +197,11 @@ class _SwitcherButton extends StatelessWidget {
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                   color: isActive
                       ? (isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimary)
+                          ? NeutralColorsDark.neutral7
+                          : NeutralColorsLight.neutral7)
                       : (isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondary),
+                          ? NeutralColorsDark.neutral4
+                          : NeutralColorsLight.neutral4),
                 ),
               ),
             ),

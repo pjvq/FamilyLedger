@@ -18,6 +18,7 @@ class MainShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final canCreate = ref.watch(canCreateProvider);
 
     return Scaffold(
       body: navigationShell,
@@ -26,7 +27,6 @@ class MainShell extends ConsumerWidget {
         onDestinationSelected: (index) {
           if (index == 2) {
             // FAB center — navigate to add transaction (modal route)
-            final canCreate = ref.read(canCreateProvider);
             if (!canCreate) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('当前角色无记账权限')),
@@ -63,7 +63,7 @@ class MainShell extends ConsumerWidget {
               child: const Icon(Icons.add_rounded,
                   color: Colors.white, size: 24),
             ),
-            label: '',
+            label: '记账',
           ),
           const NavigationDestination(
             icon: Icon(Icons.account_balance_outlined),

@@ -146,7 +146,6 @@ Widget _wrapPage(
     child: MaterialApp(
       theme: theme ?? ThemeData.light(useMaterial3: true),
       home: child,
-      onGenerateRoute: AppRouter.onGenerateRoute,
     ),
   );
 }
