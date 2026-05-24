@@ -108,6 +108,14 @@ class SyncEngine {
         _prefs = null,
         _tokenStorage = null;
 
+  /// Test-only constructor: provides a real DB but no network.
+  @visibleForTesting
+  SyncEngine.forTesting(AppDatabase db)
+      : _db = db,
+        _syncClient = null,
+        _prefs = null,
+        _tokenStorage = null;
+
   void start() {
     if (_disposed) return;
 
@@ -358,13 +366,54 @@ class SyncEngine {
               );
             }
           }
-          // Save checkpoint inside transaction so it's atomic with the ops.
-          if (pageToken.isEmpty && response.hasServerTime()) {
+
+          // Per-page checkpoint: advance cursor after each page so that an
+          // interrupted multi-page pull doesn't replay already-applied ops.
+          // On the final page, prefer server_time (authoritative clock);
+          // on intermediate pages, use the last op's timestamp.
+          if (response.nextPageToken.isEmpty && response.hasServerTime()) {
+            // Final page (no more pages) — use server-provided authoritative time.
             final serverMs =
                 response.serverTime.seconds.toInt() * 1000 +
                 response.serverTime.nanos ~/ 1000000;
             await _db!.setSyncMetaInt(_lastSyncTsKey, serverMs);
             _lastSyncTsMs = serverMs;
+          } else if (response.operations.isNotEmpty) {
+            // Intermediate page — use max op timestamp as watermark.
+            // Server uses strict `> since` semantics, so same-timestamp ops
+            // spanning pages could be skipped. We subtract 1ms to turn the
+            // next pull into `> (T-1ms)` ≡ `>= T`, accepting redundant re-
+            // delivery of at most a few same-timestamp ops (handled by
+            // idempotent balance logic). We use max() rather than last-op
+            // in case a malformed op without timestamp appears at the tail.
+            final maxOpMs = response.operations.fold<int>(0, (acc, op) {
+              if (!op.hasTimestamp()) return acc;
+              final ms = op.timestamp.seconds.toInt() * 1000 +
+                  op.timestamp.nanos ~/ 1000000;
+              return max(acc, ms);
+            });
+            // Debug: verify ops are ordered by timestamp ASC
+            assert(() {
+              int prev = 0;
+              for (final op in response.operations) {
+                if (!op.hasTimestamp()) continue;
+                final ms = op.timestamp.seconds.toInt() * 1000 +
+                    op.timestamp.nanos ~/ 1000000;
+                if (ms < prev) {
+                  dev.log('WARNING: ops not sorted by timestamp',
+                      name: 'SyncEngine');
+                  break;
+                }
+                prev = ms;
+              }
+              return true;
+            }());
+            // Subtract 1ms so next `> since` includes ops at maxOpMs.
+            final checkpointMs = maxOpMs > 0 ? maxOpMs - 1 : 0;
+            if (checkpointMs > _lastSyncTsMs) {
+              await _db!.setSyncMetaInt(_lastSyncTsKey, checkpointMs);
+              _lastSyncTsMs = checkpointMs;
+            }
           }
         });
         totalPulled += response.operations.length;
@@ -671,30 +720,41 @@ class SyncEngine {
 
         final txnDateUpdate = DateTime.tryParse(payload['txn_date'] ?? '') ??
             DateTime.now();
+        final newAccountId = payload['account_id'] ?? '';
+        final newAmountCny = (payload['amount_cny'] as num?)?.toInt() ?? 0;
+        final newType = payload['type'] ?? 'expense';
+
         await _db!.insertOrUpdateTransaction(
           id: entityId,
           userId: payload['user_id'] ?? '',
-          accountId: payload['account_id'] ?? '',
+          accountId: newAccountId,
           categoryId: payload['category_id'] ?? '',
           amount: (payload['amount'] as num?)?.toInt() ?? 0,
-          amountCny: (payload['amount_cny'] as num?)?.toInt() ?? 0,
-          type: payload['type'] ?? 'expense',
+          amountCny: newAmountCny,
+          type: newType,
           note: payload['note'] ?? '',
           txnDate: txnDateUpdate,
         );
-        // Revert old balance, apply new
-        final updateAccountId = payload['account_id'] ?? '';
-        final updateAmountCny = (payload['amount_cny'] as num?)?.toInt() ?? 0;
-        final updateType = payload['type'] ?? 'expense';
-        if (oldTxn != null && oldTxn.deletedAt == null && oldTxn.type != 'transfer') {
-          // Revert old balance contribution
-          final oldDelta = oldTxn.type == 'income' ? oldTxn.amountCny : -oldTxn.amountCny;
-          await _db!.updateAccountBalance(oldTxn.accountId, -oldDelta);
-        }
-        // Apply new balance delta
-        if (updateAccountId.isNotEmpty && updateAmountCny != 0 && updateType != 'transfer') {
-          final newDelta = updateType == 'income' ? updateAmountCny : -updateAmountCny;
-          await _db!.updateAccountBalance(updateAccountId, newDelta);
+
+        // Idempotent balance adjustment: only revert/apply if the values
+        // that affect balance actually changed (or txn is new). This makes
+        // UPDATE replay-safe even without per-page checkpoint (defense-in-depth).
+        final bool shouldAdjustBalance = oldTxn == null ||
+            oldTxn.accountId != newAccountId ||
+            oldTxn.amountCny != newAmountCny ||
+            oldTxn.type != newType;
+
+        if (shouldAdjustBalance) {
+          // Revert old balance contribution (if old txn existed and was active)
+          if (oldTxn != null && oldTxn.deletedAt == null && oldTxn.type != 'transfer') {
+            final oldDelta = oldTxn.type == 'income' ? oldTxn.amountCny : -oldTxn.amountCny;
+            await _db!.updateAccountBalance(oldTxn.accountId, -oldDelta);
+          }
+          // Apply new balance delta
+          if (newAccountId.isNotEmpty && newAmountCny != 0 && newType != 'transfer') {
+            final newDelta = newType == 'income' ? newAmountCny : -newAmountCny;
+            await _db!.updateAccountBalance(newAccountId, newDelta);
+          }
         }
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
@@ -1217,6 +1277,15 @@ class SyncEngine {
     dev.log('[Sync] app paused, stopping timer');
     _syncTimer?.cancel();
     _syncTimer = null;
+  }
+
+  /// Test-only: apply a remote op directly.
+  /// Only works when engine is constructed with [SyncEngine.forTesting].
+  @visibleForTesting
+  Future<void> applyRemoteOpForTest(sync_pb.SyncOperation op) async {
+    assert(_db != null,
+        'applyRemoteOpForTest: engine must be constructed with forTesting(db)');
+    await _applyRemoteOp(op);
   }
 
   void dispose() {
