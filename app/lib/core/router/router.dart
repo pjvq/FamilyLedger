@@ -25,6 +25,7 @@ import '../../features/investment/add_investment_page.dart';
 import '../../features/investment/investment_detail_page.dart';
 import '../../features/investment/trade_page.dart';
 import '../../features/asset/assets_page.dart';
+import '../../features/assets/assets_tab_page.dart';
 import '../../features/asset/add_asset_page.dart';
 import '../../features/asset/asset_detail_page.dart';
 import '../../features/report/report_page.dart';
@@ -302,28 +303,3 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-
-/// Assets tab page — wraps the old _AccountsTab content as a standalone page.
-/// This is kept here temporarily until the proper Assets page is built.
-class AssetsTabPage extends StatelessWidget {
-  const AssetsTabPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // Reuse the existing accounts tab from home_page.dart logic
-    // Import it via the barrel or inline. For now, delegate to the
-    // existing page structure.
-    return const _AssetsTabPlaceholder();
-  }
-}
-
-class _AssetsTabPlaceholder extends StatelessWidget {
-  const _AssetsTabPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('资产页面加载中...')),
-    );
-  }
-}
