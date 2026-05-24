@@ -55,7 +55,7 @@ class AppTheme {
           ),
           contentPadding: EdgeInsets.symmetric(
             horizontal: SpacingTokens.base,
-            vertical: 14,
+            vertical: SpacingTokens.base, // 16px — comfortable touch target
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
@@ -118,7 +118,7 @@ class AppTheme {
           ),
           contentPadding: EdgeInsets.symmetric(
             horizontal: SpacingTokens.base,
-            vertical: 14,
+            vertical: SpacingTokens.base, // 16px — comfortable touch target
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(

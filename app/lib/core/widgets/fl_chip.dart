@@ -51,33 +51,39 @@ class FlChip extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(RadiusTokens.full),
-        child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: 32,
-        padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.md),
+      borderRadius: BorderRadius.circular(RadiusTokens.full),
+      clipBehavior: Clip.antiAlias,
+      child: Ink(
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(RadiusTokens.full),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: IconSizeTokens.xs, color: fgColor),
-              const SizedBox(width: SpacingTokens.xs),
-            ],
-            Text(
-              label,
-              style: TypographyTokens.bodyMd(color: fgColor).copyWith(
-                fontWeight: FontWeight.w500,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(RadiusTokens.full),
+          child: SizedBox(
+            height: 32,
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: SpacingTokens.md),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, size: IconSizeTokens.xs, color: fgColor),
+                    const SizedBox(width: SpacingTokens.xs),
+                  ],
+                  Text(
+                    label,
+                    style: TypographyTokens.bodyMd(color: fgColor).copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
-      ),
       ),
     );
   }
