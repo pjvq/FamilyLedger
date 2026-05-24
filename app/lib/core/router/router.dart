@@ -32,12 +32,10 @@ import '../../features/report/report_page.dart';
 import '../../features/report/export_page.dart';
 import '../../features/import/import_page.dart';
 import '../../features/transaction/add_transaction_page.dart';
-import '../../features/transaction/transaction_history_page.dart';
 import '../../features/transaction/transaction_detail_page.dart';
 import '../../features/settings/settings_page.dart';
 import '../../features/settings/family_members_page.dart';
 import '../../features/settings/category_manage_page.dart';
-import '../router/app_router.dart';
 
 // Navigation keys for StatefulShellRoute branches
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -318,11 +316,11 @@ class _AuthChangeNotifier extends ChangeNotifier {
   }
 
   final Ref _ref;
-  late final ProviderSubscription<bool> _sub;
+  ProviderSubscription<bool>? _sub;
 
   @override
   void dispose() {
-    _sub.close();
+    _sub?.close();
     super.dispose();
   }
 }

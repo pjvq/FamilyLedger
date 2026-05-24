@@ -36,6 +36,7 @@ class TransactionFlowPage extends ConsumerStatefulWidget {
 }
 
 class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
+  static const _scrollThreshold = 200.0;
   static const _pageSize = 50;
 
   FlowViewMode _viewMode = FlowViewMode.byTime;
@@ -62,7 +63,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+        _scrollController.position.maxScrollExtent - _scrollThreshold) {
       final state = ref.read(transactionProvider);
       if (_displayCount < state.transactions.length) {
         setState(() => _displayCount += _pageSize);
@@ -381,6 +382,8 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
 // ─── View Mode Bar ───
 
 class _ViewModeBar extends StatelessWidget {
+  static final _pillRadius = BorderRadius.circular(RadiusTokens.full);
+
   final FlowViewMode current;
   final ValueChanged<FlowViewMode> onChanged;
 
@@ -402,7 +405,7 @@ class _ViewModeBar extends StatelessWidget {
             padding: const EdgeInsets.only(right: SpacingTokens.sm),
             child: Material(
               color: Colors.transparent,
-              borderRadius: BorderRadius.circular(RadiusTokens.full),
+              borderRadius: _pillRadius,
               clipBehavior: Clip.antiAlias,
               child: Ink(
                 decoration: BoxDecoration(
@@ -411,10 +414,10 @@ class _ViewModeBar extends StatelessWidget {
                       : (isDark
                           ? NeutralColorsDark.neutral2
                           : NeutralColorsLight.neutral2),
-                  borderRadius: BorderRadius.circular(RadiusTokens.full),
+                  borderRadius: _pillRadius,
                 ),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(RadiusTokens.full),
+                  borderRadius: _pillRadius,
                   onTap: () => onChanged(mode),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(

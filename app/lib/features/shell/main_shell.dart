@@ -9,6 +9,9 @@ import '../../domain/providers/family_provider.dart';
 ///
 /// Branch indices: 0=overview, 1=transactions, 2=assets, 3=mine
 /// Nav indices:    0=overview, 1=transactions, 2=FAB(skip), 3=assets, 4=mine
+/// FAB circle diameter in the navigation bar.
+const double _kFabSize = 42.0;
+
 class MainShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -52,8 +55,8 @@ class MainShell extends ConsumerWidget {
           // FAB center placeholder
           NavigationDestination(
             icon: Container(
-              width: 42,
-              height: 42,
+              width: _kFabSize,
+              height: _kFabSize,
               decoration: BoxDecoration(
                 color: isDark
                     ? ColorTokens.primaryLight
@@ -61,7 +64,7 @@ class MainShell extends ConsumerWidget {
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.add_rounded,
-                  color: Colors.white, size: 24),
+                  color: Colors.white, size: IconSizeTokens.md),
             ),
             label: '记账',
           ),

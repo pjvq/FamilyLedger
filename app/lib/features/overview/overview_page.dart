@@ -105,8 +105,8 @@ class _ModeSwitcher extends StatelessWidget {
         padding: const EdgeInsets.all(SpacingTokens.xs),
         decoration: BoxDecoration(
           color: isDark
-              ? const Color(0xFF2C2C2E)
-              : const Color(0xFFF2F2F7),
+              ? NeutralColorsDark.neutral2
+              : NeutralColorsLight.neutral2,
           borderRadius: BorderRadius.circular(RadiusTokens.md),
         ),
         child: Row(
@@ -180,7 +180,7 @@ class _SwitcherButton extends StatelessWidget {
           children: [
             Icon(
               icon,
-              size: 18,
+              size: IconSizeTokens.sm,
               color: isActive
                   ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
                   : (isDark
@@ -192,9 +192,7 @@ class _SwitcherButton extends StatelessWidget {
               child: Text(
                 label,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                style: TypographyTokens.bodySm(
                   color: isActive
                       ? (isDark
                           ? NeutralColorsDark.neutral7
@@ -202,7 +200,7 @@ class _SwitcherButton extends StatelessWidget {
                       : (isDark
                           ? NeutralColorsDark.neutral4
                           : NeutralColorsLight.neutral4),
-                ),
+                ).copyWith(fontWeight: isActive ? FontWeight.w600 : FontWeight.w400),
               ),
             ),
           ],
