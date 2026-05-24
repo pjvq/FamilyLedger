@@ -164,11 +164,6 @@ func TestAuth_OAuthLogin_MockFlow(t *testing.T) {
 	db := getDB(t)
 	ctx := context.Background()
 
-	// Clean up any leftover mock OAuth user from previous test runs to avoid
-	// flaky failures when integration tests share the same database.
-	_, _ = db.pool.Exec(ctx,
-		`DELETE FROM users WHERE oauth_provider = 'wechat' AND oauth_id = 'wx_mock_openid_001'`)
-
 	jwtManager := jwt.NewManager("test-secret-key-32bytes-long!!")
 	// Explicitly use mock providers so this test doesn't depend on OAUTH_MODE env.
 	svc := auth.NewService(db.pool, jwtManager, auth.WithOAuthProviders(auth.OAuthProviders{
