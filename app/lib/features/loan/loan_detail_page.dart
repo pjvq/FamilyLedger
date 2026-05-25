@@ -110,7 +110,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                       label: '提前还款',
                       semanticLabel: '提前还款',
                       onTap: () => Navigator.of(context).pushNamed(
-                        AppRouter.prepayment,
+                        AppRouter.prepaymentLegacy, // ignore: deprecated_member_use_from_same_package
                         arguments: loan.id,
                       ),
                     ),

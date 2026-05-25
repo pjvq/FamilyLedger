@@ -132,10 +132,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                     builder: (_, __) => const AddAccountPage(),
                   ),
                   GoRoute(
-                    path: 'transfer',
-                    builder: (_, __) => const TransferPage(),
-                  ),
-                  GoRoute(
                     path: 'loans',
                     builder: (_, __) => const LoansPage(),
                     routes: [

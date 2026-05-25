@@ -248,6 +248,12 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     Map<String, Account> accountMap,
     bool isDark,
   ) {
+    // Build name→category lookup for O(1) icon resolution
+    final catByName = <String, Category>{};
+    for (final c in categoryMap.values) {
+      catByName[c.name] = c;
+    }
+
     // Group by category
     final groups = <String, List<Transaction>>{};
     for (final t in transactions) {
@@ -271,10 +277,10 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
         final total = items.fold<int>(0, (s, t) => s + t.amount);
 
         return ExpansionTile(
-          leading: _categoryIcon(catName, categoryMap, isDark),
+          leading: _categoryIcon(catName, catByName, isDark),
           title: Text(catName, style: TypographyTokens.titleMd()),
           subtitle: Text(
-            '${items.length} 笔  ${_fmtAmount(total)}',
+            '${items.length} 笔  ${formatCents(total, showSign: true)}',
             style: TypographyTokens.bodySm(
               color: isDark
                   ? NeutralColorsDark.neutral5
@@ -333,7 +339,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
           ),
           title: Text(acctName, style: TypographyTokens.titleMd()),
           subtitle: Text(
-            '${items.length} 笔  ${_fmtAmount(total)}',
+            '${items.length} 笔  ${formatCents(total, showSign: true)}',
             style: TypographyTokens.bodySm(
               color: isDark
                   ? NeutralColorsDark.neutral5
@@ -355,9 +361,8 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
   }
 
   Widget _categoryIcon(
-      String catName, Map<String, Category> categoryMap, bool isDark) {
-    // Find category by name
-    final cat = categoryMap.values.where((c) => c.name == catName).firstOrNull;
+      String catName, Map<String, Category> catByName, bool isDark) {
+    final cat = catByName[catName];
     if (cat != null) {
       return CategoryIconWidget(iconKey: cat.iconKey, size: 36);
     }
@@ -376,7 +381,6 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     ));
   }
 
-  String _fmtAmount(int cents) => formatCents(cents, showSign: true);
 }
 
 // ─── View Mode Bar ───
@@ -478,12 +482,10 @@ class _DateHeader extends StatelessWidget {
     final isToday = date.year == now.year &&
         date.month == now.month &&
         date.day == now.day;
-    final isYesterday = () {
-      final yesterday = now.subtract(const Duration(days: 1));
-      return date.year == yesterday.year &&
-          date.month == yesterday.month &&
-          date.day == yesterday.day;
-    }();
+    final yesterday = now.subtract(const Duration(days: 1));
+    final isYesterday = date.year == yesterday.year &&
+        date.month == yesterday.month &&
+        date.day == yesterday.day;
 
     String label;
     if (isToday) {
@@ -512,7 +514,7 @@ class _DateHeader extends StatelessWidget {
             ).copyWith(fontWeight: FontWeight.w600),
           ),
           Text(
-            _fmtDayTotal(dayTotal),
+            formatCents(dayTotal, showSign: true),
             style: TypographyTokens.bodySm(
               color: dayTotal >= 0
                   ? (isDark
@@ -528,7 +530,6 @@ class _DateHeader extends StatelessWidget {
     );
   }
 
-  String _fmtDayTotal(int cents) => formatCents(cents, showSign: true);
 }
 
 // ─── Transaction Tile ───
@@ -588,7 +589,7 @@ class _TransactionTile extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
       ),
       trailing: Text(
-        _fmtAmount(transaction.amount),
+        formatCents(transaction.amount, showSign: true),
         style: TypographyTokens.amount(
           fontSize: 15,
           fontWeight: FontWeight.w600,
@@ -598,5 +599,4 @@ class _TransactionTile extends StatelessWidget {
     );
   }
 
-  String _fmtAmount(int cents) => formatCents(cents, showSign: true);
 }

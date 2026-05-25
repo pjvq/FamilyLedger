@@ -1,38 +1,75 @@
-/// Route path constants for the app.
+/// Route path constants and builders for the app.
 ///
 /// The actual routing is handled by go_router in `router.dart`.
-/// These constants are kept for use in tests and legacy references.
+/// Static constants are for parameterless routes.
+/// Static methods are for routes requiring path parameters (go_router style).
+///
+/// Legacy pages that still use `Navigator.pushNamed` with `arguments`
+/// reference the deprecated constants below until fully migrated.
 class AppRouter {
   AppRouter._();
 
+  // ── Auth ──
   static const login = '/login';
   static const register = '/register';
+
+  // ── Tabs ──
   static const home = '/overview';
+  static const transactionHistory = '/transactions';
+  static const assets = '/assets';
+
+  // ── Transaction ──
   static const addTransaction = '/add-transaction';
-  static const settings = '/mine/settings';
-  static const familyMembers = '/mine/settings/members';
-  static const accounts = '/assets';
-  static const addAccount = '/assets/accounts/add';
   static const transfer = '/transfer';
-  static const budget = '/mine/budget';
-  static const notifications = '/mine/notifications';
-  static const notificationSettings = '/mine/notifications/settings';
+  static String transactionDetail(String txnId) => '/transactions/$txnId';
+
+  // ── Assets / Accounts ──
+  static const addAccount = '/assets/accounts/add';
+
+  // ── Loans ──
   static const loans = '/assets/loans';
   static const addLoan = '/assets/loans/add';
-  static const loanDetail = '/assets/loans/detail';
-  static const loanGroupDetail = '/assets/loans/group-detail';
-  static const prepayment = '/assets/loans/prepayment';
+  static String loanDetail(String loanId) => '/assets/loans/$loanId';
+  static String loanGroupDetail(String groupId) =>
+      '/assets/loans/group/$groupId';
+  static String prepayment(String loanId) =>
+      '/assets/loans/$loanId/prepayment';
+
+  // ── Investments ──
   static const investments = '/assets/investments';
   static const addInvestment = '/assets/investments/add';
-  static const investmentDetail = '/assets/investments/detail';
-  static const investmentTrade = '/assets/investments/trade';
-  static const assets = '/assets';
+  static String investmentDetail(String investmentId) =>
+      '/assets/investments/$investmentId';
+  static String investmentTrade(String investmentId) =>
+      '/assets/investments/$investmentId/trade';
+
+  // ── Fixed Assets ──
   static const addAsset = '/assets/fixed/add';
-  static const assetDetail = '/assets/fixed/detail';
+  static String assetDetail(String assetId) => '/assets/fixed/$assetId';
+
+  // ── Mine ──
+  static const settings = '/mine/settings';
+  static const familyMembers = '/mine/settings/members';
+  static const categoryManage = '/mine/settings/categories';
+  static const notifications = '/mine/notifications';
+  static const notificationSettings = '/mine/notifications/settings';
+  static const budget = '/mine/budget';
   static const report = '/mine/report';
   static const export = '/mine/report/export';
   static const csvImport = '/mine/import/csv';
-  static const transactionHistory = '/transactions';
-  static const transactionDetail = '/transactions/detail';
-  static const categoryManage = '/mine/settings/categories';
+
+  // ── Legacy paths (used by Navigator.pushNamed with arguments) ──
+  // TODO(migration): Replace with go_router context.push() + path params
+  @Deprecated('Use loanDetail(id) with context.push instead')
+  static const loanDetailLegacy = '/loan-detail';
+  @Deprecated('Use loanGroupDetail(id) with context.push instead')
+  static const loanGroupDetailLegacy = '/loan-group-detail';
+  @Deprecated('Use prepayment(id) with context.push instead')
+  static const prepaymentLegacy = '/prepayment';
+  @Deprecated('Use investmentDetail(id) with context.push instead')
+  static const investmentDetailLegacy = '/investment-detail';
+  @Deprecated('Use investmentTrade(id) with context.push instead')
+  static const investmentTradeLegacy = '/investment-trade';
+  @Deprecated('Use assetDetail(id) with context.push instead')
+  static const assetDetailLegacy = '/asset-detail';
 }

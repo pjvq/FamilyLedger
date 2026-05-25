@@ -54,7 +54,7 @@ class LoansPage extends ConsumerWidget {
                             isDark: isDark,
                             onTap: () {
                               Navigator.of(context).pushNamed(
-                                AppRouter.loanGroupDetail,
+                                AppRouter.loanGroupDetailLegacy, // ignore: deprecated_member_use_from_same_package
                                 arguments: group.group.id,
                               );
                             },
@@ -66,7 +66,7 @@ class LoansPage extends ConsumerWidget {
                             isDark: isDark,
                             onTap: () {
                               Navigator.of(context).pushNamed(
-                                AppRouter.loanDetail,
+                                AppRouter.loanDetailLegacy, // ignore: deprecated_member_use_from_same_package
                                 arguments: loan.id,
                               );
                             },

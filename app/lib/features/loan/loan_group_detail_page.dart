@@ -138,7 +138,7 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
                       final targetLoan = comLoan ?? pvdLoan;
                       if (targetLoan != null) {
                         Navigator.of(context).pushNamed(
-                          AppRouter.prepayment,
+                          AppRouter.prepaymentLegacy, // ignore: deprecated_member_use_from_same_package
                           arguments: targetLoan.id,
                         );
                       }
@@ -153,7 +153,7 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
                       label: '商贷详情',
                       semanticLabel: '查看商业贷款详情',
                       onTap: () => Navigator.of(context).pushNamed(
-                        AppRouter.loanDetail,
+                        AppRouter.loanDetailLegacy, // ignore: deprecated_member_use_from_same_package
                         arguments: comLoan.id,
                       ),
                     ),
@@ -166,7 +166,7 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
                       label: '公积金详情',
                       semanticLabel: '查看公积金贷款详情',
                       onTap: () => Navigator.of(context).pushNamed(
-                        AppRouter.loanDetail,
+                        AppRouter.loanDetailLegacy, // ignore: deprecated_member_use_from_same_package
                         arguments: pvdLoan.id,
                       ),
                     ),

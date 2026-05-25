@@ -321,7 +321,7 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                   ),
                   TextButton.icon(
                     onPressed: () => Navigator.of(context).pushNamed(
-                      AppRouter.investmentTrade,
+                      AppRouter.investmentTradeLegacy, // ignore: deprecated_member_use_from_same_package
                       arguments: widget.investmentId,
                     ),
                     icon: const Icon(Icons.add_rounded, size: 18),

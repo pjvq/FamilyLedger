@@ -119,7 +119,7 @@ class _InvestmentsPageState extends ConsumerState<InvestmentsPage> {
                             theme: theme,
                             sparklineData: sparklineData,
                             onTap: () => Navigator.of(context).pushNamed(
-                              AppRouter.investmentDetail,
+                              AppRouter.investmentDetailLegacy, // ignore: deprecated_member_use_from_same_package
                               arguments: inv.id,
                             ),
                             ),

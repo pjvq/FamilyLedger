@@ -63,7 +63,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                             isDark: isDark,
                             theme: theme,
                             onTap: () => Navigator.of(context).pushNamed(
-                              AppRouter.assetDetail,
+                              AppRouter.assetDetailLegacy, // ignore: deprecated_member_use_from_same_package
                               arguments: asset.id,
                             ),
                           )),

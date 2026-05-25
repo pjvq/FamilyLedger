@@ -58,23 +58,25 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
             _ModeSwitcher(
               isFamilyMode: familyId != null,
               familyName: familyState.currentFamily?.name ?? '',
-              onToggle: (isFamily) {
-                final fState = ref.read(familyProvider);
-                final newId = isFamily ? fState.currentFamily?.id : null;
-                ref.read(currentFamilyIdProvider.notifier).state = newId;
-                final prefs = ref.read(sharedPreferencesProvider);
-                if (newId != null) {
-                  prefs.setString(AppConstants.familyIdKey, newId);
-                  ref.read(familyProvider.notifier).refreshMembers();
-                } else {
-                  prefs.remove(AppConstants.familyIdKey);
-                }
-              },
+              onToggle: _handleModeSwitch,
             ),
           const Expanded(child: DashboardPage()),
         ],
       ),
     );
+  }
+
+  void _handleModeSwitch(bool isFamily) {
+    final fState = ref.read(familyProvider);
+    final newId = isFamily ? fState.currentFamily?.id : null;
+    ref.read(currentFamilyIdProvider.notifier).state = newId;
+    final prefs = ref.read(sharedPreferencesProvider);
+    if (newId != null) {
+      prefs.setString(AppConstants.familyIdKey, newId);
+      ref.read(familyProvider.notifier).refreshMembers();
+    } else {
+      prefs.remove(AppConstants.familyIdKey);
+    }
   }
 }
 

@@ -123,7 +123,7 @@ class _TotalCard extends StatelessWidget {
           ),
           const SizedBox(height: SpacingTokens.sm),
           Text(
-            '¥ ${_fmtAmount(total)}',
+            '¥ ${formatCentsCompact(total)}',
             style: TypographyTokens.displayMd(color: Colors.white),
           ),
           const SizedBox(height: SpacingTokens.xs),
@@ -136,7 +136,6 @@ class _TotalCard extends StatelessWidget {
     );
   }
 
-  String _fmtAmount(int cents) => formatCentsCompact(cents);
 }
 
 // ─── Quick Actions ───
@@ -292,7 +291,7 @@ class _AccountTile extends StatelessWidget {
                 ),
               ),
               Text(
-                '¥ ${_fmtAmount(account.balance)}',
+                '¥ ${formatCentsCompact(account.balance)}',
                 style: TypographyTokens.amount(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -306,5 +305,4 @@ class _AccountTile extends StatelessWidget {
     );
   }
 
-  String _fmtAmount(int cents) => formatCentsCompact(cents);
 }

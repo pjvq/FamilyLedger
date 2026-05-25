@@ -85,7 +85,12 @@ class MainShell extends ConsumerWidget {
   }
 
   /// Maps router branch index to NavigationBar index (skipping FAB at 2).
-  int _mapBranchToNav(int branch) => branch >= 2 ? branch + 1 : branch;
+  /// Never returns 2 — the FAB slot is never a valid selection.
+  int _mapBranchToNav(int branch) {
+    final nav = branch >= 2 ? branch + 1 : branch;
+    assert(nav != 2, 'FAB placeholder at index 2 must never be selected');
+    return nav;
+  }
 
   /// Maps NavigationBar index to router branch index (skipping FAB at 2).
   int _mapNavToBranch(int nav) => nav >= 3 ? nav - 1 : nav;
