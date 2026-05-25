@@ -54,11 +54,11 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
   final AppDatabase _db;
   final String _userId;
   final pb.FamilyServiceClient? _familyClient;
-  final Ref _ref;
+  final Ref? _ref;
   final _uuid = const Uuid();
   static final _callOpts = CallOptions(timeout: const Duration(seconds: 5));
 
-  FamilyNotifier(this._db, this._userId, this._familyClient, this._ref)
+  FamilyNotifier(this._db, this._userId, this._familyClient, [this._ref])
       : super(const FamilyState()) {
     _load();
   }
@@ -390,9 +390,11 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
   /// Updates [currentFamilyIdProvider], persists to SharedPreferences,
   /// and refreshes members when entering family mode.
   void switchMode({required bool toFamily}) {
+    final ref = _ref;
+    if (ref == null) return; // No-op in test context without Ref
     final newId = toFamily ? state.currentFamily?.id : null;
-    _ref.read(currentFamilyIdProvider.notifier).state = newId;
-    final prefs = _ref.read(sharedPreferencesProvider);
+    ref.read(currentFamilyIdProvider.notifier).state = newId;
+    final prefs = ref.read(sharedPreferencesProvider);
     if (newId != null) {
       prefs.setString(AppConstants.familyIdKey, newId);
       refreshMembers();
