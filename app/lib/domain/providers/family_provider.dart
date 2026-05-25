@@ -54,10 +54,11 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
   final AppDatabase _db;
   final String _userId;
   final pb.FamilyServiceClient? _familyClient;
+  final Ref _ref;
   final _uuid = const Uuid();
   static final _callOpts = CallOptions(timeout: const Duration(seconds: 5));
 
-  FamilyNotifier(this._db, this._userId, this._familyClient)
+  FamilyNotifier(this._db, this._userId, this._familyClient, this._ref)
       : super(const FamilyState()) {
     _load();
   }
@@ -384,6 +385,22 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
     }
   }
 
+  /// Switches between personal and family mode.
+  ///
+  /// Updates [currentFamilyIdProvider], persists to SharedPreferences,
+  /// and refreshes members when entering family mode.
+  void switchMode({required bool toFamily}) {
+    final newId = toFamily ? state.currentFamily?.id : null;
+    _ref.read(currentFamilyIdProvider.notifier).state = newId;
+    final prefs = _ref.read(sharedPreferencesProvider);
+    if (newId != null) {
+      prefs.setString(AppConstants.familyIdKey, newId);
+      refreshMembers();
+    } else {
+      prefs.remove(AppConstants.familyIdKey);
+    }
+  }
+
   Future<void> refreshMembers() async {
     final family = state.currentFamily;
     if (family == null) return;
@@ -453,7 +470,7 @@ final familyProvider =
   try {
     familyClient = ref.watch(familyClientProvider);
   } catch (_) {}
-  return FamilyNotifier(db, userId ?? '', familyClient);
+  return FamilyNotifier(db, userId ?? '', familyClient, ref);
 });
 
 /// Whether the current user can delete in family mode.
@@ -488,22 +505,3 @@ final canCreateProvider = Provider<bool>((ref) {
   final perms = ref.watch(familyProvider).myPermissions;
   return perms?.canCreate ?? false;
 });
-
-/// Switches between personal and family mode.
-///
-/// Encapsulates the full mode-switch logic:
-/// 1. Updates [currentFamilyIdProvider]
-/// 2. Persists choice to SharedPreferences
-/// 3. Refreshes family members when entering family mode
-void switchFamilyMode(WidgetRef ref, {required bool toFamily}) {
-  final fState = ref.read(familyProvider);
-  final newId = toFamily ? fState.currentFamily?.id : null;
-  ref.read(currentFamilyIdProvider.notifier).state = newId;
-  final prefs = ref.read(sharedPreferencesProvider);
-  if (newId != null) {
-    prefs.setString(AppConstants.familyIdKey, newId);
-    ref.read(familyProvider.notifier).refreshMembers();
-  } else {
-    prefs.remove(AppConstants.familyIdKey);
-  }
-}

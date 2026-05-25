@@ -43,7 +43,7 @@ import '../../features/settings/category_manage_page.dart';
 /// instance on auth state changes. Instead, [refreshListenable] triggers
 /// redirect re-evaluation without destroying navigation state.
 final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
-  // Keep alive during normal app lifecycle; only disposed when ProviderScope is disposed (tests).
+    // Kept alive for the entire app lifecycle. Disposed when ProviderContainer is destroyed.
   ref.keepAlive();
 
   // Navigation keys scoped to provider lifecycle (safe for hot reload + tests)

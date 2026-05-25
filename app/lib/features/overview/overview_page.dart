@@ -67,7 +67,7 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
   }
 
   void _handleModeSwitch(bool isFamily) {
-    switchFamilyMode(ref, toFamily: isFamily);
+    ref.read(familyProvider.notifier).switchMode(toFamily: isFamily);
   }
 }
 
