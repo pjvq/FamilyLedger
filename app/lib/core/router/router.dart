@@ -37,28 +37,44 @@ import '../../features/settings/settings_page.dart';
 import '../../features/settings/family_members_page.dart';
 import '../../features/settings/category_manage_page.dart';
 
-// Navigation keys for StatefulShellRoute branches
-final _rootNavigatorKey = GlobalKey<NavigatorState>();
-final _overviewNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'overview');
-final _transactionsNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'transactions');
-final _assetsNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'assets');
-final _mineNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'mine');
-
 /// go_router provider — manages all app routing with auth redirect.
 ///
 /// Uses [ref.read] inside redirect to avoid rebuilding the entire GoRouter
 /// instance on auth state changes. Instead, [refreshListenable] triggers
 /// redirect re-evaluation without destroying navigation state.
 final routerProvider = Provider<GoRouter>((ref) {
+  // Navigation keys scoped to provider lifecycle (safe for hot reload + tests)
+  final rootNavigatorKey = GlobalKey<NavigatorState>();
+  final overviewNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'overview');
+  final transactionsNavigatorKey =
+      GlobalKey<NavigatorState>(debugLabel: 'transactions');
+  final assetsNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'assets');
+  final mineNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'mine');
+
   // Create a listenable that fires when auth state changes.
   final authNotifier = _AuthChangeNotifier(ref);
   ref.onDispose(authNotifier.dispose);
 
   return GoRouter(
-    navigatorKey: _rootNavigatorKey,
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/overview',
     refreshListenable: authNotifier,
+    errorBuilder: (context, state) => Scaffold(
+      appBar: AppBar(title: const Text('页面不存在')),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('请求的页面不存在'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => context.go('/overview'),
+              child: const Text('返回首页'),
+            ),
+          ],
+        ),
+      ),
+    ),
     redirect: (context, state) {
       final isLoggedIn = ref.read(isLoggedInProvider);
       final loggingIn = state.matchedLocation == '/login' ||
@@ -87,7 +103,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         branches: [
           // Branch 0: Overview (Dashboard)
           StatefulShellBranch(
-            navigatorKey: _overviewNavigatorKey,
+            navigatorKey: overviewNavigatorKey,
             routes: [
               GoRoute(
                 path: '/overview',
@@ -97,7 +113,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           // Branch 1: Transactions (Flow)
           StatefulShellBranch(
-            navigatorKey: _transactionsNavigatorKey,
+            navigatorKey: transactionsNavigatorKey,
             routes: [
               GoRoute(
                 path: '/transactions',
@@ -121,7 +137,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           // Branch 2: Assets
           StatefulShellBranch(
-            navigatorKey: _assetsNavigatorKey,
+            navigatorKey: assetsNavigatorKey,
             routes: [
               GoRoute(
                 path: '/assets',
@@ -142,13 +158,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: ':loanId',
                         builder: (context, state) => LoanDetailPage(
-                          loanId: state.pathParameters['loanId']!,
+                          loanId: state.pathParameters['loanId'] ?? '',
                         ),
                         routes: [
                           GoRoute(
                             path: 'prepayment',
                             builder: (context, state) => PrepaymentPage(
-                              loanId: state.pathParameters['loanId']!,
+                              loanId: state.pathParameters['loanId'] ?? '',
                             ),
                           ),
                         ],
@@ -156,7 +172,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: 'group/:groupId',
                         builder: (context, state) => LoanGroupDetailPage(
-                          groupId: state.pathParameters['groupId']!,
+                          groupId: state.pathParameters['groupId'] ?? '',
                         ),
                       ),
                     ],
@@ -173,14 +189,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                         path: ':investmentId',
                         builder: (context, state) => InvestmentDetailPage(
                           investmentId:
-                              state.pathParameters['investmentId']!,
+                              state.pathParameters['investmentId'] ?? '',
                         ),
                         routes: [
                           GoRoute(
                             path: 'trade',
                             builder: (context, state) => TradePage(
                               investmentId:
-                                  state.pathParameters['investmentId']!,
+                                  state.pathParameters['investmentId'] ?? '',
                             ),
                           ),
                         ],
@@ -198,7 +214,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: ':assetId',
                         builder: (context, state) => AssetDetailPage(
-                          assetId: state.pathParameters['assetId']!,
+                          assetId: state.pathParameters['assetId'] ?? '',
                         ),
                       ),
                     ],
@@ -209,7 +225,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           // Branch 3: Mine
           StatefulShellBranch(
-            navigatorKey: _mineNavigatorKey,
+            navigatorKey: mineNavigatorKey,
             routes: [
               GoRoute(
                 path: '/mine',
@@ -265,7 +281,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // ── Modal routes (outside shell, slide up) ──
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/add-transaction',
         pageBuilder: (context, state) {
           final txn = state.extra as Transaction?;
@@ -273,7 +289,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/transfer',
         pageBuilder: (context, state) {
           return _slideUpPage(const TransferPage());
@@ -306,17 +322,24 @@ CustomTransitionPage<void> _slideUpPage(Widget child) {
 
 class _AuthChangeNotifier extends ChangeNotifier {
   _AuthChangeNotifier(this._ref) {
-    _sub = _ref.listen(isLoggedInProvider, (prev, next) {
-      notifyListeners();
-    });
+    try {
+      _sub = _ref.listen(isLoggedInProvider, (prev, next) {
+        if (!_disposed) notifyListeners();
+      });
+    } catch (_) {
+      // Provider already disposed during construction (hot restart edge case)
+    }
   }
 
   final Ref _ref;
   ProviderSubscription<bool>? _sub;
+  bool _disposed = false;
 
   @override
   void dispose() {
+    _disposed = true;
     _sub?.close();
+    _sub = null;
     super.dispose();
   }
 }

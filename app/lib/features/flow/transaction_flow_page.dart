@@ -47,6 +47,13 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
   String _searchQuery = '';
   bool _showSearch = false;
 
+  // Cached maps — rebuilt only when source data identity changes
+  Map<String, Category> _categoryMap = const {};
+  Map<String, Account> _accountMap = const {};
+  List<Transaction>? _filteredCache;
+  String _lastFilterQuery = '';
+  int _lastTxnHashCode = 0;
+
   @override
   void initState() {
     super.initState();
@@ -78,36 +85,51 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     final isDark = theme.brightness == Brightness.dark;
     final state = ref.watch(transactionProvider);
 
-    // Build category map for display
-    final categoryMap = <String, Category>{};
-    for (final c in state.expenseCategories) {
-      categoryMap[c.id] = c;
-    }
-    for (final c in state.incomeCategories) {
-      categoryMap[c.id] = c;
+    // Rebuild category map only when categories change
+    final expCats = state.expenseCategories;
+    final incCats = state.incomeCategories;
+    if (_categoryMap.isEmpty ||
+        expCats.length + incCats.length != _categoryMap.length) {
+      _categoryMap = <String, Category>{};
+      for (final c in expCats) {
+        _categoryMap[c.id] = c;
+      }
+      for (final c in incCats) {
+        _categoryMap[c.id] = c;
+      }
     }
 
-    // Build account map
+    // Rebuild account map only when accounts change
     final accountState = ref.watch(accountProvider);
-    final accountMap = <String, Account>{};
-    for (final a in accountState.accounts) {
-      accountMap[a.id] = a;
+    if (_accountMap.length != accountState.accounts.length) {
+      _accountMap = <String, Account>{};
+      for (final a in accountState.accounts) {
+        _accountMap[a.id] = a;
+      }
     }
 
-    // Filter by search
-    var transactions = state.transactions;
-    if (_searchQuery.isNotEmpty) {
-      final q = _searchQuery.toLowerCase();
-      transactions = transactions.where((t) {
-        final cat = categoryMap[t.categoryId];
-        final catName = cat?.name.toLowerCase() ?? '';
-        final note = t.note.toLowerCase();
-        final acct = accountMap[t.accountId]?.name.toLowerCase() ?? '';
-        return catName.contains(q) || note.contains(q) || acct.contains(q);
-      }).toList();
+    // Filter by search (cached)
+    final txnHash = state.transactions.length;
+    if (_filteredCache == null ||
+        _lastFilterQuery != _searchQuery ||
+        _lastTxnHashCode != txnHash) {
+      _lastFilterQuery = _searchQuery;
+      _lastTxnHashCode = txnHash;
+      if (_searchQuery.isEmpty) {
+        _filteredCache = state.transactions;
+      } else {
+        final q = _searchQuery.toLowerCase();
+        _filteredCache = state.transactions.where((t) {
+          final cat = _categoryMap[t.categoryId];
+          final catName = cat?.name.toLowerCase() ?? '';
+          final note = t.note.toLowerCase();
+          final acct = _accountMap[t.accountId]?.name.toLowerCase() ?? '';
+          return catName.contains(q) || note.contains(q) || acct.contains(q);
+        }).toList();
+      }
     }
 
-    final visible = transactions.take(_displayCount).toList();
+    final visible = _filteredCache!.take(_displayCount).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -154,7 +176,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                               .reload();
                         },
                         child: _buildList(
-                          visible, categoryMap, accountMap, isDark),
+                          visible, _categoryMap, _accountMap, isDark),
                       ),
           ),
         ],

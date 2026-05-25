@@ -31,6 +31,8 @@ class MainShell extends ConsumerWidget {
         onDestinationSelected: (index) {
           if (index == 2) {
             // FAB center — navigate to add transaction (modal route)
+            // TODO: Replace NavigationBar with custom BottomAppBar+FAB
+            // to eliminate the brief selection highlight on index 2.
             if (!canCreate) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('当前角色无记账权限')),
