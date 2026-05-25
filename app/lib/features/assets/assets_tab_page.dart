@@ -224,6 +224,8 @@ class _ActionChip extends StatelessWidget {
                     label,
                     style: TypographyTokens.caption(),
                     textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),

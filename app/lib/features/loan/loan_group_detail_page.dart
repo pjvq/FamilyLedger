@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
@@ -137,10 +138,7 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
                       // Default to commercial loan (higher rate)
                       final targetLoan = comLoan ?? pvdLoan;
                       if (targetLoan != null) {
-                        Navigator.of(context).pushNamed(
-                          AppRouter.prepaymentLegacy, // ignore: deprecated_member_use_from_same_package
-                          arguments: targetLoan.id,
-                        );
+                        context.push(AppRouter.prepayment(targetLoan.id));
                       }
                     },
                   ),
@@ -152,10 +150,7 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
                       icon: Icons.account_balance_rounded,
                       label: '商贷详情',
                       semanticLabel: '查看商业贷款详情',
-                      onTap: () => Navigator.of(context).pushNamed(
-                        AppRouter.loanDetailLegacy, // ignore: deprecated_member_use_from_same_package
-                        arguments: comLoan.id,
-                      ),
+                      onTap: () => context.push(AppRouter.loanDetail(comLoan.id)),
                     ),
                   ),
                 if (pvdLoan != null) ...[
@@ -165,10 +160,7 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
                       icon: Icons.home_rounded,
                       label: '公积金详情',
                       semanticLabel: '查看公积金贷款详情',
-                      onTap: () => Navigator.of(context).pushNamed(
-                        AppRouter.loanDetailLegacy, // ignore: deprecated_member_use_from_same_package
-                        arguments: pvdLoan.id,
-                      ),
+                      onTap: () => context.push(AppRouter.loanDetail(pvdLoan.id)),
                     ),
                   ),
                 ],

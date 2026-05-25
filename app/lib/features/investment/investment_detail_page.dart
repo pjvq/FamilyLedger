@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
@@ -320,10 +321,7 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: () => Navigator.of(context).pushNamed(
-                      AppRouter.investmentTradeLegacy, // ignore: deprecated_member_use_from_same_package
-                      arguments: widget.investmentId,
-                    ),
+                    onPressed: () => context.push(AppRouter.investmentTrade(widget.investmentId)),
                     icon: const Icon(Icons.add_rounded, size: 18),
                     label: const Text('买入/卖出'),
                   ),

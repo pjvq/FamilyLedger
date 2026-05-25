@@ -3,9 +3,6 @@
 /// The actual routing is handled by go_router in `router.dart`.
 /// Static constants are for parameterless routes.
 /// Static methods are for routes requiring path parameters (go_router style).
-///
-/// Legacy pages that still use `Navigator.pushNamed` with `arguments`
-/// reference the deprecated constants below until fully migrated.
 class AppRouter {
   AppRouter._();
 
@@ -58,20 +55,4 @@ class AppRouter {
   static const export = '/mine/report/export';
   static const csvImport = '/mine/import/csv';
 
-  // ── Legacy paths (used by Navigator.pushNamed with arguments) ──
-  // TODO(migration): Replace with go_router context.push() + path params
-  @Deprecated('Use transactionDetail(id) with context.push instead')
-  static const transactionDetailLegacy = '/transaction-detail';
-  @Deprecated('Use loanDetail(id) with context.push instead')
-  static const loanDetailLegacy = '/loan-detail';
-  @Deprecated('Use loanGroupDetail(id) with context.push instead')
-  static const loanGroupDetailLegacy = '/loan-group-detail';
-  @Deprecated('Use prepayment(id) with context.push instead')
-  static const prepaymentLegacy = '/prepayment';
-  @Deprecated('Use investmentDetail(id) with context.push instead')
-  static const investmentDetailLegacy = '/investment-detail';
-  @Deprecated('Use investmentTrade(id) with context.push instead')
-  static const investmentTradeLegacy = '/investment-trade';
-  @Deprecated('Use assetDetail(id) with context.push instead')
-  static const assetDetailLegacy = '/asset-detail';
-}
+  }

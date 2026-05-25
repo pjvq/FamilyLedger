@@ -28,6 +28,7 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
     // SyncEngine is auto-started by the provider when user is logged in.
     // Just read the provider to ensure it's alive (Riverpod is lazy).
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       ref.read(syncEngineProvider);
     });
   }

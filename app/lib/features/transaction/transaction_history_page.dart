@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants/category_icon_widget.dart';
@@ -253,9 +254,9 @@ class _TransactionHistoryPageState
             onTap: _selectionMode
                 ? () => _toggleSelection(txn.id)
                 : () {
-                    Navigator.of(context).pushNamed(
-                      AppRouter.transactionDetailLegacy, // ignore: deprecated_member_use_from_same_package
-                      arguments: TransactionDetailArgs(
+                    context.push(
+                      '/transactions/detail',
+                      extra: TransactionDetailArgs(
                         transaction: txn,
                         category: txnCategory,
                       ),
