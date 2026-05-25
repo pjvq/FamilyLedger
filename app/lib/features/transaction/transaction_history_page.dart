@@ -255,7 +255,7 @@ class _TransactionHistoryPageState
                 ? () => _toggleSelection(txn.id)
                 : () {
                     context.push(
-                      '/transactions/detail',
+                      AppRouter.transactionDetail,
                       extra: TransactionDetailArgs(
                         transaction: txn,
                         category: txnCategory,

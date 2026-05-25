@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/category_icon_widget.dart';
+import '../../core/router/app_router.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/widgets.dart';
@@ -375,7 +376,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
   }
 
   void _openDetail(Transaction t, Category? cat) {
-    context.push('/transactions/detail', extra: TransactionDetailArgs(
+    context.push(AppRouter.transactionDetail, extra: TransactionDetailArgs(
       transaction: t,
       category: cat,
     ));

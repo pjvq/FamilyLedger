@@ -18,7 +18,7 @@ class AppRouter {
   // ── Transaction ──
   static const addTransaction = '/add-transaction';
   static const transfer = '/transfer';
-  static String transactionDetail(String txnId) => '/transactions/$txnId';
+  static const transactionDetail = '/transactions/detail';
 
   // ── Assets / Accounts ──
   static const addAccount = '/assets/accounts/add';
@@ -29,8 +29,7 @@ class AppRouter {
   static String loanDetail(String loanId) => '/assets/loans/$loanId';
   static String loanGroupDetail(String groupId) =>
       '/assets/loans/group/$groupId';
-  static String prepayment(String loanId) =>
-      '/assets/loans/$loanId/prepayment';
+  static String prepayment(String loanId) => '/assets/loans/$loanId/prepayment';
 
   // ── Investments ──
   static const investments = '/assets/investments';
@@ -52,7 +51,6 @@ class AppRouter {
   static const notificationSettings = '/mine/notifications/settings';
   static const budget = '/mine/budget';
   static const report = '/mine/report';
-  static const export = '/mine/report/export';
-  static const csvImport = '/mine/import/csv';
-
-  }
+  static const export = '/mine/export';
+  static const csvImport = '/mine/import';
+}
