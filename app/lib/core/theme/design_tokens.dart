@@ -1,5 +1,9 @@
 /// Design token system — re-exports all token categories.
-library;
+///
+/// Import this file to access all design tokens:
+/// ```dart
+/// import 'package:family_ledger/core/theme/design_tokens.dart';
+/// ```
 
 export 'tokens/color_tokens.dart';
 export 'tokens/spacing_tokens.dart';
