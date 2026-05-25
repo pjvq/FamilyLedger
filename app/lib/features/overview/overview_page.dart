@@ -165,14 +165,7 @@ class _SwitcherButton extends StatelessWidget {
               : Colors.transparent,
           borderRadius: BorderRadius.circular(RadiusTokens.sm),
           boxShadow: isActive
-              ? [
-                  BoxShadow(
-                    color:
-                        Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
+              ? (isDark ? ShadowTokensDark.sm : ShadowTokensLight.sm)
               : null,
         ),
         child: Row(
@@ -212,6 +205,12 @@ class _SwitcherButton extends StatelessWidget {
 
 // ────────── Notification Bell ──────────
 
+/// Badge text font size (smaller than caption for compact badge).
+const double _kBadgeFontSize = 10.0;
+
+/// Inactive icon opacity.
+const double _kIconInactiveOpacity = 0.7;
+
 class _NotificationBell extends StatelessWidget {
   final int unreadCount;
   final VoidCallback onTap;
@@ -234,11 +233,11 @@ class _NotificationBell extends StatelessWidget {
           isLabelVisible: unreadCount > 0,
           label: Text(
             unreadCount > 99 ? '99+' : '$unreadCount',
-            style: const TextStyle(fontSize: 10, color: Colors.white),
+            style: const TextStyle(fontSize: _kBadgeFontSize, color: Colors.white),
           ),
           child: Icon(
             Icons.notifications_outlined,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            color: theme.colorScheme.onSurface.withValues(alpha: _kIconInactiveOpacity),
           ),
         ),
       ),

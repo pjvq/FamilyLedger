@@ -5,12 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/family_provider.dart';
 
+// FAB circle diameter in the navigation bar.
+const double _kFabSize = 42.0;
+
 /// Main shell — provides the bottom navigation bar wrapping all tab branches.
 ///
 /// Branch indices: 0=overview, 1=transactions, 2=assets, 3=mine
 /// Nav indices:    0=overview, 1=transactions, 2=FAB(skip), 3=assets, 4=mine
-/// FAB circle diameter in the navigation bar.
-const double _kFabSize = 42.0;
 
 class MainShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
