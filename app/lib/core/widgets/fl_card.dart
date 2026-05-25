@@ -94,20 +94,24 @@ class FlCard extends StatelessWidget {
 
     if (onTap == null) return container;
 
-    return Material(
-      color: bgColor,
-      borderRadius: radius,
-      elevation: 0,
-      child: InkWell(
-        onTap: onTap,
+    // Shadow must be on the outer wrapper (outside Material) to avoid clipping.
+    return DecoratedBox(
+      decoration: BoxDecoration(
         borderRadius: radius,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: radius,
-            boxShadow: _resolveShadow(brightness),
+        boxShadow: _resolveShadow(brightness),
+      ),
+      child: Material(
+        color: bgColor,
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        elevation: 0,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: Padding(
+            padding: padding ?? const EdgeInsets.all(SpacingTokens.base),
+            child: child,
           ),
-          padding: padding ?? const EdgeInsets.all(SpacingTokens.base),
-          child: child,
         ),
       ),
     );

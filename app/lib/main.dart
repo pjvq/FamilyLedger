@@ -8,7 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/constants/app_constants.dart';
-import 'core/router/app_router.dart';
+import 'core/router/router.dart';
 import 'core/theme/app_theme.dart';
 import 'data/local/secure_token_storage.dart';
 import 'domain/providers/app_providers.dart';
@@ -48,39 +48,42 @@ void main() async {
   };
 
   // Wrap everything in a guarded zone for belt-and-suspenders safety
-  runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
-    final prefs = await SharedPreferences.getInstance();
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      final prefs = await SharedPreferences.getInstance();
 
-    // Migrate tokens from SharedPreferences to secure storage (one-time)
-    final tokenStorage = SecureTokenStorage(prefs);
-    await tokenStorage.migrateIfNeeded();
+      // Migrate tokens from SharedPreferences to secure storage (one-time)
+      final tokenStorage = SecureTokenStorage(prefs);
+      await tokenStorage.migrateIfNeeded();
 
-    // Load TLS certificate for gRPC
-    await loadTlsCertificate();
+      // Load TLS certificate for gRPC
+      await loadTlsCertificate();
 
-    // Restore persisted family mode
-    final savedFamilyId = prefs.getString(AppConstants.familyIdKey);
+      // Restore persisted family mode
+      final savedFamilyId = prefs.getString(AppConstants.familyIdKey);
 
-    runApp(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          secureTokenStorageProvider.overrideWithValue(tokenStorage),
-          if (savedFamilyId != null)
-            currentFamilyIdProvider.overrideWith((ref) => savedFamilyId),
-        ],
-        child: const FamilyLedgerApp(),
-      ),
-    );
-  }, (error, stack) {
-    dev.log(
-      'Unhandled zone error: $error',
-      name: 'crash-guard',
-      error: error,
-      stackTrace: stack,
-    );
-  });
+      runApp(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            secureTokenStorageProvider.overrideWithValue(tokenStorage),
+            if (savedFamilyId != null)
+              currentFamilyIdProvider.overrideWith((ref) => savedFamilyId),
+          ],
+          child: const FamilyLedgerApp(),
+        ),
+      );
+    },
+    (error, stack) {
+      dev.log(
+        'Unhandled zone error: $error',
+        name: 'crash-guard',
+        error: error,
+        stackTrace: stack,
+      );
+    },
+  );
 }
 
 class FamilyLedgerApp extends ConsumerWidget {
@@ -88,29 +91,25 @@ class FamilyLedgerApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isLoggedIn = ref.watch(isLoggedInProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final router = ref.watch(routerProvider);
 
     return SyncLifecycleObserver(
-      child: MaterialApp(
-      title: 'FamilyLedger',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: themeMode,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('zh', 'CN'),
-        Locale('en', 'US'),
-      ],
-      locale: const Locale('zh', 'CN'),
-      initialRoute: isLoggedIn ? AppRouter.home : AppRouter.login,
-      onGenerateRoute: AppRouter.onGenerateRoute,
-    ),
+      child: MaterialApp.router(
+        title: 'FamilyLedger',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: themeMode,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('zh', 'CN'), Locale('en', 'US')],
+        locale: const Locale('zh', 'CN'),
+        routerConfig: router,
+      ),
     );
   }
 }

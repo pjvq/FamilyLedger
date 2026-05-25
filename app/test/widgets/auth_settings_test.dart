@@ -146,7 +146,11 @@ Widget _wrapPage(
     child: MaterialApp(
       theme: theme ?? ThemeData.light(useMaterial3: true),
       home: child,
-      onGenerateRoute: AppRouter.onGenerateRoute,
+      routes: {
+        '/register': (_) => const RegisterPage(),
+        '/login': (_) => const LoginPage(),
+        '/overview': (_) => const Scaffold(body: Text('Overview')),
+      },
     ),
   );
 }

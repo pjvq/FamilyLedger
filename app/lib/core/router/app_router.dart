@@ -1,173 +1,56 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import '../../data/local/database.dart';
-import '../../features/auth/login_page.dart';
-import '../../features/auth/register_page.dart';
-import '../../features/home/home_page.dart';
-import '../../features/transaction/add_transaction_page.dart';
-import '../../features/settings/settings_page.dart';
-import '../../features/settings/family_members_page.dart';
-import '../../features/account/add_account_page.dart';
-import '../../features/account/transfer_page.dart';
-import '../../features/budget/budget_page.dart';
-import '../../features/notification/notifications_page.dart';
-import '../../features/notification/notification_settings_page.dart';
-import '../../features/loan/loans_page.dart';
-import '../../features/loan/add_loan_page.dart';
-import '../../features/loan/loan_detail_page.dart';
-import '../../features/loan/loan_group_detail_page.dart';
-import '../../features/loan/prepayment_page.dart';
-import '../../features/investment/investments_page.dart';
-import '../../features/investment/add_investment_page.dart';
-import '../../features/investment/investment_detail_page.dart';
-import '../../features/investment/trade_page.dart';
-import '../../features/asset/assets_page.dart';
-import '../../features/asset/add_asset_page.dart';
-import '../../features/asset/asset_detail_page.dart';
-import '../../features/report/report_page.dart';
-import '../../features/report/export_page.dart';
-import '../../features/import/import_page.dart';
-import '../../features/transaction/transaction_history_page.dart';
-import '../../features/transaction/transaction_detail_page.dart';
-import '../../features/settings/category_manage_page.dart';
-
+/// Route path constants and builders for the app.
+///
+/// The actual routing is handled by go_router in `router.dart`.
+/// Static constants are for parameterless routes.
+/// Static methods are for routes requiring path parameters (go_router style).
 class AppRouter {
   AppRouter._();
 
+  // ── Auth ──
   static const login = '/login';
   static const register = '/register';
-  static const home = '/';
-  static const addTransaction = '/add-transaction';
-  static const settings = '/settings';
-  static const familyMembers = '/settings/members';
-  static const accounts = '/accounts';
-  static const addAccount = '/accounts/add';
-  static const transfer = '/transfer';
-  static const budget = '/budget';
-  static const notifications = '/notifications';
-  static const notificationSettings = '/notifications/settings';
-  static const loans = '/loans';
-  static const addLoan = '/loans/add';
-  static const loanDetail = '/loans/detail';
-  static const loanGroupDetail = '/loans/group-detail';
-  static const prepayment = '/loans/prepayment';
-  static const investments = '/investments';
-  static const addInvestment = '/investments/add';
-  static const investmentDetail = '/investments/detail';
-  static const investmentTrade = '/investments/trade';
-  static const assets = '/assets';
-  static const addAsset = '/assets/add';
-  static const assetDetail = '/assets/detail';
-  static const report = '/report';
-  static const export = '/export';
-  static const csvImport = '/import/csv';
+
+  // ── Tabs ──
+  static const home = '/overview';
   static const transactionHistory = '/transactions';
-  static const transactionDetail = '/transaction-detail';
-  static const categoryManage = '/settings/categories';
+  static const assets = '/assets';
 
-  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    switch (settings.name) {
-      case login:
-        return _slide(const LoginPage());
-      case register:
-        return _slide(const RegisterPage());
-      case home:
-        return _fade(const HomePage());
-      case addTransaction:
-        final txn = settings.arguments as Transaction?;
-        return _slideUp(AddTransactionPage(existingTransaction: txn));
-      case AppRouter.settings:
-        return _slide(const SettingsPage());
-      case familyMembers:
-        return _slide(const FamilyMembersPage());
-      case accounts:
-        return _fade(const HomePage());
-      case addAccount:
-        return _slideUp(const AddAccountPage());
-      case transfer:
-        return _slideUp(const TransferPage());
-      case budget:
-        return _slide(const BudgetPage());
-      case notifications:
-        return _slide(const NotificationsPage());
-      case notificationSettings:
-        return _slide(const NotificationSettingsPage());
-      case loans:
-        return _slide(const LoansPage());
-      case addLoan:
-        return _slideUp(const AddLoanPage());
-      case loanDetail:
-        final loanId = settings.arguments as String?;
-        if (loanId == null) return _fade(const HomePage());
-        return _slide(LoanDetailPage(loanId: loanId));
-      case loanGroupDetail:
-        final groupId = settings.arguments as String?;
-        if (groupId == null) return _fade(const HomePage());
-        return _slide(LoanGroupDetailPage(groupId: groupId));
-      case prepayment:
-        final loanId = settings.arguments as String?;
-        if (loanId == null) return _fade(const HomePage());
-        return _slideUp(PrepaymentPage(loanId: loanId));
-      case investments:
-        return _slide(const InvestmentsPage());
-      case addInvestment:
-        return _slideUp(const AddInvestmentPage());
-      case investmentDetail:
-        final investmentId = settings.arguments as String?;
-        if (investmentId == null) return _fade(const HomePage());
-        return _slide(InvestmentDetailPage(investmentId: investmentId));
-      case investmentTrade:
-        final investmentId = settings.arguments as String?;
-        if (investmentId == null) return _fade(const HomePage());
-        return _slideUp(TradePage(investmentId: investmentId));
-      case assets:
-        return _slide(const AssetsPage());
-      case addAsset:
-        return _slideUp(const AddAssetPage());
-      case assetDetail:
-        final assetId = settings.arguments as String?;
-        if (assetId == null) return _fade(const HomePage());
-        return _slide(AssetDetailPage(assetId: assetId));
-      case report:
-        return _slide(const ReportPage());
-      case AppRouter.export:
-        return _slide(const ExportPage());
-      case csvImport:
-        return _slide(const ImportPage());
-      case transactionHistory:
-        return _slide(const TransactionHistoryPage());
-      case transactionDetail:
-        final args = settings.arguments as TransactionDetailArgs?;
-        if (args == null) return _fade(const HomePage());
-        return _slide(TransactionDetailPage(args: args));
-      case categoryManage:
-        return _slide(const CategoryManagePage());
-      default:
-        return _fade(const HomePage());
-    }
-  }
+  // ── Transaction ──
+  static const addTransaction = '/add-transaction';
+  static const transfer = '/transfer';
+  static const transactionDetail = '/transactions/detail';
 
-  static PageRouteBuilder _fade(Widget page) => PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => page,
-        transitionsBuilder: (context, a, secondaryAnimation, child) =>
-            FadeTransition(opacity: a, child: child),
-        transitionDuration: const Duration(milliseconds: 250),
-      );
+  // ── Assets / Accounts ──
+  static const addAccount = '/assets/accounts/add';
 
-  static Route<dynamic> _slide(Widget page) => CupertinoPageRoute(
-        builder: (context) => page,
-      );
+  // ── Loans ──
+  static const loans = '/assets/loans';
+  static const addLoan = '/assets/loans/add';
+  static String loanDetail(String loanId) => '/assets/loans/$loanId';
+  static String loanGroupDetail(String groupId) =>
+      '/assets/loans/group/$groupId';
+  static String prepayment(String loanId) => '/assets/loans/$loanId/prepayment';
 
-  static PageRouteBuilder _slideUp(Widget page) => PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => page,
-        transitionsBuilder: (context, a, secondaryAnimation, child) =>
-            SlideTransition(
-          position: Tween(
-            begin: const Offset(0, 1),
-            end: Offset.zero,
-          ).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
-          child: child,
-        ),
-        transitionDuration: const Duration(milliseconds: 350),
-      );
+  // ── Investments ──
+  static const investments = '/assets/investments';
+  static const addInvestment = '/assets/investments/add';
+  static String investmentDetail(String investmentId) =>
+      '/assets/investments/$investmentId';
+  static String investmentTrade(String investmentId) =>
+      '/assets/investments/$investmentId/trade';
+
+  // ── Fixed Assets ──
+  static const addAsset = '/assets/fixed/add';
+  static String assetDetail(String assetId) => '/assets/fixed/$assetId';
+
+  // ── Mine ──
+  static const settings = '/mine/settings';
+  static const familyMembers = '/mine/settings/members';
+  static const categoryManage = '/mine/settings/categories';
+  static const notifications = '/mine/notifications';
+  static const notificationSettings = '/mine/notifications/settings';
+  static const budget = '/mine/budget';
+  static const report = '/mine/report';
+  static const export = '/mine/export';
+  static const csvImport = '/mine/import';
 }

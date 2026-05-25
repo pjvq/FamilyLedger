@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
@@ -53,10 +54,7 @@ class LoansPage extends ConsumerWidget {
                             notifier: ref.read(loanProvider.notifier),
                             isDark: isDark,
                             onTap: () {
-                              Navigator.of(context).pushNamed(
-                                AppRouter.loanGroupDetail,
-                                arguments: group.group.id,
-                              );
+                              context.push(AppRouter.loanGroupDetail(group.group.id));
                             },
                           )),
                       // Standalone loans
@@ -65,10 +63,7 @@ class LoansPage extends ConsumerWidget {
                             notifier: ref.read(loanProvider.notifier),
                             isDark: isDark,
                             onTap: () {
-                              Navigator.of(context).pushNamed(
-                                AppRouter.loanDetail,
-                                arguments: loan.id,
-                              );
+                              context.push(AppRouter.loanDetail(loan.id));
                             },
                           )),
                     ],

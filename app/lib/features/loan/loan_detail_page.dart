@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
@@ -109,9 +110,8 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                       icon: Icons.speed_rounded,
                       label: '提前还款',
                       semanticLabel: '提前还款',
-                      onTap: () => Navigator.of(context).pushNamed(
-                        AppRouter.prepayment,
-                        arguments: loan.id,
+                      onTap: () => context.push(
+                        AppRouter.prepayment(widget.loanId),
                       ),
                     ),
                   ),

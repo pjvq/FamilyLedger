@@ -1,0 +1,99 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../core/theme/design_tokens.dart';
+import '../../domain/providers/family_provider.dart';
+
+// FAB circle diameter in the navigation bar.
+const double _kFabSize = 42.0;
+
+/// Main shell — provides the bottom navigation bar wrapping all tab branches.
+///
+/// Branch indices: 0=overview, 1=transactions, 2=assets, 3=mine
+/// Nav indices:    0=overview, 1=transactions, 2=FAB(skip), 3=assets, 4=mine
+
+class MainShell extends ConsumerWidget {
+  final StatefulNavigationShell navigationShell;
+
+  const MainShell({super.key, required this.navigationShell});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final canCreate = ref.watch(canCreateProvider);
+
+    return Scaffold(
+      body: navigationShell,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _mapBranchToNav(navigationShell.currentIndex),
+        onDestinationSelected: (index) {
+          if (index == 2) {
+            // FAB center — navigate to add transaction (modal route)
+            // TODO: Replace NavigationBar with custom BottomAppBar+FAB
+            // to eliminate the brief selection highlight on index 2.
+            if (!canCreate) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('当前角色无记账权限')),
+              );
+              return;
+            }
+            context.push('/add-transaction');
+            return;
+          }
+          navigationShell.goBranch(_mapNavToBranch(index));
+        },
+        destinations: [
+          const NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard_rounded),
+            label: '概览',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long_rounded),
+            label: '流水',
+          ),
+          // FAB center placeholder
+          NavigationDestination(
+            icon: Container(
+              width: _kFabSize,
+              height: _kFabSize,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? ColorTokens.primaryLight
+                    : ColorTokens.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.add_rounded,
+                  color: Colors.white, size: IconSizeTokens.md),
+            ),
+            label: '记账',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.account_balance_outlined),
+            selectedIcon: Icon(Icons.account_balance_rounded),
+            label: '资产',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.person_outline_rounded),
+            selectedIcon: Icon(Icons.person_rounded),
+            label: '我的',
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Maps router branch index to NavigationBar index (skipping FAB at 2).
+  /// Never returns 2 — the FAB slot is never a valid selection.
+  int _mapBranchToNav(int branch) {
+    final nav = branch >= 2 ? branch + 1 : branch;
+    assert(nav != 2, 'FAB placeholder at index 2 must never be selected');
+    return nav;
+  }
+
+  /// Maps NavigationBar index to router branch index (skipping FAB at 2).
+  int _mapNavToBranch(int nav) => nav >= 3 ? nav - 1 : nav;
+}

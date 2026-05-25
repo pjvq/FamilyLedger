@@ -78,8 +78,7 @@ class _PerfTestApp extends ConsumerWidget {
       ],
       locale: const Locale('zh', 'CN'),
       // Always start at home — login is bypassed
-      initialRoute: AppRouter.home,
-      onGenerateRoute: AppRouter.onGenerateRoute,
+      home: const Scaffold(body: Center(child: Text("Test App"))),
     );
   }
 }
