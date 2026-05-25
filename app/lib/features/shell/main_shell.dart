@@ -8,8 +8,11 @@ import '../../domain/providers/family_provider.dart';
 /// Main shell — provides bottom navigation + centered FAB for all tab branches.
 ///
 /// Branch indices: 0=overview, 1=transactions, 2=assets, 3=mine
-/// Navigation uses [NavigationBar] with 4 real destinations (no FAB placeholder).
-/// The FAB is a separate [FloatingActionButton] docked to the bottom bar.
+/// Navigation uses [NavigationBar] with 4 real destinations.
+/// The FAB floats above the bar (centerFloat) to avoid hit-area overlap.
+///
+/// **Invariant**: NavigationBar destination order must match
+/// [StatefulShellRoute.branches] order in router.dart.
 class MainShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -21,9 +24,16 @@ class MainShell extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final canCreate = ref.watch(canCreateProvider);
 
+    assert(
+      navigationShell.route.branches.length == 4,
+      'MainShell expects exactly 4 branches matching 4 NavigationBar destinations',
+    );
+
     return Scaffold(
       body: navigationShell,
       floatingActionButton: FloatingActionButton(
+        heroTag: 'main_add_transaction',
+        tooltip: '记一笔',
         onPressed: () {
           if (!canCreate) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -33,14 +43,14 @@ class MainShell extends ConsumerWidget {
           }
           context.push('/add-transaction');
         },
-        elevation: 2,
+        elevation: isDark ? 4 : 2,
         backgroundColor:
             isDark ? ColorTokens.primaryLight : ColorTokens.primary,
         shape: const CircleBorder(),
         child: const Icon(Icons.add_rounded,
             color: Colors.white, size: IconSizeTokens.md),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: (index) {
