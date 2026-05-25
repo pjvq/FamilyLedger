@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/constants/app_constants.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/sync_status_indicator.dart';
 import '../../domain/providers/app_providers.dart';
@@ -68,16 +67,7 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
   }
 
   void _handleModeSwitch(bool isFamily) {
-    final fState = ref.read(familyProvider);
-    final newId = isFamily ? fState.currentFamily?.id : null;
-    ref.read(currentFamilyIdProvider.notifier).state = newId;
-    final prefs = ref.read(sharedPreferencesProvider);
-    if (newId != null) {
-      prefs.setString(AppConstants.familyIdKey, newId);
-      ref.read(familyProvider.notifier).refreshMembers();
-    } else {
-      prefs.remove(AppConstants.familyIdKey);
-    }
+    switchFamilyMode(ref, toFamily: isFamily);
   }
 }
 

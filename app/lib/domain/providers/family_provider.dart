@@ -10,6 +10,7 @@ import '../../generated/proto/family.pbgrpc.dart' as pb;
 import '../../generated/proto/family.pb.dart' as pb_model;
 import '../../generated/proto/family.pbenum.dart' as pb_enum;
 import 'app_providers.dart';
+import '../../core/constants/app_constants.dart';
 
 class FamilyState {
   final Family? currentFamily;
@@ -487,3 +488,22 @@ final canCreateProvider = Provider<bool>((ref) {
   final perms = ref.watch(familyProvider).myPermissions;
   return perms?.canCreate ?? false;
 });
+
+/// Switches between personal and family mode.
+///
+/// Encapsulates the full mode-switch logic:
+/// 1. Updates [currentFamilyIdProvider]
+/// 2. Persists choice to SharedPreferences
+/// 3. Refreshes family members when entering family mode
+void switchFamilyMode(WidgetRef ref, {required bool toFamily}) {
+  final fState = ref.read(familyProvider);
+  final newId = toFamily ? fState.currentFamily?.id : null;
+  ref.read(currentFamilyIdProvider.notifier).state = newId;
+  final prefs = ref.read(sharedPreferencesProvider);
+  if (newId != null) {
+    prefs.setString(AppConstants.familyIdKey, newId);
+    ref.read(familyProvider.notifier).refreshMembers();
+  } else {
+    prefs.remove(AppConstants.familyIdKey);
+  }
+}
