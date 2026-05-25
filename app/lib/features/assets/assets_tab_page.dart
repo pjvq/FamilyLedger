@@ -81,7 +81,8 @@ class AssetsTabPage extends ConsumerWidget {
           ...accounts.map((account) => _AccountTile(
                 account: account,
                 isDark: isDark,
-                onTap: () => context.push('/assets/accounts/add', extra: account),
+                // TODO: Add account detail page route
+                onTap: null,
               )),
         ],
       ),
@@ -242,12 +243,12 @@ class _ActionChip extends StatelessWidget {
 class _AccountTile extends StatelessWidget {
   final Account account;
   final bool isDark;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _AccountTile({
     required this.account,
     required this.isDark,
-    required this.onTap,
+    this.onTap,
   });
 
   @override

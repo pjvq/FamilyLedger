@@ -96,8 +96,6 @@ class FlBottomSheet extends StatelessWidget {
               child: child,
             ),
           ),
-          // Bottom safe area padding
-          SizedBox(height: MediaQuery.of(context).padding.bottom),
         ],
       ),
     );

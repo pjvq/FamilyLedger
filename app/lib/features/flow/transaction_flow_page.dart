@@ -47,12 +47,25 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
   String _searchQuery = '';
   bool _showSearch = false;
 
-  // Cached maps — rebuilt only when source data identity changes
+  // Cached maps — rebuilt only when source data reference changes
   Map<String, Category> _categoryMap = const {};
   Map<String, Account> _accountMap = const {};
   List<Transaction>? _filteredCache;
   String _lastFilterQuery = '';
-  int _lastTxnHashCode = 0;
+  List<Transaction>? _lastTxnList;
+  List<Category>? _lastExpCats;
+  List<Category>? _lastIncCats;
+  List<Account>? _lastAccounts;
+
+  // Cached grouped data — invalidated when visible list or viewMode changes
+  List<Transaction>? _lastGroupedInput;
+  FlowViewMode? _lastGroupedMode;
+  Map<String, List<Transaction>>? _groupedByTime;
+  List<String>? _groupedByTimeKeys;
+  Map<String, List<Transaction>>? _groupedByCategory;
+  List<String>? _groupedByCategoryKeys;
+  Map<String, List<Transaction>>? _groupedByAccount;
+  List<String>? _groupedByAccountKeys;
 
   @override
   void initState() {
@@ -85,11 +98,12 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     final isDark = theme.brightness == Brightness.dark;
     final state = ref.watch(transactionProvider);
 
-    // Rebuild category map only when categories change
+    // Rebuild category map only when category lists change (reference identity)
     final expCats = state.expenseCategories;
     final incCats = state.incomeCategories;
-    if (_categoryMap.isEmpty ||
-        expCats.length + incCats.length != _categoryMap.length) {
+    if (!identical(expCats, _lastExpCats) || !identical(incCats, _lastIncCats)) {
+      _lastExpCats = expCats;
+      _lastIncCats = incCats;
       _categoryMap = <String, Category>{};
       for (final c in expCats) {
         _categoryMap[c.id] = c;
@@ -99,27 +113,29 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
       }
     }
 
-    // Rebuild account map only when accounts change
+    // Rebuild account map only when accounts list changes (reference identity)
     final accountState = ref.watch(accountProvider);
-    if (_accountMap.length != accountState.accounts.length) {
+    final accounts = accountState.accounts;
+    if (!identical(accounts, _lastAccounts)) {
+      _lastAccounts = accounts;
       _accountMap = <String, Account>{};
-      for (final a in accountState.accounts) {
+      for (final a in accounts) {
         _accountMap[a.id] = a;
       }
     }
 
-    // Filter by search (cached)
-    final txnHash = state.transactions.length;
+    // Filter by search (cached — invalidates on list reference or query change)
+    final txnList = state.transactions;
     if (_filteredCache == null ||
         _lastFilterQuery != _searchQuery ||
-        _lastTxnHashCode != txnHash) {
+        !identical(txnList, _lastTxnList)) {
       _lastFilterQuery = _searchQuery;
-      _lastTxnHashCode = txnHash;
+      _lastTxnList = txnList;
       if (_searchQuery.isEmpty) {
-        _filteredCache = state.transactions;
+        _filteredCache = txnList;
       } else {
         final q = _searchQuery.toLowerCase();
-        _filteredCache = state.transactions.where((t) {
+        _filteredCache = txnList.where((t) {
           final cat = _categoryMap[t.categoryId];
           final catName = cat?.name.toLowerCase() ?? '';
           final note = t.note.toLowerCase();
@@ -228,13 +244,22 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     Map<String, Account> accountMap,
     bool isDark,
   ) {
-    // Group by date
-    final groups = <String, List<Transaction>>{};
-    for (final t in transactions) {
-      final key = DateFormat('yyyy-MM-dd').format(t.txnDate);
-      groups.putIfAbsent(key, () => []).add(t);
+    // Recompute groups only if input changed
+    if (!identical(transactions, _lastGroupedInput) ||
+        _lastGroupedMode != FlowViewMode.byTime) {
+      _lastGroupedInput = transactions;
+      _lastGroupedMode = FlowViewMode.byTime;
+      final groups = <String, List<Transaction>>{};
+      for (final t in transactions) {
+        final key = DateFormat('yyyy-MM-dd').format(t.txnDate);
+        groups.putIfAbsent(key, () => []).add(t);
+      }
+      _groupedByTime = groups;
+      _groupedByTimeKeys = groups.keys.toList()..sort((a, b) => b.compareTo(a));
     }
-    final sortedKeys = groups.keys.toList()..sort((a, b) => b.compareTo(a));
+
+    final groups = _groupedByTime!;
+    final sortedKeys = _groupedByTimeKeys!;
 
     return ListView.builder(
       controller: _scrollController,
@@ -277,18 +302,28 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
       catByName[c.name] = c;
     }
 
-    // Group by category
-    final groups = <String, List<Transaction>>{};
-    for (final t in transactions) {
-      final catName = categoryMap[t.categoryId]?.name ?? '未分类';
-      groups.putIfAbsent(catName, () => []).add(t);
+    // Recompute groups only if input changed
+    if (!identical(transactions, _lastGroupedInput) ||
+        _lastGroupedMode != FlowViewMode.byCategory) {
+      _lastGroupedInput = transactions;
+      _lastGroupedMode = FlowViewMode.byCategory;
+      final groups = <String, List<Transaction>>{};
+      for (final t in transactions) {
+        final catName = categoryMap[t.categoryId]?.name ?? '未分类';
+        groups.putIfAbsent(catName, () => []).add(t);
+      }
+      final sortedKeys = groups.keys.toList()
+        ..sort((a, b) {
+          final sumA = groups[a]!.fold<int>(0, (s, t) => s + t.amount.abs());
+          final sumB = groups[b]!.fold<int>(0, (s, t) => s + t.amount.abs());
+          return sumB.compareTo(sumA);
+        });
+      _groupedByCategory = groups;
+      _groupedByCategoryKeys = sortedKeys;
     }
-    final sortedKeys = groups.keys.toList()
-      ..sort((a, b) {
-        final sumA = groups[a]!.fold<int>(0, (s, t) => s + t.amount.abs());
-        final sumB = groups[b]!.fold<int>(0, (s, t) => s + t.amount.abs());
-        return sumB.compareTo(sumA); // by total amount desc
-      });
+
+    final groups = _groupedByCategory!;
+    final sortedKeys = _groupedByCategoryKeys!;
 
     return ListView.builder(
       controller: _scrollController,
@@ -332,13 +367,22 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     Map<String, Account> accountMap,
     bool isDark,
   ) {
-    // Group by account
-    final groups = <String, List<Transaction>>{};
-    for (final t in transactions) {
-      final acctName = accountMap[t.accountId]?.name ?? '未知账户';
-      groups.putIfAbsent(acctName, () => []).add(t);
+    // Recompute groups only if input changed
+    if (!identical(transactions, _lastGroupedInput) ||
+        _lastGroupedMode != FlowViewMode.byAccount) {
+      _lastGroupedInput = transactions;
+      _lastGroupedMode = FlowViewMode.byAccount;
+      final groups = <String, List<Transaction>>{};
+      for (final t in transactions) {
+        final acctName = accountMap[t.accountId]?.name ?? '未知账户';
+        groups.putIfAbsent(acctName, () => []).add(t);
+      }
+      _groupedByAccount = groups;
+      _groupedByAccountKeys = groups.keys.toList()..sort();
     }
-    final sortedKeys = groups.keys.toList()..sort();
+
+    final groups = _groupedByAccount!;
+    final sortedKeys = _groupedByAccountKeys!;
 
     return ListView.builder(
       controller: _scrollController,
