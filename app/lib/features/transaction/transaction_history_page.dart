@@ -254,7 +254,7 @@ class _TransactionHistoryPageState
                 ? () => _toggleSelection(txn.id)
                 : () {
                     Navigator.of(context).pushNamed(
-                      AppRouter.transactionDetail,
+                      AppRouter.transactionDetailLegacy, // ignore: deprecated_member_use_from_same_package
                       arguments: TransactionDetailArgs(
                         transaction: txn,
                         category: txnCategory,

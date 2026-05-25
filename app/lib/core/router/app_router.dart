@@ -60,6 +60,8 @@ class AppRouter {
 
   // ── Legacy paths (used by Navigator.pushNamed with arguments) ──
   // TODO(migration): Replace with go_router context.push() + path params
+  @Deprecated('Use transactionDetail(id) with context.push instead')
+  static const transactionDetailLegacy = '/transaction-detail';
   @Deprecated('Use loanDetail(id) with context.push instead')
   static const loanDetailLegacy = '/loan-detail';
   @Deprecated('Use loanGroupDetail(id) with context.push instead')
