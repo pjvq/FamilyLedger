@@ -60,7 +60,6 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     final txnState = ref.watch(transactionProvider);
     final flowState = ref.watch(transactionFlowProvider);
     final grouped = ref.watch(flowGroupedTransactionsProvider);
-    final visible = ref.watch(flowVisibleTransactionsProvider);
     final categoryMap = ref.watch(flowCategoryMapProvider);
     final accountMap = ref.watch(flowAccountMapProvider);
 
@@ -93,7 +92,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
           Expanded(
             child: txnState.isLoading
                 ? const SkeletonList(count: 8, itemHeight: 64)
-                : visible.isEmpty
+                : grouped.sortedKeys.isEmpty
                     ? const EmptyState(
                         icon: Icons.receipt_long_outlined,
                         title: '暂无交易记录',
@@ -193,10 +192,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     Map<String, Category> categoryMap,
     Map<String, Account> accountMap,
   ) {
-    final catByName = <String, Category>{};
-    for (final c in categoryMap.values) {
-      catByName[c.name] = c;
-    }
+    final catByName = ref.watch(flowCategoryByNameProvider);
 
     final groups = grouped.groups;
     final sortedKeys = grouped.sortedKeys;

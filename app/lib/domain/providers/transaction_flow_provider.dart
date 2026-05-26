@@ -118,6 +118,16 @@ final flowCategoryMapProvider = Provider<Map<String, Category>>((ref) {
   return map;
 });
 
+/// Reverse index: category name → Category (for icon lookup in category view).
+final flowCategoryByNameProvider = Provider<Map<String, Category>>((ref) {
+  final categoryMap = ref.watch(flowCategoryMapProvider);
+  final byName = <String, Category>{};
+  for (final c in categoryMap.values) {
+    byName[c.name] = c;
+  }
+  return byName;
+});
+
 /// Account map built from account state.
 final flowAccountMapProvider = Provider<Map<String, Account>>((ref) {
   final accountState = ref.watch(accountProvider);
