@@ -5,14 +5,14 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/family_provider.dart';
 
-// FAB circle diameter in the navigation bar.
-const double _kFabSize = 42.0;
-
-/// Main shell — provides the bottom navigation bar wrapping all tab branches.
+/// Main shell — provides bottom navigation + centered FAB for all tab branches.
 ///
 /// Branch indices: 0=overview, 1=transactions, 2=assets, 3=mine
-/// Nav indices:    0=overview, 1=transactions, 2=FAB(skip), 3=assets, 4=mine
-
+/// Navigation uses [NavigationBar] with 4 real destinations.
+/// The FAB floats above the bar (centerFloat) to avoid hit-area overlap.
+///
+/// **Invariant**: NavigationBar destination order must match
+/// [StatefulShellRoute.branches] order in router.dart.
 class MainShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -24,59 +24,55 @@ class MainShell extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final canCreate = ref.watch(canCreateProvider);
 
+    assert(
+      navigationShell.route.branches.length == 4,
+      'MainShell expects exactly 4 branches matching 4 NavigationBar destinations',
+    );
+
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _mapBranchToNav(navigationShell.currentIndex),
-        onDestinationSelected: (index) {
-          if (index == 2) {
-            // FAB center — navigate to add transaction (modal route)
-            // TODO: Replace NavigationBar with custom BottomAppBar+FAB
-            // to eliminate the brief selection highlight on index 2.
-            if (!canCreate) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('当前角色无记账权限')),
-              );
-              return;
-            }
-            context.push('/add-transaction');
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'main_add_transaction',
+        tooltip: '记一笔',
+        onPressed: () {
+          if (!canCreate) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('当前角色无记账权限')),
+            );
             return;
           }
-          navigationShell.goBranch(_mapNavToBranch(index));
+          context.push('/add-transaction');
         },
-        destinations: [
-          const NavigationDestination(
+        elevation: isDark ? 4 : 2,
+        backgroundColor:
+            isDark ? ColorTokens.primaryLight : ColorTokens.primary,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add_rounded,
+            color: Colors.white, size: IconSizeTokens.md),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: navigationShell.currentIndex,
+        onDestinationSelected: (index) {
+          navigationShell.goBranch(index);
+        },
+        destinations: const [
+          NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(Icons.dashboard_rounded),
             label: '概览',
           ),
-          const NavigationDestination(
+          NavigationDestination(
             icon: Icon(Icons.receipt_long_outlined),
             selectedIcon: Icon(Icons.receipt_long_rounded),
             label: '流水',
           ),
-          // FAB center placeholder
           NavigationDestination(
-            icon: Container(
-              width: _kFabSize,
-              height: _kFabSize,
-              decoration: BoxDecoration(
-                color: isDark
-                    ? ColorTokens.primaryLight
-                    : ColorTokens.primary,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.add_rounded,
-                  color: Colors.white, size: IconSizeTokens.md),
-            ),
-            label: '记账',
-          ),
-          const NavigationDestination(
             icon: Icon(Icons.account_balance_outlined),
             selectedIcon: Icon(Icons.account_balance_rounded),
             label: '资产',
           ),
-          const NavigationDestination(
+          NavigationDestination(
             icon: Icon(Icons.person_outline_rounded),
             selectedIcon: Icon(Icons.person_rounded),
             label: '我的',
@@ -85,15 +81,4 @@ class MainShell extends ConsumerWidget {
       ),
     );
   }
-
-  /// Maps router branch index to NavigationBar index (skipping FAB at 2).
-  /// Never returns 2 — the FAB slot is never a valid selection.
-  int _mapBranchToNav(int branch) {
-    final nav = branch >= 2 ? branch + 1 : branch;
-    assert(nav != 2, 'FAB placeholder at index 2 must never be selected');
-    return nav;
-  }
-
-  /// Maps NavigationBar index to router branch index (skipping FAB at 2).
-  int _mapNavToBranch(int nav) => nav >= 3 ? nav - 1 : nav;
 }
