@@ -570,7 +570,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
                       : (_trendTab == 1
                           ? colors.income
                           : (isDark
-                              ? SemanticColorsDark.expense
+                              ? colors.expense
                               : ColorTokens.primary));
                   return BarChartGroupData(
                     x: i,

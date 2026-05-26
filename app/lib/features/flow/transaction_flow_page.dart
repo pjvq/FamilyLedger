@@ -584,12 +584,8 @@ class _DateHeader extends StatelessWidget {
             formatCents(dayTotal, showSign: true),
             style: TypographyTokens.bodySm(
               color: dayTotal >= 0
-                  ? (isDark
-                      ? SemanticColorsDark.income
-                      : SemanticColorsLight.income)
-                  : (isDark
-                      ? SemanticColorsDark.expense
-                      : SemanticColorsLight.expense),
+                  ? context.semanticColors.income
+                  : context.semanticColors.expense,
             ),
           ),
         ],
@@ -620,8 +616,8 @@ class _TransactionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isIncome = transaction.amount > 0;
     final amountColor = isIncome
-        ? (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
-        : (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense);
+        ? context.semanticColors.income
+        : context.semanticColors.expense;
 
     return ListTile(
       onTap: onTap,

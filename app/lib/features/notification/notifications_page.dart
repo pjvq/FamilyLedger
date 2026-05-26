@@ -189,16 +189,16 @@ class _NotificationTile extends StatelessWidget {
     }
   }
 
-  Color _typeColor(String type) {
+  Color _typeColor(BuildContext context, String type) {
     switch (type) {
       case 'budget_alert':
-        return SemanticColorsLight.expense;
+        return context.semanticColors.expense;
       case 'budget_warning':
-        return SemanticColorsLight.warning;
+        return context.semanticColors.warning;
       case 'daily_summary':
         return ColorTokens.primary;
       case 'loan_reminder':
-        return SemanticColorsLight.asset;
+        return context.semanticColors.asset;
       default:
         return NeutralColorsLight.neutral5;
     }
@@ -268,13 +268,13 @@ class _NotificationTile extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: _typeColor(notification.type)
+                    color: _typeColor(context, notification.type)
                         .withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     _typeIcon(notification.type),
-                    color: _typeColor(notification.type),
+                    color: _typeColor(context, notification.type),
                     size: 22,
                   ),
                 ),

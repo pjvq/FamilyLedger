@@ -28,7 +28,7 @@ class NotificationSettingsPage extends ConsumerWidget {
           _SectionHeader(title: '预算提醒', theme: theme),
           _SettingSwitchTile(
             icon: Icons.warning_amber_rounded,
-            iconColor: SemanticColorsLight.expense,
+            iconColor: context.semanticColors.expense,
             title: '预算超支提醒',
             subtitle: '支出超过预算金额时通知',
             value: settings.budgetAlert,
@@ -38,7 +38,7 @@ class NotificationSettingsPage extends ConsumerWidget {
           ),
           _SettingSwitchTile(
             icon: Icons.trending_up_rounded,
-            iconColor: SemanticColorsLight.warning,
+            iconColor: context.semanticColors.warning,
             title: '预算80%预警',
             subtitle: '支出达到预算80%时提醒',
             value: settings.budgetWarning,
@@ -61,7 +61,7 @@ class NotificationSettingsPage extends ConsumerWidget {
           ),
           _SettingSwitchTile(
             icon: Icons.event_rounded,
-            iconColor: SemanticColorsLight.asset,
+            iconColor: context.semanticColors.asset,
             title: '还款日提醒',
             subtitle: '信用卡/借贷还款日前提醒',
             value: settings.loanReminder,

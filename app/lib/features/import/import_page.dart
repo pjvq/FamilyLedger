@@ -405,7 +405,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                 DataCell(Text(t.type == 'income' ? '收入' : '支出',
                     style: TextStyle(
                       fontSize: 12,
-                      color: t.type == 'income' ? SemanticColorsLight.income : SemanticColorsLight.expense,
+                      color: t.type == 'income' ? context.semanticColors.income : context.semanticColors.expense,
                     ))),
                 DataCell(Text('¥${t.amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12))),
                 DataCell(Text(t.note, style: const TextStyle(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)),
@@ -1661,7 +1661,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                     t.type == 'income' ? '+' : '-',
                     style: TextStyle(
                       fontSize: 12,
-                      color: t.type == 'income' ? SemanticColorsLight.income : SemanticColorsLight.expense,
+                      color: t.type == 'income' ? context.semanticColors.income : context.semanticColors.expense,
                     ),
                   ),
                   Text(
@@ -1669,7 +1669,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: t.type == 'income' ? SemanticColorsLight.income : SemanticColorsLight.expense,
+                      color: t.type == 'income' ? context.semanticColors.income : context.semanticColors.expense,
                     ),
                   ),
                 ],

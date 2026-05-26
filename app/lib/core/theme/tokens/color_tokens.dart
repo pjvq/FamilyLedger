@@ -147,6 +147,9 @@ abstract final class GradientTokens {
   static const Color incomeGradientEnd = Color(0xFF28B34A);
   static const Color expenseGradientStart = Color(0xFFFF6B6B);
   static const Color expenseGradientEnd = Color(0xFFFF4757);
+  static const Color assetGradientStart = Color(0xFF007AFF);
+  static const Color assetGradientEnd = Color(0xFF0056CC);
+  static const Color primaryGradientAlt = Color(0xFF4A5AF0);
 }
 
 /// Opacity tokens for consistent transparency values.

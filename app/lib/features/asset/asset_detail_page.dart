@@ -59,7 +59,7 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                       ),
                       FilledButton(
                         style: FilledButton.styleFrom(
-                          backgroundColor: SemanticColorsLight.expense,
+                          backgroundColor: context.semanticColors.expense,
                         ),
                         onPressed: () => Navigator.of(ctx).pop(true),
                         child: const Text('删除'),
@@ -76,13 +76,13 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'delete',
                 child: Row(
                   children: [
                     Icon(Icons.delete_outline_rounded,
-                        color: SemanticColorsLight.expense),
-                    SizedBox(width: 8),
+                        color: context.semanticColors.expense),
+                    const SizedBox(width: 8),
                     Text('删除'),
                   ],
                 ),
@@ -290,7 +290,7 @@ class _HeaderCard extends StatelessWidget {
         gradient: LinearGradient(
           colors: isDark
               ? [const Color(0xFF1A2A3A), const Color(0xFF0F1F2F)]
-              : [SemanticColorsLight.asset, const Color(0xFF0056CC)],
+              : [context.semanticColors.asset, GradientTokens.assetGradientEnd],
         ),
         borderRadius: BorderRadius.circular(18),
       ),

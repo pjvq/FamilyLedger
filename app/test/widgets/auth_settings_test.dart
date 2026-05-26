@@ -1,3 +1,4 @@
+import 'package:familyledger/core/theme/tokens/semantic_theme_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -144,7 +145,9 @@ Widget _wrapPage(
   return ProviderScope(
     overrides: overrides,
     child: MaterialApp(
-      theme: theme ?? ThemeData.light(useMaterial3: true),
+      theme: theme ?? ThemeData.light(useMaterial3: true).copyWith(
+        extensions: const [AppSemanticColors.light],
+      ),
       home: child,
       routes: {
         '/register': (_) => const RegisterPage(),

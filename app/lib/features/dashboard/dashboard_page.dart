@@ -556,7 +556,7 @@ class _AssetDetailRow extends StatelessWidget {
             '¥ ${_fmtYuanExact(value)}',
             style: TextStyle(
               color: isNegative
-                  ? SemanticColorsDark.expense.withValues(alpha: 0.9)
+                  ? context.semanticColors.expense.withValues(alpha: 0.9)
                   : Colors.white.withValues(alpha: 0.9),
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -868,7 +868,7 @@ class _IncomeExpenseChart extends StatelessWidget {
                     return LineTooltipItem(
                       '${isIncome ? "收入" : "支出"}: ¥${_fmtYuan(spot.y.toInt())}',
                       TextStyle(
-                        color: isIncome ? SemanticColorsLight.income : SemanticColorsLight.expense,
+                        color: isIncome ? context.semanticColors.income : context.semanticColors.expense,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1148,11 +1148,11 @@ class _BudgetMiniCard extends StatelessWidget {
     final pct = (rate * 100).toStringAsFixed(0);
     Color rateColor;
     if (rate >= 0.8) {
-      rateColor = SemanticColorsLight.expense;
+      rateColor = context.semanticColors.expense;
     } else if (rate >= 0.6) {
-      rateColor = const Color(0xFFFF9500);
+      rateColor = context.semanticColors.warning;
     } else {
-      rateColor = SemanticColorsLight.income;
+      rateColor = context.semanticColors.income;
     }
 
     return Semantics(

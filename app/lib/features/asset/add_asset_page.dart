@@ -147,8 +147,8 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? (isDark
-                                    ? SemanticColorsDark.asset.withValues(alpha: 0.2)
-                                    : SemanticColorsLight.asset.withValues(alpha: 0.1))
+                                    ? context.semanticColors.asset.withValues(alpha: 0.2)
+                                    : context.semanticColors.asset.withValues(alpha: 0.1))
                                 : (isDark
                                     ? NeutralColorsDark.neutral2
                                     : NeutralColorsLight.neutral2),

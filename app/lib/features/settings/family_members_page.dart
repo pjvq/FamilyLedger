@@ -166,7 +166,7 @@ class _MemberTile extends StatelessWidget {
           subtitle: Text(
             _roleLabel(member.role),
             style: TextStyle(
-              color: _roleColor(member.role),
+              color: _roleColor(context, member.role),
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -217,10 +217,10 @@ class _MemberTile extends StatelessWidget {
     }
   }
 
-  Color _roleColor(String role) {
+  Color _roleColor(BuildContext context, String role) {
     switch (role) {
       case 'owner':
-        return SemanticColorsLight.income;
+        return context.semanticColors.income;
       case 'admin':
         return ColorTokens.primary;
       default:

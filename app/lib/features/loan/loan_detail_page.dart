@@ -73,13 +73,13 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
           PopupMenuButton<String>(
             onSelected: (v) => _onMenuAction(v, loan.id),
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'repayment_category',
                 child: Text('还款分类设置'),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'delete',
-                child: Text('删除贷款', style: TextStyle(color: SemanticColorsLight.expense)),
+                child: Text('删除贷款', style: TextStyle(color: context.semanticColors.expense)),
               ),
             ],
           ),
@@ -214,7 +214,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: SemanticColorsLight.expense,
+                backgroundColor: context.semanticColors.expense,
               ),
               onPressed: () => Navigator.of(ctx).pop(true),
               child: const Text('删除'),

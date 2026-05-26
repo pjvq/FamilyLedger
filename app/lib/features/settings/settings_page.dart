@@ -290,7 +290,7 @@ class SettingsPage extends ConsumerWidget {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: SemanticColorsLight.expense,
+              backgroundColor: context.semanticColors.expense,
             ),
             onPressed: () {
               ref.read(familyProvider.notifier).leaveFamily();
@@ -316,7 +316,7 @@ class SettingsPage extends ConsumerWidget {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: SemanticColorsLight.expense,
+              backgroundColor: context.semanticColors.expense,
             ),
             onPressed: () async {
               Navigator.of(ctx).pop();
@@ -508,7 +508,7 @@ class _SettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = isDestructive ? SemanticColorsLight.expense : theme.colorScheme.onSurface;
+    final color = isDestructive ? context.semanticColors.expense : theme.colorScheme.onSurface;
 
     return Semantics(
       label: title,

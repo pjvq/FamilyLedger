@@ -67,7 +67,7 @@ class BalanceCard extends StatelessWidget {
               _SummaryItem(
                 label: '今日支出',
                 amount: todayExpense,
-                color: SemanticColorsLight.expense,
+                color: context.semanticColors.expense,
               ),
               const SizedBox(width: 32),
               _SummaryItem(

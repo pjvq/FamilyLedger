@@ -155,9 +155,9 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (_isEditMode && _balanceMode == 1)
-                          Text('+', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: SemanticColorsLight.income)),
+                          Text('+', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: context.semanticColors.income)),
                         if (_isEditMode && _balanceMode == 2)
-                          Text('-', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: SemanticColorsLight.expense)),
+                          Text('-', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: context.semanticColors.expense)),
                         Text(
                           '¥',
                           style: theme.textTheme.headlineMedium?.copyWith(

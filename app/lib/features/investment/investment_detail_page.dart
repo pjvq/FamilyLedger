@@ -136,7 +136,7 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                       ),
                       FilledButton(
                         style: FilledButton.styleFrom(
-                          backgroundColor: SemanticColorsLight.expense,
+                          backgroundColor: context.semanticColors.expense,
                         ),
                         onPressed: () => Navigator.of(ctx).pop(true),
                         child: const Text('删除'),
@@ -153,11 +153,11 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline_rounded, color: SemanticColorsLight.expense),
+                    Icon(Icons.delete_outline_rounded, color: context.semanticColors.expense),
                     SizedBox(width: 8),
                     Text('删除'),
                   ],

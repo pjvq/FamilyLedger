@@ -72,7 +72,7 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
 
   @override
   AppSemanticColors lerp(AppSemanticColors? other, double t) {
-    if (other is! AppSemanticColors) return this;
+    if (other == null) return this;
     return AppSemanticColors(
       income: Color.lerp(income, other.income, t)!,
       expense: Color.lerp(expense, other.expense, t)!,

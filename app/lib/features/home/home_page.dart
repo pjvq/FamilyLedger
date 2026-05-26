@@ -471,7 +471,7 @@ class _TotalCard extends StatelessWidget {
         gradient: LinearGradient(
           colors: isDark
               ? [const Color(0xFF1A3A2A), const Color(0xFF0F2A1F)]
-              : [SemanticColorsLight.income, const Color(0xFF28B34A)],
+              : [context.semanticColors.income, GradientTokens.incomeGradientEnd],
         ),
         borderRadius: BorderRadius.circular(18),
       ),

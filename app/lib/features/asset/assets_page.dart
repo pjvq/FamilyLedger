@@ -107,7 +107,7 @@ class _SummaryCard extends StatelessWidget {
           gradient: LinearGradient(
             colors: isDark
                 ? [const Color(0xFF1A2A3A), const Color(0xFF0F1F2F)]
-                : [SemanticColorsLight.asset, const Color(0xFF0056CC)],
+                : [context.semanticColors.asset, GradientTokens.assetGradientEnd],
           ),
           borderRadius: BorderRadius.circular(18),
         ),
@@ -196,8 +196,8 @@ class _AssetCard extends StatelessWidget {
                       height: 44,
                       decoration: BoxDecoration(
                         color: isDark
-                            ? SemanticColorsDark.asset.withValues(alpha: 0.15)
-                            : SemanticColorsLight.asset.withValues(alpha: 0.1),
+                            ? context.semanticColors.asset.withValues(alpha: 0.15)
+                            : context.semanticColors.asset.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(

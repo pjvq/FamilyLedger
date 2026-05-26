@@ -91,8 +91,7 @@ class FlInput extends StatelessWidget {
         isLight ? NeutralColorsLight.neutral7 : NeutralColorsDark.neutral7;
     final hintColor =
         isLight ? NeutralColorsLight.neutral4 : NeutralColorsDark.neutral4;
-    final errorColor =
-        isLight ? SemanticColorsLight.error : SemanticColorsDark.error;
+    final errorColor = context.semanticColors.error;
 
     final hasError = error != null && error!.isNotEmpty;
 
