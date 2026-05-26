@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/router/app_router.dart';
 import '../../domain/providers/auth_provider.dart';
 
@@ -40,7 +41,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ),
           );
         }
-        Navigator.of(context).pushReplacementNamed(AppRouter.home);
+        context.go(AppRouter.home);
       }
       if (next.status == AuthStatus.error && next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -157,7 +158,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     label: '没有账号？去注册',
                     child: TextButton(
                       onPressed: () {
-                        Navigator.of(context).pushNamed(AppRouter.register);
+                        context.go(AppRouter.register);
                       },
                       child: Text(
                         '没有账号？注册',
