@@ -18,7 +18,7 @@ import 'package:familyledger/sync/sync_event.dart';
 import 'package:familyledger/domain/providers/family_provider.dart';
 import 'package:familyledger/domain/providers/account_provider.dart';
 import 'package:familyledger/domain/providers/notification_provider.dart';
-import 'package:familyledger/core/router/app_router.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:familyledger/features/auth/login_page.dart';
 import 'package:familyledger/features/auth/register_page.dart';
@@ -136,7 +136,7 @@ db.Notification _makeNotification({
   );
 }
 
-/// Wrap a widget in MaterialApp with ProviderScope and route support.
+/// Wrap a widget in MaterialApp.router with ProviderScope and go_router support.
 Widget _wrapPage(
   Widget child, {
   List<Override> overrides = const [],
@@ -144,16 +144,19 @@ Widget _wrapPage(
 }) {
   return ProviderScope(
     overrides: overrides,
-    child: MaterialApp(
+    child: MaterialApp.router(
       theme: theme ?? ThemeData.light(useMaterial3: true).copyWith(
         extensions: const [AppSemanticColors.light],
       ),
-      home: child,
-      routes: {
-        '/register': (_) => const RegisterPage(),
-        '/login': (_) => const LoginPage(),
-        '/overview': (_) => const Scaffold(body: Text('Overview')),
-      },
+      routerConfig: GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(path: '/', builder: (_, __) => child),
+          GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
+          GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
+          GoRoute(path: '/overview', builder: (_, __) => const Scaffold(body: Text('Overview'))),
+        ],
+      ),
     ),
   );
 }

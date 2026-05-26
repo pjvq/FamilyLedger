@@ -14,7 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:familyledger/core/constants/app_constants.dart';
-import 'package:familyledger/core/router/app_router.dart';
+import 'package:familyledger/core/router/router.dart';
 import 'package:familyledger/core/theme/app_theme.dart';
 import 'package:familyledger/domain/providers/app_providers.dart';
 
@@ -61,7 +61,8 @@ class _PerfTestApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return MaterialApp(
+    final router = ref.watch(routerProvider);
+    return MaterialApp.router(
       title: 'FamilyLedger PerfTest',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
@@ -77,8 +78,7 @@ class _PerfTestApp extends ConsumerWidget {
         Locale('en', 'US'),
       ],
       locale: const Locale('zh', 'CN'),
-      // Always start at home — login is bypassed
-      home: const Scaffold(body: Center(child: Text("Test App"))),
+      routerConfig: router,
     );
   }
 }
