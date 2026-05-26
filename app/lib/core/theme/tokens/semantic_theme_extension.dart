@@ -88,6 +88,12 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
 
 /// Convenience extension for accessing semantic colors from BuildContext.
 extension SemanticColorsX on BuildContext {
+  /// Returns the context-aware semantic colors.
+  /// Falls back to [AppSemanticColors.light] if the extension is not registered
+  /// (e.g. in tests using bare ThemeData).
   AppSemanticColors get semanticColors =>
-      Theme.of(this).extension<AppSemanticColors>()!;
+      Theme.of(this).extension<AppSemanticColors>() ??
+      (Theme.of(this).brightness == Brightness.dark
+          ? AppSemanticColors.dark
+          : AppSemanticColors.light);
 }
