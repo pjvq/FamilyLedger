@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../domain/providers/investment_provider.dart';
 import '../../domain/providers/market_data_provider.dart';
 
@@ -130,8 +130,8 @@ class _TradePageState extends ConsumerState<TradePage> {
                   },
                   style: SegmentedButton.styleFrom(
                     selectedForegroundColor: _isBuy
-                        ? (isDark ? AppColors.expenseDark : AppColors.expense)
-                        : (isDark ? AppColors.incomeDark : AppColors.income),
+                        ? (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense)
+                        : (isDark ? SemanticColorsDark.income : SemanticColorsLight.income),
                   ),
                 ),
               ),
@@ -269,8 +269,8 @@ class _TradePageState extends ConsumerState<TradePage> {
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   backgroundColor: _isBuy
-                      ? (isDark ? AppColors.expenseDark : AppColors.expense)
-                      : (isDark ? AppColors.incomeDark : AppColors.income),
+                      ? (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense)
+                      : (isDark ? SemanticColorsDark.income : SemanticColorsLight.income),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),

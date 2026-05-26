@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 
 /// Expandable/collapsible card wrapper used by all dashboard sections
 class DashboardCard extends StatelessWidget {
@@ -34,7 +34,7 @@ class DashboardCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         elevation: isDark ? 0 : 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
         child: Column(
           children: [
             // Header (always visible, tappable)
@@ -50,7 +50,7 @@ class DashboardCard extends StatelessWidget {
                 child: Row(
                   children: [
                     Icon(icon, size: 20,
-                        color: isDark ? AppColors.primaryDark : AppColors.primary),
+                        color: isDark ? ColorTokens.primaryLight : ColorTokens.primary),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(

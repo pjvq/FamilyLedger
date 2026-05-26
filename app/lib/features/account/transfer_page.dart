@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
@@ -65,15 +65,15 @@ class _TransferPageState extends ConsumerState<TransferPage> {
                           height: 40,
                           decoration: BoxDecoration(
                             color: isDark
-                                ? AppColors.primaryDark.withValues(alpha: 0.15)
-                                : AppColors.primary.withValues(alpha: 0.1),
+                                ? ColorTokens.primaryLight.withValues(alpha: 0.15)
+                                : ColorTokens.primary.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.arrow_forward_rounded,
                             color: isDark
-                                ? AppColors.primaryDark
-                                : AppColors.primary,
+                                ? ColorTokens.primaryLight
+                                : ColorTokens.primary,
                             size: 20,
                           ),
                         ),

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart' as db;
@@ -100,8 +100,8 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
     final changePercent = quote?.changePercent ?? 0.0;
     final isUp = changePercent >= 0;
     final changeColor = isUp
-        ? (isDark ? AppColors.incomeDark : AppColors.income)
-        : (isDark ? AppColors.expenseDark : AppColors.expense);
+        ? (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
+        : (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense);
 
     final currentValue = price > 0
         ? (investment.quantity * price).round()
@@ -135,7 +135,7 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                       ),
                       FilledButton(
                         style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.expense,
+                          backgroundColor: SemanticColorsLight.expense,
                         ),
                         onPressed: () => Navigator.of(ctx).pop(true),
                         child: const Text('删除'),
@@ -156,7 +156,7 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline_rounded, color: AppColors.expense),
+                    Icon(Icons.delete_outline_rounded, color: SemanticColorsLight.expense),
                     SizedBox(width: 8),
                     Text('删除'),
                   ],
@@ -495,8 +495,8 @@ class _HoldingInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isPositive = profit >= 0;
     final profitColor = isPositive
-        ? (isDark ? AppColors.incomeDark : AppColors.income)
-        : (isDark ? AppColors.expenseDark : AppColors.expense);
+        ? (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
+        : (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense);
 
     // Compute display return based on mode
     double displayReturn;
@@ -659,8 +659,8 @@ class _TradeList extends StatelessWidget {
         final trade = trades[index];
         final isBuy = trade.tradeType == 'buy';
         final color = isBuy
-            ? (isDark ? AppColors.expenseDark : AppColors.expense)
-            : (isDark ? AppColors.incomeDark : AppColors.income);
+            ? (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense)
+            : (isDark ? SemanticColorsDark.income : SemanticColorsLight.income);
 
         return Semantics(
           label:

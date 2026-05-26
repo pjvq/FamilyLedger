@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/router/app_router.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../data/local/database.dart' as db;
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/loan_provider.dart';
@@ -79,7 +79,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
               ),
               const PopupMenuItem(
                 value: 'delete',
-                child: Text('删除贷款', style: TextStyle(color: AppColors.expense)),
+                child: Text('删除贷款', style: TextStyle(color: SemanticColorsLight.expense)),
               ),
             ],
           ),
@@ -214,7 +214,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.expense,
+                backgroundColor: SemanticColorsLight.expense,
               ),
               onPressed: () => Navigator.of(ctx).pop(true),
               child: const Text('删除'),
@@ -412,8 +412,8 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                               FontFeature.tabularFigures()
                             ],
                             color: isDark
-                                ? AppColors.primaryDark
-                                : AppColors.primary,
+                                ? ColorTokens.primaryLight
+                                : ColorTokens.primary,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -602,8 +602,8 @@ class _SummaryCard extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                           fontFeatures: const [FontFeature.tabularFigures()],
                           color: isDark
-                              ? AppColors.liabilityDark
-                              : AppColors.liability,
+                              ? SemanticColorsDark.liability
+                              : SemanticColorsLight.liability,
                         ),
                       ),
                     ],
@@ -840,7 +840,7 @@ class _ActionButton extends StatelessWidget {
             child: Column(
               children: [
                 Icon(icon, size: 22,
-                    color: isDark ? AppColors.primaryDark : AppColors.primary),
+                    color: isDark ? ColorTokens.primaryLight : ColorTokens.primary),
                 const SizedBox(height: 4),
                 Text(
                   label,
@@ -884,10 +884,10 @@ class _TimelineNode extends StatelessWidget {
     final double nodeSize;
 
     if (item.isPaid) {
-      nodeColor = isDark ? AppColors.incomeDark : AppColors.income;
+      nodeColor = isDark ? SemanticColorsDark.income : SemanticColorsLight.income;
       nodeSize = 12;
     } else if (isCurrent) {
-      nodeColor = isDark ? AppColors.primaryDark : AppColors.primary;
+      nodeColor = isDark ? ColorTokens.primaryLight : ColorTokens.primary;
       nodeSize = 16;
     } else {
       nodeColor = isDark ? const Color(0xFF3A3A3C) : const Color(0xFFD1D1D6);
@@ -937,14 +937,14 @@ class _TimelineNode extends StatelessWidget {
                     decoration: isCurrent
                         ? BoxDecoration(
                             color: (isDark
-                                    ? AppColors.primaryDark
-                                    : AppColors.primary)
+                                    ? ColorTokens.primaryLight
+                                    : ColorTokens.primary)
                                 .withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: (isDark
-                                      ? AppColors.primaryDark
-                                      : AppColors.primary)
+                                      ? ColorTokens.primaryLight
+                                      : ColorTokens.primary)
                                   .withValues(alpha: 0.3),
                               width: 1,
                             ),
@@ -1033,14 +1033,14 @@ class _TimelineNode extends StatelessWidget {
                           Icon(Icons.check_circle_rounded,
                               size: 20,
                               color: isDark
-                                  ? AppColors.incomeDark
-                                  : AppColors.income)
+                                  ? SemanticColorsDark.income
+                                  : SemanticColorsLight.income)
                         else if (isCurrent)
                           Icon(Icons.radio_button_checked_rounded,
                               size: 20,
                               color: isDark
-                                  ? AppColors.primaryDark
-                                  : AppColors.primary)
+                                  ? ColorTokens.primaryLight
+                                  : ColorTokens.primary)
                         else
                           const SizedBox(width: 20),
                       ],

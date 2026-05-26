@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/category_icon_widget.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../data/local/database.dart' show Category;
 import '../../domain/providers/budget_provider.dart';
 import '../../sync/sync_engine.dart';
@@ -310,9 +310,9 @@ class _CategoryBudgetTile extends StatelessWidget {
   });
 
   Color _rateColor(double rate) {
-    if (rate >= 0.8) return AppColors.expense;
+    if (rate >= 0.8) return SemanticColorsLight.expense;
     if (rate >= 0.6) return const Color(0xFFFF9500);
-    return AppColors.income;
+    return SemanticColorsLight.income;
   }
 
   String _formatAmount(int cents) {
@@ -347,7 +347,7 @@ class _CategoryBudgetTile extends StatelessWidget {
         ),
         padding: EdgeInsets.all(isParent ? 16 : 12),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
+          color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -383,8 +383,8 @@ class _CategoryBudgetTile extends StatelessWidget {
                   '${_formatAmount(spentAmount)} / ${_formatAmount(budgetAmount)}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondary,
+                        ? NeutralColorsDark.neutral5
+                        : NeutralColorsLight.neutral5,
                   ),
                 ),
                 if (trailing != null) ...[

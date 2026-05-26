@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../domain/providers/loan_provider.dart';
 import '../../domain/models/loan_models.dart';
 import '../../domain/models/loan_calculator.dart';
@@ -73,8 +73,8 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: isDark
-                                ? AppColors.primaryDark
-                                : AppColors.primary,
+                                ? ColorTokens.primaryLight
+                                : ColorTokens.primary,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -184,7 +184,7 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
                     icon: const Icon(Icons.check_circle_rounded),
                     label: const Text('确认提前还款'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: isDark ? AppColors.incomeDark : AppColors.income,
+                      backgroundColor: isDark ? SemanticColorsDark.income : SemanticColorsLight.income,
                       minimumSize: const Size(double.infinity, 48),
                     ),
                   ),
@@ -340,8 +340,8 @@ class _SimulationResults extends StatelessWidget {
                         ? Icons.expand_less_rounded
                         : Icons.expand_more_rounded,
                     color: isDark
-                        ? AppColors.primaryDark
-                        : AppColors.primary,
+                        ? ColorTokens.primaryLight
+                        : ColorTokens.primary,
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -349,8 +349,8 @@ class _SimulationResults extends StatelessWidget {
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: isDark
-                          ? AppColors.primaryDark
-                          : AppColors.primary,
+                          ? ColorTokens.primaryLight
+                          : ColorTokens.primary,
                     ),
                   ),
                 ],
@@ -405,7 +405,7 @@ class _ComparisonCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: (isDark ? AppColors.incomeDark : AppColors.income)
+                  color: (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
                       .withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -420,8 +420,8 @@ class _ComparisonCard extends StatelessWidget {
                           '节省利息',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: isDark
-                                ? AppColors.incomeDark
-                                : AppColors.income,
+                                ? SemanticColorsDark.income
+                                : SemanticColorsLight.income,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -435,8 +435,8 @@ class _ComparisonCard extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         fontFeatures: const [FontFeature.tabularFigures()],
                         color: isDark
-                            ? AppColors.incomeDark
-                            : AppColors.income,
+                            ? SemanticColorsDark.income
+                            : SemanticColorsLight.income,
                       ),
                     ),
                   ],
@@ -506,15 +506,15 @@ class _ComparisonBox extends StatelessWidget {
         color: isDark
             ? (isOriginal
                 ? const Color(0xFF2C2C2E)
-                : AppColors.primaryDark.withValues(alpha: 0.08))
+                : ColorTokens.primaryLight.withValues(alpha: 0.08))
             : (isOriginal
                 ? const Color(0xFFF2F2F7)
-                : AppColors.primary.withValues(alpha: 0.06)),
+                : ColorTokens.primary.withValues(alpha: 0.06)),
         borderRadius: BorderRadius.circular(12),
         border: isOriginal
             ? null
             : Border.all(
-                color: (isDark ? AppColors.primaryDark : AppColors.primary)
+                color: (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
                     .withValues(alpha: 0.2),
               ),
       ),
@@ -527,7 +527,7 @@ class _ComparisonBox extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: isOriginal
                   ? theme.colorScheme.onSurface.withValues(alpha: 0.5)
-                  : (isDark ? AppColors.primaryDark : AppColors.primary),
+                  : (isDark ? ColorTokens.primaryLight : ColorTokens.primary),
             ),
           ),
           const SizedBox(height: 8),

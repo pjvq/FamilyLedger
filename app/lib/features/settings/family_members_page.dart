@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
@@ -133,12 +133,12 @@ class _MemberTile extends StatelessWidget {
         child: ListTile(
           leading: CircleAvatar(
             backgroundColor: isDark
-                ? AppColors.primaryDark.withValues(alpha: 0.2)
-                : AppColors.primary.withValues(alpha: 0.1),
+                ? ColorTokens.primaryLight.withValues(alpha: 0.2)
+                : ColorTokens.primary.withValues(alpha: 0.1),
             child: Text(
               _avatarText(member),
               style: TextStyle(
-                color: isDark ? AppColors.primaryDark : AppColors.primary,
+                color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -157,7 +157,7 @@ class _MemberTile extends StatelessWidget {
                   child: Text(
                     '(我)',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.primary,
+                      color: ColorTokens.primary,
                     ),
                   ),
                 ),
@@ -220,11 +220,11 @@ class _MemberTile extends StatelessWidget {
   Color _roleColor(String role) {
     switch (role) {
       case 'owner':
-        return AppColors.income;
+        return SemanticColorsLight.income;
       case 'admin':
-        return AppColors.primary;
+        return ColorTokens.primary;
       default:
-        return AppColors.textSecondary;
+        return NeutralColorsLight.neutral5;
     }
   }
 }

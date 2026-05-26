@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../domain/providers/asset_provider.dart';
 import '../shared/family_scope_selector.dart';
 
@@ -146,8 +146,8 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? (isDark
-                                    ? AppColors.assetDark.withValues(alpha: 0.2)
-                                    : AppColors.asset.withValues(alpha: 0.1))
+                                    ? SemanticColorsDark.asset.withValues(alpha: 0.2)
+                                    : SemanticColorsLight.asset.withValues(alpha: 0.1))
                                 : (isDark
                                     ? const Color(0xFF2C2C2E)
                                     : const Color(0xFFF2F2F7)),
@@ -155,8 +155,8 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
                             border: Border.all(
                               color: isSelected
                                   ? (isDark
-                                      ? AppColors.assetDark
-                                      : AppColors.asset)
+                                      ? SemanticColorsDark.asset
+                                      : SemanticColorsLight.asset)
                                   : Colors.transparent,
                               width: 2,
                             ),
@@ -176,8 +176,8 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
                                       : FontWeight.w400,
                                   color: isSelected
                                       ? (isDark
-                                          ? AppColors.assetDark
-                                          : AppColors.asset)
+                                          ? SemanticColorsDark.asset
+                                          : SemanticColorsLight.asset)
                                       : theme.colorScheme.onSurface
                                           .withValues(alpha: 0.6),
                                 ),
@@ -365,7 +365,7 @@ class _DepreciationSection extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.trending_down_rounded,
-                      color: isDark ? AppColors.assetDark : AppColors.asset,
+                      color: isDark ? SemanticColorsDark.asset : SemanticColorsLight.asset,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -477,7 +477,7 @@ class _DepreciationSection extends StatelessWidget {
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                             color:
-                                isDark ? AppColors.assetDark : AppColors.asset,
+                                isDark ? SemanticColorsDark.asset : SemanticColorsLight.asset,
                           ),
                         ),
                       ],
@@ -522,7 +522,7 @@ class _DepreciationSection extends StatelessWidget {
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                             color:
-                                isDark ? AppColors.assetDark : AppColors.asset,
+                                isDark ? SemanticColorsDark.asset : SemanticColorsLight.asset,
                           ),
                         ),
                       ],

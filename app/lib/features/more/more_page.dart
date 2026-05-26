@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
 import '../../core/router/app_router.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../domain/providers/auth_provider.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/theme_provider.dart';
@@ -299,7 +299,7 @@ class MorePage extends ConsumerWidget {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.expense,
+              backgroundColor: SemanticColorsLight.expense,
             ),
             onPressed: () {
               ref.read(familyProvider.notifier).leaveFamily();
@@ -325,7 +325,7 @@ class MorePage extends ConsumerWidget {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.expense,
+              backgroundColor: SemanticColorsLight.expense,
             ),
             onPressed: () async {
               Navigator.of(ctx).pop();
@@ -371,12 +371,12 @@ class _UserInfoCard extends StatelessWidget {
             CircleAvatar(
               radius: 28,
               backgroundColor: isDark
-                  ? AppColors.primaryDark.withValues(alpha: 0.2)
-                  : AppColors.primary.withValues(alpha: 0.1),
+                  ? ColorTokens.primaryLight.withValues(alpha: 0.2)
+                  : ColorTokens.primary.withValues(alpha: 0.1),
               child: Icon(
                 Icons.person_rounded,
                 size: 28,
-                color: isDark ? AppColors.primaryDark : AppColors.primary,
+                color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
               ),
             ),
             const SizedBox(width: 16),
@@ -404,8 +404,8 @@ class _UserInfoCard extends StatelessWidget {
                       '$familyName · $memberCount 位成员',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: isDark
-                            ? AppColors.primaryDark
-                            : AppColors.primary,
+                            ? ColorTokens.primaryLight
+                            : ColorTokens.primary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -453,7 +453,7 @@ class _FamilyInfoCard extends StatelessWidget {
                   gradient: LinearGradient(
                     colors: isDark
                         ? [const Color(0xFF2C2C4A), const Color(0xFF1C1C3E)]
-                        : [AppColors.primary, const Color(0xFF4A5AF0)],
+                        : [ColorTokens.primary, const Color(0xFF4A5AF0)],
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -536,7 +536,7 @@ class _MoreTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color =
-        isDestructive ? AppColors.expense : theme.colorScheme.onSurface;
+        isDestructive ? SemanticColorsLight.expense : theme.colorScheme.onSurface;
 
     return Semantics(
       label: '$title${subtitle != null ? "，$subtitle" : ""}',

@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../core/utils/input_sanitizer.dart' show maxNoteLength;
 import '../../core/widgets/success_animation.dart';
 import '../../data/local/database.dart';
@@ -216,8 +216,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   Widget _buildAmountRow(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = _isExpense
-        ? (isDark ? AppColors.expenseDark : AppColors.expense)
-        : (isDark ? AppColors.incomeDark : AppColors.income);
+        ? (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense)
+        : (isDark ? SemanticColorsDark.income : SemanticColorsLight.income);
     final symbol = currencySymbols[_selectedCurrency] ?? _selectedCurrency;
 
     return Semantics(

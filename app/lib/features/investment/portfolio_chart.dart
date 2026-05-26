@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../domain/providers/investment_provider.dart';
 
 /// Portfolio allocation pie chart
@@ -231,8 +231,8 @@ class _HoldingDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final isPositive = holding.returnRate >= 0;
     final retColor = isPositive
-        ? (isDark ? AppColors.incomeDark : AppColors.income)
-        : (isDark ? AppColors.expenseDark : AppColors.expense);
+        ? (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
+        : (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense);
 
     return Container(
       margin: const EdgeInsets.only(top: 12),

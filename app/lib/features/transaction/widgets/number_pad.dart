@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 
 /// 自定义数字键盘 — 大按键，清晰布局
 class NumberPad extends StatelessWidget {
@@ -125,7 +125,7 @@ class NumberPad extends StatelessWidget {
           onPressed: confirmEnabled ? onConfirm : null,
           style: ElevatedButton.styleFrom(
             backgroundColor:
-                confirmEnabled ? AppColors.primary : AppColors.primary.withValues(alpha: 0.3),
+                confirmEnabled ? ColorTokens.primary : ColorTokens.primary.withValues(alpha: 0.3),
             foregroundColor: Colors.white,
             elevation: 0,
             shape: RoundedRectangleBorder(

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/micro_interactions.dart';
 import '../../core/widgets/widgets.dart';
@@ -168,7 +168,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
           gradient: LinearGradient(
             colors: isDark
                 ? [const Color(0xFF1A1A3A), const Color(0xFF0F0F2A)]
-                : [AppColors.primary, const Color(0xFF4A5DE5)],
+                : [ColorTokens.primary, const Color(0xFF4A5DE5)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -274,8 +274,8 @@ class _InvestmentListItem extends StatelessWidget {
     final changePercent = quote?.changePercent ?? 0.0;
     final isUp = changePercent >= 0;
     final changeColor = isUp
-        ? (isDark ? AppColors.incomeDark : AppColors.income)
-        : (isDark ? AppColors.expenseDark : AppColors.expense);
+        ? (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
+        : (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense);
     final value = price > 0
         ? (investment.quantity * price).round()
         : investment.costBasis;

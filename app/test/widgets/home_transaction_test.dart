@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:familyledger/core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import 'package:familyledger/core/widgets/micro_interactions.dart';
 import 'package:familyledger/core/utils/category_uuid.dart';
 import 'package:familyledger/data/local/database.dart';

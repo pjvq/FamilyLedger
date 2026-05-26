@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../domain/providers/investment_provider.dart';
 import '../../domain/providers/market_data_provider.dart';
 import '../shared/family_scope_selector.dart';
@@ -261,7 +261,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
               hintText: '搜索代码或名称',
               prefixIcon: const Icon(Icons.search_rounded, size: 20),
               filled: true,
-              fillColor: isDark ? AppColors.cardDark : const Color(0xFFF5F5F5),
+              fillColor: isDark ? NeutralColorsDark.neutral2 : const Color(0xFFF5F5F5),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,

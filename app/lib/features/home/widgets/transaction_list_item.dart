@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../../data/local/database.dart';
 
 class TransactionListItem extends StatelessWidget {
@@ -23,8 +23,8 @@ class TransactionListItem extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final isExpense = transaction.type == 'expense';
     final amountColor = isExpense
-        ? (isDark ? AppColors.expenseDark : AppColors.expense)
-        : (isDark ? AppColors.incomeDark : AppColors.income);
+        ? (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense)
+        : (isDark ? SemanticColorsDark.income : SemanticColorsLight.income);
     final sign = isExpense ? '-' : '+';
     final amount = (transaction.amountCny / 100).toStringAsFixed(2);
 

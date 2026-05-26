@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/router/app_router.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../data/local/database.dart' as db;
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/loan_provider.dart';
@@ -110,7 +110,7 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
               const PopupMenuItem(
                 value: 'delete',
                 child: Text('删除贷款组',
-                    style: TextStyle(color: AppColors.expense)),
+                    style: TextStyle(color: SemanticColorsLight.expense)),
               ),
             ],
           ),
@@ -231,7 +231,7 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.expense),
+                  backgroundColor: SemanticColorsLight.expense),
               onPressed: () => Navigator.of(ctx).pop(true),
               child: const Text('删除'),
             ),
@@ -325,8 +325,8 @@ class _GroupSummaryCard extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         fontFeatures: const [FontFeature.tabularFigures()],
                         color: isDark
-                            ? AppColors.liabilityDark
-                            : AppColors.liability,
+                            ? SemanticColorsDark.liability
+                            : SemanticColorsLight.liability,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -625,8 +625,8 @@ class _OverviewTab extends StatelessWidget {
                 Icon(Icons.check_circle_rounded,
                     size: 16,
                     color: isDark
-                        ? AppColors.incomeDark
-                        : AppColors.income),
+                        ? SemanticColorsDark.income
+                        : SemanticColorsLight.income),
             ],
           ),
         );
@@ -765,8 +765,8 @@ class _SubLoanTab extends StatelessWidget {
                             style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: isDark
-                                    ? AppColors.liabilityDark
-                                    : AppColors.liability,
+                                    ? SemanticColorsDark.liability
+                                    : SemanticColorsLight.liability,
                                 fontFeatures: const [
                                   FontFeature.tabularFigures()
                                 ])),
@@ -869,8 +869,8 @@ class _SubLoanTab extends StatelessWidget {
                   Icon(Icons.check_circle_rounded,
                       size: 14,
                       color: isDark
-                          ? AppColors.incomeDark
-                          : AppColors.income)
+                          ? SemanticColorsDark.income
+                          : SemanticColorsLight.income)
                 else
                   const SizedBox(width: 14),
               ],
@@ -923,7 +923,7 @@ class _ActionButton extends StatelessWidget {
                 Icon(icon,
                     size: 22,
                     color:
-                        isDark ? AppColors.primaryDark : AppColors.primary),
+                        isDark ? ColorTokens.primaryLight : ColorTokens.primary),
                 const SizedBox(height: 4),
                 Text(label,
                     style: theme.textTheme.labelSmall

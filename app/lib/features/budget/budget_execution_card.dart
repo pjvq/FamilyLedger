@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 
 /// Circular progress ring showing budget execution rate.
 /// Includes pulse animation when overspent (rate >= 1.0).
@@ -89,9 +89,9 @@ class _BudgetExecutionCardState extends State<BudgetExecutionCard>
   }
 
   Color _rateColor(double rate) {
-    if (rate >= 0.8) return AppColors.expense;
+    if (rate >= 0.8) return SemanticColorsLight.expense;
     if (rate >= 0.6) return const Color(0xFFFF9500);
-    return AppColors.income;
+    return SemanticColorsLight.income;
   }
 
   String _formatAmount(int cents) {
@@ -132,7 +132,7 @@ class _BudgetExecutionCardState extends State<BudgetExecutionCard>
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.cardDark : AppColors.cardLight,
+            color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -179,8 +179,8 @@ class _BudgetExecutionCardState extends State<BudgetExecutionCard>
                 '已用 ${_formatAmount(widget.totalSpent)} / 预算 ${_formatAmount(widget.totalBudget)}',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondary,
+                      ? NeutralColorsDark.neutral5
+                      : NeutralColorsLight.neutral5,
                 ),
               ),
             ],

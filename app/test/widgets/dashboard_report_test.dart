@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:state_notifier/state_notifier.dart';
 
-import 'package:familyledger/core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import 'package:familyledger/core/utils/category_uuid.dart';
 import 'package:familyledger/features/dashboard/dashboard_page.dart';
 import 'package:familyledger/features/dashboard/widgets/dashboard_card.dart';
@@ -450,7 +450,7 @@ void main() {
       ));
 
       final card = tester.widget<Card>(find.byType(Card));
-      expect(card.color, AppColors.cardLight);
+      expect(card.color, NeutralColorsLight.neutral0);
     });
 
     testWidgets('Card uses rounded corners with radius 16', (tester) async {

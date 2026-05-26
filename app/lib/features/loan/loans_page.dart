@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/router/app_router.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../data/local/database.dart' as db;
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/loan_provider.dart';
@@ -265,8 +265,8 @@ class _LoanGroupCard extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                             fontFeatures: const [FontFeature.tabularFigures()],
                             color: isDark
-                                ? AppColors.liabilityDark
-                                : AppColors.liability,
+                                ? SemanticColorsDark.liability
+                                : SemanticColorsLight.liability,
                           ),
                         ),
                       ],
@@ -521,8 +521,8 @@ class _LoanCard extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                             fontFeatures: const [FontFeature.tabularFigures()],
                             color: isDark
-                                ? AppColors.liabilityDark
-                                : AppColors.liability,
+                                ? SemanticColorsDark.liability
+                                : SemanticColorsLight.liability,
                           ),
                         ),
                       ],
@@ -540,7 +540,7 @@ class _LoanCard extends StatelessWidget {
                         ? const Color(0xFF3A3A3C)
                         : const Color(0xFFE5E5EA),
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      isDark ? AppColors.primaryDark : AppColors.primary,
+                      isDark ? ColorTokens.primaryLight : ColorTokens.primary,
                     ),
                   ),
                 ),

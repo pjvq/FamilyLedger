@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/asset_provider.dart';
@@ -107,7 +107,7 @@ class _SummaryCard extends StatelessWidget {
           gradient: LinearGradient(
             colors: isDark
                 ? [const Color(0xFF1A2A3A), const Color(0xFF0F1F2F)]
-                : [AppColors.asset, const Color(0xFF0056CC)],
+                : [SemanticColorsLight.asset, const Color(0xFF0056CC)],
           ),
           borderRadius: BorderRadius.circular(18),
         ),
@@ -195,8 +195,8 @@ class _AssetCard extends StatelessWidget {
                       height: 44,
                       decoration: BoxDecoration(
                         color: isDark
-                            ? AppColors.assetDark.withValues(alpha: 0.15)
-                            : AppColors.asset.withValues(alpha: 0.1),
+                            ? SemanticColorsDark.asset.withValues(alpha: 0.15)
+                            : SemanticColorsLight.asset.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
@@ -247,7 +247,7 @@ class _AssetCard extends StatelessWidget {
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontFeatures: const [FontFeature.tabularFigures()],
-                            color: isDark ? AppColors.assetDark : AppColors.asset,
+                            color: isDark ? SemanticColorsDark.asset : SemanticColorsLight.asset,
                           ),
                         ),
                         Text(
@@ -346,8 +346,8 @@ class _DepreciationProgressBar extends StatelessWidget {
         ? const Color(0xFF2A3A4A)
         : const Color(0xFFD6E8FF);
     final fillColor = isDark
-        ? AppColors.assetDark
-        : AppColors.asset;
+        ? SemanticColorsDark.asset
+        : SemanticColorsLight.asset;
 
     return Semantics(
       label: '折旧进度${(progress * 100).toStringAsFixed(0)}%',

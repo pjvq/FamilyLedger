@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/loan_provider.dart';
 import '../../domain/models/loan_models.dart';
@@ -780,7 +780,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.primaryDark : AppColors.primary,
+                    color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
                   ),
                 ),
                 const SizedBox(width: 8),

@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/constants/category_icon_widget.dart';
 import '../../core/constants/category_icons.dart';
 import '../../core/router/app_router.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
@@ -345,13 +345,13 @@ class _DateHeader extends StatelessWidget {
         height: 40,
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral1,
         child: Text(
           label,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            color: isDark ? NeutralColorsDark.neutral5 : NeutralColorsLight.neutral5,
           ),
         ),
       ),
@@ -392,8 +392,8 @@ class _TransactionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final isIncome = transaction.type == 'income';
     final amountColor = isIncome
-        ? (isDark ? AppColors.incomeDark : AppColors.income)
-        : (isDark ? AppColors.expenseDark : AppColors.expense);
+        ? (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
+        : (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense);
     final prefix = isIncome ? '+' : '-';
     final yuan = transaction.amountCny / 100;
     final amountText = yuan == yuan.truncateToDouble()
@@ -450,8 +450,8 @@ class _TransactionRow extends StatelessWidget {
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                         color: isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimary,
+                            ? NeutralColorsDark.neutral7
+                            : NeutralColorsLight.neutral7,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -466,8 +466,8 @@ class _TransactionRow extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondary,
+                            ? NeutralColorsDark.neutral5
+                            : NeutralColorsLight.neutral5,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -548,8 +548,8 @@ class _EmptyState extends StatelessWidget {
               Icons.receipt_long_rounded,
               size: 80,
               color: isDark
-                  ? AppColors.textSecondaryDark.withValues(alpha: 0.4)
-                  : AppColors.textSecondary.withValues(alpha: 0.3),
+                  ? NeutralColorsDark.neutral5.withValues(alpha: 0.4)
+                  : NeutralColorsLight.neutral5.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 20),
             Text(
@@ -558,8 +558,8 @@ class _EmptyState extends StatelessWidget {
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
                 color: isDark
-                    ? AppColors.textPrimaryDark.withValues(alpha: 0.6)
-                    : AppColors.textPrimary.withValues(alpha: 0.4),
+                    ? NeutralColorsDark.neutral7.withValues(alpha: 0.6)
+                    : NeutralColorsLight.neutral7.withValues(alpha: 0.4),
               ),
             ),
             const SizedBox(height: 8),
@@ -568,8 +568,8 @@ class _EmptyState extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondary,
+                    ? NeutralColorsDark.neutral5
+                    : NeutralColorsLight.neutral5,
               ),
             ),
             const SizedBox(height: 28),

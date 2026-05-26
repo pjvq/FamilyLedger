@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/asset_provider.dart';
 import 'update_valuation_dialog.dart';
@@ -59,7 +59,7 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                       ),
                       FilledButton(
                         style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.expense,
+                          backgroundColor: SemanticColorsLight.expense,
                         ),
                         onPressed: () => Navigator.of(ctx).pop(true),
                         child: const Text('删除'),
@@ -81,7 +81,7 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                 child: Row(
                   children: [
                     Icon(Icons.delete_outline_rounded,
-                        color: AppColors.expense),
+                        color: SemanticColorsLight.expense),
                     SizedBox(width: 8),
                     Text('删除'),
                   ],
@@ -290,7 +290,7 @@ class _HeaderCard extends StatelessWidget {
         gradient: LinearGradient(
           colors: isDark
               ? [const Color(0xFF1A2A3A), const Color(0xFF0F1F2F)]
-              : [AppColors.asset, const Color(0xFF0056CC)],
+              : [SemanticColorsLight.asset, const Color(0xFF0056CC)],
         ),
         borderRadius: BorderRadius.circular(18),
       ),
@@ -430,7 +430,7 @@ class _ValuationChart extends StatelessWidget {
       return FlSpot(e.key.toDouble(), e.value.value / 100);
     }).toList();
 
-    final chartColor = isDark ? AppColors.assetDark : AppColors.asset;
+    final chartColor = isDark ? SemanticColorsDark.asset : SemanticColorsLight.asset;
 
     return Semantics(
       label: '估值历史折线图，共${sorted.length}个数据点',
@@ -661,8 +661,8 @@ class _ValuationList extends StatelessWidget {
             ? Icons.edit_rounded
             : Icons.trending_down_rounded;
         final sourceColor = isManual
-            ? (isDark ? AppColors.assetDark : AppColors.asset)
-            : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary);
+            ? (isDark ? SemanticColorsDark.asset : SemanticColorsLight.asset)
+            : (isDark ? NeutralColorsDark.neutral5 : NeutralColorsLight.neutral5);
 
         return Semantics(
           label: '$sourceLabel，${_fmtYuan(record.value)}元，${DateFormat('yyyy年M月d日').format(record.valuationDate)}',

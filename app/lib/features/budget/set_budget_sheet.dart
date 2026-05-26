@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/category_icon_widget.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 import '../../data/local/database.dart' show Category;
 import '../../domain/providers/budget_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
@@ -190,7 +190,7 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
             borderRadius: BorderRadius.circular(10),
           ),
           filled: true,
-          fillColor: isDark ? AppColors.cardDark : AppColors.cardLight,
+          fillColor: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
         ),
       ),
     );
@@ -257,7 +257,7 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral1,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: DraggableScrollableSheet(
@@ -330,16 +330,16 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                                 theme.textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: isDark
-                                  ? AppColors.primaryDark
-                                  : AppColors.primary,
+                                  ? ColorTokens.primaryLight
+                                  : ColorTokens.primary,
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
                             filled: true,
                             fillColor: isDark
-                                ? AppColors.cardDark
-                                : AppColors.cardLight,
+                                ? NeutralColorsDark.neutral2
+                                : NeutralColorsLight.neutral0,
                           ),
                         ),
                       ),
