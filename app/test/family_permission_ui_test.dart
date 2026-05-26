@@ -195,6 +195,8 @@ class _FixedFamilyNotifier extends StateNotifier<FamilyState>
   Future<void> leaveFamily() async {}
   @override
   Future<void> refreshMembers() async {}
+  @override
+  void switchMode({required bool toFamily}) {}
 }
 
 /// Minimal widget that reads permission providers to show/hide buttons.

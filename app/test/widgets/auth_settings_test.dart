@@ -250,6 +250,8 @@ class _FakeFamilyNotifier extends StateNotifier<FamilyState>
   Future<void> leaveFamily() async {}
   @override
   Future<void> refreshMembers() async {}
+  @override
+  void switchMode({required bool toFamily}) {}
 }
 
 class _FakeAccountNotifier extends StateNotifier<AccountState>
