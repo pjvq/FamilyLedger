@@ -8,6 +8,7 @@ import '../../data/local/database.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/transaction_flow_provider.dart';
+import '../../domain/providers/transaction_provider.dart';
 
 /// 账户详情页 — 展示账户信息及最近交易。
 class AccountDetailPage extends ConsumerStatefulWidget {
@@ -28,6 +29,15 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
     _loadTransactions();
   }
 
+  /// Reload transactions when transaction state changes (new/edited/deleted).
+  @override
+  void didUpdateWidget(covariant AccountDetailPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.accountId != widget.accountId) {
+      _loadTransactions();
+    }
+  }
+
   Future<void> _loadTransactions() async {
     final db = ref.read(databaseProvider);
     final txns = await db.getTransactionsByAccountId(widget.accountId);
@@ -41,6 +51,9 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Reload when global transaction state changes (add/edit/delete elsewhere)
+    ref.listen(transactionProvider, (_, __) => _loadTransactions());
+
     final accountState = ref.watch(accountProvider);
     final account = accountState.accounts
         .where((a) => a.id == widget.accountId)
@@ -271,7 +284,7 @@ class _AccountInfoCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _accountTypeLabel(account.accountType),
+                      accountTypeDisplayName(account.accountType),
                       style: TypographyTokens.caption(
                         color: isDark
                             ? NeutralColorsDark.neutral4
@@ -310,23 +323,19 @@ class _AccountInfoCard extends StatelessWidget {
       ),
     );
   }
-
-  String _accountTypeLabel(String type) {
-    switch (type) {
-      case 'cash':
-        return '现金';
-      case 'debit':
-        return '储蓄卡';
-      case 'credit':
-        return '信用卡';
-      case 'alipay':
-        return '支付宝';
-      case 'wechat':
-        return '微信';
-      case 'investment':
-        return '投资账户';
-      default:
-        return '其他';
-    }
-  }
 }
+
+/// 账户类型的显示名称映射。
+const _accountTypeLabels = <String, String>{
+  'cash': '现金',
+  'debit': '储蓄卡',
+  'credit': '信用卡',
+  'alipay': '支付宝',
+  'wechat': '微信',
+  'investment': '投资账户',
+};
+
+/// 获取账户类型的中文标签。
+String accountTypeDisplayName(String type) =>
+    _accountTypeLabels[type] ?? '其他';
+

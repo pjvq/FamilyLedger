@@ -5,6 +5,7 @@ import 'package:familyledger/features/account/account_detail_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import 'test_helpers.dart';
 
@@ -27,15 +28,31 @@ void main() {
     String? accountId,
     AccountState? accountState,
   }) {
+    final id = accountId ?? testAccount.id;
     return ProviderScope(
       overrides: testOverrides(
         account: accountState ?? AccountState(accounts: [testAccount]),
       ),
-      child: MaterialApp(
+      child: MaterialApp.router(
         theme: ThemeData.light(useMaterial3: true).copyWith(
           extensions: const [AppSemanticColors.light],
         ),
-        home: AccountDetailPage(accountId: accountId ?? testAccount.id),
+        routerConfig: GoRouter(
+          initialLocation: '/detail/$id',
+          routes: [
+            GoRoute(
+              path: '/detail/:accountId',
+              builder: (context, state) => AccountDetailPage(
+                accountId: state.pathParameters['accountId']!,
+              ),
+            ),
+            GoRoute(
+              path: '/assets',
+              builder: (context, state) =>
+                  const Scaffold(body: Text('Assets')),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -54,7 +71,7 @@ void main() {
       accountId: 'nonexistent',
       accountState: const AccountState(accounts: []),
     ));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(find.text('账户不存在'), findsOneWidget);
   });

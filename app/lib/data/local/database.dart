@@ -586,18 +586,12 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Transaction>> getTransactionsByAccountId(
     String accountId, {
     int limit = 50,
-  }) async {
-    final rows = await customSelect(
-      'SELECT * FROM transactions '
-      'WHERE account_id = ? AND deleted_at IS NULL '
-      'ORDER BY txn_date DESC LIMIT ?',
-      variables: [
-        Variable.withString(accountId),
-        Variable.withInt(limit),
-      ],
-      readsFrom: {transactions},
-    ).get();
-    return rows.map((row) => transactions.map(row.data)).toList();
+  }) {
+    return (select(transactions)
+          ..where((t) => t.accountId.equals(accountId) & t.deletedAt.isNull())
+          ..orderBy([(t) => OrderingTerm.desc(t.txnDate)])
+          ..limit(limit))
+        .get();
   }
 
   /// 更新交易的指定字段
