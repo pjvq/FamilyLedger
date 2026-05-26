@@ -582,6 +582,18 @@ class AppDatabase extends _$AppDatabase {
   Future<Transaction?> getTransactionById(String id) =>
       (select(transactions)..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  /// 查询指定账户的最近交易（已过滤 deleted）。
+  Future<List<Transaction>> getTransactionsByAccountId(
+    String accountId, {
+    int limit = 50,
+  }) {
+    return (select(transactions)
+          ..where((t) => t.accountId.equals(accountId) & t.deletedAt.isNull())
+          ..orderBy([(t) => OrderingTerm.desc(t.txnDate)])
+          ..limit(limit))
+        .get();
+  }
+
   /// 更新交易的指定字段
   Future<void> updateTransactionFields(
       String id, TransactionsCompanion entry) async {
