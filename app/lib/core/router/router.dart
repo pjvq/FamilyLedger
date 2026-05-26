@@ -149,12 +149,19 @@ final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'accounts/add',
-                    builder: (_, __) => const AddAccountPage(),
+                    builder: (context, state) => const AddAccountPage(),
                   ),
                   GoRoute(
-                    path: 'accounts/:accountId',
+                    path: 'accounts/detail/:accountId',
+                    redirect: (context, state) {
+                      final id = state.pathParameters['accountId'];
+                      if (id == null || id.isEmpty) {
+                        return '/assets';
+                      }
+                      return null;
+                    },
                     builder: (context, state) => AccountDetailPage(
-                      accountId: state.pathParameters['accountId'] ?? '',
+                      accountId: state.pathParameters['accountId']!,
                     ),
                   ),
                   GoRoute(

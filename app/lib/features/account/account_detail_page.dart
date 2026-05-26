@@ -7,7 +7,7 @@ import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/app_providers.dart';
-import '../../domain/providers/transaction_provider.dart';
+import '../../domain/providers/transaction_flow_provider.dart';
 
 /// 账户详情页 — 展示账户信息及最近交易。
 class AccountDetailPage extends ConsumerStatefulWidget {
@@ -30,22 +30,10 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
 
   Future<void> _loadTransactions() async {
     final db = ref.read(databaseProvider);
-    final userId = ref.read(currentUserIdProvider);
-    if (userId == null) return;
-    final familyId = ref.read(currentFamilyIdProvider);
-    // Get recent transactions and filter by this account
-    final allTxns = await db.getTransactionPage(
-      userId,
-      familyId: familyId,
-      limit: 50,
-      offset: 0,
-    );
-    final filtered = allTxns
-        .where((t) => t.accountId == widget.accountId && t.deletedAt == null)
-        .toList();
+    final txns = await db.getTransactionsByAccountId(widget.accountId);
     if (mounted) {
       setState(() {
-        _transactions = filtered;
+        _transactions = txns;
         _isLoading = false;
       });
     }
@@ -53,8 +41,6 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final accountState = ref.watch(accountProvider);
     final account = accountState.accounts
         .where((a) => a.id == widget.accountId)
@@ -67,11 +53,7 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
       );
     }
 
-    final txnState = ref.watch(transactionProvider);
-    final categories = [
-      ...txnState.expenseCategories,
-      ...txnState.incomeCategories,
-    ];
+    final categoryMap = ref.watch(flowCategoryMapProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -90,10 +72,7 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
         slivers: [
           // Account info card
           SliverToBoxAdapter(
-            child: _AccountInfoCard(
-              account: account,
-              isDark: isDark,
-            ),
+            child: _AccountInfoCard(account: account),
           ),
           // Recent transactions header
           SliverToBoxAdapter(
@@ -106,7 +85,7 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
               ),
               child: Text(
                 '最近交易',
-                style: theme.textTheme.titleMedium?.copyWith(
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -127,13 +106,19 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
                       Icon(
                         Icons.receipt_long_rounded,
                         size: 48,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: SpacingTokens.sm),
                       Text(
                         '暂无交易记录',
                         style: TypographyTokens.bodySm(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.5),
                         ),
                       ),
                     ],
@@ -146,48 +131,10 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final txn = _transactions[index];
-                  final category = categories
-                      .where((c) => c.id == txn.categoryId)
-                      .firstOrNull;
-                  final isIncome = txn.amount > 0;
-                  final amountColor = isIncome
-                      ? (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
-                      : (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense);
-                  return ListTile(
-                    leading: CircleAvatar(
-                      radius: 20,
-                      backgroundColor: isDark
-                          ? NeutralColorsDark.neutral2
-                          : NeutralColorsLight.neutral2,
-                      child: Text(
-                        category?.name.characters.first ?? '?',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                    title: Text(
-                      category?.name ?? '未分类',
-                      style: TypographyTokens.bodyMd(),
-                    ),
-                    subtitle: txn.note.isNotEmpty
-                        ? Text(
-                            txn.note,
-                            style: TypographyTokens.caption(
-                              color: isDark
-                                  ? NeutralColorsDark.neutral4
-                                  : NeutralColorsLight.neutral4,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          )
-                        : null,
-                    trailing: Text(
-                      formatCents(txn.amount, showSign: true),
-                      style: TypographyTokens.amount(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: amountColor,
-                      ),
-                    ),
+                  final category = categoryMap[txn.categoryId];
+                  return _TransactionListItem(
+                    transaction: txn,
+                    category: category,
                   );
                 },
                 childCount: _transactions.length,
@@ -200,23 +147,82 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
   }
 }
 
-// ─── Account Info Card ───
+// ─── Transaction List Item ───
 
-class _AccountInfoCard extends StatelessWidget {
-  final Account account;
-  final bool isDark;
+class _TransactionListItem extends StatelessWidget {
+  final Transaction transaction;
+  final Category? category;
 
-  const _AccountInfoCard({
-    required this.account,
-    required this.isDark,
+  const _TransactionListItem({
+    required this.transaction,
+    required this.category,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isIncome = transaction.amount > 0;
+    final amountColor = isIncome
+        ? context.semanticColors.income
+        : context.semanticColors.expense;
+
+    final categoryLabel = category?.name ?? '未分类';
+    final categoryInitial =
+        categoryLabel.isNotEmpty ? categoryLabel.characters.first : '?';
+
+    return ListTile(
+      leading: CircleAvatar(
+        radius: 20,
+        backgroundColor: isDark
+            ? NeutralColorsDark.neutral2
+            : NeutralColorsLight.neutral2,
+        child: Text(
+          categoryInitial,
+          style: const TextStyle(fontSize: 16),
+        ),
+      ),
+      title: Text(
+        categoryLabel,
+        style: TypographyTokens.bodyMd(),
+      ),
+      subtitle: transaction.note.isNotEmpty
+          ? Text(
+              transaction.note,
+              style: TypographyTokens.caption(
+                color: isDark
+                    ? NeutralColorsDark.neutral4
+                    : NeutralColorsLight.neutral4,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )
+          : null,
+      trailing: Text(
+        formatCents(transaction.amount, showSign: true),
+        style: TypographyTokens.amount(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: amountColor,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Account Info Card ───
+
+class _AccountInfoCard extends StatelessWidget {
+  final Account account;
+
+  const _AccountInfoCard({required this.account});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isPositive = account.balance >= 0;
     final amountColor = isPositive
-        ? (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
-        : (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense);
+        ? context.semanticColors.income
+        : context.semanticColors.expense;
 
     return Container(
       margin: const EdgeInsets.all(SpacingTokens.base),
@@ -291,7 +297,7 @@ class _AccountInfoCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '¥ ${formatCentsCompact(account.balance)}',
+                '¥ ${formatCents(account.balance, showSign: true)}',
                 style: TypographyTokens.amount(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
