@@ -158,7 +158,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     label: '没有账号？去注册',
                     child: TextButton(
                       onPressed: () {
-                        context.go(AppRouter.register);
+                        context.push(AppRouter.register);
                       },
                       child: Text(
                         '没有账号？注册',

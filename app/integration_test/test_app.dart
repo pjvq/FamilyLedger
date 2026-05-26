@@ -61,6 +61,9 @@ class _PerfTestApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Uses real routerProvider — auth is bypassed via SharedPreferences mock
+    // (userId + accessToken set), so GoRouter's redirect sees isLoggedIn=true
+    // and routes directly to /overview.
     final router = ref.watch(routerProvider);
     return MaterialApp.router(
       title: 'FamilyLedger PerfTest',

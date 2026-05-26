@@ -151,10 +151,10 @@ Widget _wrapPage(
       routerConfig: GoRouter(
         initialLocation: '/',
         routes: [
-          GoRoute(path: '/', builder: (_, __) => child),
-          GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
-          GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
-          GoRoute(path: '/overview', builder: (_, __) => const Scaffold(body: Text('Overview'))),
+          GoRoute(path: '/', builder: (context, state) => child),
+          GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
+          GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+          GoRoute(path: '/overview', builder: (context, state) => const Scaffold(body: Text('Overview'))),
         ],
       ),
     ),
