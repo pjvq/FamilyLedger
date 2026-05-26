@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart' as db;
@@ -82,6 +82,7 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
     final marketState = ref.watch(marketDataProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final colors = context.semanticColors;
 
     final investment = invState.investments
         .where((i) => i.id == widget.investmentId)
@@ -100,8 +101,8 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
     final changePercent = quote?.changePercent ?? 0.0;
     final isUp = changePercent >= 0;
     final changeColor = isUp
-        ? (isDark ? AppColors.incomeDark : AppColors.income)
-        : (isDark ? AppColors.expenseDark : AppColors.expense);
+        ? colors.income
+        : colors.expense;
 
     final currentValue = price > 0
         ? (investment.quantity * price).round()
@@ -135,7 +136,7 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                       ),
                       FilledButton(
                         style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.expense,
+                          backgroundColor: context.semanticColors.expense,
                         ),
                         onPressed: () => Navigator.of(ctx).pop(true),
                         child: const Text('删除'),
@@ -152,11 +153,11 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline_rounded, color: AppColors.expense),
+                    Icon(Icons.delete_outline_rounded, color: context.semanticColors.expense),
                     SizedBox(width: 8),
                     Text('删除'),
                   ],
@@ -191,8 +192,8 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                             horizontal: 4, vertical: 1),
                         decoration: BoxDecoration(
                           color: isDark
-                              ? const Color(0xFF3A3A3C)
-                              : const Color(0xFFF2F2F7),
+                              ? NeutralColorsDark.neutral3
+                              : NeutralColorsLight.neutral2,
                           borderRadius: BorderRadius.circular(3),
                         ),
                         child: Text(
@@ -493,10 +494,11 @@ class _HoldingInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     final isPositive = profit >= 0;
     final profitColor = isPositive
-        ? (isDark ? AppColors.incomeDark : AppColors.income)
-        : (isDark ? AppColors.expenseDark : AppColors.expense);
+        ? colors.income
+        : colors.expense;
 
     // Compute display return based on mode
     double displayReturn;
@@ -636,6 +638,7 @@ class _TradeList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     if (trades.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(20),
@@ -659,8 +662,8 @@ class _TradeList extends StatelessWidget {
         final trade = trades[index];
         final isBuy = trade.tradeType == 'buy';
         final color = isBuy
-            ? (isDark ? AppColors.expenseDark : AppColors.expense)
-            : (isDark ? AppColors.incomeDark : AppColors.income);
+            ? colors.expense
+            : colors.income;
 
         return Semantics(
           label:

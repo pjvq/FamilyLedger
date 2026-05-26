@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/investment_provider.dart';
 
 /// Portfolio allocation pie chart
@@ -15,17 +15,10 @@ class PortfolioChart extends ConsumerStatefulWidget {
 class _PortfolioChartState extends ConsumerState<PortfolioChart> {
   int? _touchedIndex;
 
-  static const _chartColors = [
-    Color(0xFF5B6EF5), // primary
-    Color(0xFF34C759), // green
-    Color(0xFFFF9500), // orange
-    Color(0xFFFF6B6B), // red
-    Color(0xFFAF52DE), // purple
-    Color(0xFF5AC8FA), // blue
-    Color(0xFFFFCC00), // yellow
-    Color(0xFFFF2D55), // pink
-    Color(0xFF64D2FF), // light blue
-    Color(0xFF30D158), // light green
+  static final _chartColors = [
+    ...ChartColors.palette,
+    const Color(0xFF64D2FF), // light blue
+    const Color(0xFF30D158), // light green
   ];
 
   @override
@@ -229,10 +222,11 @@ class _HoldingDetail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.semanticColors;
     final isPositive = holding.returnRate >= 0;
     final retColor = isPositive
-        ? (isDark ? AppColors.incomeDark : AppColors.income)
-        : (isDark ? AppColors.expenseDark : AppColors.expense);
+        ? colors.income
+        : colors.expense;
 
     return Container(
       margin: const EdgeInsets.only(top: 12),

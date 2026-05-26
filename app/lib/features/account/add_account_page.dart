@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
 import '../transaction/widgets/number_pad.dart';
@@ -147,17 +147,17 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
                         horizontal: 20, vertical: 24),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? const Color(0xFF2C2C2E)
-                          : const Color(0xFFF8F9FA),
+                          ? NeutralColorsDark.neutral2
+                          : NeutralColorsLight.neutral1,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (_isEditMode && _balanceMode == 1)
-                          Text('+', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: AppColors.income)),
+                          Text('+', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: context.semanticColors.income)),
                         if (_isEditMode && _balanceMode == 2)
-                          Text('-', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: AppColors.expense)),
+                          Text('-', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: context.semanticColors.expense)),
                         Text(
                           '¥',
                           style: theme.textTheme.headlineMedium?.copyWith(
@@ -303,20 +303,20 @@ class _TypeChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: isSelected
                 ? (isDark
-                    ? AppColors.primaryDark.withValues(alpha: 0.2)
-                    : AppColors.primary.withValues(alpha: 0.1))
-                : (isDark ? const Color(0xFF2C2C2E) : Colors.white),
+                    ? ColorTokens.primaryLight.withValues(alpha: 0.2)
+                    : ColorTokens.primary.withValues(alpha: 0.1))
+                : (isDark ? NeutralColorsDark.neutral2 : Colors.white),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isSelected
-                  ? (isDark ? AppColors.primaryDark : AppColors.primary)
+                  ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
                   : Colors.transparent,
               width: 2,
             ),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.15),
+                      color: ColorTokens.primary.withValues(alpha: 0.15),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -335,7 +335,7 @@ class _TypeChip extends StatelessWidget {
                   fontWeight:
                       isSelected ? FontWeight.w600 : FontWeight.w400,
                   color: isSelected
-                      ? (isDark ? AppColors.primaryDark : AppColors.primary)
+                      ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
                       : null,
                 ),
               ),

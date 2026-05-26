@@ -15,6 +15,7 @@ class AppTheme {
         colorSchemeSeed: ColorTokens.primary,
         scaffoldBackgroundColor: NeutralColorsLight.neutral1,
         pageTransitionsTheme: _pageTransitionsTheme,
+        extensions: const [AppSemanticColors.light],
         cardTheme: CardThemeData(
           color: NeutralColorsLight.neutral0,
           elevation: 0,
@@ -78,6 +79,7 @@ class AppTheme {
         colorSchemeSeed: ColorTokens.primaryLight,
         scaffoldBackgroundColor: NeutralColorsDark.neutral0,
         pageTransitionsTheme: _pageTransitionsTheme,
+        extensions: const [AppSemanticColors.dark],
         cardTheme: CardThemeData(
           color: NeutralColorsDark.neutral2,
           elevation: 0,

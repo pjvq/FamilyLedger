@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
@@ -71,7 +71,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.cardDark : AppColors.cardLight,
+                color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
@@ -81,7 +81,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                 children: [
                   Icon(Icons.calendar_today_rounded,
                       size: 18,
-                      color: isDark ? AppColors.primaryDark : AppColors.primary),
+                      color: isDark ? ColorTokens.primaryLight : ColorTokens.primary),
                   const SizedBox(width: 10),
                   Text(
                     _dateRange != null
@@ -121,7 +121,7 @@ class _ExportPageState extends ConsumerState<ExportPage> {
               child: Text(
                 '已选 ${_selectedCategoryIds.length} 个分类',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: isDark ? AppColors.primaryDark : AppColors.primary,
+                  color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
                 ),
               ),
             ),

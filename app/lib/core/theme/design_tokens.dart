@@ -6,6 +6,7 @@
 /// ```
 
 export 'tokens/color_tokens.dart';
+export 'tokens/semantic_theme_extension.dart';
 export 'tokens/spacing_tokens.dart';
 export 'tokens/radius_tokens.dart';
 export 'tokens/shadow_tokens.dart';

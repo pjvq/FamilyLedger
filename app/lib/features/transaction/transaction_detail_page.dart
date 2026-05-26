@@ -7,7 +7,7 @@ import '../../core/constants/category_icon_widget.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/router/app_router.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/transaction_provider.dart';
@@ -35,6 +35,7 @@ class TransactionDetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final colors = context.semanticColors;
     final txn = args.transaction;
     final category = args.category;
     final isIncome = txn.type == 'income';
@@ -57,8 +58,8 @@ class TransactionDetailPage extends ConsumerWidget {
     final accountName = account?.name ?? txn.accountId;
 
     final amountColor = isIncome
-        ? (isDark ? AppColors.incomeDark : AppColors.income)
-        : (isDark ? AppColors.expenseDark : AppColors.expense);
+        ? colors.income
+        : colors.expense;
     final prefix = isIncome ? '+' : '-';
     final yuan = txn.amountCny / 100;
     final amountText = yuan == yuan.truncateToDouble()
@@ -122,8 +123,8 @@ class TransactionDetailPage extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 14,
                         color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondary,
+                            ? NeutralColorsDark.neutral5
+                            : NeutralColorsLight.neutral5,
                       ),
                     ),
                   ],
@@ -141,8 +142,8 @@ class TransactionDetailPage extends ConsumerWidget {
                             height: 48,
                             decoration: BoxDecoration(
                               color: isDark
-                                  ? const Color(0xFF3A3A3C)
-                                  : const Color(0xFFF2F2F7),
+                                  ? NeutralColorsDark.neutral3
+                                  : NeutralColorsLight.neutral2,
                               borderRadius: BorderRadius.circular(14),
                             ),
                             alignment: Alignment.center,
@@ -164,8 +165,8 @@ class TransactionDetailPage extends ConsumerWidget {
                                     fontSize: 17,
                                     fontWeight: FontWeight.w600,
                                     color: isDark
-                                        ? AppColors.textPrimaryDark
-                                        : AppColors.textPrimary,
+                                        ? NeutralColorsDark.neutral7
+                                        : NeutralColorsLight.neutral7,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -174,8 +175,8 @@ class TransactionDetailPage extends ConsumerWidget {
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: isDark
-                                        ? AppColors.textSecondaryDark
-                                        : AppColors.textSecondary,
+                                        ? NeutralColorsDark.neutral5
+                                        : NeutralColorsLight.neutral5,
                                   ),
                                 ),
                               ],
@@ -233,16 +234,16 @@ class TransactionDetailPage extends ConsumerWidget {
                               Icon(Icons.label_outline_rounded,
                                   size: 18,
                                   color: isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textSecondary),
+                                      ? NeutralColorsDark.neutral5
+                                      : NeutralColorsLight.neutral5),
                               const SizedBox(width: 8),
                               Text(
                                 '标签',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textSecondary,
+                                      ? NeutralColorsDark.neutral5
+                                      : NeutralColorsLight.neutral5,
                                 ),
                               ),
                             ],
@@ -281,16 +282,16 @@ class TransactionDetailPage extends ConsumerWidget {
                               Icon(Icons.photo_library_outlined,
                                   size: 18,
                                   color: isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textSecondary),
+                                      ? NeutralColorsDark.neutral5
+                                      : NeutralColorsLight.neutral5),
                               const SizedBox(width: 8),
                               Text(
                                 '图片',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: isDark
-                                      ? AppColors.textSecondaryDark
-                                      : AppColors.textSecondary,
+                                      ? NeutralColorsDark.neutral5
+                                      : NeutralColorsLight.neutral5,
                                 ),
                               ),
                             ],
@@ -360,9 +361,9 @@ class TransactionDetailPage extends ConsumerWidget {
                     label: const Text('删除交易'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor:
-                          isDark ? AppColors.expenseDark : AppColors.expense,
+                          colors.expense,
                       side: BorderSide(
-                        color: (isDark ? AppColors.expenseDark : AppColors.expense)
+                        color: colors.expense
                             .withValues(alpha: 0.4),
                       ),
                       shape: RoundedRectangleBorder(
@@ -385,11 +386,11 @@ class TransactionDetailPage extends ConsumerWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
         borderRadius: BorderRadius.circular(14),
         border: isDark
             ? null
-            : Border.all(color: AppColors.divider.withValues(alpha: 0.5)),
+            : Border.all(color: NeutralColorsLight.neutral3.withValues(alpha: 0.5)),
       ),
       child: child,
     );
@@ -408,15 +409,15 @@ class TransactionDetailPage extends ConsumerWidget {
           Icon(icon,
               size: 18,
               color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondary),
+                  ? NeutralColorsDark.neutral5
+                  : NeutralColorsLight.neutral5),
           const SizedBox(width: 10),
           Text(
             label,
             style: TextStyle(
               fontSize: 14,
               color:
-                  isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                  isDark ? NeutralColorsDark.neutral5 : NeutralColorsLight.neutral5,
             ),
           ),
           const Spacer(),
@@ -426,7 +427,7 @@ class TransactionDetailPage extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+                color: isDark ? NeutralColorsDark.neutral7 : NeutralColorsLight.neutral7,
               ),
               textAlign: TextAlign.end,
               overflow: TextOverflow.ellipsis,
@@ -441,7 +442,7 @@ class TransactionDetailPage extends ConsumerWidget {
     return Divider(
       height: 1,
       thickness: 0.5,
-      color: isDark ? AppColors.dividerDark : AppColors.divider,
+      color: isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral3,
     );
   }
 
@@ -468,7 +469,7 @@ class TransactionDetailPage extends ConsumerWidget {
     return Container(
       width: 80,
       height: 80,
-      color: isDark ? const Color(0xFF3A3A3C) : const Color(0xFFF2F2F7),
+      color: isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral2,
       alignment: Alignment.center,
       child: Icon(Icons.broken_image_outlined,
           color: isDark ? Colors.white54 : Colors.black38),

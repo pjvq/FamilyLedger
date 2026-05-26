@@ -38,9 +38,7 @@ class FlBadge extends StatelessWidget {
     final isDot = count == null || count == 0;
     final displayText =
         count != null && count! > 99 ? '99+' : count?.toString();
-    final badgeColor = Theme.of(context).brightness == Brightness.light
-        ? SemanticColorsLight.error
-        : SemanticColorsDark.error;
+    final badgeColor = context.semanticColors.error;
 
     return Stack(
       clipBehavior: Clip.none,

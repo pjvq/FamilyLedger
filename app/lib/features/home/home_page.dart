@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
 import '../../core/constants/app_constants.dart';
 import '../../core/router/app_router.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/account_provider.dart';
 import '../account/add_account_page.dart';
@@ -94,7 +94,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: isDark ? AppColors.primaryDark : AppColors.primary,
+                color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
@@ -205,7 +205,7 @@ class _ModeSwitcher extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+          color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
@@ -260,7 +260,7 @@ class _SwitcherButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
         decoration: BoxDecoration(
           color: isActive
-              ? (isDark ? AppColors.cardDark : Colors.white)
+              ? (isDark ? NeutralColorsDark.neutral2 : Colors.white)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           boxShadow: isActive
@@ -280,10 +280,10 @@ class _SwitcherButton extends StatelessWidget {
               icon,
               size: 18,
               color: isActive
-                  ? (isDark ? AppColors.primaryDark : AppColors.primary)
+                  ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
                   : (isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondary),
+                      ? NeutralColorsDark.neutral5
+                      : NeutralColorsLight.neutral5),
             ),
             const SizedBox(width: 6),
             Flexible(
@@ -295,11 +295,11 @@ class _SwitcherButton extends StatelessWidget {
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                   color: isActive
                       ? (isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimary)
+                          ? NeutralColorsDark.neutral7
+                          : NeutralColorsLight.neutral7)
                       : (isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondary),
+                          ? NeutralColorsDark.neutral5
+                          : NeutralColorsLight.neutral5),
                 ),
               ),
             ),
@@ -471,7 +471,7 @@ class _TotalCard extends StatelessWidget {
         gradient: LinearGradient(
           colors: isDark
               ? [const Color(0xFF1A3A2A), const Color(0xFF0F2A1F)]
-              : [AppColors.income, const Color(0xFF28B34A)],
+              : [context.semanticColors.income, GradientTokens.incomeGradientEnd],
         ),
         borderRadius: BorderRadius.circular(18),
       ),
@@ -527,6 +527,7 @@ class _AccountTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
       clipBehavior: Clip.antiAlias,
@@ -547,8 +548,8 @@ class _AccountTile extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: isDark
-                    ? const Color(0xFF3A3A3C)
-                    : const Color(0xFFF2F2F7),
+                    ? NeutralColorsDark.neutral3
+                    : NeutralColorsLight.neutral2,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
@@ -570,8 +571,8 @@ class _AccountTile extends StatelessWidget {
               style: theme.textTheme.bodyLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: account.balance >= 0
-                    ? (isDark ? AppColors.incomeDark : AppColors.income)
-                    : (isDark ? AppColors.expenseDark : AppColors.expense),
+                    ? colors.income
+                    : colors.expense,
               ),
             ),
           ],

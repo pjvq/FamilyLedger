@@ -1,3 +1,4 @@
+import 'package:familyledger/core/theme/tokens/semantic_theme_extension.dart';
 /// Shared test utilities for FamilyLedger widget tests.
 ///
 /// Provides fake StateNotifier implementations for all providers,
@@ -207,7 +208,9 @@ Widget wrapWithProviders(
       ...extra,
     ],
     child: MaterialApp(
-      theme: theme ?? ThemeData.light(useMaterial3: true),
+      theme: theme ?? ThemeData.light(useMaterial3: true).copyWith(
+        extensions: const [AppSemanticColors.light],
+      ),
       routes: routes ?? {},
       home: child,
     ),

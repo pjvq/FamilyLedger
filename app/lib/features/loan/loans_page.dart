@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/router/app_router.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../data/local/database.dart' as db;
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/loan_provider.dart';
@@ -91,7 +91,7 @@ class LoanTypeInfo {
 LoanTypeInfo getLoanTypeInfo(String type) {
   switch (type) {
     case 'mortgage':
-      return const LoanTypeInfo('房贷', '🏠', Color(0xFF5B6EF5));
+      return const LoanTypeInfo('房贷', '🏠', GradientTokens.primaryGradientStart);
     case 'car_loan':
       return const LoanTypeInfo('车贷', '🚗', Color(0xFF34C759));
     case 'credit_card':
@@ -122,6 +122,7 @@ class _LoanGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     final theme = Theme.of(context);
     final comLoan = group.commercialLoan;
     final pvdLoan = group.providentLoan;
@@ -264,9 +265,7 @@ class _LoanGroupCard extends StatelessWidget {
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontFeatures: const [FontFeature.tabularFigures()],
-                            color: isDark
-                                ? AppColors.liabilityDark
-                                : AppColors.liability,
+                            color: colors.liability,
                           ),
                         ),
                       ],
@@ -289,7 +288,7 @@ class _LoanGroupCard extends StatelessWidget {
                               value: comProgress,
                               minHeight: 6,
                               backgroundColor: isDark
-                                  ? const Color(0xFF3A3A3C)
+                                  ? NeutralColorsDark.neutral3
                                   : const Color(0xFFE5E5EA),
                               valueColor: const AlwaysStoppedAnimation<Color>(
                                 Color(0xFF3D5AFE),
@@ -306,7 +305,7 @@ class _LoanGroupCard extends StatelessWidget {
                               value: pvdProgress,
                               minHeight: 6,
                               backgroundColor: isDark
-                                  ? const Color(0xFF3A3A3C)
+                                  ? NeutralColorsDark.neutral3
                                   : const Color(0xFFE5E5EA),
                               valueColor: const AlwaysStoppedAnimation<Color>(
                                 Color(0xFF448AFF),
@@ -400,6 +399,7 @@ class _LoanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     final theme = Theme.of(context);
     final typeInfo = getLoanTypeInfo(loan.loanType);
     final monthlyPayment = notifier.getMonthlyPayment(loan);
@@ -520,9 +520,7 @@ class _LoanCard extends StatelessWidget {
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontFeatures: const [FontFeature.tabularFigures()],
-                            color: isDark
-                                ? AppColors.liabilityDark
-                                : AppColors.liability,
+                            color: colors.liability,
                           ),
                         ),
                       ],
@@ -537,10 +535,10 @@ class _LoanCard extends StatelessWidget {
                     value: progress,
                     minHeight: 6,
                     backgroundColor: isDark
-                        ? const Color(0xFF3A3A3C)
+                        ? NeutralColorsDark.neutral3
                         : const Color(0xFFE5E5EA),
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      isDark ? AppColors.primaryDark : AppColors.primary,
+                      isDark ? ColorTokens.primaryLight : ColorTokens.primary,
                     ),
                   ),
                 ),

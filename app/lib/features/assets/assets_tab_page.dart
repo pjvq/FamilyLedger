@@ -111,7 +111,7 @@ class _TotalCard extends StatelessWidget {
         gradient: LinearGradient(
           colors: isDark
               ? [const Color(0xFF1A3A2A), const Color(0xFF0F2A1F)]
-              : [SemanticColorsLight.income, const Color(0xFF28B34A)],
+              : [context.semanticColors.income, GradientTokens.incomeGradientEnd],
         ),
         borderRadius: BorderRadius.circular(RadiusTokens.lg),
       ),
@@ -255,8 +255,8 @@ class _AccountTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isPositive = account.balance >= 0;
     final amountColor = isPositive
-        ? (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
-        : (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense);
+        ? context.semanticColors.income
+        : context.semanticColors.expense;
 
     return Card(
       margin: const EdgeInsets.only(bottom: SpacingTokens.sm),

@@ -19,55 +19,55 @@ abstract final class ColorTokens {
 /// Semantic colors for financial categories (Light mode).
 abstract final class SemanticColorsLight {
   /// Income — green indicating positive cash flow.
-  static const Color income = Color(0xFF2ECC71);
+  static const Color income = Color(0xFF34C759);
 
   /// Expense — red indicating outgoing cash flow.
-  static const Color expense = Color(0xFFE74C3C);
+  static const Color expense = Color(0xFFFF6B6B);
 
   /// Asset — blue indicating owned value.
-  static const Color asset = Color(0xFF3498DB);
+  static const Color asset = Color(0xFF007AFF);
 
   /// Liability — orange indicating owed value.
-  static const Color liability = Color(0xFFE67E22);
+  static const Color liability = Color(0xFFFF6259);
 
   /// Success state — intentionally shares value with [income].
   static const Color success = income;
 
   /// Warning state.
-  static const Color warning = Color(0xFFF39C12);
+  static const Color warning = Color(0xFFFF9500);
 
   /// Error state — intentionally shares value with [expense].
   static const Color error = expense;
 
   /// Informational state.
-  static const Color info = Color(0xFF3498DB);
+  static const Color info = Color(0xFF007AFF);
 }
 
 /// Semantic colors for financial categories (Dark mode).
 abstract final class SemanticColorsDark {
   /// Income — green (darker variant for dark backgrounds).
-  static const Color income = Color(0xFF27AE60);
+  static const Color income = Color(0xFF30D158);
 
   /// Expense — red (darker variant for dark backgrounds).
-  static const Color expense = Color(0xFFC0392B);
+  static const Color expense = Color(0xFFFF7B7B);
 
   /// Asset — blue (darker variant for dark backgrounds).
-  static const Color asset = Color(0xFF2980B9);
+  static const Color asset = Color(0xFF64D2FF);
 
   /// Liability — orange (darker variant for dark backgrounds).
-  static const Color liability = Color(0xFFD35400);
+  static const Color liability = Color(0xFFFF8A80);
 
   /// Success state — intentionally shares value with [income].
   static const Color success = income;
 
   /// Warning state.
-  static const Color warning = Color(0xFFE67E22);
+  static const Color warning = Color(0xFFFF9F0A);
 
   /// Error state — intentionally shares value with [expense].
   static const Color error = expense;
 
   /// Informational state.
-  static const Color info = Color(0xFF2980B9);
+  static const Color info = Color(0xFF64D2FF);
 }
 
 /// Neutral color scale — Light mode (8 steps from white to near-black).
@@ -129,12 +129,28 @@ abstract final class ChartColors {
   /// Full chart palette for pie/bar/line charts.
   static const List<Color> palette = [
     Color(0xFF5B6EF5), // primary blue-purple
-    Color(0xFF2ECC71), // green
-    Color(0xFFF39C12), // amber
-    Color(0xFF9B59B6), // purple
-    Color(0xFF1ABC9C), // teal
-    Color(0xFFE74C3C), // red
-    Color(0xFF34495E), // dark slate
-    Color(0xFFF06292), // pink
+    Color(0xFF34C759), // green
+    Color(0xFFFF9500), // amber
+    Color(0xFFFF6B6B), // red
+    Color(0xFFAF52DE), // purple
+    Color(0xFF5AC8FA), // teal
+    Color(0xFFFFCC00), // yellow
+    Color(0xFFFF2D55), // pink
   ];
 }
+
+/// Gradient color tokens for decorative/emphasis gradients.
+abstract final class GradientTokens {
+  static const Color primaryGradientStart = Color(0xFF5B6EF5);
+  static const Color primaryGradientEnd = Color(0xFF8B9AFF);
+  static const Color incomeGradientStart = Color(0xFF34C759);
+  static const Color incomeGradientEnd = Color(0xFF28B34A);
+  static const Color expenseGradientStart = Color(0xFFFF6B6B);
+  static const Color expenseGradientEnd = Color(0xFFFF4757);
+  static const Color assetGradientStart = Color(0xFF007AFF);
+  static const Color assetGradientEnd = Color(0xFF0056CC);
+  static const Color primaryGradientAlt = Color(0xFF4A5AF0);
+  static const Color primaryGradientDeep = Color(0xFF3D50E0);
+  static const Color primaryGradientSoft = Color(0xFF4A5DE5);
+}
+

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/notification_provider.dart';
 
 class NotificationSettingsPage extends ConsumerWidget {
@@ -28,7 +28,7 @@ class NotificationSettingsPage extends ConsumerWidget {
           _SectionHeader(title: '预算提醒', theme: theme),
           _SettingSwitchTile(
             icon: Icons.warning_amber_rounded,
-            iconColor: AppColors.expense,
+            iconColor: context.semanticColors.expense,
             title: '预算超支提醒',
             subtitle: '支出超过预算金额时通知',
             value: settings.budgetAlert,
@@ -38,7 +38,7 @@ class NotificationSettingsPage extends ConsumerWidget {
           ),
           _SettingSwitchTile(
             icon: Icons.trending_up_rounded,
-            iconColor: const Color(0xFFFF9500),
+            iconColor: context.semanticColors.warning,
             title: '预算80%预警',
             subtitle: '支出达到预算80%时提醒',
             value: settings.budgetWarning,
@@ -51,7 +51,7 @@ class NotificationSettingsPage extends ConsumerWidget {
           _SectionHeader(title: '定期提醒', theme: theme),
           _SettingSwitchTile(
             icon: Icons.summarize_rounded,
-            iconColor: AppColors.primary,
+            iconColor: ColorTokens.primary,
             title: '每日支出汇总',
             subtitle: '每天晚上推送今日支出概览',
             value: settings.dailySummary,
@@ -61,7 +61,7 @@ class NotificationSettingsPage extends ConsumerWidget {
           ),
           _SettingSwitchTile(
             icon: Icons.event_rounded,
-            iconColor: AppColors.asset,
+            iconColor: context.semanticColors.asset,
             title: '还款日提醒',
             subtitle: '信用卡/借贷还款日前提醒',
             value: settings.loanReminder,
@@ -97,8 +97,8 @@ class NotificationSettingsPage extends ConsumerWidget {
                                   horizontal: 12, vertical: 4),
                               decoration: BoxDecoration(
                                 color: (isDark
-                                        ? AppColors.primaryDark
-                                        : AppColors.primary)
+                                        ? ColorTokens.primaryLight
+                                        : ColorTokens.primary)
                                     .withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -106,8 +106,8 @@ class NotificationSettingsPage extends ConsumerWidget {
                                 '${settings.reminderDaysBefore}天',
                                 style: TextStyle(
                                   color: isDark
-                                      ? AppColors.primaryDark
-                                      : AppColors.primary,
+                                      ? ColorTokens.primaryLight
+                                      : ColorTokens.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -134,16 +134,16 @@ class NotificationSettingsPage extends ConsumerWidget {
                             '1天',
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: isDark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondary,
+                                  ? NeutralColorsDark.neutral5
+                                  : NeutralColorsLight.neutral5,
                             ),
                           ),
                           Text(
                             '7天',
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: isDark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondary,
+                                  ? NeutralColorsDark.neutral5
+                                  : NeutralColorsLight.neutral5,
                             ),
                           ),
                         ],

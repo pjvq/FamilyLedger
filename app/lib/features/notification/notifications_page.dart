@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/router/app_router.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/notification_provider.dart';
@@ -189,18 +189,18 @@ class _NotificationTile extends StatelessWidget {
     }
   }
 
-  Color _typeColor(String type) {
+  Color _typeColor(BuildContext context, String type) {
     switch (type) {
       case 'budget_alert':
-        return AppColors.expense;
+        return context.semanticColors.expense;
       case 'budget_warning':
-        return const Color(0xFFFF9500);
+        return context.semanticColors.warning;
       case 'daily_summary':
-        return AppColors.primary;
+        return ColorTokens.primary;
       case 'loan_reminder':
-        return AppColors.asset;
+        return context.semanticColors.asset;
       default:
-        return AppColors.textSecondary;
+        return NeutralColorsLight.neutral5;
     }
   }
 
@@ -226,15 +226,15 @@ class _NotificationTile extends StatelessWidget {
         background: Container(
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.only(left: 24),
-          color: AppColors.primary.withValues(alpha: 0.1),
+          color: ColorTokens.primary.withValues(alpha: 0.1),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.done_rounded, color: AppColors.primary),
+              Icon(Icons.done_rounded, color: ColorTokens.primary),
               const SizedBox(width: 8),
               Text(
                 '标为已读',
-                style: TextStyle(color: AppColors.primary),
+                style: TextStyle(color: ColorTokens.primary),
               ),
             ],
           ),
@@ -246,7 +246,7 @@ class _NotificationTile extends StatelessWidget {
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.cardDark : AppColors.cardLight,
+            color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
@@ -268,13 +268,13 @@ class _NotificationTile extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: _typeColor(notification.type)
+                    color: _typeColor(context, notification.type)
                         .withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     _typeIcon(notification.type),
-                    color: _typeColor(notification.type),
+                    color: _typeColor(context, notification.type),
                     size: 22,
                   ),
                 ),
@@ -287,12 +287,12 @@ class _NotificationTile extends StatelessWidget {
                       width: 10,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color: ColorTokens.primary,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: isDark
-                              ? AppColors.cardDark
-                              : AppColors.cardLight,
+                              ? NeutralColorsDark.neutral2
+                              : NeutralColorsLight.neutral0,
                           width: 1.5,
                         ),
                       ),
@@ -315,8 +315,8 @@ class _NotificationTile extends StatelessWidget {
                 notification.body,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondary,
+                      ? NeutralColorsDark.neutral5
+                      : NeutralColorsLight.neutral5,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -326,8 +326,8 @@ class _NotificationTile extends StatelessWidget {
               _formatTime(notification.createdAt),
               style: theme.textTheme.labelSmall?.copyWith(
                 color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondary,
+                    ? NeutralColorsDark.neutral5
+                    : NeutralColorsLight.neutral5,
               ),
             ),
             shape: RoundedRectangleBorder(

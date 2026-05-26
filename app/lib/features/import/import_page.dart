@@ -11,7 +11,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/constants/category_icons.dart';
 import '../../core/utils/category_uuid.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/account_provider.dart';
@@ -358,7 +358,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     ImportFormat.alipay => const Color(0xFF1677FF),
     ImportFormat.wechat => const Color(0xFF07C160),
     ImportFormat.baishiAA => const Color(0xFFFF9800),
-    _ => AppColors.primary,
+    _ => ColorTokens.primary,
   };
 
   String _formatLabel() => switch (_detectedFormat) {
@@ -405,7 +405,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                 DataCell(Text(t.type == 'income' ? '收入' : '支出',
                     style: TextStyle(
                       fontSize: 12,
-                      color: t.type == 'income' ? AppColors.income : AppColors.expense,
+                      color: t.type == 'income' ? context.semanticColors.income : context.semanticColors.expense,
                     ))),
                 DataCell(Text('¥${t.amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12))),
                 DataCell(Text(t.note, style: const TextStyle(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)),
@@ -1661,7 +1661,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                     t.type == 'income' ? '+' : '-',
                     style: TextStyle(
                       fontSize: 12,
-                      color: t.type == 'income' ? AppColors.income : AppColors.expense,
+                      color: t.type == 'income' ? context.semanticColors.income : context.semanticColors.expense,
                     ),
                   ),
                   Text(
@@ -1669,7 +1669,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: t.type == 'income' ? AppColors.income : AppColors.expense,
+                      color: t.type == 'income' ? context.semanticColors.income : context.semanticColors.expense,
                     ),
                   ),
                 ],

@@ -3,7 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/category_icon_widget.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
@@ -149,6 +149,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final colors = context.semanticColors;
     final txnState = ref.watch(transactionProvider);
     final allCats = [
       ...txnState.expenseCategories,
@@ -281,7 +282,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.cardDark : AppColors.cardLight,
+              color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -300,12 +301,8 @@ class _ReportPageState extends ConsumerState<ReportPage>
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: isExpenseTab
-                        ? (isDark
-                            ? AppColors.expenseDark
-                            : AppColors.expense)
-                        : (isDark
-                            ? AppColors.incomeDark
-                            : AppColors.income),
+                        ? colors.expense
+                        : colors.income,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
@@ -365,8 +362,8 @@ class _ReportPageState extends ConsumerState<ReportPage>
                                     style:
                                         theme.textTheme.bodySmall?.copyWith(
                                       color: isDark
-                                          ? AppColors.primaryDark
-                                          : AppColors.primary,
+                                          ? ColorTokens.primaryLight
+                                          : ColorTokens.primary,
                                     )),
                               ),
                             ),
@@ -437,6 +434,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
   // ── Monthly trend chart ──
 
   Widget _buildMonthlyTrend(bool isDark, ThemeData theme) {
+    final colors = context.semanticColors;
     // Aggregate all transactions by month (full year)
     final monthlyExpense = List.filled(12, 0);
     final monthlyIncome = List.filled(12, 0);
@@ -472,7 +470,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -567,19 +565,13 @@ class _ReportPageState extends ConsumerState<ReportPage>
                   final val = data[i].toDouble();
                   final color = _trendTab == 2
                       ? (val >= 0
-                          ? (isDark
-                              ? AppColors.incomeDark
-                              : AppColors.income)
-                          : (isDark
-                              ? AppColors.expenseDark
-                              : AppColors.expense))
+                          ? colors.income
+                          : colors.expense)
                       : (_trendTab == 1
-                          ? (isDark
-                              ? AppColors.incomeDark
-                              : AppColors.income)
+                          ? colors.income
                           : (isDark
-                              ? AppColors.expenseDark
-                              : AppColors.primary));
+                              ? colors.expense
+                              : ColorTokens.primary));
                   return BarChartGroupData(
                     x: i,
                     barRods: [
@@ -620,7 +612,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -675,8 +667,8 @@ class _ReportPageState extends ConsumerState<ReportPage>
                           fontWeight: FontWeight.w600,
                           color: i < 3
                               ? (isDark
-                                  ? AppColors.primaryDark
-                                  : AppColors.primary)
+                                  ? ColorTokens.primaryLight
+                                  : ColorTokens.primary)
                               : theme.colorScheme.onSurface
                                   .withValues(alpha: 0.5),
                         ),
@@ -769,7 +761,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? (isDark ? AppColors.cardDark : Colors.white)
+                    ? (isDark ? NeutralColorsDark.neutral2 : Colors.white)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(6),
                 boxShadow: isSelected
@@ -930,7 +922,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.cardDark : AppColors.cardLight,
+            color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Column(
@@ -1037,10 +1029,11 @@ class _TransactionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     final isIncome = transaction.type == 'income';
     final amountColor = isIncome
-        ? (isDark ? AppColors.incomeDark : AppColors.income)
-        : (isDark ? AppColors.expenseDark : AppColors.expense);
+        ? colors.income
+        : colors.expense;
     final d = transaction.txnDate;
     final dateStr = '${d.month}/${d.day} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 

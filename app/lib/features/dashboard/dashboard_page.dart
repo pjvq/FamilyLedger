@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/dashboard_provider.dart';
 import '../../domain/models/dashboard_models.dart';
 import '../../sync/sync_engine.dart';
@@ -358,10 +358,11 @@ class _NetWorthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     final isUp = data.changeFromLastMonth >= 0;
     final changeColor = isUp
-        ? (isDark ? AppColors.incomeDark : AppColors.income)
-        : (isDark ? AppColors.expenseDark : AppColors.expense);
+        ? colors.income
+        : colors.expense;
 
     return Semantics(
       label: '净资产 ${_fmtYuan(data.total)}元，'
@@ -374,12 +375,12 @@ class _NetWorthCard extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: isDark
                 ? [const Color(0xFF1A2A4A), const Color(0xFF0F1A2F)]
-                : [const Color(0xFF5B6EF5), const Color(0xFF3D50E0)],
+                : [GradientTokens.primaryGradientStart, GradientTokens.primaryGradientDeep],
           ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: (isDark ? Colors.black : AppColors.primary)
+              color: (isDark ? Colors.black : ColorTokens.primary)
                   .withValues(alpha: isDark ? 0.3 : 0.25),
               blurRadius: 16,
               offset: const Offset(0, 6),
@@ -555,7 +556,7 @@ class _AssetDetailRow extends StatelessWidget {
             '¥ ${_fmtYuanExact(value)}',
             style: TextStyle(
               color: isNegative
-                  ? AppColors.expenseDark.withValues(alpha: 0.9)
+                  ? context.semanticColors.expense.withValues(alpha: 0.9)
                   : Colors.white.withValues(alpha: 0.9),
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -768,6 +769,7 @@ class _IncomeExpenseChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     if (points.isEmpty) {
       return SizedBox(
         height: 180,
@@ -866,7 +868,7 @@ class _IncomeExpenseChart extends StatelessWidget {
                     return LineTooltipItem(
                       '${isIncome ? "收入" : "支出"}: ¥${_fmtYuan(spot.y.toInt())}',
                       TextStyle(
-                        color: isIncome ? AppColors.income : AppColors.expense,
+                        color: isIncome ? context.semanticColors.income : context.semanticColors.expense,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -886,20 +888,20 @@ class _IncomeExpenseChart extends StatelessWidget {
                     .toList(),
                 isCurved: true,
                 curveSmoothness: 0.25,
-                color: isDark ? AppColors.incomeDark : AppColors.income,
+                color: colors.income,
                 barWidth: 2.5,
                 dotData: FlDotData(
                   show: true,
                   getDotPainter: (spot, percent, barData, index) =>
                       FlDotCirclePainter(
                     radius: 3,
-                    color: isDark ? AppColors.incomeDark : AppColors.income,
+                    color: colors.income,
                     strokeWidth: 0,
                   ),
                 ),
                 belowBarData: BarAreaData(
                   show: true,
-                  color: (isDark ? AppColors.incomeDark : AppColors.income)
+                  color: colors.income
                       .withValues(alpha: 0.08),
                 ),
               ),
@@ -913,20 +915,20 @@ class _IncomeExpenseChart extends StatelessWidget {
                     .toList(),
                 isCurved: true,
                 curveSmoothness: 0.25,
-                color: isDark ? AppColors.expenseDark : AppColors.expense,
+                color: colors.expense,
                 barWidth: 2.5,
                 dotData: FlDotData(
                   show: true,
                   getDotPainter: (spot, percent, barData, index) =>
                       FlDotCirclePainter(
                     radius: 3,
-                    color: isDark ? AppColors.expenseDark : AppColors.expense,
+                    color: colors.expense,
                     strokeWidth: 0,
                   ),
                 ),
                 belowBarData: BarAreaData(
                   show: true,
-                  color: (isDark ? AppColors.expenseDark : AppColors.expense)
+                  color: colors.expense
                       .withValues(alpha: 0.08),
                 ),
               ),
@@ -1009,7 +1011,7 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
                     final item = e.value;
                     final isTouched = _touchedIndex == i;
                     return PieChartSectionData(
-                      color: AppColors.chartPalette[i % AppColors.chartPalette.length],
+                      color: ChartColors.palette[i % ChartColors.palette.length],
                       value: item.amount.toDouble(),
                       title: isTouched
                           ? '${item.categoryName}\n${(item.weight * 100).toStringAsFixed(1)}%'
@@ -1055,8 +1057,8 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
                                 width: 10,
                                 height: 10,
                                 decoration: BoxDecoration(
-                                  color: AppColors.chartPalette[
-                                      i % AppColors.chartPalette.length],
+                                  color: ChartColors.palette[
+                                      i % ChartColors.palette.length],
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -1146,11 +1148,11 @@ class _BudgetMiniCard extends StatelessWidget {
     final pct = (rate * 100).toStringAsFixed(0);
     Color rateColor;
     if (rate >= 0.8) {
-      rateColor = AppColors.expense;
+      rateColor = context.semanticColors.expense;
     } else if (rate >= 0.6) {
-      rateColor = const Color(0xFFFF9500);
+      rateColor = context.semanticColors.warning;
     } else {
-      rateColor = AppColors.income;
+      rateColor = context.semanticColors.income;
     }
 
     return Semantics(
@@ -1382,7 +1384,7 @@ class _NetWorthTrendChart extends StatelessWidget {
                     return LineTooltipItem(
                       '¥${_fmtYuan(spot.y.toInt())}',
                       TextStyle(
-                        color: isDark ? AppColors.primaryDark : AppColors.primary,
+                        color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1401,7 +1403,7 @@ class _NetWorthTrendChart extends StatelessWidget {
                     .toList(),
                 isCurved: true,
                 curveSmoothness: 0.25,
-                color: isDark ? AppColors.primaryDark : AppColors.primary,
+                color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
                 barWidth: 2.5,
                 dotData: const FlDotData(show: false),
                 belowBarData: BarAreaData(
@@ -1410,9 +1412,9 @@ class _NetWorthTrendChart extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      (isDark ? AppColors.primaryDark : AppColors.primary)
+                      (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
                           .withValues(alpha: 0.15),
-                      (isDark ? AppColors.primaryDark : AppColors.primary)
+                      (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
                           .withValues(alpha: 0.0),
                     ],
                   ),
@@ -1444,6 +1446,7 @@ class _InvestmentTrendPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     if (netWorth.investmentValue == 0) {
       return SizedBox(
         height: 80,
@@ -1464,7 +1467,7 @@ class _InvestmentTrendPlaceholder extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: (isDark ? AppColors.incomeDark : AppColors.income)
+          color: colors.income
               .withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(12),
         ),
@@ -1489,7 +1492,7 @@ class _InvestmentTrendPlaceholder extends StatelessWidget {
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       fontFeatures: const [FontFeature.tabularFigures()],
-                      color: isDark ? AppColors.incomeDark : AppColors.income,
+                      color: colors.income,
                     ),
                   ),
                 ],

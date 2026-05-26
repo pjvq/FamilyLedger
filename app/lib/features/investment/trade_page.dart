@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/investment_provider.dart';
 import '../../domain/providers/market_data_provider.dart';
 
@@ -92,6 +92,7 @@ class _TradePageState extends ConsumerState<TradePage> {
     final invState = ref.watch(investmentProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final colors = context.semanticColors;
 
     final investment = invState.investments
         .where((i) => i.id == widget.investmentId)
@@ -130,8 +131,8 @@ class _TradePageState extends ConsumerState<TradePage> {
                   },
                   style: SegmentedButton.styleFrom(
                     selectedForegroundColor: _isBuy
-                        ? (isDark ? AppColors.expenseDark : AppColors.expense)
-                        : (isDark ? AppColors.incomeDark : AppColors.income),
+                        ? colors.expense
+                        : colors.income,
                   ),
                 ),
               ),
@@ -143,7 +144,7 @@ class _TradePageState extends ConsumerState<TradePage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF8F9FA),
+                  color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral1,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -269,8 +270,8 @@ class _TradePageState extends ConsumerState<TradePage> {
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   backgroundColor: _isBuy
-                      ? (isDark ? AppColors.expenseDark : AppColors.expense)
-                      : (isDark ? AppColors.incomeDark : AppColors.income),
+                      ? colors.expense
+                      : colors.income,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -318,7 +319,7 @@ class _TotalRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF8F9FA),
+        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral1,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(

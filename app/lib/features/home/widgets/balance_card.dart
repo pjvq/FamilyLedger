@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/design_tokens.dart';
 import '../../../core/widgets/animated_counter.dart';
 
 class BalanceCard extends StatelessWidget {
@@ -28,12 +28,12 @@ class BalanceCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isDark
               ? [const Color(0xFF2C2C4A), const Color(0xFF1C1C3E)]
-              : [AppColors.primary, const Color(0xFF4A5AF0)],
+              : [ColorTokens.primary, GradientTokens.primaryGradientAlt],
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.3),
+            color: ColorTokens.primary.withValues(alpha: isDark ? 0.2 : 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -67,7 +67,7 @@ class BalanceCard extends StatelessWidget {
               _SummaryItem(
                 label: '今日支出',
                 amount: todayExpense,
-                color: AppColors.expense,
+                color: context.semanticColors.expense,
               ),
               const SizedBox(width: 32),
               _SummaryItem(

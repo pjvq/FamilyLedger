@@ -12,7 +12,7 @@ import 'package:familyledger/domain/providers/transaction_provider.dart';
 import 'package:familyledger/domain/providers/account_provider.dart';
 import 'package:familyledger/core/widgets/skeleton_loading.dart';
 import 'package:familyledger/core/widgets/animated_tab_bar.dart';
-import 'package:familyledger/core/theme/app_colors.dart';
+import 'package:familyledger/core/theme/design_tokens.dart';
 
 import 'package:familyledger/features/budget/budget_execution_card.dart';
 import 'package:familyledger/features/budget/budget_page.dart';
