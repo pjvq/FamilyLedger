@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/router/app_router.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/widgets.dart';
@@ -81,8 +82,7 @@ class AssetsTabPage extends ConsumerWidget {
           ...accounts.map((account) => _AccountTile(
                 account: account,
                 isDark: isDark,
-                // TODO: Add account detail page route
-                onTap: null,
+                onTap: () => context.push(AppRouter.accountDetail(account.id)),
               )),
         ],
       ),

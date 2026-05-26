@@ -11,6 +11,7 @@ import '../../features/flow/transaction_flow_page.dart';
 import '../../features/more/more_page.dart';
 import '../../features/shell/main_shell.dart';
 import '../../features/account/add_account_page.dart';
+import '../../features/account/account_detail_page.dart';
 import '../../features/account/transfer_page.dart';
 import '../../features/budget/budget_page.dart';
 import '../../features/notification/notifications_page.dart';
@@ -149,6 +150,12 @@ final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
                   GoRoute(
                     path: 'accounts/add',
                     builder: (_, __) => const AddAccountPage(),
+                  ),
+                  GoRoute(
+                    path: 'accounts/:accountId',
+                    builder: (context, state) => AccountDetailPage(
+                      accountId: state.pathParameters['accountId'] ?? '',
+                    ),
                   ),
                   GoRoute(
                     path: 'loans',
