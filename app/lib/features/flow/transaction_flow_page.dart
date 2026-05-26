@@ -57,10 +57,9 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final txnState = ref.watch(transactionProvider);
     final flowState = ref.watch(transactionFlowProvider);
+    final grouped = ref.watch(flowGroupedTransactionsProvider);
     final visible = ref.watch(flowVisibleTransactionsProvider);
     final categoryMap = ref.watch(flowCategoryMapProvider);
     final accountMap = ref.watch(flowAccountMapProvider);
@@ -75,8 +74,9 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
           IconButton(
             icon: Icon(flowState.showSearch ? Icons.close : Icons.search),
             onPressed: () {
+              final wasSearching = flowState.showSearch;
               ref.read(transactionFlowProvider.notifier).toggleSearch();
-              if (flowState.showSearch) {
+              if (wasSearching) {
                 _searchController.clear();
               }
             },
@@ -106,7 +106,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                               .reload();
                         },
                         child: _buildList(
-                          visible, categoryMap, accountMap, isDark,
+                          grouped, categoryMap, accountMap,
                           flowState.viewMode),
                       ),
           ),
@@ -135,22 +135,18 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
   }
 
   Widget _buildList(
-    List<Transaction> transactions,
+    GroupedTransactions grouped,
     Map<String, Category> categoryMap,
     Map<String, Account> accountMap,
-    bool isDark,
     FlowViewMode viewMode,
   ) {
-    final grouped = ref.watch(flowGroupedTransactionsProvider);
-
     switch (viewMode) {
       case FlowViewMode.byTime:
-        return _buildByTimeList(grouped, categoryMap, accountMap, isDark);
+        return _buildByTimeList(grouped, categoryMap, accountMap);
       case FlowViewMode.byCategory:
-        return _buildByCategoryList(
-            grouped, categoryMap, accountMap, isDark);
+        return _buildByCategoryList(grouped, categoryMap, accountMap);
       case FlowViewMode.byAccount:
-        return _buildByAccountList(grouped, categoryMap, accountMap, isDark);
+        return _buildByAccountList(grouped, categoryMap, accountMap);
     }
   }
 
@@ -160,7 +156,6 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     GroupedTransactions grouped,
     Map<String, Category> categoryMap,
     Map<String, Account> accountMap,
-    bool isDark,
   ) {
     final groups = grouped.groups;
     final sortedKeys = grouped.sortedKeys;
@@ -178,12 +173,11 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DateHeader(date: date, dayTotal: dayTotal, isDark: isDark),
+            DateHeader(date: date, dayTotal: dayTotal),
             ...items.map((t) => TransactionTile(
                   transaction: t,
                   category: categoryMap[t.categoryId],
                   account: accountMap[t.accountId],
-                  isDark: isDark,
                   onTap: () => _openDetail(t, categoryMap[t.categoryId]),
                 )),
           ],
@@ -198,7 +192,6 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     GroupedTransactions grouped,
     Map<String, Category> categoryMap,
     Map<String, Account> accountMap,
-    bool isDark,
   ) {
     final catByName = <String, Category>{};
     for (final c in categoryMap.values) {
@@ -213,12 +206,13 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
       padding: const EdgeInsets.only(bottom: SpacingTokens.xl4),
       itemCount: sortedKeys.length,
       itemBuilder: (context, index) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         final catName = sortedKeys[index];
         final items = groups[catName]!;
         final total = items.fold<int>(0, (s, t) => s + t.amount);
 
         return ExpansionTile(
-          leading: _categoryIcon(catName, catByName, isDark),
+          leading: _categoryIcon(context, catName, catByName),
           title: Text(catName, style: TypographyTokens.titleMd()),
           subtitle: Text(
             '${items.length} 笔  ${formatCents(total, showSign: true)}',
@@ -233,7 +227,6 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                     transaction: t,
                     category: categoryMap[t.categoryId],
                     account: accountMap[t.accountId],
-                    isDark: isDark,
                     onTap: () => _openDetail(t, categoryMap[t.categoryId]),
                   ))
               .toList(),
@@ -248,7 +241,6 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     GroupedTransactions grouped,
     Map<String, Category> categoryMap,
     Map<String, Account> accountMap,
-    bool isDark,
   ) {
     final groups = grouped.groups;
     final sortedKeys = grouped.sortedKeys;
@@ -258,6 +250,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
       padding: const EdgeInsets.only(bottom: SpacingTokens.xl4),
       itemCount: sortedKeys.length,
       itemBuilder: (context, index) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         final acctName = sortedKeys[index];
         final items = groups[acctName]!;
         final total = items.fold<int>(0, (s, t) => s + t.amount);
@@ -287,7 +280,6 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                     transaction: t,
                     category: categoryMap[t.categoryId],
                     account: accountMap[t.accountId],
-                    isDark: isDark,
                     onTap: () => _openDetail(t, categoryMap[t.categoryId]),
                   ))
               .toList(),
@@ -297,7 +289,8 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
   }
 
   Widget _categoryIcon(
-      String catName, Map<String, Category> catByName, bool isDark) {
+      BuildContext context, String catName, Map<String, Category> catByName) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final cat = catByName[catName];
     if (cat != null) {
       return CategoryIconWidget(iconKey: cat.iconKey, size: 36);

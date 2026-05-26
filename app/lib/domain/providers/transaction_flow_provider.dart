@@ -64,6 +64,8 @@ class GroupedTransactions {
 // ─── Notifier ──────────────────────────────────────────────────────────────
 
 class TransactionFlowNotifier extends StateNotifier<TransactionFlowState> {
+  /// Initial page size — balances smooth scrolling with memory usage.
+  /// 50 items ≈ 3-4 screens on standard devices.
   static const _pageSize = 50;
 
   TransactionFlowNotifier() : super(const TransactionFlowState());
@@ -193,12 +195,13 @@ GroupedTransactions _groupByCategory(
     final catName = categoryMap[t.categoryId]?.name ?? '未分类';
     groups.putIfAbsent(catName, () => []).add(t);
   }
+  // Pre-compute sums for O(k log k) sort instead of O(k * n * log k)
+  final sums = <String, int>{};
+  for (final entry in groups.entries) {
+    sums[entry.key] = entry.value.fold<int>(0, (s, t) => s + t.amount.abs());
+  }
   final sortedKeys = groups.keys.toList()
-    ..sort((a, b) {
-      final sumA = groups[a]!.fold<int>(0, (s, t) => s + t.amount.abs());
-      final sumB = groups[b]!.fold<int>(0, (s, t) => s + t.amount.abs());
-      return sumB.compareTo(sumA);
-    });
+    ..sort((a, b) => sums[b]!.compareTo(sums[a]!));
   return GroupedTransactions(groups: groups, sortedKeys: sortedKeys);
 }
 

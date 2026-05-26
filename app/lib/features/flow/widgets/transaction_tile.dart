@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/category_icon_widget.dart';
 import '../../../core/theme/design_tokens.dart';
-import '../../../core/theme/tokens/semantic_theme_extension.dart';
 import '../../../core/utils/format.dart';
 import '../../../data/local/database.dart';
 
@@ -11,7 +10,6 @@ class TransactionTile extends StatelessWidget {
   final Transaction transaction;
   final Category? category;
   final Account? account;
-  final bool isDark;
   final VoidCallback onTap;
 
   const TransactionTile({
@@ -19,12 +17,12 @@ class TransactionTile extends StatelessWidget {
     required this.transaction,
     required this.category,
     required this.account,
-    required this.isDark,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isIncome = transaction.amount > 0;
     final amountColor = isIncome
         ? context.semanticColors.income

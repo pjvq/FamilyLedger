@@ -2,24 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/design_tokens.dart';
-import '../../../core/theme/tokens/semantic_theme_extension.dart';
 import '../../../core/utils/format.dart';
 
 /// 日期分组头（显示日期标签和当日合计）。
 class DateHeader extends StatelessWidget {
   final DateTime date;
   final int dayTotal;
-  final bool isDark;
 
   const DateHeader({
     super.key,
     required this.date,
     required this.dayTotal,
-    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();
     final isToday = date.year == now.year &&
         date.month == now.month &&
