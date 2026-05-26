@@ -150,12 +150,7 @@ abstract final class GradientTokens {
   static const Color assetGradientStart = Color(0xFF007AFF);
   static const Color assetGradientEnd = Color(0xFF0056CC);
   static const Color primaryGradientAlt = Color(0xFF4A5AF0);
+  static const Color primaryGradientDeep = Color(0xFF3D50E0);
+  static const Color primaryGradientSoft = Color(0xFF4A5DE5);
 }
 
-/// Opacity tokens for consistent transparency values.
-abstract final class OpacityTokens {
-  static const double subtle = 0.05;
-  static const double light = 0.1;
-  static const double medium = 0.15;
-  static const double emphasis = 0.2;
-}

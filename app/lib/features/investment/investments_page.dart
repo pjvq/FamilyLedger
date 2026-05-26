@@ -168,7 +168,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
           gradient: LinearGradient(
             colors: isDark
                 ? [const Color(0xFF1A1A3A), const Color(0xFF0F0F2A)]
-                : [ColorTokens.primary, const Color(0xFF4A5DE5)],
+                : [ColorTokens.primary, GradientTokens.primaryGradientSoft],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),

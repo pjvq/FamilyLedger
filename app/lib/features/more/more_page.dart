@@ -453,7 +453,7 @@ class _FamilyInfoCard extends StatelessWidget {
                   gradient: LinearGradient(
                     colors: isDark
                         ? [const Color(0xFF2C2C4A), const Color(0xFF1C1C3E)]
-                        : [ColorTokens.primary, const Color(0xFF4A5AF0)],
+                        : [ColorTokens.primary, GradientTokens.primaryGradientAlt],
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
