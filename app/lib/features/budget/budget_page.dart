@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/category_icon_widget.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
+import '../../core/utils/budget_colors.dart';
 import '../../data/local/database.dart' show Category;
 import '../../domain/providers/budget_provider.dart';
 import '../../sync/sync_engine.dart';
@@ -309,12 +310,6 @@ class _CategoryBudgetTile extends StatelessWidget {
     this.trailing,
   });
 
-  Color _rateColor(double rate) {
-    if (rate >= 0.8) return SemanticColorsLight.expense;
-    if (rate >= 0.6) return const Color(0xFFFF9500);
-    return SemanticColorsLight.income;
-  }
-
   String _formatAmount(int cents) {
     final yuan = cents / 100;
     final str = yuan.toStringAsFixed(2);
@@ -331,7 +326,7 @@ class _CategoryBudgetTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _rateColor(executionRate);
+    final color = budgetRateColor(context, executionRate);
     final pct =
         '${(executionRate * 100).clamp(0, 999).toStringAsFixed(0)}%';
 

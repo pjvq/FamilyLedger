@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/router/app_router.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../data/local/database.dart' as db;
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/loan_provider.dart';
@@ -261,6 +261,7 @@ class _GroupSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     final comLoan = group.commercialLoan;
     final pvdLoan = group.providentLoan;
 
@@ -274,13 +275,13 @@ class _GroupSummaryCard extends StatelessWidget {
           colors: isDark
               ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
               : [
-                  const Color(0xFF5B6EF5).withValues(alpha: 0.08),
+                  GradientTokens.primaryGradientStart.withValues(alpha: 0.08),
                   const Color(0xFF448AFF).withValues(alpha: 0.04),
                 ],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFF5B6EF5).withValues(alpha: 0.2),
+          color: GradientTokens.primaryGradientStart.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -292,7 +293,7 @@ class _GroupSummaryCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF5B6EF5).withValues(alpha: 0.15),
+                  color: GradientTokens.primaryGradientStart.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
@@ -300,7 +301,7 @@ class _GroupSummaryCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF5B6EF5),
+                    color: GradientTokens.primaryGradientStart,
                   ),
                 ),
               ),
@@ -324,9 +325,7 @@ class _GroupSummaryCard extends StatelessWidget {
                       style: theme.textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         fontFeatures: const [FontFeature.tabularFigures()],
-                        color: isDark
-                            ? SemanticColorsDark.liability
-                            : SemanticColorsLight.liability,
+                        color: colors.liability,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -352,7 +351,7 @@ class _GroupSummaryCard extends StatelessWidget {
                 child: CustomPaint(
                   painter: _ProgressRingPainter(
                     progress: group.overallProgress,
-                    color: const Color(0xFF5B6EF5),
+                    color: GradientTokens.primaryGradientStart,
                     backgroundColor: isDark
                         ? Colors.white.withValues(alpha: 0.08)
                         : Colors.black.withValues(alpha: 0.05),
@@ -363,7 +362,7 @@ class _GroupSummaryCard extends StatelessWidget {
                       '${(group.overallProgress * 100).toStringAsFixed(0)}%',
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF5B6EF5),
+                        color: GradientTokens.primaryGradientStart,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -484,6 +483,7 @@ class _OverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     if (!loaded) {
       return const SingleChildScrollView(
         child: SkeletonList(count: 3, itemHeight: 64),
@@ -525,7 +525,7 @@ class _OverviewTab extends StatelessWidget {
             border: Border(
               bottom: BorderSide(
                 color: isDark
-                    ? const Color(0xFF3A3A3C)
+                    ? NeutralColorsDark.neutral3
                     : const Color(0xFFE5E5EA),
                 width: 0.5,
               ),
@@ -624,9 +624,7 @@ class _OverviewTab extends StatelessWidget {
               if (isPaid)
                 Icon(Icons.check_circle_rounded,
                     size: 16,
-                    color: isDark
-                        ? SemanticColorsDark.income
-                        : SemanticColorsLight.income),
+                    color: colors.income),
             ],
           ),
         );
@@ -658,6 +656,7 @@ class _SubLoanTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     if (loan == null) {
       return Center(child: Text('无$label贷款'));
     }
@@ -764,9 +763,7 @@ class _SubLoanTab extends StatelessWidget {
                         Text('¥${_fmtCents(loan!.remainingPrincipal)}',
                             style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? SemanticColorsDark.liability
-                                    : SemanticColorsLight.liability,
+                                color: colors.liability,
                                 fontFeatures: const [
                                   FontFeature.tabularFigures()
                                 ])),
@@ -825,7 +822,7 @@ class _SubLoanTab extends StatelessWidget {
               border: Border(
                 bottom: BorderSide(
                   color: isDark
-                      ? const Color(0xFF3A3A3C)
+                      ? NeutralColorsDark.neutral3
                       : const Color(0xFFE5E5EA),
                   width: 0.5,
                 ),
@@ -868,9 +865,7 @@ class _SubLoanTab extends StatelessWidget {
                 if (item.isPaid)
                   Icon(Icons.check_circle_rounded,
                       size: 14,
-                      color: isDark
-                          ? SemanticColorsDark.income
-                          : SemanticColorsLight.income)
+                      color: colors.income)
                 else
                   const SizedBox(width: 14),
               ],
@@ -908,7 +903,7 @@ class _ActionButton extends StatelessWidget {
       label: semanticLabel,
       button: true,
       child: Material(
-        color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,

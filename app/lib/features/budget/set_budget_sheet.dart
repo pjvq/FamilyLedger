@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/category_icon_widget.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../data/local/database.dart' show Category;
 import '../../domain/providers/budget_provider.dart';
 import '../../domain/providers/transaction_provider.dart';

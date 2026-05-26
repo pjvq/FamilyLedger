@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/asset_provider.dart';
@@ -171,6 +171,7 @@ class _AssetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     final icon = assetTypeIcon(asset.assetType);
     final typeLabel = assetTypeLabel(asset.assetType);
 
@@ -222,8 +223,8 @@ class _AssetCard extends StatelessWidget {
                                 horizontal: 6, vertical: 1),
                             decoration: BoxDecoration(
                               color: isDark
-                                  ? const Color(0xFF3A3A3C)
-                                  : const Color(0xFFF2F2F7),
+                                  ? NeutralColorsDark.neutral3
+                                  : NeutralColorsLight.neutral2,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -247,7 +248,7 @@ class _AssetCard extends StatelessWidget {
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontFeatures: const [FontFeature.tabularFigures()],
-                            color: isDark ? SemanticColorsDark.asset : SemanticColorsLight.asset,
+                            color: colors.asset,
                           ),
                         ),
                         Text(
@@ -342,12 +343,11 @@ class _DepreciationProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     final bgColor = isDark
         ? const Color(0xFF2A3A4A)
         : const Color(0xFFD6E8FF);
-    final fillColor = isDark
-        ? SemanticColorsDark.asset
-        : SemanticColorsLight.asset;
+    final fillColor = colors.asset;
 
     return Semantics(
       label: '折旧进度${(progress * 100).toStringAsFixed(0)}%',

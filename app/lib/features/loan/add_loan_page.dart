@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/loan_provider.dart';
 import '../../domain/models/loan_models.dart';
@@ -295,8 +295,8 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
                   color: selected
                       ? typeInfo.color.withValues(alpha: 0.12)
                       : (isDark
-                          ? const Color(0xFF2C2C2E)
-                          : const Color(0xFFF2F2F7)),
+                          ? NeutralColorsDark.neutral2
+                          : NeutralColorsLight.neutral2),
                   borderRadius: BorderRadius.circular(14),
                   border: selected
                       ? Border.all(color: typeInfo.color, width: 2)
@@ -691,8 +691,8 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? const Color(0xFF2C2C2E)
-                      : const Color(0xFFF2F2F7),
+                      ? NeutralColorsDark.neutral2
+                      : NeutralColorsLight.neutral2,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -770,7 +770,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF3A3A3C) : Colors.grey.shade100,
+              color: isDark ? NeutralColorsDark.neutral3 : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(

@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/constants/category_icon_widget.dart';
 import '../../core/constants/category_icons.dart';
 import '../../core/router/app_router.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
@@ -390,10 +390,11 @@ class _TransactionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.semanticColors;
     final isIncome = transaction.type == 'income';
     final amountColor = isIncome
-        ? (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
-        : (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense);
+        ? colors.income
+        : colors.expense;
     final prefix = isIncome ? '+' : '-';
     final yuan = transaction.amountCny / 100;
     final amountText = yuan == yuan.truncateToDouble()

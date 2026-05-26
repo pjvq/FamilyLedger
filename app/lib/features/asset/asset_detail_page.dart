@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/asset_provider.dart';
 import 'update_valuation_dialog.dart';
@@ -409,6 +409,7 @@ class _ValuationChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     if (valuations.length < 2) {
       return SizedBox(
         height: 180,
@@ -430,7 +431,7 @@ class _ValuationChart extends StatelessWidget {
       return FlSpot(e.key.toDouble(), e.value.value / 100);
     }).toList();
 
-    final chartColor = isDark ? SemanticColorsDark.asset : SemanticColorsLight.asset;
+    final chartColor = colors.asset;
 
     return Semantics(
       label: '估值历史折线图，共${sorted.length}个数据点',
@@ -630,6 +631,7 @@ class _ValuationList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     if (valuations.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(20),
@@ -661,7 +663,7 @@ class _ValuationList extends StatelessWidget {
             ? Icons.edit_rounded
             : Icons.trending_down_rounded;
         final sourceColor = isManual
-            ? (isDark ? SemanticColorsDark.asset : SemanticColorsLight.asset)
+            ? colors.asset
             : (isDark ? NeutralColorsDark.neutral5 : NeutralColorsLight.neutral5);
 
         return Semantics(

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../../core/theme/design_tokens.dart';
 import '../../../core/widgets/animated_counter.dart';
 
 class BalanceCard extends StatelessWidget {

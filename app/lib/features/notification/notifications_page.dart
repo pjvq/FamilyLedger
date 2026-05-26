@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/router/app_router.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/notification_provider.dart';
@@ -194,7 +194,7 @@ class _NotificationTile extends StatelessWidget {
       case 'budget_alert':
         return SemanticColorsLight.expense;
       case 'budget_warning':
-        return const Color(0xFFFF9500);
+        return SemanticColorsLight.warning;
       case 'daily_summary':
         return ColorTokens.primary;
       case 'loan_reminder':

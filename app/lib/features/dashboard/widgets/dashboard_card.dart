@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../../core/theme/design_tokens.dart';
 
 /// Expandable/collapsible card wrapper used by all dashboard sections
 class DashboardCard extends StatelessWidget {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
 import '../transaction/widgets/number_pad.dart';
@@ -147,8 +147,8 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
                         horizontal: 20, vertical: 24),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? const Color(0xFF2C2C2E)
-                          : const Color(0xFFF8F9FA),
+                          ? NeutralColorsDark.neutral2
+                          : NeutralColorsLight.neutral1,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
@@ -305,7 +305,7 @@ class _TypeChip extends StatelessWidget {
                 ? (isDark
                     ? ColorTokens.primaryLight.withValues(alpha: 0.2)
                     : ColorTokens.primary.withValues(alpha: 0.1))
-                : (isDark ? const Color(0xFF2C2C2E) : Colors.white),
+                : (isDark ? NeutralColorsDark.neutral2 : Colors.white),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isSelected

@@ -3,7 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/category_icon_widget.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
@@ -149,6 +149,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final colors = context.semanticColors;
     final txnState = ref.watch(transactionProvider);
     final allCats = [
       ...txnState.expenseCategories,
@@ -300,12 +301,8 @@ class _ReportPageState extends ConsumerState<ReportPage>
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: isExpenseTab
-                        ? (isDark
-                            ? SemanticColorsDark.expense
-                            : SemanticColorsLight.expense)
-                        : (isDark
-                            ? SemanticColorsDark.income
-                            : SemanticColorsLight.income),
+                        ? colors.expense
+                        : colors.income,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
@@ -437,6 +434,7 @@ class _ReportPageState extends ConsumerState<ReportPage>
   // ── Monthly trend chart ──
 
   Widget _buildMonthlyTrend(bool isDark, ThemeData theme) {
+    final colors = context.semanticColors;
     // Aggregate all transactions by month (full year)
     final monthlyExpense = List.filled(12, 0);
     final monthlyIncome = List.filled(12, 0);
@@ -567,16 +565,10 @@ class _ReportPageState extends ConsumerState<ReportPage>
                   final val = data[i].toDouble();
                   final color = _trendTab == 2
                       ? (val >= 0
-                          ? (isDark
-                              ? SemanticColorsDark.income
-                              : SemanticColorsLight.income)
-                          : (isDark
-                              ? SemanticColorsDark.expense
-                              : SemanticColorsLight.expense))
+                          ? colors.income
+                          : colors.expense)
                       : (_trendTab == 1
-                          ? (isDark
-                              ? SemanticColorsDark.income
-                              : SemanticColorsLight.income)
+                          ? colors.income
                           : (isDark
                               ? SemanticColorsDark.expense
                               : ColorTokens.primary));
@@ -1037,10 +1029,11 @@ class _TransactionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     final isIncome = transaction.type == 'income';
     final amountColor = isIncome
-        ? (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
-        : (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense);
+        ? colors.income
+        : colors.expense;
     final d = transaction.txnDate;
     final dateStr = '${d.month}/${d.day} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 

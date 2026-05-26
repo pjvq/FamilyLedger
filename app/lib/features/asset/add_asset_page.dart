@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/asset_provider.dart';
 import '../shared/family_scope_selector.dart';
 
@@ -84,6 +84,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final colors = context.semanticColors;
     final assetState = ref.watch(assetProvider);
 
     return GestureDetector(
@@ -149,14 +150,12 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
                                     ? SemanticColorsDark.asset.withValues(alpha: 0.2)
                                     : SemanticColorsLight.asset.withValues(alpha: 0.1))
                                 : (isDark
-                                    ? const Color(0xFF2C2C2E)
-                                    : const Color(0xFFF2F2F7)),
+                                    ? NeutralColorsDark.neutral2
+                                    : NeutralColorsLight.neutral2),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: isSelected
-                                  ? (isDark
-                                      ? SemanticColorsDark.asset
-                                      : SemanticColorsLight.asset)
+                                  ? colors.asset
                                   : Colors.transparent,
                               width: 2,
                             ),
@@ -175,9 +174,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
                                       ? FontWeight.w600
                                       : FontWeight.w400,
                                   color: isSelected
-                                      ? (isDark
-                                          ? SemanticColorsDark.asset
-                                          : SemanticColorsLight.asset)
+                                      ? colors.asset
                                       : theme.colorScheme.onSurface
                                           .withValues(alpha: 0.6),
                                 ),
@@ -349,6 +346,7 @@ class _DepreciationSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     return Card(
       child: Column(
         children: [
@@ -365,7 +363,7 @@ class _DepreciationSection extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.trending_down_rounded,
-                      color: isDark ? SemanticColorsDark.asset : SemanticColorsLight.asset,
+                      color: colors.asset,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -477,7 +475,7 @@ class _DepreciationSection extends StatelessWidget {
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                             color:
-                                isDark ? SemanticColorsDark.asset : SemanticColorsLight.asset,
+                                colors.asset,
                           ),
                         ),
                       ],
@@ -522,7 +520,7 @@ class _DepreciationSection extends StatelessWidget {
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                             color:
-                                isDark ? SemanticColorsDark.asset : SemanticColorsLight.asset,
+                                colors.asset,
                           ),
                         ),
                       ],

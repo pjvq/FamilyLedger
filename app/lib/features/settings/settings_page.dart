@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
 import '../../core/constants/app_constants.dart';
 import '../../core/router/app_router.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/auth_provider.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/app_providers.dart';

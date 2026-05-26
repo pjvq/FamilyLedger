@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/investment_provider.dart';
 import '../../domain/providers/market_data_provider.dart';
 import '../shared/family_scope_selector.dart';
@@ -447,7 +447,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF8F9FA),
+                    color: isDark ? const Color(0xFF1C1C1E) : NeutralColorsLight.neutral1,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -555,7 +555,7 @@ class _PreciousMetalCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isDark ? const Color(0xFF3A3A3C) : const Color(0xFFE8E8E8),
+              color: isDark ? NeutralColorsDark.neutral3 : const Color(0xFFE8E8E8),
             ),
           ),
           child: Row(
@@ -665,7 +665,7 @@ class _AssetHeader extends StatelessWidget {
         color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? const Color(0xFF3A3A3C) : const Color(0xFFEEEEEE),
+            color: isDark ? NeutralColorsDark.neutral3 : const Color(0xFFEEEEEE),
           ),
         ),
       ),
@@ -782,7 +782,7 @@ class _FormField extends StatelessWidget {
             prefixText: prefix != null ? '$prefix ' : null,
             suffixText: suffix,
             filled: true,
-            fillColor: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF5F5F5),
+            fillColor: isDark ? NeutralColorsDark.neutral2 : const Color(0xFFF5F5F5),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,
@@ -824,7 +824,7 @@ class _DateField extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF5F5F5),
+              color: isDark ? NeutralColorsDark.neutral2 : const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(

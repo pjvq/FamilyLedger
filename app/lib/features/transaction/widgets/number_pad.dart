@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../../core/theme/design_tokens.dart';
 
 /// 自定义数字键盘 — 大按键，清晰布局
 class NumberPad extends StatelessWidget {
@@ -22,8 +22,8 @@ class NumberPad extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7);
-    final keyColor = isDark ? const Color(0xFF3A3A3C) : Colors.white;
+    final bgColor = isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2;
+    final keyColor = isDark ? NeutralColorsDark.neutral3 : Colors.white;
 
     return Container(
       color: bgColor,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/notification_provider.dart';
 
 class NotificationSettingsPage extends ConsumerWidget {
@@ -38,7 +38,7 @@ class NotificationSettingsPage extends ConsumerWidget {
           ),
           _SettingSwitchTile(
             icon: Icons.trending_up_rounded,
-            iconColor: const Color(0xFFFF9500),
+            iconColor: SemanticColorsLight.warning,
             title: '预算80%预警',
             subtitle: '支出达到预算80%时提醒',
             value: settings.budgetWarning,

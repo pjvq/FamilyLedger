@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
+import '../../core/utils/budget_colors.dart';
 
 /// Circular progress ring showing budget execution rate.
 /// Includes pulse animation when overspent (rate >= 1.0).
@@ -88,12 +89,6 @@ class _BudgetExecutionCardState extends State<BudgetExecutionCard>
     super.dispose();
   }
 
-  Color _rateColor(double rate) {
-    if (rate >= 0.8) return SemanticColorsLight.expense;
-    if (rate >= 0.6) return const Color(0xFFFF9500);
-    return SemanticColorsLight.income;
-  }
-
   String _formatAmount(int cents) {
     final yuan = cents / 100;
     final str = yuan.toStringAsFixed(2);
@@ -154,7 +149,7 @@ class _BudgetExecutionCardState extends State<BudgetExecutionCard>
                     return CustomPaint(
                       painter: _RingPainter(
                         progress: _ringAnimation.value.clamp(0.0, 1.0),
-                        color: _rateColor(widget.executionRate),
+                        color: budgetRateColor(context, widget.executionRate),
                         backgroundColor: isDark
                             ? Colors.white.withValues(alpha: 0.08)
                             : Colors.black.withValues(alpha: 0.05),
@@ -165,7 +160,7 @@ class _BudgetExecutionCardState extends State<BudgetExecutionCard>
                           pctText,
                           style: theme.textTheme.headlineLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: _rateColor(widget.executionRate),
+                            color: budgetRateColor(context, widget.executionRate),
                           ),
                         ),
                       ),

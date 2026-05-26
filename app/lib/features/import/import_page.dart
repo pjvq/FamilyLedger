@@ -11,7 +11,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/constants/category_icons.dart';
 import '../../core/utils/category_uuid.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../data/local/database.dart' as db;
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/account_provider.dart';

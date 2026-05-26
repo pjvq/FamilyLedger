@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/micro_interactions.dart';
 import '../../core/widgets/widgets.dart';
@@ -270,12 +270,13 @@ class _InvestmentListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     final price = quote?.currentPrice ?? 0;
     final changePercent = quote?.changePercent ?? 0.0;
     final isUp = changePercent >= 0;
     final changeColor = isUp
-        ? (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
-        : (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense);
+        ? colors.income
+        : colors.expense;
     final value = price > 0
         ? (investment.quantity * price).round()
         : investment.costBasis;
@@ -319,8 +320,8 @@ class _InvestmentListItem extends StatelessWidget {
                                 horizontal: 4, vertical: 1),
                             decoration: BoxDecoration(
                               color: isDark
-                                  ? const Color(0xFF3A3A3C)
-                                  : const Color(0xFFF2F2F7),
+                                  ? NeutralColorsDark.neutral3
+                                  : NeutralColorsLight.neutral2,
                               borderRadius: BorderRadius.circular(3),
                             ),
                             child: Text(

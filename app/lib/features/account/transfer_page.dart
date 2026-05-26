@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
@@ -100,8 +100,8 @@ class _TransferPageState extends ConsumerState<TransferPage> {
                         horizontal: 20, vertical: 24),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? const Color(0xFF2C2C2E)
-                          : const Color(0xFFF8F9FA),
+                          ? NeutralColorsDark.neutral2
+                          : NeutralColorsLight.neutral1,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
@@ -259,7 +259,7 @@ class _AccountSelector extends StatelessWidget {
           Container(
             decoration: BoxDecoration(
               color:
-                  isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+                  isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
               borderRadius: BorderRadius.circular(12),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
 import '../../core/constants/app_constants.dart';
 import '../../core/router/app_router.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/account_provider.dart';
 import '../account/add_account_page.dart';
@@ -205,7 +205,7 @@ class _ModeSwitcher extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+          color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
@@ -527,6 +527,7 @@ class _AccountTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
       clipBehavior: Clip.antiAlias,
@@ -547,8 +548,8 @@ class _AccountTile extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: isDark
-                    ? const Color(0xFF3A3A3C)
-                    : const Color(0xFFF2F2F7),
+                    ? NeutralColorsDark.neutral3
+                    : NeutralColorsLight.neutral2,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
@@ -570,8 +571,8 @@ class _AccountTile extends StatelessWidget {
               style: theme.textTheme.bodyLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: account.balance >= 0
-                    ? (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
-                    : (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense),
+                    ? colors.income
+                    : colors.expense,
               ),
             ),
           ],

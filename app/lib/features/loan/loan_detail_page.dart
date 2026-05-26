@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/router/app_router.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../data/local/database.dart' as db;
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/loan_provider.dart';
@@ -382,8 +382,8 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? const Color(0xFF2C2C2E)
-                        : const Color(0xFFF2F2F7),
+                        ? NeutralColorsDark.neutral2
+                        : NeutralColorsLight.neutral2,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Column(
@@ -516,6 +516,7 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     return Semantics(
       label: '${loan.name}，剩余本金${_fmtCents(loan.remainingPrincipal)}元，'
           '已还${(progress * 100).toStringAsFixed(0)}%，'
@@ -601,9 +602,7 @@ class _SummaryCard extends StatelessWidget {
                         style: theme.textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           fontFeatures: const [FontFeature.tabularFigures()],
-                          color: isDark
-                              ? SemanticColorsDark.liability
-                              : SemanticColorsLight.liability,
+                          color: colors.liability,
                         ),
                       ),
                     ],
@@ -830,7 +829,7 @@ class _ActionButton extends StatelessWidget {
       label: semanticLabel,
       button: true,
       child: Material(
-        color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
@@ -880,17 +879,18 @@ class _TimelineNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final colors = context.semanticColors;
     final Color nodeColor;
     final double nodeSize;
 
     if (item.isPaid) {
-      nodeColor = isDark ? SemanticColorsDark.income : SemanticColorsLight.income;
+      nodeColor = colors.income;
       nodeSize = 12;
     } else if (isCurrent) {
       nodeColor = isDark ? ColorTokens.primaryLight : ColorTokens.primary;
       nodeSize = 16;
     } else {
-      nodeColor = isDark ? const Color(0xFF3A3A3C) : const Color(0xFFD1D1D6);
+      nodeColor = isDark ? NeutralColorsDark.neutral3 : const Color(0xFFD1D1D6);
       nodeSize = 10;
     }
 
@@ -917,7 +917,7 @@ class _TimelineNode extends StatelessWidget {
                       nodeColor: nodeColor,
                       nodeSize: nodeSize,
                       lineColor: isDark
-                          ? const Color(0xFF3A3A3C)
+                          ? NeutralColorsDark.neutral3
                           : const Color(0xFFD1D1D6),
                       isFirst: isFirst,
                       isLast: isLast,
@@ -1032,9 +1032,7 @@ class _TimelineNode extends StatelessWidget {
                         if (item.isPaid)
                           Icon(Icons.check_circle_rounded,
                               size: 20,
-                              color: isDark
-                                  ? SemanticColorsDark.income
-                                  : SemanticColorsLight.income)
+                              color: colors.income)
                         else if (isCurrent)
                           Icon(Icons.radio_button_checked_rounded,
                               size: 20,

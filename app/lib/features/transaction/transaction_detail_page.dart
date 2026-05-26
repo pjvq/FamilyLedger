@@ -7,7 +7,7 @@ import '../../core/constants/category_icon_widget.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/router/app_router.dart';
-import 'package:familyledger/core/theme/design_tokens.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/transaction_provider.dart';
@@ -35,6 +35,7 @@ class TransactionDetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final colors = context.semanticColors;
     final txn = args.transaction;
     final category = args.category;
     final isIncome = txn.type == 'income';
@@ -57,8 +58,8 @@ class TransactionDetailPage extends ConsumerWidget {
     final accountName = account?.name ?? txn.accountId;
 
     final amountColor = isIncome
-        ? (isDark ? SemanticColorsDark.income : SemanticColorsLight.income)
-        : (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense);
+        ? colors.income
+        : colors.expense;
     final prefix = isIncome ? '+' : '-';
     final yuan = txn.amountCny / 100;
     final amountText = yuan == yuan.truncateToDouble()
@@ -141,8 +142,8 @@ class TransactionDetailPage extends ConsumerWidget {
                             height: 48,
                             decoration: BoxDecoration(
                               color: isDark
-                                  ? const Color(0xFF3A3A3C)
-                                  : const Color(0xFFF2F2F7),
+                                  ? NeutralColorsDark.neutral3
+                                  : NeutralColorsLight.neutral2,
                               borderRadius: BorderRadius.circular(14),
                             ),
                             alignment: Alignment.center,
@@ -360,9 +361,9 @@ class TransactionDetailPage extends ConsumerWidget {
                     label: const Text('删除交易'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor:
-                          isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense,
+                          colors.expense,
                       side: BorderSide(
-                        color: (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense)
+                        color: colors.expense
                             .withValues(alpha: 0.4),
                       ),
                       shape: RoundedRectangleBorder(
@@ -468,7 +469,7 @@ class TransactionDetailPage extends ConsumerWidget {
     return Container(
       width: 80,
       height: 80,
-      color: isDark ? const Color(0xFF3A3A3C) : const Color(0xFFF2F2F7),
+      color: isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral2,
       alignment: Alignment.center,
       child: Icon(Icons.broken_image_outlined,
           color: isDark ? Colors.white54 : Colors.black38),
