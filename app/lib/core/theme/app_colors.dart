@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 /// FamilyLedger 颜色系统
 /// 收入=绿色系, 支出=红/橙色系, 资产=蓝色系, 负债=暖红色系
+///
+/// **Deprecated**: Use `design_tokens.dart` (ColorTokens, SemanticColors, NeutralColors) instead.
+/// This file will be removed once all pages are migrated to the new token system.
+@Deprecated('Use design_tokens.dart color tokens instead. See Issue #81.')
 class AppColors {
   AppColors._();
 
