@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/router/app_router.dart';
 import '../../domain/providers/auth_provider.dart';
 
@@ -42,10 +43,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             ),
           );
         }
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          AppRouter.home,
-          (_) => false,
-        );
+        context.go(AppRouter.home);
       }
       if (next.status == AuthStatus.error && next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
