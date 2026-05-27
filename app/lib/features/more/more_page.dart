@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/sync_status_tile.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
 import '../../core/router/app_router.dart';
@@ -141,7 +142,7 @@ class MorePage extends ConsumerWidget {
 
             // ── 同步状态 ──
             const SizedBox(height: 8),
-            const _SyncStatusTile(),
+            const SyncStatusTile(),
 
             // ── 退出登录 ──
             const SizedBox(height: 16),
@@ -629,69 +630,3 @@ class _ThemeModeTile extends StatelessWidget {
 
 // ────────── Sync status (compact indicator) ──────────
 
-class _SyncStatusTile extends ConsumerWidget {
-  const _SyncStatusTile();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final syncState = ref.watch(syncStatusProvider);
-    final theme = Theme.of(context);
-
-    final (icon, label, subtitle, color) = switch (syncState.status) {
-      SyncStatus.synced => (
-          Icons.cloud_done_rounded,
-          '已同步',
-          '所有数据均已同步到服务器',
-          Colors.green,
-        ),
-      SyncStatus.syncing => (
-          Icons.sync_rounded,
-          '同步中...',
-          '正在上传本地变更',
-          theme.colorScheme.primary,
-        ),
-      SyncStatus.pending => (
-          Icons.cloud_upload_outlined,
-          '待同步',
-          '${syncState.pendingCount} 条操作等待上传',
-          Colors.orange,
-        ),
-      SyncStatus.offline => (
-          Icons.cloud_off_rounded,
-          '离线模式',
-          '断网时可正常记账，联网后自动同步',
-          Colors.grey,
-        ),
-      SyncStatus.failed => (
-          Icons.error_outline_rounded,
-          '同步失败',
-          '${syncState.failedCount} 条操作上传失败，请检查网络',
-          Colors.red,
-        ),
-    };
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
-      child: ListTile(
-        leading: Icon(icon, color: color),
-        title:
-            Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-        subtitle: Text(
-          subtitle,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-          ),
-        ),
-        trailing: syncState.status == SyncStatus.syncing
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : null,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
-    );
-  }
-}

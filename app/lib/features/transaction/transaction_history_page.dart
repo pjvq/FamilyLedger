@@ -501,8 +501,8 @@ class _TransactionRow extends StatelessWidget {
                       : Icons.cloud_upload_outlined,
                   size: 14,
                   color: transaction.syncStatus == 'failed'
-                      ? Colors.red
-                      : Colors.orange.shade300,
+                      ? colors.error
+                      : colors.warning,
                 ),
               ],
             ],

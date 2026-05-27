@@ -15,12 +15,7 @@ class PortfolioChart extends ConsumerStatefulWidget {
 class _PortfolioChartState extends ConsumerState<PortfolioChart> {
   int? _touchedIndex;
 
-  static final _chartColors = [
-    ...ChartColors.palette,
-    const Color(0xFF64D2FF), // light blue
-    const Color(0xFF30D158), // light green
-  ];
-
+  static const _chartColors = ChartColors.palette; // 10 slots
   @override
   Widget build(BuildContext context) {
     final invState = ref.watch(investmentProvider);

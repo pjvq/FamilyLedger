@@ -345,8 +345,8 @@ class _DepreciationProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
       final colors = context.semanticColors;
     final bgColor = isDark
-        ? const Color(0xFF2A3A4A)
-        : const Color(0xFFD6E8FF);
+        ? NeutralColorsDark.neutral3
+        : colors.asset.withValues(alpha: 0.15);
     final fillColor = colors.asset;
 
     return Semantics(

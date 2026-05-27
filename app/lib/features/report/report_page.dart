@@ -55,22 +55,9 @@ DateTimeRange _presetRange(_DatePreset p) {
   }
 }
 
-// ── Pie chart colors ──
+// ── Pie chart colors (uses design token palette) ──
 
-const _chartColors = [
-  Color(0xFFFF6384),
-  Color(0xFF36A2EB),
-  Color(0xFFFFCE56),
-  Color(0xFF4BC0C0),
-  Color(0xFF9966FF),
-  Color(0xFFFF9F40),
-  Color(0xFF8AC24A),
-  Color(0xFFE91E63),
-  Color(0xFF00BCD4),
-  Color(0xFF795548),
-  Color(0xFF607D8B),
-  Color(0xFFCDDC39),
-];
+const _chartColors = ChartColors.palette;
 
 /// Report page with date presets, hierarchical category, and pie chart
 class ReportPage extends ConsumerStatefulWidget {

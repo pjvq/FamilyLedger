@@ -73,7 +73,7 @@ class BalanceCard extends StatelessWidget {
               _SummaryItem(
                 label: '本月支出',
                 amount: monthExpense,
-                color: const Color(0xFFFFB74D),
+                color: context.semanticColors.expense,
               ),
             ],
           ),

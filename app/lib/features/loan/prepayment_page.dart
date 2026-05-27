@@ -63,7 +63,7 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
                     decoration: BoxDecoration(
                       color: isDark
                           ? NeutralColorsDark.neutral3
-                          : Colors.grey.shade100,
+                          : NeutralColorsLight.neutral2,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -591,7 +591,7 @@ class _NewScheduleList extends StatelessWidget {
                 bottom: BorderSide(
                   color: isDark
                       ? NeutralColorsDark.neutral3
-                      : const Color(0xFFE5E5EA),
+                      : NeutralColorsLight.neutral3,
                   width: 0.5,
                 ),
               ),

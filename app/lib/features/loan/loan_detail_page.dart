@@ -362,8 +362,8 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                   height: 4,
                   decoration: BoxDecoration(
                     color: isDark
-                        ? const Color(0xFF48484A)
-                        : const Color(0xFFD1D1D6),
+                        ? NeutralColorsDark.neutral3
+                        : NeutralColorsLight.neutral3,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -890,7 +890,7 @@ class _TimelineNode extends StatelessWidget {
       nodeColor = isDark ? ColorTokens.primaryLight : ColorTokens.primary;
       nodeSize = 16;
     } else {
-      nodeColor = isDark ? NeutralColorsDark.neutral3 : const Color(0xFFD1D1D6);
+      nodeColor = isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral3;
       nodeSize = 10;
     }
 
@@ -918,7 +918,7 @@ class _TimelineNode extends StatelessWidget {
                       nodeSize: nodeSize,
                       lineColor: isDark
                           ? NeutralColorsDark.neutral3
-                          : const Color(0xFFD1D1D6),
+                          : NeutralColorsLight.neutral3,
                       isFirst: isFirst,
                       isLast: isLast,
                       isPaid: item.isPaid,

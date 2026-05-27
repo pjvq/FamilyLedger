@@ -195,7 +195,7 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
                   schedule: _comSchedule,
                   loaded: _schedulesLoaded,
                   label: '商贷',
-                  color: const Color(0xFF3D5AFE),
+                  color: ColorTokens.primaryDark,
                   isDark: isDark,
                   theme: theme,
                 ),
@@ -205,7 +205,7 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
                   schedule: _pvdSchedule,
                   loaded: _schedulesLoaded,
                   label: '公积金',
-                  color: const Color(0xFF448AFF),
+                  color: ColorTokens.primaryLight,
                   isDark: isDark,
                   theme: theme,
                 ),
@@ -273,10 +273,10 @@ class _GroupSummaryCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
+              ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)] // TODO: define dark gradient tokens
               : [
                   GradientTokens.primaryGradientStart.withValues(alpha: 0.08),
-                  const Color(0xFF448AFF).withValues(alpha: 0.04),
+                  ColorTokens.primaryLight.withValues(alpha: 0.04),
                 ],
         ),
         borderRadius: BorderRadius.circular(20),
@@ -378,7 +378,7 @@ class _GroupSummaryCard extends StatelessWidget {
               if (comLoan != null)
                 _SubLoanSummaryChip(
                   label: '商贷',
-                  color: const Color(0xFF3D5AFE),
+                  color: ColorTokens.primaryDark,
                   rate: '${comLoan.annualRate.toStringAsFixed(2)}%',
                   principal: '¥${_fmtCents(comLoan.principal)}',
                   theme: theme,
@@ -388,7 +388,7 @@ class _GroupSummaryCard extends StatelessWidget {
               if (pvdLoan != null)
                 _SubLoanSummaryChip(
                   label: '公积金',
-                  color: const Color(0xFF448AFF),
+                  color: ColorTokens.primaryLight,
                   rate: '${pvdLoan.annualRate.toStringAsFixed(2)}%',
                   principal: '¥${_fmtCents(pvdLoan.principal)}',
                   theme: theme,
@@ -519,14 +519,14 @@ class _OverviewTab extends StatelessWidget {
           decoration: BoxDecoration(
             color: isPaid
                 ? (isDark
-                    ? Colors.green.withValues(alpha: 0.05)
-                    : Colors.green.withValues(alpha: 0.02))
+                    ? context.semanticColors.income.withValues(alpha: 0.05)
+                    : context.semanticColors.income.withValues(alpha: 0.02))
                 : null,
             border: Border(
               bottom: BorderSide(
                 color: isDark
                     ? NeutralColorsDark.neutral3
-                    : const Color(0xFFE5E5EA),
+                    : NeutralColorsLight.neutral3,
                 width: 0.5,
               ),
             ),
@@ -570,7 +570,7 @@ class _OverviewTab extends StatelessWidget {
                         flex: comItem.payment,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: const Color(0xFF3D5AFE)
+                            color: ColorTokens.primaryDark
                                 .withValues(alpha: isPaid ? 0.3 : 0.7),
                             borderRadius: const BorderRadius.horizontal(
                                 left: Radius.circular(3)),
@@ -582,7 +582,7 @@ class _OverviewTab extends StatelessWidget {
                         flex: pvdItem.payment,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: const Color(0xFF448AFF)
+                            color: ColorTokens.primaryLight
                                 .withValues(alpha: isPaid ? 0.3 : 0.7),
                             borderRadius: const BorderRadius.horizontal(
                                 right: Radius.circular(3)),
@@ -823,7 +823,7 @@ class _SubLoanTab extends StatelessWidget {
                 bottom: BorderSide(
                   color: isDark
                       ? NeutralColorsDark.neutral3
-                      : const Color(0xFFE5E5EA),
+                      : NeutralColorsLight.neutral3,
                   width: 0.5,
                 ),
               ),

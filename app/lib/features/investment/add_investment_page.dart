@@ -261,7 +261,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
               hintText: '搜索代码或名称',
               prefixIcon: const Icon(Icons.search_rounded, size: 20),
               filled: true,
-              fillColor: isDark ? NeutralColorsDark.neutral2 : const Color(0xFFF5F5F5),
+              fillColor: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -447,7 +447,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1C1C1E) : NeutralColorsLight.neutral1,
+                    color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral1,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -543,7 +543,7 @@ class _PreciousMetalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+      color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral0,
       borderRadius: BorderRadius.circular(14),
       elevation: isDark ? 0 : 1,
       shadowColor: Colors.black.withValues(alpha: 0.06),
@@ -555,7 +555,7 @@ class _PreciousMetalCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isDark ? NeutralColorsDark.neutral3 : const Color(0xFFE8E8E8),
+              color: isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral3,
             ),
           ),
           child: Row(
@@ -662,10 +662,10 @@ class _AssetHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral0,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? NeutralColorsDark.neutral3 : const Color(0xFFEEEEEE),
+            color: isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral2,
           ),
         ),
       ),
@@ -782,7 +782,7 @@ class _FormField extends StatelessWidget {
             prefixText: prefix != null ? '$prefix ' : null,
             suffixText: suffix,
             filled: true,
-            fillColor: isDark ? NeutralColorsDark.neutral2 : const Color(0xFFF5F5F5),
+            fillColor: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,
@@ -824,7 +824,7 @@ class _DateField extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
-              color: isDark ? NeutralColorsDark.neutral2 : const Color(0xFFF5F5F5),
+              color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
