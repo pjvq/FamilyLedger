@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/sync_status_provider.dart';
+import '../../sync/sync_engine.dart';
 import '../theme/tokens/semantic_theme_extension.dart';
 
 /// Shared sync status indicator tile used in More and Settings pages.
@@ -52,18 +54,30 @@ class SyncStatusTile extends ConsumerWidget {
       title: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
-          fontSize: 12,
+        style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
         ),
       ),
       trailing: syncState.status == SyncStatus.syncing
           ? const SizedBox(
-              width: 16,
-              height: 16,
+              width: 20,
+              height: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : null,
+          : syncState.status == SyncStatus.failed
+              ? TextButton.icon(
+                  onPressed: () async {
+                    await ref.read(databaseProvider).resetDeadSyncOps();
+                    ref.read(syncEngineProvider).syncNow();
+                  },
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('重试'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: colors.error,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                )
+              : null,
     );
   }
 }

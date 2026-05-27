@@ -481,7 +481,7 @@ class _LoanCard extends StatelessWidget {
                                       size: 11,
                                       color: loan.familyId.isNotEmpty
                                           ? ColorTokens.primary
-                                          : NeutralColorsLight.neutral4,
+                                          : (isDark ? NeutralColorsDark.neutral4 : NeutralColorsLight.neutral4),
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
@@ -493,7 +493,7 @@ class _LoanCard extends StatelessWidget {
                                         fontWeight: FontWeight.w500,
                                         color: loan.familyId.isNotEmpty
                                             ? ColorTokens.primary
-                                            : NeutralColorsLight.neutral4,
+                                            : (isDark ? NeutralColorsDark.neutral4 : NeutralColorsLight.neutral4),
                                       ),
                                     ),
                                   ],

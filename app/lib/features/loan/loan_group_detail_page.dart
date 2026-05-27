@@ -273,7 +273,7 @@ class _GroupSummaryCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
+              ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)] // TODO: define dark gradient tokens
               : [
                   GradientTokens.primaryGradientStart.withValues(alpha: 0.08),
                   ColorTokens.primaryLight.withValues(alpha: 0.04),
