@@ -543,7 +543,7 @@ class _PreciousMetalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: isDark ? NeutralColorsDark.neutral1 : Colors.white,
+      color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral0,
       borderRadius: BorderRadius.circular(14),
       elevation: isDark ? 0 : 1,
       shadowColor: Colors.black.withValues(alpha: 0.06),
@@ -662,7 +662,7 @@ class _AssetHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
       decoration: BoxDecoration(
-        color: isDark ? NeutralColorsDark.neutral1 : Colors.white,
+        color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral0,
         border: Border(
           bottom: BorderSide(
             color: isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral2,

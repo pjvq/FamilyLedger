@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/sync_status_tile.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
 import '../../core/constants/app_constants.dart';
@@ -84,7 +85,7 @@ class SettingsPage extends ConsumerWidget {
 
           const SizedBox(height: 24),
           _SectionHeader(title: '同步', theme: theme),
-          const _SyncStatusTile(),
+          const SyncStatusTile(),
 
           const SizedBox(height: 24),
           _SectionHeader(title: '其他', theme: theme),
@@ -600,82 +601,3 @@ class _ThemeModeTile extends StatelessWidget {
 
 // ────────── Sync status tile ──────────
 
-class _SyncStatusTile extends ConsumerWidget {
-  const _SyncStatusTile();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final syncState = ref.watch(syncStatusProvider);
-    final theme = Theme.of(context);
-
-    final colors = context.semanticColors;
-    final (icon, label, subtitle, color) = switch (syncState.status) {
-      SyncStatus.synced => (
-          Icons.cloud_done_rounded,
-          '已同步',
-          '所有数据均已同步到服务器',
-          colors.success,
-        ),
-      SyncStatus.syncing => (
-          Icons.sync_rounded,
-          '同步中...',
-          '正在上传本地变更',
-          theme.colorScheme.primary,
-        ),
-      SyncStatus.pending => (
-          Icons.cloud_upload_outlined,
-          '待同步',
-          '${syncState.pendingCount} 条操作等待上传',
-          colors.warning,
-        ),
-      SyncStatus.offline => (
-          Icons.cloud_off_rounded,
-          '离线模式',
-          '断网时可正常记账，联网后自动同步',
-          NeutralColorsLight.neutral4,
-        ),
-      SyncStatus.failed => (
-          Icons.error_outline_rounded,
-          '同步失败',
-          '${syncState.failedCount} 条操作上传失败',
-          colors.error,
-        ),
-    };
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
-      child: ListTile(
-        leading: Icon(icon, color: color),
-        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-        subtitle: Text(
-          subtitle,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-          ),
-        ),
-        trailing: syncState.status == SyncStatus.syncing
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : syncState.status == SyncStatus.failed
-                ? TextButton.icon(
-                    onPressed: () async {
-                      // Reset dead ops so they can be retried
-                      await ref.read(databaseProvider).resetDeadSyncOps();
-                      ref.read(syncEngineProvider).syncNow();
-                    },
-                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text('重试'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
-                  )
-                : null,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
-    );
-  }
-}

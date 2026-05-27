@@ -208,7 +208,7 @@ class _LoanGroupCard extends StatelessWidget {
                                   decoration: BoxDecoration(
                                     color: isFamily
                                         ? ColorTokens.primary.withValues(alpha: 0.12)
-                                        : NeutralColorsLight.neutral4.withValues(alpha: 0.12),
+                                        : (isDark ? NeutralColorsDark.neutral4 : NeutralColorsLight.neutral4).withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Row(
@@ -217,7 +217,7 @@ class _LoanGroupCard extends StatelessWidget {
                                       Icon(
                                         isFamily ? Icons.family_restroom : Icons.person,
                                         size: 11,
-                                        color: isFamily ? ColorTokens.primary : NeutralColorsLight.neutral4,
+                                        color: isFamily ? ColorTokens.primary : (isDark ? NeutralColorsDark.neutral4 : NeutralColorsLight.neutral4),
                                       ),
                                       const SizedBox(width: 3),
                                       Text(
@@ -225,7 +225,7 @@ class _LoanGroupCard extends StatelessWidget {
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w500,
-                                          color: isFamily ? ColorTokens.primary : NeutralColorsLight.neutral4,
+                                          color: isFamily ? ColorTokens.primary : (isDark ? NeutralColorsDark.neutral4 : NeutralColorsLight.neutral4),
                                         ),
                                       ),
                                     ],
@@ -468,7 +468,7 @@ class _LoanCard extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: loan.familyId.isNotEmpty
                                       ? ColorTokens.primary.withValues(alpha: 0.12)
-                                      : NeutralColorsLight.neutral4.withValues(alpha: 0.12),
+                                      : (isDark ? NeutralColorsDark.neutral4 : NeutralColorsLight.neutral4).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Row(
