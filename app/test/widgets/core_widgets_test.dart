@@ -590,7 +590,7 @@ void main() {
         theme: ThemeData.dark(useMaterial3: true),
       ));
       final icon = tester.widget<Icon>(find.byIcon(Icons.cloud_off_rounded));
-      expect(icon.color, const Color(0xFFC0392B));
+      expect(icon.color, const Color(0xFFFF8A80));
     });
 
     testWidgets('light mode uses light icon color', (tester) async {
@@ -599,7 +599,7 @@ void main() {
         theme: ThemeData.light(useMaterial3: true),
       ));
       final icon = tester.widget<Icon>(find.byIcon(Icons.cloud_off_rounded));
-      expect(icon.color, const Color(0xFFE74C3C));
+      expect(icon.color, const Color(0xFFFF6B6B));
     });
   });
 

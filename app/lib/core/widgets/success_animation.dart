@@ -122,7 +122,7 @@ class _TransactionSuccessOverlayState extends State<TransactionSuccessOverlay>
                           width: 56,
                           height: 56,
                           decoration: const BoxDecoration(
-                            color: Color(0xFF2ECC71),
+                            color: Color(0xFF34C759),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
