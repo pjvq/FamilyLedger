@@ -592,10 +592,10 @@ class _AssetPieChartState extends State<_AssetPieChart> {
   int? _touchedIndex;
 
   static const _colors = [
-    SemanticColorsLight.asset, // cash - blue
+    ChartColors.slot1, // cash - indigo
     ChartColors.slot4, // investment - purple
     ChartColors.slot5, // fixed asset - teal
-    SemanticColorsLight.expense, // loan - red
+    ChartColors.slot6, // loan - coral
   ];
 
   @override

@@ -483,7 +483,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                         fontSize: 20, fontWeight: FontWeight.w600)),
                 title: Text(c),
                 trailing: isSelected
-                    ? const Icon(Icons.check_rounded, color: SemanticColorsLight.income)
+                    ? Icon(Icons.check_rounded, color: context.semanticColors.income)
                     : null,
                 onTap: () {
                   setState(() => _selectedCurrency = c);
@@ -784,7 +784,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
           SnackBar(
             content: Text('日期无效: ${e.message}'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: SemanticColorsLight.warning,
+            backgroundColor: context.semanticColors.warning,
           ),
         );
       }
@@ -794,7 +794,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
           SnackBar(
             content: Text('操作失败: $e'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: SemanticColorsLight.expense,
+            backgroundColor: context.semanticColors.error,
           ),
         );
       }

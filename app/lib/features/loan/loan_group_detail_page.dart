@@ -519,8 +519,8 @@ class _OverviewTab extends StatelessWidget {
           decoration: BoxDecoration(
             color: isPaid
                 ? (isDark
-                    ? SemanticColorsLight.income.withValues(alpha: 0.05)
-                    : SemanticColorsLight.income.withValues(alpha: 0.02))
+                    ? context.semanticColors.income.withValues(alpha: 0.05)
+                    : context.semanticColors.income.withValues(alpha: 0.02))
                 : null,
             border: Border(
               bottom: BorderSide(
