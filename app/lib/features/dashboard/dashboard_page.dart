@@ -593,8 +593,8 @@ class _AssetPieChartState extends State<_AssetPieChart> {
 
   static const _colors = [
     SemanticColorsLight.asset, // cash - blue
-    ChartColors.purple, // investment - purple
-    ChartColors.teal, // fixed asset - cyan
+    ChartColors.slot4, // investment - purple
+    ChartColors.slot5, // fixed asset - teal
     SemanticColorsLight.expense, // loan - red
   ];
 

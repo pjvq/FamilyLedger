@@ -126,18 +126,19 @@ abstract final class NeutralColorsDark {
 
 /// Chart palette — 8 colors, designed to be color-blind friendly.
 abstract final class ChartColors {
-  static const Color indigo = Color(0xFF5B6EF5);
-  static const Color green = Color(0xFF34C759);
-  static const Color amber = Color(0xFFFF9500);
-  static const Color red = Color(0xFFFF6B6B);
-  static const Color purple = Color(0xFFAF52DE);
-  static const Color teal = Color(0xFF5AC8FA);
-  static const Color yellow = Color(0xFFFFCC00);
-  static const Color pink = Color(0xFFFF2D55);
+  // Positional slot names to avoid coupling to hue.
+  static const Color slot1 = Color(0xFF5B6EF5); // Indigo
+  static const Color slot2 = Color(0xFF2ECC71); // Emerald
+  static const Color slot3 = Color(0xFFF39C12); // Amber
+  static const Color slot4 = Color(0xFF9B59B6); // Purple
+  static const Color slot5 = Color(0xFF1ABC9C); // Teal
+  static const Color slot6 = Color(0xFFE74C3C); // Coral
+  static const Color slot7 = Color(0xFF34495E); // Slate
+  static const Color slot8 = Color(0xFFF06292); // Pink
 
-  /// Full chart palette for pie/bar/line charts.
+  /// Full chart palette for pie/bar/line charts (color-blind safe, per UX design doc).
   static const List<Color> palette = [
-    indigo, green, amber, red, purple, teal, yellow, pink,
+    slot1, slot2, slot3, slot4, slot5, slot6, slot7, slot8,
   ];
 }
 

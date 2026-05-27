@@ -57,7 +57,7 @@ DateTimeRange _presetRange(_DatePreset p) {
 
 // ── Pie chart colors (uses design token palette) ──
 
-List<Color> get _chartColors => ChartColors.palette;
+const _chartColors = ChartColors.palette;
 
 /// Report page with date presets, hierarchical category, and pie chart
 class ReportPage extends ConsumerStatefulWidget {

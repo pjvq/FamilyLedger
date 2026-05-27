@@ -50,7 +50,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.errorMessage!),
-            backgroundColor: SemanticColorsLight.expense,
+            backgroundColor: SemanticColorsLight.error,
             behavior: SnackBarBehavior.fixed,
           ),
         );

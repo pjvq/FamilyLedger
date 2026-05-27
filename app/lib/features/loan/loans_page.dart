@@ -91,17 +91,17 @@ class LoanTypeInfo {
 LoanTypeInfo getLoanTypeInfo(String type) {
   switch (type) {
     case 'mortgage':
-      return const LoanTypeInfo('房贷', '🏠', GradientTokens.primaryGradientStart);
+      return const LoanTypeInfo('房贷', '🏠', ChartColors.slot1);
     case 'car_loan':
-      return const LoanTypeInfo('车贷', '🚗', SemanticColorsLight.income);
+      return const LoanTypeInfo('车贷', '🚗', ChartColors.slot2);
     case 'credit_card':
-      return const LoanTypeInfo('信用卡', '💳', SemanticColorsLight.warning);
+      return const LoanTypeInfo('信用卡', '💳', ChartColors.slot3);
     case 'consumer':
-      return const LoanTypeInfo('消费贷', '💰', SemanticColorsLight.expense);
+      return const LoanTypeInfo('消费贷', '💰', ChartColors.slot6);
     case 'business':
-      return const LoanTypeInfo('经营贷', '🏢', ChartColors.purple);
+      return const LoanTypeInfo('经营贷', '🏢', ChartColors.slot4);
     default:
-      return const LoanTypeInfo('其他', '📋', NeutralColorsLight.neutral4);
+      return const LoanTypeInfo('其他', '📋', ChartColors.slot7);
   }
 }
 
