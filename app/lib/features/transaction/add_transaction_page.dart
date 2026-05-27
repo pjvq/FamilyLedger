@@ -483,7 +483,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                         fontSize: 20, fontWeight: FontWeight.w600)),
                 title: Text(c),
                 trailing: isSelected
-                    ? Icon(Icons.check_rounded, color: context.semanticColors.income)
+                    ? Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary)
                     : null,
                 onTap: () {
                   setState(() => _selectedCurrency = c);
