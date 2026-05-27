@@ -126,16 +126,18 @@ abstract final class NeutralColorsDark {
 
 /// Chart palette — 8 colors, designed to be color-blind friendly.
 abstract final class ChartColors {
+  static const Color indigo = Color(0xFF5B6EF5);
+  static const Color green = Color(0xFF34C759);
+  static const Color amber = Color(0xFFFF9500);
+  static const Color red = Color(0xFFFF6B6B);
+  static const Color purple = Color(0xFFAF52DE);
+  static const Color teal = Color(0xFF5AC8FA);
+  static const Color yellow = Color(0xFFFFCC00);
+  static const Color pink = Color(0xFFFF2D55);
+
   /// Full chart palette for pie/bar/line charts.
   static const List<Color> palette = [
-    Color(0xFF5B6EF5), // primary blue-purple
-    Color(0xFF34C759), // green
-    Color(0xFFFF9500), // amber
-    Color(0xFFFF6B6B), // red
-    Color(0xFFAF52DE), // purple
-    Color(0xFF5AC8FA), // teal
-    Color(0xFFFFCC00), // yellow
-    Color(0xFFFF2D55), // pink
+    indigo, green, amber, red, purple, teal, yellow, pink,
   ];
 }
 

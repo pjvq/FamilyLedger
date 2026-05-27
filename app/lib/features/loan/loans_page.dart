@@ -93,15 +93,15 @@ LoanTypeInfo getLoanTypeInfo(String type) {
     case 'mortgage':
       return const LoanTypeInfo('房贷', '🏠', GradientTokens.primaryGradientStart);
     case 'car_loan':
-      return const LoanTypeInfo('车贷', '🚗', Color(0xFF34C759));
+      return const LoanTypeInfo('车贷', '🚗', SemanticColorsLight.income);
     case 'credit_card':
-      return const LoanTypeInfo('信用卡', '💳', Color(0xFFFF9500));
+      return const LoanTypeInfo('信用卡', '💳', SemanticColorsLight.warning);
     case 'consumer':
-      return const LoanTypeInfo('消费贷', '💰', Color(0xFFFF6B6B));
+      return const LoanTypeInfo('消费贷', '💰', SemanticColorsLight.expense);
     case 'business':
-      return const LoanTypeInfo('经营贷', '🏢', Color(0xFFAF52DE));
+      return const LoanTypeInfo('经营贷', '🏢', ChartColors.purple);
     default:
-      return const LoanTypeInfo('其他', '📋', Color(0xFF8E8E93));
+      return const LoanTypeInfo('其他', '📋', NeutralColorsLight.neutral4);
   }
 }
 
@@ -207,8 +207,8 @@ class _LoanGroupCard extends StatelessWidget {
                                       horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: isFamily
-                                        ? Colors.blue.withValues(alpha: 0.12)
-                                        : Colors.grey.withValues(alpha: 0.12),
+                                        ? ColorTokens.primary.withValues(alpha: 0.12)
+                                        : NeutralColorsLight.neutral4.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Row(
@@ -217,7 +217,7 @@ class _LoanGroupCard extends StatelessWidget {
                                       Icon(
                                         isFamily ? Icons.family_restroom : Icons.person,
                                         size: 11,
-                                        color: isFamily ? Colors.blue : Colors.grey,
+                                        color: isFamily ? ColorTokens.primary : NeutralColorsLight.neutral4,
                                       ),
                                       const SizedBox(width: 3),
                                       Text(
@@ -225,7 +225,7 @@ class _LoanGroupCard extends StatelessWidget {
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w500,
-                                          color: isFamily ? Colors.blue : Colors.grey,
+                                          color: isFamily ? ColorTokens.primary : NeutralColorsLight.neutral4,
                                         ),
                                       ),
                                     ],
@@ -289,9 +289,9 @@ class _LoanGroupCard extends StatelessWidget {
                               minHeight: 6,
                               backgroundColor: isDark
                                   ? NeutralColorsDark.neutral3
-                                  : const Color(0xFFE5E5EA),
+                                  : NeutralColorsLight.neutral3,
                               valueColor: const AlwaysStoppedAnimation<Color>(
-                                Color(0xFF3D5AFE),
+                                ColorTokens.primaryDark,
                               ),
                             ),
                           ),
@@ -306,9 +306,9 @@ class _LoanGroupCard extends StatelessWidget {
                               minHeight: 6,
                               backgroundColor: isDark
                                   ? NeutralColorsDark.neutral3
-                                  : const Color(0xFFE5E5EA),
+                                  : NeutralColorsLight.neutral3,
                               valueColor: const AlwaysStoppedAnimation<Color>(
-                                Color(0xFF448AFF),
+                                ColorTokens.primaryLight,
                               ),
                             ),
                           ),
@@ -324,7 +324,7 @@ class _LoanGroupCard extends StatelessWidget {
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF3D5AFE),
+                        color: ColorTokens.primaryDark,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -338,7 +338,7 @@ class _LoanGroupCard extends StatelessWidget {
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF448AFF),
+                        color: ColorTokens.primaryLight,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -467,8 +467,8 @@ class _LoanCard extends StatelessWidget {
                                     horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: loan.familyId.isNotEmpty
-                                      ? Colors.blue.withValues(alpha: 0.12)
-                                      : Colors.grey.withValues(alpha: 0.12),
+                                      ? ColorTokens.primary.withValues(alpha: 0.12)
+                                      : NeutralColorsLight.neutral4.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Row(
@@ -480,8 +480,8 @@ class _LoanCard extends StatelessWidget {
                                           : Icons.person,
                                       size: 11,
                                       color: loan.familyId.isNotEmpty
-                                          ? Colors.blue
-                                          : Colors.grey,
+                                          ? ColorTokens.primary
+                                          : NeutralColorsLight.neutral4,
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
@@ -492,8 +492,8 @@ class _LoanCard extends StatelessWidget {
                                         fontSize: 11,
                                         fontWeight: FontWeight.w500,
                                         color: loan.familyId.isNotEmpty
-                                            ? Colors.blue
-                                            : Colors.grey,
+                                            ? ColorTokens.primary
+                                            : NeutralColorsLight.neutral4,
                                       ),
                                     ),
                                   ],
@@ -536,7 +536,7 @@ class _LoanCard extends StatelessWidget {
                     minHeight: 6,
                     backgroundColor: isDark
                         ? NeutralColorsDark.neutral3
-                        : const Color(0xFFE5E5EA),
+                        : NeutralColorsLight.neutral3,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       isDark ? ColorTokens.primaryLight : ColorTokens.primary,
                     ),

@@ -608,12 +608,13 @@ class _SyncStatusTile extends ConsumerWidget {
     final syncState = ref.watch(syncStatusProvider);
     final theme = Theme.of(context);
 
+    final colors = context.semanticColors;
     final (icon, label, subtitle, color) = switch (syncState.status) {
       SyncStatus.synced => (
           Icons.cloud_done_rounded,
           '已同步',
           '所有数据均已同步到服务器',
-          Colors.green,
+          colors.success,
         ),
       SyncStatus.syncing => (
           Icons.sync_rounded,
@@ -625,19 +626,19 @@ class _SyncStatusTile extends ConsumerWidget {
           Icons.cloud_upload_outlined,
           '待同步',
           '${syncState.pendingCount} 条操作等待上传',
-          Colors.orange,
+          colors.warning,
         ),
       SyncStatus.offline => (
           Icons.cloud_off_rounded,
           '离线模式',
           '断网时可正常记账，联网后自动同步',
-          Colors.grey,
+          NeutralColorsLight.neutral4,
         ),
       SyncStatus.failed => (
           Icons.error_outline_rounded,
           '同步失败',
           '${syncState.failedCount} 条操作上传失败',
-          Colors.red,
+          colors.error,
         ),
     };
 

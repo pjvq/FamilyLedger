@@ -17,8 +17,8 @@ class _PortfolioChartState extends ConsumerState<PortfolioChart> {
 
   static final _chartColors = [
     ...ChartColors.palette,
-    const Color(0xFF64D2FF), // light blue
-    const Color(0xFF30D158), // light green
+    SemanticColorsDark.asset, // light blue
+    SemanticColorsDark.income, // light green
   ];
 
   @override

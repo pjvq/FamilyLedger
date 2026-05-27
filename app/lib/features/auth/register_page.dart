@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/router/app_router.dart';
+import '../../core/theme/tokens/color_tokens.dart';
 import '../../domain/providers/auth_provider.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
@@ -37,7 +38,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('服务器连接失败，已进入离线模式。\n数据仅保存在本地，稍后可登录同步。'),
-              backgroundColor: Colors.orange.shade600,
+              backgroundColor: SemanticColorsLight.warning,
               duration: const Duration(seconds: 4),
               behavior: SnackBarBehavior.fixed,
             ),
@@ -49,7 +50,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.errorMessage!),
-            backgroundColor: Colors.red.shade400,
+            backgroundColor: SemanticColorsLight.expense,
             behavior: SnackBarBehavior.fixed,
           ),
         );
