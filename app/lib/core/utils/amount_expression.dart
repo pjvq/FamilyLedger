@@ -52,11 +52,6 @@ class AmountExpression {
     return intPart * 100 + fracPart;
   }
 
-  /// Evaluate and return as double (for display purposes only).
-  static double evaluateDouble(String expression) {
-    return evaluateCents(expression) / 100.0;
-  }
-
   /// Whether the expression contains an operator.
   static bool hasOperator(String expression) {
     // Skip first char to allow negative numbers in future

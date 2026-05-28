@@ -302,9 +302,6 @@ class TransactionRepository implements ITransactionRepository {
   Future<Account?> getDefaultAccount(String userId, {String? familyId}) =>
       _db.getDefaultAccount(userId, familyId: familyId);
 
-  Future<Account?> getAccountById(String accountId) =>
-      _db.getAccountById(accountId);
-
   // ─── Private ─────────────────────────────────────────────────────────
 
   Future<void> _adjustBalance(String accountId, String type, int amountCny) async {

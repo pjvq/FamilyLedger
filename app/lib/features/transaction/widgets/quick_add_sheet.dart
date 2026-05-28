@@ -39,6 +39,7 @@ class QuickAddSheet extends ConsumerStatefulWidget {
 
 class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   String _expression = '0';
+  int _cachedCents = 0;
   String _note = '';
   int _typeIndex = 0; // 0=支出, 1=收入
   String? _selectedCategoryId;
@@ -46,7 +47,12 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   DateTime _date = DateTime.now();
   bool _isSubmitting = false;
 
-  int get _computedCents => AmountExpression.evaluateCents(_expression);
+  int get _computedCents => _cachedCents;
+
+  void _updateExpression(String newExpr) {
+    _expression = newExpr;
+    _cachedCents = AmountExpression.evaluateCents(newExpr);
+  }
 
   bool get _canSubmit =>
       _computedCents > 0 && _selectedCategoryId != null && !_isSubmitting;
@@ -181,12 +187,12 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   void _onDigit(String digit) {
     setState(() {
       if (_expression == '0' && digit != '.') {
-        _expression = digit;
+        _updateExpression(digit);
       } else if (digit == '.') {
         // Prevent double dots in current segment
         final lastSegment = _expression.split(RegExp(r'[+\-]')).last;
         if (!lastSegment.contains('.')) {
-          _expression += digit;
+          _updateExpression(_expression + digit);
         }
       } else {
         // Limit decimal places to 2
@@ -194,7 +200,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
         if (lastSegment.contains('.') && lastSegment.split('.').last.length >= 2) {
           return;
         }
-        _expression += digit;
+        _updateExpression(_expression + digit);
       }
     });
   }
@@ -203,10 +209,9 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
     setState(() {
       final lastChar = _expression.isNotEmpty ? _expression[_expression.length - 1] : '';
       if (lastChar == '+' || lastChar == '-') {
-        // Replace last operator
-        _expression = _expression.substring(0, _expression.length - 1) + op;
+        _updateExpression(_expression.substring(0, _expression.length - 1) + op);
       } else if (_expression != '0') {
-        _expression += op;
+        _updateExpression(_expression + op);
       }
     });
   }
@@ -214,18 +219,18 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   void _onDelete() {
     setState(() {
       if (_expression.length <= 1) {
-        _expression = '0';
+        _updateExpression('0');
       } else {
-        _expression = _expression.substring(0, _expression.length - 1);
+        _updateExpression(_expression.substring(0, _expression.length - 1));
       }
     });
   }
 
   void _onClear() {
-    setState(() => _expression = '0');
+    setState(() => _updateExpression('0'));
   }
-
   // ─── Actions ─────────────────────────────────────────────────────
+
 
   Future<void> _onConfirm() async {
     if (!_canSubmit) return;
@@ -310,20 +315,26 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Padding(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(SpacingTokens.base),
               child: Text('选择账户', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             ),
-            ...accounts.map((account) => ListTile(
-              leading: const Icon(Icons.account_balance_wallet_outlined),
-              title: Text(account.name),
-              trailing: account.id == _selectedAccountId
-                  ? const Icon(Icons.check, color: ColorTokens.primary)
-                  : null,
-              onTap: () {
-                setState(() => _selectedAccountId = account.id);
-                Navigator.of(ctx).pop();
-              },
-            )),
+            if (accounts.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(SpacingTokens.xl),
+                child: Text('暂无账户，请先在资产页创建', style: TextStyle(color: Colors.grey)),
+              )
+            else
+              ...accounts.map((account) => ListTile(
+                leading: const Icon(Icons.account_balance_wallet_outlined),
+                title: Text(account.name),
+                trailing: account.id == _selectedAccountId
+                    ? const Icon(Icons.check, color: ColorTokens.primary)
+                    : null,
+                onTap: () {
+                  setState(() => _selectedAccountId = account.id);
+                  Navigator.of(ctx).pop();
+                },
+              )),
             const SizedBox(height: SpacingTokens.base),
           ],
         ),

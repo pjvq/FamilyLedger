@@ -13,6 +13,7 @@ import '../../generated/proto/transaction.pbenum.dart' as pbe;
 import '../../generated/proto/google/protobuf/timestamp.pb.dart' as proto_ts;
 import '../../sync/sync_engine.dart';
 import '../repositories/transaction_repository.dart';
+import '../repositories/account_repository.dart';
 import '../repositories/category_repository.dart';
 import '../interfaces/interfaces.dart';
 import '../services/balance_calculator.dart';
@@ -86,6 +87,7 @@ class TransactionState {
 /// ~200 lines (down from 672) — each concern is independently testable.
 class TransactionNotifier extends StateNotifier<TransactionState> {
   final TransactionRepository _repo;
+  final IAccountRepository _accountRepo;
   final BalanceCalculator _balanceCalc;
   final OfflineSyncQueue _syncQueue;
   final CategorySyncService? _categorySvc;
@@ -100,6 +102,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
   TransactionNotifier({
     required TransactionRepository repo,
+    required IAccountRepository accountRepo,
     required BalanceCalculator balanceCalc,
     required OfflineSyncQueue syncQueue,
     CategorySyncService? categorySvc,
@@ -107,6 +110,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     required String userId,
     String? familyId,
   })  : _repo = repo,
+        _accountRepo = accountRepo,
         _balanceCalc = balanceCalc,
         _syncQueue = syncQueue,
         _categorySvc = categorySvc,
@@ -128,6 +132,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     ICategoryRepository? categoryRepo,
   }) {
     final repo = TransactionRepository(db);
+    final accountRepo = AccountRepository(db);
     final balanceCalc = BalanceCalculator(repo);
     final syncQueue = OfflineSyncQueue(db);
     CategorySyncService? categorySvc;
@@ -137,6 +142,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     }
     return TransactionNotifier(
       repo: repo,
+      accountRepo: accountRepo,
       balanceCalc: balanceCalc,
       syncQueue: syncQueue,
       categorySvc: categorySvc,
@@ -346,10 +352,21 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     final effectiveTxnDate = txnDate ?? now;
     _validateTxnDate(effectiveTxnDate);
 
-    final account = accountId != null
-        ? await _repo.getAccountById(accountId)
-        : await _repo.getDefaultAccount(_userId, familyId: _familyId);
+    final Account? account;
+    if (accountId != null) {
+      final existing = await _accountRepo.getById(accountId);
+      if (existing == null) {
+        throw StateError('指定账户不存在（已被删除？）');
+      }
+      // Use default account query to get the drift Account type,
+      // but override ID below for the gRPC request.
+      account = await _repo.getDefaultAccount(_userId, familyId: _familyId);
+    } else {
+      account = await _repo.getDefaultAccount(_userId, familyId: _familyId);
+    }
     if (account == null) throw StateError('无默认账户，请先创建账户');
+    // effectiveAccountId: prefer explicitly selected, fall back to default
+    final effectiveAccountId = accountId ?? account.id;
 
     // Online-first: try server to get canonical ID
     String transactionId;
@@ -358,7 +375,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     if (_txnClient != null) {
       try {
         final req = pb.CreateTransactionRequest()
-          ..accountId = account.id
+          ..accountId = effectiveAccountId
           ..categoryId = categoryId
           ..amount = Int64(amount)
           ..currency = currency
@@ -384,7 +401,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     await _repo.insertWithBalance(
       id: transactionId,
       userId: _userId,
-      accountId: account.id,
+      accountId: effectiveAccountId,
       categoryId: categoryId,
       amount: amount,
       amountCny: effectiveAmountCny,
@@ -403,7 +420,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         entityId: transactionId,
         payload: {
           'id': transactionId,
-          'account_id': account.id,
+          'account_id': effectiveAccountId,
           'category_id': categoryId,
           'amount': amount,
           'currency': currency,
@@ -585,6 +602,7 @@ final offlineSyncQueueProvider = Provider<OfflineSyncQueue>((ref) {
 final transactionProvider =
     StateNotifierProvider<TransactionNotifier, TransactionState>((ref) {
   final repo = ref.watch(transactionRepositoryProvider);
+  final accountRepo = ref.watch(accountRepositoryProvider);
   final balanceCalc = ref.watch(balanceCalculatorProvider);
   final syncQueue = ref.watch(offlineSyncQueueProvider);
   final userId = ref.watch(currentUserIdProvider);
@@ -604,6 +622,7 @@ final transactionProvider =
   if (userId == null) {
     return TransactionNotifier(
       repo: repo,
+      accountRepo: accountRepo,
       balanceCalc: balanceCalc,
       syncQueue: syncQueue,
       userId: '',
@@ -613,6 +632,7 @@ final transactionProvider =
 
   final notifier = TransactionNotifier(
     repo: repo,
+    accountRepo: accountRepo,
     balanceCalc: balanceCalc,
     syncQueue: syncQueue,
     categorySvc: categorySvc,

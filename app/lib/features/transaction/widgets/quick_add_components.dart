@@ -69,7 +69,7 @@ class AccountPill extends StatelessWidget {
 
 /// 收入/支出/转账类型切换器
 class TransactionTypeSelector extends StatelessWidget {
-  final int selectedIndex; // 0=支出, 1=收入, 2=转账
+  final int selectedIndex; // 0=支出, 1=收入
   final ValueChanged<int> onChanged;
 
   const TransactionTypeSelector({

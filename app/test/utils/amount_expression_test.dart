@@ -48,6 +48,11 @@ void main() {
       // '0.5' → 50 cents
       expect(AmountExpression.evaluateCents('0.5'), 50);
     });
+
+    test('consecutive operators treated as empty segment', () {
+      // '100+-50' → 100 + 0 - 50 = 50
+      expect(AmountExpression.evaluateCents('100+-50'), 5000);
+    });
   });
 
   group('AmountExpression.hasOperator', () {
