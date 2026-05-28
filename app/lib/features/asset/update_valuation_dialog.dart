@@ -35,7 +35,7 @@ class _UpdateValuationDialogState extends State<UpdateValuationDialog> {
     setState(() => _isSubmitting = true);
     final valueCents = (yuan * 100).round();
     await widget.onSubmit(valueCents);
-    if (mounted) context.pop();
+    if (mounted) Navigator.of(context).pop();
   }
 
   @override
@@ -62,7 +62,7 @@ class _UpdateValuationDialogState extends State<UpdateValuationDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => context.pop(),
+          onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
         FilledButton(

@@ -228,7 +228,7 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
       final notifier = ref.read(budgetProvider.notifier);
 
       // Pop immediately for responsive UX, then update in background
-      if (mounted) context.pop();
+      if (mounted) Navigator.of(context).pop();
 
       if (budgetState.currentBudget != null) {
         await notifier.updateBudget(
@@ -300,7 +300,7 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                       ),
                       const Spacer(),
                       IconButton(
-                        onPressed: () => context.pop(),
+                        onPressed: () => Navigator.of(context).pop(),
                         icon: const Icon(Icons.close_rounded),
                         tooltip: '关闭',
                       ),

@@ -91,7 +91,7 @@ class _RateChangeDialogState extends ConsumerState<RateChangeDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => context.pop(),
+          onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
         FilledButton(
@@ -140,7 +140,7 @@ class _RateChangeDialogState extends ConsumerState<RateChangeDialog> {
             newRate: rate,
             effectiveDate: _effectiveDate,
           );
-      if (mounted) context.pop();
+      if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -110,7 +110,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.close, size: 20),
-                  onPressed: () => context.pop(),
+                  onPressed: () => Navigator.of(context).pop(),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
@@ -169,7 +169,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
           onTap: () {
             setState(() => _selected = key);
             widget.onSelect(key);
-            context.pop();
+            Navigator.of(context).pop();
           },
           child: AnimatedScale(
             scale: isSelected ? 1.1 : 1.0,
@@ -269,7 +269,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
       final emojiKey = 'emoji:$result';
       setState(() => _selected = emojiKey);
       widget.onSelect(emojiKey);
-      context.pop();
+      Navigator.of(context).pop();
     }
   }
 
@@ -375,7 +375,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
                 onTap: () {
                   setState(() => _selected = emojiKey);
                   widget.onSelect(emojiKey);
-                  context.pop();
+                  Navigator.of(context).pop();
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
