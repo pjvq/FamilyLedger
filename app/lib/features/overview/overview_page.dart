@@ -8,6 +8,9 @@ import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/notification_provider.dart';
 import '../../sync/sync_engine.dart';
 import '../dashboard/dashboard_page.dart';
+import 'widgets/greeting_header.dart';
+import 'widgets/quick_actions.dart';
+import 'widgets/reminders_card.dart';
 import 'package:go_router/go_router.dart';
 
 /// 概览页 — 包含 family switcher + dashboard。
@@ -60,6 +63,10 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
               familyName: familyState.currentFamily?.name ?? '',
               onToggle: _handleModeSwitch,
             ),
+          // Greeting + Quick actions + Reminders above dashboard
+          const GreetingHeader(),
+          const QuickActions(),
+          const RemindersCard(),
           const Expanded(child: DashboardPage()),
         ],
       ),
