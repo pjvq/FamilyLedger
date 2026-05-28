@@ -36,3 +36,18 @@ String formatCentsCompact(int cents) {
   if (remainder == 0) return '$sign$yuan';
   return '$sign$yuan.${remainder.toString().padLeft(2, '0')}';
 }
+
+/// Format cents to compact CNY string with 万 unit for large amounts.
+/// ```
+/// formatCentsWan(500000000) → "500.00万"
+/// formatCentsWan(123456) → "1234.56"
+/// formatCentsWan(-500000000) → "-500.00万"
+/// ```
+String formatCentsWan(int cents) {
+  final yuan = cents.abs() / 100;
+  final sign = cents < 0 ? '-' : '';
+  if (yuan >= 10000) {
+    return '$sign${(yuan / 10000).toStringAsFixed(2)}万';
+  }
+  return '$sign${yuan.toStringAsFixed(2)}';
+}

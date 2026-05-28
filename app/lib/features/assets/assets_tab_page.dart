@@ -4,21 +4,31 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/theme/design_tokens.dart';
-import '../../core/utils/format.dart';
 import '../../core/widgets/widgets.dart';
-import '../../data/local/database.dart';
 import '../../domain/providers/account_provider.dart';
+import '../../domain/providers/asset_provider.dart';
+import '../../domain/providers/dashboard_provider.dart';
+import '../../domain/providers/investment_provider.dart';
+import '../../domain/providers/loan_provider.dart';
+import 'widgets/net_worth_hero.dart';
+import 'widgets/section_header.dart';
+import 'widgets/account_item.dart';
+import 'widgets/investment_summary_card.dart';
+import 'widgets/loan_item.dart';
+import 'widgets/fixed_asset_item.dart';
+import 'widgets/show_more_button.dart';
 
-/// 资产 Tab 页 — 合并展示银行账户、贷款、投资、固定资产。
-class AssetsTabPage extends ConsumerWidget {
+/// 资产 Tab 页 — 净资产 hero + 分组展示（现金/投资/负债/实物资产）。
+///
+/// 设计意图：用户一眼看清"我有什么、欠什么"，
+/// 每个分组可点入对应详情页。
+///
+/// 各 section 用 [Consumer] 包裹独立 watch，避免全页 rebuild (review #7)。
+class AssetsTabPage extends StatelessWidget {
   const AssetsTabPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final accountState = ref.watch(accountProvider);
-
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('资产'),
@@ -27,285 +37,249 @@ class AssetsTabPage extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.add_rounded),
             tooltip: '添加账户',
-            onPressed: () => context.push('/assets/accounts/add'),
+            onPressed: () => context.push(AppRouter.addAccount),
           ),
         ],
       ),
-      body: accountState.isLoading
-          ? const SkeletonList(count: 5, itemHeight: 72)
-          : accountState.error != null
-              ? ErrorState(
-                  message: accountState.error!,
-                  onRetry: () =>
-                      ref.read(accountProvider.notifier).refresh(),
-                )
-              : _buildBody(context, ref, accountState, isDark),
+      body: const _AssetsBody(),
     );
   }
+}
 
-  Widget _buildBody(
-    BuildContext context,
-    WidgetRef ref,
-    AccountState accountState,
-    bool isDark,
-  ) {
-    final accounts = accountState.accounts;
+class _AssetsBody extends ConsumerWidget {
+  const _AssetsBody();
 
-    if (accounts.isEmpty) {
-      return EmptyState(
-        icon: Icons.account_balance_wallet_rounded,
-        title: '暂无账户',
-        subtitle: '添加你的第一个账户开始管理资产',
-        actionLabel: '添加账户',
-        onAction: () => context.push('/assets/accounts/add'),
-      );
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Only use dashboard loading for the initial full-screen skeleton.
+    // Each section handles its own empty/loading state independently.
+    final dashLoading = ref.watch(
+        dashboardProvider.select((s) => s.isLoading && s.netWorth.total == 0));
+
+    if (dashLoading) {
+      return const SkeletonList(count: 6, itemHeight: 72);
     }
-
-    final totalBalance = accounts.fold<int>(0, (sum, a) => sum + a.balance);
 
     return RefreshIndicator(
       onRefresh: () async {
-        await ref.read(accountProvider.notifier).refresh();
+        await Future.wait([
+          ref.read(accountProvider.notifier).refresh(),
+          ref.read(dashboardProvider.notifier).loadAll(),
+          ref.read(loanProvider.notifier).listLoans(),
+          ref.read(investmentProvider.notifier).listInvestments(),
+          ref.read(assetProvider.notifier).listAssets(),
+        ]);
       },
-      child: ListView(
-        padding: const EdgeInsets.all(SpacingTokens.base),
-        children: [
-          // Total card
-          _TotalCard(total: totalBalance, count: accounts.length, isDark: isDark),
-          const SizedBox(height: SpacingTokens.base),
+      child: CustomScrollView(
+        slivers: [
+          // ── Net Worth Hero ──
+          Consumer(builder: (ctx, ref, _) {
+            final netWorth = ref.watch(
+                dashboardProvider.select((s) => s.netWorth));
+            return SliverToBoxAdapter(
+              child: NetWorthHero(netWorth: netWorth),
+            );
+          }),
 
-          // Quick actions
-          _QuickActions(isDark: isDark),
-          const SizedBox(height: SpacingTokens.base),
+          // ── 现金与存款 ──
+          Consumer(builder: (ctx, ref, _) {
+            final accounts =
+                ref.watch(accountProvider.select((s) => s.accounts));
+            if (accounts.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+            return _AccountsSection(accounts: accounts);
+          }),
 
-          // Account list
-          ...accounts.map((account) => _AccountTile(
-                account: account,
-                isDark: isDark,
-                onTap: () => context.push(AppRouter.accountDetail(account.id)),
-              )),
+          // ── 投资 ──
+          Consumer(builder: (ctx, ref, _) {
+            final portfolio =
+                ref.watch(investmentProvider.select((s) => s.portfolio));
+            final hasInvestments = ref.watch(
+                investmentProvider.select((s) => s.investments.isNotEmpty));
+            if (!hasInvestments) return const SliverToBoxAdapter(child: SizedBox.shrink());
+            return _InvestmentSection(portfolio: portfolio);
+          }),
+
+          // ── 负债 ──
+          Consumer(builder: (ctx, ref, _) {
+            final loans = ref.watch(loanProvider.select((s) => s.loans));
+            if (loans.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+            return _LoanSection(loans: loans);
+          }),
+
+          // ── 实物资产 ──
+          Consumer(builder: (ctx, ref, _) {
+            final assets = ref.watch(assetProvider.select((s) => s.assets));
+            if (assets.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+            return _FixedAssetSection(assets: assets);
+          }),
+
+          // ── Empty state ──
+          Consumer(builder: (ctx, ref, _) {
+            final hasAccounts = ref.watch(
+                accountProvider.select((s) => s.accounts.isNotEmpty));
+            final hasInvestments = ref.watch(
+                investmentProvider.select((s) => s.investments.isNotEmpty));
+            final hasLoans = ref.watch(
+                loanProvider.select((s) => s.loans.isNotEmpty));
+            final hasAssets = ref.watch(
+                assetProvider.select((s) => s.assets.isNotEmpty));
+
+            if (hasAccounts || hasInvestments || hasLoans || hasAssets) {
+              return const SliverToBoxAdapter(child: SizedBox.shrink());
+            }
+            return SliverFillRemaining(
+              hasScrollBody: false,
+              child: EmptyState(
+                icon: Icons.account_balance_wallet_rounded,
+                title: '暂无资产数据',
+                subtitle: '添加账户、投资或贷款开始管理资产',
+                actionLabel: '添加账户',
+                onAction: () => ctx.push(AppRouter.addAccount),
+              ),
+            );
+          }),
+
+          // Bottom padding for FAB
+          const SliverPadding(padding: EdgeInsets.only(bottom: 96)),
         ],
       ),
     );
   }
 }
 
-// ─── Total Card ───
+// ─── Section Wrappers (multi-sliver) ───
 
-class _TotalCard extends StatelessWidget {
-  final int total;
-  final int count;
-  final bool isDark;
-
-  const _TotalCard({
-    required this.total,
-    required this.count,
-    required this.isDark,
-  });
+class _AccountsSection extends StatelessWidget {
+  final List accounts;
+  const _AccountsSection({required this.accounts});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(SpacingTokens.lg),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [DarkCardGradients.netWorthStart, DarkCardGradients.netWorthEnd]
-              : [context.semanticColors.income, GradientTokens.incomeGradientEnd],
-        ),
-        borderRadius: BorderRadius.circular(RadiusTokens.lg),
+    final total = accounts.fold<int>(0, (s, a) => s + (a.balance as int));
+    final displayCount = accounts.length.clamp(0, 5);
+
+    return SliverMainAxisGroup(slivers: [
+      SectionHeader(
+        title: '现金与存款',
+        icon: Icons.account_balance_wallet_rounded,
+        total: total,
+        color: context.semanticColors.income,
+        onTap: () => context.push(AppRouter.accounts),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '总资产',
-            style: TypographyTokens.bodySm(color: Colors.white70),
+      SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (ctx, i) => AccountItem(
+            account: accounts[i],
+            onTap: () => ctx.push(AppRouter.accountDetail(accounts[i].id)),
           ),
-          const SizedBox(height: SpacingTokens.sm),
-          Text(
-            '¥ ${formatCentsCompact(total)}',
-            style: TypographyTokens.displayMd(color: Colors.white),
-          ),
-          const SizedBox(height: SpacingTokens.xs),
-          Text(
-            '共 $count 个账户',
-            style: TypographyTokens.caption(color: Colors.white60),
-          ),
-        ],
+          childCount: displayCount,
+        ),
       ),
-    );
-  }
-
-}
-
-// ─── Quick Actions ───
-
-class _QuickActions extends StatelessWidget {
-  final bool isDark;
-
-  const _QuickActions({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _ActionChip(
-          icon: Icons.swap_horiz_rounded,
-          label: '转账',
-          onTap: () => context.push('/transfer'),
-          isDark: isDark,
+      if (accounts.length > 5)
+        SliverToBoxAdapter(
+          child: ShowMoreButton(
+            label: '查看全部 ${accounts.length} 个账户',
+            onTap: () => context.push(AppRouter.accounts),
+          ),
         ),
-        const SizedBox(width: SpacingTokens.sm),
-        _ActionChip(
-          icon: Icons.account_balance_rounded,
-          label: '贷款',
-          onTap: () => context.push('/assets/loans'),
-          isDark: isDark,
-        ),
-        const SizedBox(width: SpacingTokens.sm),
-        _ActionChip(
-          icon: Icons.trending_up_rounded,
-          label: '投资',
-          onTap: () => context.push('/assets/investments'),
-          isDark: isDark,
-        ),
-        const SizedBox(width: SpacingTokens.sm),
-        _ActionChip(
-          icon: Icons.home_work_rounded,
-          label: '固定资产',
-          onTap: () => context.push('/assets/fixed'),
-          isDark: isDark,
-        ),
-      ],
-    );
+    ]);
   }
 }
 
-class _ActionChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool isDark;
-
-  const _ActionChip({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    required this.isDark,
-  });
+class _InvestmentSection extends StatelessWidget {
+  final PortfolioSummary portfolio;
+  const _InvestmentSection({required this.portfolio});
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(RadiusTokens.md),
-        clipBehavior: Clip.antiAlias,
-        child: Ink(
-          decoration: BoxDecoration(
-            color: isDark
-                ? NeutralColorsDark.neutral2
-                : NeutralColorsLight.neutral2,
-            borderRadius: BorderRadius.circular(RadiusTokens.md),
-          ),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(RadiusTokens.md),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: SpacingTokens.md,
-              ),
-              child: Column(
-                children: [
-                  Icon(icon, size: IconSizeTokens.md,
-                    color: ColorTokens.primary),
-                  const SizedBox(height: SpacingTokens.xs),
-                  Text(
-                    label,
-                    style: TypographyTokens.caption(),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ),
+    return SliverMainAxisGroup(slivers: [
+      SectionHeader(
+        title: '投资',
+        icon: Icons.trending_up_rounded,
+        total: portfolio.totalValue,
+        color: context.semanticColors.asset,
+        onTap: () => context.push(AppRouter.investments),
+      ),
+      SliverToBoxAdapter(
+        child: InvestmentSummaryCard(
+          portfolio: portfolio,
+          onTap: () => context.push(AppRouter.investments),
         ),
       ),
-    );
+    ]);
   }
 }
 
-// ─── Account Tile ───
-
-class _AccountTile extends StatelessWidget {
-  final Account account;
-  final bool isDark;
-  final VoidCallback? onTap;
-
-  const _AccountTile({
-    required this.account,
-    required this.isDark,
-    this.onTap,
-  });
+class _LoanSection extends StatelessWidget {
+  final List loans;
+  const _LoanSection({required this.loans});
 
   @override
   Widget build(BuildContext context) {
-    final isPositive = account.balance >= 0;
-    final amountColor = isPositive
-        ? context.semanticColors.income
-        : context.semanticColors.expense;
+    final totalDebt = loans.fold<int>(0, (s, l) => s + (l.remainingPrincipal as int));
+    final displayCount = loans.length.clamp(0, 3);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: SpacingTokens.sm),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: SpacingTokens.base,
-            vertical: SpacingTokens.md,
+    return SliverMainAxisGroup(slivers: [
+      SectionHeader(
+        title: '负债',
+        icon: Icons.credit_card_rounded,
+        total: -totalDebt,
+        color: context.semanticColors.liability,
+        onTap: () => context.push(AppRouter.loans),
+      ),
+      SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (ctx, i) => LoanItem(
+            loan: loans[i],
+            onTap: () => ctx.push(AppRouter.loanDetail(loans[i].id)),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? NeutralColorsDark.neutral2
-                      : NeutralColorsLight.neutral2,
-                  borderRadius: BorderRadius.circular(RadiusTokens.md),
-                ),
-                child: Center(
-                  child: Text(account.icon,
-                      style: const TextStyle(fontSize: 20)),
-                ),
-              ),
-              const SizedBox(width: SpacingTokens.md),
-              Expanded(
-                child: Text(
-                  account.name,
-                  style: TypographyTokens.bodyMd().copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              Text(
-                '¥ ${formatCentsCompact(account.balance)}',
-                style: TypographyTokens.amount(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: amountColor,
-                ),
-              ),
-            ],
-          ),
+          childCount: displayCount,
         ),
       ),
-    );
+      if (loans.length > 3)
+        SliverToBoxAdapter(
+          child: ShowMoreButton(
+            label: '查看全部 ${loans.length} 笔贷款',
+            onTap: () => context.push(AppRouter.loans),
+          ),
+        ),
+    ]);
   }
+}
 
+class _FixedAssetSection extends StatelessWidget {
+  final List assets;
+  const _FixedAssetSection({required this.assets});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = assets.fold<int>(0, (s, a) => s + (a.currentValue as int));
+    final displayCount = assets.length.clamp(0, 3);
+
+    return SliverMainAxisGroup(slivers: [
+      SectionHeader(
+        title: '实物资产',
+        icon: Icons.home_work_rounded,
+        total: total,
+        color: ChartColors.slot7,
+        onTap: () => context.push(AppRouter.fixedAssets),
+      ),
+      SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (ctx, i) => FixedAssetItem(
+            asset: assets[i],
+            onTap: () => ctx.push(AppRouter.assetDetail(assets[i].id)),
+          ),
+          childCount: displayCount,
+        ),
+      ),
+      if (assets.length > 3)
+        SliverToBoxAdapter(
+          child: ShowMoreButton(
+            label: '查看全部 ${assets.length} 项资产',
+            onTap: () => context.push(AppRouter.fixedAssets),
+          ),
+        ),
+    ]);
+  }
 }
