@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/family_provider.dart';
+import '../transaction/widgets/quick_add_sheet.dart';
 
 /// Main shell — provides bottom navigation + centered FAB for all tab branches.
 ///
@@ -41,7 +42,8 @@ class MainShell extends ConsumerWidget {
             );
             return;
           }
-          context.push('/add-transaction');
+          // Phase 2: Quick add bottom sheet
+          QuickAddSheet.show(context);
         },
         elevation: isDark ? 4 : 2,
         backgroundColor:
