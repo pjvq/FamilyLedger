@@ -4,10 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/utils/amount_expression.dart';
+import '../../../core/widgets/success_animation.dart';
 import '../../../domain/providers/account_provider.dart';
 import '../../../domain/providers/dashboard_provider.dart';
 import '../../../domain/providers/transaction_provider.dart';
-import 'quick_amount_display.dart';
+import 'animated_amount_display.dart';
 import 'quick_number_pad.dart';
 import 'quick_add_components.dart';
 import 'quick_category_selector.dart';
@@ -112,7 +113,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                 const SizedBox(height: SpacingTokens.xl),
 
                 // Amount display
-                QuickAmountDisplay(
+                AnimatedAmountDisplay(
                   expression: _expression,
                   note: _note.isEmpty ? null : _note,
                   onNoteTap: _showNoteInput,
@@ -253,19 +254,13 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
 
       if (mounted) {
         HapticFeedback.mediumImpact();
-        // Capture messenger before pop (context may be invalid after pop)
-        final messenger = ScaffoldMessenger.of(context);
+        final amountStr = AmountExpression.formatCents(_computedCents);
+        // Capture parent overlay BEFORE pop (our context dies after pop)
+        final overlayContext = Navigator.of(context).overlay?.context;
         Navigator.of(context).pop(true);
-        messenger.showSnackBar(
-          SnackBar(
-            content: const Text('记录成功 ✓'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(RadiusTokens.sm),
-            ),
-          ),
-        );
+        if (overlayContext != null && overlayContext.mounted) {
+          TransactionSuccessOverlay.show(overlayContext, amountStr);
+        }
       }
     } catch (e) {
       if (mounted) {
