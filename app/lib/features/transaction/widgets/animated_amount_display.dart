@@ -72,7 +72,9 @@ class AnimatedAmountDisplay extends StatelessWidget {
                     },
                     child: Text(
                       displayAmount,
-                      key: ValueKey(displayAmount),
+                      // Only trigger switch animation on operator changes,
+                      // not every digit press (prevents rapid-input stacking)
+                      key: ValueKey(_operatorSignature(displayAmount)),
                       style: TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.w700,
@@ -110,18 +112,34 @@ class AnimatedAmountDisplay extends StatelessWidget {
             const SizedBox(height: 8),
 
             // Note area
-            Text(
-              note?.isNotEmpty == true ? note! : '添加备注...',
-              style: TextStyle(
-                fontSize: 14,
-                color: note?.isNotEmpty == true
-                    ? theme.colorScheme.onSurface.withValues(alpha: 0.7)
-                    : theme.colorScheme.onSurface.withValues(alpha: 0.35),
-              ),
-            ),
+            Builder(builder: (_) {
+              final hasNote = note?.isNotEmpty ?? false;
+              return Text(
+                hasNote ? note! : '添加备注...',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: hasNote
+                      ? theme.colorScheme.onSurface.withValues(alpha: 0.7)
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.35),
+                ),
+              );
+            }),
           ],
         ),
       ),
     );
+  }
+
+  /// Generates a key that only changes when operators are added/removed.
+  /// This prevents AnimatedSwitcher from firing on every digit keystroke.
+  static String _operatorSignature(String expr) {
+    final buf = StringBuffer();
+    for (int i = 0; i < expr.length; i++) {
+      final ch = expr[i];
+      if (ch == '+' || ch == '-') {
+        buf.write('$i$ch');
+      }
+    }
+    return buf.toString();
   }
 }

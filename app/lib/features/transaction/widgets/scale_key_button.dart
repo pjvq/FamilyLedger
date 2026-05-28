@@ -4,7 +4,8 @@ import '../../../core/theme/design_tokens.dart';
 
 /// 带按压缩放动画的按键
 ///
-/// 按下时 scale 缩到 0.92，松开弹回 1.0（spring curve）
+/// 按下时 scale 缩到 0.92，松开弹回 1.0（easeOutBack curve）。
+/// 支持无障碍 semantics + onTap action。
 class ScaleKeyButton extends StatefulWidget {
   final Widget child;
   final Color bg;
@@ -35,20 +36,21 @@ class _ScaleKeyButtonState extends State<ScaleKeyButton>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 100),
-      reverseDuration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 80),
+      reverseDuration: const Duration(milliseconds: 350),
     );
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.92).animate(
       CurvedAnimation(
         parent: _controller,
         curve: Curves.easeInOut,
-        reverseCurve: Curves.elasticOut,
+        reverseCurve: Curves.easeOutBack,
       ),
     );
   }
 
   @override
   void dispose() {
+    _controller.stop(canceled: true);
     _controller.dispose();
     super.dispose();
   }
@@ -59,24 +61,30 @@ class _ScaleKeyButtonState extends State<ScaleKeyButton>
       height: 52,
       child: Semantics(
         label: widget.semanticLabel,
+        button: true,
+        onTap: widget.onTap,
         child: GestureDetector(
           onTapDown: (_) => _controller.forward(),
           onTapUp: (_) {
-            _controller.reverse();
             widget.onTap();
+            if (mounted) _controller.reverse();
           },
-          onTapCancel: () => _controller.reverse(),
+          onTapCancel: () {
+            if (mounted) _controller.reverse();
+          },
           onLongPress: widget.onLongPress != null
               ? () {
-                  _controller.reverse();
                   widget.onLongPress!();
+                  if (mounted) _controller.reverse();
                 }
               : null,
           child: ScaleTransition(
             scale: _scaleAnimation,
-            child: Material(
-              color: widget.bg,
-              borderRadius: BorderRadius.circular(RadiusTokens.md),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: widget.bg,
+                borderRadius: BorderRadius.circular(RadiusTokens.md),
+              ),
               child: Center(child: widget.child),
             ),
           ),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:familyledger/features/transaction/widgets/animated_amount_display.dart';
 import 'package:familyledger/features/transaction/widgets/quick_number_pad.dart';
 import 'package:familyledger/features/transaction/widgets/quick_add_components.dart';
+import 'package:familyledger/features/transaction/widgets/scale_key_button.dart';
 
 void main() {
   Widget wrapInApp(Widget child) {
@@ -149,6 +150,37 @@ void main() {
         ),
       ));
       expect(find.text('招商银行'), findsOneWidget);
+    });
+  });
+
+  group('ScaleKeyButton', () {
+    testWidgets('calls onTap when pressed', (tester) async {
+      var tapped = false;
+      await tester.pumpWidget(wrapInApp(
+        ScaleKeyButton(
+          bg: Colors.grey,
+          onTap: () => tapped = true,
+          child: const Text('X'),
+        ),
+      ));
+      await tester.tap(find.text('X'));
+      await tester.pumpAndSettle();
+      expect(tapped, isTrue);
+    });
+
+    testWidgets('does not crash on rapid tap + dispose', (tester) async {
+      await tester.pumpWidget(wrapInApp(
+        ScaleKeyButton(
+          bg: Colors.grey,
+          onTap: () {},
+          child: const Text('Y'),
+        ),
+      ));
+      // Rapid taps
+      await tester.tap(find.text('Y'));
+      await tester.tap(find.text('Y'));
+      await tester.pumpWidget(const SizedBox()); // Force dispose mid-animation
+      // No crash = pass
     });
   });
 }

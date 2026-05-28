@@ -255,10 +255,11 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       if (mounted) {
         HapticFeedback.mediumImpact();
         final amountStr = AmountExpression.formatCents(_computedCents);
+        // Capture parent overlay BEFORE pop (our context dies after pop)
+        final overlayContext = Navigator.of(context).overlay?.context;
         Navigator.of(context).pop(true);
-        // Show success overlay animation on parent context
-        if (context.mounted) {
-          TransactionSuccessOverlay.show(context, amountStr);
+        if (overlayContext != null && overlayContext.mounted) {
+          TransactionSuccessOverlay.show(overlayContext, amountStr);
         }
       }
     } catch (e) {
