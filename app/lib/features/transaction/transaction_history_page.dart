@@ -67,11 +67,11 @@ class _TransactionHistoryPageState
         content: Text('确定删除选中的 $count 笔交易吗？\n删除后不可恢复。'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => ctx.pop(false),
             child: const Text('取消'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => ctx.pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('删除'),
           ),
@@ -273,10 +273,7 @@ class _TransactionHistoryPageState
                 : null,
             onEdit: ref.watch(canEditProvider)
                 ? () {
-                    Navigator.of(context).pushNamed(
-                      AppRouter.addTransaction,
-                      arguments: txn,
-                    );
+                    context.push(AppRouter.addTransaction, extra: txn);
                   }
                 : null,
           );
@@ -577,7 +574,7 @@ class _EmptyState extends StatelessWidget {
             if (canCreate)
               FilledButton.icon(
                 onPressed: () =>
-                    Navigator.of(context).pushNamed(AppRouter.addTransaction),
+                    context.push(AppRouter.addTransaction),
                 icon: const Icon(Icons.add_rounded),
                 label: const Text('记一笔'),
               ),

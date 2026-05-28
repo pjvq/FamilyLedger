@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:go_router/go_router.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -92,7 +93,7 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
                   ),
                 if (_currentStep == 3 && _importDone)
                   FilledButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => context.pop(),
                     child: const Text('完成'),
                   ),
                 if (_currentStep > 0 && _currentStep < 3) ...[

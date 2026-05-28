@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:go_router/go_router.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -21,12 +22,12 @@ class TransactionImageService {
             ListTile(
               leading: const Icon(Icons.camera_alt_rounded),
               title: const Text('拍照'),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              onTap: () => ctx.pop(ImageSource.camera),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_rounded),
               title: const Text('从相册选择'),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              onTap: () => ctx.pop(ImageSource.gallery),
             ),
           ],
         ),

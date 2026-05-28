@@ -70,7 +70,7 @@ class LoansPage extends ConsumerWidget {
                   ),
                 ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.of(context).pushNamed(AppRouter.addLoan),
+        onPressed: () => context.push(AppRouter.addLoan),
         icon: const Icon(Icons.add_rounded),
         label: const Text('添加贷款'),
       ),

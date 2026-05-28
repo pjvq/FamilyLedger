@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 
 class UpdateValuationDialog extends StatefulWidget {
@@ -34,7 +35,7 @@ class _UpdateValuationDialogState extends State<UpdateValuationDialog> {
     setState(() => _isSubmitting = true);
     final valueCents = (yuan * 100).round();
     await widget.onSubmit(valueCents);
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) context.pop();
   }
 
   @override
@@ -61,7 +62,7 @@ class _UpdateValuationDialogState extends State<UpdateValuationDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
           child: const Text('取消'),
         ),
         FilledButton(

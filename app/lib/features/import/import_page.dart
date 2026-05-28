@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:go_router/go_router.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' show FontFeature;
@@ -180,7 +181,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                 ],
                 if (_currentStep == 3 && _importDone)
                   FilledButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => context.pop(),
                     child: const Text('完成'),
                   ),
                 if (_currentStep > 0 && _currentStep < 3) ...[

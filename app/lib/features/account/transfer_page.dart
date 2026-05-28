@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../data/local/database.dart';
@@ -209,7 +210,7 @@ class _TransferPageState extends ConsumerState<TransferPage> {
       ref.read(accountProvider.notifier).refresh();
       ref.read(dashboardProvider.notifier).loadAll();
       if (mounted) {
-        Navigator.of(context).pop();
+        context.pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('转账成功')),
         );

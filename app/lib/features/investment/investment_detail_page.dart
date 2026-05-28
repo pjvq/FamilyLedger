@@ -131,14 +131,14 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                     content: Text('确定要删除"${investment.name}"吗？所有交易记录也会被删除。'),
                     actions: [
                       TextButton(
-                        onPressed: () => Navigator.of(ctx).pop(false),
+                        onPressed: () => ctx.pop(false),
                         child: const Text('取消'),
                       ),
                       FilledButton(
                         style: FilledButton.styleFrom(
                           backgroundColor: context.semanticColors.expense,
                         ),
-                        onPressed: () => Navigator.of(ctx).pop(true),
+                        onPressed: () => ctx.pop(true),
                         child: const Text('删除'),
                       ),
                     ],
@@ -148,7 +148,7 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                   await ref
                       .read(investmentProvider.notifier)
                       .deleteInvestment(widget.investmentId);
-                  if (context.mounted) Navigator.of(context).pop();
+                  if (context.mounted) context.pop();
                 }
               }
             },

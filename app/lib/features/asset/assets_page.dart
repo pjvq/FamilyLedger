@@ -70,7 +70,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          await Navigator.of(context).pushNamed(AppRouter.addAsset);
+          await context.push(AppRouter.addAsset);
           if (mounted) {
             ref.read(assetProvider.notifier).listAssets();
           }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/category_icon_widget.dart';
 import '../../core/theme/design_tokens.dart';
@@ -227,7 +228,7 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
       final notifier = ref.read(budgetProvider.notifier);
 
       // Pop immediately for responsive UX, then update in background
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) context.pop();
 
       if (budgetState.currentBudget != null) {
         await notifier.updateBudget(
@@ -299,7 +300,7 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                       ),
                       const Spacer(),
                       IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () => context.pop(),
                         icon: const Icon(Icons.close_rounded),
                         tooltip: '关闭',
                       ),

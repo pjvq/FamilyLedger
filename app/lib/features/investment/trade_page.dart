@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/investment_provider.dart';
@@ -84,7 +85,7 @@ class _TradePageState extends ConsumerState<TradePage> {
           tradeDate: _tradeDate,
         );
 
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) context.pop();
   }
 
   @override

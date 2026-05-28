@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:go_router/go_router.dart';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -81,10 +82,9 @@ class TransactionDetailPage extends ConsumerWidget {
                 icon: const Icon(Icons.edit_outlined),
                 tooltip: '编辑',
                 onPressed: () async {
-                  final edited = await Navigator.of(context)
-                      .pushNamed(AppRouter.addTransaction, arguments: txn);
+                  final edited = await context.push(AppRouter.addTransaction, extra: txn);
                   if (edited == true && context.mounted) {
-                    Navigator.of(context).pop();
+                    context.pop();
                   }
                 },
               ),
@@ -493,13 +493,13 @@ class TransactionDetailPage extends ConsumerWidget {
         actions: [
           CupertinoDialogAction(
             child: const Text('取消'),
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () => ctx.pop(),
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
             child: const Text('删除'),
             onPressed: () async {
-              Navigator.of(ctx).pop();
+              ctx.pop();
               await ref
                   .read(transactionProvider.notifier)
                   .deleteTransaction(txn.id);
@@ -507,7 +507,7 @@ class TransactionDetailPage extends ConsumerWidget {
               ref.read(dashboardProvider.notifier).loadAll();
               ref.read(accountProvider.notifier).refresh();
               if (context.mounted) {
-                Navigator.of(context).pop(); // 返回列表页
+                context.pop(); // 返回列表页
               }
             },
           ),

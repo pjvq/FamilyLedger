@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -54,14 +55,14 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                     content: Text('确定要删除"${asset.name}"吗？所有估值记录也会被删除。'),
                     actions: [
                       TextButton(
-                        onPressed: () => Navigator.of(ctx).pop(false),
+                        onPressed: () => ctx.pop(false),
                         child: const Text('取消'),
                       ),
                       FilledButton(
                         style: FilledButton.styleFrom(
                           backgroundColor: context.semanticColors.expense,
                         ),
-                        onPressed: () => Navigator.of(ctx).pop(true),
+                        onPressed: () => ctx.pop(true),
                         child: const Text('删除'),
                       ),
                     ],
@@ -71,7 +72,7 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                   await ref
                       .read(assetProvider.notifier)
                       .deleteAsset(widget.assetId);
-                  if (context.mounted) Navigator.of(context).pop();
+                  if (context.mounted) context.pop();
                 }
               }
             },
@@ -243,12 +244,12 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
+              onPressed: () => ctx.pop(),
               child: const Text('取消'),
             ),
             FilledButton(
               onPressed: () async {
-                Navigator.of(ctx).pop();
+                ctx.pop();
                 await ref.read(assetProvider.notifier).setDepreciationRule(
                       widget.assetId,
                       method: method,

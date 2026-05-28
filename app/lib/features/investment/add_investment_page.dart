@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/design_tokens.dart';
@@ -166,7 +167,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
           );
     }
 
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) context.pop();
   }
 
   void _showError(String msg) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/category_icons.dart';
 
 /// 图标选择器 BottomSheet
@@ -109,7 +110,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.close, size: 20),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => context.pop(),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
@@ -168,7 +169,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
           onTap: () {
             setState(() => _selected = key);
             widget.onSelect(key);
-            Navigator.pop(context);
+            context.pop();
           },
           child: AnimatedScale(
             scale: isSelected ? 1.1 : 1.0,
@@ -244,7 +245,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () => ctx.pop(),
               child: const Text('取消'),
             ),
             FilledButton(
@@ -253,7 +254,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
                 if (text.isNotEmpty) {
                   // Extract first emoji (grapheme cluster)
                   final runes = text.characters.first;
-                  Navigator.pop(ctx, runes);
+                  ctx.pop(runes);
                 }
               },
               child: const Text('确定'),
@@ -268,7 +269,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
       final emojiKey = 'emoji:$result';
       setState(() => _selected = emojiKey);
       widget.onSelect(emojiKey);
-      Navigator.pop(context);
+      context.pop();
     }
   }
 
@@ -374,7 +375,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
                 onTap: () {
                   setState(() => _selected = emojiKey);
                   widget.onSelect(emojiKey);
-                  Navigator.pop(context);
+                  context.pop();
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),

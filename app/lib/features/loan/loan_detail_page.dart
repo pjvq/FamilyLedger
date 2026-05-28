@@ -209,14 +209,14 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
           content: const Text('确定要删除此贷款吗？此操作不可撤销。'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
+              onPressed: () => ctx.pop(false),
               child: const Text('取消'),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: context.semanticColors.expense,
               ),
-              onPressed: () => Navigator.of(ctx).pop(true),
+              onPressed: () => ctx.pop(true),
               child: const Text('删除'),
             ),
           ],
@@ -224,7 +224,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
       );
       if (confirmed == true && mounted) {
         await ref.read(loanProvider.notifier).deleteLoan(loanId);
-        if (mounted) Navigator.of(context).pop();
+        if (mounted) context.pop();
       }
     }
   }
@@ -281,7 +281,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                         trailing: isSelected
                             ? Icon(Icons.check, color: Theme.of(ctx).colorScheme.primary)
                             : null,
-                        onTap: () => Navigator.of(ctx).pop(cat.id),
+                        onTap: () => ctx.pop(cat.id),
                       );
                     },
                   ),
@@ -453,7 +453,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => Navigator.of(ctx).pop(),
+                        onPressed: () => ctx.pop(),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
@@ -467,7 +467,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                     Expanded(
                       child: FilledButton(
                         onPressed: () async {
-                          Navigator.of(ctx).pop();
+                          ctx.pop();
                           await ref.read(loanProvider.notifier).recordPayment(
                                 loanId: loan.id,
                                 monthNumber: monthNumber,

@@ -66,7 +66,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, size: 20),
             tooltip: '返回',
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => context.pop(),
           ),
         ),
         body: SafeArea(

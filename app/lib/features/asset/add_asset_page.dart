@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -68,7 +69,7 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
           familyId: _scopeFamilyId,
         );
 
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) context.pop();
   }
 
   void _applyPreset(String label, int years, double rate) {

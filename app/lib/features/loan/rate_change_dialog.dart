@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -90,7 +91,7 @@ class _RateChangeDialogState extends ConsumerState<RateChangeDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
           child: const Text('取消'),
         ),
         FilledButton(
@@ -139,7 +140,7 @@ class _RateChangeDialogState extends ConsumerState<RateChangeDialog> {
             newRate: rate,
             effectiveDate: _effectiveDate,
           );
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) context.pop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

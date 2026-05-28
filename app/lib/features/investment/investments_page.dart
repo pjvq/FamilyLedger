@@ -132,7 +132,7 @@ class _InvestmentsPageState extends ConsumerState<InvestmentsPage> {
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () =>
-            Navigator.of(context).pushNamed(AppRouter.addInvestment),
+            context.push(AppRouter.addInvestment),
         icon: const Icon(Icons.add_rounded),
         label: const Text('添加投资'),
       ),

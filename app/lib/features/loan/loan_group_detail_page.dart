@@ -226,13 +226,13 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
           content: const Text('确定要删除此组合贷款（包含所有子贷款）吗？此操作不可撤销。'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
+              onPressed: () => ctx.pop(false),
               child: const Text('取消'),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
                   backgroundColor: context.semanticColors.expense),
-              onPressed: () => Navigator.of(ctx).pop(true),
+              onPressed: () => ctx.pop(true),
               child: const Text('删除'),
             ),
           ],
@@ -240,7 +240,7 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
       );
       if (confirmed == true && mounted) {
         await ref.read(loanProvider.notifier).deleteLoanGroup(groupId);
-        if (mounted) Navigator.of(context).pop();
+        if (mounted) context.pop();
       }
     }
   }

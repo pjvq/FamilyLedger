@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/widgets/sync_status_tile.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
@@ -46,20 +47,20 @@ class MorePage extends ConsumerWidget {
               icon: Icons.account_balance_rounded,
               title: '贷款管理',
               subtitle: '跟踪还款进度、模拟提前还款',
-              onTap: () => Navigator.of(context).pushNamed(AppRouter.loans),
+              onTap: () => context.push(AppRouter.loans),
             ),
             _MoreTile(
               icon: Icons.trending_up_rounded,
               title: '投资管理',
               subtitle: '跟踪投资持仓、实时行情',
               onTap: () =>
-                  Navigator.of(context).pushNamed(AppRouter.investments),
+                  context.push(AppRouter.investments),
             ),
             _MoreTile(
               icon: Icons.real_estate_agent_rounded,
               title: '资产管理',
               subtitle: '固定资产跟踪、自动折旧计算',
-              onTap: () => Navigator.of(context).pushNamed(AppRouter.assets),
+              onTap: () => context.push(AppRouter.assets),
             ),
 
             // ── 数据 ──
@@ -68,20 +69,20 @@ class MorePage extends ConsumerWidget {
               icon: Icons.assessment_rounded,
               title: '交易报表',
               subtitle: '按时间和分类查看交易明细',
-              onTap: () => Navigator.of(context).pushNamed(AppRouter.report),
+              onTap: () => context.push(AppRouter.report),
             ),
             _MoreTile(
               icon: Icons.file_download_rounded,
               title: '数据导出',
               subtitle: '导出交易数据为 CSV/Excel/PDF',
-              onTap: () => Navigator.of(context).pushNamed(AppRouter.export),
+              onTap: () => context.push(AppRouter.export),
             ),
             _MoreTile(
               icon: Icons.file_upload_rounded,
               title: '账单导入',
               subtitle: '支持支付宝、微信、通用 CSV/XLSX',
               onTap: () =>
-                  Navigator.of(context).pushNamed(AppRouter.csvImport),
+                  context.push(AppRouter.csvImport),
             ),
 
             // ── 家庭 ──
@@ -93,7 +94,7 @@ class MorePage extends ConsumerWidget {
                 theme: theme,
                 isDark: isDark,
                 onTap: () =>
-                    Navigator.of(context).pushNamed(AppRouter.familyMembers),
+                    context.push(AppRouter.familyMembers),
               ),
               _MoreTile(
                 icon: Icons.link_rounded,
@@ -130,14 +131,13 @@ class MorePage extends ConsumerWidget {
               title: '分类管理',
               subtitle: '管理收支分类和子分类',
               onTap: () =>
-                  Navigator.of(context).pushNamed(AppRouter.categoryManage),
+                  context.push(AppRouter.categoryManage),
             ),
             _MoreTile(
               icon: Icons.notifications_outlined,
               title: '通知设置',
               subtitle: '管理预算提醒和日常通知',
-              onTap: () => Navigator.of(context)
-                  .pushNamed(AppRouter.notificationSettings),
+              onTap: () => context.push(AppRouter.notificationSettings),
             ),
 
             // ── 同步状态 ──
@@ -177,7 +177,7 @@ class MorePage extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () => ctx.pop(),
             child: const Text('取消'),
           ),
           FilledButton(
@@ -185,7 +185,7 @@ class MorePage extends ConsumerWidget {
               final name = controller.text.trim();
               if (name.isNotEmpty) {
                 ref.read(familyProvider.notifier).createFamily(name);
-                Navigator.of(ctx).pop();
+                ctx.pop();
               }
             },
             child: const Text('创建'),
@@ -212,7 +212,7 @@ class MorePage extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () => ctx.pop(),
             child: const Text('取消'),
           ),
           FilledButton(
@@ -220,7 +220,7 @@ class MorePage extends ConsumerWidget {
               final code = controller.text.trim();
               if (code.isNotEmpty) {
                 ref.read(familyProvider.notifier).joinFamily(code);
-                Navigator.of(ctx).pop();
+                ctx.pop();
               }
             },
             child: const Text('加入'),
@@ -278,7 +278,7 @@ class MorePage extends ConsumerWidget {
               child: const Text('复制'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(),
+              onPressed: () => ctx.pop(),
               child: const Text('确定'),
             ),
           ],
@@ -295,7 +295,7 @@ class MorePage extends ConsumerWidget {
         content: const Text('确定要退出当前家庭吗？退出后将无法查看家庭账本。'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () => ctx.pop(),
             child: const Text('取消'),
           ),
           FilledButton(
@@ -304,7 +304,7 @@ class MorePage extends ConsumerWidget {
             ),
             onPressed: () {
               ref.read(familyProvider.notifier).leaveFamily();
-              Navigator.of(ctx).pop();
+              ctx.pop();
             },
             child: const Text('退出'),
           ),
@@ -321,7 +321,7 @@ class MorePage extends ConsumerWidget {
         content: const Text('确定要退出登录吗？'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () => ctx.pop(),
             child: const Text('取消'),
           ),
           FilledButton(
@@ -329,11 +329,10 @@ class MorePage extends ConsumerWidget {
               backgroundColor: context.semanticColors.expense,
             ),
             onPressed: () async {
-              Navigator.of(ctx).pop();
+              ctx.pop();
               await ref.read(authProvider.notifier).logout();
               if (context.mounted) {
-                Navigator.of(context)
-                    .pushNamedAndRemoveUntil(AppRouter.login, (_) => false);
+                context.go(AppRouter.login);
               }
             },
             child: const Text('退出'),

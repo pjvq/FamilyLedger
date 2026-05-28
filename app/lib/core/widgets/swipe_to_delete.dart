@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 /// 滑动删除组件
 ///
@@ -139,7 +140,7 @@ class _SwipeToDeleteState extends State<SwipeToDelete>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => context.pop(false),
             child: Text(
               widget.cancelLabel,
               style: TextStyle(
@@ -148,7 +149,7 @@ class _SwipeToDeleteState extends State<SwipeToDelete>
             ),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => context.pop(true),
             child: Text(
               widget.deleteLabel,
               style: const TextStyle(
