@@ -129,6 +129,7 @@ class QuickCategorySelector extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      enableDrag: true,
       builder: (ctx) => _SubcategorySheet(
         parent: parent,
         children: children,

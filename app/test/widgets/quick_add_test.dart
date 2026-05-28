@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:familyledger/features/transaction/widgets/quick_amount_display.dart';
+import 'package:familyledger/features/transaction/widgets/animated_amount_display.dart';
 import 'package:familyledger/features/transaction/widgets/quick_number_pad.dart';
 import 'package:familyledger/features/transaction/widgets/quick_add_components.dart';
 
@@ -12,10 +12,10 @@ void main() {
     );
   }
 
-  group('QuickAmountDisplay', () {
+  group('AnimatedAmountDisplay', () {
     testWidgets('shows zero by default', (tester) async {
       await tester.pumpWidget(wrapInApp(
-        const QuickAmountDisplay(expression: '0'),
+        const AnimatedAmountDisplay(expression: '0'),
       ));
       expect(find.text('0'), findsOneWidget);
       expect(find.text('¥'), findsOneWidget);
@@ -23,7 +23,7 @@ void main() {
 
     testWidgets('shows expression with operator and computed result', (tester) async {
       await tester.pumpWidget(wrapInApp(
-        const QuickAmountDisplay(expression: '100+50'),
+        const AnimatedAmountDisplay(expression: '100+50'),
       ));
       expect(find.text('100+50'), findsOneWidget);
       expect(find.text('= ¥150'), findsOneWidget);
@@ -31,14 +31,14 @@ void main() {
 
     testWidgets('shows note when provided', (tester) async {
       await tester.pumpWidget(wrapInApp(
-        const QuickAmountDisplay(expression: '88', note: '午餐'),
+        const AnimatedAmountDisplay(expression: '88', note: '午餐'),
       ));
       expect(find.text('午餐'), findsOneWidget);
     });
 
     testWidgets('shows placeholder when no note', (tester) async {
       await tester.pumpWidget(wrapInApp(
-        const QuickAmountDisplay(expression: '0'),
+        const AnimatedAmountDisplay(expression: '0'),
       ));
       expect(find.text('添加备注...'), findsOneWidget);
     });

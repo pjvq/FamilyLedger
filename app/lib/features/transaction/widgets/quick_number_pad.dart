@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import 'scale_key_button.dart';
 
 /// 快速记账数字键盘 — 4×4 网格，含日期/+/-/完成
 ///
@@ -102,7 +103,7 @@ class QuickNumberPad extends StatelessWidget {
   }
 
   Widget _buildDigitKey(String digit, Color bg) {
-    return _KeyButton(
+    return ScaleKeyButton(
       bg: bg,
       onTap: () {
         HapticFeedback.lightImpact();
@@ -122,7 +123,7 @@ class QuickNumberPad extends StatelessWidget {
     required VoidCallback onTap,
     String? semanticLabel,
   }) {
-    return _KeyButton(
+    return ScaleKeyButton(
       bg: bg,
       onTap: () {
         HapticFeedback.selectionClick();
@@ -139,7 +140,7 @@ class QuickNumberPad extends StatelessWidget {
   }
 
   Widget _buildDeleteKey(Color bg) {
-    return _KeyButton(
+    return ScaleKeyButton(
       bg: bg,
       onTap: () {
         HapticFeedback.lightImpact();
@@ -181,38 +182,3 @@ class QuickNumberPad extends StatelessWidget {
   }
 }
 
-class _KeyButton extends StatelessWidget {
-  final Widget child;
-  final Color bg;
-  final VoidCallback onTap;
-  final VoidCallback? onLongPress;
-  final String? semanticLabel;
-
-  const _KeyButton({
-    required this.child,
-    required this.bg,
-    required this.onTap,
-    this.onLongPress,
-    this.semanticLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 52,
-      child: Semantics(
-        label: semanticLabel,
-        child: Material(
-          color: bg,
-          borderRadius: BorderRadius.circular(RadiusTokens.md),
-          child: InkWell(
-            onTap: onTap,
-            onLongPress: onLongPress,
-            borderRadius: BorderRadius.circular(RadiusTokens.md),
-            child: Center(child: child),
-          ),
-        ),
-      ),
-    );
-  }
-}
