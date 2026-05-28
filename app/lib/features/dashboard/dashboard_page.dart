@@ -374,7 +374,7 @@ class _NetWorthCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
-                ? [const Color(0xFF1A2A4A), const Color(0xFF0F1A2F)]
+                ? [DarkCardGradients.dashboardStart, DarkCardGradients.dashboardEnd]
                 : [GradientTokens.primaryGradientStart, GradientTokens.primaryGradientDeep],
           ),
           borderRadius: BorderRadius.circular(20),

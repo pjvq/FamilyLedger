@@ -106,7 +106,7 @@ class _SummaryCard extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isDark
-                ? [const Color(0xFF1A2A3A), const Color(0xFF0F1F2F)]
+                ? [DarkCardGradients.assetStart, DarkCardGradients.assetEnd]
                 : [context.semanticColors.asset, GradientTokens.assetGradientEnd],
           ),
           borderRadius: BorderRadius.circular(18),

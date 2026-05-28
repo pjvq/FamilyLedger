@@ -55,14 +55,14 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                     content: Text('确定要删除"${asset.name}"吗？所有估值记录也会被删除。'),
                     actions: [
                       TextButton(
-                        onPressed: () => ctx.pop(false),
+                        onPressed: () => Navigator.of(ctx).pop(false),
                         child: const Text('取消'),
                       ),
                       FilledButton(
                         style: FilledButton.styleFrom(
                           backgroundColor: context.semanticColors.expense,
                         ),
-                        onPressed: () => ctx.pop(true),
+                        onPressed: () => Navigator.of(ctx).pop(true),
                         child: const Text('删除'),
                       ),
                     ],
@@ -244,12 +244,12 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => ctx.pop(),
+              onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('取消'),
             ),
             FilledButton(
               onPressed: () async {
-                ctx.pop();
+                Navigator.of(ctx).pop();
                 await ref.read(assetProvider.notifier).setDepreciationRule(
                       widget.assetId,
                       method: method,
@@ -290,7 +290,7 @@ class _HeaderCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF1A2A3A), const Color(0xFF0F1F2F)]
+              ? [DarkCardGradients.assetStart, DarkCardGradients.assetEnd]
               : [context.semanticColors.asset, GradientTokens.assetGradientEnd],
         ),
         borderRadius: BorderRadius.circular(18),

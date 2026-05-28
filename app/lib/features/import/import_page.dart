@@ -356,9 +356,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
 
   Color _formatColor() => switch (_detectedFormat) {
-    ImportFormat.alipay => const Color(0xFF1677FF),
-    ImportFormat.wechat => const Color(0xFF07C160),
-    ImportFormat.baishiAA => const Color(0xFFFF9800),
+    ImportFormat.alipay => BrandColors.alipay,
+    ImportFormat.wechat => BrandColors.wechat,
+    ImportFormat.baishiAA => BrandColors.baishi,
     _ => ColorTokens.primary,
   };
 

@@ -493,13 +493,13 @@ class TransactionDetailPage extends ConsumerWidget {
         actions: [
           CupertinoDialogAction(
             child: const Text('取消'),
-            onPressed: () => ctx.pop(),
+            onPressed: () => Navigator.of(ctx).pop(),
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
             child: const Text('删除'),
             onPressed: () async {
-              ctx.pop();
+              Navigator.of(ctx).pop();
               await ref
                   .read(transactionProvider.notifier)
                   .deleteTransaction(txn.id);

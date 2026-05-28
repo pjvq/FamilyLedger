@@ -488,7 +488,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                     : null,
                 onTap: () {
                   setState(() => _selectedCurrency = c);
-                  ctx.pop();
+                  Navigator.of(ctx).pop();
                 },
               );
             }),
@@ -642,7 +642,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                   child: FilledButton(
                     onPressed: name.trim().isEmpty
                         ? null
-                        : () => ctx.pop((name.trim(), iconKey)),
+                        : () => Navigator.of(ctx).pop((name.trim(), iconKey)),
                     child: const Text('添加'),
                   ),
                 ),

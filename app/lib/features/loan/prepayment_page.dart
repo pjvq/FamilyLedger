@@ -257,11 +257,11 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => ctx.pop(false),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('取消'),
           ),
           FilledButton(
-            onPressed: () => ctx.pop(true),
+            onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('确认执行'),
           ),
         ],

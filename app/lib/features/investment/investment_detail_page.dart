@@ -131,14 +131,14 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                     content: Text('确定要删除"${investment.name}"吗？所有交易记录也会被删除。'),
                     actions: [
                       TextButton(
-                        onPressed: () => ctx.pop(false),
+                        onPressed: () => Navigator.of(ctx).pop(false),
                         child: const Text('取消'),
                       ),
                       FilledButton(
                         style: FilledButton.styleFrom(
                           backgroundColor: context.semanticColors.expense,
                         ),
-                        onPressed: () => ctx.pop(true),
+                        onPressed: () => Navigator.of(ctx).pop(true),
                         child: const Text('删除'),
                       ),
                     ],

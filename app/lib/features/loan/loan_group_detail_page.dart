@@ -226,13 +226,13 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
           content: const Text('确定要删除此组合贷款（包含所有子贷款）吗？此操作不可撤销。'),
           actions: [
             TextButton(
-              onPressed: () => ctx.pop(false),
+              onPressed: () => Navigator.of(ctx).pop(false),
               child: const Text('取消'),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
                   backgroundColor: context.semanticColors.expense),
-              onPressed: () => ctx.pop(true),
+              onPressed: () => Navigator.of(ctx).pop(true),
               child: const Text('删除'),
             ),
           ],
@@ -273,7 +273,7 @@ class _GroupSummaryCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)] // TODO: define dark gradient tokens
+              ? [DarkCardGradients.loanGroupStart, DarkCardGradients.loanGroupEnd] // TODO: define dark gradient tokens
               : [
                   GradientTokens.primaryGradientStart.withValues(alpha: 0.08),
                   ColorTokens.primaryLight.withValues(alpha: 0.04),

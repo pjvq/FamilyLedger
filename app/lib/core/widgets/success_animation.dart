@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/tokens/color_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -104,7 +105,7 @@ class _TransactionSuccessOverlayState extends State<TransactionSuccessOverlay>
                     height: 160,
                     decoration: BoxDecoration(
                       color: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0xFF2C2C2E)
+                          ? SkeletonTokens.containerDark
                           : Colors.white,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
@@ -122,7 +123,7 @@ class _TransactionSuccessOverlayState extends State<TransactionSuccessOverlay>
                           width: 56,
                           height: 56,
                           decoration: const BoxDecoration(
-                            color: Color(0xFF34C759),
+                            color: SemanticColorsLight.income,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(

@@ -138,14 +138,14 @@ class SettingsPage extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => ctx.pop(),
+            onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('取消'),
           ),
           FilledButton(
             onPressed: () async {
               final name = controller.text.trim();
               if (name.isNotEmpty) {
-                ctx.pop();
+                Navigator.of(ctx).pop();
                 final familyId = await ref
                     .read(familyProvider.notifier)
                     .createFamily(name);
@@ -187,14 +187,14 @@ class SettingsPage extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => ctx.pop(),
+            onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('取消'),
           ),
           FilledButton(
             onPressed: () async {
               final code = controller.text.trim();
               if (code.isNotEmpty) {
-                ctx.pop();
+                Navigator.of(ctx).pop();
                 final familyId = await ref
                     .read(familyProvider.notifier)
                     .joinFamily(code);
@@ -270,7 +270,7 @@ class SettingsPage extends ConsumerWidget {
               child: const Text('复制'),
             ),
             FilledButton(
-              onPressed: () => ctx.pop(),
+              onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('确定'),
             ),
           ],
@@ -287,7 +287,7 @@ class SettingsPage extends ConsumerWidget {
         content: const Text('确定要退出当前家庭吗？退出后将无法查看家庭账本。'),
         actions: [
           TextButton(
-            onPressed: () => ctx.pop(),
+            onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('取消'),
           ),
           FilledButton(
@@ -296,7 +296,7 @@ class SettingsPage extends ConsumerWidget {
             ),
             onPressed: () {
               ref.read(familyProvider.notifier).leaveFamily();
-              ctx.pop();
+              Navigator.of(ctx).pop();
             },
             child: const Text('退出'),
           ),
@@ -313,7 +313,7 @@ class SettingsPage extends ConsumerWidget {
         content: const Text('确定要退出登录吗？'),
         actions: [
           TextButton(
-            onPressed: () => ctx.pop(),
+            onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('取消'),
           ),
           FilledButton(
@@ -321,7 +321,7 @@ class SettingsPage extends ConsumerWidget {
               backgroundColor: context.semanticColors.expense,
             ),
             onPressed: () async {
-              ctx.pop();
+              Navigator.of(ctx).pop();
               await ref.read(authProvider.notifier).logout();
               if (context.mounted) {
                 context.go(AppRouter.login);
@@ -427,7 +427,7 @@ class _FamilyInfoCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isDark
-                        ? [const Color(0xFF2C2C4A), const Color(0xFF1C1C3E)]
+                        ? [DarkCardGradients.primaryStart, DarkCardGradients.primaryEnd]
                         : [ColorTokens.primary, GradientTokens.primaryGradientAlt],
                   ),
                   borderRadius: BorderRadius.circular(16),

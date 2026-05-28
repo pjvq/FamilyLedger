@@ -67,11 +67,11 @@ class _TransactionHistoryPageState
         content: Text('确定删除选中的 $count 笔交易吗？\n删除后不可恢复。'),
         actions: [
           TextButton(
-            onPressed: () => ctx.pop(false),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('取消'),
           ),
           TextButton(
-            onPressed: () => ctx.pop(true),
+            onPressed: () => Navigator.of(ctx).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('删除'),
           ),

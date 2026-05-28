@@ -205,7 +205,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         child: _OAuthButton(
                           icon: Icons.chat_rounded,
                           label: '微信',
-                          color: const Color(0xFF07C160),
+                          color: BrandColors.wechat,
                           onTap: () => _handleOAuthLogin('wechat'),
                         ),
                       ),

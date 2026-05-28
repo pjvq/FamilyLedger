@@ -22,12 +22,12 @@ class TransactionImageService {
             ListTile(
               leading: const Icon(Icons.camera_alt_rounded),
               title: const Text('拍照'),
-              onTap: () => ctx.pop(ImageSource.camera),
+              onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_rounded),
               title: const Text('从相册选择'),
-              onTap: () => ctx.pop(ImageSource.gallery),
+              onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
             ),
           ],
         ),

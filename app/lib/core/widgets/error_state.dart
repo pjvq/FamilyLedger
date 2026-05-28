@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/tokens/color_tokens.dart';
 
 /// 错误状态组件
 ///
@@ -43,15 +44,15 @@ class ErrorState extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: const Color(0xFFFF6B6B).withValues(alpha: 0.1),
+                color: SemanticColorsLight.expense.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.cloud_off_rounded,
                 size: 40,
                 color: isDark
-                    ? const Color(0xFFFF8A80)
-                    : const Color(0xFFFF6B6B),
+                    ? SemanticColorsDark.expense
+                    : SemanticColorsLight.expense,
               ),
             ),
             const SizedBox(height: 24),
@@ -112,7 +113,7 @@ class _CompactError extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: (isDark ? const Color(0xFFFF8A80) : const Color(0xFFFF6B6B))
+        color: (isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense)
             .withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
       ),
@@ -122,7 +123,7 @@ class _CompactError extends StatelessWidget {
             Icons.error_outline_rounded,
             size: 24,
             color:
-                isDark ? const Color(0xFFFF8A80) : const Color(0xFFFF6B6B),
+                isDark ? SemanticColorsDark.expense : SemanticColorsLight.expense,
           ),
           const SizedBox(width: 12),
           Expanded(

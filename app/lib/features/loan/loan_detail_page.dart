@@ -209,14 +209,14 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
           content: const Text('确定要删除此贷款吗？此操作不可撤销。'),
           actions: [
             TextButton(
-              onPressed: () => ctx.pop(false),
+              onPressed: () => Navigator.of(ctx).pop(false),
               child: const Text('取消'),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: context.semanticColors.expense,
               ),
-              onPressed: () => ctx.pop(true),
+              onPressed: () => Navigator.of(ctx).pop(true),
               child: const Text('删除'),
             ),
           ],
@@ -281,7 +281,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                         trailing: isSelected
                             ? Icon(Icons.check, color: Theme.of(ctx).colorScheme.primary)
                             : null,
-                        onTap: () => ctx.pop(cat.id),
+                        onTap: () => Navigator.of(ctx).pop(cat.id),
                       );
                     },
                   ),
@@ -453,7 +453,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => ctx.pop(),
+                        onPressed: () => Navigator.of(ctx).pop(),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
@@ -467,7 +467,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                     Expanded(
                       child: FilledButton(
                         onPressed: () async {
-                          ctx.pop();
+                          Navigator.of(ctx).pop();
                           await ref.read(loanProvider.notifier).recordPayment(
                                 loanId: loan.id,
                                 monthNumber: monthNumber,
@@ -529,7 +529,7 @@ class _SummaryCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
-                ? [const Color(0xFF2A1A1A), const Color(0xFF1A0F0F)]
+                ? [DarkCardGradients.loanStart, DarkCardGradients.loanEnd]
                 : [
                     typeInfo.color.withValues(alpha: 0.08),
                     typeInfo.color.withValues(alpha: 0.03),

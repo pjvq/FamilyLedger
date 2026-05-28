@@ -516,9 +516,9 @@ class _PreciousMetalOption {
   const _PreciousMetalOption(this.symbol, this.name, this.metal);
 
   Color get color => switch (metal) {
-        'gold' => const Color(0xFFD4AF37),
-        'silver' => const Color(0xFFA8A9AD),
-        'platinum' => const Color(0xFFE5E4E2),
+        'gold' => CommodityColors.gold,
+        'silver' => CommodityColors.silver,
+        'platinum' => CommodityColors.platinum,
         _ => Colors.grey,
       };
 

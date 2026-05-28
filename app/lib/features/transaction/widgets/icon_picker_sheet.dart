@@ -245,7 +245,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
           ),
           actions: [
             TextButton(
-              onPressed: () => ctx.pop(),
+              onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('取消'),
             ),
             FilledButton(
@@ -254,7 +254,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
                 if (text.isNotEmpty) {
                   // Extract first emoji (grapheme cluster)
                   final runes = text.characters.first;
-                  ctx.pop(runes);
+                  Navigator.of(ctx).pop(runes);
                 }
               },
               child: const Text('确定'),

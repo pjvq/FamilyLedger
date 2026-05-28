@@ -146,6 +146,57 @@ abstract final class ChartColors {
   ];
 }
 
+/// Skeleton/shimmer loading placeholder colors.
+abstract final class SkeletonTokens {
+  // Light mode
+  static const Color baseLight = Color(0xFFE8E8E8);
+  static const Color highlightLight = Color(0xFFF5F5F5);
+  static const Color containerLight = Colors.white;
+  // Dark mode
+  static const Color baseDark = Color(0xFF3A3A3C);
+  static const Color highlightDark = Color(0xFF4A4A4C);
+  static const Color containerDark = Color(0xFF2C2C2E);
+}
+
+/// Dark mode card/hero gradient tokens for module headers.
+abstract final class DarkCardGradients {
+  // Primary/generic (overview, settings)
+  static const Color primaryStart = Color(0xFF2C2C4A);
+  static const Color primaryEnd = Color(0xFF1C1C3E);
+  // Loan
+  static const Color loanStart = Color(0xFF2A1A1A);
+  static const Color loanEnd = Color(0xFF1A0F0F);
+  // Loan group
+  static const Color loanGroupStart = Color(0xFF1A1A2E);
+  static const Color loanGroupEnd = Color(0xFF16213E);
+  // Investment
+  static const Color investmentStart = Color(0xFF1A1A3A);
+  static const Color investmentEnd = Color(0xFF0F0F2A);
+  // Asset / fixed asset
+  static const Color assetStart = Color(0xFF1A2A3A);
+  static const Color assetEnd = Color(0xFF0F1F2F);
+  // Net worth (assets tab)
+  static const Color netWorthStart = Color(0xFF1A3A2A);
+  static const Color netWorthEnd = Color(0xFF0F2A1F);
+  // Dashboard
+  static const Color dashboardStart = Color(0xFF1A2A4A);
+  static const Color dashboardEnd = Color(0xFF0F1A2F);
+}
+
+/// Third-party brand colors (for import format badges, etc.).
+abstract final class BrandColors {
+  static const Color wechat = Color(0xFF07C160);
+  static const Color alipay = Color(0xFF1677FF);
+  static const Color baishi = Color(0xFFFF9800);
+}
+
+/// Metal/commodity colors for investment type indicators.
+abstract final class CommodityColors {
+  static const Color gold = Color(0xFFD4AF37);
+  static const Color silver = Color(0xFFA8A9AD);
+  static const Color platinum = Color(0xFFE5E4E2);
+}
+
 /// Gradient color tokens for decorative/emphasis gradients.
 abstract final class GradientTokens {
   static const Color primaryGradientStart = Color(0xFF5B6EF5);
