@@ -108,7 +108,7 @@ class _TransactionSuccessOverlayState extends State<TransactionSuccessOverlay>
                     decoration: BoxDecoration(
                       color: Theme.of(context).brightness == Brightness.dark
                           ? SkeletonTokens.containerDark
-                          : Colors.white,
+                          : SkeletonTokens.containerLight,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
