@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/router/app_router.dart';
@@ -19,8 +20,7 @@ class NotificationsPage extends ConsumerWidget {
         title: const Text('通知'),
         actions: [
           IconButton(
-            onPressed: () => Navigator.of(context)
-                .pushNamed(AppRouter.notificationSettings),
+            onPressed: () => context.push(AppRouter.notificationSettings),
             icon: const Icon(Icons.settings_rounded),
             tooltip: '通知设置',
           ),

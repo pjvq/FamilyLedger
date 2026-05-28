@@ -132,7 +132,7 @@ class _InvestmentsPageState extends ConsumerState<InvestmentsPage> {
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () =>
-            Navigator.of(context).pushNamed(AppRouter.addInvestment),
+            context.push(AppRouter.addInvestment),
         icon: const Icon(Icons.add_rounded),
         label: const Text('添加投资'),
       ),
@@ -167,7 +167,7 @@ class _PortfolioSummaryCard extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isDark
-                ? [const Color(0xFF1A1A3A), const Color(0xFF0F0F2A)]
+                ? [DarkCardGradients.investmentStart, DarkCardGradients.investmentEnd]
                 : [ColorTokens.primary, GradientTokens.primaryGradientSoft],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,

@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' show FontFeature;
+
 import 'package:drift/drift.dart' show Value;
 import 'package:excel/excel.dart' as xl;
 import 'package:fast_gbk/fast_gbk.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/constants/category_icons.dart';
 import '../../core/utils/category_uuid.dart';
@@ -180,7 +182,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                 ],
                 if (_currentStep == 3 && _importDone)
                   FilledButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => context.pop(),
                     child: const Text('完成'),
                   ),
                 if (_currentStep > 0 && _currentStep < 3) ...[
@@ -355,9 +357,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
 
   Color _formatColor() => switch (_detectedFormat) {
-    ImportFormat.alipay => const Color(0xFF1677FF),
-    ImportFormat.wechat => const Color(0xFF07C160),
-    ImportFormat.baishiAA => const Color(0xFFFF9800),
+    ImportFormat.alipay => BrandColors.alipay,
+    ImportFormat.wechat => BrandColors.wechat,
+    ImportFormat.baishiAA => BrandColors.baishiAA,
     _ => ColorTokens.primary,
   };
 

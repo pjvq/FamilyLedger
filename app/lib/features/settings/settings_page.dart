@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/widgets/sync_status_tile.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
@@ -46,7 +47,7 @@ class SettingsPage extends ConsumerWidget {
               theme: theme,
               isDark: isDark,
               onViewMembers: () {
-                Navigator.of(context).pushNamed(AppRouter.familyMembers);
+                context.push(AppRouter.familyMembers);
               },
             ),
             const SizedBox(height: 8),
@@ -93,19 +94,19 @@ class SettingsPage extends ConsumerWidget {
             icon: Icons.category_rounded,
             title: '分类管理',
             subtitle: '管理收支分类和子分类',
-            onTap: () => Navigator.of(context).pushNamed(AppRouter.categoryManage),
+            onTap: () => context.push(AppRouter.categoryManage),
           ),
           _SettingsTile(
             icon: Icons.account_balance_rounded,
             title: '贷款管理',
             subtitle: '跟踪还款进度、模拟提前还款',
-            onTap: () => Navigator.of(context).pushNamed(AppRouter.loans),
+            onTap: () => context.push(AppRouter.loans),
           ),
           _SettingsTile(
             icon: Icons.notifications_outlined,
             title: '通知设置',
             subtitle: '管理预算提醒和日常通知',
-            onTap: () => Navigator.of(context).pushNamed(AppRouter.notificationSettings),
+            onTap: () => context.push(AppRouter.notificationSettings),
           ),
 
           const SizedBox(height: 24),
@@ -320,11 +321,9 @@ class SettingsPage extends ConsumerWidget {
               backgroundColor: context.semanticColors.expense,
             ),
             onPressed: () async {
-              Navigator.of(ctx).pop();
               await ref.read(authProvider.notifier).logout();
               if (context.mounted) {
-                Navigator.of(context)
-                    .pushNamedAndRemoveUntil(AppRouter.login, (_) => false);
+                context.go(AppRouter.login);
               }
             },
             child: const Text('退出'),
@@ -427,7 +426,7 @@ class _FamilyInfoCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isDark
-                        ? [const Color(0xFF2C2C4A), const Color(0xFF1C1C3E)]
+                        ? [DarkCardGradients.primaryStart, DarkCardGradients.primaryEnd]
                         : [ColorTokens.primary, GradientTokens.primaryGradientAlt],
                   ),
                   borderRadius: BorderRadius.circular(16),

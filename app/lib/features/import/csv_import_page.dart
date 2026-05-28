@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:go_router/go_router.dart';
 import '../../data/remote/grpc_clients.dart';
 import '../../generated/proto/import.pbgrpc.dart' as pb;
 
@@ -92,7 +94,7 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
                   ),
                 if (_currentStep == 3 && _importDone)
                   FilledButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => context.pop(),
                     child: const Text('完成'),
                   ),
                 if (_currentStep > 0 && _currentStep < 3) ...[

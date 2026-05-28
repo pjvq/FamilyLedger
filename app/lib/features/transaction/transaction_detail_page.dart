@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/category_icon_widget.dart';
 import 'package:intl/intl.dart';
@@ -81,10 +83,9 @@ class TransactionDetailPage extends ConsumerWidget {
                 icon: const Icon(Icons.edit_outlined),
                 tooltip: '编辑',
                 onPressed: () async {
-                  final edited = await Navigator.of(context)
-                      .pushNamed(AppRouter.addTransaction, arguments: txn);
+                  final edited = await context.push(AppRouter.addTransaction, extra: txn);
                   if (edited == true && context.mounted) {
-                    Navigator.of(context).pop();
+                    context.pop();
                   }
                 },
               ),
@@ -507,7 +508,7 @@ class TransactionDetailPage extends ConsumerWidget {
               ref.read(dashboardProvider.notifier).loadAll();
               ref.read(accountProvider.notifier).refresh();
               if (context.mounted) {
-                Navigator.of(context).pop(); // 返回列表页
+                context.pop(); // 返回列表页
               }
             },
           ),

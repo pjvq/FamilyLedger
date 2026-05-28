@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -140,7 +141,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
             child: IconButton(
               icon: const Icon(Icons.close_rounded, size: 24),
               tooltip: '关闭',
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => context.pop(),
             ),
           ),
           title: Text(_isEditMode ? '编辑交易' : '记一笔'),
@@ -487,7 +488,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                     : null,
                 onTap: () {
                   setState(() => _selectedCurrency = c);
-                  Navigator.pop(ctx);
+                  Navigator.of(ctx).pop();
                 },
               );
             }),
@@ -641,7 +642,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                   child: FilledButton(
                     onPressed: name.trim().isEmpty
                         ? null
-                        : () => Navigator.pop(ctx, (name.trim(), iconKey)),
+                        : () => Navigator.of(ctx).pop((name.trim(), iconKey)),
                     child: const Text('添加'),
                   ),
                 ),
@@ -775,7 +776,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
         final formattedAmount = '¥${(cents / 100).toStringAsFixed(2)}';
         await TransactionSuccessOverlay.show(context, formattedAmount);
         if (mounted) {
-          Navigator.of(context).pop(_isEditMode ? true : null);
+          context.pop(_isEditMode ? true : null);
         }
       }
     } on ArgumentError catch (e) {

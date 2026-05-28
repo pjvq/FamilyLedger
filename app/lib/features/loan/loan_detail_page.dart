@@ -224,7 +224,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
       );
       if (confirmed == true && mounted) {
         await ref.read(loanProvider.notifier).deleteLoan(loanId);
-        if (mounted) Navigator.of(context).pop();
+        if (mounted) context.pop();
       }
     }
   }
@@ -529,7 +529,7 @@ class _SummaryCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
-                ? [const Color(0xFF2A1A1A), const Color(0xFF1A0F0F)]
+                ? [DarkCardGradients.loanStart, DarkCardGradients.loanEnd]
                 : [
                     typeInfo.color.withValues(alpha: 0.08),
                     typeInfo.color.withValues(alpha: 0.03),

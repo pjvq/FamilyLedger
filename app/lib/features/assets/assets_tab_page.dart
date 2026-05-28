@@ -110,7 +110,7 @@ class _TotalCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF1A3A2A), const Color(0xFF0F2A1F)]
+              ? [DarkCardGradients.netWorthStart, DarkCardGradients.netWorthEnd]
               : [context.semanticColors.income, GradientTokens.incomeGradientEnd],
         ),
         borderRadius: BorderRadius.circular(RadiusTokens.lg),

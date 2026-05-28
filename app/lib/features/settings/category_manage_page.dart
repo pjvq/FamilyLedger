@@ -248,11 +248,11 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         content: Text('确定要删除分类「${cat.name}」吗？\n相关交易不会被删除，但分类标签会消失。'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('取消'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.of(ctx).pop(true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('删除'),
           ),
@@ -613,7 +613,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                   child: FilledButton(
                     onPressed: name.trim().isEmpty
                         ? null
-                        : () => Navigator.pop(ctx,
+                        : () => Navigator.of(ctx).pop(
                             _CategoryEditResult(name: name.trim(), iconKey: iconKey)),
                     child: Text(initialName != null ? '保存' : '添加'),
                   ),

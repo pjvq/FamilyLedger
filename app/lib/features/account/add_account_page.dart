@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/account_provider.dart';
@@ -260,7 +261,7 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
       // 刷新账户和仪表盘
       ref.read(dashboardProvider.notifier).loadAll();
       if (mounted) {
-        Navigator.of(context).pop();
+        context.pop();
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

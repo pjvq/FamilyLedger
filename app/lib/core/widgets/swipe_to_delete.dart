@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/tokens/color_tokens.dart';
 
 /// 滑动删除组件
 ///
@@ -25,7 +26,7 @@ class SwipeToDelete extends StatefulWidget {
     this.confirmTitle = '删除确认',
     this.deleteLabel = '删除',
     this.cancelLabel = '取消',
-    this.backgroundColor = const Color(0xFFFF3B30),
+    this.backgroundColor = SemanticColorsLight.expense,
     this.movementDuration = const Duration(milliseconds: 300),
     this.borderRadius = 16,
   });
@@ -69,7 +70,10 @@ class _SwipeToDeleteState extends State<SwipeToDelete>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFFB22222) : widget.backgroundColor;
+    final hasCustomBg = widget.backgroundColor != SemanticColorsLight.expense;
+    final bgColor = hasCustomBg
+        ? widget.backgroundColor
+        : (isDark ? SemanticColorsDark.expense : widget.backgroundColor);
     final radius = BorderRadius.circular(widget.borderRadius);
 
     return ClipRRect(
@@ -152,7 +156,7 @@ class _SwipeToDeleteState extends State<SwipeToDelete>
             child: Text(
               widget.deleteLabel,
               style: const TextStyle(
-                color: Color(0xFFFF3B30),
+                color: SemanticColorsLight.expense,
                 fontWeight: FontWeight.w600,
               ),
             ),

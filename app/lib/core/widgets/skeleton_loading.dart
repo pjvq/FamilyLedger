@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/tokens/color_tokens.dart';
+
 /// 闪光效果 shimmer 动画
 class ShimmerEffect extends StatefulWidget {
   final Widget child;
@@ -33,9 +35,9 @@ class _ShimmerEffectState extends State<ShimmerEffect>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final baseColor =
-        isDark ? const Color(0xFF3A3A3C) : const Color(0xFFE8E8E8);
+        isDark ? SkeletonTokens.baseDark : SkeletonTokens.baseLight;
     final highlightColor =
-        isDark ? const Color(0xFF4A4A4C) : const Color(0xFFF5F5F5);
+        isDark ? SkeletonTokens.highlightDark : SkeletonTokens.highlightLight;
 
     return AnimatedBuilder(
       animation: _controller,
@@ -79,7 +81,7 @@ class SkeletonText extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF3A3A3C) : const Color(0xFFE8E8E8),
+        color: isDark ? SkeletonTokens.baseDark : SkeletonTokens.baseLight,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
     );
@@ -100,7 +102,7 @@ class SkeletonCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2C2C2E) : Colors.white,
+          color: isDark ? SkeletonTokens.containerDark : SkeletonTokens.containerLight,
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Column(
@@ -140,7 +142,7 @@ class SkeletonList extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2C2C2E) : Colors.white,
+              color: isDark ? SkeletonTokens.containerDark : SkeletonTokens.containerLight,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -150,8 +152,8 @@ class SkeletonList extends StatelessWidget {
                   height: 44,
                   decoration: BoxDecoration(
                     color: isDark
-                        ? const Color(0xFF3A3A3C)
-                        : const Color(0xFFE8E8E8),
+                        ? SkeletonTokens.baseDark
+                        : SkeletonTokens.baseLight,
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),

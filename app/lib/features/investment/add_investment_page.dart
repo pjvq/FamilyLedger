@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../domain/providers/investment_provider.dart';
 import '../../domain/providers/market_data_provider.dart';
@@ -166,7 +168,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
           );
     }
 
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) context.pop();
   }
 
   void _showError(String msg) {
@@ -515,10 +517,10 @@ class _PreciousMetalOption {
   const _PreciousMetalOption(this.symbol, this.name, this.metal);
 
   Color get color => switch (metal) {
-        'gold' => const Color(0xFFD4AF37),
-        'silver' => const Color(0xFFA8A9AD),
-        'platinum' => const Color(0xFFE5E4E2),
-        _ => Colors.grey,
+        'gold' => CommodityColors.gold,
+        'silver' => CommodityColors.silver,
+        'platinum' => CommodityColors.platinum,
+        _ => CommodityColors.fallback,
       };
 
   IconData get icon => switch (metal) {

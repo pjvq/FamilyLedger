@@ -240,7 +240,7 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
       );
       if (confirmed == true && mounted) {
         await ref.read(loanProvider.notifier).deleteLoanGroup(groupId);
-        if (mounted) Navigator.of(context).pop();
+        if (mounted) context.pop();
       }
     }
   }
@@ -273,7 +273,7 @@ class _GroupSummaryCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)] // TODO: define dark gradient tokens
+              ? [DarkCardGradients.loanGroupStart, DarkCardGradients.loanGroupEnd]
               : [
                   GradientTokens.primaryGradientStart.withValues(alpha: 0.08),
                   ColorTokens.primaryLight.withValues(alpha: 0.04),

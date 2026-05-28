@@ -148,7 +148,7 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                   await ref
                       .read(investmentProvider.notifier)
                       .deleteInvestment(widget.investmentId);
-                  if (context.mounted) Navigator.of(context).pop();
+                  if (context.mounted) context.pop();
                 }
               }
             },

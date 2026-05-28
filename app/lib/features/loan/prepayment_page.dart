@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/design_tokens.dart';
@@ -256,11 +257,11 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('取消'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('确认执行'),
           ),
         ],
@@ -281,7 +282,7 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('提前还款成功'), behavior: SnackBarBehavior.fixed),
       );
-      Navigator.pop(context); // 返回贷款详情页
+      context.pop(); // 返回贷款详情页
     } else {
       final error = ref.read(loanProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(

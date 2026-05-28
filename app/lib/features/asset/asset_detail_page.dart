@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -71,7 +72,7 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                   await ref
                       .read(assetProvider.notifier)
                       .deleteAsset(widget.assetId);
-                  if (context.mounted) Navigator.of(context).pop();
+                  if (context.mounted) context.pop();
                 }
               }
             },
@@ -289,7 +290,7 @@ class _HeaderCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF1A2A3A), const Color(0xFF0F1F2F)]
+              ? [DarkCardGradients.assetStart, DarkCardGradients.assetEnd]
               : [context.semanticColors.asset, GradientTokens.assetGradientEnd],
         ),
         borderRadius: BorderRadius.circular(18),
