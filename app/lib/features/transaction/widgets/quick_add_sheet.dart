@@ -151,9 +151,8 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                 ),
                 const SizedBox(height: SpacingTokens.md),
 
-                // Category grid (2 rows, horizontal scroll)
-                SizedBox(
-                  height: 100,
+                // Category grid (two-level with subcategory sheet)
+                Expanded(
                   child: QuickCategorySelector(
                     typeIndex: _typeIndex,
                     selectedCategoryId: _selectedCategoryId,
@@ -161,7 +160,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                   ),
                 ),
 
-                const Spacer(),
+                const SizedBox(height: SpacingTokens.sm),
 
                 // Number pad
                 QuickNumberPad(
