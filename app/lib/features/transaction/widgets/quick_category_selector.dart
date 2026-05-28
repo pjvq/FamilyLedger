@@ -12,7 +12,7 @@ import '../../../data/local/database.dart';
 /// - 顶部：最近使用分类（横向滚动 chips）
 /// - 主体：父级分类网格（5 列 icon + 文字）
 /// - 子分类：点击有子分类的父级，弹出 ActionSheet
-class QuickCategorySelector extends ConsumerStatefulWidget {
+class QuickCategorySelector extends ConsumerWidget {
   final int typeIndex; // 0=支出, 1=收入
   final String? selectedCategoryId;
   final ValueChanged<String> onSelected;
@@ -25,16 +25,23 @@ class QuickCategorySelector extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<QuickCategorySelector> createState() =>
-      _QuickCategorySelectorState();
-}
-
-class _QuickCategorySelectorState extends ConsumerState<QuickCategorySelector> {
-  @override
-  Widget build(BuildContext context) {
-    final allCategories = widget.typeIndex == 0
+  Widget build(BuildContext context, WidgetRef ref) {
+    final allCategories = typeIndex == 0
         ? ref.watch(transactionProvider.select((s) => s.expenseCategories))
         : ref.watch(transactionProvider.select((s) => s.incomeCategories));
+
+    // Extract recent transaction category IDs separately (pure selector)
+    final recentTxnCategoryIds = ref.watch(
+      transactionProvider.select((s) {
+        final seen = <String>{};
+        final ids = <String>[];
+        for (final txn in s.transactions) {
+          if (seen.add(txn.categoryId)) ids.add(txn.categoryId);
+          if (ids.length >= 10) break; // grab more than needed, filter below
+        }
+        return ids;
+      }),
+    );
 
     if (allCategories.isEmpty) {
       return Center(
@@ -48,31 +55,40 @@ class _QuickCategorySelectorState extends ConsumerState<QuickCategorySelector> {
       );
     }
 
-    // Separate parent and child categories
+    // Pre-compute: active categories set (excludes deleted)
+    final activeSet = <String>{};
+    for (final c in allCategories) {
+      if (c.deletedAt == null) activeSet.add(c.id);
+    }
+
+    // Pre-compute: children map (O(n) once, not O(n²) per grid item)
+    final childrenMap = <String, List<Category>>{};
+    for (final c in allCategories) {
+      if (c.parentId != null && c.deletedAt == null) {
+        (childrenMap[c.parentId!] ??= []).add(c);
+      }
+    }
+    // Sort children by sortOrder
+    for (final list in childrenMap.values) {
+      list.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    }
+
+    // Parents: top-level, active, sorted
     final parents = allCategories
         .where((c) => c.parentId == null && c.deletedAt == null)
         .toList()
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
-    // Recent categories: last 5 unique from transaction history
-    final recentIds = ref.watch(transactionProvider.select((s) {
-      final seen = <String>{};
-      final recent = <String>[];
-      for (final txn in s.transactions) {
-        if (seen.add(txn.categoryId) && recent.length < 5) {
-          // Only include categories matching current type
-          final cat = allCategories.where((c) => c.id == txn.categoryId).firstOrNull;
-          if (cat != null) recent.add(txn.categoryId);
-        }
-        if (recent.length >= 5) break;
+    // Recent categories: filter by active + matching type, max 5
+    final categoryById = {for (final c in allCategories) c.id: c};
+    final recentCategories = <Category>[];
+    for (final id in recentTxnCategoryIds) {
+      if (recentCategories.length >= 5) break;
+      final cat = categoryById[id];
+      if (cat != null && cat.deletedAt == null) {
+        recentCategories.add(cat);
       }
-      return recent;
-    }));
-
-    final recentCategories = recentIds
-        .map((id) => allCategories.where((c) => c.id == id).firstOrNull)
-        .whereType<Category>()
-        .toList();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,8 +97,8 @@ class _QuickCategorySelectorState extends ConsumerState<QuickCategorySelector> {
         if (recentCategories.isNotEmpty) ...[
           _RecentCategoryRow(
             categories: recentCategories,
-            selectedId: widget.selectedCategoryId,
-            onSelected: _handleSelection,
+            selectedId: selectedCategoryId,
+            onSelected: (id) => _handleSelection(context, id),
           ),
           const SizedBox(height: SpacingTokens.sm),
         ],
@@ -91,22 +107,24 @@ class _QuickCategorySelectorState extends ConsumerState<QuickCategorySelector> {
         Expanded(
           child: _CategoryGrid(
             parents: parents,
-            allCategories: allCategories,
-            selectedId: widget.selectedCategoryId,
-            onSelected: _handleSelection,
-            onParentWithChildren: _showSubcategorySheet,
+            childrenMap: childrenMap,
+            selectedId: selectedCategoryId,
+            onSelected: (id) => _handleSelection(context, id),
+            onParentWithChildren: (parent, children) =>
+                _showSubcategorySheet(context, parent, children),
           ),
         ),
       ],
     );
   }
 
-  void _handleSelection(String categoryId) {
+  void _handleSelection(BuildContext context, String categoryId) {
     HapticFeedback.selectionClick();
-    widget.onSelected(categoryId);
+    onSelected(categoryId);
   }
 
-  void _showSubcategorySheet(Category parent, List<Category> children) {
+  void _showSubcategorySheet(
+      BuildContext context, Category parent, List<Category> children) {
     HapticFeedback.selectionClick();
     showModalBottomSheet(
       context: context,
@@ -114,9 +132,9 @@ class _QuickCategorySelectorState extends ConsumerState<QuickCategorySelector> {
       builder: (ctx) => _SubcategorySheet(
         parent: parent,
         children: children,
-        selectedId: widget.selectedCategoryId,
+        selectedId: selectedCategoryId,
         onSelected: (id) {
-          _handleSelection(id);
+          onSelected(id);
           Navigator.of(ctx).pop();
         },
       ),
@@ -124,7 +142,7 @@ class _QuickCategorySelectorState extends ConsumerState<QuickCategorySelector> {
   }
 }
 
-/// 最近使用分类行 — 横向滚动 chips
+/// 最近使用分类行 — "最近" label + 横向 chips
 class _RecentCategoryRow extends StatelessWidget {
   final List<Category> categories;
   final String? selectedId;
@@ -143,36 +161,40 @@ class _RecentCategoryRow extends StatelessWidget {
 
     return SizedBox(
       height: 36,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.md),
-        itemCount: categories.length + 1, // +1 for "最近" label
-        separatorBuilder: (_, __) => const SizedBox(width: SpacingTokens.sm),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.only(right: SpacingTokens.xs),
-                child: Text(
-                  '最近',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+      child: Row(
+        children: [
+          // Fixed "最近" label
+          Padding(
+            padding: const EdgeInsets.only(left: SpacingTokens.md, right: SpacingTokens.sm),
+            child: Text(
+              '最近',
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                fontWeight: FontWeight.w500,
               ),
-            );
-          }
-          final cat = categories[index - 1];
-          final isSelected = cat.id == selectedId;
-          return _MiniCategoryChip(
-            category: cat,
-            isSelected: isSelected,
-            isDark: isDark,
-            onTap: () => onSelected(cat.id),
-          );
-        },
+            ),
+          ),
+          // Scrollable chips
+          Expanded(
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(right: SpacingTokens.md),
+              itemCount: categories.length,
+              separatorBuilder: (_, __) => const SizedBox(width: SpacingTokens.sm),
+              itemBuilder: (context, index) {
+                final cat = categories[index];
+                final isSelected = cat.id == selectedId;
+                return _MiniCategoryChip(
+                  category: cat,
+                  isSelected: isSelected,
+                  isDark: isDark,
+                  onTap: () => onSelected(cat.id),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -233,14 +255,14 @@ class _MiniCategoryChip extends StatelessWidget {
 /// 主分类网格 — 5 列 icon + 文字
 class _CategoryGrid extends StatelessWidget {
   final List<Category> parents;
-  final List<Category> allCategories;
+  final Map<String, List<Category>> childrenMap;
   final String? selectedId;
   final ValueChanged<String> onSelected;
   final void Function(Category parent, List<Category> children) onParentWithChildren;
 
   const _CategoryGrid({
     required this.parents,
-    required this.allCategories,
+    required this.childrenMap,
     this.selectedId,
     required this.onSelected,
     required this.onParentWithChildren,
@@ -259,9 +281,7 @@ class _CategoryGrid extends StatelessWidget {
       itemCount: parents.length,
       itemBuilder: (context, index) {
         final cat = parents[index];
-        final children = allCategories
-            .where((c) => c.parentId == cat.id && c.deletedAt == null)
-            .toList();
+        final children = childrenMap[cat.id] ?? const [];
         final isSelected = cat.id == selectedId ||
             children.any((c) => c.id == selectedId);
 
@@ -389,76 +409,95 @@ class _SubcategorySheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final sorted = [...children]..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.5,
+      ),
       decoration: BoxDecoration(
         color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral0,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: const EdgeInsets.fromLTRB(
-        SpacingTokens.base,
-        SpacingTokens.md,
-        SpacingTokens.base,
-        SpacingTokens.xl,
-      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag handle
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(2),
+          // Fixed header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              SpacingTokens.base,
+              SpacingTokens.md,
+              SpacingTokens.base,
+              0,
             ),
-          ),
-          const SizedBox(height: SpacingTokens.md),
-
-          // Parent label
-          Row(
-            children: [
-              CategoryIconWidget(iconKey: parent.iconKey, size: 20, showBackground: false),
-              const SizedBox(width: SpacingTokens.sm),
-              Text(
-                parent.name,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              const Spacer(),
-              // Option to select parent directly
-              TextButton(
-                onPressed: () => onSelected(parent.id),
-                child: Text(
-                  '选择「${parent.name}」',
-                  style: const TextStyle(fontSize: 13),
+            child: Column(
+              children: [
+                // Drag handle
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: SpacingTokens.base),
-
-          // Subcategory grid (4 columns)
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              mainAxisSpacing: SpacingTokens.md,
-              crossAxisSpacing: SpacingTokens.sm,
-              childAspectRatio: 1.0,
+                const SizedBox(height: SpacingTokens.md),
+                // Parent label row
+                Row(
+                  children: [
+                    CategoryIconWidget(
+                        iconKey: parent.iconKey, size: 20, showBackground: false),
+                    const SizedBox(width: SpacingTokens.sm),
+                    Text(
+                      parent.name,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () => onSelected(parent.id),
+                      child: Text(
+                        '选择「${parent.name}」',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: SpacingTokens.md),
+              ],
             ),
-            itemCount: sorted.length,
-            itemBuilder: (context, index) {
-              final cat = sorted[index];
-              final isSelected = cat.id == selectedId;
-              return _CategoryGridItem(
-                category: cat,
-                hasChildren: false,
-                isSelected: isSelected,
-                onTap: () => onSelected(cat.id),
-              );
-            },
+          ),
+
+          // Scrollable subcategory grid
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                SpacingTokens.base,
+                0,
+                SpacingTokens.base,
+                SpacingTokens.xl,
+              ),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  mainAxisSpacing: SpacingTokens.md,
+                  crossAxisSpacing: SpacingTokens.sm,
+                  childAspectRatio: 1.0,
+                ),
+                itemCount: children.length,
+                itemBuilder: (context, index) {
+                  final cat = children[index];
+                  final isSelected = cat.id == selectedId;
+                  return _CategoryGridItem(
+                    category: cat,
+                    hasChildren: false,
+                    isSelected: isSelected,
+                    onTap: () => onSelected(cat.id),
+                  );
+                },
+              ),
+            ),
           ),
 
           // Safe area padding
