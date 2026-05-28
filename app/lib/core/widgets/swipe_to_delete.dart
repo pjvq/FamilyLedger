@@ -70,7 +70,10 @@ class _SwipeToDeleteState extends State<SwipeToDelete>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? SemanticColorsDark.expense : widget.backgroundColor;
+    final hasCustomBg = widget.backgroundColor != SemanticColorsLight.expense;
+    final bgColor = hasCustomBg
+        ? widget.backgroundColor
+        : (isDark ? SemanticColorsDark.expense : widget.backgroundColor);
     final radius = BorderRadius.circular(widget.borderRadius);
 
     return ClipRRect(

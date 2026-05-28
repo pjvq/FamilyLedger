@@ -382,7 +382,7 @@ class _MemberManageSheetState extends State<_MemberManageSheet> {
       canDelete: _canDelete,
       canManageAccounts: _canManageAccounts,
     );
-    context.pop();
+    Navigator.of(context).pop();
   }
 }
 

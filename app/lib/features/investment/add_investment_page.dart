@@ -519,7 +519,7 @@ class _PreciousMetalOption {
         'gold' => CommodityColors.gold,
         'silver' => CommodityColors.silver,
         'platinum' => CommodityColors.platinum,
-        _ => Colors.grey,
+        _ => CommodityColors.fallback,
       };
 
   IconData get icon => switch (metal) {

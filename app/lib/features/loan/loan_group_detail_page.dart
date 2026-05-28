@@ -273,7 +273,7 @@ class _GroupSummaryCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? [DarkCardGradients.loanGroupStart, DarkCardGradients.loanGroupEnd] // TODO: define dark gradient tokens
+              ? [DarkCardGradients.loanGroupStart, DarkCardGradients.loanGroupEnd]
               : [
                   GradientTokens.primaryGradientStart.withValues(alpha: 0.08),
                   ColorTokens.primaryLight.withValues(alpha: 0.04),

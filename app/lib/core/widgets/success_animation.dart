@@ -1,7 +1,9 @@
 import 'dart:async';
-import '../theme/tokens/color_tokens.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import '../theme/tokens/color_tokens.dart';
 
 /// 记账成功覆盖动画
 ///
@@ -122,8 +124,10 @@ class _TransactionSuccessOverlayState extends State<TransactionSuccessOverlay>
                         Container(
                           width: 56,
                           height: 56,
-                          decoration: const BoxDecoration(
-                            color: SemanticColorsLight.income,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? SemanticColorsDark.income
+                                : SemanticColorsLight.income,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(

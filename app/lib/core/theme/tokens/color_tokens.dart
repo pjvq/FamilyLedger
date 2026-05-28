@@ -151,7 +151,7 @@ abstract final class SkeletonTokens {
   // Light mode
   static const Color baseLight = Color(0xFFE8E8E8);
   static const Color highlightLight = Color(0xFFF5F5F5);
-  static const Color containerLight = Colors.white;
+  static const Color containerLight = Color(0xFFFFFFFF);
   // Dark mode
   static const Color baseDark = Color(0xFF3A3A3C);
   static const Color highlightDark = Color(0xFF4A4A4C);
@@ -159,6 +159,13 @@ abstract final class SkeletonTokens {
 }
 
 /// Dark mode card/hero gradient tokens for module headers.
+///
+/// Derivation rule: Each module maps to a hue from its semantic color.
+/// - Saturation: 25–35% (subdued for dark backgrounds)
+/// - Lightness: start ≈ 15–18%, end ≈ 10–13%
+/// - Hue: matches module accent (loan=red, invest=indigo, asset=cyan, etc.)
+///
+/// To add a new module gradient: pick its accent hue, apply S≈30%, L=16%/12%.
 abstract final class DarkCardGradients {
   // Primary/generic (overview, settings)
   static const Color primaryStart = Color(0xFF2C2C4A);
@@ -187,7 +194,7 @@ abstract final class DarkCardGradients {
 abstract final class BrandColors {
   static const Color wechat = Color(0xFF07C160);
   static const Color alipay = Color(0xFF1677FF);
-  static const Color baishi = Color(0xFFFF9800);
+  static const Color baishiAA = Color(0xFFFF9800);
 }
 
 /// Metal/commodity colors for investment type indicators.
@@ -195,6 +202,8 @@ abstract final class CommodityColors {
   static const Color gold = Color(0xFFD4AF37);
   static const Color silver = Color(0xFFA8A9AD);
   static const Color platinum = Color(0xFFE5E4E2);
+  /// Fallback for unknown commodity types.
+  static const Color fallback = Color(0xFF9E9E9E);
 }
 
 /// Gradient color tokens for decorative/emphasis gradients.

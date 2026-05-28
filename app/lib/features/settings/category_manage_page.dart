@@ -614,7 +614,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                   child: FilledButton(
                     onPressed: name.trim().isEmpty
                         ? null
-                        : () => ctx.pop(
+                        : () => Navigator.of(ctx).pop(
                             _CategoryEditResult(name: name.trim(), iconKey: iconKey)),
                     child: Text(initialName != null ? '保存' : '添加'),
                   ),

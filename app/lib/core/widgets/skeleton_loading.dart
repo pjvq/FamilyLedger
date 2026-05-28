@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../theme/tokens/color_tokens.dart';
 
 /// 闪光效果 shimmer 动画

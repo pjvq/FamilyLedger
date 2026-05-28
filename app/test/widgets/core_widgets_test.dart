@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:familyledger/core/theme/tokens/color_tokens.dart';
 
 import 'package:familyledger/core/widgets/animated_counter.dart';
 import 'package:familyledger/core/widgets/animated_tab_bar.dart';
@@ -590,7 +591,7 @@ void main() {
         theme: ThemeData.dark(useMaterial3: true),
       ));
       final icon = tester.widget<Icon>(find.byIcon(Icons.cloud_off_rounded));
-      expect(icon.color, const Color(0xFFFF7B7B)); // SemanticColorsDark.expense
+      expect(icon.color, SemanticColorsDark.error);
     });
 
     testWidgets('light mode uses light icon color', (tester) async {
