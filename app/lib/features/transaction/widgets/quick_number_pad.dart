@@ -61,31 +61,31 @@ class QuickNumberPad extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildRow([
-            _DigitKey('7', keyBg, theme),
-            _DigitKey('8', keyBg, theme),
-            _DigitKey('9', keyBg, theme),
-            _FuncKey(icon: Icons.calendar_today_rounded, label: '日期', bg: funcBg, theme: theme, onTap: onDateTap),
+            _buildDigitKey('7', keyBg),
+            _buildDigitKey('8', keyBg),
+            _buildDigitKey('9', keyBg),
+            _buildFuncKey(bg: funcBg, icon: Icons.calendar_today_rounded, onTap: onDateTap, semanticLabel: '日期'),
           ]),
           const SizedBox(height: 6),
           _buildRow([
-            _DigitKey('4', keyBg, theme),
-            _DigitKey('5', keyBg, theme),
-            _DigitKey('6', keyBg, theme),
-            _FuncKey(text: '+', bg: funcBg, theme: theme, onTap: () => onOperator('+')),
+            _buildDigitKey('4', keyBg),
+            _buildDigitKey('5', keyBg),
+            _buildDigitKey('6', keyBg),
+            _buildFuncKey(bg: funcBg, text: '+', onTap: () => onOperator('+')),
           ]),
           const SizedBox(height: 6),
           _buildRow([
-            _DigitKey('1', keyBg, theme),
-            _DigitKey('2', keyBg, theme),
-            _DigitKey('3', keyBg, theme),
-            _FuncKey(text: '-', bg: funcBg, theme: theme, onTap: () => onOperator('-')),
+            _buildDigitKey('1', keyBg),
+            _buildDigitKey('2', keyBg),
+            _buildDigitKey('3', keyBg),
+            _buildFuncKey(bg: funcBg, text: '-', onTap: () => onOperator('-')),
           ]),
           const SizedBox(height: 6),
           _buildRow([
-            _DigitKey('.', keyBg, theme),
-            _DigitKey('0', keyBg, theme),
-            _DeleteKey(bg: funcBg, theme: theme, onDelete: onDelete, onClear: onClear),
-            _ConfirmKey(enabled: confirmEnabled, label: confirmLabel, theme: theme, onTap: onConfirm),
+            _buildDigitKey('.', keyBg),
+            _buildDigitKey('0', keyBg),
+            _buildDeleteKey(funcBg),
+            _buildConfirmKey(),
           ]),
         ],
       ),
@@ -101,59 +101,46 @@ class QuickNumberPad extends StatelessWidget {
     );
   }
 
-  // ignore: unused_element
-  Widget _DigitKey(String digit, Color bg, ThemeData theme) {
+  Widget _buildDigitKey(String digit, Color bg) {
     return _KeyButton(
-      child: Text(
-        digit,
-        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
-      ),
       bg: bg,
-      theme: theme,
       onTap: () {
         HapticFeedback.lightImpact();
         onDigit(digit);
       },
+      child: Text(
+        digit,
+        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+      ),
     );
   }
 
-  // ignore: unused_element
-  Widget _FuncKey({
+  Widget _buildFuncKey({
+    required Color bg,
     IconData? icon,
     String? text,
-    String? label,
-    required Color bg,
-    required ThemeData theme,
     required VoidCallback onTap,
+    String? semanticLabel,
   }) {
     return _KeyButton(
+      bg: bg,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      semanticLabel: semanticLabel ?? text,
       child: icon != null
           ? Icon(icon, size: 20)
           : Text(
               text!,
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
             ),
-      bg: bg,
-      theme: theme,
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      semanticLabel: label ?? text,
     );
   }
 
-  // ignore: unused_element
-  Widget _DeleteKey({
-    required Color bg,
-    required ThemeData theme,
-    required VoidCallback onDelete,
-    required VoidCallback onClear,
-  }) {
+  Widget _buildDeleteKey(Color bg) {
     return _KeyButton(
-      child: const Icon(Icons.backspace_outlined, size: 22),
       bg: bg,
-      theme: theme,
       onTap: () {
         HapticFeedback.lightImpact();
         onDelete();
@@ -163,27 +150,22 @@ class QuickNumberPad extends StatelessWidget {
         onClear();
       },
       semanticLabel: '删除',
+      child: const Icon(Icons.backspace_outlined, size: 22),
     );
   }
 
-  // ignore: unused_element
-  Widget _ConfirmKey({
-    required bool enabled,
-    required String label,
-    required ThemeData theme,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildConfirmKey() {
     return SizedBox(
       height: 52,
       child: ElevatedButton(
-        onPressed: enabled
+        onPressed: confirmEnabled
             ? () {
                 HapticFeedback.mediumImpact();
-                onTap();
+                onConfirm();
               }
             : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: enabled
+          backgroundColor: confirmEnabled
               ? ColorTokens.primary
               : ColorTokens.primary.withValues(alpha: 0.3),
           foregroundColor: Colors.white,
@@ -193,7 +175,7 @@ class QuickNumberPad extends StatelessWidget {
           ),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
-        child: Text(label),
+        child: Text(confirmLabel),
       ),
     );
   }
@@ -202,7 +184,6 @@ class QuickNumberPad extends StatelessWidget {
 class _KeyButton extends StatelessWidget {
   final Widget child;
   final Color bg;
-  final ThemeData theme;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
   final String? semanticLabel;
@@ -210,7 +191,6 @@ class _KeyButton extends StatelessWidget {
   const _KeyButton({
     required this.child,
     required this.bg,
-    required this.theme,
     required this.onTap,
     this.onLongPress,
     this.semanticLabel,

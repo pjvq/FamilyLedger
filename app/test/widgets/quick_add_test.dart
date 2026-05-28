@@ -116,7 +116,7 @@ void main() {
   });
 
   group('TransactionTypeSelector', () {
-    testWidgets('renders three types', (tester) async {
+    testWidgets('renders two types', (tester) async {
       await tester.pumpWidget(wrapInApp(
         TransactionTypeSelector(
           selectedIndex: 0,
@@ -125,7 +125,6 @@ void main() {
       ));
       expect(find.text('支出'), findsOneWidget);
       expect(find.text('收入'), findsOneWidget);
-      expect(find.text('转账'), findsOneWidget);
     });
 
     testWidgets('calls onChanged when tapped', (tester) async {

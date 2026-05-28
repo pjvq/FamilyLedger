@@ -330,6 +330,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     required String categoryId,
     required int amount,
     required String type,
+    String? accountId,
     String note = '',
     DateTime? txnDate,
     String currency = 'CNY',
@@ -345,7 +346,9 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     final effectiveTxnDate = txnDate ?? now;
     _validateTxnDate(effectiveTxnDate);
 
-    final account = await _repo.getDefaultAccount(_userId, familyId: _familyId);
+    final account = accountId != null
+        ? await _repo.getAccountById(accountId)
+        : await _repo.getDefaultAccount(_userId, familyId: _familyId);
     if (account == null) throw StateError('无默认账户，请先创建账户');
 
     // Online-first: try server to get canonical ID

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../core/utils/amount_expression.dart';
 import '../../../domain/providers/account_provider.dart';
 import '../../../domain/providers/dashboard_provider.dart';
 import '../../../domain/providers/transaction_provider.dart';
@@ -39,38 +40,16 @@ class QuickAddSheet extends ConsumerStatefulWidget {
 class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   String _expression = '0';
   String _note = '';
-  int _typeIndex = 0; // 0=支出, 1=收入, 2=转账
+  int _typeIndex = 0; // 0=支出, 1=收入
   String? _selectedCategoryId;
   String? _selectedAccountId;
   DateTime _date = DateTime.now();
   bool _isSubmitting = false;
 
-  double get _computedAmount {
-    try {
-      double result = 0;
-      String current = '';
-      String op = '+';
-      for (int i = 0; i <= _expression.length; i++) {
-        final char = i < _expression.length ? _expression[i] : '\0';
-        if (char == '+' || char == '-' || i == _expression.length) {
-          if (current.isNotEmpty) {
-            final val = double.tryParse(current) ?? 0;
-            result = op == '+' ? result + val : result - val;
-          }
-          if (i < _expression.length) op = char;
-          current = '';
-        } else {
-          current += char;
-        }
-      }
-      return result;
-    } catch (_) {
-      return 0;
-    }
-  }
+  int get _computedCents => AmountExpression.evaluateCents(_expression);
 
   bool get _canSubmit =>
-      _computedAmount > 0 && _selectedCategoryId != null && !_isSubmitting;
+      _computedCents > 0 && _selectedCategoryId != null && !_isSubmitting;
 
   @override
   void initState() {
@@ -101,7 +80,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       child: Column(
         children: [
           // Drag handle
-          const SizedBox(height: 12),
+          const SizedBox(height: SpacingTokens.md),
           Container(
             width: 40,
             height: 4,
@@ -110,7 +89,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: SpacingTokens.base),
 
           // Top area: account pill + amount + note (40% of sheet)
           Expanded(
@@ -124,7 +103,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                   icon: Icons.account_balance_wallet_outlined,
                   onTap: _showAccountPicker,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: SpacingTokens.xl),
 
                 // Amount display
                 QuickAmountDisplay(
@@ -133,7 +112,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                   onNoteTap: _showNoteInput,
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: SpacingTokens.md),
 
                 // Date chip (if not today)
                 if (!_isToday(_date))
@@ -164,7 +143,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                     _selectedCategoryId = null;
                   }),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: SpacingTokens.md),
 
                 // Category grid (2 rows, horizontal scroll)
                 SizedBox(
@@ -253,11 +232,12 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
     setState(() => _isSubmitting = true);
 
     try {
-      final amountCents = (_computedAmount * 100).round();
+      final amountCents = _computedCents;
       final type = _typeIndex == 0 ? 'expense' : 'income';
 
       await ref.read(transactionProvider.notifier).addTransaction(
         categoryId: _selectedCategoryId!,
+        accountId: _selectedAccountId,
         amount: amountCents,
         type: type,
         note: _note,
@@ -268,12 +248,11 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       ref.invalidate(dashboardProvider);
 
       if (mounted) {
-        // Success feedback
         HapticFeedback.mediumImpact();
+        // Capture messenger before pop (context may be invalid after pop)
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.of(context).pop(true);
-
-        // Show success toast
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: const Text('记录成功 ✓'),
             behavior: SnackBarBehavior.floating,
@@ -311,44 +290,12 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       context: context,
       isScrollControlled: true,
       builder: (ctx) {
-        final controller = TextEditingController(text: _note);
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-            left: 20,
-            right: 20,
-            top: 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                autofocus: true,
-                maxLength: 50,
-                decoration: const InputDecoration(
-                  hintText: '添加备注...',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (v) {
-                  setState(() => _note = v.trim());
-                  Navigator.of(ctx).pop();
-                },
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () {
-                    setState(() => _note = controller.text.trim());
-                    Navigator.of(ctx).pop();
-                  },
-                  child: const Text('确定'),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
+        return _NoteInputSheet(
+          initialNote: _note,
+          onConfirm: (value) {
+            setState(() => _note = value);
+            Navigator.of(ctx).pop();
+          },
         );
       },
     );
@@ -377,7 +324,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                 Navigator.of(ctx).pop();
               },
             )),
-            const SizedBox(height: 16),
+            const SizedBox(height: SpacingTokens.base),
           ],
         ),
       ),
@@ -387,5 +334,71 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   bool _isToday(DateTime d) {
     final now = DateTime.now();
     return d.year == now.year && d.month == now.month && d.day == now.day;
+  }
+}
+
+/// Separate StatefulWidget to properly manage TextEditingController lifecycle.
+class _NoteInputSheet extends StatefulWidget {
+  final String initialNote;
+  final ValueChanged<String> onConfirm;
+
+  const _NoteInputSheet({
+    required this.initialNote,
+    required this.onConfirm,
+  });
+
+  @override
+  State<_NoteInputSheet> createState() => _NoteInputSheetState();
+}
+
+class _NoteInputSheetState extends State<_NoteInputSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialNote);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 20,
+        right: 20,
+        top: 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            maxLength: 50,
+            decoration: const InputDecoration(
+              hintText: '添加备注...',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (v) => widget.onConfirm(v.trim()),
+          ),
+          const SizedBox(height: SpacingTokens.md),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => widget.onConfirm(_controller.text.trim()),
+              child: const Text('确定'),
+            ),
+          ),
+          const SizedBox(height: SpacingTokens.lg),
+        ],
+      ),
+    );
   }
 }

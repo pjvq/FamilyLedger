@@ -35,7 +35,7 @@ class MainShell extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         heroTag: 'main_add_transaction',
         tooltip: '记一笔',
-        onPressed: () {
+        onPressed: () async {
           if (!canCreate) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('当前角色无记账权限')),
@@ -43,7 +43,7 @@ class MainShell extends ConsumerWidget {
             return;
           }
           // Phase 2: Quick add bottom sheet
-          QuickAddSheet.show(context);
+          await QuickAddSheet.show(context);
         },
         elevation: isDark ? 4 : 2,
         backgroundColor:

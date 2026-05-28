@@ -27,7 +27,7 @@ class AccountPill extends StatelessWidget {
         onTap();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.base, vertical: SpacingTokens.sm),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
@@ -78,7 +78,7 @@ class TransactionTypeSelector extends StatelessWidget {
     required this.onChanged,
   });
 
-  static const _labels = ['支出', '收入', '转账'];
+  static const _labels = ['支出', '收入'];
 
   @override
   Widget build(BuildContext context) {

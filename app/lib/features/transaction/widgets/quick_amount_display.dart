@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../core/utils/amount_expression.dart';
 
 /// 金额显示区域 — 显示输入表达式和计算结果
 class QuickAmountDisplay extends StatelessWidget {
@@ -22,10 +23,9 @@ class QuickAmountDisplay extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // Parse display value
-    final displayAmount = _formatExpression(expression);
-    final hasOperator = expression.contains('+') || expression.contains('-');
-    final computed = hasOperator ? _computeExpression(expression) : null;
+    final displayAmount = expression.isEmpty || expression == '0' ? '0' : expression;
+    final hasOp = AmountExpression.hasOperator(expression);
+    final computedCents = hasOp ? AmountExpression.evaluateCents(expression) : null;
 
     return GestureDetector(
       onTap: onNoteTap,
@@ -67,10 +67,10 @@ class QuickAmountDisplay extends StatelessWidget {
             ),
 
             // Computed result (when expression has operators)
-            if (computed != null) ...[
+            if (computedCents != null) ...[
               const SizedBox(height: 4),
               Text(
-                '= $currency${_formatNumber(computed)}',
+                '= $currency${AmountExpression.formatCents(computedCents)}',
                 style: TextStyle(
                   fontSize: 14,
                   color: isDark
@@ -96,47 +96,5 @@ class QuickAmountDisplay extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatExpression(String expr) {
-    if (expr.isEmpty || expr == '0') return '0';
-    return expr;
-  }
-
-  String _formatNumber(double value) {
-    if (value == value.truncateToDouble()) {
-      return value.toInt().toString();
-    }
-    return value.toStringAsFixed(2);
-  }
-
-  double? _computeExpression(String expr) {
-    try {
-      // Simple expression parser for + and -
-      double result = 0;
-      String current = '';
-      String op = '+';
-
-      for (int i = 0; i <= expr.length; i++) {
-        final char = i < expr.length ? expr[i] : '\0';
-        if (char == '+' || char == '-' || i == expr.length) {
-          if (current.isNotEmpty) {
-            final val = double.tryParse(current) ?? 0;
-            if (op == '+') {
-              result += val;
-            } else {
-              result -= val;
-            }
-          }
-          if (i < expr.length) op = char;
-          current = '';
-        } else {
-          current += char;
-        }
-      }
-      return result;
-    } catch (_) {
-      return null;
-    }
   }
 }

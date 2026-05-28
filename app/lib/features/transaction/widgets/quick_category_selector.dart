@@ -12,7 +12,7 @@ import '../../../data/local/database.dart';
 /// 排序规则：使用频率降序（最常用的排最前）
 /// 选中态：icon 背景变主题色 + scale 动画
 class QuickCategorySelector extends ConsumerWidget {
-  final int typeIndex; // 0=支出, 1=收入, 2=转账
+  final int typeIndex; // 0=支出, 1=收入
   final String? selectedCategoryId;
   final ValueChanged<String> onSelected;
 
@@ -25,19 +25,15 @@ class QuickCategorySelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final txnState = ref.watch(transactionProvider);
-
-    // Get categories by type
+    // Get categories by type with precise select to minimize rebuilds
     final filtered = typeIndex == 0
-        ? txnState.expenseCategories
-        : typeIndex == 1
-            ? txnState.incomeCategories
-            : <Category>[];
+        ? ref.watch(transactionProvider.select((s) => s.expenseCategories))
+        : ref.watch(transactionProvider.select((s) => s.incomeCategories));
 
     if (filtered.isEmpty) {
       return Center(
         child: Text(
-          typeIndex == 2 ? '转账无需选择分类' : '暂无分类',
+          '暂无分类',
           style: TextStyle(
             fontSize: 14,
             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
