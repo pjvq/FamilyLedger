@@ -29,7 +29,9 @@ class QuickAddSheet extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      enableDrag: true,
       backgroundColor: Colors.transparent,
+      barrierColor: Colors.black54,
       builder: (_) => const QuickAddSheet(),
     );
   }
@@ -38,7 +40,8 @@ class QuickAddSheet extends ConsumerStatefulWidget {
   ConsumerState<QuickAddSheet> createState() => _QuickAddSheetState();
 }
 
-class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
+class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
+    with SingleTickerProviderStateMixin {
   String _expression = '0';
   int _cachedCents = 0;
   String _note = '';
@@ -47,6 +50,38 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
   String? _selectedAccountId;
   DateTime _date = DateTime.now();
   bool _isSubmitting = false;
+  bool _continuousMode = false;
+  int _savedCount = 0; // Count of transactions saved in this session
+
+  /// Animation controller for the "saved" flash feedback.
+  late final AnimationController _flashController;
+  late final Animation<double> _flashOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _flashController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _flashOpacity = CurvedAnimation(
+      parent: _flashController,
+      curve: Curves.easeOut,
+    );
+    // Default account
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final accounts = ref.read(accountProvider).accounts;
+      if (accounts.isNotEmpty && _selectedAccountId == null) {
+        setState(() => _selectedAccountId = accounts.first.id);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _flashController.dispose();
+    super.dispose();
+  }
 
   int get _computedCents => _cachedCents;
 
@@ -57,18 +92,6 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
 
   bool get _canSubmit =>
       _computedCents > 0 && _selectedCategoryId != null && !_isSubmitting;
-
-  @override
-  void initState() {
-    super.initState();
-    // Default account
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final accounts = ref.read(accountProvider).accounts;
-      if (accounts.isNotEmpty && _selectedAccountId == null) {
-        setState(() => _selectedAccountId = accounts.first.id);
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,21 +105,14 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       height: screenHeight * 0.92,
       decoration: BoxDecoration(
         color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral0,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(RadiusTokens.xl)),
       ),
       child: Column(
         children: [
-          // Drag handle
+          // Drag handle + continuous mode toggle
           const SizedBox(height: SpacingTokens.md),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: SpacingTokens.base),
+          _buildHeader(theme, isDark),
+          const SizedBox(height: SpacingTokens.sm),
 
           // Top area: account pill + amount + note (40% of sheet)
           Expanded(
@@ -172,7 +188,105 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
                   onDateTap: _showDatePicker,
                   onOperator: _onOperator,
                   confirmEnabled: _canSubmit,
-                  confirmLabel: _isSubmitting ? '...' : '完成',
+                  confirmLabel: _isSubmitting ? '...' : (_continuousMode ? '下一笔' : '完成'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  // ─── Header with drag handle + continuous mode ─────────────────────
+
+  Widget _buildHeader(ThemeData theme, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Drag handle (centered)
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // Continuous mode toggle (right)
+          Positioned(
+            right: 0,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Saved count badge (in continuous mode)
+                if (_continuousMode && _savedCount > 0)
+                  FadeTransition(
+                    opacity: _flashOpacity,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: SpacingTokens.sm,
+                        vertical: SpacingTokens.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.semanticColors.income.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(RadiusTokens.full),
+                      ),
+                      child: Text(
+                        '✓ $_savedCount',
+                        style: TypographyTokens.caption(
+                          color: context.semanticColors.income,
+                        ).copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: SpacingTokens.sm),
+                GestureDetector(
+                  onTap: () => setState(() => _continuousMode = !_continuousMode),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: SpacingTokens.sm,
+                      vertical: SpacingTokens.xs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _continuousMode
+                          ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
+                              .withValues(alpha: 0.1)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(RadiusTokens.full),
+                      border: Border.all(
+                        color: _continuousMode
+                            ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
+                            : theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.repeat_rounded,
+                          size: IconSizeTokens.xs,
+                          color: _continuousMode
+                              ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                        ),
+                        const SizedBox(width: SpacingTokens.xs),
+                        Text(
+                          '连续',
+                          style: TypographyTokens.caption(
+                            color: _continuousMode
+                                ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
+                                : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -252,10 +366,22 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet> {
       // Refresh dashboard
       ref.invalidate(dashboardProvider);
 
-      if (mounted) {
-        HapticFeedback.mediumImpact();
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+
+      if (_continuousMode) {
+        // Stay open: reset amount + note, keep category & account
+        setState(() {
+          _isSubmitting = false;
+          _savedCount++;
+          _updateExpression('0');
+          _note = '';
+          _date = DateTime.now();
+        });
+        // Flash animation feedback
+        _flashController.forward(from: 0);
+      } else {
         final amountStr = AmountExpression.formatCents(_computedCents);
-        // Capture parent overlay BEFORE pop (our context dies after pop)
         final overlayContext = Navigator.of(context).overlay?.context;
         Navigator.of(context).pop(true);
         if (overlayContext != null && overlayContext.mounted) {
