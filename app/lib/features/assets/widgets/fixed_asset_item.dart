@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/utils/format.dart';
@@ -27,7 +26,7 @@ class FixedAssetItem extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: SpacingTokens.xs),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: () => hapticTap(() => onTap?.call()),
+            onTap: () => withHaptic(() => onTap?.call()),
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: SpacingTokens.base,

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/utils/format.dart';
@@ -29,7 +28,7 @@ class InvestmentSummaryCard extends StatelessWidget {
         child: Card(
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: () => hapticTap(onTap),
+            onTap: () => withHaptic(onTap),
             child: Padding(
               padding: const EdgeInsets.all(SpacingTokens.base),
               child: Row(

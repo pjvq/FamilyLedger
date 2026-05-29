@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
@@ -101,7 +100,7 @@ class _QuickActionButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(RadiusTokens.md),
         ),
         child: InkWell(
-          onTap: () => hapticTap(onTap, haptic: HapticType.lightImpact),
+          onTap: () => withHaptic(onTap, haptic: HapticType.lightImpact),
           borderRadius: BorderRadius.circular(RadiusTokens.md),
           child: Padding(
             padding: const EdgeInsets.symmetric(

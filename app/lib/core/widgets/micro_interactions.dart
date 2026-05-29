@@ -73,7 +73,7 @@ class _TapScaleState extends State<TapScale>
 
 /// Helper: wraps onTap with haptic feedback.
 /// Use inside InkWell.onTap when TapScale is the outer wrapper.
-void hapticTap(VoidCallback callback, {HapticType haptic = HapticType.selectionClick}) {
+void withHaptic(VoidCallback callback, {HapticType haptic = HapticType.selectionClick}) {
   switch (haptic) {
     case HapticType.none:
       break;

@@ -1,4 +1,3 @@
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,7 +8,6 @@ import '../../data/local/database.dart' as db;
 import '../../core/widgets/widgets.dart';
 import '../../domain/providers/loan_provider.dart';
 import '../../domain/models/loan_models.dart';
-import '../../domain/models/loan_calculator.dart';
 import '../../sync/sync_engine.dart';
 
 class LoansPage extends ConsumerWidget {
@@ -17,11 +15,7 @@ class LoansPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    print('[LoansPage] build called');
     final loanState = ref.watch(loanProvider);
-    print(
-      '[LoansPage] loanState: isLoading=${loanState.isLoading}, loans=${loanState.loans.length}, groups=${loanState.loanGroups.length}',
-    );
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -162,12 +156,12 @@ class _LoanGroupCard extends StatelessWidget {
             '总月供${_formatCents(group.totalMonthlyPayment)}元',
         button: true,
         child: Card(
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: const EdgeInsets.only(bottom: SpacingTokens.sm),
           child: InkWell(
-            onTap: () => hapticTap(onTap),
-            borderRadius: BorderRadius.circular(16),
+            onTap: () => withHaptic(onTap),
+            borderRadius: BorderRadius.circular(RadiusTokens.lg),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(SpacingTokens.base),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -470,12 +464,12 @@ class _LoanCard extends StatelessWidget {
             '已还${(progress * 100).toStringAsFixed(0)}%',
         button: true,
         child: Card(
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: const EdgeInsets.only(bottom: SpacingTokens.sm),
           child: InkWell(
-            onTap: () => hapticTap(onTap),
-            borderRadius: BorderRadius.circular(16),
+            onTap: () => withHaptic(onTap),
+            borderRadius: BorderRadius.circular(RadiusTokens.lg),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(SpacingTokens.base),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
