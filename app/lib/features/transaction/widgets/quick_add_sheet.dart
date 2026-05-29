@@ -24,14 +24,16 @@ class QuickAddSheet extends ConsumerStatefulWidget {
   const QuickAddSheet({super.key});
 
   /// 从任意位置显示快速记账面板
+  /// Barrier overlay opacity for the modal sheet.
+  static const _barrierColor = Colors.black54;
+
   static Future<bool?> show(BuildContext context) {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      enableDrag: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black54,
+      barrierColor: _barrierColor,
       builder: (_) => const QuickAddSheet(),
     );
   }
@@ -51,7 +53,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
   DateTime _date = DateTime.now();
   bool _isSubmitting = false;
   bool _continuousMode = false;
-  int _savedCount = 0; // Count of transactions saved in this session
+  int _savedCount = 0;
 
   /// Animation controller for the "saved" flash feedback.
   late final AnimationController _flashController;
@@ -62,12 +64,14 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
     super.initState();
     _flashController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1200),
     );
-    _flashOpacity = CurvedAnimation(
-      parent: _flashController,
-      curve: Curves.easeOut,
-    );
+    // Flash: quick fade-in (0→1 over 20%) then slow fade-out (1→0 over 80%)
+    _flashOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.0), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 50),
+    ]).animate(_flashController);
     // Default account
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final accounts = ref.read(accountProvider).accounts;
@@ -198,8 +202,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
     );
   }
 
-
-  // ─── Header with drag handle + continuous mode ─────────────────────
+  // ─── Header ─────────────────────────────────────────────────────────────────
 
   Widget _buildHeader(ThemeData theme, bool isDark) {
     return Padding(
@@ -207,86 +210,25 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Drag handle (centered)
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          // Continuous mode toggle (right)
+          const _DragHandle(),
           Positioned(
             right: 0,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Saved count badge (in continuous mode)
                 if (_continuousMode && _savedCount > 0)
-                  FadeTransition(
-                    opacity: _flashOpacity,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: SpacingTokens.sm,
-                        vertical: SpacingTokens.xs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: context.semanticColors.income.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(RadiusTokens.full),
-                      ),
-                      child: Text(
-                        '✓ $_savedCount',
-                        style: TypographyTokens.caption(
-                          color: context.semanticColors.income,
-                        ).copyWith(fontWeight: FontWeight.w600),
-                      ),
-                    ),
+                  _SavedCountBadge(
+                    count: _savedCount,
+                    animation: _flashOpacity,
                   ),
                 const SizedBox(width: SpacingTokens.sm),
-                GestureDetector(
-                  onTap: () => setState(() => _continuousMode = !_continuousMode),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: SpacingTokens.sm,
-                      vertical: SpacingTokens.xs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _continuousMode
-                          ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
-                              .withValues(alpha: 0.1)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(RadiusTokens.full),
-                      border: Border.all(
-                        color: _continuousMode
-                            ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
-                            : theme.colorScheme.onSurface.withValues(alpha: 0.2),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.repeat_rounded,
-                          size: IconSizeTokens.xs,
-                          color: _continuousMode
-                              ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
-                              : theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                        ),
-                        const SizedBox(width: SpacingTokens.xs),
-                        Text(
-                          '连续',
-                          style: TypographyTokens.caption(
-                            color: _continuousMode
-                                ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
-                                : theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                _ContinuousModeToggle(
+                  isActive: _continuousMode,
+                  isDark: isDark,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _continuousMode = !_continuousMode);
+                  },
                 ),
               ],
             ),
@@ -295,7 +237,6 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
       ),
     );
   }
-
   // ─── Input Logic ─────────────────────────────────────────────────
 
   void _onDigit(String digit) {
@@ -529,6 +470,110 @@ class _NoteInputSheetState extends State<_NoteInputSheet> {
           ),
           const SizedBox(height: SpacingTokens.lg),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Extracted Header Widgets ──────────────────────────────────────────
+
+/// Drag handle indicator at the top of the bottom sheet.
+class _DragHandle extends StatelessWidget {
+  static const double _width = 40;
+  static const double _height = 4;
+
+  const _DragHandle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: _width,
+      height: _height,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(_height / 2),
+      ),
+    );
+  }
+}
+
+/// Saved count badge with fade-in/fade-out flash animation.
+class _SavedCountBadge extends StatelessWidget {
+  final int count;
+  final Animation<double> animation;
+
+  const _SavedCountBadge({required this.count, required this.animation});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.semanticColors;
+    return FadeTransition(
+      opacity: animation,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: SpacingTokens.sm,
+          vertical: SpacingTokens.xs,
+        ),
+        decoration: BoxDecoration(
+          color: colors.income.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(RadiusTokens.full),
+        ),
+        child: Text(
+          '✓ $count',
+          style: TypographyTokens.caption(
+            color: colors.income,
+          ).copyWith(fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+}
+
+/// Toggle pill button for continuous booking mode.
+class _ContinuousModeToggle extends StatelessWidget {
+  final bool isActive;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _ContinuousModeToggle({
+    required this.isActive,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryColor = isDark ? ColorTokens.primaryLight : ColorTokens.primary;
+    final inactiveColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
+    final color = isActive ? primaryColor : inactiveColor;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(RadiusTokens.full),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(
+          horizontal: SpacingTokens.sm,
+          vertical: SpacingTokens.xs,
+        ),
+        decoration: BoxDecoration(
+          color: isActive ? primaryColor.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(RadiusTokens.full),
+          border: Border.all(
+            color: isActive
+                ? primaryColor
+                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.repeat_rounded, size: IconSizeTokens.xs, color: color),
+            const SizedBox(width: SpacingTokens.xs),
+            Text('连续', style: TypographyTokens.caption(color: color)),
+          ],
+        ),
       ),
     );
   }
