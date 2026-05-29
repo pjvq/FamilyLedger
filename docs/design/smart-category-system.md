@@ -60,41 +60,70 @@
 
 ## 三、数据模型
 
-### 3.1 新增表：category_usage_stats
+### 3.1 新增表：category_usage_slots（拆行模型）
+
+> ℹ️ 采用拆行存储而非 JSON TEXT，避免每次增量更新时读写整行。单行原子 `count = count + 1`，无写冲突。
 
 ```sql
-CREATE TABLE category_usage_stats (
-  category_id   TEXT PRIMARY KEY REFERENCES categories(id),
-  total_count   INTEGER NOT NULL DEFAULT 0,
+-- 分类使用分布槽位（拆行存储）
+CREATE TABLE category_usage_slots (
+  category_id TEXT NOT NULL REFERENCES categories(id),
+  slot_type TEXT NOT NULL,    -- 'hour' | 'weekday' | 'amount'
+  slot_index INTEGER NOT NULL, -- hour: 0-23, weekday: 0-6, amount: 0-5
+  count INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (category_id, slot_type, slot_index)
+);
+
+-- 分类使用摘要（低频更新字段）
+CREATE TABLE category_usage_summary (
+  category_id TEXT PRIMARY KEY REFERENCES categories(id),
+  total_count INTEGER NOT NULL DEFAULT 0,
   last_30d_count INTEGER NOT NULL DEFAULT 0,
-  last_7d_count  INTEGER NOT NULL DEFAULT 0,
-  -- 24 小时分布 (JSON array of 24 ints)
-  hour_distribution TEXT NOT NULL DEFAULT '[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]',
-  -- 星期分布 (JSON array of 7 ints, index 0=周一)
-  weekday_distribution TEXT NOT NULL DEFAULT '[0,0,0,0,0,0,0]',
-  -- 金额区间分布 (JSON array of 6 ints)
-  -- buckets: [0-20, 20-50, 50-100, 100-500, 500-2000, 2000+] 元
-  amount_buckets TEXT NOT NULL DEFAULT '[0,0,0,0,0,0]',
-  -- 高频备注关键词 (JSON array of strings, max 20)
-  top_keywords TEXT NOT NULL DEFAULT '[]',
-  -- 最近一次使用时间
+  last_7d_count INTEGER NOT NULL DEFAULT 0,
+  top_keywords TEXT NOT NULL DEFAULT '[]', -- JSON array of strings, max 20
   last_used_at DATETIME,
-  -- 统计更新时间
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+```
+
+**增量更新示例：**
+```sql
+-- 记一笔交易后，只更新单行
+UPDATE category_usage_slots 
+SET count = count + 1 
+WHERE category_id = ? AND slot_type = 'hour' AND slot_index = ?;
+
+UPDATE category_usage_summary 
+SET total_count = total_count + 1, last_used_at = ? 
+WHERE category_id = ?;
 ```
 
 ### 3.2 Drift 表定义
 
 ```dart
-class CategoryUsageStats extends Table {
+/// 分类使用分布槽位（拆行模型，原子更新）
+class CategoryUsageSlots extends Table {
+  @override
+  String get tableName => 'category_usage_slots';
+
+  TextColumn get categoryId => text().references(Categories, #id)();
+  TextColumn get slotType => text()();    // 'hour' | 'weekday' | 'amount'
+  IntColumn get slotIndex => integer()(); // 0-23 | 0-6 | 0-5
+  IntColumn get count => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {categoryId, slotType, slotIndex};
+}
+
+/// 分类使用摘要（低频更新字段）
+class CategoryUsageSummary extends Table {
+  @override
+  String get tableName => 'category_usage_summary';
+
   TextColumn get categoryId => text().references(Categories, #id)();
   IntColumn get totalCount => integer().withDefault(const Constant(0))();
   IntColumn get last30dCount => integer().withDefault(const Constant(0))();
   IntColumn get last7dCount => integer().withDefault(const Constant(0))();
-  TextColumn get hourDistribution => text().withDefault(const Constant('[]'))();
-  TextColumn get weekdayDistribution => text().withDefault(const Constant('[]'))();
-  TextColumn get amountBuckets => text().withDefault(const Constant('[]'))();
   TextColumn get topKeywords => text().withDefault(const Constant('[]'))();
   DateTimeColumn get lastUsedAt => dateTime().nullable()();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
@@ -112,10 +141,10 @@ class CategoryUsageProfile {
   final int totalCount;
   final int last30dCount;
   final int last7dCount;
-  final List<int> hourDistribution;    // length 24
-  final List<int> weekdayDistribution; // length 7
-  final List<int> amountBuckets;       // length 6
-  final List<String> topKeywords;      // max 20
+  final List<int> hourDistribution;    // length 24, from slots table
+  final List<int> weekdayDistribution; // length 7, from slots table
+  final List<int> amountBuckets;       // length 6, from slots table
+  final List<String> topKeywords;      // max 20, from summary table
   final DateTime? lastUsedAt;
 
   /// 归一化的小时分布 (概率向量, sum=1)
@@ -152,7 +181,28 @@ score = w1 × timeSlotScore
       + w6 × keywordScore
 ```
 
-**权重配置（可调）：**
+**权重配置（可调，通过 `RecommenderConfig` 封装）：**
+
+```dart
+/// 可配置的推荐权重，支持远程下发调整
+class RecommenderConfig {
+  final double timeSlotWeight;
+  final double recencyWeight;
+  final double frequencyWeight;
+  final double amountWeight;
+  final double sequenceWeight;
+  final double keywordWeight;
+  
+  const RecommenderConfig({
+    this.timeSlotWeight = 0.25,
+    this.recencyWeight = 0.20,
+    this.frequencyWeight = 0.15,
+    this.amountWeight = 0.20,
+    this.sequenceWeight = 0.10,
+    this.keywordWeight = 0.10,
+  });
+}
+```
 
 | Scorer | 权重 | 信号说明 |
 |--------|------|---------|
@@ -234,17 +284,77 @@ double score(String? lastCategoryId, String candidateId) {
 
 转移矩阵从最近 200 笔交易中统计相邻交易的分类对。
 
+**转移矩阵管理策略：**
+- **存储**：纯内存缓存（`Map<String, Map<String, double>>`），不入库
+- **作用域**：当前用户的最近 200 笔交易（不区分账本）
+- **更新时机**：惰性重建 — 打开记账面板时从 DB 取最近 200 笔，计算一次，缓存到 Provider 关闭
+- **Invalidate**：提交新交易后重置缓存，下次打开记账面板时重建
+- **内存占用**：30 分类 × 30 = 900 entry，忽略不计
+
 #### KeywordScorer
 
 ```dart
 double score(CategoryUsageProfile profile, String? noteText) {
   if (noteText == null || noteText.isEmpty) return 0;
-  final words = _tokenize(noteText); // 简单分词: 2-gram + 完整匹配
+  final words = _tokenize(noteText);
   final keywords = profile.topKeywords.toSet();
   final matches = words.where((w) => keywords.contains(w)).length;
   return min(1.0, matches / 2); // 匹配 2 个关键词即满分
 }
 ```
+
+#### topKeywords 提取算法
+
+```dart
+/// 从交易备注中提取高频关键词
+/// 分词方案：中文 2-char ngram + 拉丁文完整单词
+List<String> extractTopKeywords(List<String> allNotes, {int maxCount = 20}) {
+  final freq = <String, int>{};
+  final stopwords = {'的', '了', '在', '是', '我', '一', '个', '不', '这', '那'};
+  
+  for (final note in allNotes) {
+    if (note.isEmpty) continue;
+    final tokens = _tokenize(note);
+    for (final token in tokens) {
+      if (stopwords.contains(token)) continue;
+      if (_isNumericOrDate(token)) continue; // 排除纯数字/日期
+      freq[token] = (freq[token] ?? 0) + 1;
+    }
+  }
+  
+  // 按频率降序，取 top N
+  final sorted = freq.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
+  return sorted.take(maxCount).map((e) => e.key).toList();
+}
+
+/// 分词器：中文用 2-char sliding window，拉丁文用空格分割
+List<String> _tokenize(String text) {
+  final tokens = <String>[];
+  final latin = RegExp(r'[a-zA-Z]+');
+  
+  // 拉丁文单词
+  for (final m in latin.allMatches(text)) {
+    if (m.group(0)!.length >= 2) tokens.add(m.group(0)!.toLowerCase());
+  }
+  
+  // 中文 2-gram
+  final cjk = text.replaceAll(RegExp(r'[^\u4e00-\u9fff]'), '');
+  for (var i = 0; i < cjk.length - 1; i++) {
+    tokens.add(cjk.substring(i, i + 2));
+  }
+  // 完整匹配（备注本身，去空格/标点）
+  final clean = text.replaceAll(RegExp(r'[\s\p{P}]', unicode: true), '');
+  if (clean.length >= 2 && clean.length <= 6) tokens.add(clean);
+  
+  return tokens;
+}
+```
+
+**更新频率：**
+- **全量重建**：首次启动 / CSV 导入后 / 周期性后台刷新（每周）
+- **不增量更新 topKeywords**：因为需要计算全局频率排序，增量无意义
+- 但 `total_count`, `last_7d_count`, slot counts **每笔交易增量更新**
 
 ### 4.4 冷启动策略
 
@@ -600,8 +710,16 @@ enum ChildMergeStrategy {
 
 #### 层级合并的检测逻辑
 
+> ⚠️ **两阶段筛选策略**：避免 O(n²) 全量 NLEmbedding 调用
+>
+> Pass 1: 纯 Dart TextSimilarity 快速筛选（< 1ms/pair），只有 `textSim >= 0.4` 的对进入 Pass 2
+> Pass 2: 对候选对调用完整 scorer（含 NLEmbedding），最多 200 对
+
 ```dart
 class CategoryMergeDetector {
+  /// 扫描上限：进入详细评分的最大候选对数
+  static const _maxDetailedPairs = 200;
+
   Future<List<MergeSuggestion>> scan(List<CategoryEntity> categories) async {
     final suggestions = <MergeSuggestion>[];
     
@@ -609,22 +727,21 @@ class CategoryMergeDetector {
     final parents = categories.where((c) => c.parentId == null).toList();
     final children = categories.where((c) => c.parentId != null).toList();
     
-    // 1. 扫描父分类间的相似度
+    // === Pass 1: TextSimilarity 快速筛选 ===
+    final candidates = <_CandidatePair>[];
+    
+    // 1. 父分类间
     for (var i = 0; i < parents.length; i++) {
       for (var j = i + 1; j < parents.length; j++) {
-        final confidence = await _computeConfidence(parents[i], parents[j]);
-        if (confidence >= 0.6) {
-          suggestions.add(ParentMergeSuggestion(
-            categoryA: parents[i],
-            categoryB: parents[j],
-            confidence: confidence,
-            childConflicts: _findChildConflicts(parents[i], parents[j], children),
-          ));
+        if (parents[i].type != parents[j].type) continue; // 不同类型跳过
+        final textSim = TextSimilarityScorer.score(parents[i].name, parents[j].name);
+        if (textSim >= 0.4) {
+          candidates.add(_CandidatePair(parents[i], parents[j], textSim, PairType.parent));
         }
       }
     }
     
-    // 2. 扫描不同父级下子分类间的相似度
+    // 2. 不同父级下子分类间
     final childrenByParent = groupBy(children, (c) => c.parentId!);
     final parentIds = childrenByParent.keys.toList();
     for (var i = 0; i < parentIds.length; i++) {
@@ -633,61 +750,56 @@ class CategoryMergeDetector {
         final groupB = childrenByParent[parentIds[j]]!;
         for (final a in groupA) {
           for (final b in groupB) {
-            final confidence = await _computeConfidence(a, b);
-            if (confidence >= 0.6) {
-              suggestions.add(CrossParentChildMergeSuggestion(
-                categoryA: a,
-                categoryB: b,
-                parentA: _findParent(a, parents),
-                parentB: _findParent(b, parents),
-                confidence: confidence,
-              ));
+            if (a.type != b.type) continue;
+            final textSim = TextSimilarityScorer.score(a.name, b.name);
+            if (textSim >= 0.4) {
+              candidates.add(_CandidatePair(a, b, textSim, PairType.crossParent));
             }
           }
         }
       }
     }
     
-    // 3. 扫描同一父级下子分类间的相似度
+    // 3. 同一父级下子分类间
     for (final group in childrenByParent.values) {
       for (var i = 0; i < group.length; i++) {
         for (var j = i + 1; j < group.length; j++) {
-          final confidence = await _computeConfidence(group[i], group[j]);
-          if (confidence >= 0.6) {
-            suggestions.add(SameParentChildMergeSuggestion(
-              categoryA: group[i],
-              categoryB: group[j],
-              confidence: confidence,
-            ));
+          if (group[i].type != group[j].type) continue;
+          final textSim = TextSimilarityScorer.score(group[i].name, group[j].name);
+          if (textSim >= 0.4) {
+            candidates.add(_CandidatePair(group[i], group[j], textSim, PairType.sameParent));
           }
         }
       }
     }
     
-    // 按置信度降序排列
-    suggestions.sort((a, b) => b.confidence.compareTo(a.confidence));
-    return suggestions;
-  }
-  
-  /// 找到两个父分类下相似的子分类对（用于合并父分类时的冲突提示）
-  List<ChildConflict> _findChildConflicts(
-    CategoryEntity parentA, 
-    CategoryEntity parentB,
-    List<CategoryEntity> allChildren,
-  ) {
-    final childrenA = allChildren.where((c) => c.parentId == parentA.id).toList();
-    final childrenB = allChildren.where((c) => c.parentId == parentB.id).toList();
-    final conflicts = <ChildConflict>[];
+    // 按 textSim 降序，截取前 _maxDetailedPairs 对
+    candidates.sort((a, b) => b.textSim.compareTo(a.textSim));
+    final topCandidates = candidates.take(_maxDetailedPairs);
     
-    for (final a in childrenA) {
-      for (final b in childrenB) {
-        final sim = _quickTextSimilarity(a.name, b.name);
-        if (sim >= 0.7) {
-          conflicts.add(ChildConflict(childA: a, childB: b, similarity: sim));
-        }
+    // === Pass 2: 完整评分（含 NLEmbedding + Behavior + Keyword） ===
+    // 批量调用 NLEmbedding（一次 batchDistances，减少 channel round-trip）
+    final words = topCandidates
+        .expand((p) => [p.catA.name, p.catB.name])
+        .toSet().toList();
+    final semanticDistances = await NLEmbeddingBridge.batchDistances(words);
+    
+    for (final pair in topCandidates) {
+      // 过滤规则
+      if (_isDismissed(pair.catA.id, pair.catB.id)) continue;
+      if (_isPresetPair(pair.catA, pair.catB)) continue;
+      if (_isParentChild(pair.catA, pair.catB)) continue;
+      
+      final confidence = _computeFullConfidence(
+        pair, semanticDistances,
+      );
+      if (confidence >= 0.6) {
+        suggestions.add(_buildSuggestion(pair, confidence, children));
       }
     }
-    return conflicts;
+    
+    suggestions.sort((a, b) => b.confidence.compareTo(a.confidence));
+    return suggestions;
   }
 }
 ```
@@ -817,7 +929,11 @@ Future<MergeResult> executeMerge({
     // 4. 合并使用统计
     await _mergeUsageStats(sourceCategoryId, targetCategoryId);
     
-    // 5. 软删除源分类
+    // 5. 更新预算引用（避免预算规则指向已删除分类）
+    await _remapBudgetCategories(
+      from: sourceCategoryId, to: targetCategoryId);
+    
+    // 6. 软删除源分类
     await _softDeleteCategory(sourceCategoryId);
     
     // 6. 生成同步操作（通知服务端）
@@ -844,12 +960,37 @@ CREATE TABLE category_merge_log (
   target_category_id TEXT NOT NULL,
   source_category_name TEXT NOT NULL,  -- 留存名字用于撤销重建
   source_icon_key TEXT,
-  affected_transaction_ids TEXT NOT NULL, -- JSON array
+  source_parent_id TEXT,
+  affected_count INTEGER NOT NULL DEFAULT 0,  -- 受影响交易数量
+  merge_type TEXT NOT NULL DEFAULT 'simple',  -- simple/crossParent/parentMerge/moveOnly
   merged_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   undone_at DATETIME,                    -- 非空=已撤销
   expires_at DATETIME NOT NULL           -- merged_at + 7 days
 );
 ```
+
+> ℹ️ **不存储受影响的交易 ID 列表**（避免单行存储数百个 UUID）。改为给 `transactions` 表加 `merge_log_id` 字段：
+
+```sql
+-- 在 transactions 表新增字段
+ALTER TABLE transactions ADD COLUMN merge_log_id TEXT;
+```
+
+合并执行时，重映射交易的同时标记 `merge_log_id`：
+```sql
+UPDATE transactions 
+SET category_id = ?, merge_log_id = ? 
+WHERE category_id = ? AND deleted_at IS NULL;
+```
+
+撤销时：
+```sql
+UPDATE transactions 
+SET category_id = ?, merge_log_id = NULL 
+WHERE merge_log_id = ?;
+```
+
+这样撤销时只需 `WHERE merge_log_id = ?`，无需存储巨大的 ID 列表。
 
 #### 撤销机制
 
@@ -922,6 +1063,9 @@ Future<void> undoMerge(String mergeLogId) async {
 
 ### 5.8 「创建时即时提示」特殊场景
 
+> ⚠️ 创建时即时检测**只用 TextSimilarity**（纯 Dart, <1ms），不走 NLEmbedding 和 BehaviorOverlap。
+> 原因：新分类没有使用数据，行为层无意义；且创建流程不能等 30+ 次平台通道调用。
+
 用户在分类管理页创建新分类「打的」→ 与现有「打车」高度相似：
 
 ```
@@ -987,7 +1131,7 @@ class NLEmbeddingBridge {
   }
   
   /// 批量计算：给定一组词，返回所有 pair 的距离
-  /// 减少 channel 调用次数，一次性计算
+  /// key 格式: "word1|word2"(字典序排列，确保唯一性)
   static Future<Map<String, double>?> batchDistances(
     List<String> words,
   ) async {
@@ -1052,7 +1196,9 @@ public class NLEmbeddingPlugin: NSObject, FlutterPlugin {
             var distances: [String: Double] = [:]
             for i in 0..<words.count {
                 for j in (i+1)..<words.count {
-                    let key = "\(i)-\(j)"
+                    // key 格式: "word1|word2"(字典序，保证唯一性）
+                    let pair = [words[i], words[j]].sorted()
+                    let key = "\(pair[0])|\(pair[1])"
                     let dist = emb.distance(between: words[i], and: words[j])
                     distances[key] = dist.isNaN ? 2.0 : dist
                 }
@@ -1148,7 +1294,7 @@ func (s *TransactionService) MergeCategories(ctx context.Context, req *pb.MergeC
 | S4 | 1天 | 服务端同步 + 创建时即时提示 |
 | S5（后续） | 3天 | 智能推荐功能（基于已有统计层） |
 
-### S1：统计基础 + 合并检测算法（2天）✅ 已完成
+### S1：统计基础 + 合并检测算法（2天）
 
 | Day | 任务 | 产出物 |
 |-----|------|--------|
