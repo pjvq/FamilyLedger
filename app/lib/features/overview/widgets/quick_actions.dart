@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/design_tokens.dart';
+import '../../../core/widgets/micro_interactions.dart';
 
 /// Quick action row — data-driven shortcut buttons for common operations.
 class QuickActions extends StatelessWidget {
@@ -100,10 +101,7 @@ class _QuickActionButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(RadiusTokens.md),
         ),
         child: InkWell(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            onTap();
-          },
+          onTap: () => hapticTap(onTap, haptic: HapticType.lightImpact),
           borderRadius: BorderRadius.circular(RadiusTokens.md),
           child: Padding(
             padding: const EdgeInsets.symmetric(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/utils/format.dart';
@@ -22,14 +23,13 @@ class LoanItem extends StatelessWidget {
         : 0.0;
 
     return TapScale(
-      onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
         child: Card(
           margin: const EdgeInsets.only(bottom: SpacingTokens.xs),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: onTap,
+            onTap: () => hapticTap(() => onTap?.call()),
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: SpacingTokens.base,
@@ -37,7 +37,6 @@ class LoanItem extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  // Progress ring
                   SizedBox(
                     width: 40,
                     height: 40,
@@ -65,7 +64,6 @@ class LoanItem extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: SpacingTokens.md),
-                  // Name + info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,7 +87,6 @@ class LoanItem extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Remaining principal
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [

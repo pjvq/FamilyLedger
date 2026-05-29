@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/utils/format.dart';
@@ -23,18 +24,16 @@ class InvestmentSummaryCard extends StatelessWidget {
     final profitColor = isUp ? colors.income : colors.expense;
 
     return TapScale(
-      onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
         child: Card(
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: onTap,
+            onTap: () => hapticTap(onTap),
             child: Padding(
               padding: const EdgeInsets.all(SpacingTokens.base),
               child: Row(
                 children: [
-                  // Left: total value
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,7 +68,6 @@ class InvestmentSummaryCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Right: profit
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [

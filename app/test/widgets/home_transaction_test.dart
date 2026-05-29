@@ -381,7 +381,7 @@ void main() {
         const AnimatedNumber(
           value: 10000000, // ¥100000.00 = 10.00万
           prefix: '¥ ',
-          asWan: true,
+          useWanUnit: true,
         ),
       ));
       await tester.pumpAndSettle();
@@ -394,7 +394,7 @@ void main() {
         const AnimatedNumber(
           value: 10000000,
           prefix: '¥ ',
-          asWan: false,
+          useWanUnit: false,
         ),
       ));
       await tester.pumpAndSettle();
@@ -432,7 +432,7 @@ void main() {
         const AnimatedNumber(
           value: 5000,
           suffix: ' 元',
-          asWan: false,
+          useWanUnit: false,
         ),
       ));
       await tester.pumpAndSettle();

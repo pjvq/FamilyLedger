@@ -19,7 +19,9 @@ class LoansPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     print('[LoansPage] build called');
     final loanState = ref.watch(loanProvider);
-    print('[LoansPage] loanState: isLoading=${loanState.isLoading}, loans=${loanState.loans.length}, groups=${loanState.loanGroups.length}');
+    print(
+      '[LoansPage] loanState: isLoading=${loanState.isLoading}, loans=${loanState.loans.length}, groups=${loanState.loanGroups.length}',
+    );
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -27,48 +29,49 @@ class LoansPage extends ConsumerWidget {
         loanState.loans.isNotEmpty || loanState.loanGroups.isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('贷款管理'),
-      ),
+      appBar: AppBar(title: const Text('贷款管理')),
       body: loanState.isLoading && !hasData
           ? const SkeletonList(count: 5, itemHeight: 80)
           : loanState.error != null && !hasData
-              ? ErrorState(
-                  message: loanState.error!,
-                  onRetry: () => ref.read(loanProvider.notifier).loadAll(),
-                )
-              : !hasData
-              ? _EmptyState(theme: theme)
-              : CustomRefreshIndicator(
-                  onRefresh: () async {
-                      await ref.read(syncEngineProvider).forcePull();
-                      await ref.read(loanProvider.notifier).loadAll();
-                  },
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                    children: [
-                      // Loan groups (combined loans)
-                      ...loanState.loanGroups.map((group) =>
-                          _LoanGroupCard(
-                            group: group,
-                            notifier: ref.read(loanProvider.notifier),
-                            isDark: isDark,
-                            onTap: () {
-                              context.push(AppRouter.loanGroupDetail(group.group.id));
-                            },
-                          )),
-                      // Standalone loans
-                      ...loanState.loans.map((loan) => _LoanCard(
-                            loan: loan,
-                            notifier: ref.read(loanProvider.notifier),
-                            isDark: isDark,
-                            onTap: () {
-                              context.push(AppRouter.loanDetail(loan.id));
-                            },
-                          )),
-                    ],
+          ? ErrorState(
+              message: loanState.error!,
+              onRetry: () => ref.read(loanProvider.notifier).loadAll(),
+            )
+          : !hasData
+          ? _EmptyState(theme: theme)
+          : CustomRefreshIndicator(
+              onRefresh: () async {
+                await ref.read(syncEngineProvider).forcePull();
+                await ref.read(loanProvider.notifier).loadAll();
+              },
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                children: [
+                  // Loan groups (combined loans)
+                  ...loanState.loanGroups.map(
+                    (group) => _LoanGroupCard(
+                      group: group,
+                      notifier: ref.read(loanProvider.notifier),
+                      isDark: isDark,
+                      onTap: () {
+                        context.push(AppRouter.loanGroupDetail(group.group.id));
+                      },
+                    ),
                   ),
-                ),
+                  // Standalone loans
+                  ...loanState.loans.map(
+                    (loan) => _LoanCard(
+                      loan: loan,
+                      notifier: ref.read(loanProvider.notifier),
+                      isDark: isDark,
+                      onTap: () {
+                        context.push(AppRouter.loanDetail(loan.id));
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRouter.addLoan),
         icon: const Icon(Icons.add_rounded),
@@ -122,15 +125,19 @@ class _LoanGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     final theme = Theme.of(context);
     final comLoan = group.commercialLoan;
     final pvdLoan = group.providentLoan;
     final typeInfo = getLoanTypeInfo(group.group.loanType);
 
     // Commercial and provident monthly payments
-    final comMonthly = comLoan != null ? notifier.getMonthlyPayment(comLoan) : 0;
-    final pvdMonthly = pvdLoan != null ? notifier.getMonthlyPayment(pvdLoan) : 0;
+    final comMonthly = comLoan != null
+        ? notifier.getMonthlyPayment(comLoan)
+        : 0;
+    final pvdMonthly = pvdLoan != null
+        ? notifier.getMonthlyPayment(pvdLoan)
+        : 0;
 
     // Progress (based on principal repaid ratio)
     final comProgress = comLoan != null && comLoan.principal > 0
@@ -148,239 +155,284 @@ class _LoanGroupCard extends StatelessWidget {
         : '0';
 
     return TapScale(
-      onTap: onTap,
       child: Semantics(
-      label: '${group.group.name}，组合贷，'
-          '商贷$comPrincipalWan万加公积金$pvdPrincipalWan万，'
-          '总月供${_formatCents(group.totalMonthlyPayment)}元',
-      button: true,
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top row: name + combined badge
-                Row(
-                  children: [
-                    Text('🏘️', style: const TextStyle(fontSize: 24)),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            group.group.name,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: typeInfo.color.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '组合贷',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    color: typeInfo.color,
-                                  ),
-                                ),
+        label:
+            '${group.group.name}，组合贷，'
+            '商贷$comPrincipalWan万加公积金$pvdPrincipalWan万，'
+            '总月供${_formatCents(group.totalMonthlyPayment)}元',
+        button: true,
+        child: Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: InkWell(
+            onTap: () => hapticTap(onTap),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top row: name + combined badge
+                  Row(
+                    children: [
+                      Text('🏘️', style: const TextStyle(fontSize: 24)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              group.group.name,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
                               ),
-                              const SizedBox(width: 6),
-                              Builder(builder: (_) {
-                                final isFamily = group.subLoans.isNotEmpty &&
-                                    group.subLoans.first.familyId.isNotEmpty;
-                                return Container(
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: isFamily
-                                        ? ColorTokens.primary.withValues(alpha: 0.12)
-                                        : (isDark ? NeutralColorsDark.neutral4 : NeutralColorsLight.neutral4).withValues(alpha: 0.12),
+                                    color: typeInfo.color.withValues(
+                                      alpha: 0.12,
+                                    ),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        isFamily ? Icons.family_restroom : Icons.person,
-                                        size: 11,
-                                        color: isFamily ? ColorTokens.primary : (isDark ? NeutralColorsDark.neutral4 : NeutralColorsLight.neutral4),
-                                      ),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        isFamily ? '家庭' : '个人',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w500,
-                                          color: isFamily ? ColorTokens.primary : (isDark ? NeutralColorsDark.neutral4 : NeutralColorsLight.neutral4),
-                                        ),
-                                      ),
-                                    ],
+                                  child: Text(
+                                    '组合贷',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: typeInfo.color,
+                                    ),
                                   ),
-                                );
-                              }),
-                              const SizedBox(width: 6),
-                              Flexible(
-                                child: Text(
-                                  '商贷 $comPrincipalWan万 + 公积金 $pvdPrincipalWan万',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.5),
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
+                                const SizedBox(width: 6),
+                                Builder(
+                                  builder: (_) {
+                                    final isFamily =
+                                        group.subLoans.isNotEmpty &&
+                                        group
+                                            .subLoans
+                                            .first
+                                            .familyId
+                                            .isNotEmpty;
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isFamily
+                                            ? ColorTokens.primary.withValues(
+                                                alpha: 0.12,
+                                              )
+                                            : (isDark
+                                                      ? NeutralColorsDark
+                                                            .neutral4
+                                                      : NeutralColorsLight
+                                                            .neutral4)
+                                                  .withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            isFamily
+                                                ? Icons.family_restroom
+                                                : Icons.person,
+                                            size: 11,
+                                            color: isFamily
+                                                ? ColorTokens.primary
+                                                : (isDark
+                                                      ? NeutralColorsDark
+                                                            .neutral4
+                                                      : NeutralColorsLight
+                                                            .neutral4),
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            isFamily ? '家庭' : '个人',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500,
+                                              color: isFamily
+                                                  ? ColorTokens.primary
+                                                  : (isDark
+                                                        ? NeutralColorsDark
+                                                              .neutral4
+                                                        : NeutralColorsLight
+                                                              .neutral4),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    '商贷 $comPrincipalWan万 + 公积金 $pvdPrincipalWan万',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurface
+                                          .withValues(alpha: 0.5),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Total remaining
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '剩余本金',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
                               ),
-                            ],
+                            ),
+                          ),
+                          Text(
+                            '¥${_formatCents(group.totalRemainingPrincipal)}',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                              color: colors.liability,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    // Total remaining
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '剩余本金',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5),
-                          ),
-                        ),
-                        Text(
-                          '¥${_formatCents(group.totalRemainingPrincipal)}',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                            color: colors.liability,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                // Two-color progress bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: SizedBox(
-                    height: 6,
-                    child: Row(
-                      children: [
-                        // Commercial progress (deep blue)
-                        if (comLoan != null)
-                          Expanded(
-                            flex: comLoan.principal,
-                            child: LinearProgressIndicator(
-                              value: comProgress,
-                              minHeight: 6,
-                              backgroundColor: isDark
-                                  ? NeutralColorsDark.neutral3
-                                  : NeutralColorsLight.neutral3,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                ColorTokens.primaryDark,
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  // Two-color progress bar
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: SizedBox(
+                      height: 6,
+                      child: Row(
+                        children: [
+                          // Commercial progress (deep blue)
+                          if (comLoan != null)
+                            Expanded(
+                              flex: comLoan.principal,
+                              child: LinearProgressIndicator(
+                                value: comProgress,
+                                minHeight: 6,
+                                backgroundColor: isDark
+                                    ? NeutralColorsDark.neutral3
+                                    : NeutralColorsLight.neutral3,
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  ColorTokens.primaryDark,
+                                ),
                               ),
                             ),
-                          ),
-                        if (comLoan != null && pvdLoan != null)
-                          const SizedBox(width: 2),
-                        // Provident progress (light blue)
-                        if (pvdLoan != null)
-                          Expanded(
-                            flex: pvdLoan.principal,
-                            child: LinearProgressIndicator(
-                              value: pvdProgress,
-                              minHeight: 6,
-                              backgroundColor: isDark
-                                  ? NeutralColorsDark.neutral3
-                                  : NeutralColorsLight.neutral3,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                ColorTokens.primaryLight,
+                          if (comLoan != null && pvdLoan != null)
+                            const SizedBox(width: 2),
+                          // Provident progress (light blue)
+                          if (pvdLoan != null)
+                            Expanded(
+                              flex: pvdLoan.principal,
+                              child: LinearProgressIndicator(
+                                value: pvdProgress,
+                                minHeight: 6,
+                                backgroundColor: isDark
+                                    ? NeutralColorsDark.neutral3
+                                    : NeutralColorsLight.neutral3,
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  ColorTokens.primaryLight,
+                                ),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                // Legend
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: ColorTokens.primaryDark,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text('商贷',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.4))),
-                    const SizedBox(width: 12),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: ColorTokens.primaryLight,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text('公积金',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.4))),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                // Bottom: monthly payment breakdown
-                Row(
-                  children: [
-                    _InfoChip(
-                      label: '总月供',
-                      value:
-                          '¥${_formatCents(group.totalMonthlyPayment)}',
-                      theme: theme,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        '(商贷 ¥${_formatCents(comMonthly)} + 公积金 ¥${_formatCents(pvdMonthly)})',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.4),
-                          fontFeatures: const [FontFeature.tabularFigures()],
+                  const SizedBox(height: 6),
+                  // Legend
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: ColorTokens.primaryDark,
+                          borderRadius: BorderRadius.circular(2),
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 4),
+                      Text(
+                        '商贷',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: ColorTokens.primaryLight,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '公积金',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  // Bottom: monthly payment breakdown
+                  Row(
+                    children: [
+                      _InfoChip(
+                        label: '总月供',
+                        value: '¥${_formatCents(group.totalMonthlyPayment)}',
+                        theme: theme,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          '(商贷 ¥${_formatCents(comMonthly)} + 公积金 ¥${_formatCents(pvdMonthly)})',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.4,
+                            ),
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
     );
   }
 }
@@ -402,7 +454,7 @@ class _LoanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     final theme = Theme.of(context);
     final typeInfo = getLoanTypeInfo(loan.loanType);
     final monthlyPayment = notifier.getMonthlyPayment(loan);
@@ -412,173 +464,193 @@ class _LoanCard extends StatelessWidget {
         : 0.0;
 
     return TapScale(
-      onTap: onTap,
       child: Semantics(
-      label: '${loan.name}，${typeInfo.label}，剩余本金${_formatCents(loan.remainingPrincipal)}元，'
-          '已还${(progress * 100).toStringAsFixed(0)}%',
-      button: true,
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top row: name + type badge
-                Row(
-                  children: [
-                    Text(
-                      typeInfo.emoji,
-                      style: const TextStyle(fontSize: 24),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            loan.name,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
+        label:
+            '${loan.name}，${typeInfo.label}，剩余本金${_formatCents(loan.remainingPrincipal)}元，'
+            '已还${(progress * 100).toStringAsFixed(0)}%',
+        button: true,
+        child: Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: InkWell(
+            onTap: () => hapticTap(onTap),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top row: name + type badge
+                  Row(
+                    children: [
+                      Text(
+                        typeInfo.emoji,
+                        style: const TextStyle(fontSize: 24),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              loan.name,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: typeInfo.color.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  typeInfo.label,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    color: typeInfo.color,
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: typeInfo.color.withValues(
+                                      alpha: 0.12,
+                                    ),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    typeInfo.label,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: typeInfo.color,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: loan.familyId.isNotEmpty
-                                      ? ColorTokens.primary.withValues(alpha: 0.12)
-                                      : (isDark ? NeutralColorsDark.neutral4 : NeutralColorsLight.neutral4).withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      loan.familyId.isNotEmpty
-                                          ? Icons.family_restroom
-                                          : Icons.person,
-                                      size: 11,
-                                      color: loan.familyId.isNotEmpty
-                                          ? ColorTokens.primary
-                                          : (isDark ? NeutralColorsDark.neutral4 : NeutralColorsLight.neutral4),
-                                    ),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      loan.familyId.isNotEmpty
-                                          ? '家庭'
-                                          : '个人',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w500,
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: loan.familyId.isNotEmpty
+                                        ? ColorTokens.primary.withValues(
+                                            alpha: 0.12,
+                                          )
+                                        : (isDark
+                                                  ? NeutralColorsDark.neutral4
+                                                  : NeutralColorsLight.neutral4)
+                                              .withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        loan.familyId.isNotEmpty
+                                            ? Icons.family_restroom
+                                            : Icons.person,
+                                        size: 11,
                                         color: loan.familyId.isNotEmpty
                                             ? ColorTokens.primary
-                                            : (isDark ? NeutralColorsDark.neutral4 : NeutralColorsLight.neutral4),
+                                            : (isDark
+                                                  ? NeutralColorsDark.neutral4
+                                                  : NeutralColorsLight
+                                                        .neutral4),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        loan.familyId.isNotEmpty ? '家庭' : '个人',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                          color: loan.familyId.isNotEmpty
+                                              ? ColorTokens.primary
+                                              : (isDark
+                                                    ? NeutralColorsDark.neutral4
+                                                    : NeutralColorsLight
+                                                          .neutral4),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Remaining principal
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '剩余本金',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
                               ),
-                            ],
+                            ),
+                          ),
+                          Text(
+                            '¥${_formatCents(loan.remainingPrincipal)}',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                              color: colors.liability,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    // Remaining principal
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '剩余本金',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5),
-                          ),
-                        ),
-                        Text(
-                          '¥${_formatCents(loan.remainingPrincipal)}',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                            color: colors.liability,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                // Progress bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 6,
-                    backgroundColor: isDark
-                        ? NeutralColorsDark.neutral3
-                        : NeutralColorsLight.neutral3,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      isDark ? ColorTokens.primaryLight : ColorTokens.primary,
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  // Progress bar
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 6,
+                      backgroundColor: isDark
+                          ? NeutralColorsDark.neutral3
+                          : NeutralColorsLight.neutral3,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isDark ? ColorTokens.primaryLight : ColorTokens.primary,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                // Bottom row: monthly payment + progress + next date
-                Row(
-                  children: [
-                    _InfoChip(
-                      label: '月供',
-                      value: '¥${_formatCents(monthlyPayment)}',
-                      theme: theme,
-                    ),
-                    const SizedBox(width: 16),
-                    _InfoChip(
-                      label: '进度',
-                      value: '第 ${loan.paidMonths}/${loan.totalMonths} 期·${(progress * 100).toStringAsFixed(0)}%',
-                      theme: theme,
-                    ),
-                    const Spacer(),
-                    if (nextPayment != null)
-                      Text(
-                        '下次 ${DateFormat('MM/dd').format(nextPayment)}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.4),
-                        ),
+                  const SizedBox(height: 10),
+                  // Bottom row: monthly payment + progress + next date
+                  Row(
+                    children: [
+                      _InfoChip(
+                        label: '月供',
+                        value: '¥${_formatCents(monthlyPayment)}',
+                        theme: theme,
                       ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 16),
+                      _InfoChip(
+                        label: '进度',
+                        value:
+                            '第 ${loan.paidMonths}/${loan.totalMonths} 期·${(progress * 100).toStringAsFixed(0)}%',
+                        theme: theme,
+                      ),
+                      const Spacer(),
+                      if (nextPayment != null)
+                        Text(
+                          '下次 ${DateFormat('MM/dd').format(nextPayment)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.4,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
     );
   }
 }

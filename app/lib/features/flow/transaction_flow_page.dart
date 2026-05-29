@@ -65,9 +65,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: flowState.showSearch
-            ? _buildSearchField()
-            : const Text('流水'),
+        title: flowState.showSearch ? _buildSearchField() : const Text('流水'),
         centerTitle: false,
         actions: [
           IconButton(
@@ -93,21 +91,22 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
             child: txnState.isLoading
                 ? const SkeletonList(count: 8, itemHeight: 64)
                 : grouped.sortedKeys.isEmpty
-                    ? const EmptyState(
-                        icon: Icons.receipt_long_outlined,
-                        title: '暂无交易记录',
-                        subtitle: '点击底部 ➕ 开始记账',
-                      )
-                    : RefreshIndicator(
-                        onRefresh: () async {
-                          await ref
-                              .read(transactionProvider.notifier)
-                              .reload();
-                        },
-                        child: _buildList(
-                          grouped, categoryMap, accountMap,
-                          flowState.viewMode),
-                      ),
+                ? const EmptyState(
+                    icon: Icons.receipt_long_outlined,
+                    title: '暂无交易记录',
+                    subtitle: '点击底部 ➕ 开始记账',
+                  )
+                : RefreshIndicator(
+                    onRefresh: () async {
+                      await ref.read(transactionProvider.notifier).reload();
+                    },
+                    child: _buildList(
+                      grouped,
+                      categoryMap,
+                      accountMap,
+                      flowState.viewMode,
+                    ),
+                  ),
           ),
         ],
       ),
@@ -173,15 +172,16 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DateHeader(date: date, dayTotal: dayTotal),
-            ...items.indexed.map((e) => SlideInItem(
-                  index: e.$1,
-                  child: TransactionTile(
-                    transaction: e.$2,
-                    category: categoryMap[e.$2.categoryId],
-                    account: accountMap[e.$2.accountId],
-                    onTap: () => _openDetail(e.$2, categoryMap[e.$2.categoryId]),
-                  ),
-                )),
+            for (final (i, txn) in items.indexed)
+              SlideInItem(
+                index: i,
+                child: TransactionTile(
+                  transaction: txn,
+                  category: categoryMap[txn.categoryId],
+                  account: accountMap[txn.accountId],
+                  onTap: () => _openDetail(txn, categoryMap[txn.categoryId]),
+                ),
+              ),
           ],
         );
       },
@@ -221,14 +221,18 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                   : NeutralColorsLight.neutral5,
             ),
           ),
-          children: items
-              .indexed.map((e) => SlideInItem(index: e.$1, child: TransactionTile(
-                    transaction: e.$2,
-                    category: categoryMap[e.$2.categoryId],
-                    account: accountMap[e.$2.accountId],
-                    onTap: () => _openDetail(e.$2, categoryMap[e.$2.categoryId]),
-                  )))
-              .toList(),
+          children: [
+            for (final (i, txn) in items.indexed)
+              SlideInItem(
+                index: i,
+                child: TransactionTile(
+                  transaction: txn,
+                  category: categoryMap[txn.categoryId],
+                  account: accountMap[txn.accountId],
+                  onTap: () => _openDetail(txn, categoryMap[txn.categoryId]),
+                ),
+              ),
+          ],
         );
       },
     );
@@ -274,21 +278,28 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                   : NeutralColorsLight.neutral5,
             ),
           ),
-          children: items
-              .indexed.map((e) => SlideInItem(index: e.$1, child: TransactionTile(
-                    transaction: e.$2,
-                    category: categoryMap[e.$2.categoryId],
-                    account: accountMap[e.$2.accountId],
-                    onTap: () => _openDetail(e.$2, categoryMap[e.$2.categoryId]),
-                  )))
-              .toList(),
+          children: [
+            for (final (i, txn) in items.indexed)
+              SlideInItem(
+                index: i,
+                child: TransactionTile(
+                  transaction: txn,
+                  category: categoryMap[txn.categoryId],
+                  account: accountMap[txn.accountId],
+                  onTap: () => _openDetail(txn, categoryMap[txn.categoryId]),
+                ),
+              ),
+          ],
         );
       },
     );
   }
 
   Widget _categoryIcon(
-      BuildContext context, String catName, Map<String, Category> catByName) {
+    BuildContext context,
+    String catName,
+    Map<String, Category> catByName,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cat = catByName[catName];
     if (cat != null) {
@@ -296,16 +307,17 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     }
     return CircleAvatar(
       radius: 18,
-      backgroundColor:
-          isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
+      backgroundColor: isDark
+          ? NeutralColorsDark.neutral2
+          : NeutralColorsLight.neutral2,
       child: const Icon(Icons.category_outlined, size: 18),
     );
   }
 
   void _openDetail(Transaction t, Category? cat) {
-    context.push(AppRouter.transactionDetail, extra: TransactionDetailArgs(
-      transaction: t,
-      category: cat,
-    ));
+    context.push(
+      AppRouter.transactionDetail,
+      extra: TransactionDetailArgs(transaction: t, category: cat),
+    );
   }
 }

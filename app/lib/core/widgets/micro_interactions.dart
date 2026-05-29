@@ -9,22 +9,21 @@ enum HapticType {
   mediumImpact,
 }
 
-/// A visual wrapper that adds a subtle scale-down effect on press.
+/// A pure visual wrapper that adds a subtle scale-down effect on press.
 ///
-/// **Use as a visual augmentation around InkWell/ListTile, not a replacement.**
-/// Respects `MediaQuery.disableAnimations` — skips scale when Reduce Motion is on.
+/// Uses [Listener] (non-competitive) to drive the animation — does NOT
+/// participate in the gesture arena, so child [InkWell]/[ListTile] handles
+/// tap recognition, ripple, and callbacks independently.
+///
+/// Respects `MediaQuery.disableAnimations` (Reduce Motion).
 class TapScale extends StatefulWidget {
   final Widget child;
-  final VoidCallback? onTap;
   final double scaleFactor;
-  final HapticType haptic;
 
   const TapScale({
     super.key,
     required this.child,
-    this.onTap,
     this.scaleFactor = 0.96,
-    this.haptic = HapticType.selectionClick,
   });
 
   @override
@@ -55,43 +54,37 @@ class _TapScaleState extends State<TapScale>
     super.dispose();
   }
 
-  void _triggerHaptic() {
-    switch (widget.haptic) {
-      case HapticType.none:
-        break;
-      case HapticType.selectionClick:
-        HapticFeedback.selectionClick();
-      case HapticType.lightImpact:
-        HapticFeedback.lightImpact();
-      case HapticType.mediumImpact:
-        HapticFeedback.mediumImpact();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.of(context).disableAnimations;
+    if (reduceMotion) return widget.child;
 
-    // If onTap is null, TapScale is purely visual — delegate to parent gesture
-    if (widget.onTap == null) {
-      if (reduceMotion) return widget.child;
-      return ScaleTransition(scale: _scaleAnim, child: widget.child);
-    }
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: reduceMotion ? null : (_) => _ctrl.forward(),
-      onTapUp: (_) {
-        if (!reduceMotion) _ctrl.reverse();
-        _triggerHaptic();
-        widget.onTap?.call();
-      },
-      onTapCancel: reduceMotion ? null : () => _ctrl.reverse(),
-      child: reduceMotion
-          ? widget.child
-          : ScaleTransition(scale: _scaleAnim, child: widget.child),
+    return Listener(
+      onPointerDown: (_) => _ctrl.forward(),
+      onPointerUp: (_) => _ctrl.reverse(),
+      onPointerCancel: (_) => _ctrl.reverse(),
+      child: ScaleTransition(
+        scale: _scaleAnim,
+        child: widget.child,
+      ),
     );
   }
+}
+
+/// Helper: wraps onTap with haptic feedback.
+/// Use inside InkWell.onTap when TapScale is the outer wrapper.
+void hapticTap(VoidCallback callback, {HapticType haptic = HapticType.selectionClick}) {
+  switch (haptic) {
+    case HapticType.none:
+      break;
+    case HapticType.selectionClick:
+      HapticFeedback.selectionClick();
+    case HapticType.lightImpact:
+      HapticFeedback.lightImpact();
+    case HapticType.mediumImpact:
+      HapticFeedback.mediumImpact();
+  }
+  callback();
 }
 
 /// Staggered fade + slide animation for list items.
@@ -145,12 +138,17 @@ class _SlideInItemState extends State<SlideInItem>
 
     final reduceMotion = MediaQuery.of(context).disableAnimations;
     if (reduceMotion) {
-      _ctrl.value = 1.0; // Skip animation, show immediately
+      _ctrl.value = 1.0;
       return;
     }
 
-    // Stagger: cap delay at 10 items to avoid long waits
-    final delay = widget.baseDelay * (widget.index.clamp(0, 10));
+    // Only animate first 10 items to cap stagger delay
+    if (widget.index > 10) {
+      _ctrl.value = 1.0;
+      return;
+    }
+
+    final delay = widget.baseDelay * widget.index;
     Future.delayed(delay, () {
       if (mounted) _ctrl.forward();
     });
@@ -182,7 +180,7 @@ class AnimatedNumber extends StatelessWidget {
   final String prefix;
   final String suffix;
   final Duration duration;
-  final bool asWan; // true = show ×万 for large numbers
+  final bool useWanUnit; // true = show ×万 for large numbers
 
   const AnimatedNumber({
     super.key,
@@ -191,7 +189,7 @@ class AnimatedNumber extends StatelessWidget {
     this.prefix = '',
     this.suffix = '',
     this.duration = const Duration(milliseconds: 500),
-    this.asWan = true,
+    this.useWanUnit = true,
   });
 
   @override
@@ -200,7 +198,7 @@ class AnimatedNumber extends StatelessWidget {
     if (reduceMotion) {
       final yuan = value / 100;
       String text;
-      if (asWan && yuan.abs() >= 10000) {
+      if (useWanUnit && yuan.abs() >= 10000) {
         text = '$prefix${(yuan / 10000).toStringAsFixed(2)}万$suffix';
       } else {
         text = '$prefix${yuan.toStringAsFixed(2)}$suffix';
@@ -215,7 +213,7 @@ class AnimatedNumber extends StatelessWidget {
       builder: (context, v, _) {
         final yuan = v / 100;
         String text;
-        if (asWan && yuan.abs() >= 10000) {
+        if (useWanUnit && yuan.abs() >= 10000) {
           text = '$prefix${(yuan / 10000).toStringAsFixed(2)}万$suffix';
         } else {
           text = '$prefix${yuan.toStringAsFixed(2)}$suffix';

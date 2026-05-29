@@ -1141,12 +1141,14 @@ void main() {
       expect(find.text('Tap me'), findsOneWidget);
     });
 
-    testWidgets('calls onTap', (tester) async {
+    testWidgets('calls onTap via child InkWell', (tester) async {
       bool tapped = false;
       await tester.pumpWidget(wrapInApp(
         TapScale(
-          onTap: () => tapped = true,
-          child: const Text('Tap'),
+          child: InkWell(
+            onTap: () => tapped = true,
+            child: const Text('Tap'),
+          ),
         ),
       ));
       await tester.tap(find.text('Tap'));
@@ -1176,7 +1178,6 @@ void main() {
     testWidgets('scale animation plays on tap down/up', (tester) async {
       await tester.pumpWidget(wrapInApp(
         TapScale(
-          onTap: () {},
           child: const SizedBox(width: 100, height: 50, child: Text('Anim')),
         ),
       ));
@@ -1196,7 +1197,6 @@ void main() {
     testWidgets('tapCancel reverses animation', (tester) async {
       await tester.pumpWidget(wrapInApp(
         TapScale(
-          onTap: () {},
           child: const SizedBox(width: 100, height: 50, child: Text('Cancel')),
         ),
       ));
@@ -1284,7 +1284,7 @@ void main() {
     testWidgets('asWan shows 万 for large values', (tester) async {
       // 100_000_00 cents = 10000 yuan → 1.00万
       await tester.pumpWidget(wrapInApp(
-        const AnimatedNumber(value: 1000000, asWan: true),
+        const AnimatedNumber(value: 1000000, useWanUnit: true),
       ));
       await tester.pumpAndSettle();
       expect(find.textContaining('万'), findsOneWidget);
@@ -1292,7 +1292,7 @@ void main() {
 
     testWidgets('asWan=false does not use 万', (tester) async {
       await tester.pumpWidget(wrapInApp(
-        const AnimatedNumber(value: 1000000, asWan: false),
+        const AnimatedNumber(value: 1000000, useWanUnit: false),
       ));
       await tester.pumpAndSettle();
       expect(find.textContaining('万'), findsNothing);
