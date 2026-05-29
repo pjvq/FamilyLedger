@@ -8,14 +8,24 @@ import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/notification_provider.dart';
 import '../../sync/sync_engine.dart';
-import '../dashboard/dashboard_page.dart';
+import 'widgets/budget_progress_card.dart';
 import 'widgets/greeting_header.dart';
+import 'widgets/monthly_summary_card.dart';
+import 'widgets/net_worth_hero_card.dart';
 import 'widgets/quick_actions.dart';
+import 'widgets/recent_transactions_card.dart';
 import 'widgets/reminders_card.dart';
 
-/// 概览页 — 包含 family switcher + dashboard。
+/// 概览页 — 财务健康一眼看。
 ///
-/// 从旧的 [HomePage] 中的 _DashboardShell 抽取而来。
+/// Layout:
+/// 1. GreetingHeader — 时间问候 + 日期
+/// 2. NetWorthHeroCard — 净资产大数字 + 趋势
+/// 3. QuickActions — 快捷操作 4 键
+/// 4. MonthlySummaryCard — 本月收支环形图
+/// 5. BudgetProgressCard — 预算 Top 3 进度条
+/// 6. RemindersCard — 智能提醒（贷款/预算）
+/// 7. RecentTransactionsCard — 最近 5 笔交易
 class OverviewPage extends ConsumerStatefulWidget {
   const OverviewPage({super.key});
 
@@ -27,8 +37,6 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
   @override
   void initState() {
     super.initState();
-    // SyncEngine is auto-started by the provider when user is logged in.
-    // Just read the provider to ensure it's alive (Riverpod is lazy).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(syncEngineProvider);
@@ -54,27 +62,41 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
           ),
         ],
       ),
-      body: CustomScrollView(
-        slivers: [
-          // Personal ↔ Family switcher
-          if (hasFamily)
-            SliverToBoxAdapter(
-              child: _ModeSwitcher(
-                isFamilyMode: familyId != null,
-                familyName: familyState.currentFamily?.name ?? '',
-                onToggle: _handleModeSwitch,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(syncEngineProvider).forcePull();
+        },
+        child: CustomScrollView(
+          slivers: [
+            // Personal ↔ Family switcher
+            if (hasFamily)
+              SliverToBoxAdapter(
+                child: _ModeSwitcher(
+                  isFamilyMode: familyId != null,
+                  familyName: familyState.currentFamily?.name ?? '',
+                  onToggle: _handleModeSwitch,
+                ),
               ),
+            // 1. Greeting
+            const SliverToBoxAdapter(child: GreetingHeader()),
+            // 2. Net Worth Hero
+            const SliverToBoxAdapter(child: NetWorthHeroCard()),
+            // 3. Quick Actions
+            const SliverToBoxAdapter(child: QuickActions()),
+            // 4. Monthly Summary (donut)
+            const SliverToBoxAdapter(child: MonthlySummaryCard()),
+            // 5. Budget Progress (Top 3)
+            const SliverToBoxAdapter(child: BudgetProgressCard()),
+            // 6. Smart Reminders
+            const SliverToBoxAdapter(child: RemindersCard()),
+            // 7. Recent Transactions
+            const SliverToBoxAdapter(child: RecentTransactionsCard()),
+            // Bottom padding
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 100),
             ),
-          // Greeting + Quick actions + Reminders above dashboard
-          const SliverToBoxAdapter(child: GreetingHeader()),
-          const SliverToBoxAdapter(child: QuickActions()),
-          const SliverToBoxAdapter(child: RemindersCard()),
-          // Dashboard takes remaining space
-          const SliverFillRemaining(
-            hasScrollBody: true,
-            child: DashboardPage(),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -211,10 +233,7 @@ class _SwitcherButton extends StatelessWidget {
 
 // ────────── Notification Bell ──────────
 
-/// Badge text font size (smaller than caption for compact badge).
 const double _kBadgeFontSize = 10.0;
-
-/// Inactive icon opacity.
 const double _kIconInactiveOpacity = 0.7;
 
 class _NotificationBell extends StatelessWidget {
