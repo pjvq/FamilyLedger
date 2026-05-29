@@ -936,7 +936,7 @@ Future<MergeResult> executeMerge({
     // 6. 软删除源分类
     await _softDeleteCategory(sourceCategoryId);
     
-    // 6. 生成同步操作（通知服务端）
+    // 7. 生成同步操作（通知服务端）
     await _enqueueSyncOp(MergeCategoryOp(
       sourceId: sourceCategoryId,
       targetId: targetCategoryId,
