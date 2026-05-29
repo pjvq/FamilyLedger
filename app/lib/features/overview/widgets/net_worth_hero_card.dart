@@ -19,19 +19,27 @@ class NetWorthHeroCard extends ConsumerWidget {
     final isUp = data.changeFromLastMonth >= 0;
     final changeColor = isUp ? colors.income : colors.expense;
 
-    return Hero(
-      tag: 'net_worth_hero',
-      child: Padding(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(
-          SpacingTokens.base, SpacingTokens.xs, SpacingTokens.base, SpacingTokens.sm),
+        SpacingTokens.base,
+        SpacingTokens.xs,
+        SpacingTokens.base,
+        SpacingTokens.sm,
+      ),
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
-                ? [DarkCardGradients.dashboardStart, DarkCardGradients.dashboardEnd]
-                : [GradientTokens.primaryGradientStart, GradientTokens.primaryGradientDeep],
+                ? [
+                    DarkCardGradients.dashboardStart,
+                    DarkCardGradients.dashboardEnd,
+                  ]
+                : [
+                    GradientTokens.primaryGradientStart,
+                    GradientTokens.primaryGradientDeep,
+                  ],
           ),
           borderRadius: BorderRadius.circular(RadiusTokens.lg),
           boxShadow: isDark ? ShadowTokensDark.md : ShadowTokensLight.md,
@@ -63,16 +71,18 @@ class NetWorthHeroCard extends ConsumerWidget {
                 Row(
                   children: [
                     Icon(
-                      isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                      isUp
+                          ? Icons.arrow_upward_rounded
+                          : Icons.arrow_downward_rounded,
                       size: IconSizeTokens.xs,
                       color: changeColor,
                     ),
                     const SizedBox(width: SpacingTokens.xs),
                     Text(
                       '${data.changePercent >= 0 ? "+" : ""}${data.changePercent.toStringAsFixed(1)}%',
-                      style: TypographyTokens.bodySm(color: changeColor).copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: TypographyTokens.bodySm(
+                        color: changeColor,
+                      ).copyWith(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(width: SpacingTokens.sm),
                     Text(
@@ -104,7 +114,6 @@ class NetWorthHeroCard extends ConsumerWidget {
           ),
         ),
       ),
-    ),
     );
   }
 }
@@ -114,7 +123,11 @@ class _MiniStat extends StatelessWidget {
   final int value;
   final Color color;
 
-  const _MiniStat({required this.label, required this.value, required this.color});
+  const _MiniStat({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../core/constants/category_icon_widget.dart';
 import '../../../core/theme/design_tokens.dart';
@@ -31,11 +30,9 @@ class TransactionTile extends StatelessWidget {
         : context.semanticColors.expense;
 
     return TapScale(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
+      onTap: onTap,
       child: ListTile(
+        onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: SpacingTokens.base,
         ),

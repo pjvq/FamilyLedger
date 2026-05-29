@@ -1,6 +1,5 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -148,7 +147,9 @@ class _LoanGroupCard extends StatelessWidget {
         ? (pvdLoan.principal / 100 / 10000).toStringAsFixed(0)
         : '0';
 
-    return Semantics(
+    return TapScale(
+      onTap: onTap,
+      child: Semantics(
       label: '${group.group.name}，组合贷，'
           '商贷$comPrincipalWan万加公积金$pvdPrincipalWan万，'
           '总月供${_formatCents(group.totalMonthlyPayment)}元',
@@ -156,7 +157,7 @@ class _LoanGroupCard extends StatelessWidget {
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
         child: InkWell(
-          onTap: () { HapticFeedback.selectionClick(); onTap(); },
+          onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -379,6 +380,7 @@ class _LoanGroupCard extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }
@@ -409,14 +411,16 @@ class _LoanCard extends StatelessWidget {
         ? (loan.principal - loan.remainingPrincipal) / loan.principal
         : 0.0;
 
-    return Semantics(
+    return TapScale(
+      onTap: onTap,
+      child: Semantics(
       label: '${loan.name}，${typeInfo.label}，剩余本金${_formatCents(loan.remainingPrincipal)}元，'
           '已还${(progress * 100).toStringAsFixed(0)}%',
       button: true,
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
         child: InkWell(
-          onTap: () { HapticFeedback.selectionClick(); onTap(); },
+          onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -574,6 +578,7 @@ class _LoanCard extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

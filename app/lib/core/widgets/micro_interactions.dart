@@ -1,17 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-/// A button wrapper that adds a subtle scale-down effect on press.
-/// Use around any tappable widget for tactile micro-interaction.
+/// Haptic feedback intensity levels for tap interactions.
+enum HapticType {
+  none,
+  selectionClick,
+  lightImpact,
+  mediumImpact,
+}
+
+/// A visual wrapper that adds a subtle scale-down effect on press.
+///
+/// **Use as a visual augmentation around InkWell/ListTile, not a replacement.**
+/// Respects `MediaQuery.disableAnimations` — skips scale when Reduce Motion is on.
 class TapScale extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
   final double scaleFactor;
+  final HapticType haptic;
 
   const TapScale({
     super.key,
     required this.child,
     this.onTap,
     this.scaleFactor = 0.96,
+    this.haptic = HapticType.selectionClick,
   });
 
   @override
@@ -42,25 +55,49 @@ class _TapScaleState extends State<TapScale>
     super.dispose();
   }
 
+  void _triggerHaptic() {
+    switch (widget.haptic) {
+      case HapticType.none:
+        break;
+      case HapticType.selectionClick:
+        HapticFeedback.selectionClick();
+      case HapticType.lightImpact:
+        HapticFeedback.lightImpact();
+      case HapticType.mediumImpact:
+        HapticFeedback.mediumImpact();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+
+    // If onTap is null, TapScale is purely visual — delegate to parent gesture
+    if (widget.onTap == null) {
+      if (reduceMotion) return widget.child;
+      return ScaleTransition(scale: _scaleAnim, child: widget.child);
+    }
+
     return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
+      behavior: HitTestBehavior.opaque,
+      onTapDown: reduceMotion ? null : (_) => _ctrl.forward(),
       onTapUp: (_) {
-        _ctrl.reverse();
+        if (!reduceMotion) _ctrl.reverse();
+        _triggerHaptic();
         widget.onTap?.call();
       },
-      onTapCancel: () => _ctrl.reverse(),
-      child: ScaleTransition(
-        scale: _scaleAnim,
-        child: widget.child,
-      ),
+      onTapCancel: reduceMotion ? null : () => _ctrl.reverse(),
+      child: reduceMotion
+          ? widget.child
+          : ScaleTransition(scale: _scaleAnim, child: widget.child),
     );
   }
 }
 
 /// Staggered fade + slide animation for list items.
-/// Wrap each list item to create a cascade entrance effect.
+///
+/// Only animates once (on first build). Respects Reduce Motion.
+/// Cap stagger at 10 items to avoid long waits on large lists.
 class SlideInItem extends StatefulWidget {
   final Widget child;
   final int index;
@@ -84,6 +121,7 @@ class _SlideInItemState extends State<SlideInItem>
   late final AnimationController _ctrl;
   late final Animation<Offset> _slideAnim;
   late final Animation<double> _fadeAnim;
+  bool _hasAnimated = false;
 
   @override
   void initState() {
@@ -97,6 +135,19 @@ class _SlideInItemState extends State<SlideInItem>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
     _fadeAnim = CurvedAnimation(parent: _ctrl, curve: Curves.easeIn);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_hasAnimated) return;
+    _hasAnimated = true;
+
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    if (reduceMotion) {
+      _ctrl.value = 1.0; // Skip animation, show immediately
+      return;
+    }
 
     // Stagger: cap delay at 10 items to avoid long waits
     final delay = widget.baseDelay * (widget.index.clamp(0, 10));
@@ -145,6 +196,18 @@ class AnimatedNumber extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    if (reduceMotion) {
+      final yuan = value / 100;
+      String text;
+      if (asWan && yuan.abs() >= 10000) {
+        text = '$prefix${(yuan / 10000).toStringAsFixed(2)}万$suffix';
+      } else {
+        text = '$prefix${yuan.toStringAsFixed(2)}$suffix';
+      }
+      return Text(text, style: style);
+    }
+
     return TweenAnimationBuilder<double>(
       tween: Tween(end: value.toDouble()),
       duration: duration,

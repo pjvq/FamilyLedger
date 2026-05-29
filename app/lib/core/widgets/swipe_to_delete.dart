@@ -85,12 +85,9 @@ class _SwipeToDeleteState extends State<SwipeToDelete>
             ? DismissDirection.endToStart
             : DismissDirection.none,
         movementDuration: widget.movementDuration,
-        confirmDismiss: (direction) async {
-          HapticFeedback.mediumImpact();
-          return _showConfirmDialog(context);
-        },
+        confirmDismiss: (direction) => _showConfirmDialog(context),
         onDismissed: (_) {
-          HapticFeedback.heavyImpact();
+          HapticFeedback.mediumImpact();
           widget.onDelete?.call();
         },
         onUpdate: _onDismissUpdate,

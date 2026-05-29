@@ -77,10 +77,7 @@ class _AssetsBody extends ConsumerWidget {
             final netWorth = ref.watch(
                 dashboardProvider.select((s) => s.netWorth));
             return SliverToBoxAdapter(
-              child: Hero(
-                tag: 'net_worth_hero',
-                child: NetWorthHero(netWorth: netWorth),
-              ),
+              child: NetWorthHero(netWorth: netWorth),
             );
           }),
 

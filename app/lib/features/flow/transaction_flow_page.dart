@@ -173,13 +173,13 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DateHeader(date: date, dayTotal: dayTotal),
-            ...items.asMap().entries.map((e) => SlideInItem(
-                  index: e.key,
+            ...items.indexed.map((e) => SlideInItem(
+                  index: e.$1,
                   child: TransactionTile(
-                    transaction: e.value,
-                    category: categoryMap[e.value.categoryId],
-                    account: accountMap[e.value.accountId],
-                    onTap: () => _openDetail(e.value, categoryMap[e.value.categoryId]),
+                    transaction: e.$2,
+                    category: categoryMap[e.$2.categoryId],
+                    account: accountMap[e.$2.accountId],
+                    onTap: () => _openDetail(e.$2, categoryMap[e.$2.categoryId]),
                   ),
                 )),
           ],
@@ -222,11 +222,11 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
             ),
           ),
           children: items
-              .asMap().entries.map((e) => SlideInItem(index: e.key, child: TransactionTile(
-                    transaction: e.value,
-                    category: categoryMap[e.value.categoryId],
-                    account: accountMap[e.value.accountId],
-                    onTap: () => _openDetail(e.value, categoryMap[e.value.categoryId]),
+              .indexed.map((e) => SlideInItem(index: e.$1, child: TransactionTile(
+                    transaction: e.$2,
+                    category: categoryMap[e.$2.categoryId],
+                    account: accountMap[e.$2.accountId],
+                    onTap: () => _openDetail(e.$2, categoryMap[e.$2.categoryId]),
                   )))
               .toList(),
         );
@@ -275,11 +275,11 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
             ),
           ),
           children: items
-              .asMap().entries.map((e) => SlideInItem(index: e.key, child: TransactionTile(
-                    transaction: e.value,
-                    category: categoryMap[e.value.categoryId],
-                    account: accountMap[e.value.accountId],
-                    onTap: () => _openDetail(e.value, categoryMap[e.value.categoryId]),
+              .indexed.map((e) => SlideInItem(index: e.$1, child: TransactionTile(
+                    transaction: e.$2,
+                    category: categoryMap[e.$2.categoryId],
+                    account: accountMap[e.$2.accountId],
+                    onTap: () => _openDetail(e.$2, categoryMap[e.$2.categoryId]),
                   )))
               .toList(),
         );
