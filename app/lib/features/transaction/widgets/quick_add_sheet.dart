@@ -27,6 +27,7 @@ class QuickAddSheet extends ConsumerStatefulWidget {
   /// Barrier overlay opacity for the modal sheet.
   static const _barrierColor = Colors.black54;
 
+  /// 从任意位置显示快速记账面板
   static Future<bool?> show(BuildContext context) {
     return showModalBottomSheet<bool>(
       context: context,
@@ -227,7 +228,10 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
                   isDark: isDark,
                   onTap: () {
                     HapticFeedback.selectionClick();
-                    setState(() => _continuousMode = !_continuousMode);
+                    setState(() {
+                      _continuousMode = !_continuousMode;
+                      if (!_continuousMode) _savedCount = 0;
+                    });
                   },
                 ),
               ],
@@ -237,6 +241,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
       ),
     );
   }
+
   // ─── Input Logic ─────────────────────────────────────────────────
 
   void _onDigit(String digit) {
@@ -531,6 +536,8 @@ class _SavedCountBadge extends StatelessWidget {
 
 /// Toggle pill button for continuous booking mode.
 class _ContinuousModeToggle extends StatelessWidget {
+  static const double _borderWidth = 1;
+
   final bool isActive;
   final bool isDark;
   final VoidCallback onTap;
@@ -544,7 +551,9 @@ class _ContinuousModeToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primaryColor = isDark ? ColorTokens.primaryLight : ColorTokens.primary;
-    final inactiveColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final inactiveColor = onSurface.withValues(alpha: 0.4);
+    final borderInactive = onSurface.withValues(alpha: 0.2);
     final color = isActive ? primaryColor : inactiveColor;
 
     return InkWell(
@@ -560,10 +569,8 @@ class _ContinuousModeToggle extends StatelessWidget {
           color: isActive ? primaryColor.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(RadiusTokens.full),
           border: Border.all(
-            color: isActive
-                ? primaryColor
-                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
-            width: 1,
+            color: isActive ? primaryColor : borderInactive,
+            width: _borderWidth,
           ),
         ),
         child: Row(
