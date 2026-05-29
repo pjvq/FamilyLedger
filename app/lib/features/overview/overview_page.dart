@@ -8,14 +8,24 @@ import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/notification_provider.dart';
 import '../../sync/sync_engine.dart';
-import '../dashboard/dashboard_page.dart';
+import 'widgets/budget_progress_card.dart';
 import 'widgets/greeting_header.dart';
+import 'widgets/monthly_summary_card.dart';
+import 'widgets/net_worth_hero_card.dart';
 import 'widgets/quick_actions.dart';
+import 'widgets/recent_transactions_card.dart';
 import 'widgets/reminders_card.dart';
 
-/// 概览页 — 包含 family switcher + dashboard。
+/// 概览页 — 财务健康一眼看。
 ///
-/// 从旧的 [HomePage] 中的 _DashboardShell 抽取而来。
+/// Layout:
+/// 1. GreetingHeader — 时间问候 + 日期
+/// 2. NetWorthHeroCard — 净资产大数字 + 趋势
+/// 3. QuickActions — 快捷操作 4 键
+/// 4. MonthlySummaryCard — 本月收支环形图
+/// 5. BudgetProgressCard — 预算 Top 3 进度条
+/// 6. RemindersCard — 智能提醒（贷款/预算）
+/// 7. RecentTransactionsCard — 最近 5 笔交易
 class OverviewPage extends ConsumerStatefulWidget {
   const OverviewPage({super.key});
 
@@ -27,8 +37,6 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
   @override
   void initState() {
     super.initState();
-    // SyncEngine is auto-started by the provider when user is logged in.
-    // Just read the provider to ensure it's alive (Riverpod is lazy).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(syncEngineProvider);
@@ -54,27 +62,40 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
           ),
         ],
       ),
-      body: CustomScrollView(
-        slivers: [
-          // Personal ↔ Family switcher
-          if (hasFamily)
-            SliverToBoxAdapter(
-              child: _ModeSwitcher(
-                isFamilyMode: familyId != null,
-                familyName: familyState.currentFamily?.name ?? '',
-                onToggle: _handleModeSwitch,
-              ),
-            ),
-          // Greeting + Quick actions + Reminders above dashboard
-          const SliverToBoxAdapter(child: GreetingHeader()),
-          const SliverToBoxAdapter(child: QuickActions()),
-          const SliverToBoxAdapter(child: RemindersCard()),
-          // Dashboard takes remaining space
-          const SliverFillRemaining(
-            hasScrollBody: true,
-            child: DashboardPage(),
-          ),
-        ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(syncEngineProvider).forcePull();
+        },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverList.list(children: [
+              // Personal ↔ Family switcher
+              if (hasFamily)
+                _ModeSwitcher(
+                  isFamilyMode: familyId != null,
+                  familyName: familyState.currentFamily?.name ?? '',
+                  onToggle: _handleModeSwitch,
+                ),
+              // 1. Greeting
+              const GreetingHeader(),
+              // 2. Net Worth Hero
+              const NetWorthHeroCard(),
+              // 3. Quick Actions
+              const QuickActions(),
+              // 4. Monthly Summary (donut)
+              const MonthlySummaryCard(),
+              // 5. Budget Progress (Top 3)
+              const BudgetProgressCard(),
+              // 6. Smart Reminders
+              const RemindersCard(),
+              // 7. Recent Transactions
+              const RecentTransactionsCard(),
+              // Bottom safe area padding
+              const SizedBox(height: SpacingTokens.xl4 + SpacingTokens.xl),
+            ]),
+          ],
+        ),
       ),
     );
   }
@@ -211,11 +232,8 @@ class _SwitcherButton extends StatelessWidget {
 
 // ────────── Notification Bell ──────────
 
-/// Badge text font size (smaller than caption for compact badge).
-const double _kBadgeFontSize = 10.0;
-
-/// Inactive icon opacity.
-const double _kIconInactiveOpacity = 0.7;
+const double _badgeFontSize = 10.0;
+const double _iconInactiveOpacity = 0.7;
 
 class _NotificationBell extends StatelessWidget {
   final int unreadCount;
@@ -239,11 +257,11 @@ class _NotificationBell extends StatelessWidget {
           isLabelVisible: unreadCount > 0,
           label: Text(
             unreadCount > 99 ? '99+' : '$unreadCount',
-            style: const TextStyle(fontSize: _kBadgeFontSize, color: Colors.white),
+            style: const TextStyle(fontSize: _badgeFontSize, color: Colors.white),
           ),
           child: Icon(
             Icons.notifications_outlined,
-            color: theme.colorScheme.onSurface.withValues(alpha: _kIconInactiveOpacity),
+            color: theme.colorScheme.onSurface.withValues(alpha: _iconInactiveOpacity),
           ),
         ),
       ),
