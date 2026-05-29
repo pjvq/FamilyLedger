@@ -7,6 +7,12 @@ import '../../../core/utils/format.dart';
 import '../../../domain/providers/dashboard_provider.dart';
 import 'overview_card_container.dart';
 
+/// Donut chart dimensions.
+const double _donutRadius = 10;
+const double _donutCenterSpace = 20;
+const double _donutSectionSpace = 2;
+const double _donutSize = 64;
+
 /// Monthly income/expense summary with a mini donut chart.
 ///
 /// Hidden when no trend data available.
@@ -32,8 +38,8 @@ class MonthlySummaryCard extends ConsumerWidget {
         children: [
           // Donut chart
           SizedBox(
-            width: 64,
-            height: 64,
+            width: _donutSize,
+            height: _donutSize,
             child: income == 0 && expense == 0
                 ? Center(
                     child: Icon(Icons.pie_chart_outline_rounded,
@@ -47,17 +53,17 @@ class MonthlySummaryCard extends ConsumerWidget {
                           color: colors.income,
                           value: income.toDouble(),
                           title: '',
-                          radius: 10,
+                          radius: _donutRadius,
                         ),
                         PieChartSectionData(
                           color: colors.expense,
                           value: expense.toDouble(),
                           title: '',
-                          radius: 10,
+                          radius: _donutRadius,
                         ),
                       ],
-                      centerSpaceRadius: 20,
-                      sectionsSpace: 2,
+                      centerSpaceRadius: _donutCenterSpace,
+                      sectionsSpace: _donutSectionSpace,
                       startDegreeOffset: -90,
                     ),
                   ),

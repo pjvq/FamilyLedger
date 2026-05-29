@@ -18,10 +18,13 @@ class RecentTransactionsCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final recent = ref.watch(recentTransactionsProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Watch IDs for cheap equality — only rebuild when actual items change.
+    final ids = ref.watch(recentTransactionIdsProvider);
+    if (ids.isEmpty) return const SizedBox.shrink();
 
-    if (recent.isEmpty) return const SizedBox.shrink();
+    // Now read the full list (same Provider frame, no extra rebuild).
+    final recent = ref.read(recentTransactionsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return OverviewCardContainer(
       padding: EdgeInsets.zero,
@@ -83,7 +86,7 @@ class _TransactionItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.semanticColors;
     final isExpense = transaction.type == TransactionType.expense.name;
-    final isTransfer = transaction.type == 'transfer';
+    final isTransfer = transaction.type == TransactionType.transfer.name;
     final color = isExpense
         ? colors.expense
         : isTransfer
@@ -93,6 +96,11 @@ class _TransactionItem extends StatelessWidget {
 
     final date = transaction.txnDate;
     final dateStr = '${date.month}/${date.day}';
+
+    // Display note, or fallback to localized type label
+    final displayLabel = transaction.note.isNotEmpty
+        ? transaction.note
+        : _typeLabel(transaction.type);
 
     return Material(
       type: MaterialType.transparency,
@@ -109,8 +117,8 @@ class _TransactionItem extends StatelessWidget {
             children: [
               // Type icon
               Container(
-                width: 32,
-                height: 32,
+                width: IconSizeTokens.xl,
+                height: IconSizeTokens.xl,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(RadiusTokens.sm),
@@ -132,7 +140,7 @@ class _TransactionItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      transaction.note.isEmpty ? transaction.type : transaction.note,
+                      displayLabel,
                       style: TypographyTokens.bodyMd().copyWith(
                         fontWeight: FontWeight.w500,
                       ),
@@ -162,5 +170,19 @@ class _TransactionItem extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Map transaction type string to user-facing Chinese label.
+String _typeLabel(String type) {
+  switch (type) {
+    case 'expense':
+      return '支出';
+    case 'income':
+      return '收入';
+    case 'transfer':
+      return '转账';
+    default:
+      return '交易';
   }
 }

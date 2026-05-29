@@ -121,7 +121,7 @@ class _MiniStat extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.5),
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: SpacingTokens.xs),
         Text(
           '¥${formatCentsMini(value)}',
           style: TypographyTokens.bodyMd().copyWith(

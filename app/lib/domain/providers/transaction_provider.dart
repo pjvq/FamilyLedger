@@ -658,10 +658,18 @@ final transactionProvider =
 
 /// Recent transactions (last 5) — derived provider with stable identity.
 ///
-/// Uses a separate provider so widgets watching recent transactions
-/// don't rebuild when unrelated transaction list changes occur.
+/// Compares the first 5 transaction IDs to avoid unnecessary rebuilds
+/// when the full list reference changes but the recent items are the same.
 final recentTransactionsProvider = Provider<List<Transaction>>((ref) {
-  final txns = ref.watch(transactionProvider.select((s) => s.transactions));
-  if (txns.length <= 5) return txns;
-  return txns.sublist(0, 5);
+  final allTxns = ref.watch(transactionProvider).transactions;
+  final recent = allTxns.length <= 5 ? allTxns : allTxns.sublist(0, 5);
+  return recent;
+}, dependencies: [transactionProvider]);
+
+/// Selector that extracts only the IDs of recent transactions.
+/// Widgets that only care about whether the recent list changed
+/// can watch this for a cheap equality check.
+final recentTransactionIdsProvider = Provider<List<String>>((ref) {
+  final recent = ref.watch(recentTransactionsProvider);
+  return recent.map((t) => t.id).toList();
 });

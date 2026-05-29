@@ -169,12 +169,18 @@ void main() {
         syncStatus: 'synced',
       ));
 
+      final recent5 = txns.sublist(0, 5);
       await tester.pumpWidget(wrapInApp(
         const RecentTransactionsCard(),
         overrides: [
           transactionProvider.overrideWith((_) => FakeTransactionNotifier(
             TransactionState(transactions: txns, isLoading: false),
           )),
+          // Explicitly override derived providers for deterministic test
+          recentTransactionsProvider.overrideWithValue(recent5),
+          recentTransactionIdsProvider.overrideWithValue(
+            recent5.map((t) => t.id).toList(),
+          ),
         ],
       ));
       await tester.pumpAndSettle();

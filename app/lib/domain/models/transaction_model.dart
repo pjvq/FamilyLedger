@@ -1,4 +1,4 @@
-enum TransactionType { income, expense }
+enum TransactionType { income, expense, transfer }
 
 class TransactionModel {
   final String id;
