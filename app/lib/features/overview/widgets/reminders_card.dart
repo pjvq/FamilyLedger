@@ -4,11 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/design_tokens.dart';
-import '../../../core/utils/format.dart';
-import '../../../data/local/database.dart';
-import '../../../domain/models/dashboard_models.dart';
-import '../../../domain/providers/dashboard_provider.dart';
-import '../../../domain/providers/loan_provider.dart';
+import '../../../domain/providers/reminder_provider.dart';
 
 /// Upcoming reminders card — shows loan payment due dates + budget warnings.
 ///
@@ -19,15 +15,12 @@ class RemindersCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final loans = ref.watch(loanProvider.select((s) => s.loans));
-    final budget = ref.watch(
-        dashboardProvider.select((s) => s.budgetSummary));
-
-    final reminders = _buildReminders(loans, budget);
+    final reminders = ref.watch(reminderProvider);
     if (reminders.isEmpty) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final colors = context.semanticColors;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -53,7 +46,7 @@ class RemindersCard extends ConsumerWidget {
               child: Row(
                 children: [
                   Icon(Icons.notifications_active_rounded,
-                      size: 16, color: context.semanticColors.warning),
+                      size: 16, color: colors.warning),
                   const SizedBox(width: SpacingTokens.xs),
                   Text(
                     '待办提醒',
@@ -72,98 +65,20 @@ class RemindersCard extends ConsumerWidget {
       ),
     );
   }
-
-  List<_Reminder> _buildReminders(List<Loan> loans, BudgetSummaryData budget) {
-    final reminders = <_Reminder>[];
-    final now = DateTime.now();
-    final today = now.day;
-
-    // Loan payment reminders: show if payment day is within 7 days
-    for (final loan in loans) {
-      if (loan.paidMonths >= loan.totalMonths) continue; // fully paid
-
-      final payDay = loan.paymentDay;
-      final daysUntil = _daysUntilPayment(today, payDay, now);
-
-      if (daysUntil <= 7) {
-        reminders.add(_Reminder(
-          type: _ReminderType.loanPayment,
-          title: loan.name,
-          subtitle: daysUntil == 0
-              ? '今天还款日'
-              : daysUntil == 1
-                  ? '明天还款'
-                  : '$daysUntil天后还款',
-          icon: Icons.account_balance_rounded,
-          color: daysUntil <= 1
-              ? const Color(0xFFE74C3C)
-              : const Color(0xFFF39C12),
-          routeId: loan.id,
-        ));
-      }
-    }
-
-    // Budget overrun warning
-    if (budget.totalBudget > 0 && budget.executionRate >= 0.8) {
-      final pct = (budget.executionRate * 100).toInt();
-      reminders.add(_Reminder(
-        type: _ReminderType.budgetWarning,
-        title: '预算预警',
-        subtitle: pct >= 100
-            ? '本月已超支 ¥${formatCentsWan((budget.totalSpent - budget.totalBudget).abs())}'
-            : '已使用 $pct%，剩余 ¥${formatCentsWan(budget.totalBudget - budget.totalSpent)}',
-        icon: Icons.warning_amber_rounded,
-        color: pct >= 100
-            ? const Color(0xFFE74C3C)
-            : const Color(0xFFF39C12),
-      ));
-    }
-
-    return reminders;
-  }
-
-  /// Calculate days until next payment day from today.
-  int _daysUntilPayment(int today, int payDay, DateTime now) {
-    if (payDay >= today) {
-      return payDay - today;
-    }
-    // Payment day already passed this month — next month
-    final nextMonth = DateTime(now.year, now.month + 1, payDay);
-    return nextMonth.difference(now).inDays;
-  }
-}
-
-// ─── Models ───
-
-enum _ReminderType { loanPayment, budgetWarning }
-
-class _Reminder {
-  final _ReminderType type;
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final String? routeId;
-
-  const _Reminder({
-    required this.type,
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-    this.routeId,
-  });
 }
 
 // ─── Reminder Item Widget ───
 
 class _ReminderItem extends StatelessWidget {
-  final _Reminder reminder;
+  final Reminder reminder;
 
   const _ReminderItem({required this.reminder});
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.semanticColors;
+    final color = reminder.isCritical ? colors.error : colors.warning;
+
     return Material(
       type: MaterialType.transparency,
       child: InkWell(
@@ -179,10 +94,10 @@ class _ReminderItem extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: reminder.color.withValues(alpha: 0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(reminder.icon, size: 16, color: reminder.color),
+                child: Icon(reminder.icon, size: 16, color: color),
               ),
               const SizedBox(width: SpacingTokens.md),
               Expanded(
@@ -199,7 +114,7 @@ class _ReminderItem extends StatelessWidget {
                     ),
                     Text(
                       reminder.subtitle,
-                      style: TypographyTokens.caption(color: reminder.color),
+                      style: TypographyTokens.caption(color: color),
                     ),
                   ],
                 ),
@@ -221,11 +136,11 @@ class _ReminderItem extends StatelessWidget {
 
   void _handleTap(BuildContext context) {
     switch (reminder.type) {
-      case _ReminderType.loanPayment:
+      case ReminderType.loanPayment:
         if (reminder.routeId != null) {
           context.push(AppRouter.loanDetail(reminder.routeId!));
         }
-      case _ReminderType.budgetWarning:
+      case ReminderType.budgetWarning:
         context.push(AppRouter.budget);
     }
   }

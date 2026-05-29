@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/sync_status_indicator.dart';
@@ -11,7 +12,6 @@ import '../dashboard/dashboard_page.dart';
 import 'widgets/greeting_header.dart';
 import 'widgets/quick_actions.dart';
 import 'widgets/reminders_card.dart';
-import 'package:go_router/go_router.dart';
 
 /// 概览页 — 包含 family switcher + dashboard。
 ///
@@ -54,20 +54,26 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
+      body: CustomScrollView(
+        slivers: [
           // Personal ↔ Family switcher
           if (hasFamily)
-            _ModeSwitcher(
-              isFamilyMode: familyId != null,
-              familyName: familyState.currentFamily?.name ?? '',
-              onToggle: _handleModeSwitch,
+            SliverToBoxAdapter(
+              child: _ModeSwitcher(
+                isFamilyMode: familyId != null,
+                familyName: familyState.currentFamily?.name ?? '',
+                onToggle: _handleModeSwitch,
+              ),
             ),
           // Greeting + Quick actions + Reminders above dashboard
-          const GreetingHeader(),
-          const QuickActions(),
-          const RemindersCard(),
-          const Expanded(child: DashboardPage()),
+          const SliverToBoxAdapter(child: GreetingHeader()),
+          const SliverToBoxAdapter(child: QuickActions()),
+          const SliverToBoxAdapter(child: RemindersCard()),
+          // Dashboard takes remaining space
+          const SliverFillRemaining(
+            hasScrollBody: true,
+            child: DashboardPage(),
+          ),
         ],
       ),
     );

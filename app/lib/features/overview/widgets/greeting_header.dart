@@ -1,14 +1,46 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
 
 /// Greeting header — shows time-based greeting + current date.
-class GreetingHeader extends StatelessWidget {
-  const GreetingHeader({super.key});
+///
+/// Refreshes automatically every minute so the greeting stays current
+/// even if the user stays on the page across time-of-day boundaries.
+class GreetingHeader extends StatefulWidget {
+  /// Optional [DateTime] override for testing.
+  final DateTime? now;
+
+  const GreetingHeader({super.key, this.now});
+
+  @override
+  State<GreetingHeader> createState() => _GreetingHeaderState();
+}
+
+class _GreetingHeaderState extends State<GreetingHeader> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.now == null) {
+      // Refresh every 60 seconds to keep greeting/date current.
+      _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final now = widget.now ?? DateTime.now();
     final greeting = _getGreeting(now.hour);
     final dateStr = '${now.month}月${now.day}日 ${_weekdayName(now.weekday)}';
 
@@ -43,7 +75,7 @@ class GreetingHeader extends StatelessWidget {
     );
   }
 
-  String _getGreeting(int hour) {
+  static String _getGreeting(int hour) {
     if (hour < 6) return '夜深了 🌙';
     if (hour < 9) return '早上好 ☀️';
     if (hour < 12) return '上午好 👋';
@@ -53,8 +85,8 @@ class GreetingHeader extends StatelessWidget {
     return '夜深了 🌙';
   }
 
-  String _weekdayName(int weekday) {
+  static String _weekdayName(int weekday) {
     const names = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    return names[weekday - 1];
+    return names[(weekday - 1).clamp(0, 6)];
   }
 }

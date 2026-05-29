@@ -4,9 +4,32 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/design_tokens.dart';
 
-/// Quick action row — 4 shortcut buttons for common operations.
+/// Quick action row — data-driven shortcut buttons for common operations.
 class QuickActions extends StatelessWidget {
   const QuickActions({super.key});
+
+  static const _actions = [
+    _ActionDef(
+      icon: Icons.swap_horiz_rounded,
+      label: '转账',
+      route: AppRouter.transfer,
+    ),
+    _ActionDef(
+      icon: Icons.account_balance_rounded,
+      label: '贷款',
+      route: AppRouter.loans,
+    ),
+    _ActionDef(
+      icon: Icons.trending_up_rounded,
+      label: '投资',
+      route: AppRouter.investments,
+    ),
+    _ActionDef(
+      icon: Icons.bar_chart_rounded,
+      label: '报表',
+      route: AppRouter.report,
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -20,37 +43,33 @@ class QuickActions extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _QuickActionButton(
-            icon: Icons.swap_horiz_rounded,
-            label: '转账',
-            onTap: () => context.push(AppRouter.transfer),
-            isDark: isDark,
-          ),
-          const SizedBox(width: SpacingTokens.sm),
-          _QuickActionButton(
-            icon: Icons.account_balance_rounded,
-            label: '贷款',
-            onTap: () => context.push(AppRouter.loans),
-            isDark: isDark,
-          ),
-          const SizedBox(width: SpacingTokens.sm),
-          _QuickActionButton(
-            icon: Icons.trending_up_rounded,
-            label: '投资',
-            onTap: () => context.push(AppRouter.investments),
-            isDark: isDark,
-          ),
-          const SizedBox(width: SpacingTokens.sm),
-          _QuickActionButton(
-            icon: Icons.bar_chart_rounded,
-            label: '报表',
-            onTap: () => context.push(AppRouter.report),
-            isDark: isDark,
-          ),
+          for (int i = 0; i < _actions.length; i++) ...[
+            if (i > 0) const SizedBox(width: SpacingTokens.sm),
+            Expanded(
+              child: _QuickActionButton(
+                icon: _actions[i].icon,
+                label: _actions[i].label,
+                onTap: () => context.push(_actions[i].route),
+                isDark: isDark,
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
+}
+
+class _ActionDef {
+  final IconData icon;
+  final String label;
+  final String route;
+
+  const _ActionDef({
+    required this.icon,
+    required this.label,
+    required this.route,
+  });
 }
 
 class _QuickActionButton extends StatelessWidget {
@@ -68,39 +87,37 @@ class _QuickActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(RadiusTokens.md),
-        clipBehavior: Clip.antiAlias,
-        child: Ink(
-          decoration: BoxDecoration(
-            color: isDark
-                ? NeutralColorsDark.neutral2
-                : NeutralColorsLight.neutral2,
-            borderRadius: BorderRadius.circular(RadiusTokens.md),
-          ),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(RadiusTokens.md),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  vertical: SpacingTokens.md),
-              child: Column(
-                children: [
-                  Icon(icon,
-                      size: IconSizeTokens.md,
-                      color: ColorTokens.primary),
-                  const SizedBox(height: SpacingTokens.xs),
-                  Text(
-                    label,
-                    style: TypographyTokens.caption(),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(RadiusTokens.md),
+      clipBehavior: Clip.antiAlias,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: isDark
+              ? NeutralColorsDark.neutral2
+              : NeutralColorsLight.neutral2,
+          borderRadius: BorderRadius.circular(RadiusTokens.md),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(RadiusTokens.md),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                vertical: SpacingTokens.md),
+            child: Column(
+              children: [
+                Icon(icon,
+                    size: IconSizeTokens.md,
+                    color: ColorTokens.primary),
+                const SizedBox(height: SpacingTokens.xs),
+                Text(
+                  label,
+                  style: TypographyTokens.caption(),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ),
