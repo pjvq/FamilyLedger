@@ -37,6 +37,9 @@ class Reminder {
 /// Business rules:
 /// - Loan reminders: payment day within 7 days → show reminder.
 /// - Budget warning: execution rate ≥ 80% → show warning.
+///
+/// NOTE: If loan count grows significantly, consider splitting into
+/// separate loan/budget reminder providers to reduce recomputation.
 final reminderProvider = Provider<List<Reminder>>((ref) {
   final loans = ref.watch(loanProvider.select((s) => s.loans));
   final budget = ref.watch(

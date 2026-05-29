@@ -103,10 +103,18 @@ void main() {
 
     testWidgets('shows loan payment reminder when due within 7 days',
         (tester) async {
+      // Compute a payDay that is always 2 days from today, ensuring
+      // the reminder fires regardless of when the test runs.
       final now = DateTime.now();
       final daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
-      // Set payment day to 2 days from now, clamped to month length
-      final payDay = (now.day + 2) > daysInMonth ? 1 : now.day + 2;
+      // If today+2 exceeds month length, the clamp logic in
+      // daysUntilPayment handles it, but to guarantee the reminder
+      // triggers we pick a payDay within reach.
+      final payDay = now.day + 2 <= daysInMonth
+          ? now.day + 2
+          : now.day + 1 <= daysInMonth
+              ? now.day + 1
+              : now.day; // today = last day → payDay = today (0 days)
 
       await tester.pumpWidget(wrapInApp(
         const RemindersCard(),
