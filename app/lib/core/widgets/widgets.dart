@@ -11,3 +11,4 @@ export 'skeleton_loading.dart';
 export 'success_animation.dart';
 export 'swipe_to_delete.dart';
 export 'virtual_list.dart';
+export 'micro_interactions.dart';

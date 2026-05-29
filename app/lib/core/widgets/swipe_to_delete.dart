@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/tokens/color_tokens.dart';
 
 /// 滑动删除组件
@@ -85,7 +86,10 @@ class _SwipeToDeleteState extends State<SwipeToDelete>
             : DismissDirection.none,
         movementDuration: widget.movementDuration,
         confirmDismiss: (direction) => _showConfirmDialog(context),
-        onDismissed: (_) => widget.onDelete?.call(),
+        onDismissed: (_) {
+          HapticFeedback.mediumImpact();
+          widget.onDelete?.call();
+        },
         onUpdate: _onDismissUpdate,
         background: AnimatedBuilder(
           animation: _controller,

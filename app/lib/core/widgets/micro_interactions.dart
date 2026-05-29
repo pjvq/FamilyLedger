@@ -1,16 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-/// A button wrapper that adds a subtle scale-down effect on press.
-/// Use around any tappable widget for tactile micro-interaction.
+/// Haptic feedback intensity levels for tap interactions.
+enum HapticType {
+  none,
+  selectionClick,
+  lightImpact,
+  mediumImpact,
+}
+
+/// A pure visual wrapper that adds a subtle scale-down effect on press.
+///
+/// Uses [Listener] (non-competitive) to drive the animation — does NOT
+/// participate in the gesture arena, so child [InkWell]/[ListTile] handles
+/// tap recognition, ripple, and callbacks independently.
+///
+/// Respects `MediaQuery.disableAnimations` (Reduce Motion).
 class TapScale extends StatefulWidget {
   final Widget child;
-  final VoidCallback? onTap;
   final double scaleFactor;
 
   const TapScale({
     super.key,
     required this.child,
-    this.onTap,
     this.scaleFactor = 0.96,
   });
 
@@ -44,13 +56,13 @@ class _TapScaleState extends State<TapScale>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
-      onTapUp: (_) {
-        _ctrl.reverse();
-        widget.onTap?.call();
-      },
-      onTapCancel: () => _ctrl.reverse(),
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    if (reduceMotion) return widget.child;
+
+    return Listener(
+      onPointerDown: (_) => _ctrl.forward(),
+      onPointerUp: (_) => _ctrl.reverse(),
+      onPointerCancel: (_) => _ctrl.reverse(),
       child: ScaleTransition(
         scale: _scaleAnim,
         child: widget.child,
@@ -59,8 +71,26 @@ class _TapScaleState extends State<TapScale>
   }
 }
 
+/// Helper: wraps onTap with haptic feedback.
+/// Use inside InkWell.onTap when TapScale is the outer wrapper.
+void withHaptic(VoidCallback callback, {HapticType haptic = HapticType.selectionClick}) {
+  switch (haptic) {
+    case HapticType.none:
+      break;
+    case HapticType.selectionClick:
+      HapticFeedback.selectionClick();
+    case HapticType.lightImpact:
+      HapticFeedback.lightImpact();
+    case HapticType.mediumImpact:
+      HapticFeedback.mediumImpact();
+  }
+  callback();
+}
+
 /// Staggered fade + slide animation for list items.
-/// Wrap each list item to create a cascade entrance effect.
+///
+/// Only animates once (on first build). Respects Reduce Motion.
+/// Cap stagger at 10 items to avoid long waits on large lists.
 class SlideInItem extends StatefulWidget {
   final Widget child;
   final int index;
@@ -84,6 +114,7 @@ class _SlideInItemState extends State<SlideInItem>
   late final AnimationController _ctrl;
   late final Animation<Offset> _slideAnim;
   late final Animation<double> _fadeAnim;
+  bool _hasAnimated = false;
 
   @override
   void initState() {
@@ -97,9 +128,27 @@ class _SlideInItemState extends State<SlideInItem>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
     _fadeAnim = CurvedAnimation(parent: _ctrl, curve: Curves.easeIn);
+  }
 
-    // Stagger: cap delay at 10 items to avoid long waits
-    final delay = widget.baseDelay * (widget.index.clamp(0, 10));
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_hasAnimated) return;
+    _hasAnimated = true;
+
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    if (reduceMotion) {
+      _ctrl.value = 1.0;
+      return;
+    }
+
+    // Only animate first 10 items to cap stagger delay
+    if (widget.index > 10) {
+      _ctrl.value = 1.0;
+      return;
+    }
+
+    final delay = widget.baseDelay * widget.index;
     Future.delayed(delay, () {
       if (mounted) _ctrl.forward();
     });
@@ -131,7 +180,7 @@ class AnimatedNumber extends StatelessWidget {
   final String prefix;
   final String suffix;
   final Duration duration;
-  final bool asWan; // true = show ×万 for large numbers
+  final bool useWanUnit; // true = show ×万 for large numbers
 
   const AnimatedNumber({
     super.key,
@@ -140,11 +189,23 @@ class AnimatedNumber extends StatelessWidget {
     this.prefix = '',
     this.suffix = '',
     this.duration = const Duration(milliseconds: 500),
-    this.asWan = true,
+    this.useWanUnit = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    if (reduceMotion) {
+      final yuan = value / 100;
+      String text;
+      if (useWanUnit && yuan.abs() >= 10000) {
+        text = '$prefix${(yuan / 10000).toStringAsFixed(2)}万$suffix';
+      } else {
+        text = '$prefix${yuan.toStringAsFixed(2)}$suffix';
+      }
+      return Text(text, style: style);
+    }
+
     return TweenAnimationBuilder<double>(
       tween: Tween(end: value.toDouble()),
       duration: duration,
@@ -152,7 +213,7 @@ class AnimatedNumber extends StatelessWidget {
       builder: (context, v, _) {
         final yuan = v / 100;
         String text;
-        if (asWan && yuan.abs() >= 10000) {
+        if (useWanUnit && yuan.abs() >= 10000) {
           text = '$prefix${(yuan / 10000).toStringAsFixed(2)}万$suffix';
         } else {
           text = '$prefix${yuan.toStringAsFixed(2)}$suffix';

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/utils/format.dart';
+import '../../../core/widgets/micro_interactions.dart';
 import '../../../data/local/database.dart';
 
 /// Single loan row with circular progress indicator.
@@ -20,94 +21,93 @@ class LoanItem extends StatelessWidget {
         ? (loan.principal - loan.remainingPrincipal) / loan.principal
         : 0.0;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
-      child: Card(
-        margin: const EdgeInsets.only(bottom: SpacingTokens.xs),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: SpacingTokens.base,
-              vertical: SpacingTokens.md,
-            ),
-            child: Row(
-              children: [
-                // Progress ring
-                SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        value: progress,
-                        strokeWidth: 3.5,
-                        backgroundColor: isDark
-                            ? NeutralColorsDark.neutral3
-                            : NeutralColorsLight.neutral3,
-                        valueColor:
-                            AlwaysStoppedAnimation(colors.liability),
-                      ),
-                      Text(
-                        '${(progress * 100).toInt()}%',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          fontFeatures: [FontFeature.tabularFigures()],
+    return TapScale(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
+        child: Card(
+          margin: const EdgeInsets.only(bottom: SpacingTokens.xs),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => withHaptic(() => onTap?.call()),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: SpacingTokens.base,
+                vertical: SpacingTokens.md,
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 3.5,
+                          backgroundColor: isDark
+                              ? NeutralColorsDark.neutral3
+                              : NeutralColorsLight.neutral3,
+                          valueColor:
+                              AlwaysStoppedAnimation(colors.liability),
                         ),
-                      ),
-                    ],
+                        Text(
+                          '${(progress * 100).toInt()}%',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: SpacingTokens.md),
-                // Name + info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(width: SpacingTokens.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          loan.name,
+                          style: TypographyTokens.bodyMd().copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${loan.paidMonths}/${loan.totalMonths}期 · ${loan.annualRate.toStringAsFixed(2)}%',
+                          style: TypographyTokens.caption(
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        loan.name,
-                        style: TypographyTokens.bodyMd().copyWith(
-                          fontWeight: FontWeight.w500,
+                        '¥${formatCentsWan(loan.remainingPrincipal)}',
+                        style: TypographyTokens.amount(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: colors.liability,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
                       Text(
-                        '${loan.paidMonths}/${loan.totalMonths}期 · ${loan.annualRate.toStringAsFixed(2)}%',
+                        '剩余本金',
                         style: TypographyTokens.caption(
                           color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
+                              .withValues(alpha: 0.4),
                         ),
                       ),
                     ],
                   ),
-                ),
-                // Remaining principal
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '¥${formatCentsWan(loan.remainingPrincipal)}',
-                      style: TypographyTokens.amount(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: colors.liability,
-                      ),
-                    ),
-                    Text(
-                      '剩余本金',
-                      style: TypographyTokens.caption(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.4),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

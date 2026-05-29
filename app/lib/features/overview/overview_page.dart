@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/custom_refresh.dart';
 import '../../core/widgets/sync_status_indicator.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
@@ -62,7 +63,7 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
           ),
         ],
       ),
-      body: RefreshIndicator(
+      body: CustomRefreshIndicator(
         onRefresh: () async {
           await ref.read(syncEngineProvider).forcePull();
         },

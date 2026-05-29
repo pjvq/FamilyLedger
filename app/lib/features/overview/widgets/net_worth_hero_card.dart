@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/utils/format.dart';
+import '../../../core/widgets/animated_counter.dart';
 import '../../../domain/providers/dashboard_provider.dart';
 
 /// Net worth hero card — gradient background, big number, month-over-month change.
@@ -20,15 +21,25 @@ class NetWorthHeroCard extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          SpacingTokens.base, SpacingTokens.xs, SpacingTokens.base, SpacingTokens.sm),
+        SpacingTokens.base,
+        SpacingTokens.xs,
+        SpacingTokens.base,
+        SpacingTokens.sm,
+      ),
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
-                ? [DarkCardGradients.dashboardStart, DarkCardGradients.dashboardEnd]
-                : [GradientTokens.primaryGradientStart, GradientTokens.primaryGradientDeep],
+                ? [
+                    DarkCardGradients.dashboardStart,
+                    DarkCardGradients.dashboardEnd,
+                  ]
+                : [
+                    GradientTokens.primaryGradientStart,
+                    GradientTokens.primaryGradientDeep,
+                  ],
           ),
           borderRadius: BorderRadius.circular(RadiusTokens.lg),
           boxShadow: isDark ? ShadowTokensDark.md : ShadowTokensLight.md,
@@ -45,8 +56,10 @@ class NetWorthHeroCard extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: SpacingTokens.sm),
-              Text(
-                '¥ ${formatCentsDisplay(data.total)}',
+              AnimatedCounter(
+                value: data.total,
+                prefix: '¥ ',
+                useWanUnit: true,
                 style: TypographyTokens.displayLg().copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -58,16 +71,18 @@ class NetWorthHeroCard extends ConsumerWidget {
                 Row(
                   children: [
                     Icon(
-                      isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                      isUp
+                          ? Icons.arrow_upward_rounded
+                          : Icons.arrow_downward_rounded,
                       size: IconSizeTokens.xs,
                       color: changeColor,
                     ),
                     const SizedBox(width: SpacingTokens.xs),
                     Text(
                       '${data.changePercent >= 0 ? "+" : ""}${data.changePercent.toStringAsFixed(1)}%',
-                      style: TypographyTokens.bodySm(color: changeColor).copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: TypographyTokens.bodySm(
+                        color: changeColor,
+                      ).copyWith(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(width: SpacingTokens.sm),
                     Text(
@@ -108,7 +123,11 @@ class _MiniStat extends StatelessWidget {
   final int value;
   final Color color;
 
-  const _MiniStat({required this.label, required this.value, required this.color});
+  const _MiniStat({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {

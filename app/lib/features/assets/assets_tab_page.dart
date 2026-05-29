@@ -60,7 +60,7 @@ class _AssetsBody extends ConsumerWidget {
       return const SkeletonList(count: 6, itemHeight: 72);
     }
 
-    return RefreshIndicator(
+    return CustomRefreshIndicator(
       onRefresh: () async {
         await Future.wait([
           ref.read(accountProvider.notifier).refresh(),
