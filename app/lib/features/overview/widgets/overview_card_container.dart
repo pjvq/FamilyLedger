@@ -7,6 +7,8 @@ import '../../../core/theme/design_tokens.dart';
 /// Provides consistent decoration (background, border, radius) across
 /// all overview summary cards, eliminating duplication.
 class OverviewCardContainer extends StatelessWidget {
+  /// Thin border width used by all overview cards.
+  static const double borderWidth = 0.5;
   final Widget child;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry margin;
@@ -31,7 +33,7 @@ class OverviewCardContainer extends StatelessWidget {
           borderRadius: BorderRadius.circular(RadiusTokens.lg),
           border: Border.all(
             color: isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral3,
-            width: 0.5,
+            width: OverviewCardContainer.borderWidth,
           ),
         ),
         child: child,

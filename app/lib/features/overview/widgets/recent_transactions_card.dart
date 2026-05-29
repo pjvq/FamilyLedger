@@ -18,12 +18,10 @@ class RecentTransactionsCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch IDs for cheap equality — only rebuild when actual items change.
-    final ids = ref.watch(recentTransactionIdsProvider);
-    if (ids.isEmpty) return const SizedBox.shrink();
+    // Watch full recent transactions — 5 items rebuild cost is negligible.
+    final recent = ref.watch(recentTransactionsProvider);
+    if (recent.isEmpty) return const SizedBox.shrink();
 
-    // Now read the full list (same Provider frame, no extra rebuild).
-    final recent = ref.read(recentTransactionsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return OverviewCardContainer(
@@ -175,14 +173,8 @@ class _TransactionItem extends StatelessWidget {
 
 /// Map transaction type string to user-facing Chinese label.
 String _typeLabel(String type) {
-  switch (type) {
-    case 'expense':
-      return '支出';
-    case 'income':
-      return '收入';
-    case 'transfer':
-      return '转账';
-    default:
-      return '交易';
-  }
+  if (type == TransactionType.expense.name) return '支出';
+  if (type == TransactionType.income.name) return '收入';
+  if (type == TransactionType.transfer.name) return '转账';
+  return '交易';
 }

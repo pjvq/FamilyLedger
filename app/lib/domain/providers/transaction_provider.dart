@@ -661,9 +661,9 @@ final transactionProvider =
 /// Compares the first 5 transaction IDs to avoid unnecessary rebuilds
 /// when the full list reference changes but the recent items are the same.
 final recentTransactionsProvider = Provider<List<Transaction>>((ref) {
-  final allTxns = ref.watch(transactionProvider).transactions;
-  final recent = allTxns.length <= 5 ? allTxns : allTxns.sublist(0, 5);
-  return recent;
+  final allTxns = ref.watch(transactionProvider.select((s) => s.transactions));
+  if (allTxns.length <= 5) return allTxns;
+  return allTxns.sublist(0, 5);
 }, dependencies: [transactionProvider]);
 
 /// Selector that extracts only the IDs of recent transactions.

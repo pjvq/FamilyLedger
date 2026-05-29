@@ -5,6 +5,9 @@ import '../../../core/theme/design_tokens.dart';
 import '../../../domain/providers/budget_provider.dart';
 import 'overview_card_container.dart';
 
+/// Progress bar height for budget category rows.
+const double _progressBarHeight = 5;
+
 /// Budget progress card — shows top 3 category budgets with linear progress bars.
 ///
 /// Hidden when no budget is configured.
@@ -117,7 +120,7 @@ class _BudgetCategoryRow extends StatelessWidget {
               backgroundColor:
                   Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
               color: barColor,
-              minHeight: 5,
+              minHeight: _progressBarHeight,
             ),
           ),
         ],
