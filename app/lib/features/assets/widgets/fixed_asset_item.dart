@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/utils/format.dart';
+import '../../../core/widgets/micro_interactions.dart';
 import '../../../domain/providers/asset_provider.dart';
 import 'asset_type_info.dart';
 
@@ -18,13 +20,16 @@ class FixedAssetItem extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final typeInfo = getAssetTypeInfo(asset.assetType);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
-      child: Card(
-        margin: const EdgeInsets.only(bottom: SpacingTokens.xs),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
+    return TapScale(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap?.call();
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
+        child: Card(
+          margin: const EdgeInsets.only(bottom: SpacingTokens.xs),
+          clipBehavior: Clip.antiAlias,
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: SpacingTokens.base,

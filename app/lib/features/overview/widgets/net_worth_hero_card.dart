@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/utils/format.dart';
+import '../../../core/widgets/animated_counter.dart';
 import '../../../domain/providers/dashboard_provider.dart';
 
 /// Net worth hero card — gradient background, big number, month-over-month change.
@@ -18,7 +19,9 @@ class NetWorthHeroCard extends ConsumerWidget {
     final isUp = data.changeFromLastMonth >= 0;
     final changeColor = isUp ? colors.income : colors.expense;
 
-    return Padding(
+    return Hero(
+      tag: 'net_worth_hero',
+      child: Padding(
       padding: const EdgeInsets.fromLTRB(
           SpacingTokens.base, SpacingTokens.xs, SpacingTokens.base, SpacingTokens.sm),
       child: Container(
@@ -45,8 +48,10 @@ class NetWorthHeroCard extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: SpacingTokens.sm),
-              Text(
-                '¥ ${formatCentsDisplay(data.total)}',
+              AnimatedCounter(
+                value: data.total,
+                prefix: '¥ ',
+                useWanUnit: true,
                 style: TypographyTokens.displayLg().copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -99,6 +104,7 @@ class NetWorthHeroCard extends ConsumerWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

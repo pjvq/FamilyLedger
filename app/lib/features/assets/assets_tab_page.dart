@@ -60,7 +60,7 @@ class _AssetsBody extends ConsumerWidget {
       return const SkeletonList(count: 6, itemHeight: 72);
     }
 
-    return RefreshIndicator(
+    return CustomRefreshIndicator(
       onRefresh: () async {
         await Future.wait([
           ref.read(accountProvider.notifier).refresh(),
@@ -77,7 +77,10 @@ class _AssetsBody extends ConsumerWidget {
             final netWorth = ref.watch(
                 dashboardProvider.select((s) => s.netWorth));
             return SliverToBoxAdapter(
-              child: NetWorthHero(netWorth: netWorth),
+              child: Hero(
+                tag: 'net_worth_hero',
+                child: NetWorthHero(netWorth: netWorth),
+              ),
             );
           }),
 

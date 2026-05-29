@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -155,7 +156,7 @@ class _LoanGroupCard extends StatelessWidget {
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
         child: InkWell(
-          onTap: onTap,
+          onTap: () { HapticFeedback.selectionClick(); onTap(); },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -415,7 +416,7 @@ class _LoanCard extends StatelessWidget {
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
         child: InkWell(
-          onTap: onTap,
+          onTap: () { HapticFeedback.selectionClick(); onTap(); },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(16),
