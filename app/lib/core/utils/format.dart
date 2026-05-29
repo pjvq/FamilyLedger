@@ -51,3 +51,34 @@ String formatCentsWan(int cents) {
   }
   return '$sign${yuan.toStringAsFixed(2)}';
 }
+
+/// Format cents to short display string (1 decimal for 万, integer below).
+/// ```
+/// formatCentsDisplay(50000000) → "50.00万"
+/// formatCentsDisplay(800000) → "8000"
+/// formatCentsDisplay(-50000000, showSign: true) → "-50.00万"
+/// ```
+String formatCentsDisplay(int cents, {bool showSign = false}) {
+  final yuan = cents.abs() / 100;
+  final sign = cents < 0
+      ? '-'
+      : (showSign ? '+' : '');
+  if (yuan >= 10000) {
+    return '$sign${(yuan / 10000).toStringAsFixed(2)}万';
+  }
+  return '$sign${yuan.toStringAsFixed(2)}';
+}
+
+/// Format cents to ultra-short string (for mini stats, no decimals below 万).
+/// ```
+/// formatCentsMini(50000000) → "50万"
+/// formatCentsMini(800000) → "8000"
+/// ```
+String formatCentsMini(int cents) {
+  final yuan = cents.abs() / 100;
+  final sign = cents < 0 ? '-' : '';
+  if (yuan >= 10000) {
+    return '$sign${(yuan / 10000).toStringAsFixed(1)}万';
+  }
+  return '$sign${yuan.toStringAsFixed(0)}';
+}

@@ -67,34 +67,33 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
           await ref.read(syncEngineProvider).forcePull();
         },
         child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            // Personal ↔ Family switcher
-            if (hasFamily)
-              SliverToBoxAdapter(
-                child: _ModeSwitcher(
+            SliverList.list(children: [
+              // Personal ↔ Family switcher
+              if (hasFamily)
+                _ModeSwitcher(
                   isFamilyMode: familyId != null,
                   familyName: familyState.currentFamily?.name ?? '',
                   onToggle: _handleModeSwitch,
                 ),
-              ),
-            // 1. Greeting
-            const SliverToBoxAdapter(child: GreetingHeader()),
-            // 2. Net Worth Hero
-            const SliverToBoxAdapter(child: NetWorthHeroCard()),
-            // 3. Quick Actions
-            const SliverToBoxAdapter(child: QuickActions()),
-            // 4. Monthly Summary (donut)
-            const SliverToBoxAdapter(child: MonthlySummaryCard()),
-            // 5. Budget Progress (Top 3)
-            const SliverToBoxAdapter(child: BudgetProgressCard()),
-            // 6. Smart Reminders
-            const SliverToBoxAdapter(child: RemindersCard()),
-            // 7. Recent Transactions
-            const SliverToBoxAdapter(child: RecentTransactionsCard()),
-            // Bottom padding
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 100),
-            ),
+              // 1. Greeting
+              const GreetingHeader(),
+              // 2. Net Worth Hero
+              const NetWorthHeroCard(),
+              // 3. Quick Actions
+              const QuickActions(),
+              // 4. Monthly Summary (donut)
+              const MonthlySummaryCard(),
+              // 5. Budget Progress (Top 3)
+              const BudgetProgressCard(),
+              // 6. Smart Reminders
+              const RemindersCard(),
+              // 7. Recent Transactions
+              const RecentTransactionsCard(),
+              // Bottom safe area padding
+              const SizedBox(height: SpacingTokens.xl4 + SpacingTokens.xl),
+            ]),
           ],
         ),
       ),
@@ -233,8 +232,8 @@ class _SwitcherButton extends StatelessWidget {
 
 // ────────── Notification Bell ──────────
 
-const double _kBadgeFontSize = 10.0;
-const double _kIconInactiveOpacity = 0.7;
+const double _badgeFontSize = 10.0;
+const double _iconInactiveOpacity = 0.7;
 
 class _NotificationBell extends StatelessWidget {
   final int unreadCount;
@@ -258,11 +257,11 @@ class _NotificationBell extends StatelessWidget {
           isLabelVisible: unreadCount > 0,
           label: Text(
             unreadCount > 99 ? '99+' : '$unreadCount',
-            style: const TextStyle(fontSize: _kBadgeFontSize, color: Colors.white),
+            style: const TextStyle(fontSize: _badgeFontSize, color: Colors.white),
           ),
           child: Icon(
             Icons.notifications_outlined,
-            color: theme.colorScheme.onSurface.withValues(alpha: _kIconInactiveOpacity),
+            color: theme.colorScheme.onSurface.withValues(alpha: _iconInactiveOpacity),
           ),
         ),
       ),

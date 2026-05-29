@@ -25,6 +25,10 @@ class NetWorthData {
     this.changePercent = 0.0,
     this.composition = const [],
   });
+
+  /// Total gross assets (cash + investments + fixed assets).
+  /// Avoids overflow by using 64-bit integer arithmetic.
+  int get totalAssets => cashAndBank + investmentValue + fixedAssetValue;
 }
 
 /// A single slice in the asset composition pie chart.

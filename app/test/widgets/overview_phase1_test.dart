@@ -77,12 +77,12 @@ void main() {
       expect(find.textContaining('结余'), findsOneWidget);
     });
 
-    testWidgets('shows placeholder when no data', (tester) async {
+    testWidgets('hidden when no trend data', (tester) async {
       await tester.pumpWidget(wrapInApp(const MonthlySummaryCard()));
       await tester.pumpAndSettle();
 
-      // Empty state — still shows the card with zero values
-      expect(find.text('本月收支'), findsOneWidget);
+      // Empty state — card is hidden
+      expect(find.text('本月收支'), findsNothing);
     });
   });
 

@@ -655,3 +655,13 @@ final transactionProvider =
 
   return notifier;
 });
+
+/// Recent transactions (last 5) — derived provider with stable identity.
+///
+/// Uses a separate provider so widgets watching recent transactions
+/// don't rebuild when unrelated transaction list changes occur.
+final recentTransactionsProvider = Provider<List<Transaction>>((ref) {
+  final txns = ref.watch(transactionProvider.select((s) => s.transactions));
+  if (txns.length <= 5) return txns;
+  return txns.sublist(0, 5);
+});
