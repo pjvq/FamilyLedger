@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/local/database.dart';
@@ -13,7 +15,25 @@ import 'transaction_provider.dart';
 final categoryUsageProfilerProvider = Provider<CategoryUsageProfiler>((ref) {
   ref.keepAlive();
   final db = ref.watch(databaseProvider);
-  return CategoryUsageProfiler(db);
+  final profiler = CategoryUsageProfiler(db);
+
+  // 周期性后台刷新 topKeywords + recency counts
+  // 每 6 小时刷新一次 recency，每周全量重建
+  Timer? recencyTimer;
+  Timer? fullRebuildTimer;
+  recencyTimer = Timer.periodic(const Duration(hours: 6), (_) {
+    profiler.refreshRecencyCounts();
+  });
+  fullRebuildTimer = Timer.periodic(const Duration(days: 7), (_) {
+    profiler.rebuildAll();
+  });
+
+  ref.onDispose(() {
+    recencyTimer?.cancel();
+    fullRebuildTimer?.cancel();
+  });
+
+  return profiler;
 });
 
 /// NLEmbeddingBridge — 实例化平台通道（可注入替换）

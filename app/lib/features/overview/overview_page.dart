@@ -14,6 +14,7 @@ import 'widgets/greeting_header.dart';
 import 'widgets/monthly_summary_card.dart';
 import 'widgets/net_worth_hero_card.dart';
 import 'widgets/quick_actions.dart';
+import 'widgets/category_cleanup_reminder_card.dart';
 import 'widgets/recent_transactions_card.dart';
 import 'widgets/reminders_card.dart';
 
@@ -90,6 +91,8 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
               const BudgetProgressCard(),
               // 6. Smart Reminders
               const RemindersCard(),
+              // 6.5 Category Cleanup Reminder
+              const CategoryCleanupReminderCard(),
               // 7. Recent Transactions
               const RecentTransactionsCard(),
               // Bottom safe area padding

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/smart_category/category_recommender.dart';
+import '../services/smart_category/category_usage_profile.dart';
 import 'category_merge_provider.dart';
 import 'transaction_provider.dart';
 
@@ -55,7 +56,20 @@ final categoryRecommendProvider =
       .map((e) => e.value)
       .toList();
 
+  // 冷启动：为没有使用记录的分类创建空 profile
+  for (final c in categories) {
+    if (c.deletedAt == null && !allProfiles.containsKey(c.id)) {
+      profiles.add(CategoryUsageProfile(categoryId: c.id));
+    }
+  }
+
   if (profiles.isEmpty) return [];
+
+  // 分类名称映射（用于冷启动时间段先验）
+  final categoryNames = {
+    for (final c in categories)
+      if (c.deletedAt == null) c.id: c.name,
+  };
 
   // 计算总交易量，决定用普通还是冷启动配置
   final totalTxns =
@@ -68,5 +82,6 @@ final categoryRecommendProvider =
     sequenceScorer: sequenceScorer,
     input: input,
     config: config,
+    categoryNames: categoryNames,
   );
 });

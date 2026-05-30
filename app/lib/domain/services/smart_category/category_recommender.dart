@@ -193,11 +193,13 @@ class CategoryRecommender {
   /// [sequenceScorer] 预构建的转移矩阵 scorer
   /// [input] 当前上下文（时间、金额、备注等）
   /// [config] 权重配置（默认可以不传）
+  /// [categoryNames] 分类名称映射（用于冷启动时间段先验）
   List<CategoryRecommendation> recommend({
     required List<CategoryUsageProfile> profiles,
     required SequenceScorer sequenceScorer,
     required CategoryRecommendInput input,
     RecommenderConfig config = const RecommenderConfig(),
+    Map<String, String> categoryNames = const {},
   }) {
     if (profiles.isEmpty) return [];
     assert(
@@ -249,13 +251,23 @@ class CategoryRecommender {
     // Score each profile
     final results = <CategoryRecommendation>[];
     for (final p in profiles) {
-      final timeScore = _timeSlot.score(p, hour, maxHourProb);
-      final recencyScore = _recency.score(p, maxLast7d);
-      final freqScore = _frequency.score(p, maxTotal);
+      double timeScore = _timeSlot.score(p, hour, maxHourProb);
+      double recencyScore = _recency.score(p, maxLast7d);
+      double freqScore = _frequency.score(p, maxTotal);
       final amountScore = _amount.score(p, input.amountCents);
       final seqScore =
           sequenceScorer.score(input.lastCategoryId, p.categoryId);
       final kwScore = _keyword.score(p, input.noteText);
+
+      // 冷启动：新分类基础分 0.3，避免永远排不上来
+      if (p.totalCount == 0) {
+        freqScore = _newCategoryBaselineScore;
+      }
+
+      // 冷启动：新用户时间段先验（当所有 profile 都没数据时）
+      if (maxHourProb <= 0 && p.totalCount == 0) {
+        timeScore = _timePrior(categoryNames[p.categoryId] ?? '', hour);
+      }
 
       final totalScore = wTime * timeScore +
           wRecency * recencyScore +
@@ -292,5 +304,40 @@ class CategoryRecommender {
       );
     }
     return const RecommenderConfig();
+  }
+
+  // ─── 冷启动常量 ──────────────────────────────────────────────────────────
+
+  /// 新分类基础分 — 让新建分类能出现在推荐列表中
+  static const _newCategoryBaselineScore = 0.3;
+
+  /// 时间段先验：新用户时根据分类名称和当前小时给出启发式推荐
+  /// 返回 [0, 1] 范围的分数
+  static double _timePrior(String categoryName, int hour) {
+    // 餐饮类关键词
+    final isMeal = RegExp(r'早餐|午餐|晚餐|外卖|餐饮|美食|吃饭|火锅|烧烤|快餐').hasMatch(categoryName);
+    // 交通类
+    final isTransport = RegExp(r'交通|通勤|地铁|公交|打车|加油').hasMatch(categoryName);
+    // 工资类
+    final isSalary = RegExp(r'工资|薪酬|奖金|收入').hasMatch(categoryName);
+
+    if (isMeal) {
+      // 早餐 6-9, 午餐 11-13, 晚餐 17-20
+      if (hour >= 6 && hour <= 9) return 0.7;
+      if (hour >= 11 && hour <= 13) return 0.9;
+      if (hour >= 17 && hour <= 20) return 0.8;
+      return 0.1;
+    }
+    if (isTransport) {
+      // 通勤时段 7-9, 17-19
+      if ((hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19)) return 0.8;
+      return 0.2;
+    }
+    if (isSalary) {
+      // 不依赖时间，给一个基础分
+      return 0.3;
+    }
+    // 默认：给一个均匀基础分
+    return 0.4;
   }
 }
