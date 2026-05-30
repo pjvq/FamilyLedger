@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:meta/meta.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../../../data/local/database.dart';
 import 'behavior_overlap_scorer.dart';
@@ -31,15 +31,30 @@ class MergeSuggestion {
   String get recommendedRetainId => _recommendRetain(categoryA, categoryB);
 
   static String _recommendRetain(Category a, Category b) {
-    // 1. 预设 > 用户自定义
     if (a.isPreset && !b.isPreset) return a.id;
     if (b.isPreset && !a.isPreset) return b.id;
-    // 2. 名字短的更通用
     if (a.name.length < b.name.length) return a.id;
     if (b.name.length < a.name.length) return b.id;
-    // 3. 字典序小的
     return a.id.compareTo(b.id) <= 0 ? a.id : b.id;
   }
+}
+
+/// 即时检测命中结果（CRITICAL #4 — 独立类型，不复用 MergeSuggestion）
+class InstantCheckHit {
+  /// 与新名称相似的已有分类
+  final Category existingCategory;
+
+  /// 文本相似度 [0, 1]
+  final double similarity;
+
+  /// 人类可读的匹配原因
+  final String reason;
+
+  const InstantCheckHit({
+    required this.existingCategory,
+    required this.similarity,
+    required this.reason,
+  });
 }
 
 /// 合并检测权重配置
@@ -64,21 +79,17 @@ class MergeWeights {
     keyword: 0.15,
   );
 
-  /// 根据实际参与的维度归一化权重（MAJOR #8）
+  /// 根据实际参与的维度归一化权重
   MergeWeights normalize({required bool hasSemanticScorer}) {
-    final effectiveText = text;
     final effectiveSemantic = hasSemanticScorer ? semantic : 0.0;
-    final effectiveBehavior = behavior;
-    final effectiveKeyword = keyword;
-
-    final sum = effectiveText + effectiveSemantic + effectiveBehavior + effectiveKeyword;
+    final sum = text + effectiveSemantic + behavior + keyword;
     if (sum == 0) return this;
 
     return MergeWeights(
-      text: effectiveText / sum,
+      text: text / sum,
       semantic: effectiveSemantic / sum,
-      behavior: effectiveBehavior / sum,
-      keyword: effectiveKeyword / sum,
+      behavior: behavior / sum,
+      keyword: keyword / sum,
     );
   }
 }
@@ -95,18 +106,22 @@ class _CandidatePair {
 
 /// 分类合并检测器
 /// 两阶段筛选：Pass 1 快速 TextSimilarity → Pass 2 完整评分
+///
+/// ⚠️ 必须单例使用 — 内部状态依赖实例唯一性
 class CategoryMergeDetector {
   /// 进入详细评分的最大候选对数
   static const _maxDetailedPairs = 200;
 
-  /// Pass 1 文本相似度阈值
-  static const _textSimThreshold = 0.4;
+  /// Pass 1 最低文本相似度（低于此值不进入候选）
+  static const _pass1MinTextSim = 0.4;
 
   /// 最终合并建议置信度阈值
   static const _confidenceThreshold = 0.6;
 
+  /// 即时检测阈值（较高，用于创建分类时的实时警告）
+  static const _highSimilarityThreshold = 0.7;
+
   /// 生成 reason 时各维度的"显著"阈值
-  static const _textReasonThreshold = 0.7;
   static const _behaviorReasonThreshold = 0.6;
   static const _keywordReasonThreshold = 0.3;
   static const _semanticReasonThreshold = 0.6;
@@ -129,24 +144,18 @@ class CategoryMergeDetector {
 
   /// 扫描所有分类，生成合并建议列表（按置信度降序）
   Future<List<MergeSuggestion>> scan() async {
-    // 归一化权重（MAJOR #8）
     final weights = _rawWeights.normalize(hasSemanticScorer: semanticScorer != null);
 
-    // 获取所有未删除分类
     final categories = await (_db.select(_db.categories)
           ..where((c) => c.deletedAt.isNull()))
         .get();
 
-    // 获取已忽略的配对
     final dismissedPairs = await _getDismissedPairs();
-
-    // 获取所有画像
     final profiles = await _profiler.getAllProfiles();
 
-    // === Pass 1: TextSimilarity 快速筛选 ===
+    // === Pass 1: TextSimilarity 快速筛选（bigram 倒排索引剪枝） ===
     final candidates = _generateCandidates(categories);
 
-    // 按 textSim 降序，截取前 _maxDetailedPairs
     candidates.sort((a, b) => b.textSim.compareTo(a.textSim));
     final topCandidates = candidates.take(_maxDetailedPairs).toList();
 
@@ -161,7 +170,6 @@ class CategoryMergeDetector {
       final profileA = profiles[pair.catA.id] ?? CategoryUsageProfile(categoryId: pair.catA.id);
       final profileB = profiles[pair.catB.id] ?? CategoryUsageProfile(categoryId: pair.catB.id);
 
-      // 各维度评分
       final textScore = pair.textSim;
       double semanticScore = 0;
       if (semanticScorer != null && weights.semantic > 0) {
@@ -170,7 +178,6 @@ class CategoryMergeDetector {
       final behaviorScore = BehaviorOverlapScorer.score(profileA, profileB);
       final keywordScore = KeywordOverlapScorer.score(profileA, profileB);
 
-      // 加权求和
       final confidence = weights.text * textScore +
           weights.semantic * semanticScore +
           weights.behavior * behaviorScore +
@@ -178,7 +185,7 @@ class CategoryMergeDetector {
 
       if (confidence >= _confidenceThreshold) {
         final reasons = <String>[];
-        if (textScore >= _textReasonThreshold) reasons.add('名称相似(${(textScore * 100).round()}%)');
+        if (textScore >= _highSimilarityThreshold) reasons.add('名称相似(${(textScore * 100).round()}%)');
         if (behaviorScore >= _behaviorReasonThreshold) reasons.add('使用模式相近');
         if (keywordScore >= _keywordReasonThreshold) reasons.add('关键词重叠');
         if (semanticScore >= _semanticReasonThreshold) reasons.add('语义相近');
@@ -198,54 +205,55 @@ class CategoryMergeDetector {
   }
 
   /// 创建分类时即时检测（只用 TextSimilarity，<1ms）
-  /// 返回与新名称相似的已有分类列表
-  List<MergeSuggestion> instantCheck(
+  /// 返回与新名称相似的已有分类列表（独立类型，不复用 MergeSuggestion）
+  List<InstantCheckHit> instantCheck(
     String newName,
     String newType,
     List<Category> existingCategories,
   ) {
-    final suggestions = <MergeSuggestion>[];
+    final hits = <InstantCheckHit>[];
     for (final existing in existingCategories) {
       if (existing.type != newType) continue;
       final sim = TextSimilarityScorer.score(newName, existing.name);
-      if (sim >= _textReasonThreshold) {
-        suggestions.add(MergeSuggestion(
-          categoryA: existing,
-          categoryB: existing, // 标记: 新分类尚未创建，这里填 existing 仅作参考
-          confidence: sim,
-          pairType: PairType.sameParent,
+      if (sim >= _highSimilarityThreshold) {
+        hits.add(InstantCheckHit(
+          existingCategory: existing,
+          similarity: sim,
           reason: '与「${existing.name}」名称相似(${(sim * 100).round()}%)',
         ));
       }
     }
-    suggestions.sort((a, b) => b.confidence.compareTo(a.confidence));
-    return suggestions;
+    hits.sort((a, b) => b.similarity.compareTo(a.similarity));
+    return hits;
   }
 
-  // ──────────── Pass 1: 候选生成 (MAJOR #6 优化) ────────────
+  // ──────────── Pass 1: 候选生成 ────────────
 
-  /// 生成候选对 — 使用 bigram 倒排索引剪枝，避免全量 O(n²)
+  /// 生成候选对 — 使用 bigram 倒排索引剪枝
+  /// 单字分类名使用 unigram fallback（MAJOR #C）
   List<_CandidatePair> _generateCandidates(List<Category> categories) {
     final candidates = <_CandidatePair>[];
 
-    // 按层级分组
-    final parents = categories.where((c) => c.parentId == null).toList();
     final childrenByParent = <String, List<Category>>{};
     for (final c in categories.where((c) => c.parentId != null)) {
       childrenByParent.putIfAbsent(c.parentId!, () => []).add(c);
     }
 
-    // 构建 bigram 倒排索引用于快速剪枝
-    final bigramIndex = <String, List<int>>{}; // bigram → indices in categories
+    // 构建 bigram/unigram 倒排索引
+    final ngramIndex = <String, List<int>>{};
     for (var i = 0; i < categories.length; i++) {
       final name = categories[i].name;
-      for (var j = 0; j < name.length - 1; j++) {
-        final bg = name.substring(j, j + 2);
-        bigramIndex.putIfAbsent(bg, () => []).add(i);
+      if (name.length == 1) {
+        // 单字 fallback: 用字符本身作为索引键
+        ngramIndex.putIfAbsent(name, () => []).add(i);
+      } else {
+        for (var j = 0; j < name.length - 1; j++) {
+          final bg = name.substring(j, j + 2);
+          ngramIndex.putIfAbsent(bg, () => []).add(i);
+        }
       }
     }
 
-    // 用倒排索引找到共享至少一个 bigram 的候选对
     final seenPairs = <String>{};
 
     for (var i = 0; i < categories.length; i++) {
@@ -253,12 +261,21 @@ class CategoryMergeDetector {
       final nameA = catA.name;
       final candidateIndices = <int>{};
 
-      for (var j = 0; j < nameA.length - 1; j++) {
-        final bg = nameA.substring(j, j + 2);
-        final indices = bigramIndex[bg];
+      if (nameA.length == 1) {
+        final indices = ngramIndex[nameA];
         if (indices != null) {
           for (final idx in indices) {
             if (idx > i) candidateIndices.add(idx);
+          }
+        }
+      } else {
+        for (var j = 0; j < nameA.length - 1; j++) {
+          final bg = nameA.substring(j, j + 2);
+          final indices = ngramIndex[bg];
+          if (indices != null) {
+            for (final idx in indices) {
+              if (idx > i) candidateIndices.add(idx);
+            }
           }
         }
       }
@@ -266,7 +283,6 @@ class CategoryMergeDetector {
       for (final j in candidateIndices) {
         final catB = categories[j];
 
-        // 基本过滤
         if (catA.type != catB.type) continue;
         if (_isPresetPair(catA, catB)) continue;
 
@@ -275,9 +291,8 @@ class CategoryMergeDetector {
         seenPairs.add(pairId);
 
         final textSim = TextSimilarityScorer.score(catA.name, catB.name);
-        if (textSim < _textSimThreshold) continue;
+        if (textSim < _pass1MinTextSim) continue;
 
-        // 确定配对类型
         final pairType = _classifyPair(catA, catB, childrenByParent);
         candidates.add(_CandidatePair(catA, catB, textSim, pairType));
       }

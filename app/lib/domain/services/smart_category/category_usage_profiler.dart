@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
-import 'package:meta/meta.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../../../data/local/database.dart';
 import 'category_usage_profile.dart';
@@ -18,6 +18,9 @@ abstract final class SlotType {
 
 /// 分类使用画像统计引擎
 /// 负责从 transactions 聚合使用数据到 category_usage_slots / category_usage_summary
+///
+/// ⚠️ 必须以单例方式使用（通过 DI 容器注入同一实例）。
+/// 内部互斥锁是实例级别的，多实例会导致锁失效。
 class CategoryUsageProfiler {
   final AppDatabase _db;
 
@@ -29,12 +32,11 @@ class CategoryUsageProfiler {
   // ──────────── 全量重建 ────────────
 
   /// 全量重建所有分类的使用画像（首次启动 / 导入后 / 周期性后台刷新）
-  /// 通过互斥锁防止并发执行（CRITICAL #3）
+  /// 通过互斥锁防止并发执行
   Future<void> rebuildAll() async {
-    // 等待正在进行的 rebuild 完成
     if (_rebuildLock != null) {
       await _rebuildLock!.future;
-      return; // 前一次已完成，本次跳过
+      return;
     }
 
     _rebuildLock = Completer<void>();
@@ -47,13 +49,11 @@ class CategoryUsageProfiler {
   }
 
   Future<void> _doRebuildAll() async {
-    // 获取所有未删除分类
     final categories = await (_db.select(_db.categories)
           ..where((c) => c.deletedAt.isNull()))
         .get();
     final categoryIds = categories.map((c) => c.id).toSet();
 
-    // 获取所有未删除交易
     final allTxns = await (_db.select(_db.transactions)
           ..where((t) => t.deletedAt.isNull()))
         .get();
@@ -62,7 +62,6 @@ class CategoryUsageProfiler {
     final sevenDaysAgo = now.subtract(const Duration(days: 7));
     final thirtyDaysAgo = now.subtract(const Duration(days: 30));
 
-    // 按 categoryId 分组
     final grouped = <String, List<Transaction>>{};
     for (final txn in allTxns) {
       if (!categoryIds.contains(txn.categoryId)) continue;
@@ -70,14 +69,12 @@ class CategoryUsageProfiler {
     }
 
     await _db.transaction(() async {
-      // 清空旧数据
       await _db.delete(_db.categoryUsageSlots).go();
       await _db.delete(_db.categoryUsageSummary).go();
 
       for (final catId in categoryIds) {
         final txns = grouped[catId] ?? [];
 
-        // 计算 slot 分布
         final hourCounts = List<int>.filled(24, 0);
         final weekdayCounts = List<int>.filled(7, 0);
         final amountCounts = List<int>.filled(6, 0);
@@ -101,7 +98,6 @@ class CategoryUsageProfiler {
           if (note.isNotEmpty) noteTexts.add(note);
         }
 
-        // 写入 slots
         await _db.batch((b) {
           for (var i = 0; i < 24; i++) {
             if (hourCounts[i] > 0) {
@@ -144,10 +140,8 @@ class CategoryUsageProfiler {
           }
         });
 
-        // 提取 topKeywords
         final keywords = extractTopKeywords(noteTexts);
 
-        // 写入 summary
         await _db.into(_db.categoryUsageSummary).insert(
           CategoryUsageSummaryCompanion.insert(
             categoryId: catId,
@@ -165,7 +159,7 @@ class CategoryUsageProfiler {
   // ──────────── 增量更新 ────────────
 
   /// 记一笔交易后增量更新对应分类的统计
-  /// 注意：仅更新 total_count 和 last_used_at（CRITICAL #2 修复）
+  /// 注意：仅更新 total_count 和 last_used_at
   /// last_7d/last_30d 由 refreshRecencyCounts() 定期刷新
   Future<void> onTransactionCreated({
     required String categoryId,
@@ -176,13 +170,12 @@ class CategoryUsageProfiler {
     final weekday = txnDate.weekday % 7;
     final bucket = CategoryUsageProfile.amountToBucket(amountCents.abs());
 
-    // Upsert slots — 使用 insertOnConflictUpdate 触发 Drift StreamQuery 通知
+    // Upsert slots — 使用 insertOnConflictUpdate 保持原子性并触发 Stream 通知
     await _upsertSlot(categoryId, SlotType.hour, hour);
     await _upsertSlot(categoryId, SlotType.weekday, weekday);
     await _upsertSlot(categoryId, SlotType.amount, bucket);
 
-    // Update summary — 仅递增 total_count + 更新 last_used_at
-    // last_7d_count / last_30d_count 留给 refreshRecencyCounts 批量刷新
+    // Upsert summary — 仅递增 total_count + 更新 last_used_at
     final existing = await (_db.select(_db.categoryUsageSummary)
           ..where((s) => s.categoryId.equals(categoryId)))
         .getSingleOrNull();
@@ -211,36 +204,23 @@ class CategoryUsageProfiler {
     }
   }
 
-  /// Upsert slot — 使用 Drift 原生 API 确保触发 StreamQuery 通知（CRITICAL #5）
+  /// Upsert slot — 使用 Drift insertOnConflictUpdate 保持原子性（MAJOR #A）
   Future<void> _upsertSlot(String categoryId, String slotType, int slotIndex) async {
     assert(SlotType.all.contains(slotType), 'Invalid slotType: $slotType');
 
-    final existing = await (_db.select(_db.categoryUsageSlots)
-          ..where((s) =>
-              s.categoryId.equals(categoryId) &
-              s.slotType.equals(slotType) &
-              s.slotIndex.equals(slotIndex)))
-        .getSingleOrNull();
-
-    if (existing == null) {
-      await _db.into(_db.categoryUsageSlots).insert(
-        CategoryUsageSlotsCompanion.insert(
-          categoryId: categoryId,
-          slotType: slotType,
-          slotIndex: slotIndex,
-          count: const Value(1),
-        ),
-      );
-    } else {
-      await (_db.update(_db.categoryUsageSlots)
-            ..where((s) =>
-                s.categoryId.equals(categoryId) &
-                s.slotType.equals(slotType) &
-                s.slotIndex.equals(slotIndex)))
-          .write(CategoryUsageSlotsCompanion(
-        count: Value(existing.count + 1),
-      ));
-    }
+    // 先尝试 insertOnConflictUpdate，但因为需要 count+1 语义，
+    // 用 customInsert + updates 声明来确保原子性并触发 Stream 通知
+    await _db.customInsert(
+      'INSERT INTO category_usage_slots (category_id, slot_type, slot_index, count) '
+      'VALUES (?, ?, ?, 1) '
+      'ON CONFLICT(category_id, slot_type, slot_index) DO UPDATE SET count = count + 1',
+      variables: [
+        Variable.withString(categoryId),
+        Variable.withString(slotType),
+        Variable.withInt(slotIndex),
+      ],
+      updates: {_db.categoryUsageSlots},
+    );
   }
 
   // ──────────── 读取画像 ────────────
@@ -263,7 +243,6 @@ class CategoryUsageProfiler {
     final summaries = await _db.select(_db.categoryUsageSummary).get();
     final allSlots = await _db.select(_db.categoryUsageSlots).get();
 
-    // 按 categoryId 分组 slots
     final slotsByCategory = <String, List<CategoryUsageSlot>>{};
     for (final slot in allSlots) {
       slotsByCategory.putIfAbsent(slot.categoryId, () => []).add(slot);
@@ -305,6 +284,9 @@ class CategoryUsageProfiler {
           if (slot.slotIndex >= 0 && slot.slotIndex < 6) {
             amountDist[slot.slotIndex] = slot.count;
           }
+        default:
+          // 未知 slotType（可能是历史脏数据），静默跳过
+          break;
       }
     }
 
@@ -330,11 +312,10 @@ class CategoryUsageProfiler {
 
   // ──────────── 关键词提取 ────────────
 
-  /// 停用词集合
   static const _stopwords = {
     '的', '了', '在', '是', '我', '一', '个', '不', '这', '那',
     '有', '和', '与', '等', '到', '也', '就', '都', '而', '及',
-    '年', '月', '日', '号', '时', // 时间字 (MINOR #13)
+    '年', '月', '日', '号', '时',
   };
 
   static final _latinRegex = RegExp(r'[a-zA-Z]+');
@@ -358,7 +339,6 @@ class CategoryUsageProfiler {
       }
     }
 
-    // 至少出现 2 次才有意义
     freq.removeWhere((_, count) => count < 2);
 
     final sorted = freq.entries.toList()
@@ -402,7 +382,7 @@ class CategoryUsageProfiler {
   // ──────────── 周期性刷新 ────────────
 
   /// 刷新 last_7d_count 和 last_30d_count（每天后台运行一次）
-  /// 单条 GROUP BY 聚合，无 N+1 问题（CRITICAL #1）
+  /// 单条 GROUP BY 聚合 + batch UPDATE（无 N+1）
   Future<void> refreshRecencyCounts() async {
     final now = DateTime.now();
     final sevenDaysAgo = now.subtract(const Duration(days: 7));
@@ -427,7 +407,7 @@ class CategoryUsageProfiler {
       readsFrom: {_db.transactions},
     ).get();
 
-    final countMap = <String, (int, int)>{}; // categoryId → (7d, 30d)
+    final countMap = <String, (int, int)>{};
     for (final row in rows) {
       final catId = row.data['category_id'] as String;
       final cnt7d = row.data['cnt_7d'] as int? ?? 0;
@@ -435,18 +415,23 @@ class CategoryUsageProfiler {
       countMap[catId] = (cnt7d, cnt30d);
     }
 
-    // 批量更新 summary
-    await _db.transaction(() async {
-      final summaries = await _db.select(_db.categoryUsageSummary).get();
+    // 批量 UPDATE 使用 batch（MAJOR #B）
+    final summaries = await _db.select(_db.categoryUsageSummary).get();
+    await _db.batch((b) {
       for (final summary in summaries) {
         final counts = countMap[summary.categoryId] ?? (0, 0);
-        await (_db.update(_db.categoryUsageSummary)
-              ..where((s) => s.categoryId.equals(summary.categoryId)))
-            .write(CategoryUsageSummaryCompanion(
-          last7dCount: Value(counts.$1),
-          last30dCount: Value(counts.$2),
-          updatedAt: Value(now),
-        ));
+        b.replace(
+          _db.categoryUsageSummary,
+          CategoryUsageSummaryCompanion(
+            categoryId: Value(summary.categoryId),
+            totalCount: Value(summary.totalCount),
+            last7dCount: Value(counts.$1),
+            last30dCount: Value(counts.$2),
+            topKeywords: Value(summary.topKeywords),
+            lastUsedAt: Value(summary.lastUsedAt),
+            updatedAt: Value(now),
+          ),
+        );
       }
     });
   }
