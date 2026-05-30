@@ -4,4 +4,6 @@ export 'category_merge_executor.dart';
 export 'category_usage_profile.dart';
 export 'category_usage_profiler.dart';
 export 'keyword_overlap_scorer.dart';
+export 'nl_embedding_bridge.dart';
+export 'semantic_scorer.dart';
 export 'text_similarity_scorer.dart';
