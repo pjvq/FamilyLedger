@@ -1,7 +1,10 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/category_icon_widget.dart';
+import '../../data/local/database.dart';
 import '../../domain/providers/category_merge_provider.dart';
 import '../../domain/services/smart_category/category_merge_detector.dart';
 import '../../domain/services/smart_category/category_merge_executor.dart';
@@ -68,10 +71,8 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
   }
 
   Widget _buildSuggestionCards(List<MergeSuggestion> suggestions) {
-    // Clamp index
-    if (_currentIndex >= suggestions.length) {
-      _currentIndex = suggestions.length - 1;
-    }
+    // MINOR #13: defensive clamp
+    _currentIndex = max(0, min(_currentIndex, suggestions.length - 1));
 
     final suggestion = suggestions[_currentIndex];
 
@@ -110,12 +111,11 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
   Future<void> _executeMerge(MergeSuggestion suggestion) async {
     final actions = ref.read(categoryMergeActionsProvider.notifier);
     try {
+      // MAJOR #8: domain 层处理 PairType → MergeType 映射
       final result = await actions.merge(
         sourceCategoryId: suggestion.categoryB.id,
         targetCategoryId: suggestion.categoryA.id,
-        mergeType: suggestion.pairType == PairType.sameParent
-            ? MergeType.simple
-            : MergeType.crossParent,
+        mergeType: MergeType.fromPairType(suggestion.pairType),
       );
 
       if (mounted) {
@@ -141,20 +141,18 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
   }
 
   Future<void> _undoMerge(String mergeLogId) async {
+    // MAJOR #10: 使用顶层 ScaffoldMessenger，避免 State dispose 后 ref 无效
+    final messenger = ScaffoldMessenger.of(context);
     final actions = ref.read(categoryMergeActionsProvider.notifier);
     try {
       await actions.undo(mergeLogId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已撤销合并')),
-        );
-      }
+      messenger.showSnackBar(
+        const SnackBar(content: Text('已撤销合并')),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('撤销失败: $e')),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text('撤销失败: $e')),
+      );
     }
   }
 
@@ -224,7 +222,7 @@ class _SuggestionCard extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 12),
 
-            // 两个分类
+            // 两个分类（CRITICAL #4: 强类型 Category）
             Row(
               children: [
                 Expanded(child: _CategoryChip(category: catB, label: '删除')),
@@ -299,9 +297,9 @@ class _SuggestionCard extends StatelessWidget {
   }
 }
 
-/// 分类标签
+/// 分类标签（CRITICAL #4: 使用强类型 Category）
 class _CategoryChip extends StatelessWidget {
-  final dynamic category; // Category from Drift
+  final Category category;
   final String label;
 
   const _CategoryChip({required this.category, required this.label});
@@ -310,10 +308,10 @@ class _CategoryChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        CategoryIconWidget(iconKey: category.iconKey ?? '', size: 40),
+        CategoryIconWidget(iconKey: category.iconKey, size: 40),
         const SizedBox(height: 4),
         Text(
-          category.name as String,
+          category.name,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           textAlign: TextAlign.center,
           maxLines: 1,
@@ -390,9 +388,11 @@ class _MergeHistorySheet extends ConsumerWidget {
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final log = logs[index];
+                    // MINOR #12: clamp daysLeft to avoid negative display
                     final daysLeft = log.expiresAt
                         .difference(DateTime.now())
-                        .inDays;
+                        .inDays
+                        .clamp(0, 7);
                     return ListTile(
                       title: Text(
                         '「${log.sourceCategoryName}」→ 已合并',
@@ -405,23 +405,19 @@ class _MergeHistorySheet extends ConsumerWidget {
                       ),
                       trailing: TextButton(
                         onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
                           final actions = ref.read(
                               categoryMergeActionsProvider.notifier);
+                          Navigator.pop(context); // MINOR #14: dismiss sheet first
                           try {
                             await actions.undo(log.id);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('已撤销')),
-                              );
-                            }
+                            messenger.showSnackBar(
+                              const SnackBar(content: Text('已撤销')),
+                            );
                           } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text('撤销失败: $e')),
-                              );
-                            }
+                            messenger.showSnackBar(
+                              SnackBar(content: Text('撤销失败: $e')),
+                            );
                           }
                         },
                         child: const Text('撤销'),

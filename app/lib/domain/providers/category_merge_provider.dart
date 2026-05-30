@@ -6,14 +6,16 @@ import '../services/smart_category/category_merge_executor.dart';
 import '../services/smart_category/category_usage_profiler.dart';
 import 'app_providers.dart';
 
-/// CategoryUsageProfiler — 单例
+/// CategoryUsageProfiler — 单例，keepAlive 确保生命周期（MAJOR #7）
 final categoryUsageProfilerProvider = Provider<CategoryUsageProfiler>((ref) {
+  ref.keepAlive();
   final db = ref.watch(databaseProvider);
   return CategoryUsageProfiler(db);
 });
 
-/// CategoryMergeDetector — 单例
+/// CategoryMergeDetector — 单例，keepAlive
 final categoryMergeDetectorProvider = Provider<CategoryMergeDetector>((ref) {
+  ref.keepAlive();
   final db = ref.watch(databaseProvider);
   final profiler = ref.watch(categoryUsageProfilerProvider);
   return CategoryMergeDetector(
@@ -22,23 +24,26 @@ final categoryMergeDetectorProvider = Provider<CategoryMergeDetector>((ref) {
   );
 });
 
-/// CategoryMergeExecutor — 单例
+/// CategoryMergeExecutor — 单例，keepAlive
 final categoryMergeExecutorProvider = Provider<CategoryMergeExecutor>((ref) {
+  ref.keepAlive();
   final db = ref.watch(databaseProvider);
   final profiler = ref.watch(categoryUsageProfilerProvider);
   return CategoryMergeExecutor(db: db, profiler: profiler);
 });
 
-/// 合并建议列表（异步按需加载）
+/// 合并建议列表（带缓存，手动 invalidate 刷新）（MAJOR #9）
 final categoryMergeSuggestionsProvider =
-    FutureProvider.autoDispose<List<MergeSuggestion>>((ref) async {
+    FutureProvider<List<MergeSuggestion>>((ref) async {
+  ref.keepAlive();
   final detector = ref.watch(categoryMergeDetectorProvider);
   return detector.scan();
 });
 
 /// 可撤销的合并日志
 final undoableMergeLogsProvider =
-    FutureProvider.autoDispose<List<CategoryMergeLogData>>((ref) async {
+    FutureProvider<List<CategoryMergeLogData>>((ref) async {
+  ref.keepAlive();
   final executor = ref.watch(categoryMergeExecutorProvider);
   return executor.getUndoableMergeLogs();
 });
