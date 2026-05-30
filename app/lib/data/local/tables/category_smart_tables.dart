@@ -48,6 +48,8 @@ class CategoryMergeLog extends Table {
   TextColumn get sourceIconKey => text().withDefault(const Constant(''))();
   TextColumn get sourceParentId => text().nullable()();
   IntColumn get affectedCount => integer().withDefault(const Constant(0))();
+  /// JSON array of child category IDs that were reparented during merge
+  TextColumn get reparentedChildIds => text().withDefault(const Constant('[]'))();
   /// simple / crossParent / parentMerge / moveOnly
   TextColumn get mergeType => text().withDefault(const Constant('simple'))();
   DateTimeColumn get mergedAt => dateTime().withDefault(currentDateAndTime)();

@@ -110,6 +110,7 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
 
   Future<void> _executeMerge(MergeSuggestion suggestion) async {
     final actions = ref.read(categoryMergeActionsProvider.notifier);
+    final messenger = ScaffoldMessenger.of(context);
     try {
       // MAJOR #8: domain 层处理 PairType → MergeType 映射
       final result = await actions.merge(
@@ -119,13 +120,26 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        // MAJOR #A: 提前捕获 actions 引用，避免 SnackBar 闭包内 ref 已 dispose
+        final undoActions = ref.read(categoryMergeActionsProvider.notifier);
+        messenger.showSnackBar(
           SnackBar(
             content:
                 Text('已合并，${result.affectedTransactions} 笔交易已更新'),
             action: SnackBarAction(
               label: '撤销',
-              onPressed: () => _undoMerge(result.mergeLogId),
+              onPressed: () async {
+                try {
+                  await undoActions.undo(result.mergeLogId);
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('已撤销合并')),
+                  );
+                } catch (e) {
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('撤销失败: $e')),
+                  );
+                }
+              },
             ),
             duration: const Duration(seconds: 5),
           ),
@@ -133,26 +147,10 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('合并失败: $e')),
         );
       }
-    }
-  }
-
-  Future<void> _undoMerge(String mergeLogId) async {
-    // MAJOR #10: 使用顶层 ScaffoldMessenger，避免 State dispose 后 ref 无效
-    final messenger = ScaffoldMessenger.of(context);
-    final actions = ref.read(categoryMergeActionsProvider.notifier);
-    try {
-      await actions.undo(mergeLogId);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('已撤销合并')),
-      );
-    } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('撤销失败: $e')),
-      );
     }
   }
 
