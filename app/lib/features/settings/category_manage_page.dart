@@ -10,6 +10,7 @@ import '../../domain/providers/transaction_provider.dart';
 import '../../generated/proto/transaction.pb.dart';
 import '../../generated/proto/transaction.pbgrpc.dart';
 import '../transaction/widgets/icon_picker_sheet.dart';
+import 'category_cleanup_page.dart';
 
 class CategoryManagePage extends ConsumerStatefulWidget {
   const CategoryManagePage({super.key});
@@ -283,6 +284,16 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       appBar: AppBar(
         title: const Text('分类管理'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_fix_high),
+            tooltip: '分类整理',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const CategoryCleanupPage(),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: '添加主分类',
