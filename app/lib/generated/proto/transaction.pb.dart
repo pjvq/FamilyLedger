@@ -2157,6 +2157,9 @@ class MergeCategoriesRequest extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'targetCategoryId')
     ..hasRequiredFields = false;
 
+  @$core.override
+  MergeCategoriesRequest clone() => MergeCategoriesRequest()..mergeFromMessage(this);
+
   @$core.Deprecated('Using this can add significant overhead to your binary. Use [GeneratedMessageGenericExtensions.rebuild] instead. Will be removed in next major version')
   MergeCategoriesRequest copyWith(void Function(MergeCategoriesRequest) updates) => super.copyWith((message) => updates(message as MergeCategoriesRequest)) as MergeCategoriesRequest;
 
@@ -2205,6 +2208,9 @@ class MergeCategoriesResponse extends $pb.GeneratedMessage {
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MergeCategoriesResponse', createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'affectedTransactions', $pb.PbFieldType.O3)
     ..hasRequiredFields = false;
+
+  @$core.override
+  MergeCategoriesResponse clone() => MergeCategoriesResponse()..mergeFromMessage(this);
 
   @$core.Deprecated('Using this can add significant overhead to your binary. Use [GeneratedMessageGenericExtensions.rebuild] instead. Will be removed in next major version')
   MergeCategoriesResponse copyWith(void Function(MergeCategoriesResponse) updates) => super.copyWith((message) => updates(message as MergeCategoriesResponse)) as MergeCategoriesResponse;
