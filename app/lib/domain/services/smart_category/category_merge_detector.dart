@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:meta/meta.dart';
 
 import '../../../data/local/database.dart';
 import 'behavior_overlap_scorer.dart';

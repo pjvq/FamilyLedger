@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:meta/meta.dart';
 
 import 'category_usage_profile.dart';
 

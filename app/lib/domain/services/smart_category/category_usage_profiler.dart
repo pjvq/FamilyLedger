@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:meta/meta.dart';
 
 import '../../../data/local/database.dart';
 import 'category_usage_profile.dart';
@@ -175,33 +175,21 @@ class CategoryUsageProfiler {
     await _upsertSlot(categoryId, SlotType.weekday, weekday);
     await _upsertSlot(categoryId, SlotType.amount, bucket);
 
-    // Upsert summary — 仅递增 total_count + 更新 last_used_at
-    final existing = await (_db.select(_db.categoryUsageSummary)
-          ..where((s) => s.categoryId.equals(categoryId)))
-        .getSingleOrNull();
-
-    if (existing == null) {
-      await _db.into(_db.categoryUsageSummary).insert(
-        CategoryUsageSummaryCompanion.insert(
-          categoryId: categoryId,
-          totalCount: const Value(1),
-          topKeywords: const Value('[]'),
-          lastUsedAt: Value(txnDate),
-        ),
-      );
-    } else {
-      await (_db.update(_db.categoryUsageSummary)
-            ..where((s) => s.categoryId.equals(categoryId)))
-          .write(CategoryUsageSummaryCompanion(
-        totalCount: Value(existing.totalCount + 1),
-        lastUsedAt: Value(
-          existing.lastUsedAt == null || txnDate.isAfter(existing.lastUsedAt!)
-              ? txnDate
-              : existing.lastUsedAt!,
-        ),
-        updatedAt: Value(DateTime.now()),
-      ));
-    }
+    // Upsert summary — 原子 INSERT ON CONFLICT (nit #1)
+    await _db.customInsert(
+      'INSERT INTO category_usage_summary (category_id, total_count, last_7d_count, last_30d_count, top_keywords, last_used_at, updated_at) '
+      'VALUES (?, 1, 0, 0, \'[]\', ?, ?) '
+      'ON CONFLICT(category_id) DO UPDATE SET '
+      'total_count = total_count + 1, '
+      'last_used_at = CASE WHEN excluded.last_used_at > last_used_at THEN excluded.last_used_at ELSE last_used_at END, '
+      'updated_at = excluded.updated_at',
+      variables: [
+        Variable.withString(categoryId),
+        Variable.withDateTime(txnDate),
+        Variable.withDateTime(DateTime.now()),
+      ],
+      updates: {_db.categoryUsageSummary},
+    );
   }
 
   /// Upsert slot — 使用 Drift insertOnConflictUpdate 保持原子性（MAJOR #A）
@@ -415,22 +403,21 @@ class CategoryUsageProfiler {
       countMap[catId] = (cnt7d, cnt30d);
     }
 
-    // 批量 UPDATE 使用 batch（MAJOR #B）
+    // 批量 UPDATE 只更新 last_7d/last_30d/updated_at（nit #2 — 不覆盖其他字段）
     final summaries = await _db.select(_db.categoryUsageSummary).get();
     await _db.batch((b) {
       for (final summary in summaries) {
         final counts = countMap[summary.categoryId] ?? (0, 0);
-        b.replace(
-          _db.categoryUsageSummary,
-          CategoryUsageSummaryCompanion(
-            categoryId: Value(summary.categoryId),
-            totalCount: Value(summary.totalCount),
-            last7dCount: Value(counts.$1),
-            last30dCount: Value(counts.$2),
-            topKeywords: Value(summary.topKeywords),
-            lastUsedAt: Value(summary.lastUsedAt),
-            updatedAt: Value(now),
-          ),
+        b.customStatement(
+          'UPDATE category_usage_summary '
+          'SET last_7d_count = ?, last_30d_count = ?, updated_at = ? '
+          'WHERE category_id = ?',
+          [
+            Variable.withInt(counts.$1),
+            Variable.withInt(counts.$2),
+            Variable.withDateTime(now),
+            Variable.withString(summary.categoryId),
+          ],
         );
       }
     });
