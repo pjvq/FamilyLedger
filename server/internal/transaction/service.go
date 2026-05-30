@@ -1892,13 +1892,15 @@ func (s *Service) MergeCategories(ctx context.Context, req *pb.MergeCategoriesRe
 		return nil, status.Error(codes.Internal, "failed to commit merge")
 	}
 
-	// 6. 通知当前用户的其他设备（分类是用户级别，不是家庭级别）
-	notification, _ := json.Marshal(map[string]interface{}{
-		"type":   "category_merge",
-		"source": sourceID.String(),
-		"target": targetID.String(),
-	})
-	go s.hub.BroadcastToUser(userID, notification)
+	// 6. 通知当前用户的其他设备（分类是用户级别）
+	if s.hub != nil {
+		notification, _ := json.Marshal(map[string]interface{}{
+			"type":   "category_merge",
+			"source": sourceID.String(),
+			"target": targetID.String(),
+		})
+		go s.hub.BroadcastToUser(userID, notification)
+	}
 
 	return &pb.MergeCategoriesResponse{AffectedTransactions: affected}, nil
 }
