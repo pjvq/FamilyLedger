@@ -70,6 +70,11 @@ class TransactionServiceClient extends $grpc.Client {
       ($0.ReorderCategoriesRequest value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $0.ReorderCategoriesResponse.fromBuffer(value));
 
+  static final _$mergeCategories = $grpc.ClientMethod<$0.MergeCategoriesRequest, $0.MergeCategoriesResponse>(
+      '/familyledger.transaction.v1.TransactionService/MergeCategories',
+      ($0.MergeCategoriesRequest value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.MergeCategoriesResponse.fromBuffer(value));
+
   TransactionServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
       $core.Iterable<$grpc.ClientInterceptor>? interceptors})
@@ -122,6 +127,10 @@ class TransactionServiceClient extends $grpc.Client {
 
   $grpc.ResponseFuture<$0.ReorderCategoriesResponse> reorderCategories($0.ReorderCategoriesRequest request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$reorderCategories, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.MergeCategoriesResponse> mergeCategories($0.MergeCategoriesRequest request, {$grpc.CallOptions? options}) {
+    return $createUnaryCall(_$mergeCategories, request, options: options);
   }
 }
 

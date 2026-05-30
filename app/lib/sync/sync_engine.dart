@@ -4,7 +4,7 @@ import 'dart:developer' as dev;
 import 'dart:io';
 import 'dart:math';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show UpdateKind, Value, Variable;
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -615,6 +615,10 @@ class SyncEngine {
       case 'budget':
         await _applyBudgetOp(op.opType, op.entityId, payload);
         break;
+      case 'category_merge':
+        // 合并操作从服务端拉取时，本地执行同样的合并
+        await _applyCategoryMergeOp(op.entityId, payload);
+        break;
       default:
         // Throw so unknown entity types enter dead-letter table.
         // When client upgrades with new handler, retry will succeed.
@@ -826,6 +830,53 @@ class SyncEngine {
       default:
         break;
     }
+  }
+
+  // ─────────── Category Merge ops ───────────
+
+  Future<void> _applyCategoryMergeOp(
+    String mergeLogId,
+    Map<String, dynamic> payload,
+  ) async {
+    final sourceId = payload['source_category_id'] as String?;
+    final targetId = payload['target_category_id'] as String?;
+    if (sourceId == null || targetId == null) return;
+    if (_db == null) return; // CRITICAL #4: guard null db
+
+    // 幂等保护：检查 source 是否已删除
+    final source = await (_db!.select(_db!.categories)
+          ..where((c) => c.id.equals(sourceId))
+          ..where((c) => c.deletedAt.isNull()))
+        .getSingleOrNull();
+    if (source == null) return; // 已处理过，跳过
+
+    // CRITICAL #1: 用 customUpdate + updates 触发 Stream 通知
+    await _db!.customUpdate(
+      'UPDATE transactions SET category_id = ? WHERE category_id = ? AND deleted_at IS NULL',
+      variables: [Variable.withString(targetId), Variable.withString(sourceId)],
+      updates: {_db!.transactions},
+      updateKind: UpdateKind.update,
+    );
+    await _db!.customUpdate(
+      'UPDATE categories SET parent_id = ? WHERE parent_id = ? AND deleted_at IS NULL',
+      variables: [Variable.withString(targetId), Variable.withString(sourceId)],
+      updates: {_db!.categories},
+      updateKind: UpdateKind.update,
+    );
+    await _db!.customUpdate(
+      'UPDATE categories SET deleted_at = ? WHERE id = ?',
+      variables: [Variable.withDateTime(DateTime.now()), Variable.withString(sourceId)],
+      updates: {_db!.categories},
+      updateKind: UpdateKind.update,
+    );
+
+    // CRITICAL #5: 清理源分类的使用统计
+    await (_db!.delete(_db!.categoryUsageSlots)
+          ..where((s) => s.categoryId.equals(sourceId)))
+        .go();
+    await (_db!.delete(_db!.categoryUsageSummary)
+          ..where((s) => s.categoryId.equals(sourceId)))
+        .go();
   }
 
   // ─────────── Loan ops ───────────

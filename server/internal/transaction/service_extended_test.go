@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	pgxmock "github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -356,4 +357,209 @@ func TestListTransactions_InvalidAccountId(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+// ─── MergeCategories ─────────────────────────────────────────────────────────
+
+func TestMergeCategories_NoAuth(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	_, err = svc.MergeCategories(noAuthCtx(), &pb.MergeCategoriesRequest{
+		SourceCategoryId: "11111111-1111-1111-1111-111111111111",
+		TargetCategoryId: "22222222-2222-2222-2222-222222222222",
+	})
+
+	require.Error(t, err)
+	assert.Equal(t, codes.Unauthenticated, status.Code(err))
+}
+
+func TestMergeCategories_InvalidSourceId(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	_, err = svc.MergeCategories(authedCtx(), &pb.MergeCategoriesRequest{
+		SourceCategoryId: "not-a-uuid",
+		TargetCategoryId: "22222222-2222-2222-2222-222222222222",
+	})
+
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestMergeCategories_InvalidTargetId(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	_, err = svc.MergeCategories(authedCtx(), &pb.MergeCategoriesRequest{
+		SourceCategoryId: "11111111-1111-1111-1111-111111111111",
+		TargetCategoryId: "bad-uuid",
+	})
+
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestMergeCategories_SameId(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	_, err = svc.MergeCategories(authedCtx(), &pb.MergeCategoriesRequest{
+		SourceCategoryId: "11111111-1111-1111-1111-111111111111",
+		TargetCategoryId: "11111111-1111-1111-1111-111111111111",
+	})
+
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestMergeCategories_SourceNotFound(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT user_id, type FROM categories").
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnError(pgx.ErrNoRows)
+	mock.ExpectRollback()
+
+	_, err = svc.MergeCategories(authedCtx(), &pb.MergeCategoriesRequest{
+		SourceCategoryId: "11111111-1111-1111-1111-111111111111",
+		TargetCategoryId: "22222222-2222-2222-2222-222222222222",
+	})
+
+	require.Error(t, err)
+	assert.Equal(t, codes.NotFound, status.Code(err))
+}
+
+func TestMergeCategories_TypeMismatch(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	sourceID := "11111111-1111-1111-1111-111111111111"
+	targetID := "22222222-2222-2222-2222-222222222222"
+
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT user_id, type FROM categories").
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "type"}).
+			AddRow(testUserID, "expense"))
+	mock.ExpectQuery("SELECT user_id, type FROM categories").
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "type"}).
+			AddRow(testUserID, "income"))
+	mock.ExpectRollback()
+
+	_, err = svc.MergeCategories(authedCtx(), &pb.MergeCategoriesRequest{
+		SourceCategoryId: sourceID,
+		TargetCategoryId: targetID,
+	})
+
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestMergeCategories_PermissionDenied(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	sourceID := "11111111-1111-1111-1111-111111111111"
+	targetID := "22222222-2222-2222-2222-222222222222"
+
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT user_id, type FROM categories").
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "type"}).
+			AddRow("other-user-id", "expense"))
+	mock.ExpectQuery("SELECT user_id, type FROM categories").
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "type"}).
+			AddRow(testUserID, "expense"))
+	mock.ExpectRollback()
+
+	_, err = svc.MergeCategories(authedCtx(), &pb.MergeCategoriesRequest{
+		SourceCategoryId: sourceID,
+		TargetCategoryId: targetID,
+	})
+
+	require.Error(t, err)
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
+}
+
+func TestMergeCategories_Success(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+
+	svc := NewService(mock)
+
+	sourceID := "11111111-1111-1111-1111-111111111111"
+	targetID := "22222222-2222-2222-2222-222222222222"
+
+	mock.ExpectBegin()
+	// Verify source
+	mock.ExpectQuery("SELECT user_id, type FROM categories").
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "type"}).
+			AddRow(testUserID, "expense"))
+	// Verify target
+	mock.ExpectQuery("SELECT user_id, type FROM categories").
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "type"}).
+			AddRow(testUserID, "expense"))
+	// Remap transactions
+	mock.ExpectExec("UPDATE transactions SET category_id").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 5))
+	// Reparent children
+	mock.ExpectExec("UPDATE categories SET parent_id").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+	// Remap budgets
+	mock.ExpectExec("UPDATE category_budgets SET category_id").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+	// Delete orphan budgets
+	mock.ExpectExec("DELETE FROM category_budgets").
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("DELETE", 0))
+	// Soft delete source
+	mock.ExpectExec("UPDATE categories SET deleted_at").
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	// Record sync_operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	mock.ExpectCommit()
+
+	resp, err := svc.MergeCategories(authedCtx(), &pb.MergeCategoriesRequest{
+		SourceCategoryId: sourceID,
+		TargetCategoryId: targetID,
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, int32(5), resp.AffectedTransactions)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }

@@ -7,6 +7,7 @@ import '../services/smart_category/category_usage_profiler.dart';
 import '../services/smart_category/nl_embedding_bridge.dart';
 import '../services/smart_category/semantic_scorer.dart';
 import 'app_providers.dart';
+import 'transaction_provider.dart';
 
 /// CategoryUsageProfiler — 单例，keepAlive 确保生命周期
 final categoryUsageProfilerProvider = Provider<CategoryUsageProfiler>((ref) {
@@ -94,6 +95,22 @@ class CategoryMergeActionsNotifier extends Notifier<void> {
       targetCategoryId: targetCategoryId,
       mergeType: mergeType,
     );
+
+    // 入队同步（失败不影响本地合并结果）
+    try {
+      final syncQueue = ref.read(offlineSyncQueueProvider);
+      await syncQueue.enqueueUpdate(
+        entityType: 'category_merge',
+        entityId: result.mergeLogId,
+        payload: {
+          'source_category_id': sourceCategoryId,
+          'target_category_id': targetCategoryId,
+        },
+      );
+    } catch (_) {
+      // enqueue 失败不阻塞本地合并，下次同步时会重试
+    }
+
     _invalidateAll();
     return result;
   }

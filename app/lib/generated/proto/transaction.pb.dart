@@ -2137,6 +2137,104 @@ class ReorderCategoriesResponse extends $pb.GeneratedMessage {
   static ReorderCategoriesResponse? _defaultInstance;
 }
 
+/// MergeCategoriesRequest
+class MergeCategoriesRequest extends $pb.GeneratedMessage {
+  factory MergeCategoriesRequest({
+    $core.String? sourceCategoryId,
+    $core.String? targetCategoryId,
+  }) {
+    final result = create();
+    if (sourceCategoryId != null) result.sourceCategoryId = sourceCategoryId;
+    if (targetCategoryId != null) result.targetCategoryId = targetCategoryId;
+    return result;
+  }
+  MergeCategoriesRequest._() : super();
+  factory MergeCategoriesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MergeCategoriesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MergeCategoriesRequest', createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'sourceCategoryId')
+    ..aOS(2, _omitFieldNames ? '' : 'targetCategoryId')
+    ..hasRequiredFields = false;
+
+  @$core.override
+  MergeCategoriesRequest clone() => MergeCategoriesRequest()..mergeFromMessage(this);
+
+  @$core.Deprecated('Using this can add significant overhead to your binary. Use [GeneratedMessageGenericExtensions.rebuild] instead. Will be removed in next major version')
+  MergeCategoriesRequest copyWith(void Function(MergeCategoriesRequest) updates) => super.copyWith((message) => updates(message as MergeCategoriesRequest)) as MergeCategoriesRequest;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MergeCategoriesRequest create() => MergeCategoriesRequest._();
+  MergeCategoriesRequest createEmptyInstance() => create();
+  static $pb.PbList<MergeCategoriesRequest> createRepeated() => $pb.PbList<MergeCategoriesRequest>();
+  @$core.pragma('dart2js:noInline')
+  static MergeCategoriesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MergeCategoriesRequest>(create);
+  static MergeCategoriesRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get sourceCategoryId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set sourceCategoryId($core.String v) { $_setString(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasSourceCategoryId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSourceCategoryId() => clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get targetCategoryId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set targetCategoryId($core.String v) { $_setString(1, v); }
+  @$pb.TagNumber(2)
+  $core.bool hasTargetCategoryId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTargetCategoryId() => clearField(2);
+}
+
+/// MergeCategoriesResponse
+class MergeCategoriesResponse extends $pb.GeneratedMessage {
+  factory MergeCategoriesResponse({
+    $core.int? affectedTransactions,
+  }) {
+    final result = create();
+    if (affectedTransactions != null) result.affectedTransactions = affectedTransactions;
+    return result;
+  }
+  MergeCategoriesResponse._() : super();
+  factory MergeCategoriesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
+  factory MergeCategoriesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MergeCategoriesResponse', createEmptyInstance: create)
+    ..a<$core.int>(1, _omitFieldNames ? '' : 'affectedTransactions', $pb.PbFieldType.O3)
+    ..hasRequiredFields = false;
+
+  @$core.override
+  MergeCategoriesResponse clone() => MergeCategoriesResponse()..mergeFromMessage(this);
+
+  @$core.Deprecated('Using this can add significant overhead to your binary. Use [GeneratedMessageGenericExtensions.rebuild] instead. Will be removed in next major version')
+  MergeCategoriesResponse copyWith(void Function(MergeCategoriesResponse) updates) => super.copyWith((message) => updates(message as MergeCategoriesResponse)) as MergeCategoriesResponse;
+
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MergeCategoriesResponse create() => MergeCategoriesResponse._();
+  MergeCategoriesResponse createEmptyInstance() => create();
+  static $pb.PbList<MergeCategoriesResponse> createRepeated() => $pb.PbList<MergeCategoriesResponse>();
+  @$core.pragma('dart2js:noInline')
+  static MergeCategoriesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MergeCategoriesResponse>(create);
+  static MergeCategoriesResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get affectedTransactions => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set affectedTransactions($core.int v) { $_setSignedInt32(0, v); }
+  @$pb.TagNumber(1)
+  $core.bool hasAffectedTransactions() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAffectedTransactions() => clearField(1);
+}
+
 
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
 const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');
