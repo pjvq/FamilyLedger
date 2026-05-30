@@ -334,8 +334,7 @@ class CategoryUsageProfiler {
     return sorted.take(maxCount).map((e) => e.key).toList();
   }
 
-  /// 分词器
-  @visibleForTesting
+  /// 分词器 — 中文 2-gram + 拉丁文完整单词 + 短文本完整匹配
   static List<String> tokenize(String text) {
     final tokens = <String>[];
 
