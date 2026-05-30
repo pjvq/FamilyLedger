@@ -15,3 +15,4 @@ export 'tables/family_tables.dart';
 export 'tables/loan_tables.dart';
 export 'tables/finance_tables.dart';
 export 'tables/support_tables.dart';
+export 'tables/category_smart_tables.dart';

@@ -1710,6 +1710,17 @@ class $TransactionsTable extends Transactions
     requiredDuringInsert: false,
     defaultValue: const Constant('pending'),
   );
+  static const VerificationMeta _mergeLogIdMeta = const VerificationMeta(
+    'mergeLogId',
+  );
+  @override
+  late final GeneratedColumn<String> mergeLogId = GeneratedColumn<String>(
+    'merge_log_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _deletedAtMeta = const VerificationMeta(
     'deletedAt',
   );
@@ -1739,6 +1750,7 @@ class $TransactionsTable extends Transactions
     createdAt,
     updatedAt,
     syncStatus,
+    mergeLogId,
     deletedAt,
   ];
   @override
@@ -1865,6 +1877,15 @@ class $TransactionsTable extends Transactions
         syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
       );
     }
+    if (data.containsKey('merge_log_id')) {
+      context.handle(
+        _mergeLogIdMeta,
+        mergeLogId.isAcceptableOrUnknown(
+          data['merge_log_id']!,
+          _mergeLogIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('deleted_at')) {
       context.handle(
         _deletedAtMeta,
@@ -1944,6 +1965,10 @@ class $TransactionsTable extends Transactions
         DriftSqlType.string,
         data['${effectivePrefix}sync_status'],
       )!,
+      mergeLogId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}merge_log_id'],
+      ),
       deletedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}deleted_at'],
@@ -1974,6 +1999,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String syncStatus;
+  final String? mergeLogId;
   final DateTime? deletedAt;
   const Transaction({
     required this.id,
@@ -1992,6 +2018,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     required this.createdAt,
     required this.updatedAt,
     required this.syncStatus,
+    this.mergeLogId,
     this.deletedAt,
   });
   @override
@@ -2013,6 +2040,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['sync_status'] = Variable<String>(syncStatus);
+    if (!nullToAbsent || mergeLogId != null) {
+      map['merge_log_id'] = Variable<String>(mergeLogId);
+    }
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
@@ -2037,6 +2067,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       syncStatus: Value(syncStatus),
+      mergeLogId: mergeLogId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mergeLogId),
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAt),
@@ -2065,6 +2098,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      mergeLogId: serializer.fromJson<String?>(json['mergeLogId']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
   }
@@ -2088,6 +2122,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'syncStatus': serializer.toJson<String>(syncStatus),
+      'mergeLogId': serializer.toJson<String?>(mergeLogId),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
   }
@@ -2109,6 +2144,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? syncStatus,
+    Value<String?> mergeLogId = const Value.absent(),
     Value<DateTime?> deletedAt = const Value.absent(),
   }) => Transaction(
     id: id ?? this.id,
@@ -2127,6 +2163,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncStatus: syncStatus ?? this.syncStatus,
+    mergeLogId: mergeLogId.present ? mergeLogId.value : this.mergeLogId,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
   );
   Transaction copyWithCompanion(TransactionsCompanion data) {
@@ -2153,6 +2190,9 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
+      mergeLogId: data.mergeLogId.present
+          ? data.mergeLogId.value
+          : this.mergeLogId,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
@@ -2176,6 +2216,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
+          ..write('mergeLogId: $mergeLogId, ')
           ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
@@ -2199,6 +2240,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     createdAt,
     updatedAt,
     syncStatus,
+    mergeLogId,
     deletedAt,
   );
   @override
@@ -2221,6 +2263,7 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.syncStatus == this.syncStatus &&
+          other.mergeLogId == this.mergeLogId &&
           other.deletedAt == this.deletedAt);
 }
 
@@ -2241,6 +2284,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<String> syncStatus;
+  final Value<String?> mergeLogId;
   final Value<DateTime?> deletedAt;
   final Value<int> rowid;
   const TransactionsCompanion({
@@ -2260,6 +2304,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
+    this.mergeLogId = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -2280,6 +2325,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
+    this.mergeLogId = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -2307,6 +2353,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<String>? syncStatus,
+    Expression<String>? mergeLogId,
     Expression<DateTime>? deletedAt,
     Expression<int>? rowid,
   }) {
@@ -2327,6 +2374,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
+      if (mergeLogId != null) 'merge_log_id': mergeLogId,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2349,6 +2397,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<String>? syncStatus,
+    Value<String?>? mergeLogId,
     Value<DateTime?>? deletedAt,
     Value<int>? rowid,
   }) {
@@ -2369,6 +2418,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncStatus: syncStatus ?? this.syncStatus,
+      mergeLogId: mergeLogId ?? this.mergeLogId,
       deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -2425,6 +2475,9 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     if (syncStatus.present) {
       map['sync_status'] = Variable<String>(syncStatus.value);
     }
+    if (mergeLogId.present) {
+      map['merge_log_id'] = Variable<String>(mergeLogId.value);
+    }
     if (deletedAt.present) {
       map['deleted_at'] = Variable<DateTime>(deletedAt.value);
     }
@@ -2453,6 +2506,7 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
+          ..write('mergeLogId: $mergeLogId, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -13817,6 +13871,1831 @@ class SyncDeadLettersCompanion extends UpdateCompanion<SyncDeadLetter> {
   }
 }
 
+class $CategoryUsageSlotsTable extends CategoryUsageSlots
+    with TableInfo<$CategoryUsageSlotsTable, CategoryUsageSlot> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CategoryUsageSlotsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+    'category_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES categories (id)',
+    ),
+  );
+  static const VerificationMeta _slotTypeMeta = const VerificationMeta(
+    'slotType',
+  );
+  @override
+  late final GeneratedColumn<String> slotType = GeneratedColumn<String>(
+    'slot_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _slotIndexMeta = const VerificationMeta(
+    'slotIndex',
+  );
+  @override
+  late final GeneratedColumn<int> slotIndex = GeneratedColumn<int>(
+    'slot_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _countMeta = const VerificationMeta('count');
+  @override
+  late final GeneratedColumn<int> count = GeneratedColumn<int>(
+    'count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    categoryId,
+    slotType,
+    slotIndex,
+    count,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'category_usage_slots';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CategoryUsageSlot> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryIdMeta);
+    }
+    if (data.containsKey('slot_type')) {
+      context.handle(
+        _slotTypeMeta,
+        slotType.isAcceptableOrUnknown(data['slot_type']!, _slotTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_slotTypeMeta);
+    }
+    if (data.containsKey('slot_index')) {
+      context.handle(
+        _slotIndexMeta,
+        slotIndex.isAcceptableOrUnknown(data['slot_index']!, _slotIndexMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_slotIndexMeta);
+    }
+    if (data.containsKey('count')) {
+      context.handle(
+        _countMeta,
+        count.isAcceptableOrUnknown(data['count']!, _countMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {categoryId, slotType, slotIndex};
+  @override
+  CategoryUsageSlot map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CategoryUsageSlot(
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_id'],
+      )!,
+      slotType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}slot_type'],
+      )!,
+      slotIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}slot_index'],
+      )!,
+      count: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}count'],
+      )!,
+    );
+  }
+
+  @override
+  $CategoryUsageSlotsTable createAlias(String alias) {
+    return $CategoryUsageSlotsTable(attachedDatabase, alias);
+  }
+}
+
+class CategoryUsageSlot extends DataClass
+    implements Insertable<CategoryUsageSlot> {
+  final String categoryId;
+  final String slotType;
+  final int slotIndex;
+  final int count;
+  const CategoryUsageSlot({
+    required this.categoryId,
+    required this.slotType,
+    required this.slotIndex,
+    required this.count,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['category_id'] = Variable<String>(categoryId);
+    map['slot_type'] = Variable<String>(slotType);
+    map['slot_index'] = Variable<int>(slotIndex);
+    map['count'] = Variable<int>(count);
+    return map;
+  }
+
+  CategoryUsageSlotsCompanion toCompanion(bool nullToAbsent) {
+    return CategoryUsageSlotsCompanion(
+      categoryId: Value(categoryId),
+      slotType: Value(slotType),
+      slotIndex: Value(slotIndex),
+      count: Value(count),
+    );
+  }
+
+  factory CategoryUsageSlot.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CategoryUsageSlot(
+      categoryId: serializer.fromJson<String>(json['categoryId']),
+      slotType: serializer.fromJson<String>(json['slotType']),
+      slotIndex: serializer.fromJson<int>(json['slotIndex']),
+      count: serializer.fromJson<int>(json['count']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'categoryId': serializer.toJson<String>(categoryId),
+      'slotType': serializer.toJson<String>(slotType),
+      'slotIndex': serializer.toJson<int>(slotIndex),
+      'count': serializer.toJson<int>(count),
+    };
+  }
+
+  CategoryUsageSlot copyWith({
+    String? categoryId,
+    String? slotType,
+    int? slotIndex,
+    int? count,
+  }) => CategoryUsageSlot(
+    categoryId: categoryId ?? this.categoryId,
+    slotType: slotType ?? this.slotType,
+    slotIndex: slotIndex ?? this.slotIndex,
+    count: count ?? this.count,
+  );
+  CategoryUsageSlot copyWithCompanion(CategoryUsageSlotsCompanion data) {
+    return CategoryUsageSlot(
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      slotType: data.slotType.present ? data.slotType.value : this.slotType,
+      slotIndex: data.slotIndex.present ? data.slotIndex.value : this.slotIndex,
+      count: data.count.present ? data.count.value : this.count,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryUsageSlot(')
+          ..write('categoryId: $categoryId, ')
+          ..write('slotType: $slotType, ')
+          ..write('slotIndex: $slotIndex, ')
+          ..write('count: $count')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(categoryId, slotType, slotIndex, count);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CategoryUsageSlot &&
+          other.categoryId == this.categoryId &&
+          other.slotType == this.slotType &&
+          other.slotIndex == this.slotIndex &&
+          other.count == this.count);
+}
+
+class CategoryUsageSlotsCompanion extends UpdateCompanion<CategoryUsageSlot> {
+  final Value<String> categoryId;
+  final Value<String> slotType;
+  final Value<int> slotIndex;
+  final Value<int> count;
+  final Value<int> rowid;
+  const CategoryUsageSlotsCompanion({
+    this.categoryId = const Value.absent(),
+    this.slotType = const Value.absent(),
+    this.slotIndex = const Value.absent(),
+    this.count = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CategoryUsageSlotsCompanion.insert({
+    required String categoryId,
+    required String slotType,
+    required int slotIndex,
+    this.count = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : categoryId = Value(categoryId),
+       slotType = Value(slotType),
+       slotIndex = Value(slotIndex);
+  static Insertable<CategoryUsageSlot> custom({
+    Expression<String>? categoryId,
+    Expression<String>? slotType,
+    Expression<int>? slotIndex,
+    Expression<int>? count,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (categoryId != null) 'category_id': categoryId,
+      if (slotType != null) 'slot_type': slotType,
+      if (slotIndex != null) 'slot_index': slotIndex,
+      if (count != null) 'count': count,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CategoryUsageSlotsCompanion copyWith({
+    Value<String>? categoryId,
+    Value<String>? slotType,
+    Value<int>? slotIndex,
+    Value<int>? count,
+    Value<int>? rowid,
+  }) {
+    return CategoryUsageSlotsCompanion(
+      categoryId: categoryId ?? this.categoryId,
+      slotType: slotType ?? this.slotType,
+      slotIndex: slotIndex ?? this.slotIndex,
+      count: count ?? this.count,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (slotType.present) {
+      map['slot_type'] = Variable<String>(slotType.value);
+    }
+    if (slotIndex.present) {
+      map['slot_index'] = Variable<int>(slotIndex.value);
+    }
+    if (count.present) {
+      map['count'] = Variable<int>(count.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryUsageSlotsCompanion(')
+          ..write('categoryId: $categoryId, ')
+          ..write('slotType: $slotType, ')
+          ..write('slotIndex: $slotIndex, ')
+          ..write('count: $count, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CategoryUsageSummaryTable extends CategoryUsageSummary
+    with TableInfo<$CategoryUsageSummaryTable, CategoryUsageSummaryData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CategoryUsageSummaryTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+    'category_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES categories (id)',
+    ),
+  );
+  static const VerificationMeta _totalCountMeta = const VerificationMeta(
+    'totalCount',
+  );
+  @override
+  late final GeneratedColumn<int> totalCount = GeneratedColumn<int>(
+    'total_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _last30dCountMeta = const VerificationMeta(
+    'last30dCount',
+  );
+  @override
+  late final GeneratedColumn<int> last30dCount = GeneratedColumn<int>(
+    'last30d_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _last7dCountMeta = const VerificationMeta(
+    'last7dCount',
+  );
+  @override
+  late final GeneratedColumn<int> last7dCount = GeneratedColumn<int>(
+    'last7d_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _topKeywordsMeta = const VerificationMeta(
+    'topKeywords',
+  );
+  @override
+  late final GeneratedColumn<String> topKeywords = GeneratedColumn<String>(
+    'top_keywords',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _lastUsedAtMeta = const VerificationMeta(
+    'lastUsedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastUsedAt = GeneratedColumn<DateTime>(
+    'last_used_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    categoryId,
+    totalCount,
+    last30dCount,
+    last7dCount,
+    topKeywords,
+    lastUsedAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'category_usage_summary';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CategoryUsageSummaryData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryIdMeta);
+    }
+    if (data.containsKey('total_count')) {
+      context.handle(
+        _totalCountMeta,
+        totalCount.isAcceptableOrUnknown(data['total_count']!, _totalCountMeta),
+      );
+    }
+    if (data.containsKey('last30d_count')) {
+      context.handle(
+        _last30dCountMeta,
+        last30dCount.isAcceptableOrUnknown(
+          data['last30d_count']!,
+          _last30dCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last7d_count')) {
+      context.handle(
+        _last7dCountMeta,
+        last7dCount.isAcceptableOrUnknown(
+          data['last7d_count']!,
+          _last7dCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('top_keywords')) {
+      context.handle(
+        _topKeywordsMeta,
+        topKeywords.isAcceptableOrUnknown(
+          data['top_keywords']!,
+          _topKeywordsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_used_at')) {
+      context.handle(
+        _lastUsedAtMeta,
+        lastUsedAt.isAcceptableOrUnknown(
+          data['last_used_at']!,
+          _lastUsedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {categoryId};
+  @override
+  CategoryUsageSummaryData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CategoryUsageSummaryData(
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_id'],
+      )!,
+      totalCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_count'],
+      )!,
+      last30dCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last30d_count'],
+      )!,
+      last7dCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last7d_count'],
+      )!,
+      topKeywords: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}top_keywords'],
+      )!,
+      lastUsedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_used_at'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CategoryUsageSummaryTable createAlias(String alias) {
+    return $CategoryUsageSummaryTable(attachedDatabase, alias);
+  }
+}
+
+class CategoryUsageSummaryData extends DataClass
+    implements Insertable<CategoryUsageSummaryData> {
+  final String categoryId;
+  final int totalCount;
+  final int last30dCount;
+  final int last7dCount;
+  final String topKeywords;
+  final DateTime? lastUsedAt;
+  final DateTime updatedAt;
+  const CategoryUsageSummaryData({
+    required this.categoryId,
+    required this.totalCount,
+    required this.last30dCount,
+    required this.last7dCount,
+    required this.topKeywords,
+    this.lastUsedAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['category_id'] = Variable<String>(categoryId);
+    map['total_count'] = Variable<int>(totalCount);
+    map['last30d_count'] = Variable<int>(last30dCount);
+    map['last7d_count'] = Variable<int>(last7dCount);
+    map['top_keywords'] = Variable<String>(topKeywords);
+    if (!nullToAbsent || lastUsedAt != null) {
+      map['last_used_at'] = Variable<DateTime>(lastUsedAt);
+    }
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CategoryUsageSummaryCompanion toCompanion(bool nullToAbsent) {
+    return CategoryUsageSummaryCompanion(
+      categoryId: Value(categoryId),
+      totalCount: Value(totalCount),
+      last30dCount: Value(last30dCount),
+      last7dCount: Value(last7dCount),
+      topKeywords: Value(topKeywords),
+      lastUsedAt: lastUsedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastUsedAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CategoryUsageSummaryData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CategoryUsageSummaryData(
+      categoryId: serializer.fromJson<String>(json['categoryId']),
+      totalCount: serializer.fromJson<int>(json['totalCount']),
+      last30dCount: serializer.fromJson<int>(json['last30dCount']),
+      last7dCount: serializer.fromJson<int>(json['last7dCount']),
+      topKeywords: serializer.fromJson<String>(json['topKeywords']),
+      lastUsedAt: serializer.fromJson<DateTime?>(json['lastUsedAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'categoryId': serializer.toJson<String>(categoryId),
+      'totalCount': serializer.toJson<int>(totalCount),
+      'last30dCount': serializer.toJson<int>(last30dCount),
+      'last7dCount': serializer.toJson<int>(last7dCount),
+      'topKeywords': serializer.toJson<String>(topKeywords),
+      'lastUsedAt': serializer.toJson<DateTime?>(lastUsedAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CategoryUsageSummaryData copyWith({
+    String? categoryId,
+    int? totalCount,
+    int? last30dCount,
+    int? last7dCount,
+    String? topKeywords,
+    Value<DateTime?> lastUsedAt = const Value.absent(),
+    DateTime? updatedAt,
+  }) => CategoryUsageSummaryData(
+    categoryId: categoryId ?? this.categoryId,
+    totalCount: totalCount ?? this.totalCount,
+    last30dCount: last30dCount ?? this.last30dCount,
+    last7dCount: last7dCount ?? this.last7dCount,
+    topKeywords: topKeywords ?? this.topKeywords,
+    lastUsedAt: lastUsedAt.present ? lastUsedAt.value : this.lastUsedAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CategoryUsageSummaryData copyWithCompanion(
+    CategoryUsageSummaryCompanion data,
+  ) {
+    return CategoryUsageSummaryData(
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      totalCount: data.totalCount.present
+          ? data.totalCount.value
+          : this.totalCount,
+      last30dCount: data.last30dCount.present
+          ? data.last30dCount.value
+          : this.last30dCount,
+      last7dCount: data.last7dCount.present
+          ? data.last7dCount.value
+          : this.last7dCount,
+      topKeywords: data.topKeywords.present
+          ? data.topKeywords.value
+          : this.topKeywords,
+      lastUsedAt: data.lastUsedAt.present
+          ? data.lastUsedAt.value
+          : this.lastUsedAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryUsageSummaryData(')
+          ..write('categoryId: $categoryId, ')
+          ..write('totalCount: $totalCount, ')
+          ..write('last30dCount: $last30dCount, ')
+          ..write('last7dCount: $last7dCount, ')
+          ..write('topKeywords: $topKeywords, ')
+          ..write('lastUsedAt: $lastUsedAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    categoryId,
+    totalCount,
+    last30dCount,
+    last7dCount,
+    topKeywords,
+    lastUsedAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CategoryUsageSummaryData &&
+          other.categoryId == this.categoryId &&
+          other.totalCount == this.totalCount &&
+          other.last30dCount == this.last30dCount &&
+          other.last7dCount == this.last7dCount &&
+          other.topKeywords == this.topKeywords &&
+          other.lastUsedAt == this.lastUsedAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CategoryUsageSummaryCompanion
+    extends UpdateCompanion<CategoryUsageSummaryData> {
+  final Value<String> categoryId;
+  final Value<int> totalCount;
+  final Value<int> last30dCount;
+  final Value<int> last7dCount;
+  final Value<String> topKeywords;
+  final Value<DateTime?> lastUsedAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const CategoryUsageSummaryCompanion({
+    this.categoryId = const Value.absent(),
+    this.totalCount = const Value.absent(),
+    this.last30dCount = const Value.absent(),
+    this.last7dCount = const Value.absent(),
+    this.topKeywords = const Value.absent(),
+    this.lastUsedAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CategoryUsageSummaryCompanion.insert({
+    required String categoryId,
+    this.totalCount = const Value.absent(),
+    this.last30dCount = const Value.absent(),
+    this.last7dCount = const Value.absent(),
+    this.topKeywords = const Value.absent(),
+    this.lastUsedAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : categoryId = Value(categoryId);
+  static Insertable<CategoryUsageSummaryData> custom({
+    Expression<String>? categoryId,
+    Expression<int>? totalCount,
+    Expression<int>? last30dCount,
+    Expression<int>? last7dCount,
+    Expression<String>? topKeywords,
+    Expression<DateTime>? lastUsedAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (categoryId != null) 'category_id': categoryId,
+      if (totalCount != null) 'total_count': totalCount,
+      if (last30dCount != null) 'last30d_count': last30dCount,
+      if (last7dCount != null) 'last7d_count': last7dCount,
+      if (topKeywords != null) 'top_keywords': topKeywords,
+      if (lastUsedAt != null) 'last_used_at': lastUsedAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CategoryUsageSummaryCompanion copyWith({
+    Value<String>? categoryId,
+    Value<int>? totalCount,
+    Value<int>? last30dCount,
+    Value<int>? last7dCount,
+    Value<String>? topKeywords,
+    Value<DateTime?>? lastUsedAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return CategoryUsageSummaryCompanion(
+      categoryId: categoryId ?? this.categoryId,
+      totalCount: totalCount ?? this.totalCount,
+      last30dCount: last30dCount ?? this.last30dCount,
+      last7dCount: last7dCount ?? this.last7dCount,
+      topKeywords: topKeywords ?? this.topKeywords,
+      lastUsedAt: lastUsedAt ?? this.lastUsedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (totalCount.present) {
+      map['total_count'] = Variable<int>(totalCount.value);
+    }
+    if (last30dCount.present) {
+      map['last30d_count'] = Variable<int>(last30dCount.value);
+    }
+    if (last7dCount.present) {
+      map['last7d_count'] = Variable<int>(last7dCount.value);
+    }
+    if (topKeywords.present) {
+      map['top_keywords'] = Variable<String>(topKeywords.value);
+    }
+    if (lastUsedAt.present) {
+      map['last_used_at'] = Variable<DateTime>(lastUsedAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryUsageSummaryCompanion(')
+          ..write('categoryId: $categoryId, ')
+          ..write('totalCount: $totalCount, ')
+          ..write('last30dCount: $last30dCount, ')
+          ..write('last7dCount: $last7dCount, ')
+          ..write('topKeywords: $topKeywords, ')
+          ..write('lastUsedAt: $lastUsedAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CategoryMergeLogTable extends CategoryMergeLog
+    with TableInfo<$CategoryMergeLogTable, CategoryMergeLogData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CategoryMergeLogTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceCategoryIdMeta = const VerificationMeta(
+    'sourceCategoryId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceCategoryId = GeneratedColumn<String>(
+    'source_category_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetCategoryIdMeta = const VerificationMeta(
+    'targetCategoryId',
+  );
+  @override
+  late final GeneratedColumn<String> targetCategoryId = GeneratedColumn<String>(
+    'target_category_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceCategoryNameMeta =
+      const VerificationMeta('sourceCategoryName');
+  @override
+  late final GeneratedColumn<String> sourceCategoryName =
+      GeneratedColumn<String>(
+        'source_category_name',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _sourceIconKeyMeta = const VerificationMeta(
+    'sourceIconKey',
+  );
+  @override
+  late final GeneratedColumn<String> sourceIconKey = GeneratedColumn<String>(
+    'source_icon_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _sourceParentIdMeta = const VerificationMeta(
+    'sourceParentId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceParentId = GeneratedColumn<String>(
+    'source_parent_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _affectedCountMeta = const VerificationMeta(
+    'affectedCount',
+  );
+  @override
+  late final GeneratedColumn<int> affectedCount = GeneratedColumn<int>(
+    'affected_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _mergeTypeMeta = const VerificationMeta(
+    'mergeType',
+  );
+  @override
+  late final GeneratedColumn<String> mergeType = GeneratedColumn<String>(
+    'merge_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('simple'),
+  );
+  static const VerificationMeta _mergedAtMeta = const VerificationMeta(
+    'mergedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> mergedAt = GeneratedColumn<DateTime>(
+    'merged_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _undoneAtMeta = const VerificationMeta(
+    'undoneAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> undoneAt = GeneratedColumn<DateTime>(
+    'undone_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _expiresAtMeta = const VerificationMeta(
+    'expiresAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> expiresAt = GeneratedColumn<DateTime>(
+    'expires_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    sourceCategoryId,
+    targetCategoryId,
+    sourceCategoryName,
+    sourceIconKey,
+    sourceParentId,
+    affectedCount,
+    mergeType,
+    mergedAt,
+    undoneAt,
+    expiresAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'category_merge_log';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CategoryMergeLogData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('source_category_id')) {
+      context.handle(
+        _sourceCategoryIdMeta,
+        sourceCategoryId.isAcceptableOrUnknown(
+          data['source_category_id']!,
+          _sourceCategoryIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceCategoryIdMeta);
+    }
+    if (data.containsKey('target_category_id')) {
+      context.handle(
+        _targetCategoryIdMeta,
+        targetCategoryId.isAcceptableOrUnknown(
+          data['target_category_id']!,
+          _targetCategoryIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_targetCategoryIdMeta);
+    }
+    if (data.containsKey('source_category_name')) {
+      context.handle(
+        _sourceCategoryNameMeta,
+        sourceCategoryName.isAcceptableOrUnknown(
+          data['source_category_name']!,
+          _sourceCategoryNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceCategoryNameMeta);
+    }
+    if (data.containsKey('source_icon_key')) {
+      context.handle(
+        _sourceIconKeyMeta,
+        sourceIconKey.isAcceptableOrUnknown(
+          data['source_icon_key']!,
+          _sourceIconKeyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_parent_id')) {
+      context.handle(
+        _sourceParentIdMeta,
+        sourceParentId.isAcceptableOrUnknown(
+          data['source_parent_id']!,
+          _sourceParentIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('affected_count')) {
+      context.handle(
+        _affectedCountMeta,
+        affectedCount.isAcceptableOrUnknown(
+          data['affected_count']!,
+          _affectedCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('merge_type')) {
+      context.handle(
+        _mergeTypeMeta,
+        mergeType.isAcceptableOrUnknown(data['merge_type']!, _mergeTypeMeta),
+      );
+    }
+    if (data.containsKey('merged_at')) {
+      context.handle(
+        _mergedAtMeta,
+        mergedAt.isAcceptableOrUnknown(data['merged_at']!, _mergedAtMeta),
+      );
+    }
+    if (data.containsKey('undone_at')) {
+      context.handle(
+        _undoneAtMeta,
+        undoneAt.isAcceptableOrUnknown(data['undone_at']!, _undoneAtMeta),
+      );
+    }
+    if (data.containsKey('expires_at')) {
+      context.handle(
+        _expiresAtMeta,
+        expiresAt.isAcceptableOrUnknown(data['expires_at']!, _expiresAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_expiresAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CategoryMergeLogData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CategoryMergeLogData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      sourceCategoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_category_id'],
+      )!,
+      targetCategoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_category_id'],
+      )!,
+      sourceCategoryName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_category_name'],
+      )!,
+      sourceIconKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_icon_key'],
+      )!,
+      sourceParentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_parent_id'],
+      ),
+      affectedCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}affected_count'],
+      )!,
+      mergeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}merge_type'],
+      )!,
+      mergedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}merged_at'],
+      )!,
+      undoneAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}undone_at'],
+      ),
+      expiresAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}expires_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CategoryMergeLogTable createAlias(String alias) {
+    return $CategoryMergeLogTable(attachedDatabase, alias);
+  }
+}
+
+class CategoryMergeLogData extends DataClass
+    implements Insertable<CategoryMergeLogData> {
+  final String id;
+  final String sourceCategoryId;
+  final String targetCategoryId;
+  final String sourceCategoryName;
+  final String sourceIconKey;
+  final String? sourceParentId;
+  final int affectedCount;
+
+  /// simple / crossParent / parentMerge / moveOnly
+  final String mergeType;
+  final DateTime mergedAt;
+  final DateTime? undoneAt;
+  final DateTime expiresAt;
+  const CategoryMergeLogData({
+    required this.id,
+    required this.sourceCategoryId,
+    required this.targetCategoryId,
+    required this.sourceCategoryName,
+    required this.sourceIconKey,
+    this.sourceParentId,
+    required this.affectedCount,
+    required this.mergeType,
+    required this.mergedAt,
+    this.undoneAt,
+    required this.expiresAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['source_category_id'] = Variable<String>(sourceCategoryId);
+    map['target_category_id'] = Variable<String>(targetCategoryId);
+    map['source_category_name'] = Variable<String>(sourceCategoryName);
+    map['source_icon_key'] = Variable<String>(sourceIconKey);
+    if (!nullToAbsent || sourceParentId != null) {
+      map['source_parent_id'] = Variable<String>(sourceParentId);
+    }
+    map['affected_count'] = Variable<int>(affectedCount);
+    map['merge_type'] = Variable<String>(mergeType);
+    map['merged_at'] = Variable<DateTime>(mergedAt);
+    if (!nullToAbsent || undoneAt != null) {
+      map['undone_at'] = Variable<DateTime>(undoneAt);
+    }
+    map['expires_at'] = Variable<DateTime>(expiresAt);
+    return map;
+  }
+
+  CategoryMergeLogCompanion toCompanion(bool nullToAbsent) {
+    return CategoryMergeLogCompanion(
+      id: Value(id),
+      sourceCategoryId: Value(sourceCategoryId),
+      targetCategoryId: Value(targetCategoryId),
+      sourceCategoryName: Value(sourceCategoryName),
+      sourceIconKey: Value(sourceIconKey),
+      sourceParentId: sourceParentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceParentId),
+      affectedCount: Value(affectedCount),
+      mergeType: Value(mergeType),
+      mergedAt: Value(mergedAt),
+      undoneAt: undoneAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(undoneAt),
+      expiresAt: Value(expiresAt),
+    );
+  }
+
+  factory CategoryMergeLogData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CategoryMergeLogData(
+      id: serializer.fromJson<String>(json['id']),
+      sourceCategoryId: serializer.fromJson<String>(json['sourceCategoryId']),
+      targetCategoryId: serializer.fromJson<String>(json['targetCategoryId']),
+      sourceCategoryName: serializer.fromJson<String>(
+        json['sourceCategoryName'],
+      ),
+      sourceIconKey: serializer.fromJson<String>(json['sourceIconKey']),
+      sourceParentId: serializer.fromJson<String?>(json['sourceParentId']),
+      affectedCount: serializer.fromJson<int>(json['affectedCount']),
+      mergeType: serializer.fromJson<String>(json['mergeType']),
+      mergedAt: serializer.fromJson<DateTime>(json['mergedAt']),
+      undoneAt: serializer.fromJson<DateTime?>(json['undoneAt']),
+      expiresAt: serializer.fromJson<DateTime>(json['expiresAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'sourceCategoryId': serializer.toJson<String>(sourceCategoryId),
+      'targetCategoryId': serializer.toJson<String>(targetCategoryId),
+      'sourceCategoryName': serializer.toJson<String>(sourceCategoryName),
+      'sourceIconKey': serializer.toJson<String>(sourceIconKey),
+      'sourceParentId': serializer.toJson<String?>(sourceParentId),
+      'affectedCount': serializer.toJson<int>(affectedCount),
+      'mergeType': serializer.toJson<String>(mergeType),
+      'mergedAt': serializer.toJson<DateTime>(mergedAt),
+      'undoneAt': serializer.toJson<DateTime?>(undoneAt),
+      'expiresAt': serializer.toJson<DateTime>(expiresAt),
+    };
+  }
+
+  CategoryMergeLogData copyWith({
+    String? id,
+    String? sourceCategoryId,
+    String? targetCategoryId,
+    String? sourceCategoryName,
+    String? sourceIconKey,
+    Value<String?> sourceParentId = const Value.absent(),
+    int? affectedCount,
+    String? mergeType,
+    DateTime? mergedAt,
+    Value<DateTime?> undoneAt = const Value.absent(),
+    DateTime? expiresAt,
+  }) => CategoryMergeLogData(
+    id: id ?? this.id,
+    sourceCategoryId: sourceCategoryId ?? this.sourceCategoryId,
+    targetCategoryId: targetCategoryId ?? this.targetCategoryId,
+    sourceCategoryName: sourceCategoryName ?? this.sourceCategoryName,
+    sourceIconKey: sourceIconKey ?? this.sourceIconKey,
+    sourceParentId: sourceParentId.present
+        ? sourceParentId.value
+        : this.sourceParentId,
+    affectedCount: affectedCount ?? this.affectedCount,
+    mergeType: mergeType ?? this.mergeType,
+    mergedAt: mergedAt ?? this.mergedAt,
+    undoneAt: undoneAt.present ? undoneAt.value : this.undoneAt,
+    expiresAt: expiresAt ?? this.expiresAt,
+  );
+  CategoryMergeLogData copyWithCompanion(CategoryMergeLogCompanion data) {
+    return CategoryMergeLogData(
+      id: data.id.present ? data.id.value : this.id,
+      sourceCategoryId: data.sourceCategoryId.present
+          ? data.sourceCategoryId.value
+          : this.sourceCategoryId,
+      targetCategoryId: data.targetCategoryId.present
+          ? data.targetCategoryId.value
+          : this.targetCategoryId,
+      sourceCategoryName: data.sourceCategoryName.present
+          ? data.sourceCategoryName.value
+          : this.sourceCategoryName,
+      sourceIconKey: data.sourceIconKey.present
+          ? data.sourceIconKey.value
+          : this.sourceIconKey,
+      sourceParentId: data.sourceParentId.present
+          ? data.sourceParentId.value
+          : this.sourceParentId,
+      affectedCount: data.affectedCount.present
+          ? data.affectedCount.value
+          : this.affectedCount,
+      mergeType: data.mergeType.present ? data.mergeType.value : this.mergeType,
+      mergedAt: data.mergedAt.present ? data.mergedAt.value : this.mergedAt,
+      undoneAt: data.undoneAt.present ? data.undoneAt.value : this.undoneAt,
+      expiresAt: data.expiresAt.present ? data.expiresAt.value : this.expiresAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryMergeLogData(')
+          ..write('id: $id, ')
+          ..write('sourceCategoryId: $sourceCategoryId, ')
+          ..write('targetCategoryId: $targetCategoryId, ')
+          ..write('sourceCategoryName: $sourceCategoryName, ')
+          ..write('sourceIconKey: $sourceIconKey, ')
+          ..write('sourceParentId: $sourceParentId, ')
+          ..write('affectedCount: $affectedCount, ')
+          ..write('mergeType: $mergeType, ')
+          ..write('mergedAt: $mergedAt, ')
+          ..write('undoneAt: $undoneAt, ')
+          ..write('expiresAt: $expiresAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    sourceCategoryId,
+    targetCategoryId,
+    sourceCategoryName,
+    sourceIconKey,
+    sourceParentId,
+    affectedCount,
+    mergeType,
+    mergedAt,
+    undoneAt,
+    expiresAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CategoryMergeLogData &&
+          other.id == this.id &&
+          other.sourceCategoryId == this.sourceCategoryId &&
+          other.targetCategoryId == this.targetCategoryId &&
+          other.sourceCategoryName == this.sourceCategoryName &&
+          other.sourceIconKey == this.sourceIconKey &&
+          other.sourceParentId == this.sourceParentId &&
+          other.affectedCount == this.affectedCount &&
+          other.mergeType == this.mergeType &&
+          other.mergedAt == this.mergedAt &&
+          other.undoneAt == this.undoneAt &&
+          other.expiresAt == this.expiresAt);
+}
+
+class CategoryMergeLogCompanion extends UpdateCompanion<CategoryMergeLogData> {
+  final Value<String> id;
+  final Value<String> sourceCategoryId;
+  final Value<String> targetCategoryId;
+  final Value<String> sourceCategoryName;
+  final Value<String> sourceIconKey;
+  final Value<String?> sourceParentId;
+  final Value<int> affectedCount;
+  final Value<String> mergeType;
+  final Value<DateTime> mergedAt;
+  final Value<DateTime?> undoneAt;
+  final Value<DateTime> expiresAt;
+  final Value<int> rowid;
+  const CategoryMergeLogCompanion({
+    this.id = const Value.absent(),
+    this.sourceCategoryId = const Value.absent(),
+    this.targetCategoryId = const Value.absent(),
+    this.sourceCategoryName = const Value.absent(),
+    this.sourceIconKey = const Value.absent(),
+    this.sourceParentId = const Value.absent(),
+    this.affectedCount = const Value.absent(),
+    this.mergeType = const Value.absent(),
+    this.mergedAt = const Value.absent(),
+    this.undoneAt = const Value.absent(),
+    this.expiresAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CategoryMergeLogCompanion.insert({
+    required String id,
+    required String sourceCategoryId,
+    required String targetCategoryId,
+    required String sourceCategoryName,
+    this.sourceIconKey = const Value.absent(),
+    this.sourceParentId = const Value.absent(),
+    this.affectedCount = const Value.absent(),
+    this.mergeType = const Value.absent(),
+    this.mergedAt = const Value.absent(),
+    this.undoneAt = const Value.absent(),
+    required DateTime expiresAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       sourceCategoryId = Value(sourceCategoryId),
+       targetCategoryId = Value(targetCategoryId),
+       sourceCategoryName = Value(sourceCategoryName),
+       expiresAt = Value(expiresAt);
+  static Insertable<CategoryMergeLogData> custom({
+    Expression<String>? id,
+    Expression<String>? sourceCategoryId,
+    Expression<String>? targetCategoryId,
+    Expression<String>? sourceCategoryName,
+    Expression<String>? sourceIconKey,
+    Expression<String>? sourceParentId,
+    Expression<int>? affectedCount,
+    Expression<String>? mergeType,
+    Expression<DateTime>? mergedAt,
+    Expression<DateTime>? undoneAt,
+    Expression<DateTime>? expiresAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sourceCategoryId != null) 'source_category_id': sourceCategoryId,
+      if (targetCategoryId != null) 'target_category_id': targetCategoryId,
+      if (sourceCategoryName != null)
+        'source_category_name': sourceCategoryName,
+      if (sourceIconKey != null) 'source_icon_key': sourceIconKey,
+      if (sourceParentId != null) 'source_parent_id': sourceParentId,
+      if (affectedCount != null) 'affected_count': affectedCount,
+      if (mergeType != null) 'merge_type': mergeType,
+      if (mergedAt != null) 'merged_at': mergedAt,
+      if (undoneAt != null) 'undone_at': undoneAt,
+      if (expiresAt != null) 'expires_at': expiresAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CategoryMergeLogCompanion copyWith({
+    Value<String>? id,
+    Value<String>? sourceCategoryId,
+    Value<String>? targetCategoryId,
+    Value<String>? sourceCategoryName,
+    Value<String>? sourceIconKey,
+    Value<String?>? sourceParentId,
+    Value<int>? affectedCount,
+    Value<String>? mergeType,
+    Value<DateTime>? mergedAt,
+    Value<DateTime?>? undoneAt,
+    Value<DateTime>? expiresAt,
+    Value<int>? rowid,
+  }) {
+    return CategoryMergeLogCompanion(
+      id: id ?? this.id,
+      sourceCategoryId: sourceCategoryId ?? this.sourceCategoryId,
+      targetCategoryId: targetCategoryId ?? this.targetCategoryId,
+      sourceCategoryName: sourceCategoryName ?? this.sourceCategoryName,
+      sourceIconKey: sourceIconKey ?? this.sourceIconKey,
+      sourceParentId: sourceParentId ?? this.sourceParentId,
+      affectedCount: affectedCount ?? this.affectedCount,
+      mergeType: mergeType ?? this.mergeType,
+      mergedAt: mergedAt ?? this.mergedAt,
+      undoneAt: undoneAt ?? this.undoneAt,
+      expiresAt: expiresAt ?? this.expiresAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (sourceCategoryId.present) {
+      map['source_category_id'] = Variable<String>(sourceCategoryId.value);
+    }
+    if (targetCategoryId.present) {
+      map['target_category_id'] = Variable<String>(targetCategoryId.value);
+    }
+    if (sourceCategoryName.present) {
+      map['source_category_name'] = Variable<String>(sourceCategoryName.value);
+    }
+    if (sourceIconKey.present) {
+      map['source_icon_key'] = Variable<String>(sourceIconKey.value);
+    }
+    if (sourceParentId.present) {
+      map['source_parent_id'] = Variable<String>(sourceParentId.value);
+    }
+    if (affectedCount.present) {
+      map['affected_count'] = Variable<int>(affectedCount.value);
+    }
+    if (mergeType.present) {
+      map['merge_type'] = Variable<String>(mergeType.value);
+    }
+    if (mergedAt.present) {
+      map['merged_at'] = Variable<DateTime>(mergedAt.value);
+    }
+    if (undoneAt.present) {
+      map['undone_at'] = Variable<DateTime>(undoneAt.value);
+    }
+    if (expiresAt.present) {
+      map['expires_at'] = Variable<DateTime>(expiresAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryMergeLogCompanion(')
+          ..write('id: $id, ')
+          ..write('sourceCategoryId: $sourceCategoryId, ')
+          ..write('targetCategoryId: $targetCategoryId, ')
+          ..write('sourceCategoryName: $sourceCategoryName, ')
+          ..write('sourceIconKey: $sourceIconKey, ')
+          ..write('sourceParentId: $sourceParentId, ')
+          ..write('affectedCount: $affectedCount, ')
+          ..write('mergeType: $mergeType, ')
+          ..write('mergedAt: $mergedAt, ')
+          ..write('undoneAt: $undoneAt, ')
+          ..write('expiresAt: $expiresAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CategoryMergeDismissalsTable extends CategoryMergeDismissals
+    with TableInfo<$CategoryMergeDismissalsTable, CategoryMergeDismissal> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CategoryMergeDismissalsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pairKeyMeta = const VerificationMeta(
+    'pairKey',
+  );
+  @override
+  late final GeneratedColumn<String> pairKey = GeneratedColumn<String>(
+    'pair_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dismissedAtMeta = const VerificationMeta(
+    'dismissedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> dismissedAt = GeneratedColumn<DateTime>(
+    'dismissed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _expiresAtMeta = const VerificationMeta(
+    'expiresAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> expiresAt = GeneratedColumn<DateTime>(
+    'expires_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, pairKey, dismissedAt, expiresAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'category_merge_dismissals';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CategoryMergeDismissal> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('pair_key')) {
+      context.handle(
+        _pairKeyMeta,
+        pairKey.isAcceptableOrUnknown(data['pair_key']!, _pairKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_pairKeyMeta);
+    }
+    if (data.containsKey('dismissed_at')) {
+      context.handle(
+        _dismissedAtMeta,
+        dismissedAt.isAcceptableOrUnknown(
+          data['dismissed_at']!,
+          _dismissedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('expires_at')) {
+      context.handle(
+        _expiresAtMeta,
+        expiresAt.isAcceptableOrUnknown(data['expires_at']!, _expiresAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_expiresAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CategoryMergeDismissal map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CategoryMergeDismissal(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      pairKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pair_key'],
+      )!,
+      dismissedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}dismissed_at'],
+      )!,
+      expiresAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}expires_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CategoryMergeDismissalsTable createAlias(String alias) {
+    return $CategoryMergeDismissalsTable(attachedDatabase, alias);
+  }
+}
+
+class CategoryMergeDismissal extends DataClass
+    implements Insertable<CategoryMergeDismissal> {
+  final String id;
+
+  /// 字典序排列的两个 categoryId，用 '|' 分隔
+  final String pairKey;
+  final DateTime dismissedAt;
+
+  /// dismissedAt + 30 days
+  final DateTime expiresAt;
+  const CategoryMergeDismissal({
+    required this.id,
+    required this.pairKey,
+    required this.dismissedAt,
+    required this.expiresAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['pair_key'] = Variable<String>(pairKey);
+    map['dismissed_at'] = Variable<DateTime>(dismissedAt);
+    map['expires_at'] = Variable<DateTime>(expiresAt);
+    return map;
+  }
+
+  CategoryMergeDismissalsCompanion toCompanion(bool nullToAbsent) {
+    return CategoryMergeDismissalsCompanion(
+      id: Value(id),
+      pairKey: Value(pairKey),
+      dismissedAt: Value(dismissedAt),
+      expiresAt: Value(expiresAt),
+    );
+  }
+
+  factory CategoryMergeDismissal.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CategoryMergeDismissal(
+      id: serializer.fromJson<String>(json['id']),
+      pairKey: serializer.fromJson<String>(json['pairKey']),
+      dismissedAt: serializer.fromJson<DateTime>(json['dismissedAt']),
+      expiresAt: serializer.fromJson<DateTime>(json['expiresAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'pairKey': serializer.toJson<String>(pairKey),
+      'dismissedAt': serializer.toJson<DateTime>(dismissedAt),
+      'expiresAt': serializer.toJson<DateTime>(expiresAt),
+    };
+  }
+
+  CategoryMergeDismissal copyWith({
+    String? id,
+    String? pairKey,
+    DateTime? dismissedAt,
+    DateTime? expiresAt,
+  }) => CategoryMergeDismissal(
+    id: id ?? this.id,
+    pairKey: pairKey ?? this.pairKey,
+    dismissedAt: dismissedAt ?? this.dismissedAt,
+    expiresAt: expiresAt ?? this.expiresAt,
+  );
+  CategoryMergeDismissal copyWithCompanion(
+    CategoryMergeDismissalsCompanion data,
+  ) {
+    return CategoryMergeDismissal(
+      id: data.id.present ? data.id.value : this.id,
+      pairKey: data.pairKey.present ? data.pairKey.value : this.pairKey,
+      dismissedAt: data.dismissedAt.present
+          ? data.dismissedAt.value
+          : this.dismissedAt,
+      expiresAt: data.expiresAt.present ? data.expiresAt.value : this.expiresAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryMergeDismissal(')
+          ..write('id: $id, ')
+          ..write('pairKey: $pairKey, ')
+          ..write('dismissedAt: $dismissedAt, ')
+          ..write('expiresAt: $expiresAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, pairKey, dismissedAt, expiresAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CategoryMergeDismissal &&
+          other.id == this.id &&
+          other.pairKey == this.pairKey &&
+          other.dismissedAt == this.dismissedAt &&
+          other.expiresAt == this.expiresAt);
+}
+
+class CategoryMergeDismissalsCompanion
+    extends UpdateCompanion<CategoryMergeDismissal> {
+  final Value<String> id;
+  final Value<String> pairKey;
+  final Value<DateTime> dismissedAt;
+  final Value<DateTime> expiresAt;
+  final Value<int> rowid;
+  const CategoryMergeDismissalsCompanion({
+    this.id = const Value.absent(),
+    this.pairKey = const Value.absent(),
+    this.dismissedAt = const Value.absent(),
+    this.expiresAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CategoryMergeDismissalsCompanion.insert({
+    required String id,
+    required String pairKey,
+    this.dismissedAt = const Value.absent(),
+    required DateTime expiresAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       pairKey = Value(pairKey),
+       expiresAt = Value(expiresAt);
+  static Insertable<CategoryMergeDismissal> custom({
+    Expression<String>? id,
+    Expression<String>? pairKey,
+    Expression<DateTime>? dismissedAt,
+    Expression<DateTime>? expiresAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (pairKey != null) 'pair_key': pairKey,
+      if (dismissedAt != null) 'dismissed_at': dismissedAt,
+      if (expiresAt != null) 'expires_at': expiresAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CategoryMergeDismissalsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? pairKey,
+    Value<DateTime>? dismissedAt,
+    Value<DateTime>? expiresAt,
+    Value<int>? rowid,
+  }) {
+    return CategoryMergeDismissalsCompanion(
+      id: id ?? this.id,
+      pairKey: pairKey ?? this.pairKey,
+      dismissedAt: dismissedAt ?? this.dismissedAt,
+      expiresAt: expiresAt ?? this.expiresAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (pairKey.present) {
+      map['pair_key'] = Variable<String>(pairKey.value);
+    }
+    if (dismissedAt.present) {
+      map['dismissed_at'] = Variable<DateTime>(dismissedAt.value);
+    }
+    if (expiresAt.present) {
+      map['expires_at'] = Variable<DateTime>(expiresAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryMergeDismissalsCompanion(')
+          ..write('id: $id, ')
+          ..write('pairKey: $pairKey, ')
+          ..write('dismissedAt: $dismissedAt, ')
+          ..write('expiresAt: $expiresAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -13856,6 +15735,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SyncDeadLettersTable syncDeadLetters = $SyncDeadLettersTable(
     this,
   );
+  late final $CategoryUsageSlotsTable categoryUsageSlots =
+      $CategoryUsageSlotsTable(this);
+  late final $CategoryUsageSummaryTable categoryUsageSummary =
+      $CategoryUsageSummaryTable(this);
+  late final $CategoryMergeLogTable categoryMergeLog = $CategoryMergeLogTable(
+    this,
+  );
+  late final $CategoryMergeDismissalsTable categoryMergeDismissals =
+      $CategoryMergeDismissalsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -13886,6 +15774,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     syncMetadata,
     exchangeRates,
     syncDeadLetters,
+    categoryUsageSlots,
+    categoryUsageSummary,
+    categoryMergeLog,
+    categoryMergeDismissals,
   ];
 }
 
@@ -15510,6 +17402,58 @@ final class $$CategoriesTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$CategoryUsageSlotsTable, List<CategoryUsageSlot>>
+  _categoryUsageSlotsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.categoryUsageSlots,
+        aliasName: $_aliasNameGenerator(
+          db.categories.id,
+          db.categoryUsageSlots.categoryId,
+        ),
+      );
+
+  $$CategoryUsageSlotsTableProcessedTableManager get categoryUsageSlotsRefs {
+    final manager = $$CategoryUsageSlotsTableTableManager(
+      $_db,
+      $_db.categoryUsageSlots,
+    ).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _categoryUsageSlotsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $CategoryUsageSummaryTable,
+    List<CategoryUsageSummaryData>
+  >
+  _categoryUsageSummaryRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.categoryUsageSummary,
+        aliasName: $_aliasNameGenerator(
+          db.categories.id,
+          db.categoryUsageSummary.categoryId,
+        ),
+      );
+
+  $$CategoryUsageSummaryTableProcessedTableManager
+  get categoryUsageSummaryRefs {
+    final manager = $$CategoryUsageSummaryTableTableManager(
+      $_db,
+      $_db.categoryUsageSummary,
+    ).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _categoryUsageSummaryRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$CategoriesTableFilterComposer
@@ -15600,6 +17544,56 @@ class $$CategoriesTableFilterComposer
           }) => $$TransactionsTableFilterComposer(
             $db: $db,
             $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> categoryUsageSlotsRefs(
+    Expression<bool> Function($$CategoryUsageSlotsTableFilterComposer f) f,
+  ) {
+    final $$CategoryUsageSlotsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.categoryUsageSlots,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoryUsageSlotsTableFilterComposer(
+            $db: $db,
+            $table: $db.categoryUsageSlots,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> categoryUsageSummaryRefs(
+    Expression<bool> Function($$CategoryUsageSummaryTableFilterComposer f) f,
+  ) {
+    final $$CategoryUsageSummaryTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.categoryUsageSummary,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoryUsageSummaryTableFilterComposer(
+            $db: $db,
+            $table: $db.categoryUsageSummary,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -15763,6 +17757,58 @@ class $$CategoriesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> categoryUsageSlotsRefs<T extends Object>(
+    Expression<T> Function($$CategoryUsageSlotsTableAnnotationComposer a) f,
+  ) {
+    final $$CategoryUsageSlotsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.categoryUsageSlots,
+          getReferencedColumn: (t) => t.categoryId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$CategoryUsageSlotsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.categoryUsageSlots,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> categoryUsageSummaryRefs<T extends Object>(
+    Expression<T> Function($$CategoryUsageSummaryTableAnnotationComposer a) f,
+  ) {
+    final $$CategoryUsageSummaryTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.categoryUsageSummary,
+          getReferencedColumn: (t) => t.categoryId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$CategoryUsageSummaryTableAnnotationComposer(
+                $db: $db,
+                $table: $db.categoryUsageSummary,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$CategoriesTableTableManager
@@ -15778,7 +17824,12 @@ class $$CategoriesTableTableManager
           $$CategoriesTableUpdateCompanionBuilder,
           (Category, $$CategoriesTableReferences),
           Category,
-          PrefetchHooks Function({bool parentId, bool transactionsRefs})
+          PrefetchHooks Function({
+            bool parentId,
+            bool transactionsRefs,
+            bool categoryUsageSlotsRefs,
+            bool categoryUsageSummaryRefs,
+          })
         > {
   $$CategoriesTableTableManager(_$AppDatabase db, $CategoriesTable table)
     : super(
@@ -15848,11 +17899,18 @@ class $$CategoriesTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({parentId = false, transactionsRefs = false}) {
+              ({
+                parentId = false,
+                transactionsRefs = false,
+                categoryUsageSlotsRefs = false,
+                categoryUsageSummaryRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (transactionsRefs) db.transactions,
+                    if (categoryUsageSlotsRefs) db.categoryUsageSlots,
+                    if (categoryUsageSummaryRefs) db.categoryUsageSummary,
                   ],
                   addJoins:
                       <
@@ -15910,6 +17968,48 @@ class $$CategoriesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (categoryUsageSlotsRefs)
+                        await $_getPrefetchedData<
+                          Category,
+                          $CategoriesTable,
+                          CategoryUsageSlot
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CategoriesTableReferences
+                              ._categoryUsageSlotsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CategoriesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).categoryUsageSlotsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.categoryId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (categoryUsageSummaryRefs)
+                        await $_getPrefetchedData<
+                          Category,
+                          $CategoriesTable,
+                          CategoryUsageSummaryData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CategoriesTableReferences
+                              ._categoryUsageSummaryRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CategoriesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).categoryUsageSummaryRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.categoryId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -15930,7 +18030,12 @@ typedef $$CategoriesTableProcessedTableManager =
       $$CategoriesTableUpdateCompanionBuilder,
       (Category, $$CategoriesTableReferences),
       Category,
-      PrefetchHooks Function({bool parentId, bool transactionsRefs})
+      PrefetchHooks Function({
+        bool parentId,
+        bool transactionsRefs,
+        bool categoryUsageSlotsRefs,
+        bool categoryUsageSummaryRefs,
+      })
     >;
 typedef $$TransactionsTableCreateCompanionBuilder =
     TransactionsCompanion Function({
@@ -15950,6 +18055,7 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<String> syncStatus,
+      Value<String?> mergeLogId,
       Value<DateTime?> deletedAt,
       Value<int> rowid,
     });
@@ -15971,6 +18077,7 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<String> syncStatus,
+      Value<String?> mergeLogId,
       Value<DateTime?> deletedAt,
       Value<int> rowid,
     });
@@ -16107,6 +18214,11 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<String> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mergeLogId => $composableBuilder(
+    column: $table.mergeLogId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16259,6 +18371,11 @@ class $$TransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get mergeLogId => $composableBuilder(
+    column: $table.mergeLogId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
     column: $table.deletedAt,
     builder: (column) => ColumnOrderings(column),
@@ -16386,6 +18503,11 @@ class $$TransactionsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get mergeLogId => $composableBuilder(
+    column: $table.mergeLogId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
@@ -16503,6 +18625,7 @@ class $$TransactionsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<String> syncStatus = const Value.absent(),
+                Value<String?> mergeLogId = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransactionsCompanion(
@@ -16522,6 +18645,7 @@ class $$TransactionsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
+                mergeLogId: mergeLogId,
                 deletedAt: deletedAt,
                 rowid: rowid,
               ),
@@ -16543,6 +18667,7 @@ class $$TransactionsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<String> syncStatus = const Value.absent(),
+                Value<String?> mergeLogId = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransactionsCompanion.insert(
@@ -16562,6 +18687,7 @@ class $$TransactionsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
+                mergeLogId: mergeLogId,
                 deletedAt: deletedAt,
                 rowid: rowid,
               ),
@@ -25043,6 +27169,1252 @@ typedef $$SyncDeadLettersTableProcessedTableManager =
       SyncDeadLetter,
       PrefetchHooks Function()
     >;
+typedef $$CategoryUsageSlotsTableCreateCompanionBuilder =
+    CategoryUsageSlotsCompanion Function({
+      required String categoryId,
+      required String slotType,
+      required int slotIndex,
+      Value<int> count,
+      Value<int> rowid,
+    });
+typedef $$CategoryUsageSlotsTableUpdateCompanionBuilder =
+    CategoryUsageSlotsCompanion Function({
+      Value<String> categoryId,
+      Value<String> slotType,
+      Value<int> slotIndex,
+      Value<int> count,
+      Value<int> rowid,
+    });
+
+final class $$CategoryUsageSlotsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $CategoryUsageSlotsTable,
+          CategoryUsageSlot
+        > {
+  $$CategoryUsageSlotsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $CategoriesTable _categoryIdTable(_$AppDatabase db) =>
+      db.categories.createAlias(
+        $_aliasNameGenerator(
+          db.categoryUsageSlots.categoryId,
+          db.categories.id,
+        ),
+      );
+
+  $$CategoriesTableProcessedTableManager get categoryId {
+    final $_column = $_itemColumn<String>('category_id')!;
+
+    final manager = $$CategoriesTableTableManager(
+      $_db,
+      $_db.categories,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$CategoryUsageSlotsTableFilterComposer
+    extends Composer<_$AppDatabase, $CategoryUsageSlotsTable> {
+  $$CategoryUsageSlotsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get slotType => $composableBuilder(
+    column: $table.slotType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get slotIndex => $composableBuilder(
+    column: $table.slotIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get count => $composableBuilder(
+    column: $table.count,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CategoriesTableFilterComposer get categoryId {
+    final $$CategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CategoryUsageSlotsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CategoryUsageSlotsTable> {
+  $$CategoryUsageSlotsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get slotType => $composableBuilder(
+    column: $table.slotType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get slotIndex => $composableBuilder(
+    column: $table.slotIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get count => $composableBuilder(
+    column: $table.count,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CategoriesTableOrderingComposer get categoryId {
+    final $$CategoriesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableOrderingComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CategoryUsageSlotsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CategoryUsageSlotsTable> {
+  $$CategoryUsageSlotsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get slotType =>
+      $composableBuilder(column: $table.slotType, builder: (column) => column);
+
+  GeneratedColumn<int> get slotIndex =>
+      $composableBuilder(column: $table.slotIndex, builder: (column) => column);
+
+  GeneratedColumn<int> get count =>
+      $composableBuilder(column: $table.count, builder: (column) => column);
+
+  $$CategoriesTableAnnotationComposer get categoryId {
+    final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CategoryUsageSlotsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CategoryUsageSlotsTable,
+          CategoryUsageSlot,
+          $$CategoryUsageSlotsTableFilterComposer,
+          $$CategoryUsageSlotsTableOrderingComposer,
+          $$CategoryUsageSlotsTableAnnotationComposer,
+          $$CategoryUsageSlotsTableCreateCompanionBuilder,
+          $$CategoryUsageSlotsTableUpdateCompanionBuilder,
+          (CategoryUsageSlot, $$CategoryUsageSlotsTableReferences),
+          CategoryUsageSlot,
+          PrefetchHooks Function({bool categoryId})
+        > {
+  $$CategoryUsageSlotsTableTableManager(
+    _$AppDatabase db,
+    $CategoryUsageSlotsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CategoryUsageSlotsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CategoryUsageSlotsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CategoryUsageSlotsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> categoryId = const Value.absent(),
+                Value<String> slotType = const Value.absent(),
+                Value<int> slotIndex = const Value.absent(),
+                Value<int> count = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CategoryUsageSlotsCompanion(
+                categoryId: categoryId,
+                slotType: slotType,
+                slotIndex: slotIndex,
+                count: count,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String categoryId,
+                required String slotType,
+                required int slotIndex,
+                Value<int> count = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CategoryUsageSlotsCompanion.insert(
+                categoryId: categoryId,
+                slotType: slotType,
+                slotIndex: slotIndex,
+                count: count,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$CategoryUsageSlotsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({categoryId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (categoryId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.categoryId,
+                                referencedTable:
+                                    $$CategoryUsageSlotsTableReferences
+                                        ._categoryIdTable(db),
+                                referencedColumn:
+                                    $$CategoryUsageSlotsTableReferences
+                                        ._categoryIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CategoryUsageSlotsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CategoryUsageSlotsTable,
+      CategoryUsageSlot,
+      $$CategoryUsageSlotsTableFilterComposer,
+      $$CategoryUsageSlotsTableOrderingComposer,
+      $$CategoryUsageSlotsTableAnnotationComposer,
+      $$CategoryUsageSlotsTableCreateCompanionBuilder,
+      $$CategoryUsageSlotsTableUpdateCompanionBuilder,
+      (CategoryUsageSlot, $$CategoryUsageSlotsTableReferences),
+      CategoryUsageSlot,
+      PrefetchHooks Function({bool categoryId})
+    >;
+typedef $$CategoryUsageSummaryTableCreateCompanionBuilder =
+    CategoryUsageSummaryCompanion Function({
+      required String categoryId,
+      Value<int> totalCount,
+      Value<int> last30dCount,
+      Value<int> last7dCount,
+      Value<String> topKeywords,
+      Value<DateTime?> lastUsedAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$CategoryUsageSummaryTableUpdateCompanionBuilder =
+    CategoryUsageSummaryCompanion Function({
+      Value<String> categoryId,
+      Value<int> totalCount,
+      Value<int> last30dCount,
+      Value<int> last7dCount,
+      Value<String> topKeywords,
+      Value<DateTime?> lastUsedAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$CategoryUsageSummaryTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $CategoryUsageSummaryTable,
+          CategoryUsageSummaryData
+        > {
+  $$CategoryUsageSummaryTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $CategoriesTable _categoryIdTable(_$AppDatabase db) =>
+      db.categories.createAlias(
+        $_aliasNameGenerator(
+          db.categoryUsageSummary.categoryId,
+          db.categories.id,
+        ),
+      );
+
+  $$CategoriesTableProcessedTableManager get categoryId {
+    final $_column = $_itemColumn<String>('category_id')!;
+
+    final manager = $$CategoriesTableTableManager(
+      $_db,
+      $_db.categories,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$CategoryUsageSummaryTableFilterComposer
+    extends Composer<_$AppDatabase, $CategoryUsageSummaryTable> {
+  $$CategoryUsageSummaryTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get totalCount => $composableBuilder(
+    column: $table.totalCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get last30dCount => $composableBuilder(
+    column: $table.last30dCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get last7dCount => $composableBuilder(
+    column: $table.last7dCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get topKeywords => $composableBuilder(
+    column: $table.topKeywords,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastUsedAt => $composableBuilder(
+    column: $table.lastUsedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CategoriesTableFilterComposer get categoryId {
+    final $$CategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CategoryUsageSummaryTableOrderingComposer
+    extends Composer<_$AppDatabase, $CategoryUsageSummaryTable> {
+  $$CategoryUsageSummaryTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get totalCount => $composableBuilder(
+    column: $table.totalCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get last30dCount => $composableBuilder(
+    column: $table.last30dCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get last7dCount => $composableBuilder(
+    column: $table.last7dCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get topKeywords => $composableBuilder(
+    column: $table.topKeywords,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastUsedAt => $composableBuilder(
+    column: $table.lastUsedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CategoriesTableOrderingComposer get categoryId {
+    final $$CategoriesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableOrderingComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CategoryUsageSummaryTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CategoryUsageSummaryTable> {
+  $$CategoryUsageSummaryTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get totalCount => $composableBuilder(
+    column: $table.totalCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get last30dCount => $composableBuilder(
+    column: $table.last30dCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get last7dCount => $composableBuilder(
+    column: $table.last7dCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get topKeywords => $composableBuilder(
+    column: $table.topKeywords,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastUsedAt => $composableBuilder(
+    column: $table.lastUsedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$CategoriesTableAnnotationComposer get categoryId {
+    final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CategoryUsageSummaryTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CategoryUsageSummaryTable,
+          CategoryUsageSummaryData,
+          $$CategoryUsageSummaryTableFilterComposer,
+          $$CategoryUsageSummaryTableOrderingComposer,
+          $$CategoryUsageSummaryTableAnnotationComposer,
+          $$CategoryUsageSummaryTableCreateCompanionBuilder,
+          $$CategoryUsageSummaryTableUpdateCompanionBuilder,
+          (CategoryUsageSummaryData, $$CategoryUsageSummaryTableReferences),
+          CategoryUsageSummaryData,
+          PrefetchHooks Function({bool categoryId})
+        > {
+  $$CategoryUsageSummaryTableTableManager(
+    _$AppDatabase db,
+    $CategoryUsageSummaryTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CategoryUsageSummaryTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CategoryUsageSummaryTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$CategoryUsageSummaryTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> categoryId = const Value.absent(),
+                Value<int> totalCount = const Value.absent(),
+                Value<int> last30dCount = const Value.absent(),
+                Value<int> last7dCount = const Value.absent(),
+                Value<String> topKeywords = const Value.absent(),
+                Value<DateTime?> lastUsedAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CategoryUsageSummaryCompanion(
+                categoryId: categoryId,
+                totalCount: totalCount,
+                last30dCount: last30dCount,
+                last7dCount: last7dCount,
+                topKeywords: topKeywords,
+                lastUsedAt: lastUsedAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String categoryId,
+                Value<int> totalCount = const Value.absent(),
+                Value<int> last30dCount = const Value.absent(),
+                Value<int> last7dCount = const Value.absent(),
+                Value<String> topKeywords = const Value.absent(),
+                Value<DateTime?> lastUsedAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CategoryUsageSummaryCompanion.insert(
+                categoryId: categoryId,
+                totalCount: totalCount,
+                last30dCount: last30dCount,
+                last7dCount: last7dCount,
+                topKeywords: topKeywords,
+                lastUsedAt: lastUsedAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$CategoryUsageSummaryTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({categoryId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (categoryId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.categoryId,
+                                referencedTable:
+                                    $$CategoryUsageSummaryTableReferences
+                                        ._categoryIdTable(db),
+                                referencedColumn:
+                                    $$CategoryUsageSummaryTableReferences
+                                        ._categoryIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CategoryUsageSummaryTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CategoryUsageSummaryTable,
+      CategoryUsageSummaryData,
+      $$CategoryUsageSummaryTableFilterComposer,
+      $$CategoryUsageSummaryTableOrderingComposer,
+      $$CategoryUsageSummaryTableAnnotationComposer,
+      $$CategoryUsageSummaryTableCreateCompanionBuilder,
+      $$CategoryUsageSummaryTableUpdateCompanionBuilder,
+      (CategoryUsageSummaryData, $$CategoryUsageSummaryTableReferences),
+      CategoryUsageSummaryData,
+      PrefetchHooks Function({bool categoryId})
+    >;
+typedef $$CategoryMergeLogTableCreateCompanionBuilder =
+    CategoryMergeLogCompanion Function({
+      required String id,
+      required String sourceCategoryId,
+      required String targetCategoryId,
+      required String sourceCategoryName,
+      Value<String> sourceIconKey,
+      Value<String?> sourceParentId,
+      Value<int> affectedCount,
+      Value<String> mergeType,
+      Value<DateTime> mergedAt,
+      Value<DateTime?> undoneAt,
+      required DateTime expiresAt,
+      Value<int> rowid,
+    });
+typedef $$CategoryMergeLogTableUpdateCompanionBuilder =
+    CategoryMergeLogCompanion Function({
+      Value<String> id,
+      Value<String> sourceCategoryId,
+      Value<String> targetCategoryId,
+      Value<String> sourceCategoryName,
+      Value<String> sourceIconKey,
+      Value<String?> sourceParentId,
+      Value<int> affectedCount,
+      Value<String> mergeType,
+      Value<DateTime> mergedAt,
+      Value<DateTime?> undoneAt,
+      Value<DateTime> expiresAt,
+      Value<int> rowid,
+    });
+
+class $$CategoryMergeLogTableFilterComposer
+    extends Composer<_$AppDatabase, $CategoryMergeLogTable> {
+  $$CategoryMergeLogTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceCategoryId => $composableBuilder(
+    column: $table.sourceCategoryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get targetCategoryId => $composableBuilder(
+    column: $table.targetCategoryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceCategoryName => $composableBuilder(
+    column: $table.sourceCategoryName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceIconKey => $composableBuilder(
+    column: $table.sourceIconKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceParentId => $composableBuilder(
+    column: $table.sourceParentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get affectedCount => $composableBuilder(
+    column: $table.affectedCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mergeType => $composableBuilder(
+    column: $table.mergeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get mergedAt => $composableBuilder(
+    column: $table.mergedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get undoneAt => $composableBuilder(
+    column: $table.undoneAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CategoryMergeLogTableOrderingComposer
+    extends Composer<_$AppDatabase, $CategoryMergeLogTable> {
+  $$CategoryMergeLogTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceCategoryId => $composableBuilder(
+    column: $table.sourceCategoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get targetCategoryId => $composableBuilder(
+    column: $table.targetCategoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceCategoryName => $composableBuilder(
+    column: $table.sourceCategoryName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceIconKey => $composableBuilder(
+    column: $table.sourceIconKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceParentId => $composableBuilder(
+    column: $table.sourceParentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get affectedCount => $composableBuilder(
+    column: $table.affectedCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mergeType => $composableBuilder(
+    column: $table.mergeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get mergedAt => $composableBuilder(
+    column: $table.mergedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get undoneAt => $composableBuilder(
+    column: $table.undoneAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CategoryMergeLogTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CategoryMergeLogTable> {
+  $$CategoryMergeLogTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceCategoryId => $composableBuilder(
+    column: $table.sourceCategoryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get targetCategoryId => $composableBuilder(
+    column: $table.targetCategoryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sourceCategoryName => $composableBuilder(
+    column: $table.sourceCategoryName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sourceIconKey => $composableBuilder(
+    column: $table.sourceIconKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sourceParentId => $composableBuilder(
+    column: $table.sourceParentId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get affectedCount => $composableBuilder(
+    column: $table.affectedCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get mergeType =>
+      $composableBuilder(column: $table.mergeType, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get mergedAt =>
+      $composableBuilder(column: $table.mergedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get undoneAt =>
+      $composableBuilder(column: $table.undoneAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get expiresAt =>
+      $composableBuilder(column: $table.expiresAt, builder: (column) => column);
+}
+
+class $$CategoryMergeLogTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CategoryMergeLogTable,
+          CategoryMergeLogData,
+          $$CategoryMergeLogTableFilterComposer,
+          $$CategoryMergeLogTableOrderingComposer,
+          $$CategoryMergeLogTableAnnotationComposer,
+          $$CategoryMergeLogTableCreateCompanionBuilder,
+          $$CategoryMergeLogTableUpdateCompanionBuilder,
+          (
+            CategoryMergeLogData,
+            BaseReferences<
+              _$AppDatabase,
+              $CategoryMergeLogTable,
+              CategoryMergeLogData
+            >,
+          ),
+          CategoryMergeLogData,
+          PrefetchHooks Function()
+        > {
+  $$CategoryMergeLogTableTableManager(
+    _$AppDatabase db,
+    $CategoryMergeLogTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CategoryMergeLogTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CategoryMergeLogTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CategoryMergeLogTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> sourceCategoryId = const Value.absent(),
+                Value<String> targetCategoryId = const Value.absent(),
+                Value<String> sourceCategoryName = const Value.absent(),
+                Value<String> sourceIconKey = const Value.absent(),
+                Value<String?> sourceParentId = const Value.absent(),
+                Value<int> affectedCount = const Value.absent(),
+                Value<String> mergeType = const Value.absent(),
+                Value<DateTime> mergedAt = const Value.absent(),
+                Value<DateTime?> undoneAt = const Value.absent(),
+                Value<DateTime> expiresAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CategoryMergeLogCompanion(
+                id: id,
+                sourceCategoryId: sourceCategoryId,
+                targetCategoryId: targetCategoryId,
+                sourceCategoryName: sourceCategoryName,
+                sourceIconKey: sourceIconKey,
+                sourceParentId: sourceParentId,
+                affectedCount: affectedCount,
+                mergeType: mergeType,
+                mergedAt: mergedAt,
+                undoneAt: undoneAt,
+                expiresAt: expiresAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String sourceCategoryId,
+                required String targetCategoryId,
+                required String sourceCategoryName,
+                Value<String> sourceIconKey = const Value.absent(),
+                Value<String?> sourceParentId = const Value.absent(),
+                Value<int> affectedCount = const Value.absent(),
+                Value<String> mergeType = const Value.absent(),
+                Value<DateTime> mergedAt = const Value.absent(),
+                Value<DateTime?> undoneAt = const Value.absent(),
+                required DateTime expiresAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CategoryMergeLogCompanion.insert(
+                id: id,
+                sourceCategoryId: sourceCategoryId,
+                targetCategoryId: targetCategoryId,
+                sourceCategoryName: sourceCategoryName,
+                sourceIconKey: sourceIconKey,
+                sourceParentId: sourceParentId,
+                affectedCount: affectedCount,
+                mergeType: mergeType,
+                mergedAt: mergedAt,
+                undoneAt: undoneAt,
+                expiresAt: expiresAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CategoryMergeLogTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CategoryMergeLogTable,
+      CategoryMergeLogData,
+      $$CategoryMergeLogTableFilterComposer,
+      $$CategoryMergeLogTableOrderingComposer,
+      $$CategoryMergeLogTableAnnotationComposer,
+      $$CategoryMergeLogTableCreateCompanionBuilder,
+      $$CategoryMergeLogTableUpdateCompanionBuilder,
+      (
+        CategoryMergeLogData,
+        BaseReferences<
+          _$AppDatabase,
+          $CategoryMergeLogTable,
+          CategoryMergeLogData
+        >,
+      ),
+      CategoryMergeLogData,
+      PrefetchHooks Function()
+    >;
+typedef $$CategoryMergeDismissalsTableCreateCompanionBuilder =
+    CategoryMergeDismissalsCompanion Function({
+      required String id,
+      required String pairKey,
+      Value<DateTime> dismissedAt,
+      required DateTime expiresAt,
+      Value<int> rowid,
+    });
+typedef $$CategoryMergeDismissalsTableUpdateCompanionBuilder =
+    CategoryMergeDismissalsCompanion Function({
+      Value<String> id,
+      Value<String> pairKey,
+      Value<DateTime> dismissedAt,
+      Value<DateTime> expiresAt,
+      Value<int> rowid,
+    });
+
+class $$CategoryMergeDismissalsTableFilterComposer
+    extends Composer<_$AppDatabase, $CategoryMergeDismissalsTable> {
+  $$CategoryMergeDismissalsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pairKey => $composableBuilder(
+    column: $table.pairKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dismissedAt => $composableBuilder(
+    column: $table.dismissedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CategoryMergeDismissalsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CategoryMergeDismissalsTable> {
+  $$CategoryMergeDismissalsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pairKey => $composableBuilder(
+    column: $table.pairKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get dismissedAt => $composableBuilder(
+    column: $table.dismissedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CategoryMergeDismissalsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CategoryMergeDismissalsTable> {
+  $$CategoryMergeDismissalsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get pairKey =>
+      $composableBuilder(column: $table.pairKey, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get dismissedAt => $composableBuilder(
+    column: $table.dismissedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get expiresAt =>
+      $composableBuilder(column: $table.expiresAt, builder: (column) => column);
+}
+
+class $$CategoryMergeDismissalsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CategoryMergeDismissalsTable,
+          CategoryMergeDismissal,
+          $$CategoryMergeDismissalsTableFilterComposer,
+          $$CategoryMergeDismissalsTableOrderingComposer,
+          $$CategoryMergeDismissalsTableAnnotationComposer,
+          $$CategoryMergeDismissalsTableCreateCompanionBuilder,
+          $$CategoryMergeDismissalsTableUpdateCompanionBuilder,
+          (
+            CategoryMergeDismissal,
+            BaseReferences<
+              _$AppDatabase,
+              $CategoryMergeDismissalsTable,
+              CategoryMergeDismissal
+            >,
+          ),
+          CategoryMergeDismissal,
+          PrefetchHooks Function()
+        > {
+  $$CategoryMergeDismissalsTableTableManager(
+    _$AppDatabase db,
+    $CategoryMergeDismissalsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CategoryMergeDismissalsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$CategoryMergeDismissalsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$CategoryMergeDismissalsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> pairKey = const Value.absent(),
+                Value<DateTime> dismissedAt = const Value.absent(),
+                Value<DateTime> expiresAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CategoryMergeDismissalsCompanion(
+                id: id,
+                pairKey: pairKey,
+                dismissedAt: dismissedAt,
+                expiresAt: expiresAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String pairKey,
+                Value<DateTime> dismissedAt = const Value.absent(),
+                required DateTime expiresAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CategoryMergeDismissalsCompanion.insert(
+                id: id,
+                pairKey: pairKey,
+                dismissedAt: dismissedAt,
+                expiresAt: expiresAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CategoryMergeDismissalsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CategoryMergeDismissalsTable,
+      CategoryMergeDismissal,
+      $$CategoryMergeDismissalsTableFilterComposer,
+      $$CategoryMergeDismissalsTableOrderingComposer,
+      $$CategoryMergeDismissalsTableAnnotationComposer,
+      $$CategoryMergeDismissalsTableCreateCompanionBuilder,
+      $$CategoryMergeDismissalsTableUpdateCompanionBuilder,
+      (
+        CategoryMergeDismissal,
+        BaseReferences<
+          _$AppDatabase,
+          $CategoryMergeDismissalsTable,
+          CategoryMergeDismissal
+        >,
+      ),
+      CategoryMergeDismissal,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -25100,4 +28472,15 @@ class $AppDatabaseManager {
       $$ExchangeRatesTableTableManager(_db, _db.exchangeRates);
   $$SyncDeadLettersTableTableManager get syncDeadLetters =>
       $$SyncDeadLettersTableTableManager(_db, _db.syncDeadLetters);
+  $$CategoryUsageSlotsTableTableManager get categoryUsageSlots =>
+      $$CategoryUsageSlotsTableTableManager(_db, _db.categoryUsageSlots);
+  $$CategoryUsageSummaryTableTableManager get categoryUsageSummary =>
+      $$CategoryUsageSummaryTableTableManager(_db, _db.categoryUsageSummary);
+  $$CategoryMergeLogTableTableManager get categoryMergeLog =>
+      $$CategoryMergeLogTableTableManager(_db, _db.categoryMergeLog);
+  $$CategoryMergeDismissalsTableTableManager get categoryMergeDismissals =>
+      $$CategoryMergeDismissalsTableTableManager(
+        _db,
+        _db.categoryMergeDismissals,
+      );
 }

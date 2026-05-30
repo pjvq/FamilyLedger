@@ -63,6 +63,7 @@ class Transactions extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get syncStatus => text().withDefault(const Constant('pending'))(); // pending, synced, failed
+  TextColumn get mergeLogId => text().nullable()(); // 合并日志 ID，用于撤销合并
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
   @override
