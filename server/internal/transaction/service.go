@@ -1805,3 +1805,80 @@ func (s *Service) notifyFamilyChange(ctx context.Context, userID string, account
 	// Fallback: notify just the user
 	s.hub.BroadcastToUser(userID, notification)
 }
+
+// ── MergeCategories ─────────────────────────────────────────────────────────────
+
+func (s *Service) MergeCategories(ctx context.Context, req *pb.MergeCategoriesRequest) (*pb.MergeCategoriesResponse, error) {
+	userID, err := middleware.GetUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sourceID, err := uuid.Parse(req.SourceCategoryId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid source_category_id")
+	}
+	targetID, err := uuid.Parse(req.TargetCategoryId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid target_category_id")
+	}
+	if sourceID == targetID {
+		return nil, status.Error(codes.InvalidArgument, "source and target cannot be the same")
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to begin transaction")
+	}
+	defer tx.Rollback(ctx)
+
+	// 1. 验证两个分类都属于该用户且未删除
+	var sourceOwner, targetOwner string
+	err = tx.QueryRow(ctx,
+		"SELECT user_id FROM categories WHERE id = $1 AND deleted_at IS NULL", sourceID).Scan(&sourceOwner)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "source category not found")
+	}
+	err = tx.QueryRow(ctx,
+		"SELECT user_id FROM categories WHERE id = $1 AND deleted_at IS NULL", targetID).Scan(&targetOwner)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "target category not found")
+	}
+	if sourceOwner != userID || targetOwner != userID {
+		return nil, status.Error(codes.PermissionDenied, "categories do not belong to user")
+	}
+
+	// 2. 重映射交易
+	tag, err := tx.Exec(ctx,
+		"UPDATE transactions SET category_id = $1 WHERE category_id = $2 AND user_id = $3 AND deleted_at IS NULL",
+		targetID, sourceID, userID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to remap transactions: %v", err)
+	}
+	affected := int32(tag.RowsAffected())
+
+	// 3. 移动子分类
+	_, err = tx.Exec(ctx,
+		"UPDATE categories SET parent_id = $1 WHERE parent_id = $2 AND deleted_at IS NULL",
+		targetID, sourceID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to reparent children: %v", err)
+	}
+
+	// 4. 软删除源分类
+	_, err = tx.Exec(ctx,
+		"UPDATE categories SET deleted_at = NOW() WHERE id = $1",
+		sourceID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to soft-delete source: %v", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, status.Error(codes.Internal, "failed to commit merge")
+	}
+
+	// 5. 广播通知
+	go s.notifyFamilyChange(ctx, userID, uuid.Nil, "merge_categories", sourceID.String())
+
+	return &pb.MergeCategoriesResponse{AffectedTransactions: affected}, nil
+}

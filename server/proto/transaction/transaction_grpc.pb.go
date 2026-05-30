@@ -31,6 +31,7 @@ const (
 	TransactionService_UpdateCategory_FullMethodName          = "/familyledger.transaction.v1.TransactionService/UpdateCategory"
 	TransactionService_DeleteCategory_FullMethodName          = "/familyledger.transaction.v1.TransactionService/DeleteCategory"
 	TransactionService_ReorderCategories_FullMethodName       = "/familyledger.transaction.v1.TransactionService/ReorderCategories"
+	TransactionService_MergeCategories_FullMethodName         = "/familyledger.transaction.v1.TransactionService/MergeCategories"
 )
 
 // TransactionServiceClient is the client API for TransactionService service.
@@ -50,6 +51,7 @@ type TransactionServiceClient interface {
 	UpdateCategory(ctx context.Context, in *UpdateCategoryRequest, opts ...grpc.CallOption) (*UpdateCategoryResponse, error)
 	DeleteCategory(ctx context.Context, in *DeleteCategoryRequest, opts ...grpc.CallOption) (*DeleteCategoryResponse, error)
 	ReorderCategories(ctx context.Context, in *ReorderCategoriesRequest, opts ...grpc.CallOption) (*ReorderCategoriesResponse, error)
+	MergeCategories(ctx context.Context, in *MergeCategoriesRequest, opts ...grpc.CallOption) (*MergeCategoriesResponse, error)
 }
 
 type transactionServiceClient struct {
@@ -180,6 +182,16 @@ func (c *transactionServiceClient) ReorderCategories(ctx context.Context, in *Re
 	return out, nil
 }
 
+func (c *transactionServiceClient) MergeCategories(ctx context.Context, in *MergeCategoriesRequest, opts ...grpc.CallOption) (*MergeCategoriesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MergeCategoriesResponse)
+	err := c.cc.Invoke(ctx, TransactionService_MergeCategories_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TransactionServiceServer is the server API for TransactionService service.
 // All implementations must embed UnimplementedTransactionServiceServer
 // for forward compatibility.
@@ -197,6 +209,7 @@ type TransactionServiceServer interface {
 	UpdateCategory(context.Context, *UpdateCategoryRequest) (*UpdateCategoryResponse, error)
 	DeleteCategory(context.Context, *DeleteCategoryRequest) (*DeleteCategoryResponse, error)
 	ReorderCategories(context.Context, *ReorderCategoriesRequest) (*ReorderCategoriesResponse, error)
+	MergeCategories(context.Context, *MergeCategoriesRequest) (*MergeCategoriesResponse, error)
 	mustEmbedUnimplementedTransactionServiceServer()
 }
 
@@ -242,6 +255,9 @@ func (UnimplementedTransactionServiceServer) DeleteCategory(context.Context, *De
 }
 func (UnimplementedTransactionServiceServer) ReorderCategories(context.Context, *ReorderCategoriesRequest) (*ReorderCategoriesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReorderCategories not implemented")
+}
+func (UnimplementedTransactionServiceServer) MergeCategories(context.Context, *MergeCategoriesRequest) (*MergeCategoriesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MergeCategories not implemented")
 }
 func (UnimplementedTransactionServiceServer) mustEmbedUnimplementedTransactionServiceServer() {}
 func (UnimplementedTransactionServiceServer) testEmbeddedByValue()                            {}
@@ -480,6 +496,24 @@ func _TransactionService_ReorderCategories_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TransactionService_MergeCategories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MergeCategoriesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TransactionServiceServer).MergeCategories(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TransactionService_MergeCategories_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TransactionServiceServer).MergeCategories(ctx, req.(*MergeCategoriesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TransactionService_ServiceDesc is the grpc.ServiceDesc for TransactionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -534,6 +568,10 @@ var TransactionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReorderCategories",
 			Handler:    _TransactionService_ReorderCategories_Handler,
+		},
+		{
+			MethodName: "MergeCategories",
+			Handler:    _TransactionService_MergeCategories_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

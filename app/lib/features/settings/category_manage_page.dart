@@ -6,7 +6,9 @@ import '../../core/constants/category_icons.dart';
 import '../../data/local/database.dart' as db;
 import '../../data/remote/grpc_clients.dart';
 import '../../domain/providers/app_providers.dart';
+import '../../domain/providers/category_merge_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
+import '../../domain/services/smart_category/category_merge_detector.dart';
 import '../../generated/proto/transaction.pb.dart';
 import '../../generated/proto/transaction.pbgrpc.dart';
 import '../transaction/widgets/icon_picker_sheet.dart';
@@ -151,6 +153,10 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
     final result = await _showCategoryEditor(context);
     if (result == null) return;
 
+    // 即时相似检测：创建前检查是否有重复分类
+    final shouldCreate = await _checkSimilarBeforeCreate(result.name);
+    if (!shouldCreate) return;
+
     try {
       final client = ref.read(transactionClientProvider);
       await client.createCategory(CreateCategoryRequest(
@@ -168,6 +174,48 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         );
       }
     }
+  }
+
+  /// 创建前即时相似检测，返回 true = 继续创建，false = 用户取消
+  Future<bool> _checkSimilarBeforeCreate(String newName) async {
+    final db = ref.read(databaseProvider);
+    final categories = await (db.select(db.categories)
+          ..where((c) => c.deletedAt.isNull()))
+        .get();
+
+    final detector = CategoryMergeDetector(
+      db: db,
+      profiler: ref.read(categoryUsageProfilerProvider),
+    );
+    final typeStr = _tabController.index == 0 ? 'expense' : 'income';
+    final hits = detector.instantCheck(newName, typeStr, categories);
+    if (hits.isEmpty) return true;
+
+    final hit = hits.first;
+    if (!mounted) return true;
+
+    final action = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('💡 发现相似分类'),
+        content: Text(
+          '你创建的“$newName”与已有分类“${hit.existingCategory.name}”\n'
+          '非常相似（${(hit.similarity * 100).round()}%）。\n\n'
+          '是否仍然创建？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('使用“${hit.existingCategory.name}”'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('仍然创建'),
+          ),
+        ],
+      ),
+    );
+    return action ?? false;
   }
 
   Future<void> _editCategory(Category cat) async {

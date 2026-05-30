@@ -1739,6 +1739,102 @@ func (*ReorderCategoriesResponse) Descriptor() ([]byte, []int) {
 	return file_transaction_proto_rawDescGZIP(), []int{26}
 }
 
+type MergeCategoriesRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	SourceCategoryId string                 `protobuf:"bytes,1,opt,name=source_category_id,json=sourceCategoryId,proto3" json:"source_category_id,omitempty"` // 被合并（删除）的分类
+	TargetCategoryId string                 `protobuf:"bytes,2,opt,name=target_category_id,json=targetCategoryId,proto3" json:"target_category_id,omitempty"` // 保留的分类
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *MergeCategoriesRequest) Reset() {
+	*x = MergeCategoriesRequest{}
+	mi := &file_transaction_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MergeCategoriesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MergeCategoriesRequest) ProtoMessage() {}
+
+func (x *MergeCategoriesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_transaction_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MergeCategoriesRequest.ProtoReflect.Descriptor instead.
+func (*MergeCategoriesRequest) Descriptor() ([]byte, []int) {
+	return file_transaction_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *MergeCategoriesRequest) GetSourceCategoryId() string {
+	if x != nil {
+		return x.SourceCategoryId
+	}
+	return ""
+}
+
+func (x *MergeCategoriesRequest) GetTargetCategoryId() string {
+	if x != nil {
+		return x.TargetCategoryId
+	}
+	return ""
+}
+
+type MergeCategoriesResponse struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	AffectedTransactions int32                  `protobuf:"varint,1,opt,name=affected_transactions,json=affectedTransactions,proto3" json:"affected_transactions,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *MergeCategoriesResponse) Reset() {
+	*x = MergeCategoriesResponse{}
+	mi := &file_transaction_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MergeCategoriesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MergeCategoriesResponse) ProtoMessage() {}
+
+func (x *MergeCategoriesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_transaction_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MergeCategoriesResponse.ProtoReflect.Descriptor instead.
+func (*MergeCategoriesResponse) Descriptor() ([]byte, []int) {
+	return file_transaction_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *MergeCategoriesResponse) GetAffectedTransactions() int32 {
+	if x != nil {
+		return x.AffectedTransactions
+	}
+	return 0
+}
+
 var File_transaction_proto protoreflect.FileDescriptor
 
 const file_transaction_proto_rawDesc = "" +
@@ -1892,11 +1988,16 @@ const file_transaction_proto_rawDesc = "" +
 	"categoryId\x12\x1d\n" +
 	"\n" +
 	"sort_order\x18\x02 \x01(\x05R\tsortOrder\"\x1b\n" +
-	"\x19ReorderCategoriesResponse*n\n" +
+	"\x19ReorderCategoriesResponse\"t\n" +
+	"\x16MergeCategoriesRequest\x12,\n" +
+	"\x12source_category_id\x18\x01 \x01(\tR\x10sourceCategoryId\x12,\n" +
+	"\x12target_category_id\x18\x02 \x01(\tR\x10targetCategoryId\"N\n" +
+	"\x17MergeCategoriesResponse\x123\n" +
+	"\x15affected_transactions\x18\x01 \x01(\x05R\x14affectedTransactions*n\n" +
 	"\x0fTransactionType\x12 \n" +
 	"\x1cTRANSACTION_TYPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17TRANSACTION_TYPE_INCOME\x10\x01\x12\x1c\n" +
-	"\x18TRANSACTION_TYPE_EXPENSE\x10\x022\xd4\f\n" +
+	"\x18TRANSACTION_TYPE_EXPENSE\x10\x022\xd2\r\n" +
 	"\x12TransactionService\x12\x82\x01\n" +
 	"\x11CreateTransaction\x125.familyledger.transaction.v1.CreateTransactionRequest\x1a6.familyledger.transaction.v1.CreateTransactionResponse\x12\x94\x01\n" +
 	"\x17BatchCreateTransactions\x12;.familyledger.transaction.v1.BatchCreateTransactionsRequest\x1a<.familyledger.transaction.v1.BatchCreateTransactionsResponse\x12\x82\x01\n" +
@@ -1909,7 +2010,8 @@ const file_transaction_proto_rawDesc = "" +
 	"\x0eCreateCategory\x122.familyledger.transaction.v1.CreateCategoryRequest\x1a3.familyledger.transaction.v1.CreateCategoryResponse\x12y\n" +
 	"\x0eUpdateCategory\x122.familyledger.transaction.v1.UpdateCategoryRequest\x1a3.familyledger.transaction.v1.UpdateCategoryResponse\x12y\n" +
 	"\x0eDeleteCategory\x122.familyledger.transaction.v1.DeleteCategoryRequest\x1a3.familyledger.transaction.v1.DeleteCategoryResponse\x12\x82\x01\n" +
-	"\x11ReorderCategories\x125.familyledger.transaction.v1.ReorderCategoriesRequest\x1a6.familyledger.transaction.v1.ReorderCategoriesResponseB2Z0github.com/familyledger/server/proto/transactionb\x06proto3"
+	"\x11ReorderCategories\x125.familyledger.transaction.v1.ReorderCategoriesRequest\x1a6.familyledger.transaction.v1.ReorderCategoriesResponse\x12|\n" +
+	"\x0fMergeCategories\x123.familyledger.transaction.v1.MergeCategoriesRequest\x1a4.familyledger.transaction.v1.MergeCategoriesResponseB2Z0github.com/familyledger/server/proto/transactionb\x06proto3"
 
 var (
 	file_transaction_proto_rawDescOnce sync.Once
@@ -1924,7 +2026,7 @@ func file_transaction_proto_rawDescGZIP() []byte {
 }
 
 var file_transaction_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_transaction_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_transaction_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_transaction_proto_goTypes = []any{
 	(TransactionType)(0),                    // 0: familyledger.transaction.v1.TransactionType
 	(*Transaction)(nil),                     // 1: familyledger.transaction.v1.Transaction
@@ -1954,25 +2056,27 @@ var file_transaction_proto_goTypes = []any{
 	(*ReorderCategoriesRequest)(nil),        // 25: familyledger.transaction.v1.ReorderCategoriesRequest
 	(*CategoryOrder)(nil),                   // 26: familyledger.transaction.v1.CategoryOrder
 	(*ReorderCategoriesResponse)(nil),       // 27: familyledger.transaction.v1.ReorderCategoriesResponse
-	(*timestamppb.Timestamp)(nil),           // 28: google.protobuf.Timestamp
+	(*MergeCategoriesRequest)(nil),          // 28: familyledger.transaction.v1.MergeCategoriesRequest
+	(*MergeCategoriesResponse)(nil),         // 29: familyledger.transaction.v1.MergeCategoriesResponse
+	(*timestamppb.Timestamp)(nil),           // 30: google.protobuf.Timestamp
 }
 var file_transaction_proto_depIdxs = []int32{
 	0,  // 0: familyledger.transaction.v1.Transaction.type:type_name -> familyledger.transaction.v1.TransactionType
-	28, // 1: familyledger.transaction.v1.Transaction.txn_date:type_name -> google.protobuf.Timestamp
-	28, // 2: familyledger.transaction.v1.Transaction.created_at:type_name -> google.protobuf.Timestamp
-	28, // 3: familyledger.transaction.v1.Transaction.updated_at:type_name -> google.protobuf.Timestamp
-	28, // 4: familyledger.transaction.v1.Transaction.deleted_at:type_name -> google.protobuf.Timestamp
+	30, // 1: familyledger.transaction.v1.Transaction.txn_date:type_name -> google.protobuf.Timestamp
+	30, // 2: familyledger.transaction.v1.Transaction.created_at:type_name -> google.protobuf.Timestamp
+	30, // 3: familyledger.transaction.v1.Transaction.updated_at:type_name -> google.protobuf.Timestamp
+	30, // 4: familyledger.transaction.v1.Transaction.deleted_at:type_name -> google.protobuf.Timestamp
 	0,  // 5: familyledger.transaction.v1.Category.type:type_name -> familyledger.transaction.v1.TransactionType
 	2,  // 6: familyledger.transaction.v1.Category.children:type_name -> familyledger.transaction.v1.Category
 	0,  // 7: familyledger.transaction.v1.CreateTransactionRequest.type:type_name -> familyledger.transaction.v1.TransactionType
-	28, // 8: familyledger.transaction.v1.CreateTransactionRequest.txn_date:type_name -> google.protobuf.Timestamp
+	30, // 8: familyledger.transaction.v1.CreateTransactionRequest.txn_date:type_name -> google.protobuf.Timestamp
 	1,  // 9: familyledger.transaction.v1.CreateTransactionResponse.transaction:type_name -> familyledger.transaction.v1.Transaction
-	28, // 10: familyledger.transaction.v1.ListTransactionsRequest.start_date:type_name -> google.protobuf.Timestamp
-	28, // 11: familyledger.transaction.v1.ListTransactionsRequest.end_date:type_name -> google.protobuf.Timestamp
-	28, // 12: familyledger.transaction.v1.ListTransactionsRequest.updated_since:type_name -> google.protobuf.Timestamp
+	30, // 10: familyledger.transaction.v1.ListTransactionsRequest.start_date:type_name -> google.protobuf.Timestamp
+	30, // 11: familyledger.transaction.v1.ListTransactionsRequest.end_date:type_name -> google.protobuf.Timestamp
+	30, // 12: familyledger.transaction.v1.ListTransactionsRequest.updated_since:type_name -> google.protobuf.Timestamp
 	1,  // 13: familyledger.transaction.v1.ListTransactionsResponse.transactions:type_name -> familyledger.transaction.v1.Transaction
 	0,  // 14: familyledger.transaction.v1.UpdateTransactionRequest.type:type_name -> familyledger.transaction.v1.TransactionType
-	28, // 15: familyledger.transaction.v1.UpdateTransactionRequest.txn_date:type_name -> google.protobuf.Timestamp
+	30, // 15: familyledger.transaction.v1.UpdateTransactionRequest.txn_date:type_name -> google.protobuf.Timestamp
 	1,  // 16: familyledger.transaction.v1.UpdateTransactionResponse.transaction:type_name -> familyledger.transaction.v1.Transaction
 	3,  // 17: familyledger.transaction.v1.BatchCreateTransactionsRequest.transactions:type_name -> familyledger.transaction.v1.CreateTransactionRequest
 	1,  // 18: familyledger.transaction.v1.BatchCreateTransactionsResponse.transactions:type_name -> familyledger.transaction.v1.Transaction
@@ -1994,20 +2098,22 @@ var file_transaction_proto_depIdxs = []int32{
 	21, // 34: familyledger.transaction.v1.TransactionService.UpdateCategory:input_type -> familyledger.transaction.v1.UpdateCategoryRequest
 	23, // 35: familyledger.transaction.v1.TransactionService.DeleteCategory:input_type -> familyledger.transaction.v1.DeleteCategoryRequest
 	25, // 36: familyledger.transaction.v1.TransactionService.ReorderCategories:input_type -> familyledger.transaction.v1.ReorderCategoriesRequest
-	4,  // 37: familyledger.transaction.v1.TransactionService.CreateTransaction:output_type -> familyledger.transaction.v1.CreateTransactionResponse
-	12, // 38: familyledger.transaction.v1.TransactionService.BatchCreateTransactions:output_type -> familyledger.transaction.v1.BatchCreateTransactionsResponse
-	8,  // 39: familyledger.transaction.v1.TransactionService.UpdateTransaction:output_type -> familyledger.transaction.v1.UpdateTransactionResponse
-	10, // 40: familyledger.transaction.v1.TransactionService.DeleteTransaction:output_type -> familyledger.transaction.v1.DeleteTransactionResponse
-	14, // 41: familyledger.transaction.v1.TransactionService.BatchDeleteTransactions:output_type -> familyledger.transaction.v1.BatchDeleteTransactionsResponse
-	16, // 42: familyledger.transaction.v1.TransactionService.UploadTransactionImage:output_type -> familyledger.transaction.v1.UploadTransactionImageResponse
-	6,  // 43: familyledger.transaction.v1.TransactionService.ListTransactions:output_type -> familyledger.transaction.v1.ListTransactionsResponse
-	18, // 44: familyledger.transaction.v1.TransactionService.GetCategories:output_type -> familyledger.transaction.v1.GetCategoriesResponse
-	20, // 45: familyledger.transaction.v1.TransactionService.CreateCategory:output_type -> familyledger.transaction.v1.CreateCategoryResponse
-	22, // 46: familyledger.transaction.v1.TransactionService.UpdateCategory:output_type -> familyledger.transaction.v1.UpdateCategoryResponse
-	24, // 47: familyledger.transaction.v1.TransactionService.DeleteCategory:output_type -> familyledger.transaction.v1.DeleteCategoryResponse
-	27, // 48: familyledger.transaction.v1.TransactionService.ReorderCategories:output_type -> familyledger.transaction.v1.ReorderCategoriesResponse
-	37, // [37:49] is the sub-list for method output_type
-	25, // [25:37] is the sub-list for method input_type
+	28, // 37: familyledger.transaction.v1.TransactionService.MergeCategories:input_type -> familyledger.transaction.v1.MergeCategoriesRequest
+	4,  // 38: familyledger.transaction.v1.TransactionService.CreateTransaction:output_type -> familyledger.transaction.v1.CreateTransactionResponse
+	12, // 39: familyledger.transaction.v1.TransactionService.BatchCreateTransactions:output_type -> familyledger.transaction.v1.BatchCreateTransactionsResponse
+	8,  // 40: familyledger.transaction.v1.TransactionService.UpdateTransaction:output_type -> familyledger.transaction.v1.UpdateTransactionResponse
+	10, // 41: familyledger.transaction.v1.TransactionService.DeleteTransaction:output_type -> familyledger.transaction.v1.DeleteTransactionResponse
+	14, // 42: familyledger.transaction.v1.TransactionService.BatchDeleteTransactions:output_type -> familyledger.transaction.v1.BatchDeleteTransactionsResponse
+	16, // 43: familyledger.transaction.v1.TransactionService.UploadTransactionImage:output_type -> familyledger.transaction.v1.UploadTransactionImageResponse
+	6,  // 44: familyledger.transaction.v1.TransactionService.ListTransactions:output_type -> familyledger.transaction.v1.ListTransactionsResponse
+	18, // 45: familyledger.transaction.v1.TransactionService.GetCategories:output_type -> familyledger.transaction.v1.GetCategoriesResponse
+	20, // 46: familyledger.transaction.v1.TransactionService.CreateCategory:output_type -> familyledger.transaction.v1.CreateCategoryResponse
+	22, // 47: familyledger.transaction.v1.TransactionService.UpdateCategory:output_type -> familyledger.transaction.v1.UpdateCategoryResponse
+	24, // 48: familyledger.transaction.v1.TransactionService.DeleteCategory:output_type -> familyledger.transaction.v1.DeleteCategoryResponse
+	27, // 49: familyledger.transaction.v1.TransactionService.ReorderCategories:output_type -> familyledger.transaction.v1.ReorderCategoriesResponse
+	29, // 50: familyledger.transaction.v1.TransactionService.MergeCategories:output_type -> familyledger.transaction.v1.MergeCategoriesResponse
+	38, // [38:51] is the sub-list for method output_type
+	25, // [25:38] is the sub-list for method input_type
 	25, // [25:25] is the sub-list for extension type_name
 	25, // [25:25] is the sub-list for extension extendee
 	0,  // [0:25] is the sub-list for field type_name
@@ -2026,7 +2132,7 @@ func file_transaction_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_transaction_proto_rawDesc), len(file_transaction_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   27,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

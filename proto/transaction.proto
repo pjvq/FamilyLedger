@@ -20,6 +20,7 @@ service TransactionService {
   rpc UpdateCategory(UpdateCategoryRequest) returns (UpdateCategoryResponse);
   rpc DeleteCategory(DeleteCategoryRequest) returns (DeleteCategoryResponse);
   rpc ReorderCategories(ReorderCategoriesRequest) returns (ReorderCategoriesResponse);
+  rpc MergeCategories(MergeCategoriesRequest) returns (MergeCategoriesResponse);
 }
 
 enum TransactionType {
@@ -194,3 +195,12 @@ message CategoryOrder {
 }
 
 message ReorderCategoriesResponse {}
+
+message MergeCategoriesRequest {
+  string source_category_id = 1;  // 被合并（删除）的分类
+  string target_category_id = 2;  // 保留的分类
+}
+
+message MergeCategoriesResponse {
+  int32 affected_transactions = 1;
+}

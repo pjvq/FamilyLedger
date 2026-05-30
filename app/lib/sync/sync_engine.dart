@@ -615,6 +615,10 @@ class SyncEngine {
       case 'budget':
         await _applyBudgetOp(op.opType, op.entityId, payload);
         break;
+      case 'category_merge':
+        // 合并操作从服务端拉取时，本地执行同样的合并
+        await _applyCategoryMergeOp(op.entityId, payload);
+        break;
       default:
         // Throw so unknown entity types enter dead-letter table.
         // When client upgrades with new handler, retry will succeed.
@@ -826,6 +830,31 @@ class SyncEngine {
       default:
         break;
     }
+  }
+
+  // ─────────── Category Merge ops ───────────
+
+  Future<void> _applyCategoryMergeOp(
+    String mergeLogId,
+    Map<String, dynamic> payload,
+  ) async {
+    final sourceId = payload['source_category_id'] as String?;
+    final targetId = payload['target_category_id'] as String?;
+    if (sourceId == null || targetId == null) return;
+
+    // 服务端广播的合并操作，本地直接执行 SQL（跳过客户端执行器避免重复记日志）
+    await _db!.customStatement(
+      'UPDATE transactions SET category_id = ? WHERE category_id = ? AND deleted_at IS NULL',
+      [targetId, sourceId],
+    );
+    await _db!.customStatement(
+      'UPDATE categories SET parent_id = ? WHERE parent_id = ? AND deleted_at IS NULL',
+      [targetId, sourceId],
+    );
+    await _db!.customStatement(
+      'UPDATE categories SET deleted_at = ? WHERE id = ?',
+      [DateTime.now().toIso8601String(), sourceId],
+    );
   }
 
   // ─────────── Loan ops ───────────
