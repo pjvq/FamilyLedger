@@ -1,8 +1,10 @@
+import 'dart:math' show exp;
+
 import 'package:meta/meta.dart';
 
-/// 语义距离计算接口（依赖倒置 — domain 不依赖 platform channel）
+/// 语义距离计算接口(依赖倒置 - domain 不依赖 platform channel)
 ///
-/// 实现者提供：
+/// 实现者提供:
 /// - [isAvailable]: 是否可用
 /// - [distance]: 两个词的距离 (0=相同, 2=无关)
 /// - [batchDistances]: 批量计算
@@ -10,10 +12,10 @@ typedef SemanticDistanceFn = Future<double?> Function(String word1, String word2
 typedef SemanticBatchFn = Future<Map<String, double>?> Function(List<String> words);
 typedef SemanticAvailableFn = Future<bool> Function();
 
-/// 语义相似度评分器（纯 domain 层，不依赖 Flutter）
+/// 语义相似度评分器(纯 domain 层,不依赖 Flutter)
 ///
-/// 通过构造函数注入平台实现。iOS 注入 NLEmbeddingBridge，
-/// Android 注入返回 null 的 stub，测试直接注入 mock。
+/// 通过构造函数注入平台实现。iOS 注入 NLEmbeddingBridge,
+/// Android 注入返回 null 的 stub,测试直接注入 mock。
 class SemanticScorer {
   final SemanticAvailableFn _checkAvailable;
   final SemanticDistanceFn _getDistance;
@@ -22,7 +24,7 @@ class SemanticScorer {
   /// 缓存的批量距离结果
   Map<String, double>? _cachedDistances;
 
-  /// 可用性缓存 + 过期（CRITICAL #2 — 5 分钟后重新检测）
+  /// 可用性缓存 + 过期(CRITICAL #2 - 5 分钟后重新检测)
   bool? _available;
   DateTime? _availableCheckedAt;
   static const _availableCacheDuration = Duration(minutes: 5);
@@ -35,7 +37,7 @@ class SemanticScorer {
         _getDistance = getDistance,
         _getBatchDistances = getBatchDistances;
 
-  /// 检查是否可用（带 5 分钟过期缓存）
+  /// 检查是否可用(带 5 分钟过期缓存)
   Future<bool> get isAvailable async {
     final now = DateTime.now();
     if (_available != null &&
@@ -48,7 +50,7 @@ class SemanticScorer {
     return _available!;
   }
 
-  /// 预计算一批词的距离矩阵（减少 channel round-trip）
+  /// 预计算一批词的距离矩阵(减少 channel round-trip)
   Future<void> precompute(List<String> categoryNames) async {
     if (!await isAvailable) return;
 
@@ -65,7 +67,7 @@ class SemanticScorer {
   Future<double?> score(String nameA, String nameB) async {
     if (!await isAvailable) return null;
 
-    // MAJOR #6: 短路相同名称，避免无意义 platform call
+    // MAJOR #6: 短路相同名称,避免无意义 platform call
     if (nameA == nameB) return 1.0;
 
     // 优先使用预计算的缓存
@@ -89,7 +91,7 @@ class SemanticScorer {
     _cachedDistances = null;
   }
 
-  /// 重置可用性缓存（测试用）
+  /// 重置可用性缓存(测试用)
   @visibleForTesting
   void resetAvailability() {
     _available = null;
@@ -98,34 +100,15 @@ class SemanticScorer {
 
   /// NLEmbedding distance (0~2) → similarity score (0~1)
   ///
-  /// 使用 sigmoid-like 映射提升有效区间 (0~0.8) 的区分度（MINOR #10）
-  /// distance 0 → 1.0, distance 0.8 → 0.5, distance 2 → ~0.05
+  /// sigmoid 映射提升有效区间 (0~0.8) 的区分度
+  /// distance 0 → ~0.96, distance 0.8 → 0.5, distance 2 → ~0.008
   double _distanceToScore(double distance) {
-    // Sigmoid-style: 1 / (1 + exp(4*(d - 0.8)))
-    // 这比线性映射更好地区分"相似"(d<0.5)和"不相似"(d>1.0)区间
+    if (distance.isNaN) return 0.0; // NaN 视为无关
     final x = 4.0 * (distance - 0.8);
-    return 1.0 / (1.0 + _exp(x));
+    return 1.0 / (1.0 + exp(x));
   }
 
-  /// 快速 exp 近似（避免 import dart:math 仅为一个函数）
-  static double _exp(double x) {
-    // 使用 Dart 内置
-    return x.isNaN ? 1.0 : _dartExp(x);
-  }
-
-  static double _dartExp(double x) {
-    // Dart 的 double 支持 exp via 运算
-    // 实际用 dart:math 的 exp
-    double result = 1.0;
-    double term = 1.0;
-    for (int i = 1; i <= 12; i++) {
-      term *= x / i;
-      result += term;
-    }
-    return result;
-  }
-
-  /// pair key（字典序排列）
+  /// pair key（字典序排列）—— 委托统一实现
   static String makePairKey(String word1, String word2) {
     final sorted = [word1, word2]..sort();
     return '${sorted[0]}|${sorted[1]}';
