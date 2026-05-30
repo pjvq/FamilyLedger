@@ -1888,6 +1888,19 @@ func (s *Service) MergeCategories(ctx context.Context, req *pb.MergeCategoriesRe
 		return nil, status.Errorf(codes.Internal, "failed to soft-delete source: %v", err)
 	}
 
+	// 5.5 记录 sync_operations（离线设备上线后可 Pull 到这条记录）
+	syncPayload, _ := json.Marshal(map[string]interface{}{
+		"source_category_id": sourceID.String(),
+		"target_category_id": targetID.String(),
+	})
+	_, err = tx.Exec(ctx,
+		`INSERT INTO sync_operations (user_id, entity_type, entity_id, op_type, payload, client_id, timestamp)
+		 VALUES ($1, 'category_merge', $2, 'update'::sync_op_type, $3, $4, NOW())`,
+		userID, sourceID.String(), string(syncPayload), syncClientID("merge"))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to record sync op: %v", err)
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, status.Error(codes.Internal, "failed to commit merge")
 	}

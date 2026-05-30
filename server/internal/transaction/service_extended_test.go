@@ -548,6 +548,10 @@ func TestMergeCategories_Success(t *testing.T) {
 	mock.ExpectExec("UPDATE categories SET deleted_at").
 		WithArgs(pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	// Record sync_operations
+	mock.ExpectExec("INSERT INTO sync_operations").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
 	resp, err := svc.MergeCategories(authedCtx(), &pb.MergeCategoriesRequest{
