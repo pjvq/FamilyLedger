@@ -1,9 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/local/database.dart';
 import '../services/smart_category/category_recommender.dart';
-import '../services/smart_category/category_usage_profile.dart';
-import 'app_providers.dart';
 import 'category_merge_provider.dart';
 import 'transaction_provider.dart';
 
@@ -14,11 +11,15 @@ final categoryRecommendInputProvider =
 });
 
 /// 转移矩阵 — 从最近 200 笔交易构建，惰性重建
-final _sequenceScorerProvider = FutureProvider<SequenceScorer>((ref) async {
-  // 依赖 transactions 列表变化来 invalidate
-  final txns = ref.watch(transactionProvider.select((s) => s.transactions));
+final sequenceScorerProvider = FutureProvider<SequenceScorer>((ref) async {
+  // Watch transaction count as stable invalidation signal
+  final txnCount = ref.watch(
+    transactionProvider.select((s) => s.transactions.length),
+  );
+  if (txnCount == 0) return const SequenceScorer({});
 
   // 取最近 200 笔的 categoryId 列表（按时间倒序）
+  final txns = ref.read(transactionProvider).transactions;
   final recentIds = <String>[];
   for (var i = 0; i < txns.length && recentIds.length < 200; i++) {
     recentIds.add(txns[i].categoryId);
@@ -33,22 +34,17 @@ final categoryRecommendProvider =
     FutureProvider<List<CategoryRecommendation>>((ref) async {
   final input = ref.watch(categoryRecommendInputProvider);
   final profiler = ref.watch(categoryUsageProfilerProvider);
-  final sequenceScorerAsync = ref.watch(_sequenceScorerProvider);
 
-  // 等待 sequence scorer
-  final sequenceScorer = sequenceScorerAsync.when(
-    data: (s) => s,
-    loading: () => const SequenceScorer({}),
-    error: (_, __) => const SequenceScorer({}),
-  );
+  // 等待 sequence scorer 加载完成
+  final sequenceScorer = await ref.watch(sequenceScorerProvider.future);
 
   // 获取所有分类画像
   final allProfiles = await profiler.getAllProfiles();
 
   // 过滤当前类型的活跃分类
   final categories = input.typeIndex == 0
-      ? ref.read(transactionProvider.select((s) => s.expenseCategories))
-      : ref.read(transactionProvider.select((s) => s.incomeCategories));
+      ? ref.watch(transactionProvider.select((s) => s.expenseCategories))
+      : ref.watch(transactionProvider.select((s) => s.incomeCategories));
   final activeIds = {
     for (final c in categories)
       if (c.deletedAt == null) c.id,
@@ -65,11 +61,12 @@ final categoryRecommendProvider =
   final totalTxns =
       profiles.fold<int>(0, (sum, p) => sum + p.totalCount);
   final config = CategoryRecommender.coldStartConfig(totalTxns);
-  final recommender = CategoryRecommender(config: config);
+  final recommender = CategoryRecommender();
 
   return recommender.recommend(
     profiles: profiles,
     sequenceScorer: sequenceScorer,
     input: input,
+    config: config,
   );
 });

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'category_usage_profile.dart';
+import 'category_usage_profiler.dart';
 
 /// 推荐系统配置权重
 class RecommenderConfig {
@@ -26,16 +27,16 @@ class RecommenderConfig {
 class TimeSlotScorer {
   const TimeSlotScorer();
 
-  /// [maxHourProb] 是所有候选分类中最大的 hourProb 值，用于归一化
+  /// 平滑后的小时概率（当前小时 ± 1 小时的平均）
+  static double smoothedProb(CategoryUsageProfile profile, int hour) {
+    final hp = profile.hourProbability;
+    return (hp[(hour - 1) % 24] + hp[hour] + hp[(hour + 1) % 24]) / 3;
+  }
+
+  /// [maxHourProb] 是所有候选分类中最大的 smoothedProb 值，用于归一化
   double score(CategoryUsageProfile profile, int hour, double maxHourProb) {
     if (maxHourProb <= 0) return 0;
-    final hourProb = profile.hourProbability;
-    // 取当前小时 ± 1 小时的平均概率（平滑）
-    final smoothed = (hourProb[(hour - 1) % 24] +
-            hourProb[hour] +
-            hourProb[(hour + 1) % 24]) /
-        3;
-    return smoothed / maxHourProb;
+    return smoothedProb(profile, hour) / maxHourProb;
   }
 }
 
@@ -70,8 +71,8 @@ class AmountRangeScorer {
   const AmountRangeScorer();
 
   double score(CategoryUsageProfile profile, int? amountCents) {
-    if (amountCents == null || amountCents <= 0) return 0;
-    final bucket = CategoryUsageProfile.amountToBucket(amountCents);
+    if (amountCents == null || amountCents == 0) return 0;
+    final bucket = CategoryUsageProfile.amountToBucket(amountCents.abs());
     return profile.amountProbability[bucket];
   }
 }
@@ -92,8 +93,9 @@ class SequenceScorer {
     return transitions[candidateId] ?? 0;
   }
 
-  /// 从有序交易列表（最新在前）构建转移矩阵
-  /// [categoryIds] 按时间倒序排列的分类 ID 列表
+  /// 从有序交易列表構建转移矩阵
+  /// [categoryIds] 按时间倒序排列的分类 ID 列表（最新在前）
+  /// 转移方向：from=较早交易分类 → to=紧随其后的交易分类
   static Map<String, Map<String, double>> buildMatrix(
       List<String> categoryIds) {
     if (categoryIds.length < 2) return {};
@@ -124,6 +126,9 @@ class SequenceScorer {
 
 /// 备注文本与该分类 topKeywords 的匹配度
 class KeywordScorer {
+  /// 匹配多少个关键词即满分
+  static const _matchesForFullScore = 2;
+
   const KeywordScorer();
 
   double score(CategoryUsageProfile profile, String? noteText) {
@@ -132,32 +137,12 @@ class KeywordScorer {
     final words = tokenize(noteText);
     final keywords = profile.topKeywords.toSet();
     final matches = words.where((w) => keywords.contains(w)).length;
-    return min(1.0, matches / 2); // 匹配 2 个关键词即满分
+    return min(1.0, matches / _matchesForFullScore);
   }
 
-  /// 分词器：中文用 2-char sliding window，拉丁文用空格分割
-  static List<String> tokenize(String text) {
-    final tokens = <String>[];
-    final latin = RegExp(r'[a-zA-Z]+');
-
-    // 拉丁文单词
-    for (final m in latin.allMatches(text)) {
-      if (m.group(0)!.length >= 2) tokens.add(m.group(0)!.toLowerCase());
-    }
-
-    // 中文 2-gram
-    final cjk = text.replaceAll(RegExp(r'[^\u4e00-\u9fff]'), '');
-    for (var i = 0; i < cjk.length - 1; i++) {
-      tokens.add(cjk.substring(i, i + 2));
-    }
-
-    // 完整匹配（备注本身，去空格/标点）
-    final clean =
-        text.replaceAll(RegExp(r'[\s\p{P}]', unicode: true), '');
-    if (clean.length >= 2 && clean.length <= 6) tokens.add(clean);
-
-    return tokens;
-  }
+  /// 分词器 — 委托给 CategoryUsageProfiler.tokenize（保证和关键词提取用同一分词策略）
+  static List<String> tokenize(String text) =>
+      CategoryUsageProfiler.tokenize(text);
 }
 
 // ─── CategoryRecommender ─────────────────────────────────────────────────────
@@ -192,32 +177,37 @@ class CategoryRecommendation {
 
 /// 分类推荐器 — 纯算法层，无副作用
 class CategoryRecommender {
-  final RecommenderConfig config;
-  final TimeSlotScorer _timeSlot;
-  final RecencyScorer _recency;
-  final FrequencyScorer _frequency;
-  final AmountRangeScorer _amount;
-  final KeywordScorer _keyword;
+  static const _instance = CategoryRecommender._();
+  factory CategoryRecommender() => _instance;
+  const CategoryRecommender._();
 
-  CategoryRecommender({
-    this.config = const RecommenderConfig(),
-  })  : _timeSlot = const TimeSlotScorer(),
-        _recency = const RecencyScorer(),
-        _frequency = const FrequencyScorer(),
-        _amount = const AmountRangeScorer(),
-        _keyword = const KeywordScorer();
+  final TimeSlotScorer _timeSlot = const TimeSlotScorer();
+  final RecencyScorer _recency = const RecencyScorer();
+  final FrequencyScorer _frequency = const FrequencyScorer();
+  final AmountRangeScorer _amount = const AmountRangeScorer();
+  final KeywordScorer _keyword = const KeywordScorer();
 
   /// 计算推荐排序
   ///
   /// [profiles] 所有候选分类的使用画像
   /// [sequenceScorer] 预构建的转移矩阵 scorer
   /// [input] 当前上下文（时间、金额、备注等）
+  /// [config] 权重配置（默认可以不传）
   List<CategoryRecommendation> recommend({
     required List<CategoryUsageProfile> profiles,
     required SequenceScorer sequenceScorer,
     required CategoryRecommendInput input,
+    RecommenderConfig config = const RecommenderConfig(),
   }) {
     if (profiles.isEmpty) return [];
+    assert(
+      (config.timeSlotWeight + config.recencyWeight + config.frequencyWeight +
+                  config.amountWeight + config.sequenceWeight + config.keywordWeight -
+                  1.0)
+              .abs() <
+          0.01,
+      'RecommenderConfig weights must sum to 1.0',
+    );
 
     final now = input.now ?? DateTime.now();
     final hour = now.hour;
@@ -229,9 +219,7 @@ class CategoryRecommender {
     for (final p in profiles) {
       if (p.last7dCount > maxLast7d) maxLast7d = p.last7dCount;
       if (p.totalCount > maxTotal) maxTotal = p.totalCount;
-      final hp = p.hourProbability;
-      final smoothed =
-          (hp[(hour - 1) % 24] + hp[hour] + hp[(hour + 1) % 24]) / 3;
+      final smoothed = TimeSlotScorer.smoothedProb(p, hour);
       if (smoothed > maxHourProb) maxHourProb = smoothed;
     }
 
@@ -282,14 +270,17 @@ class CategoryRecommender {
       ));
     }
 
-    // Sort descending by score
+    // Sort descending by score, filter out zero-score entries
     results.sort((a, b) => b.score.compareTo(a.score));
-    return results;
+    return results.where((r) => r.score > 0).toList();
   }
+
+  /// 冷启动阈值：交易量低于此值时使用冷启动权重
+  static const _coldStartThreshold = 30;
 
   /// 冷启动：交易量不足时调整权重
   static RecommenderConfig coldStartConfig(int totalTransactions) {
-    if (totalTransactions < 30) {
+    if (totalTransactions < _coldStartThreshold) {
       // 数据不够，增大 frequency，减小 timeSlot
       return const RecommenderConfig(
         timeSlotWeight: 0.10,
