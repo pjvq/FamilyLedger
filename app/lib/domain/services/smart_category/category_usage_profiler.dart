@@ -1,21 +1,52 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 
 import '../../../data/local/database.dart';
 import 'category_usage_profile.dart';
+
+/// Slot type 枚举，避免裸字符串
+abstract final class SlotType {
+  static const hour = 'hour';
+  static const weekday = 'weekday';
+  static const amount = 'amount';
+
+  static const all = [hour, weekday, amount];
+}
 
 /// 分类使用画像统计引擎
 /// 负责从 transactions 聚合使用数据到 category_usage_slots / category_usage_summary
 class CategoryUsageProfiler {
   final AppDatabase _db;
 
+  /// 互斥锁：防止 rebuildAll 并发执行
+  Completer<void>? _rebuildLock;
+
   CategoryUsageProfiler(this._db);
 
   // ──────────── 全量重建 ────────────
 
   /// 全量重建所有分类的使用画像（首次启动 / 导入后 / 周期性后台刷新）
+  /// 通过互斥锁防止并发执行（CRITICAL #3）
   Future<void> rebuildAll() async {
+    // 等待正在进行的 rebuild 完成
+    if (_rebuildLock != null) {
+      await _rebuildLock!.future;
+      return; // 前一次已完成，本次跳过
+    }
+
+    _rebuildLock = Completer<void>();
+    try {
+      await _doRebuildAll();
+    } finally {
+      _rebuildLock!.complete();
+      _rebuildLock = null;
+    }
+  }
+
+  Future<void> _doRebuildAll() async {
     // 获取所有未删除分类
     final categories = await (_db.select(_db.categories)
           ..where((c) => c.deletedAt.isNull()))
@@ -57,7 +88,7 @@ class CategoryUsageProfiler {
 
         for (final txn in txns) {
           hourCounts[txn.txnDate.hour]++;
-          weekdayCounts[txn.txnDate.weekday % 7]++; // 0=Sun,1=Mon...6=Sat
+          weekdayCounts[txn.txnDate.weekday % 7]++;
           amountCounts[CategoryUsageProfile.amountToBucket(txn.amountCny.abs())]++;
 
           if (txn.txnDate.isAfter(sevenDaysAgo)) last7d++;
@@ -78,7 +109,7 @@ class CategoryUsageProfiler {
                 _db.categoryUsageSlots,
                 CategoryUsageSlotsCompanion.insert(
                   categoryId: catId,
-                  slotType: 'hour',
+                  slotType: SlotType.hour,
                   slotIndex: i,
                   count: Value(hourCounts[i]),
                 ),
@@ -91,7 +122,7 @@ class CategoryUsageProfiler {
                 _db.categoryUsageSlots,
                 CategoryUsageSlotsCompanion.insert(
                   categoryId: catId,
-                  slotType: 'weekday',
+                  slotType: SlotType.weekday,
                   slotIndex: i,
                   count: Value(weekdayCounts[i]),
                 ),
@@ -104,7 +135,7 @@ class CategoryUsageProfiler {
                 _db.categoryUsageSlots,
                 CategoryUsageSlotsCompanion.insert(
                   categoryId: catId,
-                  slotType: 'amount',
+                  slotType: SlotType.amount,
                   slotIndex: i,
                   count: Value(amountCounts[i]),
                 ),
@@ -134,6 +165,8 @@ class CategoryUsageProfiler {
   // ──────────── 增量更新 ────────────
 
   /// 记一笔交易后增量更新对应分类的统计
+  /// 注意：仅更新 total_count 和 last_used_at（CRITICAL #2 修复）
+  /// last_7d/last_30d 由 refreshRecencyCounts() 定期刷新
   Future<void> onTransactionCreated({
     required String categoryId,
     required DateTime txnDate,
@@ -143,36 +176,71 @@ class CategoryUsageProfiler {
     final weekday = txnDate.weekday % 7;
     final bucket = CategoryUsageProfile.amountToBucket(amountCents.abs());
 
-    // Upsert slots (INSERT OR UPDATE count = count + 1)
-    await _upsertSlot(categoryId, 'hour', hour);
-    await _upsertSlot(categoryId, 'weekday', weekday);
-    await _upsertSlot(categoryId, 'amount', bucket);
+    // Upsert slots — 使用 insertOnConflictUpdate 触发 Drift StreamQuery 通知
+    await _upsertSlot(categoryId, SlotType.hour, hour);
+    await _upsertSlot(categoryId, SlotType.weekday, weekday);
+    await _upsertSlot(categoryId, SlotType.amount, bucket);
 
-    // Update summary
-    await _db.customStatement(
-      'INSERT INTO category_usage_summary (category_id, total_count, last_30d_count, last_7d_count, top_keywords, last_used_at, updated_at) '
-      'VALUES (?, 1, 1, 1, \'[]\', ?, CURRENT_TIMESTAMP) '
-      'ON CONFLICT(category_id) DO UPDATE SET '
-      'total_count = total_count + 1, '
-      'last_30d_count = last_30d_count + 1, '
-      'last_7d_count = last_7d_count + 1, '
-      'last_used_at = CASE WHEN excluded.last_used_at > last_used_at THEN excluded.last_used_at ELSE last_used_at END, '
-      'updated_at = CURRENT_TIMESTAMP',
-      [Variable.withString(categoryId), Variable.withDateTime(txnDate)],
-    );
+    // Update summary — 仅递增 total_count + 更新 last_used_at
+    // last_7d_count / last_30d_count 留给 refreshRecencyCounts 批量刷新
+    final existing = await (_db.select(_db.categoryUsageSummary)
+          ..where((s) => s.categoryId.equals(categoryId)))
+        .getSingleOrNull();
+
+    if (existing == null) {
+      await _db.into(_db.categoryUsageSummary).insert(
+        CategoryUsageSummaryCompanion.insert(
+          categoryId: categoryId,
+          totalCount: const Value(1),
+          topKeywords: const Value('[]'),
+          lastUsedAt: Value(txnDate),
+        ),
+      );
+    } else {
+      await (_db.update(_db.categoryUsageSummary)
+            ..where((s) => s.categoryId.equals(categoryId)))
+          .write(CategoryUsageSummaryCompanion(
+        totalCount: Value(existing.totalCount + 1),
+        lastUsedAt: Value(
+          existing.lastUsedAt == null || txnDate.isAfter(existing.lastUsedAt!)
+              ? txnDate
+              : existing.lastUsedAt!,
+        ),
+        updatedAt: Value(DateTime.now()),
+      ));
+    }
   }
 
+  /// Upsert slot — 使用 Drift 原生 API 确保触发 StreamQuery 通知（CRITICAL #5）
   Future<void> _upsertSlot(String categoryId, String slotType, int slotIndex) async {
-    await _db.customStatement(
-      'INSERT INTO category_usage_slots (category_id, slot_type, slot_index, count) '
-      'VALUES (?, ?, ?, 1) '
-      'ON CONFLICT(category_id, slot_type, slot_index) DO UPDATE SET count = count + 1',
-      [
-        Variable.withString(categoryId),
-        Variable.withString(slotType),
-        Variable.withInt(slotIndex),
-      ],
-    );
+    assert(SlotType.all.contains(slotType), 'Invalid slotType: $slotType');
+
+    final existing = await (_db.select(_db.categoryUsageSlots)
+          ..where((s) =>
+              s.categoryId.equals(categoryId) &
+              s.slotType.equals(slotType) &
+              s.slotIndex.equals(slotIndex)))
+        .getSingleOrNull();
+
+    if (existing == null) {
+      await _db.into(_db.categoryUsageSlots).insert(
+        CategoryUsageSlotsCompanion.insert(
+          categoryId: categoryId,
+          slotType: slotType,
+          slotIndex: slotIndex,
+          count: const Value(1),
+        ),
+      );
+    } else {
+      await (_db.update(_db.categoryUsageSlots)
+            ..where((s) =>
+                s.categoryId.equals(categoryId) &
+                s.slotType.equals(slotType) &
+                s.slotIndex.equals(slotIndex)))
+          .write(CategoryUsageSlotsCompanion(
+        count: Value(existing.count + 1),
+      ));
+    }
   }
 
   // ──────────── 读取画像 ────────────
@@ -187,18 +255,56 @@ class CategoryUsageProfiler {
           ..where((s) => s.categoryId.equals(categoryId)))
         .get();
 
+    return _buildProfile(categoryId, summary, slots);
+  }
+
+  /// 获取所有有使用记录的分类画像
+  Future<Map<String, CategoryUsageProfile>> getAllProfiles() async {
+    final summaries = await _db.select(_db.categoryUsageSummary).get();
+    final allSlots = await _db.select(_db.categoryUsageSlots).get();
+
+    // 按 categoryId 分组 slots
+    final slotsByCategory = <String, List<CategoryUsageSlot>>{};
+    for (final slot in allSlots) {
+      slotsByCategory.putIfAbsent(slot.categoryId, () => []).add(slot);
+    }
+
+    final profiles = <String, CategoryUsageProfile>{};
+    for (final summary in summaries) {
+      final catId = summary.categoryId;
+      profiles[catId] = _buildProfile(
+        catId,
+        summary,
+        slotsByCategory[catId] ?? [],
+      );
+    }
+
+    return profiles;
+  }
+
+  CategoryUsageProfile _buildProfile(
+    String categoryId,
+    CategoryUsageSummaryData? summary,
+    List<CategoryUsageSlot> slots,
+  ) {
     final hourDist = List<int>.filled(24, 0);
     final weekdayDist = List<int>.filled(7, 0);
     final amountDist = List<int>.filled(6, 0);
 
     for (final slot in slots) {
       switch (slot.slotType) {
-        case 'hour':
-          hourDist[slot.slotIndex] = slot.count;
-        case 'weekday':
-          weekdayDist[slot.slotIndex] = slot.count;
-        case 'amount':
-          amountDist[slot.slotIndex] = slot.count;
+        case SlotType.hour:
+          if (slot.slotIndex >= 0 && slot.slotIndex < 24) {
+            hourDist[slot.slotIndex] = slot.count;
+          }
+        case SlotType.weekday:
+          if (slot.slotIndex >= 0 && slot.slotIndex < 7) {
+            weekdayDist[slot.slotIndex] = slot.count;
+          }
+        case SlotType.amount:
+          if (slot.slotIndex >= 0 && slot.slotIndex < 6) {
+            amountDist[slot.slotIndex] = slot.count;
+          }
       }
     }
 
@@ -222,70 +328,31 @@ class CategoryUsageProfiler {
     );
   }
 
-  /// 获取所有有使用记录的分类画像
-  Future<Map<String, CategoryUsageProfile>> getAllProfiles() async {
-    final summaries = await _db.select(_db.categoryUsageSummary).get();
-    final allSlots = await _db.select(_db.categoryUsageSlots).get();
-
-    // 按 categoryId 分组 slots
-    final slotsByCategory = <String, List<CategoryUsageSlot>>{};
-    for (final slot in allSlots) {
-      slotsByCategory.putIfAbsent(slot.categoryId, () => []).add(slot);
-    }
-
-    final profiles = <String, CategoryUsageProfile>{};
-    for (final summary in summaries) {
-      final catId = summary.categoryId;
-      final slots = slotsByCategory[catId] ?? [];
-
-      final hourDist = List<int>.filled(24, 0);
-      final weekdayDist = List<int>.filled(7, 0);
-      final amountDist = List<int>.filled(6, 0);
-
-      for (final slot in slots) {
-        switch (slot.slotType) {
-          case 'hour':
-            hourDist[slot.slotIndex] = slot.count;
-          case 'weekday':
-            weekdayDist[slot.slotIndex] = slot.count;
-          case 'amount':
-            amountDist[slot.slotIndex] = slot.count;
-        }
-      }
-
-      List<String> keywords = [];
-      try {
-        keywords = (jsonDecode(summary.topKeywords) as List).cast<String>();
-      } catch (_) {}
-
-      profiles[catId] = CategoryUsageProfile(
-        categoryId: catId,
-        totalCount: summary.totalCount,
-        last30dCount: summary.last30dCount,
-        last7dCount: summary.last7dCount,
-        hourDistribution: hourDist,
-        weekdayDistribution: weekdayDist,
-        amountBuckets: amountDist,
-        topKeywords: keywords,
-        lastUsedAt: summary.lastUsedAt,
-      );
-    }
-
-    return profiles;
-  }
-
   // ──────────── 关键词提取 ────────────
 
+  /// 停用词集合
+  static const _stopwords = {
+    '的', '了', '在', '是', '我', '一', '个', '不', '这', '那',
+    '有', '和', '与', '等', '到', '也', '就', '都', '而', '及',
+    '年', '月', '日', '号', '时', // 时间字 (MINOR #13)
+  };
+
+  static final _latinRegex = RegExp(r'[a-zA-Z]+');
+  static final _cjkStripRegex = RegExp(r'[^\u4e00-\u9fff]');
+  static final _punctSpaceRegex = RegExp(r'[\s\p{P}]', unicode: true);
+  static final _numericRegex = RegExp(r'^\d+$');
+  static final _dateRegex = RegExp(r'^\d{2,4}[/-]\d{1,2}([/-]\d{1,2})?$');
+
   /// 从交易备注中提取高频关键词
+  @visibleForTesting
   static List<String> extractTopKeywords(List<String> allNotes, {int maxCount = 20}) {
     final freq = <String, int>{};
-    const stopwords = {'的', '了', '在', '是', '我', '一', '个', '不', '这', '那', '有', '和', '与', '等'};
 
     for (final note in allNotes) {
       if (note.isEmpty) continue;
       final tokens = tokenize(note);
       for (final token in tokens) {
-        if (stopwords.contains(token)) continue;
+        if (_stopwords.contains(token)) continue;
         if (_isNumericOrDate(token)) continue;
         freq[token] = (freq[token] ?? 0) + 1;
       }
@@ -299,66 +366,88 @@ class CategoryUsageProfiler {
     return sorted.take(maxCount).map((e) => e.key).toList();
   }
 
-  /// 分词器：中文用 2-char sliding window，拉丁文用空格分割
+  /// 分词器
+  @visibleForTesting
   static List<String> tokenize(String text) {
     final tokens = <String>[];
-    final latin = RegExp(r'[a-zA-Z]+');
 
-    // 拉丁文单词
-    for (final m in latin.allMatches(text)) {
-      if (m.group(0)!.length >= 2) tokens.add(m.group(0)!.toLowerCase());
+    // 拉丁文单词（>=2 字符）
+    for (final m in _latinRegex.allMatches(text)) {
+      final word = m.group(0)!;
+      if (word.length >= 2) tokens.add(word.toLowerCase());
     }
 
     // 中文 2-gram
-    final cjk = text.replaceAll(RegExp(r'[^\u4e00-\u9fff]'), '');
+    final cjk = text.replaceAll(_cjkStripRegex, '');
     for (var i = 0; i < cjk.length - 1; i++) {
       tokens.add(cjk.substring(i, i + 2));
     }
 
     // 完整匹配（备注本身，去空格/标点，2-6 字）
-    final clean = text.replaceAll(RegExp(r'[\s\p{P}]', unicode: true), '');
+    final clean = text.replaceAll(_punctSpaceRegex, '');
     if (clean.length >= 2 && clean.length <= 6) tokens.add(clean);
 
     return tokens;
   }
 
+  @visibleForTesting
+  static bool isNumericOrDate(String token) => _isNumericOrDate(token);
+
   static bool _isNumericOrDate(String token) {
-    if (RegExp(r'^\d+$').hasMatch(token)) return true;
-    if (RegExp(r'^\d{2,4}[/-]\d{1,2}([/-]\d{1,2})?$').hasMatch(token)) return true;
+    if (_numericRegex.hasMatch(token)) return true;
+    if (_dateRegex.hasMatch(token)) return true;
     return false;
   }
 
   // ──────────── 周期性刷新 ────────────
 
   /// 刷新 last_7d_count 和 last_30d_count（每天后台运行一次）
+  /// 单条 GROUP BY 聚合，无 N+1 问题（CRITICAL #1）
   Future<void> refreshRecencyCounts() async {
     final now = DateTime.now();
     final sevenDaysAgo = now.subtract(const Duration(days: 7));
     final thirtyDaysAgo = now.subtract(const Duration(days: 30));
 
-    final summaries = await _db.select(_db.categoryUsageSummary).get();
-    for (final summary in summaries) {
-      final catId = summary.categoryId;
+    // 单条 SQL 完成所有分类的 7d/30d 计数
+    final rows = await _db.customSelect(
+      '''
+      SELECT
+        category_id,
+        SUM(CASE WHEN txn_date >= ? THEN 1 ELSE 0 END) as cnt_7d,
+        SUM(CASE WHEN txn_date >= ? THEN 1 ELSE 0 END) as cnt_30d
+      FROM transactions
+      WHERE deleted_at IS NULL AND txn_date >= ?
+      GROUP BY category_id
+      ''',
+      variables: [
+        Variable.withDateTime(sevenDaysAgo),
+        Variable.withDateTime(thirtyDaysAgo),
+        Variable.withDateTime(thirtyDaysAgo),
+      ],
+      readsFrom: {_db.transactions},
+    ).get();
 
-      final last7d = await _db.customSelect(
-        'SELECT COUNT(*) as cnt FROM transactions WHERE category_id = ? AND deleted_at IS NULL AND txn_date >= ?',
-        variables: [Variable.withString(catId), Variable.withDateTime(sevenDaysAgo)],
-        readsFrom: {_db.transactions},
-      ).getSingle();
-
-      final last30d = await _db.customSelect(
-        'SELECT COUNT(*) as cnt FROM transactions WHERE category_id = ? AND deleted_at IS NULL AND txn_date >= ?',
-        variables: [Variable.withString(catId), Variable.withDateTime(thirtyDaysAgo)],
-        readsFrom: {_db.transactions},
-      ).getSingle();
-
-      await (_db.update(_db.categoryUsageSummary)
-            ..where((s) => s.categoryId.equals(catId)))
-          .write(CategoryUsageSummaryCompanion(
-        last7dCount: Value(last7d.data['cnt'] as int? ?? 0),
-        last30dCount: Value(last30d.data['cnt'] as int? ?? 0),
-        updatedAt: Value(now),
-      ));
+    final countMap = <String, (int, int)>{}; // categoryId → (7d, 30d)
+    for (final row in rows) {
+      final catId = row.data['category_id'] as String;
+      final cnt7d = row.data['cnt_7d'] as int? ?? 0;
+      final cnt30d = row.data['cnt_30d'] as int? ?? 0;
+      countMap[catId] = (cnt7d, cnt30d);
     }
+
+    // 批量更新 summary
+    await _db.transaction(() async {
+      final summaries = await _db.select(_db.categoryUsageSummary).get();
+      for (final summary in summaries) {
+        final counts = countMap[summary.categoryId] ?? (0, 0);
+        await (_db.update(_db.categoryUsageSummary)
+              ..where((s) => s.categoryId.equals(summary.categoryId)))
+            .write(CategoryUsageSummaryCompanion(
+          last7dCount: Value(counts.$1),
+          last30dCount: Value(counts.$2),
+          updatedAt: Value(now),
+        ));
+      }
+    });
   }
 }

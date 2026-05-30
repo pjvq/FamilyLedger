@@ -35,6 +35,8 @@ class CategoryUsageSummary extends Table {
 }
 
 /// 分类合并日志（支持 7 天撤销）
+/// 注意：撤销时必须检查 targetCategoryId 是否仍存在，
+/// 若 target 已被删除则撤销失败（抛 UndoTargetDeletedException）
 class CategoryMergeLog extends Table {
   @override
   String get tableName => 'category_merge_log';
@@ -63,7 +65,7 @@ class CategoryMergeDismissals extends Table {
 
   TextColumn get id => text()();
   /// 字典序排列的两个 categoryId，用 '|' 分隔
-  TextColumn get pairKey => text()();
+  TextColumn get pairKey => text().unique()();
   DateTimeColumn get dismissedAt => dateTime().withDefault(currentDateAndTime)();
   /// dismissedAt + 30 days
   DateTimeColumn get expiresAt => dateTime()();

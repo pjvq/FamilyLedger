@@ -5,6 +5,9 @@ import 'dart:math';
 class TextSimilarityScorer {
   const TextSimilarityScorer._();
 
+  /// 包含关系最低要求：被包含字符串长度 >= 2
+  static const _minContainsLength = 2;
+
   /// 计算两个分类名的文本相似度 [0, 1]
   static double score(String nameA, String nameB) {
     if (nameA == nameB) return 1.0;
@@ -13,11 +16,11 @@ class TextSimilarityScorer {
     double best = 0;
 
     // 1. 包含关系 ("点外卖" contains "外卖")
-    if (nameA.contains(nameB) || nameB.contains(nameA)) {
-      final shorter = min(nameA.length, nameB.length);
-      final longer = max(nameA.length, nameB.length);
-      // 越接近完全包含分数越高
-      best = max(best, 0.7 + 0.15 * (shorter / longer));
+    // 门槛：被包含串长度 >= 2，避免单字匹配误报 (MAJOR #7)
+    final shorter = nameA.length <= nameB.length ? nameA : nameB;
+    final longer = nameA.length > nameB.length ? nameA : nameB;
+    if (shorter.length >= _minContainsLength && longer.contains(shorter)) {
+      best = max(best, 0.7 + 0.15 * (shorter.length / longer.length));
     }
 
     // 2. 归一化编辑距离
@@ -40,7 +43,7 @@ class TextSimilarityScorer {
   }
 
   static Set<String> _bigrams(String s) {
-    if (s.length < 2) return {s};
+    if (s.length < 2) return {};
     final result = <String>{};
     for (var i = 0; i < s.length - 1; i++) {
       result.add(s.substring(i, i + 2));
@@ -54,7 +57,6 @@ class TextSimilarityScorer {
 
     final m = a.length;
     final n = b.length;
-    // 空间优化：只用两行
     var prev = List<int>.generate(n + 1, (i) => i);
     var curr = List<int>.filled(n + 1, 0);
 

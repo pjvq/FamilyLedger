@@ -1,16 +1,25 @@
 /// 分类使用画像 — 从 category_usage_slots + category_usage_summary 聚合而来
 class CategoryUsageProfile {
+  /// 小时槽位数
+  static const hourSlotCount = 24;
+
+  /// 星期槽位数
+  static const weekdaySlotCount = 7;
+
+  /// 金额区间数
+  static const amountBucketCount = 6;
+
   final String categoryId;
   final int totalCount;
   final int last30dCount;
   final int last7dCount;
-  final List<int> hourDistribution; // length 24
-  final List<int> weekdayDistribution; // length 7
-  final List<int> amountBuckets; // length 6
+  final List<int> hourDistribution;
+  final List<int> weekdayDistribution;
+  final List<int> amountBuckets;
   final List<String> topKeywords; // max 20
   final DateTime? lastUsedAt;
 
-  const CategoryUsageProfile({
+  CategoryUsageProfile({
     required this.categoryId,
     this.totalCount = 0,
     this.last30dCount = 0,
@@ -20,32 +29,26 @@ class CategoryUsageProfile {
     List<int>? amountBuckets,
     this.topKeywords = const [],
     this.lastUsedAt,
-  })  : hourDistribution = hourDistribution ?? const [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        weekdayDistribution = weekdayDistribution ?? const [0, 0, 0, 0, 0, 0, 0],
-        amountBuckets = amountBuckets ?? const [0, 0, 0, 0, 0, 0];
+  })  : hourDistribution = hourDistribution ?? List<int>.filled(hourSlotCount, 0),
+        weekdayDistribution = weekdayDistribution ?? List<int>.filled(weekdaySlotCount, 0),
+        amountBuckets = amountBuckets ?? List<int>.filled(amountBucketCount, 0);
 
   /// 归一化的小时分布 (概率向量, sum=1)
-  List<double> get hourProbability {
-    final total = hourDistribution.fold<int>(0, (a, b) => a + b);
-    if (total == 0) return List.filled(24, 1.0 / 24);
-    return hourDistribution.map((c) => c / total).toList();
-  }
+  List<double> get hourProbability => _normalize(hourDistribution);
 
   /// 归一化的星期分布
-  List<double> get weekdayProbability {
-    final total = weekdayDistribution.fold<int>(0, (a, b) => a + b);
-    if (total == 0) return List.filled(7, 1.0 / 7);
-    return weekdayDistribution.map((c) => c / total).toList();
-  }
+  List<double> get weekdayProbability => _normalize(weekdayDistribution);
 
   /// 归一化的金额区间分布
-  List<double> get amountProbability {
-    final total = amountBuckets.fold<int>(0, (a, b) => a + b);
-    if (total == 0) return List.filled(6, 1.0 / 6);
-    return amountBuckets.map((c) => c / total).toList();
+  List<double> get amountProbability => _normalize(amountBuckets);
+
+  static List<double> _normalize(List<int> distribution) {
+    final total = distribution.fold<int>(0, (a, b) => a + b);
+    if (total == 0) return List.filled(distribution.length, 1.0 / distribution.length);
+    return distribution.map((c) => c / total).toList();
   }
 
-  /// 金额分桶: <20, 20-50, 50-100, 100-500, 500-2000, >=2000
+  /// 金额分桶: <20, 20-50, 50-100, 100-500, 500-2000, >=2000 (单位: 分)
   static int amountToBucket(int cents) {
     final yuan = cents / 100;
     if (yuan < 20) return 0;

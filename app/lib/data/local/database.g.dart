@@ -15400,6 +15400,7 @@ class $CategoryMergeDismissalsTable extends CategoryMergeDismissals
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
   static const VerificationMeta _dismissedAtMeta = const VerificationMeta(
     'dismissedAt',
