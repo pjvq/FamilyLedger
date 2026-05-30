@@ -14770,6 +14770,18 @@ class $CategoryMergeLogTable extends CategoryMergeLog
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _reparentedChildIdsMeta =
+      const VerificationMeta('reparentedChildIds');
+  @override
+  late final GeneratedColumn<String> reparentedChildIds =
+      GeneratedColumn<String>(
+        'reparented_child_ids',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      );
   static const VerificationMeta _mergeTypeMeta = const VerificationMeta(
     'mergeType',
   );
@@ -14825,6 +14837,7 @@ class $CategoryMergeLogTable extends CategoryMergeLog
     sourceIconKey,
     sourceParentId,
     affectedCount,
+    reparentedChildIds,
     mergeType,
     mergedAt,
     undoneAt,
@@ -14907,6 +14920,15 @@ class $CategoryMergeLogTable extends CategoryMergeLog
         ),
       );
     }
+    if (data.containsKey('reparented_child_ids')) {
+      context.handle(
+        _reparentedChildIdsMeta,
+        reparentedChildIds.isAcceptableOrUnknown(
+          data['reparented_child_ids']!,
+          _reparentedChildIdsMeta,
+        ),
+      );
+    }
     if (data.containsKey('merge_type')) {
       context.handle(
         _mergeTypeMeta,
@@ -14970,6 +14992,10 @@ class $CategoryMergeLogTable extends CategoryMergeLog
         DriftSqlType.int,
         data['${effectivePrefix}affected_count'],
       )!,
+      reparentedChildIds: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reparented_child_ids'],
+      )!,
       mergeType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}merge_type'],
@@ -15005,6 +15031,9 @@ class CategoryMergeLogData extends DataClass
   final String? sourceParentId;
   final int affectedCount;
 
+  /// JSON array of child category IDs that were reparented during merge
+  final String reparentedChildIds;
+
   /// simple / crossParent / parentMerge / moveOnly
   final String mergeType;
   final DateTime mergedAt;
@@ -15018,6 +15047,7 @@ class CategoryMergeLogData extends DataClass
     required this.sourceIconKey,
     this.sourceParentId,
     required this.affectedCount,
+    required this.reparentedChildIds,
     required this.mergeType,
     required this.mergedAt,
     this.undoneAt,
@@ -15035,6 +15065,7 @@ class CategoryMergeLogData extends DataClass
       map['source_parent_id'] = Variable<String>(sourceParentId);
     }
     map['affected_count'] = Variable<int>(affectedCount);
+    map['reparented_child_ids'] = Variable<String>(reparentedChildIds);
     map['merge_type'] = Variable<String>(mergeType);
     map['merged_at'] = Variable<DateTime>(mergedAt);
     if (!nullToAbsent || undoneAt != null) {
@@ -15055,6 +15086,7 @@ class CategoryMergeLogData extends DataClass
           ? const Value.absent()
           : Value(sourceParentId),
       affectedCount: Value(affectedCount),
+      reparentedChildIds: Value(reparentedChildIds),
       mergeType: Value(mergeType),
       mergedAt: Value(mergedAt),
       undoneAt: undoneAt == null && nullToAbsent
@@ -15079,6 +15111,9 @@ class CategoryMergeLogData extends DataClass
       sourceIconKey: serializer.fromJson<String>(json['sourceIconKey']),
       sourceParentId: serializer.fromJson<String?>(json['sourceParentId']),
       affectedCount: serializer.fromJson<int>(json['affectedCount']),
+      reparentedChildIds: serializer.fromJson<String>(
+        json['reparentedChildIds'],
+      ),
       mergeType: serializer.fromJson<String>(json['mergeType']),
       mergedAt: serializer.fromJson<DateTime>(json['mergedAt']),
       undoneAt: serializer.fromJson<DateTime?>(json['undoneAt']),
@@ -15096,6 +15131,7 @@ class CategoryMergeLogData extends DataClass
       'sourceIconKey': serializer.toJson<String>(sourceIconKey),
       'sourceParentId': serializer.toJson<String?>(sourceParentId),
       'affectedCount': serializer.toJson<int>(affectedCount),
+      'reparentedChildIds': serializer.toJson<String>(reparentedChildIds),
       'mergeType': serializer.toJson<String>(mergeType),
       'mergedAt': serializer.toJson<DateTime>(mergedAt),
       'undoneAt': serializer.toJson<DateTime?>(undoneAt),
@@ -15111,6 +15147,7 @@ class CategoryMergeLogData extends DataClass
     String? sourceIconKey,
     Value<String?> sourceParentId = const Value.absent(),
     int? affectedCount,
+    String? reparentedChildIds,
     String? mergeType,
     DateTime? mergedAt,
     Value<DateTime?> undoneAt = const Value.absent(),
@@ -15125,6 +15162,7 @@ class CategoryMergeLogData extends DataClass
         ? sourceParentId.value
         : this.sourceParentId,
     affectedCount: affectedCount ?? this.affectedCount,
+    reparentedChildIds: reparentedChildIds ?? this.reparentedChildIds,
     mergeType: mergeType ?? this.mergeType,
     mergedAt: mergedAt ?? this.mergedAt,
     undoneAt: undoneAt.present ? undoneAt.value : this.undoneAt,
@@ -15151,6 +15189,9 @@ class CategoryMergeLogData extends DataClass
       affectedCount: data.affectedCount.present
           ? data.affectedCount.value
           : this.affectedCount,
+      reparentedChildIds: data.reparentedChildIds.present
+          ? data.reparentedChildIds.value
+          : this.reparentedChildIds,
       mergeType: data.mergeType.present ? data.mergeType.value : this.mergeType,
       mergedAt: data.mergedAt.present ? data.mergedAt.value : this.mergedAt,
       undoneAt: data.undoneAt.present ? data.undoneAt.value : this.undoneAt,
@@ -15168,6 +15209,7 @@ class CategoryMergeLogData extends DataClass
           ..write('sourceIconKey: $sourceIconKey, ')
           ..write('sourceParentId: $sourceParentId, ')
           ..write('affectedCount: $affectedCount, ')
+          ..write('reparentedChildIds: $reparentedChildIds, ')
           ..write('mergeType: $mergeType, ')
           ..write('mergedAt: $mergedAt, ')
           ..write('undoneAt: $undoneAt, ')
@@ -15185,6 +15227,7 @@ class CategoryMergeLogData extends DataClass
     sourceIconKey,
     sourceParentId,
     affectedCount,
+    reparentedChildIds,
     mergeType,
     mergedAt,
     undoneAt,
@@ -15201,6 +15244,7 @@ class CategoryMergeLogData extends DataClass
           other.sourceIconKey == this.sourceIconKey &&
           other.sourceParentId == this.sourceParentId &&
           other.affectedCount == this.affectedCount &&
+          other.reparentedChildIds == this.reparentedChildIds &&
           other.mergeType == this.mergeType &&
           other.mergedAt == this.mergedAt &&
           other.undoneAt == this.undoneAt &&
@@ -15215,6 +15259,7 @@ class CategoryMergeLogCompanion extends UpdateCompanion<CategoryMergeLogData> {
   final Value<String> sourceIconKey;
   final Value<String?> sourceParentId;
   final Value<int> affectedCount;
+  final Value<String> reparentedChildIds;
   final Value<String> mergeType;
   final Value<DateTime> mergedAt;
   final Value<DateTime?> undoneAt;
@@ -15228,6 +15273,7 @@ class CategoryMergeLogCompanion extends UpdateCompanion<CategoryMergeLogData> {
     this.sourceIconKey = const Value.absent(),
     this.sourceParentId = const Value.absent(),
     this.affectedCount = const Value.absent(),
+    this.reparentedChildIds = const Value.absent(),
     this.mergeType = const Value.absent(),
     this.mergedAt = const Value.absent(),
     this.undoneAt = const Value.absent(),
@@ -15242,6 +15288,7 @@ class CategoryMergeLogCompanion extends UpdateCompanion<CategoryMergeLogData> {
     this.sourceIconKey = const Value.absent(),
     this.sourceParentId = const Value.absent(),
     this.affectedCount = const Value.absent(),
+    this.reparentedChildIds = const Value.absent(),
     this.mergeType = const Value.absent(),
     this.mergedAt = const Value.absent(),
     this.undoneAt = const Value.absent(),
@@ -15260,6 +15307,7 @@ class CategoryMergeLogCompanion extends UpdateCompanion<CategoryMergeLogData> {
     Expression<String>? sourceIconKey,
     Expression<String>? sourceParentId,
     Expression<int>? affectedCount,
+    Expression<String>? reparentedChildIds,
     Expression<String>? mergeType,
     Expression<DateTime>? mergedAt,
     Expression<DateTime>? undoneAt,
@@ -15275,6 +15323,8 @@ class CategoryMergeLogCompanion extends UpdateCompanion<CategoryMergeLogData> {
       if (sourceIconKey != null) 'source_icon_key': sourceIconKey,
       if (sourceParentId != null) 'source_parent_id': sourceParentId,
       if (affectedCount != null) 'affected_count': affectedCount,
+      if (reparentedChildIds != null)
+        'reparented_child_ids': reparentedChildIds,
       if (mergeType != null) 'merge_type': mergeType,
       if (mergedAt != null) 'merged_at': mergedAt,
       if (undoneAt != null) 'undone_at': undoneAt,
@@ -15291,6 +15341,7 @@ class CategoryMergeLogCompanion extends UpdateCompanion<CategoryMergeLogData> {
     Value<String>? sourceIconKey,
     Value<String?>? sourceParentId,
     Value<int>? affectedCount,
+    Value<String>? reparentedChildIds,
     Value<String>? mergeType,
     Value<DateTime>? mergedAt,
     Value<DateTime?>? undoneAt,
@@ -15305,6 +15356,7 @@ class CategoryMergeLogCompanion extends UpdateCompanion<CategoryMergeLogData> {
       sourceIconKey: sourceIconKey ?? this.sourceIconKey,
       sourceParentId: sourceParentId ?? this.sourceParentId,
       affectedCount: affectedCount ?? this.affectedCount,
+      reparentedChildIds: reparentedChildIds ?? this.reparentedChildIds,
       mergeType: mergeType ?? this.mergeType,
       mergedAt: mergedAt ?? this.mergedAt,
       undoneAt: undoneAt ?? this.undoneAt,
@@ -15337,6 +15389,9 @@ class CategoryMergeLogCompanion extends UpdateCompanion<CategoryMergeLogData> {
     if (affectedCount.present) {
       map['affected_count'] = Variable<int>(affectedCount.value);
     }
+    if (reparentedChildIds.present) {
+      map['reparented_child_ids'] = Variable<String>(reparentedChildIds.value);
+    }
     if (mergeType.present) {
       map['merge_type'] = Variable<String>(mergeType.value);
     }
@@ -15365,6 +15420,7 @@ class CategoryMergeLogCompanion extends UpdateCompanion<CategoryMergeLogData> {
           ..write('sourceIconKey: $sourceIconKey, ')
           ..write('sourceParentId: $sourceParentId, ')
           ..write('affectedCount: $affectedCount, ')
+          ..write('reparentedChildIds: $reparentedChildIds, ')
           ..write('mergeType: $mergeType, ')
           ..write('mergedAt: $mergedAt, ')
           ..write('undoneAt: $undoneAt, ')
@@ -27887,6 +27943,7 @@ typedef $$CategoryMergeLogTableCreateCompanionBuilder =
       Value<String> sourceIconKey,
       Value<String?> sourceParentId,
       Value<int> affectedCount,
+      Value<String> reparentedChildIds,
       Value<String> mergeType,
       Value<DateTime> mergedAt,
       Value<DateTime?> undoneAt,
@@ -27902,6 +27959,7 @@ typedef $$CategoryMergeLogTableUpdateCompanionBuilder =
       Value<String> sourceIconKey,
       Value<String?> sourceParentId,
       Value<int> affectedCount,
+      Value<String> reparentedChildIds,
       Value<String> mergeType,
       Value<DateTime> mergedAt,
       Value<DateTime?> undoneAt,
@@ -27950,6 +28008,11 @@ class $$CategoryMergeLogTableFilterComposer
 
   ColumnFilters<int> get affectedCount => $composableBuilder(
     column: $table.affectedCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reparentedChildIds => $composableBuilder(
+    column: $table.reparentedChildIds,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -28018,6 +28081,11 @@ class $$CategoryMergeLogTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get reparentedChildIds => $composableBuilder(
+    column: $table.reparentedChildIds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get mergeType => $composableBuilder(
     column: $table.mergeType,
     builder: (column) => ColumnOrderings(column),
@@ -28081,6 +28149,11 @@ class $$CategoryMergeLogTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get reparentedChildIds => $composableBuilder(
+    column: $table.reparentedChildIds,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get mergeType =>
       $composableBuilder(column: $table.mergeType, builder: (column) => column);
 
@@ -28138,6 +28211,7 @@ class $$CategoryMergeLogTableTableManager
                 Value<String> sourceIconKey = const Value.absent(),
                 Value<String?> sourceParentId = const Value.absent(),
                 Value<int> affectedCount = const Value.absent(),
+                Value<String> reparentedChildIds = const Value.absent(),
                 Value<String> mergeType = const Value.absent(),
                 Value<DateTime> mergedAt = const Value.absent(),
                 Value<DateTime?> undoneAt = const Value.absent(),
@@ -28151,6 +28225,7 @@ class $$CategoryMergeLogTableTableManager
                 sourceIconKey: sourceIconKey,
                 sourceParentId: sourceParentId,
                 affectedCount: affectedCount,
+                reparentedChildIds: reparentedChildIds,
                 mergeType: mergeType,
                 mergedAt: mergedAt,
                 undoneAt: undoneAt,
@@ -28166,6 +28241,7 @@ class $$CategoryMergeLogTableTableManager
                 Value<String> sourceIconKey = const Value.absent(),
                 Value<String?> sourceParentId = const Value.absent(),
                 Value<int> affectedCount = const Value.absent(),
+                Value<String> reparentedChildIds = const Value.absent(),
                 Value<String> mergeType = const Value.absent(),
                 Value<DateTime> mergedAt = const Value.absent(),
                 Value<DateTime?> undoneAt = const Value.absent(),
@@ -28179,6 +28255,7 @@ class $$CategoryMergeLogTableTableManager
                 sourceIconKey: sourceIconKey,
                 sourceParentId: sourceParentId,
                 affectedCount: affectedCount,
+                reparentedChildIds: reparentedChildIds,
                 mergeType: mergeType,
                 mergedAt: mergedAt,
                 undoneAt: undoneAt,

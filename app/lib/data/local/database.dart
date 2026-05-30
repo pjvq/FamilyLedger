@@ -46,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 23;
+  int get schemaVersion => 24;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -195,6 +195,10 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(categoryMergeLog);
             await m.createTable(categoryMergeDismissals);
             await m.addColumn(transactions, transactions.mergeLogId);
+          }
+          if (from < 24) {
+            // v23 → v24: category_merge_log.reparented_child_ids
+            await m.addColumn(categoryMergeLog, categoryMergeLog.reparentedChildIds);
           }
         },
         beforeOpen: (details) async {
