@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/constants/category_icon_widget.dart';
+import '../../../domain/providers/category_recommend_provider.dart';
 import '../../../domain/providers/transaction_provider.dart';
+import '../../../domain/services/smart_category/category_recommender.dart';
 import '../../../data/local/database.dart';
 
 /// P2-2: 两级分类选择器
@@ -43,6 +45,9 @@ class QuickCategorySelector extends ConsumerWidget {
       }),
     );
 
+    // Watch recommendation results
+    final recommendationsAsync = ref.watch(categoryRecommendProvider);
+
     if (allCategories.isEmpty) {
       return Center(
         child: Text(
@@ -73,32 +78,66 @@ class QuickCategorySelector extends ConsumerWidget {
       list.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     }
 
-    // Parents: top-level, active, sorted
+    // Parents: top-level, active
     final parents = allCategories
         .where((c) => c.parentId == null && c.deletedAt == null)
-        .toList()
-      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+        .toList();
 
-    // Recent categories: filter by active + matching type, max 5
+    // Recommended top 5 categories (fallback to recent if no recommendations)
     final categoryById = {for (final c in allCategories) c.id: c};
-    final recentCategories = <Category>[];
-    for (final id in recentTxnCategoryIds) {
-      if (recentCategories.length >= 5) break;
-      final cat = categoryById[id];
-      if (cat != null && cat.deletedAt == null) {
-        recentCategories.add(cat);
+    final recommendations = recommendationsAsync.when(
+      data: (recs) => recs,
+      loading: () => <CategoryRecommendation>[],
+      error: (_, __) => <CategoryRecommendation>[],
+    );
+
+    // Sort parents by recommendation score if available, fallback to sortOrder
+    if (recommendations.isNotEmpty) {
+      final scoreMap = {
+        for (final r in recommendations) r.categoryId: r.score,
+      };
+      parents.sort((a, b) {
+        final sa = scoreMap[a.id] ?? -1.0;
+        final sb = scoreMap[b.id] ?? -1.0;
+        if (sa != sb) return sb.compareTo(sa); // desc by score
+        return a.sortOrder.compareTo(b.sortOrder); // tie-break
+      });
+    } else {
+      parents.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    }
+
+    final List<Category> topCategories;
+    if (recommendations.isNotEmpty) {
+      // Use recommendation order
+      topCategories = recommendations
+          .take(5)
+          .map((r) => categoryById[r.categoryId])
+          .whereType<Category>()
+          .where((c) => c.deletedAt == null)
+          .toList();
+    } else {
+      // Fallback: recent
+      topCategories = <Category>[];
+      for (final id in recentTxnCategoryIds) {
+        if (topCategories.length >= 5) break;
+        final cat = categoryById[id];
+        if (cat != null && cat.deletedAt == null) {
+          topCategories.add(cat);
+        }
       }
     }
+    final bool useRecommend = recommendations.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Recently used row
-        if (recentCategories.isNotEmpty) ...[
+        // Recommended / Recently used row
+        if (topCategories.isNotEmpty) ...[
           _RecentCategoryRow(
-            categories: recentCategories,
+            categories: topCategories,
             selectedId: selectedCategoryId,
             onSelected: (id) => _handleSelection(context, id),
+            label: useRecommend ? '✨ 推荐' : '最近',
           ),
           const SizedBox(height: SpacingTokens.sm),
         ],
@@ -147,11 +186,13 @@ class _RecentCategoryRow extends StatelessWidget {
   final List<Category> categories;
   final String? selectedId;
   final ValueChanged<String> onSelected;
+  final String label;
 
   const _RecentCategoryRow({
     required this.categories,
     this.selectedId,
     required this.onSelected,
+    this.label = '最近',
   });
 
   @override
@@ -167,7 +208,7 @@ class _RecentCategoryRow extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: SpacingTokens.md, right: SpacingTokens.sm),
             child: Text(
-              '最近',
+              label,
               style: TextStyle(
                 fontSize: 12,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
