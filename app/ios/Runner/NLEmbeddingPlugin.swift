@@ -3,6 +3,7 @@ import NaturalLanguage
 
 public class NLEmbeddingPlugin: NSObject, FlutterPlugin {
     private let embedding: NLEmbedding?
+    private let backgroundQueue = DispatchQueue(label: "familyledger.nlembedding", qos: .userInitiated)
 
     override init() {
         self.embedding = NLEmbedding.wordEmbedding(for: .simplifiedChinese)
@@ -27,6 +28,7 @@ public class NLEmbeddingPlugin: NSObject, FlutterPlugin {
             guard let args = call.arguments as? [String: String],
                   let w1 = args["word1"],
                   let w2 = args["word2"],
+                  !w1.isEmpty, !w2.isEmpty,
                   let emb = embedding else {
                 result(nil)
                 return
@@ -41,16 +43,22 @@ public class NLEmbeddingPlugin: NSObject, FlutterPlugin {
                 result(nil)
                 return
             }
-            var distances: [String: Double] = [:]
-            for i in 0..<words.count {
-                for j in (i + 1)..<words.count {
-                    let pair = [words[i], words[j]].sorted()
-                    let key = "\(pair[0])|\(pair[1])"
-                    let dist = emb.distance(between: words[i], and: words[j])
-                    distances[key] = dist.isNaN ? 2.0 : dist
+            // CRITICAL #1: dispatch to background queue to avoid blocking UI
+            backgroundQueue.async {
+                var distances: [String: Double] = [:]
+                for i in 0..<words.count {
+                    for j in (i + 1)..<words.count {
+                        guard !words[i].isEmpty, !words[j].isEmpty else { continue }
+                        let pair = [words[i], words[j]].sorted()
+                        let key = "\(pair[0])|\(pair[1])"
+                        let dist = emb.distance(between: words[i], and: words[j])
+                        distances[key] = dist.isNaN ? 2.0 : dist
+                    }
+                }
+                DispatchQueue.main.async {
+                    result(distances)
                 }
             }
-            result(distances)
 
         default:
             result(FlutterMethodNotImplemented)
