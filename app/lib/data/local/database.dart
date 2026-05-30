@@ -35,6 +35,10 @@ part 'database.g.dart';
   SyncMetadata,
   ExchangeRates,
   SyncDeadLetters,
+  CategoryUsageSlots,
+  CategoryUsageSummary,
+  CategoryMergeLog,
+  CategoryMergeDismissals,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -42,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 22;
+  int get schemaVersion => 23;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -183,6 +187,14 @@ class AppDatabase extends _$AppDatabase {
               );
             }
             // If from < 21, table was just created above with the new schema
+          }
+          if (from < 23) {
+            // v22 → v23: smart category system tables + transactions.merge_log_id
+            await m.createTable(categoryUsageSlots);
+            await m.createTable(categoryUsageSummary);
+            await m.createTable(categoryMergeLog);
+            await m.createTable(categoryMergeDismissals);
+            await m.addColumn(transactions, transactions.mergeLogId);
           }
         },
         beforeOpen: (details) async {
