@@ -206,16 +206,20 @@ class CategoryMergeDetector {
 
   /// 创建分类时即时检测（只用 TextSimilarity，<1ms）
   /// 返回与新名称相似的已有分类列表（独立类型，不复用 MergeSuggestion）
-  List<InstantCheckHit> instantCheck(
+    /// 创建分类时即时检测（只用 TextSimilarity，<1ms）
+  /// 返回与新名称相似的已有分类列表
+  /// 可以作为实例方法或静态方法调用
+  static List<InstantCheckHit> instantCheckStatic(
     String newName,
     String newType,
-    List<Category> existingCategories,
-  ) {
+    List<Category> existingCategories, {
+    double threshold = _highSimilarityThreshold,
+  }) {
     final hits = <InstantCheckHit>[];
     for (final existing in existingCategories) {
       if (existing.type != newType) continue;
       final sim = TextSimilarityScorer.score(newName, existing.name);
-      if (sim >= _highSimilarityThreshold) {
+      if (sim >= threshold) {
         hits.add(InstantCheckHit(
           existingCategory: existing,
           similarity: sim,
@@ -225,6 +229,15 @@ class CategoryMergeDetector {
     }
     hits.sort((a, b) => b.similarity.compareTo(a.similarity));
     return hits;
+  }
+
+  /// 实例方法委托到静态方法
+  List<InstantCheckHit> instantCheck(
+    String newName,
+    String newType,
+    List<Category> existingCategories,
+  ) {
+    return instantCheckStatic(newName, newType, existingCategories);
   }
 
   // ──────────── Pass 1: 候选生成 ────────────

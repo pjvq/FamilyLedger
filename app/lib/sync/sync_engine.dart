@@ -4,7 +4,7 @@ import 'dart:developer' as dev;
 import 'dart:io';
 import 'dart:math';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show UpdateKind, Value, Variable;
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -841,20 +841,42 @@ class SyncEngine {
     final sourceId = payload['source_category_id'] as String?;
     final targetId = payload['target_category_id'] as String?;
     if (sourceId == null || targetId == null) return;
+    if (_db == null) return; // CRITICAL #4: guard null db
 
-    // 服务端广播的合并操作，本地直接执行 SQL（跳过客户端执行器避免重复记日志）
-    await _db!.customStatement(
+    // 幂等保护：检查 source 是否已删除
+    final source = await (_db!.select(_db!.categories)
+          ..where((c) => c.id.equals(sourceId))
+          ..where((c) => c.deletedAt.isNull()))
+        .getSingleOrNull();
+    if (source == null) return; // 已处理过，跳过
+
+    // CRITICAL #1: 用 customUpdate + updates 触发 Stream 通知
+    await _db!.customUpdate(
       'UPDATE transactions SET category_id = ? WHERE category_id = ? AND deleted_at IS NULL',
-      [targetId, sourceId],
+      variables: [Variable.withString(targetId), Variable.withString(sourceId)],
+      updates: {_db!.transactions},
+      updateKind: UpdateKind.update,
     );
-    await _db!.customStatement(
+    await _db!.customUpdate(
       'UPDATE categories SET parent_id = ? WHERE parent_id = ? AND deleted_at IS NULL',
-      [targetId, sourceId],
+      variables: [Variable.withString(targetId), Variable.withString(sourceId)],
+      updates: {_db!.categories},
+      updateKind: UpdateKind.update,
     );
-    await _db!.customStatement(
+    await _db!.customUpdate(
       'UPDATE categories SET deleted_at = ? WHERE id = ?',
-      [DateTime.now().toIso8601String(), sourceId],
+      variables: [Variable.withDateTime(DateTime.now()), Variable.withString(sourceId)],
+      updates: {_db!.categories},
+      updateKind: UpdateKind.update,
     );
+
+    // CRITICAL #5: 清理源分类的使用统计
+    await (_db!.delete(_db!.categoryUsageSlots)
+          ..where((s) => s.categoryId.equals(sourceId)))
+        .go();
+    await (_db!.delete(_db!.categoryUsageSummary)
+          ..where((s) => s.categoryId.equals(sourceId)))
+        .go();
   }
 
   // ─────────── Loan ops ───────────

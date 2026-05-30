@@ -1832,20 +1832,23 @@ func (s *Service) MergeCategories(ctx context.Context, req *pb.MergeCategoriesRe
 	}
 	defer tx.Rollback(ctx)
 
-	// 1. 验证两个分类都属于该用户且未删除
-	var sourceOwner, targetOwner string
+	// 1. 验证两个分类都属于该用户且未删除，且类型一致
+	var sourceOwner, targetOwner, sourceType, targetType string
 	err = tx.QueryRow(ctx,
-		"SELECT user_id FROM categories WHERE id = $1 AND deleted_at IS NULL", sourceID).Scan(&sourceOwner)
+		"SELECT user_id, type FROM categories WHERE id = $1 AND deleted_at IS NULL", sourceID).Scan(&sourceOwner, &sourceType)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "source category not found")
 	}
 	err = tx.QueryRow(ctx,
-		"SELECT user_id FROM categories WHERE id = $1 AND deleted_at IS NULL", targetID).Scan(&targetOwner)
+		"SELECT user_id, type FROM categories WHERE id = $1 AND deleted_at IS NULL", targetID).Scan(&targetOwner, &targetType)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "target category not found")
 	}
 	if sourceOwner != userID || targetOwner != userID {
 		return nil, status.Error(codes.PermissionDenied, "categories do not belong to user")
+	}
+	if sourceType != targetType {
+		return nil, status.Error(codes.InvalidArgument, "cannot merge categories of different types")
 	}
 
 	// 2. 重映射交易
@@ -1865,7 +1868,19 @@ func (s *Service) MergeCategories(ctx context.Context, req *pb.MergeCategoriesRe
 		return nil, status.Errorf(codes.Internal, "failed to reparent children: %v", err)
 	}
 
-	// 4. 软删除源分类
+	// 4. 更新预算引用（MAJOR #9）
+	_, err = tx.Exec(ctx,
+		"UPDATE category_budgets SET category_id = $1 WHERE category_id = $2 AND budget_id NOT IN (SELECT budget_id FROM category_budgets WHERE category_id = $1)",
+		targetID, sourceID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to remap budgets: %v", err)
+	}
+	_, err = tx.Exec(ctx, "DELETE FROM category_budgets WHERE category_id = $1", sourceID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to cleanup budgets: %v", err)
+	}
+
+	// 5. 软删除源分类
 	_, err = tx.Exec(ctx,
 		"UPDATE categories SET deleted_at = NOW() WHERE id = $1",
 		sourceID)
@@ -1877,8 +1892,13 @@ func (s *Service) MergeCategories(ctx context.Context, req *pb.MergeCategoriesRe
 		return nil, status.Error(codes.Internal, "failed to commit merge")
 	}
 
-	// 5. 广播通知
-	go s.notifyFamilyChange(ctx, userID, uuid.Nil, "merge_categories", sourceID.String())
+	// 6. 通知当前用户的其他设备（分类是用户级别，不是家庭级别）
+	notification, _ := json.Marshal(map[string]interface{}{
+		"type":   "category_merge",
+		"source": sourceID.String(),
+		"target": targetID.String(),
+	})
+	go s.hub.BroadcastToUser(userID, notification)
 
 	return &pb.MergeCategoriesResponse{AffectedTransactions: affected}, nil
 }

@@ -6,7 +6,6 @@ import '../../core/constants/category_icons.dart';
 import '../../data/local/database.dart' as db;
 import '../../data/remote/grpc_clients.dart';
 import '../../domain/providers/app_providers.dart';
-import '../../domain/providers/category_merge_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/services/smart_category/category_merge_detector.dart';
 import '../../generated/proto/transaction.pb.dart';
@@ -183,12 +182,10 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
           ..where((c) => c.deletedAt.isNull()))
         .get();
 
-    final detector = CategoryMergeDetector(
-      db: db,
-      profiler: ref.read(categoryUsageProfilerProvider),
-    );
     final typeStr = _tabController.index == 0 ? 'expense' : 'income';
-    final hits = detector.instantCheck(newName, typeStr, categories);
+    final hits = CategoryMergeDetector.instantCheckStatic(
+      newName, typeStr, categories,
+    );
     if (hits.isEmpty) return true;
 
     final hit = hits.first;

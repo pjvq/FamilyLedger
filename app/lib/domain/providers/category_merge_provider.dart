@@ -96,16 +96,20 @@ class CategoryMergeActionsNotifier extends Notifier<void> {
       mergeType: mergeType,
     );
 
-    // 入队同步：通知服务端执行相同合并
-    final syncQueue = ref.read(offlineSyncQueueProvider);
-    await syncQueue.enqueueUpdate(
-      entityType: 'category_merge',
-      entityId: result.mergeLogId,
-      payload: {
-        'source_category_id': sourceCategoryId,
-        'target_category_id': targetCategoryId,
-      },
-    );
+    // 入队同步（失败不影响本地合并结果）
+    try {
+      final syncQueue = ref.read(offlineSyncQueueProvider);
+      await syncQueue.enqueueUpdate(
+        entityType: 'category_merge',
+        entityId: result.mergeLogId,
+        payload: {
+          'source_category_id': sourceCategoryId,
+          'target_category_id': targetCategoryId,
+        },
+      );
+    } catch (_) {
+      // enqueue 失败不阻塞本地合并，下次同步时会重试
+    }
 
     _invalidateAll();
     return result;
