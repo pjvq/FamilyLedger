@@ -18,8 +18,22 @@ class BudgetPage extends ConsumerStatefulWidget {
   ConsumerState<BudgetPage> createState() => _BudgetPageState();
 }
 
-class _BudgetPageState extends ConsumerState<BudgetPage> {
+class _BudgetPageState extends ConsumerState<BudgetPage>
+    with SingleTickerProviderStateMixin {
   final Set<String> _expandedParents = {};
+  late TabController _viewTabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewTabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _viewTabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,8 +45,15 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${now.month}月预算'),
+        title: const Text('预算'),
         centerTitle: false,
+        bottom: TabBar(
+          controller: _viewTabController,
+          tabs: const [
+            Tab(text: '月预算'),
+            Tab(text: '年预算'),
+          ],
+        ),
       ),
       floatingActionButton: ref.watch(canEditProvider)
           ? FloatingActionButton.extended(
@@ -42,64 +63,303 @@ class _BudgetPageState extends ConsumerState<BudgetPage> {
                   budgetState.currentBudget != null ? '编辑预算' : '设置预算'),
             )
           : null,
-      body: budgetState.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : budgetState.currentBudget == null
-              ? _EmptyBudgetState(
-                  theme: theme,
-                  onSetBudget: ref.watch(canEditProvider)
-                      ? () => _showSetBudgetSheet(context)
-                      : null,
-                )
-              : RefreshIndicator(
-                  onRefresh: () async {
-                    await ref.read(syncEngineProvider).forcePull();
-                    await ref
-                        .read(budgetProvider.notifier)
-                        .loadCurrentMonth();
-                  },
-                  child: ListView(
-                    padding: const EdgeInsets.only(bottom: 100),
-                    children: [
-                      // Execution ring card
-                      if (budgetState.execution != null)
-                        BudgetExecutionCard(
-                          executionRate:
-                              budgetState.execution!.executionRate,
-                          totalBudget:
-                              budgetState.execution!.totalBudget,
-                          totalSpent:
-                              budgetState.execution!.totalSpent,
-                        ),
+      body: TabBarView(
+        controller: _viewTabController,
+        children: [
+          // ── Monthly tab ──
+          _buildMonthlyTab(budgetState, txnState, theme, isDark, now),
+          // ── Yearly tab ──
+          _buildYearlyTab(budgetState, txnState, theme, isDark, now),
+        ],
+      ),
+    );
+  }
 
-                      // Category budget list header
-                      if (budgetState.execution != null &&
-                          budgetState
-                              .execution!.categoryExecutions.isNotEmpty)
-                        Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(20, 24, 20, 8),
-                          child: Text(
-                            '分类预算',
-                            style:
-                                theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
+  /// Build category execution tiles grouped by parent category.
+  ///
+    Widget _buildMonthlyTab(dynamic budgetState, dynamic txnState,
+      ThemeData theme, bool isDark, DateTime now) {
+    if (budgetState.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (budgetState.currentBudget == null) {
+      return _EmptyBudgetState(
+        theme: theme,
+        onSetBudget: ref.watch(canEditProvider)
+            ? () => _showSetBudgetSheet(context)
+            : null,
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(syncEngineProvider).forcePull();
+        await ref.read(budgetProvider.notifier).loadCurrentMonth();
+      },
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 100),
+        children: [
+          if (budgetState.execution != null)
+            BudgetExecutionCard(
+              executionRate: budgetState.execution!.executionRate,
+              totalBudget: budgetState.execution!.totalBudget,
+              totalSpent: budgetState.execution!.totalSpent,
+            ),
+          if (budgetState.execution != null &&
+              budgetState.execution!.categoryExecutions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+              child: Text(
+                '分类预算',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          if (budgetState.execution != null)
+            ..._buildGroupedCategoryTiles(
+              budgetState.execution!.categoryExecutions,
+              txnState,
+              isDark,
+              theme,
+            ),
+        ],
+      ),
+    );
+  }
 
-                      // Category budget items — grouped by parent
-                      if (budgetState.execution != null)
-                        ..._buildGroupedCategoryTiles(
-                          budgetState.execution!.categoryExecutions,
-                          txnState,
-                          isDark,
-                          theme,
-                        ),
-                    ],
+  Widget _buildYearlyTab(dynamic budgetState, dynamic txnState,
+      ThemeData theme, bool isDark, DateTime now) {
+    if (budgetState.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Calculate yearly budget (sum of all monthly budgets this year)
+    int yearlyBudget = 0;
+    for (final b in budgetState.budgets) {
+      if (b.year == now.year) yearlyBudget += b.totalAmount as int;
+    }
+    if (yearlyBudget == 0 && budgetState.currentBudget != null) {
+      yearlyBudget = (budgetState.currentBudget!.totalAmount as int) * 12;
+    }
+
+    // Calculate yearly spending
+    final yearStart = DateTime(now.year, 1, 1);
+    int yearlySpent = 0;
+    for (final t in txnState.transactions) {
+      if (t.type == 'expense' && !t.txnDate.isBefore(yearStart)) {
+        yearlySpent += t.amountCny as int;
+      }
+    }
+
+    final rate = yearlyBudget > 0 ? yearlySpent / yearlyBudget : 0.0;
+    final dayOfYear = now.difference(DateTime(now.year, 1, 1)).inDays + 1;
+    final expectedRate = dayOfYear / 365;
+    final remaining = yearlyBudget - yearlySpent;
+    final colors = context.semanticColors;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+      children: [
+        // Year summary card
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isDark
+                ? NeutralColorsDark.neutral2
+                : NeutralColorsLight.neutral0,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${now.year}年预算概览',
+                style: theme.textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 16),
+              // Progress
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: rate.clamp(0.0, 1.5),
+                  minHeight: 10,
+                  backgroundColor: theme.colorScheme.onSurface
+                      .withValues(alpha: 0.06),
+                  color: rate >= 1.0
+                      ? colors.error
+                      : rate >= 0.8
+                          ? colors.warning
+                          : colors.income,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Stats
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _yearStat('年预算', yearlyBudget, theme),
+                  _yearStat('已支出', yearlySpent, theme,
+                      color: colors.expense),
+                  _yearStat(
+                      '剩余', remaining, theme,
+                      color:
+                          remaining >= 0 ? colors.income : colors.error),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Status
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: (rate > expectedRate
+                          ? colors.warning
+                          : colors.income)
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      rate > expectedRate
+                          ? Icons.warning_amber_rounded
+                          : Icons.check_circle_outline,
+                      size: 16,
+                      color: rate > expectedRate
+                          ? colors.warning
+                          : colors.income,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      rate > expectedRate
+                          ? '支出进度超前 (${(rate * 100).toInt()}% vs 预期${(expectedRate * 100).toInt()}%)'
+                          : '支出进度正常 (${(rate * 100).toInt()}% vs 预期${(expectedRate * 100).toInt()}%)',
+                      style: TypographyTokens.bodySm().copyWith(
+                        color: rate > expectedRate
+                            ? colors.warning
+                            : colors.income,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Monthly breakdown
+        Text(
+          '各月支出',
+          style: theme.textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 12),
+        ..._buildMonthlyBreakdown(budgetState, txnState, theme, isDark, now),
+      ],
+    );
+  }
+
+  Widget _yearStat(String label, int cents, ThemeData theme, {Color? color}) {
+    return Column(
+      children: [
+        Text(label, style: TypographyTokens.caption()),
+        const SizedBox(height: 4),
+        Text(
+          '¥${(cents / 100).toStringAsFixed(0)}',
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildMonthlyBreakdown(dynamic budgetState, dynamic txnState,
+      ThemeData theme, bool isDark, DateTime now) {
+    final yearStart = DateTime(now.year, 1, 1);
+    // Monthly spending
+    final monthlySpent = List.filled(12, 0);
+    for (final t in txnState.transactions) {
+      if (t.type == 'expense' && !t.txnDate.isBefore(yearStart)) {
+        final m = t.txnDate.month - 1;
+        if (m >= 0 && m < 12) monthlySpent[m] += t.amountCny as int;
+      }
+    }
+
+    // Monthly budgets
+    final monthlyBudgets = List.filled(12, 0);
+    for (final b in budgetState.budgets) {
+      if (b.year == now.year && b.month >= 1 && b.month <= 12) {
+        monthlyBudgets[b.month - 1] = b.totalAmount as int;
+      }
+    }
+
+    final widgets = <Widget>[];
+    for (int i = 0; i < now.month; i++) {
+      final budget = monthlyBudgets[i];
+      final spent = monthlySpent[i];
+      final rate = budget > 0 ? spent / budget : 0.0;
+      final colors = context.semanticColors;
+
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? NeutralColorsDark.neutral2
+                  : NeutralColorsLight.neutral0,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 40,
+                  child: Text(
+                    '${i + 1}月',
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w500),
                   ),
                 ),
-    );
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: rate.clamp(0.0, 1.0),
+                      minHeight: 6,
+                      backgroundColor: theme.colorScheme.onSurface
+                          .withValues(alpha: 0.06),
+                      color: rate >= 1.0
+                          ? colors.error
+                          : rate >= 0.8
+                              ? colors.warning
+                              : colors.income,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 70,
+                  child: Text(
+                    '¥${(spent / 100).toStringAsFixed(0)}',
+                    textAlign: TextAlign.right,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return widgets;
   }
 
   /// Build category execution tiles grouped by parent category.
