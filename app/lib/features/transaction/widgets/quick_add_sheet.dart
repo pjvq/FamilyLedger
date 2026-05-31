@@ -233,42 +233,43 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
   Widget _buildHeader(ThemeData theme, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
-      child: SizedBox(
-        height: 32,
-        child: Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
-            const _DragHandle(),
-            if (!_isEditMode)
-              Positioned(
-                right: 0,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_continuousMode && _savedCount > 0) ...[
-                      _SavedCountBadge(
-                        count: _savedCount,
-                        animation: _flashOpacity,
-                      ),
-                      const SizedBox(width: SpacingTokens.sm),
-                    ],
-                    _ContinuousModeToggle(
-                      isActive: _continuousMode,
-                      isDark: isDark,
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        setState(() {
-                          _continuousMode = !_continuousMode;
-                          if (!_continuousMode) _savedCount = 0;
-                        });
-                      },
-                    ),
-                  ],
+      child: Row(
+        children: [
+          // Left spacer to balance right-side toggle
+          if (!_isEditMode)
+            const SizedBox(width: 60)
+          else
+            const SizedBox.shrink(),
+          const Spacer(),
+          const _DragHandle(),
+          const Spacer(),
+          if (!_isEditMode)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_continuousMode && _savedCount > 0) ...[
+                  _SavedCountBadge(
+                    count: _savedCount,
+                    animation: _flashOpacity,
+                  ),
+                  const SizedBox(width: SpacingTokens.sm),
+                ],
+                _ContinuousModeToggle(
+                  isActive: _continuousMode,
+                  isDark: isDark,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() {
+                      _continuousMode = !_continuousMode;
+                      if (!_continuousMode) _savedCount = 0;
+                    });
+                  },
                 ),
-              ),
-          ],
-        ),
+              ],
+            )
+          else
+            const SizedBox.shrink(),
+        ],
       ),
     );
   }
