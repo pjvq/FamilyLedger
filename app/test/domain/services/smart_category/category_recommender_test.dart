@@ -391,4 +391,82 @@ void main() {
       expect(config.timeSlotWeight, 0.25);
     });
   });
+
+  group('TimePrior', () {
+    test('meal category scores high at noon', () {
+      expect(TimePrior.score('午餐', 12), 0.9);
+      expect(TimePrior.score('外卖', 18), 0.8);
+    });
+
+    test('transport category scores high during commute', () {
+      expect(TimePrior.score('交通', 8), 0.8);
+      expect(TimePrior.score('地铁', 18), 0.8);
+      expect(TimePrior.score('打车', 14), 0.2);
+    });
+
+    test('salary category always returns 0.5', () {
+      expect(TimePrior.score('工资', 9), 0.5);
+      expect(TimePrior.score('薪酬', 22), 0.5);
+    });
+
+    test('unknown category returns default 0.3', () {
+      expect(TimePrior.score('购物', 15), 0.3);
+      expect(TimePrior.score('娱乐', 20), 0.3);
+    });
+  });
+
+  group('ColdStartBooster', () {
+    test('boosts frequency for new categories (totalCount == 0)', () {
+      final booster = ColdStartBooster(categoryNames: {'a': '午餐'});
+      final newProfile = CategoryUsageProfile(categoryId: 'a');
+      expect(booster.boostFrequency(newProfile), 0.3);
+    });
+
+    test('does not boost for categories with history', () {
+      final booster = ColdStartBooster(categoryNames: {'a': '午餐'});
+      final usedProfile = CategoryUsageProfile(categoryId: 'a', totalCount: 5);
+      expect(booster.boostFrequency(usedProfile), isNull);
+      expect(booster.boostRecency(usedProfile), isNull);
+    });
+
+    test('boosts time slot for new categories', () {
+      final booster = ColdStartBooster(categoryNames: {'a': '午餐'});
+      final newProfile = CategoryUsageProfile(categoryId: 'a');
+      expect(booster.boostTimeSlot(newProfile, 12), 0.9);
+    });
+
+    test('new category gets timeSlot boost even when old categories have data', () {
+      // 场景：用户已有一个「购物」分类有大量历史，新建了「午餐」分类
+      final shoppingHours = List<int>.filled(24, 1); // 各时段均匀
+      shoppingHours[14] = 20; // 下午峰值
+
+      final shopping = CategoryUsageProfile(
+        categoryId: 'shopping',
+        totalCount: 100,
+        last7dCount: 10,
+        hourDistribution: shoppingHours,
+      );
+      final newLunch = CategoryUsageProfile(categoryId: 'lunch'); // totalCount=0
+
+      final recommender = CategoryRecommender();
+      final booster = ColdStartBooster(
+        categoryNames: {'shopping': '购物', 'lunch': '午餐'},
+      );
+
+      final results = recommender.recommend(
+        profiles: [shopping, newLunch],
+        sequenceScorer: const SequenceScorer({}),
+        input: CategoryRecommendInput(
+          typeIndex: 0,
+          now: DateTime(2026, 1, 1, 12, 0), // 正午
+        ),
+        booster: booster,
+      );
+
+      // 新建的「午餐」应该有得分（不是 0）
+      final lunchResult = results.firstWhere((r) => r.categoryId == 'lunch');
+      expect(lunchResult.score, greaterThan(0.1),
+          reason: '新分类应在合适时段获得显著得分');
+    });
+  });
 }

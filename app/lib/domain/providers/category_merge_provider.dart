@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/local/database.dart';
 import '../services/smart_category/category_merge_detector.dart';
@@ -13,7 +16,64 @@ import 'transaction_provider.dart';
 final categoryUsageProfilerProvider = Provider<CategoryUsageProfiler>((ref) {
   ref.keepAlive();
   final db = ref.watch(databaseProvider);
-  return CategoryUsageProfiler(db);
+  final profiler = CategoryUsageProfiler(db);
+
+  // 周期性后台刷新 topKeywords + recency counts
+  // 每 6 小时刷新 recency，每周全量重建（持久化时间戳避免频繁冷启动重复触发）
+  Timer? recencyTimer;
+  Timer? fullRebuildTimer;
+
+  const kLastFullRebuildKey = 'category_profiler_last_full_rebuild';
+
+  recencyTimer = Timer.periodic(const Duration(hours: 6), (_) async {
+    try {
+      await profiler.refreshRecencyCounts();
+    } catch (e, st) {
+      // 降级：刷新失败不影响应用运行，下次 Timer 触发重试
+      // TODO: 接入 metrics、Crashlytics 等可观测性基础设施
+      assert(() {
+        // ignore: avoid_print
+        print('[CategoryUsageProfiler] refreshRecencyCounts failed: $e\n$st');
+        return true;
+      }());
+    }
+  });
+
+  // 启动时检查 + 每小时轮询：距上次全量重建 >= 7 天则执行
+  Future<void> maybeRebuild() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastMs = prefs.getInt(kLastFullRebuildKey) ?? 0;
+      final lastAt = DateTime.fromMillisecondsSinceEpoch(lastMs);
+      if (DateTime.now().difference(lastAt).inDays < 7) return;
+
+      await profiler.rebuildAll();
+      await prefs.setInt(
+        kLastFullRebuildKey,
+        DateTime.now().millisecondsSinceEpoch,
+      );
+    } catch (e, st) {
+      assert(() {
+        // ignore: avoid_print
+        print('[CategoryUsageProfiler] rebuildAll failed: $e\n$st');
+        return true;
+      }());
+    }
+  }
+
+  // 冷启动立即检查一次
+  maybeRebuild();
+  // 之后每小时检查（覆盖长期不杀进程的场景）
+  fullRebuildTimer = Timer.periodic(const Duration(hours: 1), (_) {
+    maybeRebuild();
+  });
+
+  ref.onDispose(() {
+    recencyTimer?.cancel();
+    fullRebuildTimer?.cancel();
+  });
+
+  return profiler;
 });
 
 /// NLEmbeddingBridge — 实例化平台通道（可注入替换）

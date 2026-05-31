@@ -6,12 +6,14 @@ import '../../core/constants/category_icons.dart';
 import '../../data/local/database.dart' as db;
 import '../../data/remote/grpc_clients.dart';
 import '../../domain/providers/app_providers.dart';
+import '../../domain/providers/category_merge_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/services/smart_category/category_merge_detector.dart';
 import '../../generated/proto/transaction.pb.dart';
 import '../../generated/proto/transaction.pbgrpc.dart';
 import '../transaction/widgets/icon_picker_sheet.dart';
 import 'category_cleanup_page.dart';
+import '../overview/widgets/category_cleanup_prompt.dart';
 
 class CategoryManagePage extends ConsumerStatefulWidget {
   const CategoryManagePage({super.key});
@@ -356,11 +358,26 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
+          : Column(
               children: [
-                _buildCategoryList(_expenseCategories, theme),
-                _buildCategoryList(_incomeCategories, theme),
+                // 分类整理 Banner
+                _CategoryCleanupBanner(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CategoryCleanupPage(),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildCategoryList(_expenseCategories, theme),
+                      _buildCategoryList(_incomeCategories, theme),
+                    ],
+                  ),
+                ),
               ],
             ),
     );
@@ -687,4 +704,26 @@ class _CategoryEditResult {
   final String name;
   final String iconKey;
   _CategoryEditResult({required this.name, required this.iconKey});
+}
+
+/// 分类整理 Banner — 有待处理建议时常驻显示
+class _CategoryCleanupBanner extends ConsumerWidget {
+  final VoidCallback onTap;
+  const _CategoryCleanupBanner({required this.onTap});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final suggestionsAsync = ref.watch(categoryMergeSuggestionsProvider);
+    final count = suggestionsAsync.when(
+      data: (s) => s.length,
+      loading: () => 0,
+      error: (_, __) => 0,
+    );
+
+    return CategoryCleanupPrompt(
+      suggestionCount: count,
+      variant: CleanupPromptVariant.banner,
+      onTap: onTap,
+    );
+  }
 }
