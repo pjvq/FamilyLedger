@@ -407,10 +407,11 @@ class TransactionDetailPage extends ConsumerWidget {
     );
   }
 
-  /// Returns display name for the creator if it's a different family member.
+  /// Returns display name for the creator (including self).
   String? _creatorDisplayName(WidgetRef ref, String txnUserId) {
+    if (txnUserId.isEmpty) return null;
     final currentUserId = ref.read(currentUserIdProvider);
-    if (txnUserId == currentUserId || txnUserId.isEmpty) return null;
+    if (txnUserId == currentUserId) return '我';
     final members = ref.read(familyProvider).members;
     final member = members.where((m) => m.userId == txnUserId).firstOrNull;
     if (member == null) return txnUserId.substring(0, 8); // fallback

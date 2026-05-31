@@ -344,8 +344,9 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
   /// Returns creator display name if the transaction was created by
   /// a different family member; null for the current user's own transactions.
   String? _creatorName(String txnUserId) {
+    if (txnUserId.isEmpty) return null;
     final currentUserId = ref.read(currentUserIdProvider);
-    if (txnUserId == currentUserId || txnUserId.isEmpty) return null;
+    if (txnUserId == currentUserId) return '我';
     final members = ref.read(familyProvider).members;
     final member = members.where((m) => m.userId == txnUserId).firstOrNull;
     if (member == null) return null;
