@@ -119,9 +119,9 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
           _buildHeader(theme, isDark),
           const SizedBox(height: SpacingTokens.sm),
 
-          // Top area: account pill + amount + note (30% of sheet)
+          // Top area: account pill + amount + note (20% of sheet)
           Expanded(
-            flex: 3,
+            flex: 2,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -131,7 +131,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
                   icon: Icons.account_balance_wallet_outlined,
                   onTap: _showAccountPicker,
                 ),
-                const SizedBox(height: SpacingTokens.xl),
+                const SizedBox(height: SpacingTokens.md),
 
                 // Amount display
                 AnimatedAmountDisplay(
@@ -140,7 +140,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
                   onNoteTap: _showNoteInput,
                 ),
 
-                const SizedBox(height: SpacingTokens.md),
+                const SizedBox(height: SpacingTokens.sm),
 
                 // Date chip (if not today)
                 if (!_isToday(_date))
@@ -158,9 +158,9 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
             ),
           ),
 
-          // Bottom area: type selector + categories + keyboard (70%)
+          // Bottom area: type selector + categories + keyboard (80%)
           Expanded(
-            flex: 7,
+            flex: 8,
             child: Column(
               children: [
                 // Type selector
