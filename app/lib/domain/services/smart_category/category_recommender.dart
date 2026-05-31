@@ -367,13 +367,11 @@ class CategoryRecommender {
         final boostedRecency = booster.boostRecency(p);
         if (boostedRecency != null) recencyScore = boostedRecency;
 
-        // 意图：只在全部分类均无时段数据时才启用时间先验 boost。
-        // 当老分类有数据时，新分类的 timeScore=0 是期望行为——
-        // 此时 recency+frequency boost 已足够让新分类出现在推荐列表中。
-        if (maxHourProb <= 0) {
-          final boostedTime = booster.boostTimeSlot(p, hour);
-          if (boostedTime != null) timeScore = boostedTime;
-        }
+        // 新分类始终应用时间先验 — 无论老分类是否有时段数据。
+        // 时间先验的价值在于让新分类在合适时段获得曝光，
+        // 不应受 maxHourProb 归一化（老分类横向比较）的约束。
+        final boostedTime = booster.boostTimeSlot(p, hour);
+        if (boostedTime != null) timeScore = boostedTime;
       }
 
       final totalScore = wTime * timeScore +

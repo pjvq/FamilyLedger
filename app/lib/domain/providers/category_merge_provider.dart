@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/local/database.dart';
 import '../services/smart_category/category_merge_detector.dart';
@@ -18,13 +19,11 @@ final categoryUsageProfilerProvider = Provider<CategoryUsageProfiler>((ref) {
   final profiler = CategoryUsageProfiler(db);
 
   // 周期性后台刷新 topKeywords + recency counts
-  // 每 6 小时刷新 recency，每周全量重建
+  // 每 6 小时刷新 recency，每周全量重建（持久化时间戳避免频繁冷启动重复触发）
   Timer? recencyTimer;
   Timer? fullRebuildTimer;
-  // NOTE: 内存变量，进程重启后丢失。冷启动后首次 hourly check 会触发 rebuildAll，
-  // 这是可接受的——rebuildAll 本身是幂等操作且耗时不长（< 1s），
-  // 作为 trade-off 避免引入 SharedPreferences 依赖。
-  DateTime? lastFullRebuildAt;
+
+  const kLastFullRebuildKey = 'category_profiler_last_full_rebuild';
 
   recencyTimer = Timer.periodic(const Duration(hours: 6), (_) async {
     try {
@@ -40,16 +39,19 @@ final categoryUsageProfilerProvider = Provider<CategoryUsageProfiler>((ref) {
     }
   });
 
-  fullRebuildTimer = Timer.periodic(const Duration(hours: 1), (_) async {
-    // 持久化时间戳检查，而非依赖 7天 Timer（杀进程后重置）
-    final now = DateTime.now();
-    if (lastFullRebuildAt != null &&
-        now.difference(lastFullRebuildAt!).inDays < 7) {
-      return;
-    }
+  // 启动时检查 + 每小时轮询：距上次全量重建 >= 7 天则执行
+  Future<void> maybeRebuild() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastMs = prefs.getInt(kLastFullRebuildKey) ?? 0;
+      final lastAt = DateTime.fromMillisecondsSinceEpoch(lastMs);
+      if (DateTime.now().difference(lastAt).inDays < 7) return;
+
       await profiler.rebuildAll();
-      lastFullRebuildAt = now;
+      await prefs.setInt(
+        kLastFullRebuildKey,
+        DateTime.now().millisecondsSinceEpoch,
+      );
     } catch (e, st) {
       assert(() {
         // ignore: avoid_print
@@ -57,6 +59,13 @@ final categoryUsageProfilerProvider = Provider<CategoryUsageProfiler>((ref) {
         return true;
       }());
     }
+  }
+
+  // 冷启动立即检查一次
+  maybeRebuild();
+  // 之后每小时检查（覆盖长期不杀进程的场景）
+  fullRebuildTimer = Timer.periodic(const Duration(hours: 1), (_) {
+    maybeRebuild();
   });
 
   ref.onDispose(() {
