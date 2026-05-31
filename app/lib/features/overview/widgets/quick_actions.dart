@@ -11,9 +11,9 @@ class QuickActions extends StatelessWidget {
 
   static const _actions = [
     _ActionDef(
-      icon: Icons.swap_horiz_rounded,
-      label: '转账',
-      route: AppRouter.transfer,
+      icon: Icons.pie_chart_rounded,
+      label: '预算',
+      route: AppRouter.budget,
     ),
     _ActionDef(
       icon: Icons.account_balance_rounded,
