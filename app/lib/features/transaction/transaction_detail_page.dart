@@ -16,6 +16,7 @@ import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/family_provider.dart';
+import '../../domain/providers/app_providers.dart';
 
 /// 交易详情页面参数
 class TransactionDetailArgs {
@@ -218,6 +219,15 @@ class TransactionDetailPage extends ConsumerWidget {
                             value: txn.note,
                           ),
                         ],
+                        if (_creatorDisplayName(ref, txn.userId) != null) ...[
+                          _divider(isDark),
+                          _detailRow(
+                            isDark: isDark,
+                            icon: Icons.person_outline_rounded,
+                            label: '记录人',
+                            value: _creatorDisplayName(ref, txn.userId)!,
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -395,6 +405,17 @@ class TransactionDetailPage extends ConsumerWidget {
       ),
       child: child,
     );
+  }
+
+  /// Returns display name for the creator if it's a different family member.
+  String? _creatorDisplayName(WidgetRef ref, String txnUserId) {
+    final currentUserId = ref.read(currentUserIdProvider);
+    if (txnUserId == currentUserId || txnUserId.isEmpty) return null;
+    final members = ref.read(familyProvider).members;
+    final member = members.where((m) => m.userId == txnUserId).firstOrNull;
+    if (member == null) return txnUserId.substring(0, 8); // fallback
+    final email = member.email;
+    return email.contains('@') ? email.split('@').first : email;
   }
 
   Widget _detailRow({
