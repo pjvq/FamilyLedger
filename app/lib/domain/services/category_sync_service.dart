@@ -54,7 +54,7 @@ class CategorySyncService {
       parentId: parentId ?? (c.parentId.isNotEmpty ? c.parentId : null),
       iconKey: c.iconKey.isNotEmpty ? c.iconKey : '',
       sortOrder: c.sortOrder,
-      isPreset: true,
+      isPreset: c.isPreset,
     ));
 
     for (final child in c.children) {
