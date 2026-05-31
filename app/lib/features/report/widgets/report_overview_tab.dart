@@ -254,6 +254,8 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
                 centerSpaceRadius: 36,
                 sectionsSpace: 2,
               ),
+              swapAnimationDuration: const Duration(milliseconds: 300),
+              swapAnimationCurve: Curves.easeOutCubic,
             ),
           ),
           const SizedBox(height: 12),
