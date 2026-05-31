@@ -166,7 +166,8 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
         final dateKey = sortedKeys[index];
         final items = groups[dateKey]!;
         final date = DateTime.parse(dateKey);
-        final dayTotal = items.fold<int>(0, (sum, t) => sum + t.amount);
+        final dayTotal = items.fold<int>(0, (sum, t) =>
+            sum + (t.type == 'income' ? t.amount : -t.amount));
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,7 +209,8 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final catName = sortedKeys[index];
         final items = groups[catName]!;
-        final total = items.fold<int>(0, (s, t) => s + t.amount);
+        final total = items.fold<int>(0, (s, t) =>
+            s + (t.type == 'income' ? t.amount : -t.amount));
 
         return ExpansionTile(
           leading: _categoryIcon(context, catName, catByName),
@@ -256,7 +258,8 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final acctName = sortedKeys[index];
         final items = groups[acctName]!;
-        final total = items.fold<int>(0, (s, t) => s + t.amount);
+        final total = items.fold<int>(0, (s, t) =>
+            s + (t.type == 'income' ? t.amount : -t.amount));
 
         return ExpansionTile(
           leading: CircleAvatar(
