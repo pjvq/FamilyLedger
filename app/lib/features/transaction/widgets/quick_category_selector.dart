@@ -199,9 +199,9 @@ class QuickCategorySelector extends ConsumerWidget {
       builder: (ctx) => _QuickAddCategorySheet(
         type: type,
         parentId: parentId,
-        onCreated: (categoryId) {
+        onCreated: (categoryId) async {
+          await ref.read(transactionProvider.notifier).syncAndReloadCategories();
           onSelected(categoryId);
-          ref.read(transactionProvider.notifier).reload();
         },
       ),
     );

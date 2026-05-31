@@ -251,6 +251,13 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     state = state.copyWith(expenseCategories: expCats, incomeCategories: incCats);
   }
 
+  /// Sync categories from server then reload local state.
+  /// Use after creating/editing categories via gRPC.
+  Future<void> syncAndReloadCategories() async {
+    await _categorySvc?.syncFromServer();
+    await _reloadCategories();
+  }
+
   Future<void> _refreshSummary() async {
     final summary = await _balanceCalc.compute(_userId);
     state = state.copyWith(
