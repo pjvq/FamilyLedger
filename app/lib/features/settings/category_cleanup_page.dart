@@ -5,9 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/category_icon_widget.dart';
 import '../../data/local/database.dart';
+import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/category_merge_provider.dart';
 import '../../domain/services/smart_category/category_merge_detector.dart';
 import '../../domain/services/smart_category/category_merge_executor.dart';
+
+/// 所有分类的 FutureProvider（用于建议卡片中查询父/子分类信息）
+final _allCategoriesProvider = FutureProvider<List<Category>>((ref) async {
+  final db = ref.watch(databaseProvider);
+  return db.getAllCategories();
+});
 
 /// 分类整理建议页面 — 卡片式逐条确认
 class CategoryCleanupPage extends ConsumerStatefulWidget {
@@ -24,6 +31,7 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
   @override
   Widget build(BuildContext context) {
     final suggestionsAsync = ref.watch(categoryMergeSuggestionsProvider);
+    final allCatsAsync = ref.watch(_allCategoriesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -43,7 +51,8 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
           if (suggestions.isEmpty) {
             return _buildEmptyState();
           }
-          return _buildSuggestionCards(suggestions);
+          final allCats = allCatsAsync.valueOrNull ?? [];
+          return _buildSuggestionCards(suggestions, allCats);
         },
       ),
     );
@@ -70,11 +79,19 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
     );
   }
 
-  Widget _buildSuggestionCards(List<MergeSuggestion> suggestions) {
-    // MINOR #13: defensive clamp
+  Widget _buildSuggestionCards(
+      List<MergeSuggestion> suggestions, List<Category> allCats) {
     _currentIndex = max(0, min(_currentIndex, suggestions.length - 1));
-
     final suggestion = suggestions[_currentIndex];
+
+    // Build lookup maps
+    final categoryMap = {for (final c in allCats) c.id: c};
+    final childrenMap = <String, List<Category>>{};
+    for (final c in allCats) {
+      if (c.parentId != null && c.deletedAt == null) {
+        childrenMap.putIfAbsent(c.parentId!, () => []).add(c);
+      }
+    }
 
     return Column(
       children: [
@@ -98,6 +115,8 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: _SuggestionCard(
               suggestion: suggestion,
+              categoryMap: categoryMap,
+              childrenMap: childrenMap,
               onMerge: () => _executeMerge(suggestion),
               onDismiss: () => _dismissSuggestion(suggestion),
               onSkip: () => _skipToNext(suggestions.length),
@@ -112,7 +131,6 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
     final actions = ref.read(categoryMergeActionsProvider.notifier);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      // MAJOR #8: domain 层处理 PairType → MergeType 映射
       final result = await actions.merge(
         sourceCategoryId: suggestion.categoryB.id,
         targetCategoryId: suggestion.categoryA.id,
@@ -120,7 +138,6 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
       );
 
       if (mounted) {
-        // MAJOR #A: 提前捕获 actions 引用，避免 SnackBar 闭包内 ref 已 dispose
         final undoActions = ref.read(categoryMergeActionsProvider.notifier);
         messenger.showSnackBar(
           SnackBar(
@@ -176,12 +193,16 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
 /// 单条合并建议卡片
 class _SuggestionCard extends StatelessWidget {
   final MergeSuggestion suggestion;
+  final Map<String, Category> categoryMap;
+  final Map<String, List<Category>> childrenMap;
   final VoidCallback onMerge;
   final VoidCallback onDismiss;
   final VoidCallback onSkip;
 
   const _SuggestionCard({
     required this.suggestion,
+    required this.categoryMap,
+    required this.childrenMap,
     required this.onMerge,
     required this.onDismiss,
     required this.onSkip,
@@ -220,15 +241,29 @@ class _SuggestionCard extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 12),
 
-            // 两个分类（CRITICAL #4: 强类型 Category）
+            // 两个分类
             Row(
               children: [
-                Expanded(child: _CategoryChip(category: catB, label: '删除')),
+                Expanded(
+                  child: _CategoryInfoTile(
+                    category: catB,
+                    label: '删除',
+                    categoryMap: categoryMap,
+                    childrenMap: childrenMap,
+                  ),
+                ),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8),
                   child: Icon(Icons.arrow_forward, color: Colors.grey),
                 ),
-                Expanded(child: _CategoryChip(category: catA, label: '保留')),
+                Expanded(
+                  child: _CategoryInfoTile(
+                    category: catA,
+                    label: '保留',
+                    categoryMap: categoryMap,
+                    childrenMap: childrenMap,
+                  ),
+                ),
               ],
             ),
 
@@ -295,15 +330,33 @@ class _SuggestionCard extends StatelessWidget {
   }
 }
 
-/// 分类标签（CRITICAL #4: 使用强类型 Category）
-class _CategoryChip extends StatelessWidget {
+/// 分类信息 Tile — 显示层级（一级/二级）+ 子分类展开
+class _CategoryInfoTile extends StatelessWidget {
   final Category category;
   final String label;
+  final Map<String, Category> categoryMap;
+  final Map<String, List<Category>> childrenMap;
 
-  const _CategoryChip({required this.category, required this.label});
+  const _CategoryInfoTile({
+    required this.category,
+    required this.label,
+    required this.categoryMap,
+    required this.childrenMap,
+  });
+
+  bool get _isSubcategory => category.parentId != null;
+
+  String? get _parentName {
+    if (category.parentId == null) return null;
+    return categoryMap[category.parentId]?.name;
+  }
+
+  List<Category> get _children => childrenMap[category.id] ?? [];
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Column(
       children: [
         CategoryIconWidget(iconKey: category.iconKey, size: 40),
@@ -315,11 +368,128 @@ class _CategoryChip extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
+        const SizedBox(height: 2),
+
+        // 层级标签
+        if (_isSubcategory && _parentName != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              '$_parentName ›',
+              style: TextStyle(
+                fontSize: 10,
+                color: theme.colorScheme.primary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              '一级分类',
+              style: TextStyle(
+                fontSize: 10,
+                color: theme.colorScheme.secondary,
+              ),
+            ),
+          ),
+
+        // 一级分类：展示子分类数量，可点击查看
+        if (!_isSubcategory && _children.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          GestureDetector(
+            onTap: () => _showChildrenSheet(context),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.subdirectory_arrow_right,
+                    size: 12, color: Colors.grey[600]),
+                const SizedBox(width: 2),
+                Text(
+                  '${_children.length} 个子分类',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: theme.colorScheme.primary,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(fontSize: 11, color: Colors.grey[500]),
         ),
       ],
+    );
+  }
+
+  void _showChildrenSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => _ChildCategoriesSheet(
+        parentName: category.name,
+        children: _children,
+      ),
+    );
+  }
+}
+
+/// 子分类列表 Sheet
+class _ChildCategoriesSheet extends StatelessWidget {
+  final String parentName;
+  final List<Category> children;
+
+  const _ChildCategoriesSheet({
+    required this.parentName,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 400),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '「$parentName」的子分类',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          Flexible(
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: children.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (_, index) {
+                final child = children[index];
+                return ListTile(
+                  leading: CategoryIconWidget(iconKey: child.iconKey, size: 32),
+                  title: Text(child.name),
+                  dense: true,
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -347,7 +517,8 @@ class _ConfidenceBadge extends StatelessWidget {
       ),
       child: Text(
         '$percent%',
-        style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600),
+        style:
+            TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -386,7 +557,6 @@ class _MergeHistorySheet extends ConsumerWidget {
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final log = logs[index];
-                    // MINOR #12: clamp daysLeft to avoid negative display
                     final daysLeft = log.expiresAt
                         .difference(DateTime.now())
                         .inDays
@@ -406,7 +576,7 @@ class _MergeHistorySheet extends ConsumerWidget {
                           final messenger = ScaffoldMessenger.of(context);
                           final actions = ref.read(
                               categoryMergeActionsProvider.notifier);
-                          Navigator.pop(context); // MINOR #14: dismiss sheet first
+                          Navigator.pop(context);
                           try {
                             await actions.undo(log.id);
                             messenger.showSnackBar(
