@@ -15,7 +15,6 @@ import 'widgets/monthly_summary_card.dart';
 import 'widgets/net_worth_hero_card.dart';
 import 'widgets/quick_actions.dart';
 import 'widgets/category_cleanup_reminder_card.dart';
-import 'widgets/recent_transactions_card.dart';
 import 'widgets/reminders_card.dart';
 
 /// 概览页 — 财务健康一眼看。
@@ -93,8 +92,6 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
               const RemindersCard(),
               // 7. Category Cleanup Reminder
               const CategoryCleanupReminderCard(),
-              // 8. Recent Transactions
-              const RecentTransactionsCard(),
               // Bottom safe area padding
               const SizedBox(height: SpacingTokens.xl4 + SpacingTokens.xl),
             ]),

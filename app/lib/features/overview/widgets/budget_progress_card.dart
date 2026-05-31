@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../domain/providers/budget_provider.dart';
 import 'overview_card_container.dart';
@@ -16,12 +18,33 @@ class BudgetProgressCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.semanticColors;
     final execution = ref.watch(budgetProvider.select((s) => s.execution));
     if (execution == null || execution.totalBudget == 0) {
-      return const SizedBox.shrink();
+      // Show a hint to set up budget
+      return GestureDetector(
+        onTap: () => context.push(AppRouter.budget),
+        child: OverviewCardContainer(
+          child: Row(
+            children: [
+              Icon(Icons.track_changes_rounded,
+                  size: IconSizeTokens.xs, color: colors.warning),
+              const SizedBox(width: SpacingTokens.xs),
+              Text(
+                '设置月度预算',
+                style: TypographyTokens.bodySm().copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              Icon(Icons.chevron_right_rounded,
+                  size: IconSizeTokens.sm,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
+            ],
+          ),
+        ),
+      );
     }
-
-    final colors = context.semanticColors;
 
     // Sort by execution rate descending, take top 3
     final categoriesByRate = [...execution.categoryExecutions]
@@ -30,7 +53,9 @@ class BudgetProgressCard extends ConsumerWidget {
 
     if (top3.isEmpty) return const SizedBox.shrink();
 
-    return OverviewCardContainer(
+    return GestureDetector(
+      onTap: () => context.push(AppRouter.budget),
+      child: OverviewCardContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -64,6 +89,7 @@ class BudgetProgressCard extends ConsumerWidget {
                 colors: colors,
               )),
         ],
+      ),
       ),
     );
   }
