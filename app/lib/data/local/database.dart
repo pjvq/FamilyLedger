@@ -195,12 +195,14 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(categoryMergeLog);
             await m.createTable(categoryMergeDismissals);
             await _safeAddColumn(
-              m, 'transactions', transactions.mergeLogId,
+              m, transactions, transactions.mergeLogId,
             );
           }
           if (from < 24) {
             // v23 → v24: category_merge_log.reparented_child_ids
-            await m.addColumn(categoryMergeLog, categoryMergeLog.reparentedChildIds);
+            await _safeAddColumn(
+              m, categoryMergeLog, categoryMergeLog.reparentedChildIds,
+            );
           }
         },
         beforeOpen: (details) async {
@@ -255,18 +257,11 @@ class AppDatabase extends _$AppDatabase {
   /// schema version wasn't bumped yet.
   Future<void> _safeAddColumn(
     Migrator m,
-    String tableName,
+    TableInfo table,
     GeneratedColumn column,
   ) async {
     try {
-      await m.addColumn(
-        // Use the table reference that drift expects
-        switch (tableName) {
-          'transactions' => transactions,
-          _ => throw ArgumentError('Unknown table: $tableName'),
-        },
-        column,
-      );
+      await m.addColumn(table, column);
     } catch (e) {
       final msg = e.toString().toLowerCase();
       if (msg.contains('duplicate column name') ||
