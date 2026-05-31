@@ -194,7 +194,9 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(categoryUsageSummary);
             await m.createTable(categoryMergeLog);
             await m.createTable(categoryMergeDismissals);
-            await m.addColumn(transactions, transactions.mergeLogId);
+            await _safeAddColumn(
+              m, 'transactions', transactions.mergeLogId,
+            );
           }
           if (from < 24) {
             // v23 → v24: category_merge_log.reparented_child_ids
@@ -244,6 +246,34 @@ class AppDatabase extends _$AppDatabase {
         return;
       }
       // Real error (disk full, corruption) — must not swallow.
+      rethrow;
+    }
+  }
+
+  /// Safely add a column — silently skips if column already exists.
+  /// Handles interrupted migrations where ALTER TABLE succeeded but
+  /// schema version wasn't bumped yet.
+  Future<void> _safeAddColumn(
+    Migrator m,
+    String tableName,
+    GeneratedColumn column,
+  ) async {
+    try {
+      await m.addColumn(
+        // Use the table reference that drift expects
+        switch (tableName) {
+          'transactions' => transactions,
+          _ => throw ArgumentError('Unknown table: $tableName'),
+        },
+        column,
+      );
+    } catch (e) {
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('duplicate column name') ||
+          msg.contains('column already exists')) {
+        // Column already present — desired state achieved.
+        return;
+      }
       rethrow;
     }
   }
