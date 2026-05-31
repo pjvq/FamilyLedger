@@ -119,9 +119,9 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
           _buildHeader(theme, isDark),
           const SizedBox(height: SpacingTokens.sm),
 
-          // Top area: account pill + amount + note (40% of sheet)
+          // Top area: account pill + amount + note (30% of sheet)
           Expanded(
-            flex: 4,
+            flex: 3,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -158,9 +158,9 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
             ),
           ),
 
-          // Bottom area: type selector + categories + keyboard (60%)
+          // Bottom area: type selector + categories + keyboard (70%)
           Expanded(
-            flex: 6,
+            flex: 7,
             child: Column(
               children: [
                 // Type selector
@@ -208,34 +208,28 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
   Widget _buildHeader(ThemeData theme, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
-      child: Stack(
-        alignment: Alignment.center,
+      child: Row(
         children: [
+          const Spacer(),
           const _DragHandle(),
-          Positioned(
-            right: 0,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_continuousMode && _savedCount > 0)
-                  _SavedCountBadge(
-                    count: _savedCount,
-                    animation: _flashOpacity,
-                  ),
-                const SizedBox(width: SpacingTokens.sm),
-                _ContinuousModeToggle(
-                  isActive: _continuousMode,
-                  isDark: isDark,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    setState(() {
-                      _continuousMode = !_continuousMode;
-                      if (!_continuousMode) _savedCount = 0;
-                    });
-                  },
-                ),
-              ],
+          const Spacer(),
+          if (_continuousMode && _savedCount > 0) ...[
+            _SavedCountBadge(
+              count: _savedCount,
+              animation: _flashOpacity,
             ),
+            const SizedBox(width: SpacingTokens.sm),
+          ],
+          _ContinuousModeToggle(
+            isActive: _continuousMode,
+            isDark: isDark,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() {
+                _continuousMode = !_continuousMode;
+                if (!_continuousMode) _savedCount = 0;
+              });
+            },
           ),
         ],
       ),
