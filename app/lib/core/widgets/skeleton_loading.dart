@@ -34,10 +34,12 @@ class _ShimmerEffectState extends State<ShimmerEffect>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final baseColor =
-        isDark ? SkeletonTokens.baseDark : SkeletonTokens.baseLight;
-    final highlightColor =
-        isDark ? SkeletonTokens.highlightDark : SkeletonTokens.highlightLight;
+    final baseColor = isDark
+        ? SkeletonTokens.baseDark
+        : SkeletonTokens.baseLight;
+    final highlightColor = isDark
+        ? SkeletonTokens.highlightDark
+        : SkeletonTokens.highlightLight;
 
     return AnimatedBuilder(
       animation: _controller,
@@ -102,7 +104,9 @@ class SkeletonCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? SkeletonTokens.containerDark : SkeletonTokens.containerLight,
+          color: isDark
+              ? SkeletonTokens.containerDark
+              : SkeletonTokens.containerLight,
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Column(
@@ -125,62 +129,74 @@ class SkeletonList extends StatelessWidget {
   final int count;
   final double itemHeight;
 
-  const SkeletonList({
-    super.key,
-    this.count = 5,
-    this.itemHeight = 72,
-  });
+  const SkeletonList({super.key, this.count = 5, this.itemHeight = 72});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return ShimmerEffect(
-      child: Column(
-        children: List.generate(count, (index) {
-          return Container(
-            height: itemHeight,
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isDark ? SkeletonTokens.containerDark : SkeletonTokens.containerLight,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? SkeletonTokens.baseDark
-                        : SkeletonTokens.baseLight,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // 动态计算可容纳的 item 数量，避免溢出
+          const itemVerticalMargin = 4.0; // symmetric vertical padding per item
+          final itemTotalHeight =
+              itemHeight + itemVerticalMargin * 2;
+          final maxItems = constraints.maxHeight.isFinite
+              ? (constraints.maxHeight / itemTotalHeight).floor().clamp(
+                  1,
+                  count,
+                )
+              : count;
+          return Column(
+            children: List.generate(maxItems, (index) {
+              return Container(
+                height: itemHeight,
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? SkeletonTokens.containerDark
+                      : SkeletonTokens.containerLight,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SkeletonText(
-                        width: 80.0 + (index % 3) * 30.0,
-                        height: 14,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? SkeletonTokens.baseDark
+                            : SkeletonTokens.baseLight,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 8),
-                      SkeletonText(
-                        width: 120.0 + (index % 2) * 40.0,
-                        height: 10,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SkeletonText(
+                            width: 80.0 + (index % 3) * 30.0,
+                            height: 14,
+                          ),
+                          const SizedBox(height: 8),
+                          SkeletonText(
+                            width: 120.0 + (index % 2) * 40.0,
+                            height: 10,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 12),
+                    const SkeletonText(width: 60, height: 16),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                const SkeletonText(width: 60, height: 16),
-              ],
-            ),
+              );
+            }),
           );
-        }),
+        },
       ),
     );
   }

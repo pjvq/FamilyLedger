@@ -24,10 +24,11 @@ class TransactionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isIncome = transaction.amount > 0;
+    final isIncome = transaction.type == 'income';
     final amountColor = isIncome
         ? context.semanticColors.income
         : context.semanticColors.expense;
+    final sign = isIncome ? '+' : '-';
 
     return TapScale(
       child: ListTile(
@@ -62,7 +63,7 @@ class TransactionTile extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         trailing: Text(
-          formatCents(transaction.amount, showSign: true),
+          '$sign¥${formatCentsDisplay(transaction.amount)}',
           style: TypographyTokens.amount(
             fontSize: 15,
             fontWeight: FontWeight.w600,

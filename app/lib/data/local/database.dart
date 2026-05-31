@@ -194,11 +194,15 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(categoryUsageSummary);
             await m.createTable(categoryMergeLog);
             await m.createTable(categoryMergeDismissals);
-            await m.addColumn(transactions, transactions.mergeLogId);
+            await _safeAddColumn(
+              m, transactions, transactions.mergeLogId,
+            );
           }
           if (from < 24) {
             // v23 → v24: category_merge_log.reparented_child_ids
-            await m.addColumn(categoryMergeLog, categoryMergeLog.reparentedChildIds);
+            await _safeAddColumn(
+              m, categoryMergeLog, categoryMergeLog.reparentedChildIds,
+            );
           }
         },
         beforeOpen: (details) async {
@@ -237,13 +241,33 @@ class AppDatabase extends _$AppDatabase {
     }
     try {
       await customStatement('ALTER TABLE $table DROP COLUMN $column');
-    } catch (e) {
-      final msg = e.toString().toLowerCase();
-      if (msg.contains('no such column') || msg.contains('no column named')) {
+    } on SqliteException catch (e) {
+      if (e.message.toLowerCase().contains('no such column') ||
+          e.message.toLowerCase().contains('no column named')) {
         // Column already absent — desired state achieved (interrupted migration).
         return;
       }
       // Real error (disk full, corruption) — must not swallow.
+      rethrow;
+    }
+  }
+
+  /// Safely add a column — silently skips if column already exists.
+  /// Handles interrupted migrations where ALTER TABLE succeeded but
+  /// schema version wasn't bumped yet.
+  static Future<void> _safeAddColumn(
+    Migrator m,
+    TableInfo table,
+    GeneratedColumn column,
+  ) async {
+    try {
+      await m.addColumn(table, column);
+    } on SqliteException catch (e) {
+      if (e.message.toLowerCase().contains('duplicate column name') ||
+          e.message.toLowerCase().contains('column already exists')) {
+        // Column already present — desired state achieved (interrupted migration).
+        return;
+      }
       rethrow;
     }
   }

@@ -820,7 +820,14 @@ class _ReportPageState extends ConsumerState<ReportPage>
           // Pie
           Expanded(
             flex: 3,
+            // HACK: Force RenderObject rebuild when badge count changes.
+            // fl_chart's RenderPieChart.badgeWidgetPaint accesses children
+            // by index and desyncs on rebuild. See:
+            // https://github.com/imaNNeo/fl_chart/issues/1540
             child: PieChart(
+              key: ValueKey(
+                sections.where((s) => s.badgeWidget != null).length,
+              ),
               PieChartData(
                 sections: sections,
                 centerSpaceRadius: 30,
