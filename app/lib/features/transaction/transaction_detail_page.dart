@@ -8,11 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/category_icon_widget.dart';
 import 'package:intl/intl.dart';
 
-import '../../core/router/app_router.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/transaction_provider.dart';
+import 'widgets/quick_add_sheet.dart';
 import '../../domain/providers/dashboard_provider.dart';
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/family_provider.dart';
@@ -84,7 +84,7 @@ class TransactionDetailPage extends ConsumerWidget {
                 icon: const Icon(Icons.edit_outlined),
                 tooltip: '编辑',
                 onPressed: () async {
-                  final edited = await context.push(AppRouter.addTransaction, extra: txn);
+                  final edited = await QuickAddSheet.show(context, transaction: txn);
                   if (edited == true && context.mounted) {
                     context.pop();
                   }
