@@ -233,38 +233,42 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
   Widget _buildHeader(ThemeData theme, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          const _DragHandle(),
-          if (!_isEditMode)
-            Positioned(
-              right: 0,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_continuousMode && _savedCount > 0) ...[
-                    _SavedCountBadge(
-                      count: _savedCount,
-                      animation: _flashOpacity,
+      child: SizedBox(
+        height: 32,
+        child: Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          children: [
+            const _DragHandle(),
+            if (!_isEditMode)
+              Positioned(
+                right: 0,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_continuousMode && _savedCount > 0) ...[
+                      _SavedCountBadge(
+                        count: _savedCount,
+                        animation: _flashOpacity,
+                      ),
+                      const SizedBox(width: SpacingTokens.sm),
+                    ],
+                    _ContinuousModeToggle(
+                      isActive: _continuousMode,
+                      isDark: isDark,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() {
+                          _continuousMode = !_continuousMode;
+                          if (!_continuousMode) _savedCount = 0;
+                        });
+                      },
                     ),
-                    const SizedBox(width: SpacingTokens.sm),
                   ],
-                  _ContinuousModeToggle(
-                    isActive: _continuousMode,
-                    isDark: isDark,
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      setState(() {
-                        _continuousMode = !_continuousMode;
-                        if (!_continuousMode) _savedCount = 0;
-                      });
-                    },
-                  ),
-                ],
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
