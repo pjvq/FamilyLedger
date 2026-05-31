@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
@@ -313,6 +314,11 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       final client = ref.read(transactionClientProvider);
       await client.deleteCategory(
           DeleteCategoryRequest(categoryId: cat.id));
+      // Also soft-delete locally so it disappears from quick-add selector
+      final database = ref.read(databaseProvider);
+      await (database.update(database.categories)..where((c) => c.id.equals(cat.id)))
+          .write(db.CategoriesCompanion(deletedAt: Value(DateTime.now())));
+      ref.read(transactionProvider.notifier).syncAndReloadCategories();
       await _loadCategories();
     } catch (e) {
       if (mounted) {
