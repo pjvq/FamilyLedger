@@ -143,13 +143,35 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Account selector
-                AccountPill(
-                  accountName: selectedAccount?.name ?? '选择账户',
-                  icon: Icons.account_balance_wallet_outlined,
-                  onTap: _showAccountPicker,
+                // Account selector + date chip row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AccountPill(
+                      accountName: selectedAccount?.name ?? '选择账户',
+                      icon: Icons.account_balance_wallet_outlined,
+                      onTap: _showAccountPicker,
+                    ),
+                    if (!_isToday(_date)) ...[
+                      const SizedBox(width: SpacingTokens.sm),
+                      GestureDetector(
+                        onTap: _showDatePicker,
+                        child: Chip(
+                          avatar: const Icon(Icons.calendar_today, size: 14),
+                          label: Text(
+                            '${_date.month}月${_date.day}日 ${_date.hour.toString().padLeft(2, '0')}:${_date.minute.toString().padLeft(2, '0')}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          onDeleted: () => setState(() => _date = DateTime.now()),
+                          deleteIcon: const Icon(Icons.close, size: 14),
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                const SizedBox(height: SpacingTokens.md),
+                const SizedBox(height: SpacingTokens.sm),
 
                 // Amount display
                 AnimatedAmountDisplay(
@@ -157,21 +179,6 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
                   note: _note.isEmpty ? null : _note,
                   onNoteTap: _showNoteInput,
                 ),
-
-                const SizedBox(height: SpacingTokens.sm),
-
-                // Date chip (if not today)
-                if (!_isToday(_date))
-                  Chip(
-                    avatar: const Icon(Icons.calendar_today, size: 14),
-                    label: Text(
-                      '${_date.month}月${_date.day}日 ${_date.hour.toString().padLeft(2, '0')}:${_date.minute.toString().padLeft(2, '0')}',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    onDeleted: () => setState(() => _date = DateTime.now()),
-                    deleteIcon: const Icon(Icons.close, size: 14),
-                    visualDensity: VisualDensity.compact,
-                  ),
               ],
             ),
           ),
