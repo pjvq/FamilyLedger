@@ -821,6 +821,11 @@ class _ReportPageState extends ConsumerState<ReportPage>
           Expanded(
             flex: 3,
             child: PieChart(
+              // Force RenderObject rebuild when badge count changes
+              // to prevent fl_chart badge index out-of-range error
+              key: ValueKey(
+                sections.where((s) => s.badgeWidget != null).length,
+              ),
               PieChartData(
                 sections: sections,
                 centerSpaceRadius: 30,
