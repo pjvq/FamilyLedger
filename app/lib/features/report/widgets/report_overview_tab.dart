@@ -29,6 +29,7 @@ class ReportOverviewTab extends StatefulWidget {
 class _ReportOverviewTabState extends State<ReportOverviewTab> {
   int _trendTab = 0; // 0=支出, 1=收入, 2=结余
   int? _trendTouchedMonth;
+  int _pieTouchedIndex = -1;
 
   @override
   Widget build(BuildContext context) {
@@ -182,18 +183,21 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
       final pct = amt / total * 100;
       final cat = widget.categoryMap[id];
       final color = chartColors[i % chartColors.length];
+      final isTouched = i == _pieTouchedIndex;
 
       sections.add(PieChartSectionData(
         color: color,
         value: amt.toDouble(),
-        title: pct >= 5 ? '${pct.toStringAsFixed(0)}%' : '',
-        titleStyle: const TextStyle(
-          fontSize: 11,
+        title: isTouched
+            ? '¥${fmtYuan(amt)}'
+            : (pct >= 5 ? '${pct.toStringAsFixed(0)}%' : ''),
+        titleStyle: TextStyle(
+          fontSize: isTouched ? 12 : 11,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
-        radius: 50,
-        badgeWidget: pct >= 8
+        radius: isTouched ? 58 : 50,
+        badgeWidget: pct >= 8 && !isTouched
             ? CategoryIconWidget(
                 iconKey: cat?.iconKey, size: 14, showBackground: false)
             : null,
@@ -203,16 +207,19 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
 
     if (othersAmount > 0) {
       final pct = othersAmount / total * 100;
+      final isTouched = displayIds.length == _pieTouchedIndex;
       sections.add(PieChartSectionData(
         color: Colors.grey,
         value: othersAmount.toDouble(),
-        title: pct >= 5 ? '${pct.toStringAsFixed(0)}%' : '',
-        titleStyle: const TextStyle(
-          fontSize: 11,
+        title: isTouched
+            ? '¥${fmtYuan(othersAmount)}'
+            : (pct >= 5 ? '${pct.toStringAsFixed(0)}%' : ''),
+        titleStyle: TextStyle(
+          fontSize: isTouched ? 12 : 11,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
-        radius: 50,
+        radius: isTouched ? 58 : 50,
       ));
     }
 
@@ -229,6 +236,20 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
             child: PieChart(
               key: ValueKey(sections.where((s) => s.badgeWidget != null).length),
               PieChartData(
+                pieTouchData: PieTouchData(
+                  touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                    setState(() {
+                      if (!event.isInterestedForInteractions ||
+                          pieTouchResponse == null ||
+                          pieTouchResponse.touchedSection == null) {
+                        _pieTouchedIndex = -1;
+                        return;
+                      }
+                      _pieTouchedIndex = pieTouchResponse
+                          .touchedSection!.touchedSectionIndex;
+                    });
+                  },
+                ),
                 sections: sections,
                 centerSpaceRadius: 36,
                 sectionsSpace: 2,
