@@ -91,9 +91,9 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
               const BudgetProgressCard(),
               // 6. Smart Reminders
               const RemindersCard(),
-              // 6.5 Category Cleanup Reminder
+              // 7. Category Cleanup Reminder
               const CategoryCleanupReminderCard(),
-              // 7. Recent Transactions
+              // 8. Recent Transactions
               const RecentTransactionsCard(),
               // Bottom safe area padding
               const SizedBox(height: SpacingTokens.xl4 + SpacingTokens.xl),

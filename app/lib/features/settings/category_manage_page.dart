@@ -13,6 +13,7 @@ import '../../generated/proto/transaction.pb.dart';
 import '../../generated/proto/transaction.pbgrpc.dart';
 import '../transaction/widgets/icon_picker_sheet.dart';
 import 'category_cleanup_page.dart';
+import '../overview/widgets/category_cleanup_prompt.dart';
 
 class CategoryManagePage extends ConsumerStatefulWidget {
   const CategoryManagePage({super.key});
@@ -719,39 +720,10 @@ class _CategoryCleanupBanner extends ConsumerWidget {
       error: (_, __) => 0,
     );
 
-    if (count == 0) return const SizedBox.shrink();
-
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Material(
-      color: isDark ? const Color(0xFF1A1A2E) : const Color(0xFFFFF8E1),
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              const Icon(Icons.auto_fix_high, size: 18, color: Color(0xFFF59E0B)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '发现 $count 个可合并的分类，点击整理',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                  ),
-                ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return CategoryCleanupPrompt(
+      suggestionCount: count,
+      variant: CleanupPromptVariant.banner,
+      onTap: onTap,
     );
   }
 }

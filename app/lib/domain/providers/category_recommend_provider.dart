@@ -51,17 +51,11 @@ final categoryRecommendProvider =
       if (c.deletedAt == null) c.id,
   };
 
-  final profiles = allProfiles.entries
-      .where((e) => activeIds.contains(e.key))
-      .map((e) => e.value)
-      .toList();
-
-  // 冷启动：为没有使用记录的分类创建空 profile
-  for (final c in categories) {
-    if (c.deletedAt == null && !allProfiles.containsKey(c.id)) {
-      profiles.add(CategoryUsageProfile(categoryId: c.id));
-    }
-  }
+  // 统一单循环构建 profiles，避免双段逻辑耦合
+  final profiles = <CategoryUsageProfile>[
+    for (final id in activeIds)
+      allProfiles[id] ?? CategoryUsageProfile(categoryId: id),
+  ];
 
   if (profiles.isEmpty) return [];
 
@@ -82,6 +76,6 @@ final categoryRecommendProvider =
     sequenceScorer: sequenceScorer,
     input: input,
     config: config,
-    categoryNames: categoryNames,
+    booster: ColdStartBooster(categoryNames: categoryNames),
   );
 });

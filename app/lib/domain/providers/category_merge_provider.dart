@@ -18,14 +18,42 @@ final categoryUsageProfilerProvider = Provider<CategoryUsageProfiler>((ref) {
   final profiler = CategoryUsageProfiler(db);
 
   // 周期性后台刷新 topKeywords + recency counts
-  // 每 6 小时刷新一次 recency，每周全量重建
+  // 每 6 小时刷新 recency，每周全量重建
   Timer? recencyTimer;
   Timer? fullRebuildTimer;
-  recencyTimer = Timer.periodic(const Duration(hours: 6), (_) {
-    profiler.refreshRecencyCounts();
+  DateTime? lastFullRebuildAt;
+
+  recencyTimer = Timer.periodic(const Duration(hours: 6), (_) async {
+    try {
+      await profiler.refreshRecencyCounts();
+    } catch (e, st) {
+      // 降级：刷新失败不影响应用运行，下次 Timer 触发重试
+      // TODO: 接入 metrics、Crashlytics 等可观测性基础设施
+      assert(() {
+        // ignore: avoid_print
+        print('[CategoryUsageProfiler] refreshRecencyCounts failed: $e\n$st');
+        return true;
+      }());
+    }
   });
-  fullRebuildTimer = Timer.periodic(const Duration(days: 7), (_) {
-    profiler.rebuildAll();
+
+  fullRebuildTimer = Timer.periodic(const Duration(hours: 1), (_) async {
+    // 持久化时间戳检查，而非依赖 7天 Timer（杀进程后重置）
+    final now = DateTime.now();
+    if (lastFullRebuildAt != null &&
+        now.difference(lastFullRebuildAt!).inDays < 7) {
+      return;
+    }
+    try {
+      await profiler.rebuildAll();
+      lastFullRebuildAt = now;
+    } catch (e, st) {
+      assert(() {
+        // ignore: avoid_print
+        print('[CategoryUsageProfiler] rebuildAll failed: $e\n$st');
+        return true;
+      }());
+    }
   });
 
   ref.onDispose(() {

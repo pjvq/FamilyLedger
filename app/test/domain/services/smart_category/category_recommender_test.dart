@@ -391,4 +391,48 @@ void main() {
       expect(config.timeSlotWeight, 0.25);
     });
   });
+
+  group('TimePrior', () {
+    test('meal category scores high at noon', () {
+      expect(TimePrior.score('午餐', 12), 0.9);
+      expect(TimePrior.score('外卖', 18), 0.8);
+    });
+
+    test('transport category scores high during commute', () {
+      expect(TimePrior.score('交通', 8), 0.8);
+      expect(TimePrior.score('地铁', 18), 0.8);
+      expect(TimePrior.score('打车', 14), 0.2);
+    });
+
+    test('salary category always returns 0.5', () {
+      expect(TimePrior.score('工资', 9), 0.5);
+      expect(TimePrior.score('薪酬', 22), 0.5);
+    });
+
+    test('unknown category returns default 0.3', () {
+      expect(TimePrior.score('购物', 15), 0.3);
+      expect(TimePrior.score('娱乐', 20), 0.3);
+    });
+  });
+
+  group('ColdStartBooster', () {
+    test('boosts frequency for new categories (totalCount == 0)', () {
+      final booster = ColdStartBooster(categoryNames: {'a': '午餐'});
+      final newProfile = CategoryUsageProfile(categoryId: 'a');
+      expect(booster.boostFrequency(newProfile), 0.3);
+    });
+
+    test('does not boost for categories with history', () {
+      final booster = ColdStartBooster(categoryNames: {'a': '午餐'});
+      final usedProfile = CategoryUsageProfile(categoryId: 'a', totalCount: 5);
+      expect(booster.boostFrequency(usedProfile), isNull);
+      expect(booster.boostRecency(usedProfile), isNull);
+    });
+
+    test('boosts time slot for new categories', () {
+      final booster = ColdStartBooster(categoryNames: {'a': '午餐'});
+      final newProfile = CategoryUsageProfile(categoryId: 'a');
+      expect(booster.boostTimeSlot(newProfile, 12), 0.9);
+    });
+  });
 }

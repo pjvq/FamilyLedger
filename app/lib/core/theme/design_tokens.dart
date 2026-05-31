@@ -12,3 +12,4 @@ export 'tokens/radius_tokens.dart';
 export 'tokens/shadow_tokens.dart';
 export 'tokens/typography_tokens.dart';
 export 'tokens/icon_size_tokens.dart';
+export 'tokens/opacity_tokens.dart';
