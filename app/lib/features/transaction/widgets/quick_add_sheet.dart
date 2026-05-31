@@ -233,30 +233,37 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
   Widget _buildHeader(ThemeData theme, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
-      child: Row(
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          const Spacer(),
           const _DragHandle(),
-          const Spacer(),
-          if (!_isEditMode && _continuousMode && _savedCount > 0) ...[
-            _SavedCountBadge(
-              count: _savedCount,
-              animation: _flashOpacity,
-            ),
-            const SizedBox(width: SpacingTokens.sm),
-          ],
           if (!_isEditMode)
-            _ContinuousModeToggle(
-            isActive: _continuousMode,
-            isDark: isDark,
-            onTap: () {
-              HapticFeedback.selectionClick();
-              setState(() {
-                _continuousMode = !_continuousMode;
-                if (!_continuousMode) _savedCount = 0;
-              });
-            },
-          ),
+            Positioned(
+              right: 0,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_continuousMode && _savedCount > 0) ...[
+                    _SavedCountBadge(
+                      count: _savedCount,
+                      animation: _flashOpacity,
+                    ),
+                    const SizedBox(width: SpacingTokens.sm),
+                  ],
+                  _ContinuousModeToggle(
+                    isActive: _continuousMode,
+                    isDark: isDark,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        _continuousMode = !_continuousMode;
+                        if (!_continuousMode) _savedCount = 0;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
