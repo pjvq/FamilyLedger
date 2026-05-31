@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../domain/providers/budget_provider.dart';
-import '../../../domain/providers/transaction_provider.dart';
 import 'overview_card_container.dart';
 
 /// Progress bar height for budget category rows.
@@ -57,10 +56,16 @@ class _BudgetProgressCardState extends ConsumerState<BudgetProgressCard> {
       );
     }
 
-    // Calculate yearly data
+    // Annual budget from provider
     final budgetState = ref.watch(budgetProvider);
-    final yearlyBudget = _calcYearlyBudget(budgetState);
-    final yearlySpent = _calcYearlySpent(ref);
+    final annualBudget = budgetState.annualBudget;
+    final annualExec = budgetState.annualExecution;
+
+    // If no annual budget set, use monthly × 12 as estimate
+    final yearlyBudget = annualBudget != null
+        ? annualBudget.totalAmount
+        : (execution.totalBudget * 12);
+    final yearlySpent = annualExec?.totalSpent ?? 0;
 
     return GestureDetector(
       onTap: () => context.push(AppRouter.budget),
@@ -103,36 +108,6 @@ class _BudgetProgressCardState extends ConsumerState<BudgetProgressCard> {
     final catCount = execution.categoryExecutions.length.clamp(0, 3);
     // Header + categories * row height
     return 28.0 + catCount * 36.0 + 4;
-  }
-
-  int _calcYearlyBudget(BudgetState state) {
-    // Sum all monthly budgets for the current year
-    final now = DateTime.now();
-    int total = 0;
-    for (final b in state.budgets) {
-      if (b.year == now.year) {
-        total += b.totalAmount;
-      }
-    }
-    // If only current month exists, extrapolate to 12 months
-    if (total == 0 && state.currentBudget != null) {
-      total = state.currentBudget!.totalAmount * 12;
-    }
-    return total;
-  }
-
-  int _calcYearlySpent(WidgetRef ref) {
-    // Sum all expense transactions in the current year
-    final txnState = ref.watch(transactionProvider);
-    final now = DateTime.now();
-    final yearStart = DateTime(now.year, 1, 1);
-    int total = 0;
-    for (final t in txnState.transactions) {
-      if (t.type == 'expense' && !t.txnDate.isBefore(yearStart)) {
-        total += t.amountCny;
-      }
-    }
-    return total;
   }
 }
 

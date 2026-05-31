@@ -38,8 +38,8 @@ func (s *Service) CreateBudget(ctx context.Context, req *pb.CreateBudgetRequest)
 		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
-	if req.Month < 1 || req.Month > 12 {
-		return nil, status.Error(codes.InvalidArgument, "month must be between 1 and 12")
+	if req.Month < 0 || req.Month > 12 {
+		return nil, status.Error(codes.InvalidArgument, "month must be between 0 and 12 (0 = annual budget)")
 	}
 	if req.Year < 2000 || req.Year > 2100 {
 		return nil, status.Error(codes.InvalidArgument, "invalid year")
@@ -480,11 +480,19 @@ func (s *Service) loadCategoryBudgets(ctx context.Context, budgetID uuid.UUID) (
 }
 
 // computeExecution calculates the budget execution by querying expense transactions
-// for the budget's month and matching categories.
+// for the budget's period and matching categories.
+// month == 0 means annual budget (entire year).
 func (s *Service) computeExecution(ctx context.Context, budgetID uuid.UUID, budget *pb.Budget) (*pb.BudgetExecution, error) {
-	// Compute the time range for this budget month
-	startOfMonth := time.Date(int(budget.Year), time.Month(budget.Month), 1, 0, 0, 0, 0, time.UTC)
-	endOfMonth := startOfMonth.AddDate(0, 1, 0)
+	// Compute the time range for this budget period
+	var startOfPeriod, endOfPeriod time.Time
+	if budget.Month == 0 {
+		// Annual budget: entire year
+		startOfPeriod = time.Date(int(budget.Year), 1, 1, 0, 0, 0, 0, time.UTC)
+		endOfPeriod = time.Date(int(budget.Year)+1, 1, 1, 0, 0, 0, 0, time.UTC)
+	} else {
+		startOfPeriod = time.Date(int(budget.Year), time.Month(budget.Month), 1, 0, 0, 0, 0, time.UTC)
+		endOfPeriod = startOfPeriod.AddDate(0, 1, 0)
+	}
 
 	// Query total expense: family budget aggregates all family members' spending,
 	// personal budget only counts user's own spending.
@@ -497,7 +505,7 @@ func (s *Service) computeExecution(ctx context.Context, budgetID uuid.UUID, budg
 			 JOIN accounts a ON a.id = t.account_id
 			 WHERE a.family_id = $1 AND t.type = 'expense' AND t.deleted_at IS NULL
 			   AND t.txn_date >= $2 AND t.txn_date < $3`,
-			budget.FamilyId, startOfMonth, endOfMonth,
+			budget.FamilyId, startOfPeriod, endOfPeriod,
 		).Scan(&totalSpent)
 		if err != nil {
 			return nil, status.Error(codes.Internal, "failed to compute total spent")
@@ -509,7 +517,7 @@ func (s *Service) computeExecution(ctx context.Context, budgetID uuid.UUID, budg
 			 FROM transactions
 			 WHERE user_id = $1 AND type = 'expense' AND deleted_at IS NULL
 			   AND txn_date >= $2 AND txn_date < $3`,
-			budget.UserId, startOfMonth, endOfMonth,
+			budget.UserId, startOfPeriod, endOfPeriod,
 		).Scan(&totalSpent)
 		if err != nil {
 			return nil, status.Error(codes.Internal, "failed to compute total spent")
@@ -538,7 +546,7 @@ func (s *Service) computeExecution(ctx context.Context, budgetID uuid.UUID, budg
 				 WHERE a.family_id = $1 AND t.type = 'expense' AND t.deleted_at IS NULL
 				   AND t.txn_date >= $2 AND t.txn_date < $3
 				 GROUP BY t.category_id, c.name`,
-				budget.FamilyId, startOfMonth, endOfMonth,
+				budget.FamilyId, startOfPeriod, endOfPeriod,
 			)
 		} else {
 			// Personal budget: only user's own category spending
@@ -549,7 +557,7 @@ func (s *Service) computeExecution(ctx context.Context, budgetID uuid.UUID, budg
 				 WHERE t.user_id = $1 AND t.type = 'expense' AND t.deleted_at IS NULL
 				   AND t.txn_date >= $2 AND t.txn_date < $3
 				 GROUP BY t.category_id, c.name`,
-				budget.UserId, startOfMonth, endOfMonth,
+				budget.UserId, startOfPeriod, endOfPeriod,
 			)
 		}
 		if err != nil {

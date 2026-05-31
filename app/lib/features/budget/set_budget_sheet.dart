@@ -6,9 +6,10 @@ import '../../data/local/database.dart' show Category;
 import '../../domain/providers/budget_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 
-/// Bottom sheet for setting monthly budget with total + per-category amounts.
+/// Bottom sheet for setting monthly or annual budget with total + per-category amounts.
 class SetBudgetSheet extends ConsumerStatefulWidget {
-  const SetBudgetSheet({super.key});
+  final bool isAnnual;
+  const SetBudgetSheet({super.key, this.isAnnual = false});
 
   @override
   ConsumerState<SetBudgetSheet> createState() => _SetBudgetSheetState();
@@ -27,16 +28,24 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
     // Pre-fill if editing
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final budgetState = ref.read(budgetProvider);
-      if (budgetState.currentBudget != null) {
+      final existingBudget = widget.isAnnual
+          ? budgetState.annualBudget
+          : budgetState.currentBudget;
+      if (existingBudget != null) {
         _totalController.text =
-            (budgetState.currentBudget!.totalAmount / 100).toStringAsFixed(0);
-        for (final cb in budgetState.currentCategoryBudgets) {
-          _catControllers[cb.categoryId] = TextEditingController(
-            text: (cb.amount / 100).toStringAsFixed(0),
-          );
+            (existingBudget.totalAmount / 100).toStringAsFixed(0);
+        // For annual, we don't have currentCategoryBudgets cached differently yet
+        if (!widget.isAnnual) {
+          for (final cb in budgetState.currentCategoryBudgets) {
+            _catControllers[cb.categoryId] = TextEditingController(
+              text: (cb.amount / 100).toStringAsFixed(0),
+            );
+          }
         }
         setState(() {
-          _showCategories = budgetState.currentCategoryBudgets.isNotEmpty;
+          _showCategories = widget.isAnnual
+              ? false
+              : budgetState.currentCategoryBudgets.isNotEmpty;
         });
       }
     });
@@ -225,23 +234,31 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
       final budgetState = ref.read(budgetProvider);
       final now = DateTime.now();
       final notifier = ref.read(budgetProvider.notifier);
+      final existingBudget = widget.isAnnual
+          ? budgetState.annualBudget
+          : budgetState.currentBudget;
 
       // Pop immediately for responsive UX, then update in background
       if (mounted) Navigator.of(context).pop();
 
-      if (budgetState.currentBudget != null) {
+      if (existingBudget != null) {
         await notifier.updateBudget(
-              id: budgetState.currentBudget!.id,
+              id: existingBudget.id,
               totalAmount: totalCents,
               categoryBudgets: categoryBudgets,
             );
       } else {
         await notifier.createBudget(
               year: now.year,
-              month: now.month,
+              month: widget.isAnnual ? 0 : now.month,
               totalAmount: totalCents,
               categoryBudgets: categoryBudgets,
             );
+      }
+
+      // Reload annual budget data if we just created/updated one
+      if (widget.isAnnual) {
+        await notifier.loadAnnualBudget();
       }
     } catch (_) {
       // Already popped; error handled by provider

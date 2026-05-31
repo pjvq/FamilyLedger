@@ -27,6 +27,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
   void initState() {
     super.initState();
     _viewTabController = TabController(length: 2, vsync: this);
+    _viewTabController.addListener(() => setState(() {}));
   }
 
   @override
@@ -57,10 +58,12 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
       ),
       floatingActionButton: ref.watch(canEditProvider)
           ? FloatingActionButton.extended(
-              onPressed: () => _showSetBudgetSheet(context),
+              onPressed: () => _showSetBudgetSheet(context,
+                  isAnnual: _viewTabController.index == 1),
               icon: const Icon(Icons.edit_rounded),
-              label: Text(
-                  budgetState.currentBudget != null ? '编辑预算' : '设置预算'),
+              label: Text(_viewTabController.index == 1
+                  ? (budgetState.annualBudget != null ? '编辑年预算' : '设置年预算')
+                  : (budgetState.currentBudget != null ? '编辑预算' : '设置预算')),
             )
           : null,
       body: TabBarView(
@@ -133,24 +136,31 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Calculate yearly budget (sum of all monthly budgets this year)
-    int yearlyBudget = 0;
-    for (final b in budgetState.budgets) {
-      if (b.year == now.year) yearlyBudget += b.totalAmount as int;
-    }
-    if (yearlyBudget == 0 && budgetState.currentBudget != null) {
-      yearlyBudget = (budgetState.currentBudget!.totalAmount as int) * 12;
+    final annualBudget = budgetState.annualBudget;
+    final annualExec = budgetState.annualExecution;
+
+    if (annualBudget == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.calendar_today_rounded,
+                size: 48, color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+            const SizedBox(height: 16),
+            Text('尚未设置年预算',
+                style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+            const SizedBox(height: 8),
+            Text('点击右下角按钮设置${now.year}年预算',
+                style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4))),
+          ],
+        ),
+      );
     }
 
-    // Calculate yearly spending
-    final yearStart = DateTime(now.year, 1, 1);
-    int yearlySpent = 0;
-    for (final t in txnState.transactions) {
-      if (t.type == 'expense' && !t.txnDate.isBefore(yearStart)) {
-        yearlySpent += t.amountCny as int;
-      }
-    }
-
+    final yearlyBudget = annualBudget.totalAmount;
+    final yearlySpent = annualExec?.totalSpent ?? 0;
     final rate = yearlyBudget > 0 ? yearlySpent / yearlyBudget : 0.0;
     final dayOfYear = now.difference(DateTime(now.year, 1, 1)).inDays + 1;
     final expectedRate = dayOfYear / 365;
@@ -486,13 +496,13 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
     return cat?.iconKey;
   }
 
-  void _showSetBudgetSheet(BuildContext context) {
+  void _showSetBudgetSheet(BuildContext context, {bool isAnnual = false}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const SetBudgetSheet(),
+      builder: (context) => SetBudgetSheet(isAnnual: isAnnual),
     );
   }
 }
