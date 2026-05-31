@@ -371,6 +371,7 @@ class _CategoryGrid extends StatelessWidget {
               onSelected(cat.id);
             }
           },
+          onLongPress: () => onParentWithChildren(cat, children),
         );
       },
     );
@@ -432,12 +433,14 @@ class _CategoryGridItem extends StatelessWidget {
   final bool hasChildren;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const _CategoryGridItem({
     required this.category,
     required this.hasChildren,
     required this.isSelected,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -446,6 +449,7 @@ class _CategoryGridItem extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
