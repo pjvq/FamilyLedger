@@ -367,6 +367,9 @@ class CategoryRecommender {
         final boostedRecency = booster.boostRecency(p);
         if (boostedRecency != null) recencyScore = boostedRecency;
 
+        // 意图：只在全部分类均无时段数据时才启用时间先验 boost。
+        // 当老分类有数据时，新分类的 timeScore=0 是期望行为——
+        // 此时 recency+frequency boost 已足够让新分类出现在推荐列表中。
         if (maxHourProb <= 0) {
           final boostedTime = booster.boostTimeSlot(p, hour);
           if (boostedTime != null) timeScore = boostedTime;

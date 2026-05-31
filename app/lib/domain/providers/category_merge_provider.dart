@@ -21,6 +21,9 @@ final categoryUsageProfilerProvider = Provider<CategoryUsageProfiler>((ref) {
   // 每 6 小时刷新 recency，每周全量重建
   Timer? recencyTimer;
   Timer? fullRebuildTimer;
+  // NOTE: 内存变量，进程重启后丢失。冷启动后首次 hourly check 会触发 rebuildAll，
+  // 这是可接受的——rebuildAll 本身是幂等操作且耗时不长（< 1s），
+  // 作为 trade-off 避免引入 SharedPreferences 依赖。
   DateTime? lastFullRebuildAt;
 
   recencyTimer = Timer.periodic(const Duration(hours: 6), (_) async {
