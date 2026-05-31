@@ -15,6 +15,12 @@ import 'widgets/date_header.dart';
 import 'widgets/transaction_tile.dart';
 import 'widgets/view_mode_bar.dart';
 
+/// Net amount for a list of transactions (income positive, expense negative).
+extension TransactionListX on Iterable<Transaction> {
+  int get netAmount => fold<int>(
+      0, (sum, t) => sum + (t.type == 'income' ? t.amount : -t.amount));
+}
+
 /// 流水页 — Tab 级全量交易列表。
 ///
 /// 支持三种视图切换（时间 / 分类 / 账户）和搜索筛选。
@@ -166,8 +172,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
         final dateKey = sortedKeys[index];
         final items = groups[dateKey]!;
         final date = DateTime.parse(dateKey);
-        final dayTotal = items.fold<int>(0, (sum, t) =>
-            sum + (t.type == 'income' ? t.amount : -t.amount));
+        final dayTotal = items.netAmount;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,8 +214,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final catName = sortedKeys[index];
         final items = groups[catName]!;
-        final total = items.fold<int>(0, (s, t) =>
-            s + (t.type == 'income' ? t.amount : -t.amount));
+        final total = items.netAmount;
 
         return ExpansionTile(
           leading: _categoryIcon(context, catName, catByName),
@@ -258,8 +262,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final acctName = sortedKeys[index];
         final items = groups[acctName]!;
-        final total = items.fold<int>(0, (s, t) =>
-            s + (t.type == 'income' ? t.amount : -t.amount));
+        final total = items.netAmount;
 
         return ExpansionTile(
           leading: CircleAvatar(
