@@ -135,17 +135,24 @@ class SkeletonList extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return ShimmerEffect(
-      child: Column(
-        children: List.generate(count, (index) {
-          return Container(
-            height: itemHeight,
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isDark ? SkeletonTokens.containerDark : SkeletonTokens.containerLight,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // 动态计算可容纳的 item 数量，避免溢出
+          final itemTotalHeight = itemHeight + 8; // height + vertical margin (4*2)
+          final maxItems = constraints.maxHeight.isFinite
+              ? (constraints.maxHeight / itemTotalHeight).floor().clamp(1, count)
+              : count;
+          return Column(
+            children: List.generate(maxItems, (index) {
+              return Container(
+                height: itemHeight,
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? SkeletonTokens.containerDark : SkeletonTokens.containerLight,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
               children: [
                 Container(
                   width: 44,
@@ -181,6 +188,8 @@ class SkeletonList extends StatelessWidget {
             ),
           );
         }),
+          );
+        },
       ),
     );
   }
