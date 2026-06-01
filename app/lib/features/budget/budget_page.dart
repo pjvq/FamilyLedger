@@ -1,3 +1,5 @@
+import 'dart:developer' as dev;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/category_icon_widget.dart';
@@ -37,11 +39,14 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
     try {
       final userId = ref.read(currentUserIdProvider);
       if (userId == null) return;
+      final familyId = ref.read(currentFamilyIdProvider);
       final db = ref.read(databaseProvider);
-      final data = await db.getMonthlyExpensesForYear(userId, DateTime.now().year);
+      final data = await db.getMonthlyExpensesForYear(
+        userId, DateTime.now().year, familyId: familyId);
       if (mounted) setState(() => _yearlyMonthlySpent = data);
-    } catch (_) {
+    } catch (e) {
       // Graceful fallback — yearly view will use zeroes
+      dev.log('[Budget] _loadYearlyData failed: $e', name: 'BudgetPage');
     }
   }
 

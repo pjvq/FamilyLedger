@@ -340,8 +340,6 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     );
   }
 
-  /// Returns creator display name if the transaction was created by
-  
   void _openDetail(Transaction t, Category? cat) {
     context.push(
       AppRouter.transactionDetail,
