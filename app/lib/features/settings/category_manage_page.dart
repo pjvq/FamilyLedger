@@ -318,7 +318,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       final database = ref.read(databaseProvider);
       await (database.update(database.categories)..where((c) => c.id.equals(cat.id)))
           .write(db.CategoriesCompanion(deletedAt: Value(DateTime.now())));
-      ref.read(transactionProvider.notifier).syncAndReloadCategories();
+      await ref.read(transactionProvider.notifier).syncAndReloadCategories();
       await _loadCategories();
     } catch (e) {
       if (mounted) {

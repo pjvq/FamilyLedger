@@ -80,7 +80,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
 
   /// Build category execution tiles grouped by parent category.
   ///
-    Widget _buildMonthlyTab(dynamic budgetState, dynamic txnState,
+    Widget _buildMonthlyTab(BudgetState budgetState, TransactionState txnState,
       ThemeData theme, bool isDark, DateTime now) {
     if (budgetState.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -130,7 +130,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
     );
   }
 
-  Widget _buildYearlyTab(dynamic budgetState, dynamic txnState,
+  Widget _buildYearlyTab(BudgetState budgetState, TransactionState txnState,
       ThemeData theme, bool isDark, DateTime now) {
     if (budgetState.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -192,7 +192,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
-                  value: rate.clamp(0.0, 1.5),
+                  value: rate.clamp(0.0, 1.0),
                   minHeight: 10,
                   backgroundColor: theme.colorScheme.onSurface
                       .withValues(alpha: 0.06),
@@ -288,7 +288,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
     );
   }
 
-  List<Widget> _buildMonthlyBreakdown(dynamic budgetState, dynamic txnState,
+  List<Widget> _buildMonthlyBreakdown(BudgetState budgetState, TransactionState txnState,
       ThemeData theme, bool isDark, DateTime now) {
     final yearStart = DateTime(now.year, 1, 1);
     // Monthly spending
@@ -296,7 +296,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
     for (final t in txnState.transactions) {
       if (t.type == 'expense' && !t.txnDate.isBefore(yearStart)) {
         final m = t.txnDate.month - 1;
-        if (m >= 0 && m < 12) monthlySpent[m] += t.amountCny as int;
+        if (m >= 0 && m < 12) monthlySpent[m] += t.amountCny;
       }
     }
 
@@ -304,7 +304,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
     final monthlyBudgets = List.filled(12, 0);
     for (final b in budgetState.budgets) {
       if (b.year == now.year && b.month >= 1 && b.month <= 12) {
-        monthlyBudgets[b.month - 1] = b.totalAmount as int;
+        monthlyBudgets[b.month - 1] = b.totalAmount;
       }
     }
 
@@ -380,7 +380,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
   /// 3. Collapsible: children hidden by default, tap parent to expand
   List<Widget> _buildGroupedCategoryTiles(
     List<CategoryExecutionData> executions,
-    dynamic txnState,
+    TransactionState txnState,
     bool isDark,
     ThemeData theme,
   ) {
@@ -487,7 +487,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
     return widgets;
   }
 
-  String? _getCategoryIconKey(String categoryId, dynamic txnState) {
+  String? _getCategoryIconKey(String categoryId, TransactionState txnState) {
     final allCats = [
       ...txnState.expenseCategories,
       ...txnState.incomeCategories,

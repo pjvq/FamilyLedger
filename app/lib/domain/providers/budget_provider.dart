@@ -430,6 +430,11 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       }
     } catch (e) {
       dev.log('[Budget] loadAnnualBudget error: $e', name: 'BudgetProvider');
+      state = state.copyWith(
+        error: '加载年度预算失败',
+        clearAnnualBudget: true,
+        clearAnnualExecution: true,
+      );
     }
   }
 

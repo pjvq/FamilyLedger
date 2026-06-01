@@ -233,42 +233,37 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
   Widget _buildHeader(ThemeData theme, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
-      child: Row(
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          // Left spacer to balance right-side toggle
+          const Center(child: _DragHandle()),
           if (!_isEditMode)
-            const SizedBox(width: 60)
-          else
-            const SizedBox.shrink(),
-          const Spacer(),
-          const _DragHandle(),
-          const Spacer(),
-          if (!_isEditMode)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_continuousMode && _savedCount > 0) ...[
-                  _SavedCountBadge(
-                    count: _savedCount,
-                    animation: _flashOpacity,
+            Align(
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_continuousMode && _savedCount > 0) ...[
+                    _SavedCountBadge(
+                      count: _savedCount,
+                      animation: _flashOpacity,
+                    ),
+                    const SizedBox(width: SpacingTokens.sm),
+                  ],
+                  _ContinuousModeToggle(
+                    isActive: _continuousMode,
+                    isDark: isDark,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        _continuousMode = !_continuousMode;
+                        if (!_continuousMode) _savedCount = 0;
+                      });
+                    },
                   ),
-                  const SizedBox(width: SpacingTokens.sm),
                 ],
-                _ContinuousModeToggle(
-                  isActive: _continuousMode,
-                  isDark: isDark,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    setState(() {
-                      _continuousMode = !_continuousMode;
-                      if (!_continuousMode) _savedCount = 0;
-                    });
-                  },
-                ),
-              ],
-            )
-          else
-            const SizedBox.shrink(),
+              ),
+            ),
         ],
       ),
     );
@@ -342,6 +337,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
           type: type,
           note: _note,
           txnDate: _date,
+          accountId: _selectedAccountId,
         );
       } else {
         await ref.read(transactionProvider.notifier).addTransaction(

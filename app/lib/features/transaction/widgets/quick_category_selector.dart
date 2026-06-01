@@ -692,7 +692,7 @@ class _QuickAddCategorySheetState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('创建失败: $e')),
+          SnackBar(content: Text('创建失败，请重试')),
         );
         setState(() => _isSubmitting = false);
       }

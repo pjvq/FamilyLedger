@@ -20,7 +20,7 @@ message Budget {
   string user_id = 2;
   string family_id = 3;
   int32 year = 4;
-  int32 month = 5;
+  int32 month = 5; // 1-12 for monthly budget, 0 for annual budget
   int64 total_amount = 6;
   repeated CategoryBudget category_budgets = 7;
   google.protobuf.Timestamp created_at = 8;
@@ -51,7 +51,7 @@ message CategoryExecution {
 message CreateBudgetRequest {
   string family_id = 1;
   int32 year = 2;
-  int32 month = 3;
+  int32 month = 3; // 1-12 for monthly, 0 for annual
   int64 total_amount = 4;
   repeated CategoryBudget category_budgets = 5;
 }

@@ -5,13 +5,12 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/category_icon_widget.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/utils/creator_name.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/transaction_flow_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
-import '../../domain/providers/family_provider.dart';
-import '../../domain/providers/app_providers.dart';
 import '../transaction/transaction_detail_page.dart';
 import 'widgets/date_header.dart';
 import 'widgets/transaction_tile.dart';
@@ -170,10 +169,10 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     Map<String, Category> categoryMap,
     Map<String, Account> accountMap,
   ) {
-    final groups = grouped.groups;
+        final groups = grouped.groups;
     final sortedKeys = grouped.sortedKeys;
 
-        final txnState = ref.watch(transactionProvider);
+    final txnState = ref.watch(transactionProvider);
     final hasMore = txnState.hasMore;
 
     return ListView.builder(
@@ -203,7 +202,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                   transaction: txn,
                   category: categoryMap[txn.categoryId],
                   account: accountMap[txn.accountId],
-                  creatorName: _creatorName(txn.userId),
+                  creatorName: creatorDisplayName(ref, txn.userId, fallback: (_) => null),
                   onTap: () => _openDetail(txn, categoryMap[txn.categoryId]),
                 ),
               ),
@@ -254,7 +253,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                   transaction: txn,
                   category: categoryMap[txn.categoryId],
                   account: accountMap[txn.accountId],
-                  creatorName: _creatorName(txn.userId),
+                  creatorName: creatorDisplayName(ref, txn.userId, fallback: (_) => null),
                   onTap: () => _openDetail(txn, categoryMap[txn.categoryId]),
                 ),
               ),
@@ -312,7 +311,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                   transaction: txn,
                   category: categoryMap[txn.categoryId],
                   account: accountMap[txn.accountId],
-                  creatorName: _creatorName(txn.userId),
+                  creatorName: creatorDisplayName(ref, txn.userId, fallback: (_) => null),
                   onTap: () => _openDetail(txn, categoryMap[txn.categoryId]),
                 ),
               ),
@@ -342,18 +341,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
   }
 
   /// Returns creator display name if the transaction was created by
-  /// a different family member; null for the current user's own transactions.
-  String? _creatorName(String txnUserId) {
-    if (txnUserId.isEmpty) return null;
-    final currentUserId = ref.read(currentUserIdProvider);
-    if (txnUserId == currentUserId) return '我';
-    final members = ref.read(familyProvider).members;
-    final member = members.where((m) => m.userId == txnUserId).firstOrNull;
-    if (member == null) return null;
-    final email = member.email;
-    return email.contains('@') ? email.split('@').first : email;
-  }
-
+  
   void _openDetail(Transaction t, Category? cat) {
     context.push(
       AppRouter.transactionDetail,

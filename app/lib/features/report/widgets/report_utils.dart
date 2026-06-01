@@ -55,6 +55,8 @@ const chartColors = ChartColors.palette;
 String fmtDate(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
+/// Formats an amount in cents to yuan string with 2 decimal places.
+/// Note: For negative amounts, call with `cents.abs()` and prepend '-' yourself.
 String fmtYuan(int cents) {
   final yuan = cents / 100;
   return yuan.toStringAsFixed(2);

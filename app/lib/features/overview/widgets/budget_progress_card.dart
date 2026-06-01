@@ -106,8 +106,10 @@ class _BudgetProgressCardState extends ConsumerState<BudgetProgressCard> {
 
   double _calcCardHeight(BudgetExecutionData execution) {
     final catCount = execution.categoryExecutions.length.clamp(0, 3);
-    // Header + categories * row height
-    return 28.0 + catCount * 36.0 + 4;
+    // Layout: header row + spacing + category rows (generous to handle font scaling)
+    const headerHeight = 24.0 + SpacingTokens.md;
+    const rowHeight = 28.0 + SpacingTokens.sm;
+    return headerHeight + catCount * rowHeight + SpacingTokens.sm;
   }
 }
 
@@ -205,35 +207,39 @@ class _YearlyView extends StatelessWidget {
         ),
         const SizedBox(height: SpacingTokens.sm),
         // Total progress bar
-        ClipRRect(
-          borderRadius: BorderRadius.circular(RadiusTokens.sm / 2),
-          child: Stack(
-            children: [
-              LinearProgressIndicator(
-                value: rate.clamp(0.0, 1.0),
-                backgroundColor: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.06),
-                color: _rateColor(rate, colors),
-                minHeight: 8,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final barWidth = constraints.maxWidth;
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(RadiusTokens.sm / 2),
+              child: Stack(
+                children: [
+                  LinearProgressIndicator(
+                    value: rate.clamp(0.0, 1.0),
+                    backgroundColor: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.06),
+                    color: _rateColor(rate, colors),
+                    minHeight: 8,
+                  ),
+                  // Expected progress marker
+                  Positioned(
+                    left: barWidth * expectedRate.clamp(0.0, 1.0),
+                    top: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 2,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.3),
+                    ),
+                  ),
+                ],
               ),
-              // Expected progress marker
-              Positioned(
-                left: (MediaQuery.of(context).size.width - 80) *
-                    expectedRate.clamp(0.0, 1.0),
-                top: 0,
-                bottom: 0,
-                child: Container(
-                  width: 2,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.3),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
         const SizedBox(height: SpacingTokens.sm),
         // Summary text

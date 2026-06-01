@@ -69,14 +69,17 @@ class MainShell extends ConsumerWidget {
             label: '流水',
           ),
           NavigationDestination(
-            icon: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
+            icon: Semantics(
+              label: '记账',
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
+                ),
+                child: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
               ),
-              child: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
             ),
             label: '记账',
           ),
