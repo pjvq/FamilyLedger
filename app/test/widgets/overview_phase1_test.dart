@@ -93,7 +93,7 @@ void main() {
       expect(find.text('预算进度'), findsNothing);
     });
 
-    testWidgets('shows top 3 categories when budget exists', (tester) async {
+    testWidgets('shows budget amount and progress when budget exists', (tester) async {
       await tester.pumpWidget(wrapInApp(
         const BudgetProgressCard(),
         overrides: [
@@ -103,29 +103,7 @@ void main() {
                 totalBudget: 1000000,
                 totalSpent: 750000,
                 executionRate: 0.75,
-                categoryExecutions: [
-                  CategoryExecutionData(
-                    categoryId: 'c1',
-                    categoryName: '餐饮',
-                    budgetAmount: 300000,
-                    spentAmount: 280000,
-                    executionRate: 0.93,
-                  ),
-                  CategoryExecutionData(
-                    categoryId: 'c2',
-                    categoryName: '交通',
-                    budgetAmount: 200000,
-                    spentAmount: 150000,
-                    executionRate: 0.75,
-                  ),
-                  CategoryExecutionData(
-                    categoryId: 'c3',
-                    categoryName: '购物',
-                    budgetAmount: 500000,
-                    spentAmount: 320000,
-                    executionRate: 0.64,
-                  ),
-                ],
+                categoryExecutions: [],
               ),
             ),
           )),
@@ -134,9 +112,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('月预算'), findsOneWidget);
-      expect(find.text('餐饮'), findsOneWidget);
-      expect(find.text('交通'), findsOneWidget);
-      expect(find.text('购物'), findsOneWidget);
+      expect(find.text('75%'), findsOneWidget);
+      expect(find.text('已花 ¥7500'), findsOneWidget);
+      expect(find.text('预算 ¥10000'), findsOneWidget);
     });
   });
 }
