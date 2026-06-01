@@ -134,7 +134,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('预算进度'), findsOneWidget);
+      expect(find.text('月预算'), findsOneWidget);
       expect(find.text('餐饮'), findsOneWidget);
       expect(find.text('交通'), findsOneWidget);
       expect(find.text('购物'), findsOneWidget);

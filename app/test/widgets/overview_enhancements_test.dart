@@ -63,7 +63,7 @@ void main() {
       await tester.pumpWidget(wrapInApp(const QuickActions()));
       await tester.pumpAndSettle();
 
-      expect(find.text('转账'), findsOneWidget);
+      expect(find.text('预算'), findsOneWidget);
       expect(find.text('贷款'), findsOneWidget);
       expect(find.text('投资'), findsOneWidget);
       expect(find.text('报表'), findsOneWidget);

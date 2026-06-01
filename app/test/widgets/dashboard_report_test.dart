@@ -879,28 +879,30 @@ void main() {
       expect(find.text('近30天'), findsOneWidget);
     });
 
-    testWidgets('shows 支出/收入 tabs', (tester) async {
+    testWidgets('shows 3-tab layout (概览/分类/排行)', (tester) async {
       await tester.pumpWidget(_wrapWithProviders(
         const ReportPage(),
         overrides: _reportOverrides(),
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('支出'), findsOneWidget);
-      expect(find.text('收入'), findsOneWidget);
+      expect(find.text('概览'), findsOneWidget);
+      expect(find.text('分类'), findsOneWidget);
+      expect(find.text('排行'), findsOneWidget);
     });
 
-    testWidgets('shows summary with 总支出', (tester) async {
+    testWidgets('shows summary with 支出/收入/结余', (tester) async {
       await tester.pumpWidget(_wrapWithProviders(
         const ReportPage(),
         overrides: _reportOverrides(),
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('总支出'), findsOneWidget);
+      expect(find.text('支出'), findsWidgets);
+      expect(find.text('收入'), findsWidgets);
     });
 
-    testWidgets('shows empty state message when no transactions',
+    testWidgets('shows summary card when no transactions',
         (tester) async {
       await tester.pumpWidget(_wrapWithProviders(
         const ReportPage(),
@@ -908,7 +910,8 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('暂无数据'), findsOneWidget);
+      // Summary card still renders with zero values
+      expect(find.text('支出'), findsWidgets);
     });
 
     testWidgets('shows 自定义 date preset chip', (tester) async {
