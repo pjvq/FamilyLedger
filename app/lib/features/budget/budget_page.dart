@@ -4,6 +4,7 @@ import '../../core/constants/category_icon_widget.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/utils/budget_colors.dart';
 import '../../data/local/database.dart' show Category;
+import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/budget_provider.dart';
 import '../../sync/sync_engine.dart';
 import '../../domain/providers/family_provider.dart';
@@ -22,12 +23,26 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
     with SingleTickerProviderStateMixin {
   final Set<String> _expandedParents = {};
   late TabController _viewTabController;
+  List<int>? _yearlyMonthlySpent;
 
   @override
   void initState() {
     super.initState();
     _viewTabController = TabController(length: 2, vsync: this);
     _viewTabController.addListener(() => setState(() {}));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadYearlyData());
+  }
+
+  Future<void> _loadYearlyData() async {
+    try {
+      final userId = ref.read(currentUserIdProvider);
+      if (userId == null) return;
+      final db = ref.read(databaseProvider);
+      final data = await db.getMonthlyExpensesForYear(userId, DateTime.now().year);
+      if (mounted) setState(() => _yearlyMonthlySpent = data);
+    } catch (_) {
+      // Graceful fallback — yearly view will use zeroes
+    }
   }
 
   @override
@@ -290,15 +305,8 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
 
   List<Widget> _buildMonthlyBreakdown(BudgetState budgetState, TransactionState txnState,
       ThemeData theme, bool isDark, DateTime now) {
-    final yearStart = DateTime(now.year, 1, 1);
-    // Monthly spending
-    final monthlySpent = List.filled(12, 0);
-    for (final t in txnState.transactions) {
-      if (t.type == 'expense' && !t.txnDate.isBefore(yearStart)) {
-        final m = t.txnDate.month - 1;
-        if (m >= 0 && m < 12) monthlySpent[m] += t.amountCny;
-      }
-    }
+    // Use pre-fetched full-year data from DB (not paginated txnState)
+    final monthlySpent = _yearlyMonthlySpent ?? List.filled(12, 0);
 
     // Monthly budgets
     final monthlyBudgets = List.filled(12, 0);

@@ -645,7 +645,7 @@ class _SubcategorySheet extends StatelessWidget {
 class _QuickAddCategorySheet extends ConsumerStatefulWidget {
   final String type; // 'expense' | 'income'
   final String? parentId;
-  final ValueChanged<String> onCreated;
+  final Future<void> Function(String) onCreated;
 
   const _QuickAddCategorySheet({
     required this.type,
@@ -687,7 +687,7 @@ class _QuickAddCategorySheetState
       ));
       if (mounted) {
         Navigator.of(context).pop();
-        widget.onCreated(resp.category.id);
+        await widget.onCreated(resp.category.id);
       }
     } catch (e) {
       if (mounted) {

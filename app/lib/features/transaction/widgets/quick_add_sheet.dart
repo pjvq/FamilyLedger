@@ -236,7 +236,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
       child: Stack(
         alignment: Alignment.center,
         children: [
-          const Center(child: _DragHandle()),
+          const _DragHandle(),
           if (!_isEditMode)
             Align(
               alignment: Alignment.centerRight,

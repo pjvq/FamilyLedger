@@ -169,7 +169,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     Map<String, Category> categoryMap,
     Map<String, Account> accountMap,
   ) {
-        final groups = grouped.groups;
+    final groups = grouped.groups;
     final sortedKeys = grouped.sortedKeys;
 
     final txnState = ref.watch(transactionProvider);

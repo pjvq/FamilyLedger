@@ -21,7 +21,7 @@ String? creatorDisplayName(
   final members = ref.read(familyProvider).members;
   final member = members.where((m) => m.userId == txnUserId).firstOrNull;
   if (member == null) {
-    return fallback != null ? fallback(txnUserId) : txnUserId.substring(0, 8);
+    return fallback != null ? fallback(txnUserId) : txnUserId.length > 8 ? txnUserId.substring(0, 8) : txnUserId;
   }
   final email = member.email;
   return email.contains('@') ? email.split('@').first : email;
