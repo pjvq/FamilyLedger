@@ -421,7 +421,10 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
           final monthlyData = await _db.getMonthlyExpensesForYear(
             _userId, year, familyId: _familyId);
           localSpent = monthlyData.fold<int>(0, (sum, v) => sum + v);
-        } catch (_) {}
+        } catch (e) {
+          dev.log('[Budget] local yearly expense calc failed: $e',
+              name: 'BudgetProvider');
+        }
         state = state.copyWith(
           annualBudget: annual,
           annualExecution: BudgetExecutionData(

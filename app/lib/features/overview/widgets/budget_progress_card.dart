@@ -7,6 +7,9 @@ import '../../../core/theme/design_tokens.dart';
 import '../../../domain/providers/budget_provider.dart';
 import 'overview_card_container.dart';
 
+/// Format cents to yuan (integer display).
+String _fmtYuan(int cents) => (cents / 100).toStringAsFixed(0);
+
 /// Budget progress card — swipeable between monthly and yearly view.
 ///
 /// Hidden when no budget is configured (shows setup hint instead).
@@ -102,8 +105,8 @@ class _BudgetProgressCardState extends ConsumerState<BudgetProgressCard> {
   }
 
   double _calcCardHeight(BudgetExecutionData execution) {
-    // Monthly: header + progress bar + amount row ≈ 80
-    // Yearly: header + progress bar + amount row ≈ 80
+    // Fixed height: header row (24) + progress bar (6+8+8 spacing) + amount row (16+8)
+    // Both monthly and yearly views share this layout.
     return 80;
   }
 }
@@ -182,7 +185,6 @@ class _MonthlyView extends StatelessWidget {
     );
   }
 
-  String _fmtYuan(int cents) => (cents / 100).toStringAsFixed(0);
 }
 
 /// Yearly budget view
@@ -296,7 +298,6 @@ class _YearlyView extends StatelessWidget {
     );
   }
 
-  String _fmtYuan(int cents) => (cents / 100).toStringAsFixed(0);
 }
 
 /// Page indicator dot
