@@ -145,6 +145,7 @@ class TransactionRepository implements ITransactionRepository {
     String? tags,
     String? imageUrls,
     DateTime? txnDate,
+    String? accountId,
   }) async {
     final oldTxn = await _db.getTransactionById(id);
     if (oldTxn == null) return null;
@@ -161,6 +162,7 @@ class TransactionRepository implements ITransactionRepository {
       tags: tags != null ? Value(tags) : const Value.absent(),
       imageUrls: imageUrls != null ? Value(imageUrls) : const Value.absent(),
       txnDate: txnDate != null ? Value(txnDate) : const Value.absent(),
+      accountId: accountId != null ? Value(accountId) : const Value.absent(),
       updatedAt: Value(DateTime.now()),
     );
     await _db.updateTransactionFields(id, companion);
@@ -172,9 +174,21 @@ class TransactionRepository implements ITransactionRepository {
     final newDelta = effectiveNewType == 'income'
         ? effectiveNewAmountCny
         : -effectiveNewAmountCny;
-    final balanceDiff = newDelta - oldDelta;
-    if (balanceDiff != 0) {
-      await _db.updateAccountBalance(oldTxn.accountId, balanceDiff);
+
+    if (accountId != null && accountId != oldTxn.accountId) {
+      // Account changed: reverse from old, apply to new
+      if (oldDelta != 0) {
+        await _db.updateAccountBalance(oldTxn.accountId, -oldDelta);
+      }
+      if (newDelta != 0) {
+        await _db.updateAccountBalance(accountId, newDelta);
+      }
+    } else {
+      // Same account: just apply difference
+      final balanceDiff = newDelta - oldDelta;
+      if (balanceDiff != 0) {
+        await _db.updateAccountBalance(oldTxn.accountId, balanceDiff);
+      }
     }
 
     return oldTxn;

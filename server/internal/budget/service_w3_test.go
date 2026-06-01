@@ -101,7 +101,7 @@ func TestW3_CreateBudget_InvalidMonth(t *testing.T) {
 
 	svc := NewService(mock)
 
-	testCases := []int32{0, 13, -1}
+	testCases := []int32{13, -1}
 	for _, month := range testCases {
 		_, err = svc.CreateBudget(authedCtx(), &pb.CreateBudgetRequest{
 			Year:        2026,

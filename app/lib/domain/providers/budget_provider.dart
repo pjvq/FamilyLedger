@@ -56,39 +56,52 @@ class CategoryExecutionData {
 
 class BudgetState {
   final db.Budget? currentBudget;
+  final db.Budget? annualBudget;
   final List<db.Budget> budgets;
   final List<db.CategoryBudgetsTableData> currentCategoryBudgets;
   final BudgetExecutionData? execution;
+  final BudgetExecutionData? annualExecution;
   final bool isLoading;
   final String? error;
 
   const BudgetState({
     this.currentBudget,
+    this.annualBudget,
     this.budgets = const [],
     this.currentCategoryBudgets = const [],
     this.execution,
+    this.annualExecution,
     this.isLoading = false,
     this.error,
   });
 
   BudgetState copyWith({
     db.Budget? currentBudget,
+    db.Budget? annualBudget,
     List<db.Budget>? budgets,
     List<db.CategoryBudgetsTableData>? currentCategoryBudgets,
     BudgetExecutionData? execution,
+    BudgetExecutionData? annualExecution,
     bool? isLoading,
     String? error,
     bool clearCurrentBudget = false,
+    bool clearAnnualBudget = false,
     bool clearExecution = false,
+    bool clearAnnualExecution = false,
     bool clearError = false,
   }) =>
       BudgetState(
         currentBudget:
             clearCurrentBudget ? null : (currentBudget ?? this.currentBudget),
+        annualBudget:
+            clearAnnualBudget ? null : (annualBudget ?? this.annualBudget),
         budgets: budgets ?? this.budgets,
         currentCategoryBudgets:
             currentCategoryBudgets ?? this.currentCategoryBudgets,
         execution: clearExecution ? null : (execution ?? this.execution),
+        annualExecution: clearAnnualExecution
+            ? null
+            : (annualExecution ?? this.annualExecution),
         isLoading: isLoading ?? this.isLoading,
         error: clearError ? null : (error ?? this.error),
       );
@@ -108,6 +121,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       : super(const BudgetState()) {
     if (_userId != null) {
       loadCurrentMonth();
+      loadAnnualBudget();
     }
   }
 
@@ -342,6 +356,86 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       clearCurrentBudget: current == null,
       clearExecution: exec == null,
     );
+  }
+
+  /// Load annual budget (month=0) for the current year.
+  Future<void> loadAnnualBudget() async {
+    if (_userId == null) return;
+    final now = DateTime.now();
+    final year = now.year;
+
+    try {
+      // Check if annual budget exists in local cache (month=0)
+      final annual = await _db.getBudgetByMonth(_userId, year, 0,
+          familyId: _familyId);
+
+      if (annual != null) {
+        // Try to get execution from server
+        try {
+          final execResp = await _client.getBudgetExecution(
+            pb.GetBudgetExecutionRequest()..budgetId = annual.id,
+            options: _callOpts,
+          );
+          final exec = execResp.execution;
+
+          final categories = await _db.getAllCategories();
+          final catMap = {for (final c in categories) c.id: c};
+          final childrenOf = <String, List<String>>{};
+          for (final c in categories) {
+            if (c.parentId != null) {
+              childrenOf.putIfAbsent(c.parentId!, () => []).add(c.id);
+            }
+          }
+
+          final catExecs = exec.categoryExecutions.map((ce) {
+            int spent = ce.spentAmount.toInt();
+            return CategoryExecutionData(
+              categoryId: ce.categoryId,
+              categoryName: ce.categoryName.isNotEmpty
+                  ? ce.categoryName
+                  : (catMap[ce.categoryId]?.name ?? '未知'),
+              budgetAmount: ce.budgetAmount.toInt(),
+              spentAmount: spent,
+              executionRate: ce.executionRate,
+            );
+          }).toList();
+
+          state = state.copyWith(
+            annualBudget: annual,
+            annualExecution: BudgetExecutionData(
+              totalBudget: exec.totalBudget.toInt(),
+              totalSpent: exec.totalSpent.toInt(),
+              executionRate: exec.executionRate,
+              categoryExecutions: catExecs,
+            ),
+          );
+          return;
+        } catch (e) {
+          dev.log('[Budget] loadAnnualBudget: execution fetch failed: $e',
+              name: 'BudgetProvider');
+        }
+
+        // Fallback: local calculation
+        state = state.copyWith(
+          annualBudget: annual,
+          annualExecution: BudgetExecutionData(
+            totalBudget: annual.totalAmount,
+            totalSpent: 0,
+            executionRate: 0.0,
+            categoryExecutions: [],
+          ),
+        );
+      } else {
+        state = state.copyWith(clearAnnualBudget: true, clearAnnualExecution: true);
+      }
+    } catch (e) {
+      dev.log('[Budget] loadAnnualBudget error: $e', name: 'BudgetProvider');
+      state = state.copyWith(
+        error: '加载年度预算失败',
+        clearAnnualBudget: true,
+        clearAnnualExecution: true,
+      );
+    }
   }
 
   Future<void> createBudget({

@@ -30,51 +30,65 @@ class MainShell extends ConsumerWidget {
       'MainShell expects exactly 4 branches matching 4 NavigationBar destinations',
     );
 
+    // Map visual index (5 items) to branch index (4 branches)
+    // Visual: 0=overview, 1=flow, 2=add(fake), 3=assets, 4=mine
+    // Branch: 0=overview, 1=flow, 2=assets, 3=mine
+    int visualIndex = navigationShell.currentIndex;
+    // Shift indices >= 2 to account for the fake center tab
+    if (visualIndex >= 2) visualIndex += 1;
+
     return Scaffold(
       body: navigationShell,
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'main_add_transaction',
-        tooltip: '记一笔',
-        onPressed: () async {
-          if (!canCreate) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('当前角色无记账权限')),
-            );
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: visualIndex,
+        onDestinationSelected: (index) {
+          if (index == 2) {
+            // Center tab: open quick-add sheet
+            if (!canCreate) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('当前角色无记账权限')),
+              );
+              return;
+            }
+            QuickAddSheet.show(context);
             return;
           }
-          // Phase 2: Quick add bottom sheet
-          await QuickAddSheet.show(context);
+          // Map visual index back to branch index
+          final branchIndex = index > 2 ? index - 1 : index;
+          navigationShell.goBranch(branchIndex);
         },
-        elevation: isDark ? 4 : 2,
-        backgroundColor:
-            isDark ? ColorTokens.primaryLight : ColorTokens.primary,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add_rounded,
-            color: Colors.white, size: IconSizeTokens.md),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) {
-          navigationShell.goBranch(index);
-        },
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(Icons.dashboard_rounded),
             label: '概览',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.receipt_long_outlined),
             selectedIcon: Icon(Icons.receipt_long_rounded),
             label: '流水',
           ),
           NavigationDestination(
+            icon: Semantics(
+              label: '记账',
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
+                ),
+                child: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
+              ),
+            ),
+            label: '记账',
+          ),
+          const NavigationDestination(
             icon: Icon(Icons.account_balance_outlined),
             selectedIcon: Icon(Icons.account_balance_rounded),
             label: '资产',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.person_outline_rounded),
             selectedIcon: Icon(Icons.person_rounded),
             label: '我的',

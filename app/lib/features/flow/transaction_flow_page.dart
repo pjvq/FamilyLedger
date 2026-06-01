@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/category_icon_widget.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/utils/creator_name.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart';
@@ -58,6 +59,13 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
         _scrollController.position.maxScrollExtent - _scrollThreshold) {
       final filtered = ref.read(flowFilteredTransactionsProvider);
       ref.read(transactionFlowProvider.notifier).loadMore(filtered.length);
+
+      // Also load more from DB if we've exhausted current data
+      final txnState = ref.read(transactionProvider);
+      final flowState = ref.read(transactionFlowProvider);
+      if (txnState.hasMore && flowState.displayCount >= txnState.transactions.length) {
+        ref.read(transactionProvider.notifier).loadMore();
+      }
     }
   }
 
@@ -164,11 +172,20 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     final groups = grouped.groups;
     final sortedKeys = grouped.sortedKeys;
 
+    final txnState = ref.watch(transactionProvider);
+    final hasMore = txnState.hasMore;
+
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.only(bottom: SpacingTokens.xl4),
-      itemCount: sortedKeys.length,
+      itemCount: sortedKeys.length + (hasMore ? 1 : 0),
       itemBuilder: (context, index) {
+        if (index >= sortedKeys.length) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        }
         final dateKey = sortedKeys[index];
         final items = groups[dateKey]!;
         final date = DateTime.parse(dateKey);
@@ -185,6 +202,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                   transaction: txn,
                   category: categoryMap[txn.categoryId],
                   account: accountMap[txn.accountId],
+                  creatorName: creatorDisplayName(ref, txn.userId, fallback: (_) => null),
                   onTap: () => _openDetail(txn, categoryMap[txn.categoryId]),
                 ),
               ),
@@ -235,6 +253,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                   transaction: txn,
                   category: categoryMap[txn.categoryId],
                   account: accountMap[txn.accountId],
+                  creatorName: creatorDisplayName(ref, txn.userId, fallback: (_) => null),
                   onTap: () => _openDetail(txn, categoryMap[txn.categoryId]),
                 ),
               ),
@@ -292,6 +311,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                   transaction: txn,
                   category: categoryMap[txn.categoryId],
                   account: accountMap[txn.accountId],
+                  creatorName: creatorDisplayName(ref, txn.userId, fallback: (_) => null),
                   onTap: () => _openDetail(txn, categoryMap[txn.categoryId]),
                 ),
               ),

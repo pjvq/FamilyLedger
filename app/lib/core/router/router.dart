@@ -122,20 +122,6 @@ final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
               GoRoute(
                 path: '/transactions',
                 builder: (_, __) => const TransactionFlowPage(),
-                routes: [
-                  GoRoute(
-                    path: 'detail',
-                    builder: (context, state) {
-                      final args = state.extra;
-                      if (args is! TransactionDetailArgs) {
-                        return const Scaffold(
-                          body: Center(child: Text('交易详情不可用')),
-                        );
-                      }
-                      return TransactionDetailPage(args: args);
-                    },
-                  ),
-                ],
               ),
             ],
           ),
@@ -146,97 +132,6 @@ final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
               GoRoute(
                 path: '/assets',
                 builder: (_, __) => const AssetsTabPage(),
-                routes: [
-                  GoRoute(
-                    path: 'accounts/add',
-                    builder: (context, state) => const AddAccountPage(),
-                  ),
-                  GoRoute(
-                    path: 'accounts/detail/:accountId',
-                    redirect: (context, state) {
-                      final id = state.pathParameters['accountId'];
-                      if (id == null || id.isEmpty) {
-                        return '/assets';
-                      }
-                      return null;
-                    },
-                    builder: (context, state) => AccountDetailPage(
-                      accountId: state.pathParameters['accountId']!,
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'loans',
-                    builder: (_, __) => const LoansPage(),
-                    routes: [
-                      GoRoute(
-                        path: 'add',
-                        builder: (_, __) => const AddLoanPage(),
-                      ),
-                      GoRoute(
-                        path: ':loanId',
-                        builder: (context, state) => LoanDetailPage(
-                          loanId: state.pathParameters['loanId'] ?? '',
-                        ),
-                        routes: [
-                          GoRoute(
-                            path: 'prepayment',
-                            builder: (context, state) => PrepaymentPage(
-                              loanId: state.pathParameters['loanId'] ?? '',
-                            ),
-                          ),
-                        ],
-                      ),
-                      GoRoute(
-                        path: 'group/:groupId',
-                        builder: (context, state) => LoanGroupDetailPage(
-                          groupId: state.pathParameters['groupId'] ?? '',
-                        ),
-                      ),
-                    ],
-                  ),
-                  GoRoute(
-                    path: 'investments',
-                    builder: (_, __) => const InvestmentsPage(),
-                    routes: [
-                      GoRoute(
-                        path: 'add',
-                        builder: (_, __) => const AddInvestmentPage(),
-                      ),
-                      GoRoute(
-                        path: ':investmentId',
-                        builder: (context, state) => InvestmentDetailPage(
-                          investmentId:
-                              state.pathParameters['investmentId'] ?? '',
-                        ),
-                        routes: [
-                          GoRoute(
-                            path: 'trade',
-                            builder: (context, state) => TradePage(
-                              investmentId:
-                                  state.pathParameters['investmentId'] ?? '',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  GoRoute(
-                    path: 'fixed',
-                    builder: (_, __) => const AssetsPage(),
-                    routes: [
-                      GoRoute(
-                        path: 'add',
-                        builder: (_, __) => const AddAssetPage(),
-                      ),
-                      GoRoute(
-                        path: ':assetId',
-                        builder: (context, state) => AssetDetailPage(
-                          assetId: state.pathParameters['assetId'] ?? '',
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
               ),
             ],
           ),
@@ -247,56 +142,174 @@ final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
               GoRoute(
                 path: '/mine',
                 builder: (_, __) => const MorePage(),
-                routes: [
-                  GoRoute(
-                    path: 'settings',
-                    builder: (_, __) => const SettingsPage(),
-                    routes: [
-                      GoRoute(
-                        path: 'members',
-                        builder: (_, __) => const FamilyMembersPage(),
-                      ),
-                      GoRoute(
-                        path: 'categories',
-                        builder: (_, __) => const CategoryManagePage(),
-                      ),
-                    ],
-                  ),
-                  GoRoute(
-                    path: 'notifications',
-                    builder: (_, __) => const NotificationsPage(),
-                    routes: [
-                      GoRoute(
-                        path: 'settings',
-                        builder: (_, __) =>
-                            const NotificationSettingsPage(),
-                      ),
-                    ],
-                  ),
-                  GoRoute(
-                    path: 'budget',
-                    builder: (_, __) => const BudgetPage(),
-                  ),
-                  GoRoute(
-                    path: 'report',
-                    builder: (_, __) => const ReportPage(),
-                  ),
-                  GoRoute(
-                    path: 'export',
-                    builder: (_, __) => const ExportPage(),
-                  ),
-                  GoRoute(
-                    path: 'import',
-                    builder: (_, __) => const ImportPage(),
-                  ),
-                ],
               ),
             ],
           ),
         ],
       ),
 
-      // ── Modal routes (outside shell, slide up) ──
+      // ── Full-screen routes (no tab bar) ──
+
+      // Transaction detail
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/transactions/detail',
+        builder: (context, state) {
+          final args = state.extra;
+          if (args is! TransactionDetailArgs) {
+            return const Scaffold(
+              body: Center(child: Text('交易详情不可用')),
+            );
+          }
+          return TransactionDetailPage(args: args);
+        },
+      ),
+
+      // Accounts
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/assets/accounts/add',
+        builder: (_, __) => const AddAccountPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/assets/accounts/detail/:accountId',
+        redirect: (context, state) {
+          final id = state.pathParameters['accountId'];
+          if (id == null || id.isEmpty) return '/assets';
+          return null;
+        },
+        builder: (context, state) => AccountDetailPage(
+          accountId: state.pathParameters['accountId']!,
+        ),
+      ),
+
+      // Loans
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/assets/loans',
+        builder: (_, __) => const LoansPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/assets/loans/add',
+        builder: (_, __) => const AddLoanPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/assets/loans/:loanId',
+        builder: (context, state) => LoanDetailPage(
+          loanId: state.pathParameters['loanId'] ?? '',
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/assets/loans/:loanId/prepayment',
+        builder: (context, state) => PrepaymentPage(
+          loanId: state.pathParameters['loanId'] ?? '',
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/assets/loans/group/:groupId',
+        builder: (context, state) => LoanGroupDetailPage(
+          groupId: state.pathParameters['groupId'] ?? '',
+        ),
+      ),
+
+      // Investments
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/assets/investments',
+        builder: (_, __) => const InvestmentsPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/assets/investments/add',
+        builder: (_, __) => const AddInvestmentPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/assets/investments/:investmentId',
+        builder: (context, state) => InvestmentDetailPage(
+          investmentId: state.pathParameters['investmentId'] ?? '',
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/assets/investments/:investmentId/trade',
+        builder: (context, state) => TradePage(
+          investmentId: state.pathParameters['investmentId'] ?? '',
+        ),
+      ),
+
+      // Fixed assets
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/assets/fixed',
+        builder: (_, __) => const AssetsPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/assets/fixed/add',
+        builder: (_, __) => const AddAssetPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/assets/fixed/:assetId',
+        builder: (context, state) => AssetDetailPage(
+          assetId: state.pathParameters['assetId'] ?? '',
+        ),
+      ),
+
+      // Mine sub-pages
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/mine/settings',
+        builder: (_, __) => const SettingsPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/mine/settings/members',
+        builder: (_, __) => const FamilyMembersPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/mine/settings/categories',
+        builder: (_, __) => const CategoryManagePage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/mine/notifications',
+        builder: (_, __) => const NotificationsPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/mine/notifications/settings',
+        builder: (_, __) => const NotificationSettingsPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/mine/budget',
+        builder: (_, __) => const BudgetPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/mine/report',
+        builder: (_, __) => const ReportPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/mine/export',
+        builder: (_, __) => const ExportPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/mine/import',
+        builder: (_, __) => const ImportPage(),
+      ),
+
+      // ── Modal routes (slide up) ──
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
         path: '/add-transaction',

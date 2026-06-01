@@ -8,14 +8,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/category_icon_widget.dart';
 import 'package:intl/intl.dart';
 
-import '../../core/router/app_router.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/utils/creator_name.dart';
 import '../../core/widgets/widgets.dart';
 import '../../data/local/database.dart';
 import '../../domain/providers/transaction_provider.dart';
+import '../../domain/providers/family_provider.dart';
+import 'widgets/quick_add_sheet.dart';
 import '../../domain/providers/dashboard_provider.dart';
 import '../../domain/providers/account_provider.dart';
-import '../../domain/providers/family_provider.dart';
 
 /// 交易详情页面参数
 class TransactionDetailArgs {
@@ -83,7 +84,7 @@ class TransactionDetailPage extends ConsumerWidget {
                 icon: const Icon(Icons.edit_outlined),
                 tooltip: '编辑',
                 onPressed: () async {
-                  final edited = await context.push(AppRouter.addTransaction, extra: txn);
+                  final edited = await QuickAddSheet.show(context, transaction: txn);
                   if (edited == true && context.mounted) {
                     context.pop();
                   }
@@ -216,6 +217,15 @@ class TransactionDetailPage extends ConsumerWidget {
                             icon: Icons.note_outlined,
                             label: '备注',
                             value: txn.note,
+                          ),
+                        ],
+                        if (creatorDisplayName(ref, txn.userId) != null) ...[
+                          _divider(isDark),
+                          _detailRow(
+                            isDark: isDark,
+                            icon: Icons.person_outline_rounded,
+                            label: '记录人',
+                            value: creatorDisplayName(ref, txn.userId)!,
                           ),
                         ],
                       ],
@@ -397,6 +407,7 @@ class TransactionDetailPage extends ConsumerWidget {
     );
   }
 
+  
   Widget _detailRow({
     required bool isDark,
     required IconData icon,

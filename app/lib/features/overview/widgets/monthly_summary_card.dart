@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/utils/format.dart';
 import '../../../domain/providers/dashboard_provider.dart';
@@ -32,7 +34,9 @@ class MonthlySummaryCard extends ConsumerWidget {
     final expense = current.expense;
     final net = income - expense;
 
-    return OverviewCardContainer(
+    return GestureDetector(
+      onTap: () => context.push(AppRouter.report),
+      child: OverviewCardContainer(
       margin: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
       child: Row(
         children: [
@@ -100,6 +104,7 @@ class MonthlySummaryCard extends ConsumerWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

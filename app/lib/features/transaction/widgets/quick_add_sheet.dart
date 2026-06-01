@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/utils/amount_expression.dart';
 import '../../../core/widgets/success_animation.dart';
+import '../../../data/local/database.dart';
 import '../../../domain/providers/account_provider.dart';
 import '../../../domain/providers/dashboard_provider.dart';
 import '../../../domain/providers/transaction_provider.dart';
@@ -21,21 +22,23 @@ import 'quick_category_selector.dart';
 /// - 内嵌数字键盘 + 表达式计算
 /// - 2 行分类网格水平滚动
 class QuickAddSheet extends ConsumerStatefulWidget {
-  const QuickAddSheet({super.key});
+  /// Pass an existing transaction to enter edit mode.
+  final Transaction? existingTransaction;
 
-  /// 从任意位置显示快速记账面板
+  const QuickAddSheet({super.key, this.existingTransaction});
+
   /// Barrier overlay opacity for the modal sheet.
   static const _barrierColor = Colors.black54;
 
   /// 从任意位置显示快速记账面板
-  static Future<bool?> show(BuildContext context) {
+  static Future<bool?> show(BuildContext context, {Transaction? transaction}) {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       barrierColor: _barrierColor,
-      builder: (_) => const QuickAddSheet(),
+      builder: (_) => QuickAddSheet(existingTransaction: transaction),
     );
   }
 
@@ -79,6 +82,21 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
       if (accounts.isNotEmpty && _selectedAccountId == null) {
         setState(() => _selectedAccountId = accounts.first.id);
       }
+      // Edit mode: populate fields from existing transaction
+      final txn = widget.existingTransaction;
+      if (txn != null) {
+        setState(() {
+          _expression = (txn.amount / 100).toStringAsFixed(
+            txn.amount % 100 == 0 ? 0 : 2,
+          );
+          _cachedCents = txn.amount;
+          _typeIndex = txn.type == 'income' ? 1 : 0;
+          _selectedCategoryId = txn.categoryId;
+          _selectedAccountId = txn.accountId;
+          _date = txn.txnDate;
+          _note = txn.note;
+        });
+      }
     });
   }
 
@@ -119,19 +137,41 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
           _buildHeader(theme, isDark),
           const SizedBox(height: SpacingTokens.sm),
 
-          // Top area: account pill + amount + note (40% of sheet)
+          // Top area: account pill + amount + note (20% of sheet)
           Expanded(
-            flex: 4,
+            flex: 2,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Account selector
-                AccountPill(
-                  accountName: selectedAccount?.name ?? '选择账户',
-                  icon: Icons.account_balance_wallet_outlined,
-                  onTap: _showAccountPicker,
+                // Account selector + date chip row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AccountPill(
+                      accountName: selectedAccount?.name ?? '选择账户',
+                      icon: Icons.account_balance_wallet_outlined,
+                      onTap: _showAccountPicker,
+                    ),
+                    if (!_isToday(_date)) ...[
+                      const SizedBox(width: SpacingTokens.sm),
+                      GestureDetector(
+                        onTap: _showDatePicker,
+                        child: Chip(
+                          avatar: const Icon(Icons.calendar_today, size: 14),
+                          label: Text(
+                            '${_date.month}月${_date.day}日 ${_date.hour.toString().padLeft(2, '0')}:${_date.minute.toString().padLeft(2, '0')}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          onDeleted: () => setState(() => _date = DateTime.now()),
+                          deleteIcon: const Icon(Icons.close, size: 14),
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                const SizedBox(height: SpacingTokens.xl),
+                const SizedBox(height: SpacingTokens.sm),
 
                 // Amount display
                 AnimatedAmountDisplay(
@@ -139,28 +179,13 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
                   note: _note.isEmpty ? null : _note,
                   onNoteTap: _showNoteInput,
                 ),
-
-                const SizedBox(height: SpacingTokens.md),
-
-                // Date chip (if not today)
-                if (!_isToday(_date))
-                  Chip(
-                    avatar: const Icon(Icons.calendar_today, size: 14),
-                    label: Text(
-                      '${_date.month}月${_date.day}日',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    onDeleted: () => setState(() => _date = DateTime.now()),
-                    deleteIcon: const Icon(Icons.close, size: 14),
-                    visualDensity: VisualDensity.compact,
-                  ),
               ],
             ),
           ),
 
-          // Bottom area: type selector + categories + keyboard (60%)
+          // Bottom area: type selector + categories + keyboard (80%)
           Expanded(
-            flex: 6,
+            flex: 8,
             child: Column(
               children: [
                 // Type selector
@@ -193,7 +218,7 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
                   onDateTap: _showDatePicker,
                   onOperator: _onOperator,
                   confirmEnabled: _canSubmit,
-                  confirmLabel: _isSubmitting ? '...' : (_continuousMode ? '下一笔' : '完成'),
+                  confirmLabel: _isSubmitting ? '...' : (_isEditMode ? '保存' : (_continuousMode ? '下一笔' : '完成')),
                 ),
               ],
             ),
@@ -212,31 +237,33 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
         alignment: Alignment.center,
         children: [
           const _DragHandle(),
-          Positioned(
-            right: 0,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_continuousMode && _savedCount > 0)
-                  _SavedCountBadge(
-                    count: _savedCount,
-                    animation: _flashOpacity,
+          if (!_isEditMode)
+            Align(
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_continuousMode && _savedCount > 0) ...[
+                    _SavedCountBadge(
+                      count: _savedCount,
+                      animation: _flashOpacity,
+                    ),
+                    const SizedBox(width: SpacingTokens.sm),
+                  ],
+                  _ContinuousModeToggle(
+                    isActive: _continuousMode,
+                    isDark: isDark,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        _continuousMode = !_continuousMode;
+                        if (!_continuousMode) _savedCount = 0;
+                      });
+                    },
                   ),
-                const SizedBox(width: SpacingTokens.sm),
-                _ContinuousModeToggle(
-                  isActive: _continuousMode,
-                  isDark: isDark,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    setState(() {
-                      _continuousMode = !_continuousMode;
-                      if (!_continuousMode) _savedCount = 0;
-                    });
-                  },
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -292,6 +319,8 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
   // ─── Actions ─────────────────────────────────────────────────────
 
 
+  bool get _isEditMode => widget.existingTransaction != null;
+
   Future<void> _onConfirm() async {
     if (!_canSubmit) return;
     setState(() => _isSubmitting = true);
@@ -300,14 +329,26 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
       final amountCents = _computedCents;
       final type = _typeIndex == 0 ? 'expense' : 'income';
 
-      await ref.read(transactionProvider.notifier).addTransaction(
-        categoryId: _selectedCategoryId!,
-        accountId: _selectedAccountId,
-        amount: amountCents,
-        type: type,
-        note: _note,
-        txnDate: _date,
-      );
+      if (_isEditMode) {
+        await ref.read(transactionProvider.notifier).updateTransaction(
+          id: widget.existingTransaction!.id,
+          categoryId: _selectedCategoryId!,
+          amount: amountCents,
+          type: type,
+          note: _note,
+          txnDate: _date,
+          accountId: _selectedAccountId,
+        );
+      } else {
+        await ref.read(transactionProvider.notifier).addTransaction(
+          categoryId: _selectedCategoryId!,
+          accountId: _selectedAccountId,
+          amount: amountCents,
+          type: type,
+          note: _note,
+          txnDate: _date,
+        );
+      }
 
       // Refresh dashboard
       ref.invalidate(dashboardProvider);
@@ -349,10 +390,19 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
       context: context,
       initialDate: _date,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
     );
-    if (picked != null) {
-      setState(() => _date = picked);
+    if (picked != null && mounted) {
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_date),
+      );
+      setState(() {
+        _date = DateTime(
+          picked.year, picked.month, picked.day,
+          time?.hour ?? _date.hour, time?.minute ?? _date.minute,
+        );
+      });
     }
   }
 

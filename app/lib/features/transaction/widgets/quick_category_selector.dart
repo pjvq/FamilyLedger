@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/design_tokens.dart';
 import '../../../core/constants/category_icon_widget.dart';
+import '../../../core/constants/category_icons.dart';
+import '../../../core/theme/design_tokens.dart';
+import '../../../data/local/database.dart';
+import '../../../data/remote/grpc_clients.dart';
 import '../../../domain/providers/category_recommend_provider.dart';
 import '../../../domain/providers/transaction_provider.dart';
 import '../../../domain/services/smart_category/category_recommender.dart';
-import '../../../data/local/database.dart';
+import '../../../generated/proto/transaction.pb.dart' as pb;
+import '../../../generated/proto/transaction.pbenum.dart' as pbe;
+import 'icon_picker_sheet.dart';
 
 /// P2-2: 两级分类选择器
 ///
@@ -150,7 +155,8 @@ class QuickCategorySelector extends ConsumerWidget {
             selectedId: selectedCategoryId,
             onSelected: (id) => _handleSelection(context, id),
             onParentWithChildren: (parent, children) =>
-                _showSubcategorySheet(context, parent, children),
+                _showSubcategorySheet(context, ref, parent, children),
+            onAddCategory: () => _showQuickAddCategory(context, ref),
           ),
         ),
       ],
@@ -163,7 +169,7 @@ class QuickCategorySelector extends ConsumerWidget {
   }
 
   void _showSubcategorySheet(
-      BuildContext context, Category parent, List<Category> children) {
+      BuildContext context, WidgetRef ref, Category parent, List<Category> children) {
     HapticFeedback.selectionClick();
     showModalBottomSheet(
       context: context,
@@ -175,6 +181,27 @@ class QuickCategorySelector extends ConsumerWidget {
         onSelected: (id) {
           onSelected(id);
           Navigator.of(ctx).pop();
+        },
+        onAddSubcategory: () {
+          Navigator.of(ctx).pop();
+          _showQuickAddCategory(context, ref, parentId: parent.id);
+        },
+      ),
+    );
+  }
+
+  void _showQuickAddCategory(BuildContext context, WidgetRef ref, {String? parentId}) {
+    final type = typeIndex == 0 ? 'expense' : 'income';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _QuickAddCategorySheet(
+        type: type,
+        parentId: parentId,
+        onCreated: (categoryId) async {
+          await ref.read(transactionProvider.notifier).syncAndReloadCategories();
+          onSelected(categoryId);
         },
       ),
     );
@@ -293,13 +320,14 @@ class _MiniCategoryChip extends StatelessWidget {
   }
 }
 
-/// 主分类网格 — 5 列 icon + 文字
+/// 主分类网格 — 5 列 icon + 文字，末尾带"添加"按钮
 class _CategoryGrid extends StatelessWidget {
   final List<Category> parents;
   final Map<String, List<Category>> childrenMap;
   final String? selectedId;
   final ValueChanged<String> onSelected;
   final void Function(Category parent, List<Category> children) onParentWithChildren;
+  final VoidCallback? onAddCategory;
 
   const _CategoryGrid({
     required this.parents,
@@ -307,10 +335,12 @@ class _CategoryGrid extends StatelessWidget {
     this.selectedId,
     required this.onSelected,
     required this.onParentWithChildren,
+    this.onAddCategory,
   });
 
   @override
   Widget build(BuildContext context) {
+    final itemCount = parents.length + (onAddCategory != null ? 1 : 0);
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.sm),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -319,8 +349,12 @@ class _CategoryGrid extends StatelessWidget {
         crossAxisSpacing: SpacingTokens.xs,
         childAspectRatio: 0.85,
       ),
-      itemCount: parents.length,
+      itemCount: itemCount,
       itemBuilder: (context, index) {
+        // Last item: add button
+        if (onAddCategory != null && index == parents.length) {
+          return _AddCategoryButton(onTap: onAddCategory!);
+        }
         final cat = parents[index];
         final children = childrenMap[cat.id] ?? const [];
         final isSelected = cat.id == selectedId ||
@@ -337,8 +371,58 @@ class _CategoryGrid extends StatelessWidget {
               onSelected(cat.id);
             }
           },
+          onLongPress: () => onParentWithChildren(cat, children),
         );
       },
+    );
+  }
+}
+
+/// 添加分类按钮 — 网格末尾的 "+" 按钮
+class _AddCategoryButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _AddCategoryButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                width: 1.5,
+                strokeAlign: BorderSide.strokeAlignInside,
+              ),
+            ),
+            child: Icon(
+              Icons.add_rounded,
+              size: 24,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '添加',
+            style: TextStyle(
+              fontSize: 11,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -349,12 +433,14 @@ class _CategoryGridItem extends StatelessWidget {
   final bool hasChildren;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const _CategoryGridItem({
     required this.category,
     required this.hasChildren,
     required this.isSelected,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -363,6 +449,7 @@ class _CategoryGridItem extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -438,12 +525,14 @@ class _SubcategorySheet extends StatelessWidget {
   final List<Category> children;
   final String? selectedId;
   final ValueChanged<String> onSelected;
+  final VoidCallback? onAddSubcategory;
 
   const _SubcategorySheet({
     required this.parent,
     required this.children,
     this.selectedId,
     required this.onSelected,
+    this.onAddSubcategory,
   });
 
   @override
@@ -526,8 +615,11 @@ class _SubcategorySheet extends StatelessWidget {
                   crossAxisSpacing: SpacingTokens.sm,
                   childAspectRatio: 1.0,
                 ),
-                itemCount: children.length,
+                itemCount: children.length + (onAddSubcategory != null ? 1 : 0),
                 itemBuilder: (context, index) {
+                  if (onAddSubcategory != null && index == children.length) {
+                    return _AddCategoryButton(onTap: onAddSubcategory!);
+                  }
                   final cat = children[index];
                   final isSelected = cat.id == selectedId;
                   return _CategoryGridItem(
@@ -543,6 +635,155 @@ class _SubcategorySheet extends StatelessWidget {
 
           // Safe area padding
           SizedBox(height: MediaQuery.of(context).padding.bottom),
+        ],
+      ),
+    );
+  }
+}
+
+/// 快速新建分类 — 输入名称 + 选图标即可创建
+class _QuickAddCategorySheet extends ConsumerStatefulWidget {
+  final String type; // 'expense' | 'income'
+  final String? parentId;
+  final Future<void> Function(String) onCreated;
+
+  const _QuickAddCategorySheet({
+    required this.type,
+    this.parentId,
+    required this.onCreated,
+  });
+
+  @override
+  ConsumerState<_QuickAddCategorySheet> createState() =>
+      _QuickAddCategorySheetState();
+}
+
+class _QuickAddCategorySheetState
+    extends ConsumerState<_QuickAddCategorySheet> {
+  final _nameController = TextEditingController();
+  String _iconKey = 'other';
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      final client = ref.read(transactionClientProvider);
+      final resp = await client.createCategory(pb.CreateCategoryRequest(
+        name: name,
+        iconKey: _iconKey,
+        type: widget.type == 'income'
+            ? pbe.TransactionType.TRANSACTION_TYPE_INCOME
+            : pbe.TransactionType.TRANSACTION_TYPE_EXPENSE,
+        parentId: widget.parentId ?? '',
+      ));
+      if (mounted) {
+        Navigator.of(context).pop();
+        await widget.onCreated(resp.category.id);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('创建失败，请重试')),
+        );
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final color = CategoryIcons.getColor(_iconKey);
+
+    return Container(
+      padding: EdgeInsets.only(
+        left: 20, right: 20, top: 16,
+        bottom: 16 + bottom + MediaQuery.of(context).padding.bottom,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            widget.parentId != null ? '新建子分类' : '新建分类',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  showIconPickerSheet(context,
+                      selectedKey: _iconKey,
+                      onSelect: (key) => setState(() => _iconKey = key));
+                },
+                child: Container(
+                  width: 48, height: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color.withValues(alpha: 0.12),
+                  ),
+                  child: Center(
+                    child: CategoryIconWidget(
+                      iconKey: _iconKey, size: 28, showBackground: false,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _nameController,
+                  autofocus: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _submit(),
+                  decoration: InputDecoration(
+                    hintText: '分类名称',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton(
+                onPressed: _isSubmitting ? null : _submit,
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('创建'),
+              ),
+            ],
+          ),
         ],
       ),
     );

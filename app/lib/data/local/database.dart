@@ -911,6 +911,42 @@ class AppDatabase extends _$AppDatabase {
     return rows.fold<int>(0, (sum, t) => sum + t.amountCny);
   }
 
+  /// Returns monthly expense totals for [year] as a 12-element list (Jan=index 0).
+  Future<List<int>> getMonthlyExpensesForYear(String userId, int year, {String? familyId}) async {
+    final yearStart = DateTime(year, 1, 1);
+    final yearEnd = DateTime(year + 1, 1, 1);
+
+    List<Transaction> rows;
+    if (familyId != null && familyId.isNotEmpty) {
+      final familyAccounts = await getAccountsByFamily(familyId);
+      final familyAccountIds = familyAccounts.map((a) => a.id).toSet();
+      final allRows = await (select(transactions)
+            ..where((t) =>
+                t.type.equals('expense') &
+                t.txnDate.isBiggerOrEqualValue(yearStart) &
+                t.txnDate.isSmallerThanValue(yearEnd) &
+                t.deletedAt.isNull()))
+          .get();
+      rows = allRows.where((t) => familyAccountIds.contains(t.accountId)).toList();
+    } else {
+      rows = await (select(transactions)
+            ..where((t) =>
+                t.userId.equals(userId) &
+                t.type.equals('expense') &
+                t.txnDate.isBiggerOrEqualValue(yearStart) &
+                t.txnDate.isSmallerThanValue(yearEnd) &
+                t.deletedAt.isNull()))
+          .get();
+    }
+
+    final monthly = List.filled(12, 0);
+    for (final t in rows) {
+      final m = t.txnDate.month - 1;
+      if (m >= 0 && m < 12) monthly[m] += t.amountCny;
+    }
+    return monthly;
+  }
+
   // ---- Family CRUD ----
 
   Future<List<Family>> getAllFamilies() =>

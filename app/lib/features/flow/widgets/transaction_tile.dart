@@ -11,6 +11,7 @@ class TransactionTile extends StatelessWidget {
   final Transaction transaction;
   final Category? category;
   final Account? account;
+  final String? creatorName;
   final VoidCallback onTap;
 
   const TransactionTile({
@@ -18,6 +19,7 @@ class TransactionTile extends StatelessWidget {
     required this.transaction,
     required this.category,
     required this.account,
+    this.creatorName,
     required this.onTap,
   });
 
@@ -51,6 +53,7 @@ class TransactionTile extends StatelessWidget {
         ),
         subtitle: Text(
           [
+            if (creatorName != null && creatorName!.isNotEmpty) creatorName!,
             if (transaction.note.isNotEmpty) transaction.note,
             if (account != null) account!.name,
           ].join(' · '),

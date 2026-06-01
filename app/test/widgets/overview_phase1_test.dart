@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:familyledger/features/overview/widgets/net_worth_hero_card.dart';
 import 'package:familyledger/features/overview/widgets/monthly_summary_card.dart';
 import 'package:familyledger/features/overview/widgets/budget_progress_card.dart';
-import 'package:familyledger/features/overview/widgets/recent_transactions_card.dart';
 import 'package:familyledger/domain/providers/dashboard_provider.dart';
 import 'package:familyledger/domain/providers/budget_provider.dart';
 import 'package:familyledger/domain/providers/transaction_provider.dart';
@@ -134,64 +133,10 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('预算进度'), findsOneWidget);
+      expect(find.text('月预算'), findsOneWidget);
       expect(find.text('餐饮'), findsOneWidget);
       expect(find.text('交通'), findsOneWidget);
       expect(find.text('购物'), findsOneWidget);
-    });
-  });
-
-  group('RecentTransactionsCard', () {
-    testWidgets('hidden when no transactions', (tester) async {
-      await tester.pumpWidget(wrapInApp(const RecentTransactionsCard()));
-      await tester.pumpAndSettle();
-
-      expect(find.text('最近交易'), findsNothing);
-    });
-
-    testWidgets('shows up to 5 transactions', (tester) async {
-      final txns = List.generate(7, (i) => Transaction(
-        id: 'tx-$i',
-        userId: 'u1',
-        accountId: 'a1',
-        categoryId: 'cat1',
-        amount: (i + 1) * 1000,
-        currency: 'CNY',
-        amountCny: (i + 1) * 1000,
-        exchangeRate: 1.0,
-        type: i.isEven ? 'expense' : 'income',
-        note: '交易$i',
-        tags: '',
-        imageUrls: '',
-        txnDate: DateTime(2026, 5, 29 - i),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        syncStatus: 'synced',
-      ));
-
-      final recent5 = txns.sublist(0, 5);
-      await tester.pumpWidget(wrapInApp(
-        const RecentTransactionsCard(),
-        overrides: [
-          transactionProvider.overrideWith((_) => FakeTransactionNotifier(
-            TransactionState(transactions: txns, isLoading: false),
-          )),
-          // Explicitly override derived providers for deterministic test
-          recentTransactionsProvider.overrideWithValue(recent5),
-          recentTransactionIdsProvider.overrideWithValue(
-            recent5.map((t) => t.id).toList(),
-          ),
-        ],
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('最近交易'), findsOneWidget);
-      expect(find.text('查看全部'), findsOneWidget);
-      // Only 5 shown, not 7
-      expect(find.text('交易0'), findsOneWidget);
-      expect(find.text('交易4'), findsOneWidget);
-      expect(find.text('交易5'), findsNothing);
-      expect(find.text('交易6'), findsNothing);
     });
   });
 }

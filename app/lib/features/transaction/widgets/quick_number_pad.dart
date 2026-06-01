@@ -176,7 +176,10 @@ class QuickNumberPad extends StatelessWidget {
           ),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
-        child: Text(confirmLabel),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(confirmLabel, maxLines: 1),
+        ),
       ),
     );
   }

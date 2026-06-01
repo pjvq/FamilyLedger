@@ -251,6 +251,13 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     state = state.copyWith(expenseCategories: expCats, incomeCategories: incCats);
   }
 
+  /// Sync categories from server then reload local state.
+  /// Use after creating/editing categories via gRPC.
+  Future<void> syncAndReloadCategories() async {
+    await _categorySvc?.syncFromServer();
+    await _reloadCategories();
+  }
+
   Future<void> _refreshSummary() async {
     final summary = await _balanceCalc.compute(_userId);
     state = state.copyWith(
@@ -445,6 +452,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     String? tags,
     String? imageUrls,
     DateTime? txnDate,
+    String? accountId,
   }) async {
     if (txnDate != null) _validateTxnDate(txnDate);
 
@@ -463,6 +471,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       tags: cleanTags,
       imageUrls: cleanImageUrls,
       txnDate: txnDate,
+      accountId: accountId,
     );
     if (oldTxn == null) return;
 
@@ -498,6 +507,7 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           if (cleanNote != null) 'note': cleanNote,
           if (cleanTags != null) 'tags': cleanTags,
           if (txnDate != null) 'txn_date': txnDate.toUtc().toIso8601String(),
+          if (accountId != null) 'account_id': accountId,
         },
       );
     }
