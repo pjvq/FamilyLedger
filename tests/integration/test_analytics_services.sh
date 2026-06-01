@@ -150,14 +150,17 @@ fi
 
 subsection "1.3 Create Transactions (income + expense)"
 
-# Use current month dates for dashboard relevance
+# Use current month dates for dashboard relevance (capped at today to avoid future-date rejection)
 YEAR=$(date +%Y)
 MONTH=$(date +%-m)  # no leading zero for JSON
+TODAY_DAY=$(date +%-d)
 TXN_CREATED=0
 
 # Helper to create a transaction
 create_txn() {
     local acct="$1" cat="$2" amount="$3" type="$4" note="$5" day="$6"
+    # Cap day at today to avoid future-date validation rejection
+    if [[ $day -gt $TODAY_DAY ]]; then day=$TODAY_DAY; fi
     local date_str="${YEAR}-$(printf '%02d' $MONTH)-$(printf '%02d' $day)T10:00:00Z"
     local resp
     resp=$(grpc_auth "transaction.proto" \

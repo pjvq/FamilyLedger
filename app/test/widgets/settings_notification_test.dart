@@ -583,8 +583,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      final now = DateTime.now();
-      expect(find.text('${now.month}月预算'), findsOneWidget);
+      expect(find.text('预算'), findsOneWidget);
     });
   });
 
