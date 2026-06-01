@@ -60,10 +60,10 @@ jobs:
           COVERAGE=$(go tool cover -func=coverage_filtered.out | grep total | awk '{print $3}' | sed 's/%//')
           echo "## 📈 Go Coverage (source only): ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
           echo "Total coverage (excl. proto): ${COVERAGE}%"
-          # Regression gate: fail if source coverage drops below 80%.
-          # Current baseline: ~82%. Target: 85% (Issue #64.6).
-          if (( $(echo "$COVERAGE < 80.0" | bc -l) )); then
-            echo "::error::Coverage ${COVERAGE}% is below 80% minimum threshold"
+                    # Regression gate: fail if source coverage drops below 82%.
+          # Current baseline: ~82%.
+          if (( $(echo "$COVERAGE < 82.0" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below 82% minimum threshold"
             exit 1
           fi
 

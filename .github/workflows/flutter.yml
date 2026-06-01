@@ -61,10 +61,9 @@ jobs:
           COVERAGE=$(echo "scale=1; $HIT * 100 / $TOTAL" | bc)
           echo "## 📈 Flutter Coverage (source only): ${COVERAGE}% ($HIT/$TOTAL lines)" >> $GITHUB_STEP_SUMMARY
           echo "Dart coverage (excl. generated): ${COVERAGE}% ($HIT/$TOTAL lines)"
-          # Regression gate: fail if coverage drops below 40% (source-only baseline ~43%).
-          # Target: 65% after DIP completion (Issue #64.4).
-          if (( $(echo "$COVERAGE < 40.0" | bc -l) )); then
-            echo "::error::Coverage ${COVERAGE}% is below 40% minimum threshold"
+                    # Regression gate: fail if coverage drops below 55% (source-only baseline ~56%).
+          if (( $(echo "$COVERAGE < 55.0" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% is below 55% minimum threshold"
             exit 1
           fi
 

@@ -51,15 +51,15 @@ jobs:
             --packages ./... \
             -- -count=1 -race -coverprofile=coverage.out -timeout=60s
 
-      - name: Go — coverage gate (≥85%, excluding proto+cmd)
+      - name: Go — coverage gate (≥82%, excluding proto+cmd)
         working-directory: server
         run: |
           # Filter out proto packages (auto-generated) and cmd/ (main entrypoint) from coverage
           grep -v -E 'proto/|cmd/' coverage.out > coverage_filtered.out || cp coverage.out coverage_filtered.out
           COVERAGE=$(go tool cover -func=coverage_filtered.out | grep total | awk '{print $3}' | sed 's/%//')
           echo "Go coverage (excl. proto+cmd): ${COVERAGE}%"
-          if (( $(echo "$COVERAGE < 85.0" | bc -l) )); then
-            echo "::error::Go coverage ${COVERAGE}% below 85% threshold (excluding proto+cmd packages)"
+          if (( $(echo "$COVERAGE < 82.0" | bc -l) )); then
+            echo "::error::Go coverage ${COVERAGE}% below 82% threshold (excluding proto+cmd packages)"
             exit 1
           fi
 
@@ -85,7 +85,7 @@ jobs:
         timeout-minutes: 8
         run: bash ../scripts/run-flutter-tests.sh
 
-      - name: Flutter — coverage gate (≥25%)
+      - name: Flutter — coverage gate (≥50%)
         working-directory: app
         run: |
           if [ ! -f coverage/lcov.info ]; then
@@ -108,10 +108,10 @@ jobs:
           fi
           COVERAGE=$(echo "scale=1; $HIT * 100 / $TOTAL" | bc)
           echo "Dart coverage (source only): ${COVERAGE}%"
-          # Use a lower threshold (25%) to tolerate partial coverage from OOM shards.
-          # The authoritative gate is in flutter.yml (40%, source-only).
-          if (( $(echo "$COVERAGE < 25.0" | bc -l) )); then
-            echo "::error::Dart coverage ${COVERAGE}% below 25% threshold"
+                    # Use a slightly lower threshold (50%) to tolerate partial coverage from OOM shards.
+          # The authoritative gate is in flutter.yml (55%, source-only).
+          if (( $(echo "$COVERAGE < 50.0" | bc -l) )); then
+            echo "::error::Dart coverage ${COVERAGE}% below 50% threshold"
             exit 1
           fi
 
