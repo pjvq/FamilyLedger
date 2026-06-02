@@ -231,6 +231,8 @@ func (s *Service) applyOperation(ctx context.Context, tx pgx.Tx, userID uuid.UUI
 		return s.applyFixedAssetOp(ctx, tx, userID, entityID, opType, payload)
 	case "budget":
 		return s.applyBudgetOp(ctx, tx, userID, entityID, opType, payload)
+	case "category_merge":
+		return s.applyCategoryMergeOp(ctx, tx, userID, entityID, opType, payload)
 	default:
 		return fmt.Errorf("unknown entity_type %q", entityType)
 	}
@@ -1003,6 +1005,116 @@ func (s *Service) applyCategoryOp(ctx context.Context, tx pgx.Tx, userID uuid.UU
 		log.Printf("sync: unknown op_type %q for category, skipping", opType)
 		return nil
 	}
+}
+
+// categoryMergePayload is the JSON payload for a category_merge sync operation.
+// entityID is the client-generated merge_log id (opaque to the server; used only
+// for sync_operations idempotency via client_id, not persisted as a domain row).
+type categoryMergePayload struct {
+	SourceCategoryID string `json:"source_category_id"`
+	TargetCategoryID string `json:"target_category_id"`
+}
+
+// applyCategoryMergeOp replays a client-side category merge on the server.
+//
+// Mirrors the client's SyncEngine._applyCategoryMergeOp semantics:
+//  1. Re-point all transactions from source -> target category.
+//  2. Re-parent any sub-categories of source -> target.
+//  3. Soft-delete the source category itself (children already re-parented,
+//     so unlike applyCategoryDelete we must NOT cascade to parent_id here).
+//
+// Idempotent: if the source is already deleted (or gone), this is a no-op.
+// op_type is always "create"/"update" from the client; "delete" is meaningless here.
+func (s *Service) applyCategoryMergeOp(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, opType string, payload string) error {
+	if opType == "delete" {
+		// Merge has no delete semantics; treat as no-op to avoid dead-lettering.
+		log.Printf("sync: category_merge with op_type=delete is a no-op (entity %s)", entityID)
+		return nil
+	}
+
+	var p categoryMergePayload
+	if err := json.Unmarshal([]byte(payload), &p); err != nil {
+		return fmt.Errorf("invalid category_merge payload: %w", err)
+	}
+	if p.SourceCategoryID == "" || p.TargetCategoryID == "" {
+		return fmt.Errorf("category_merge requires source_category_id and target_category_id")
+	}
+
+	sourceID, err := uuid.Parse(p.SourceCategoryID)
+	if err != nil {
+		return fmt.Errorf("invalid source_category_id: %w", err)
+	}
+	targetID, err := uuid.Parse(p.TargetCategoryID)
+	if err != nil {
+		return fmt.Errorf("invalid target_category_id: %w", err)
+	}
+	if sourceID == targetID {
+		return fmt.Errorf("category_merge source and target must differ")
+	}
+
+	// Idempotency guard: load source, ensure it still exists and is mergeable.
+	var isPreset bool
+	var srcUserID *uuid.UUID
+	err = tx.QueryRow(ctx,
+		"SELECT user_id, is_preset FROM categories WHERE id = $1 AND deleted_at IS NULL",
+		sourceID,
+	).Scan(&srcUserID, &isPreset)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil // already merged/deleted — idempotent no-op
+		}
+		return fmt.Errorf("failed to load source category for merge: %w", err)
+	}
+	// Only the owner of a user-created source category may merge it.
+	// Preset categories are global; merging away a preset is allowed (it just
+	// hides it locally) but we still require the source to be user-scoped to
+	// avoid one user globally deleting a preset via sync.
+	if isPreset {
+		log.Printf("sync: refusing to merge preset category %s, skipping", sourceID)
+		return nil
+	}
+	if srcUserID != nil && *srcUserID != userID {
+		return fmt.Errorf("source category %s does not belong to user", sourceID)
+	}
+
+	// Verify the target exists and is not deleted (otherwise we'd orphan rows).
+	var targetExists bool
+	err = tx.QueryRow(ctx,
+		"SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1 AND deleted_at IS NULL)",
+		targetID,
+	).Scan(&targetExists)
+	if err != nil {
+		return fmt.Errorf("failed to verify target category: %w", err)
+	}
+	if !targetExists {
+		return fmt.Errorf("target category %s not found or deleted", targetID)
+	}
+
+	// 1. Re-point transactions: source -> target.
+	if _, err := tx.Exec(ctx,
+		"UPDATE transactions SET category_id = $1, updated_at = NOW() WHERE category_id = $2 AND deleted_at IS NULL",
+		targetID, sourceID,
+	); err != nil {
+		return fmt.Errorf("failed to repoint transactions during merge: %w", err)
+	}
+
+	// 2. Re-parent sub-categories of source -> target.
+	if _, err := tx.Exec(ctx,
+		"UPDATE categories SET parent_id = $1 WHERE parent_id = $2 AND deleted_at IS NULL",
+		targetID, sourceID,
+	); err != nil {
+		return fmt.Errorf("failed to re-parent sub-categories during merge: %w", err)
+	}
+
+	// 3. Soft-delete ONLY the source category (children already re-parented).
+	if _, err := tx.Exec(ctx,
+		"UPDATE categories SET deleted_at = NOW() WHERE id = $1",
+		sourceID,
+	); err != nil {
+		return fmt.Errorf("failed to soft-delete source category during merge: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Service) applyCategoryCreate(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, payload string) error {

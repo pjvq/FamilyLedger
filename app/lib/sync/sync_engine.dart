@@ -72,6 +72,7 @@ class SyncEngine {
   static const _knownEntityTypes = {
     'transaction', 'account', 'category', 'loan',
     'loan_group', 'investment', 'fixed_asset', 'budget',
+    'category_merge',
   };
 
   static const _wsReconnectBaseDelay = 1; // seconds
