@@ -415,13 +415,24 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
               name: 'BudgetProvider');
         }
 
-        // Fallback: local calculation
+        // Fallback: local calculation using DB
+        int localSpent = 0;
+        try {
+          final monthlyData = await _db.getMonthlyExpensesForYear(
+            _userId, year, familyId: _familyId);
+          localSpent = monthlyData.fold<int>(0, (sum, v) => sum + v);
+        } catch (e) {
+          dev.log('[Budget] local yearly expense calc failed: $e',
+              name: 'BudgetProvider');
+        }
         state = state.copyWith(
           annualBudget: annual,
           annualExecution: BudgetExecutionData(
             totalBudget: annual.totalAmount,
-            totalSpent: 0,
-            executionRate: 0.0,
+            totalSpent: localSpent,
+            executionRate: annual.totalAmount > 0
+                ? localSpent / annual.totalAmount
+                : 0.0,
             categoryExecutions: [],
           ),
         );

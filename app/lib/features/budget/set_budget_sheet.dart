@@ -341,7 +341,7 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                             fontWeight: FontWeight.bold,
                           ),
                           decoration: InputDecoration(
-                            labelText: '每月总预算',
+                            labelText: widget.isAnnual ? '年度总预算' : '每月总预算',
                             prefixText: '¥ ',
                             prefixStyle:
                                 theme.textTheme.headlineSmall?.copyWith(

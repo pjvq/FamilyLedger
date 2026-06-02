@@ -7,8 +7,8 @@ import '../../../core/theme/design_tokens.dart';
 import '../../../domain/providers/budget_provider.dart';
 import 'overview_card_container.dart';
 
-/// Progress bar height for budget category rows.
-const double _progressBarHeight = 5;
+/// Format cents to yuan (integer display).
+String _fmtYuan(int cents) => (cents / 100).toStringAsFixed(0);
 
 /// Budget progress card — swipeable between monthly and yearly view.
 ///
@@ -105,11 +105,9 @@ class _BudgetProgressCardState extends ConsumerState<BudgetProgressCard> {
   }
 
   double _calcCardHeight(BudgetExecutionData execution) {
-    final catCount = execution.categoryExecutions.length.clamp(0, 3);
-    // Layout: header row + spacing + category rows (generous to handle font scaling)
-    const headerHeight = 24.0 + SpacingTokens.md;
-    const rowHeight = 28.0 + SpacingTokens.sm;
-    return headerHeight + catCount * rowHeight + SpacingTokens.sm;
+    // Fixed height: header row (24) + progress bar (6+8+8 spacing) + amount row (16+8)
+    // Both monthly and yearly views share this layout.
+    return 80;
   }
 }
 
@@ -122,9 +120,9 @@ class _MonthlyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final categoriesByRate = [...execution.categoryExecutions]
-      ..sort((a, b) => b.executionRate.compareTo(a.executionRate));
-    final top3 = categoriesByRate.take(3).toList();
+    final rate = execution.executionRate;
+    final spent = execution.totalSpent;
+    final budget = execution.totalBudget;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,23 +140,51 @@ class _MonthlyView extends StatelessWidget {
             ),
             const Spacer(),
             Text(
-              '${(execution.executionRate * 100).toInt()}%',
+              '${(rate * 100).toInt()}%',
               style: TypographyTokens.bodySm().copyWith(
                 fontWeight: FontWeight.w700,
-                color: _rateColor(execution.executionRate, colors),
+                color: _rateColor(rate, colors),
               ),
             ),
           ],
         ),
-        const SizedBox(height: SpacingTokens.md),
-        ...top3.map((cat) => _BudgetCategoryRow(
-              name: cat.categoryName,
-              rate: cat.executionRate,
-              colors: colors,
-            )),
+        const SizedBox(height: SpacingTokens.sm),
+        // Progress bar
+        ClipRRect(
+          borderRadius: BorderRadius.circular(RadiusTokens.sm / 2),
+          child: LinearProgressIndicator(
+            value: rate.clamp(0.0, 1.0),
+            backgroundColor: Theme.of(context)
+                .colorScheme
+                .onSurface
+                .withValues(alpha: 0.06),
+            color: _rateColor(rate, colors),
+            minHeight: 6,
+          ),
+        ),
+        const SizedBox(height: SpacingTokens.sm),
+        // Amount text
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '已花 ¥${_fmtYuan(spent)}',
+              style: TypographyTokens.caption().copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            Text(
+              '预算 ¥${_fmtYuan(budget)}',
+              style: TypographyTokens.caption().copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
+
 }
 
 /// Yearly budget view
@@ -272,7 +298,6 @@ class _YearlyView extends StatelessWidget {
     );
   }
 
-  String _fmtYuan(int cents) => (cents / 100).toStringAsFixed(0);
 }
 
 /// Page indicator dot
@@ -300,60 +325,4 @@ Color _rateColor(double rate, AppSemanticColors colors) {
   if (rate >= 1.0) return colors.error;
   if (rate >= 0.8) return colors.warning;
   return colors.income;
-}
-
-class _BudgetCategoryRow extends StatelessWidget {
-  final String name;
-  final double rate;
-  final AppSemanticColors colors;
-
-  const _BudgetCategoryRow({
-    required this.name,
-    required this.rate,
-    required this.colors,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final barColor = _rateColor(rate, colors);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: SpacingTokens.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  name,
-                  style: TypographyTokens.caption(),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Text(
-                '${(rate * 100).toInt()}%',
-                style: TypographyTokens.caption(color: barColor).copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: SpacingTokens.xs),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(RadiusTokens.sm / 2),
-            child: LinearProgressIndicator(
-              value: rate.clamp(0.0, 1.0),
-              backgroundColor: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.06),
-              color: barColor,
-              minHeight: _progressBarHeight,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
