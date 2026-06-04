@@ -1024,10 +1024,20 @@ type categoryMergePayload struct {
 //     so unlike applyCategoryDelete we must NOT cascade to parent_id here).
 //
 // Idempotent: if the source is already deleted (or gone), this is a no-op.
-// op_type is always "create"/"update" from the client; "delete" is meaningless here.
+//
+// Note on opType: category_merge is a one-shot action. The client always sends
+// opType="create" or "update" (both are equivalent here). A "delete" opType is
+// semantically meaningless for a merge, so it is treated as a no-op at the
+// router level. This function does not branch on opType.
+//
+// Note on category_usage tables: The client's _applyCategoryMergeOp also clears
+// categoryUsageSlots and categoryUsageSummary for the source category. The
+// server has NO equivalent tables (usage stats are client-local only, not
+// synced). No server-side cleanup is needed.
 func (s *Service) applyCategoryMergeOp(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, opType string, payload string) error {
+	// opType="delete" is meaningless for a merge; treat as idempotent no-op
+	// to match client-side behavior (which simply skips unknown opTypes).
 	if opType == "delete" {
-		// Merge has no delete semantics; treat as no-op to avoid dead-lettering.
 		log.Printf("sync: category_merge with op_type=delete is a no-op (entity %s)", entityID)
 		return nil
 	}
@@ -1048,15 +1058,20 @@ func (s *Service) applyCategoryMergeOp(ctx context.Context, tx pgx.Tx, userID uu
 	if err != nil {
 		return fmt.Errorf("invalid target_category_id: %w", err)
 	}
+
+	// Self-merge is a no-op (idempotent). The client silently does nothing in
+	// this case, so we mirror that to avoid dead-lettering.
 	if sourceID == targetID {
-		return fmt.Errorf("category_merge source and target must differ")
+		log.Printf("sync: category_merge source==target (%s), treating as no-op", sourceID)
+		return nil
 	}
 
-	// Idempotency guard: load source, ensure it still exists and is mergeable.
+	// Lock the source row (SELECT ... FOR UPDATE) to prevent TOCTOU races
+	// with concurrent delete/merge operations on the same source category.
 	var isPreset bool
 	var srcUserID *uuid.UUID
 	err = tx.QueryRow(ctx,
-		"SELECT user_id, is_preset FROM categories WHERE id = $1 AND deleted_at IS NULL",
+		"SELECT user_id, is_preset FROM categories WHERE id = $1 AND deleted_at IS NULL FOR UPDATE",
 		sourceID,
 	).Scan(&srcUserID, &isPreset)
 	if err != nil {
@@ -1065,29 +1080,37 @@ func (s *Service) applyCategoryMergeOp(ctx context.Context, tx pgx.Tx, userID uu
 		}
 		return fmt.Errorf("failed to load source category for merge: %w", err)
 	}
-	// Only the owner of a user-created source category may merge it.
-	// Preset categories are global; merging away a preset is allowed (it just
-	// hides it locally) but we still require the source to be user-scoped to
-	// avoid one user globally deleting a preset via sync.
+
+	// Preset categories cannot be merged on the server. They are global/shared;
+	// the client hides them locally but never syncs that hide. Allowing a merge
+	// here would globally remove a preset for all users. Treat as no-op.
 	if isPreset {
 		log.Printf("sync: refusing to merge preset category %s, skipping", sourceID)
 		return nil
 	}
+
+	// Ownership check: only the owner may merge their own category.
 	if srcUserID != nil && *srcUserID != userID {
 		return fmt.Errorf("source category %s does not belong to user", sourceID)
 	}
 
-	// Verify the target exists and is not deleted (otherwise we'd orphan rows).
-	var targetExists bool
+	// Lock + verify target: must exist, not deleted, and belong to the same user.
+	// Without this check, a family member could re-point their transactions to
+	// another user's category, causing cross-user reference corruption.
+	var tgtUserID *uuid.UUID
 	err = tx.QueryRow(ctx,
-		"SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1 AND deleted_at IS NULL)",
+		"SELECT user_id FROM categories WHERE id = $1 AND deleted_at IS NULL FOR UPDATE",
 		targetID,
-	).Scan(&targetExists)
+	).Scan(&tgtUserID)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return fmt.Errorf("target category %s not found or deleted", targetID)
+		}
 		return fmt.Errorf("failed to verify target category: %w", err)
 	}
-	if !targetExists {
-		return fmt.Errorf("target category %s not found or deleted", targetID)
+	// Target must belong to the same user (or be a preset visible to all).
+	if tgtUserID != nil && *tgtUserID != userID {
+		return fmt.Errorf("target category %s does not belong to user", targetID)
 	}
 
 	// 1. Re-point transactions: source -> target.
