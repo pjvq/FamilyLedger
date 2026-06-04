@@ -91,10 +91,14 @@ func TestApplyCategoryMergeOp_WrongUser(t *testing.T) {
 	mock.ExpectQuery("SELECT user_id, is_preset FROM categories WHERE id =.*FOR UPDATE").
 		WithArgs(src).
 		WillReturnRows(pgxmock.NewRows([]string{"user_id", "is_preset"}).AddRow(&otherUser, false))
+	// source owner is a stranger (not in caller's family) -> family check returns false
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(uid, otherUser).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
 
 	err := svc.applyCategoryMergeOp(context.Background(), tx, uid, uuid.New(), "create", mergePayload(src.String(), tgt.String()))
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "does not belong to user")
+	assert.Contains(t, err.Error(), "does not belong to user or their family")
 }
 
 func TestApplyCategoryMergeOp_TargetMissing(t *testing.T) {
@@ -178,26 +182,30 @@ func TestApplyCategoryMergeOp_LoadError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// CRITICAL #1 regression test: target belongs to a different user.
+// CRITICAL #1 regression test: target belongs to a stranger (not same family).
 func TestApplyCategoryMergeOp_TargetBelongsToOtherUser(t *testing.T) {
 	svc, mock, tx := newSvc(t)
 	src := uuid.New()
 	tgt := uuid.New()
 	otherUser := uuid.New()
 
-	// source is owned by uid (current user) — OK
+	// source is owned by uid (current user) — OK, no family query needed
 	mock.ExpectQuery("SELECT user_id, is_preset FROM categories WHERE id =.*FOR UPDATE").
 		WithArgs(src).
 		WillReturnRows(pgxmock.NewRows([]string{"user_id", "is_preset"}).AddRow(&uid, false))
-	// target belongs to a DIFFERENT user — must be rejected
+	// target belongs to a DIFFERENT user
 	mock.ExpectQuery("SELECT user_id FROM categories WHERE id =.*FOR UPDATE").
 		WithArgs(tgt).
 		WillReturnRows(pgxmock.NewRows([]string{"user_id"}).AddRow(&otherUser))
+	// that user is NOT in caller's family -> rejected
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(uid, otherUser).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
 
 	err := svc.applyCategoryMergeOp(context.Background(), tx, uid, uuid.New(), "create", mergePayload(src.String(), tgt.String()))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "target category")
-	assert.Contains(t, err.Error(), "does not belong to user")
+	assert.Contains(t, err.Error(), "does not belong to user or their family")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -228,5 +236,87 @@ func TestApplyCategoryMergeOp_TargetIsPreset_Allowed(t *testing.T) {
 
 	err := svc.applyCategoryMergeOp(context.Background(), tx, uid, uuid.New(), "create", mergePayload(src.String(), tgt.String()))
 	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// Same-family merge: source owned by family member A, target owned by member B,
+// caller is in the same family. Both ownership checks pass via family membership.
+func TestApplyCategoryMergeOp_SameFamily_Allowed(t *testing.T) {
+	svc, mock, tx := newSvc(t)
+	src := uuid.New()
+	tgt := uuid.New()
+	memberA := uuid.New() // owns source
+	memberB := uuid.New() // owns target
+
+	// source owned by memberA (not caller) -> family check passes
+	mock.ExpectQuery("SELECT user_id, is_preset FROM categories WHERE id =.*FOR UPDATE").
+		WithArgs(src).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "is_preset"}).AddRow(&memberA, false))
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(uid, memberA).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+	// target owned by memberB (not caller) -> family check passes
+	mock.ExpectQuery("SELECT user_id FROM categories WHERE id =.*FOR UPDATE").
+		WithArgs(tgt).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id"}).AddRow(&memberB))
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(uid, memberB).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+	// 3 mutations proceed
+	mock.ExpectExec("UPDATE transactions SET category_id =").
+		WithArgs(tgt, src).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 2))
+	mock.ExpectExec("UPDATE categories SET parent_id =").
+		WithArgs(tgt, src).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+	mock.ExpectExec("UPDATE categories SET deleted_at = NOW\\(\\) WHERE id =").
+		WithArgs(src).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	err := svc.applyCategoryMergeOp(context.Background(), tx, uid, uuid.New(), "create", mergePayload(src.String(), tgt.String()))
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// applyCategoryUpdate: a family member can edit a family-scoped category
+// created by another member.
+func TestApplyCategoryUpdate_SameFamily_Allowed(t *testing.T) {
+	svc, mock, tx := newSvc(t)
+	cid := uuid.New()
+	memberA := uuid.New() // created the category
+
+	mock.ExpectQuery("SELECT user_id, is_preset FROM categories WHERE id =").
+		WithArgs(cid).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "is_preset"}).AddRow(&memberA, false))
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(uid, memberA).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+	mock.ExpectExec("UPDATE categories SET").
+		WithArgs("Renamed", cid).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	payload, _ := json.Marshal(categoryPayload{Name: "Renamed"})
+	err := svc.applyCategoryUpdate(context.Background(), tx, uid, cid, string(payload))
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// applyCategoryUpdate: a stranger (not in family) cannot edit the category.
+func TestApplyCategoryUpdate_Stranger_Rejected(t *testing.T) {
+	svc, mock, tx := newSvc(t)
+	cid := uuid.New()
+	stranger := uuid.New()
+
+	mock.ExpectQuery("SELECT user_id, is_preset FROM categories WHERE id =").
+		WithArgs(cid).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "is_preset"}).AddRow(&stranger, false))
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(uid, stranger).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
+
+	payload, _ := json.Marshal(categoryPayload{Name: "Hijack"})
+	err := svc.applyCategoryUpdate(context.Background(), tx, uid, cid, string(payload))
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "does not belong to user or their family")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
