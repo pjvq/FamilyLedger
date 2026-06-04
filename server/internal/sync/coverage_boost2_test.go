@@ -385,6 +385,10 @@ func TestApplyCategoryUpdate_WrongUser(t *testing.T) {
 	mock.ExpectQuery("SELECT user_id, is_preset FROM categories").
 		WithArgs(eid).
 		WillReturnRows(pgxmock.NewRows([]string{"user_id", "is_preset"}).AddRow(&otherUID, false))
+	// otherUID is not in caller's family -> family membership check returns false
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(uid, otherUID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
 
 	p, _ := json.Marshal(categoryPayload{Name: "x"})
 	err := svc.applyCategoryUpdate(context.Background(), tx, uid, eid, string(p))
@@ -464,6 +468,10 @@ func TestApplyCategoryDelete_WrongUser(t *testing.T) {
 	mock.ExpectQuery("SELECT user_id, is_preset FROM categories").
 		WithArgs(eid).
 		WillReturnRows(pgxmock.NewRows([]string{"user_id", "is_preset"}).AddRow(&otherUID, false))
+	// otherUID is not in caller's family -> rejected
+	mock.ExpectQuery("SELECT EXISTS").
+		WithArgs(uid, otherUID).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
 	err := svc.applyCategoryDelete(context.Background(), tx, uid, eid)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "does not belong")

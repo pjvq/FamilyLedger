@@ -72,6 +72,7 @@ class SyncEngine {
   static const _knownEntityTypes = {
     'transaction', 'account', 'category', 'loan',
     'loan_group', 'investment', 'fixed_asset', 'budget',
+    'category_merge',
   };
 
   static const _wsReconnectBaseDelay = 1; // seconds
@@ -841,6 +842,7 @@ class SyncEngine {
     final sourceId = payload['source_category_id'] as String?;
     final targetId = payload['target_category_id'] as String?;
     if (sourceId == null || targetId == null) return;
+    if (sourceId == targetId) return; // self-merge is a no-op
     if (_db == null) return; // CRITICAL #4: guard null db
 
     // 幂等保护：检查 source 是否已删除

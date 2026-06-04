@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/familyledger/server/pkg/db"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/familyledger/server/pkg/db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -231,6 +231,8 @@ func (s *Service) applyOperation(ctx context.Context, tx pgx.Tx, userID uuid.UUI
 		return s.applyFixedAssetOp(ctx, tx, userID, entityID, opType, payload)
 	case "budget":
 		return s.applyBudgetOp(ctx, tx, userID, entityID, opType, payload)
+	case "category_merge":
+		return s.applyCategoryMergeOp(ctx, tx, userID, entityID, opType, payload)
 	default:
 		return fmt.Errorf("unknown entity_type %q", entityType)
 	}
@@ -238,16 +240,16 @@ func (s *Service) applyOperation(ctx context.Context, tx pgx.Tx, userID uuid.UUI
 
 // transactionPayload represents the JSON payload for transaction operations.
 type transactionPayload struct {
-	ID           string  `json:"id"`
-	AccountID    string  `json:"account_id"`
-	CategoryID   string  `json:"category_id"`
-	Amount       int64   `json:"amount"`
-	Currency     string  `json:"currency"`
-	AmountCny    int64   `json:"amount_cny"`
-	ExchangeRate float64 `json:"exchange_rate"`
-	Type         string  `json:"type"`
-	Note         string  `json:"note"`
-	TxnDate      string  `json:"txn_date"`
+	ID           string   `json:"id"`
+	AccountID    string   `json:"account_id"`
+	CategoryID   string   `json:"category_id"`
+	Amount       int64    `json:"amount"`
+	Currency     string   `json:"currency"`
+	AmountCny    int64    `json:"amount_cny"`
+	ExchangeRate float64  `json:"exchange_rate"`
+	Type         string   `json:"type"`
+	Note         string   `json:"note"`
+	TxnDate      string   `json:"txn_date"`
 	Tags         []string `json:"tags"`
 	ImageURLs    []string `json:"image_urls"`
 }
@@ -1005,6 +1007,188 @@ func (s *Service) applyCategoryOp(ctx context.Context, tx pgx.Tx, userID uuid.UU
 	}
 }
 
+// categoryMergePayload is the JSON payload for a category_merge sync operation.
+// entityID is the client-generated merge_log id (opaque to the server; used only
+// for sync_operations idempotency via client_id, not persisted as a domain row).
+type categoryMergePayload struct {
+	SourceCategoryID string `json:"source_category_id"`
+	TargetCategoryID string `json:"target_category_id"`
+}
+
+// callerCanAccessCategoryOwner reports whether the caller (userID) is allowed
+// to operate on a category owned by ownerID.
+//
+// Category ownership semantics (see app/lib/core/utils/category_uuid.dart):
+//   - Preset categories have user_id = NULL and are globally accessible.
+//   - In personal mode a category's user_id is the creating user.
+//   - In family mode a category's UUID is derived from the familyId, so the
+//     same logical category is shared by all family members. Its user_id is
+//     whichever member first created it (applyCategoryCreate records the
+//     caller), but it is conceptually owned by the whole family.
+//
+// Rules:
+//   - ownerID == nil (preset): always allowed.
+//   - ownerID == caller: always allowed (own category).
+//   - otherwise: allowed iff caller and ownerID belong to the same family.
+//
+// This query runs inside the merge/update transaction so it shares the same
+// snapshot/locks as the surrounding ownership checks.
+func (s *Service) callerCanAccessCategoryOwner(ctx context.Context, tx pgx.Tx, caller uuid.UUID, ownerID *uuid.UUID) (bool, error) {
+	if ownerID == nil {
+		return true, nil // preset / global category
+	}
+	if *ownerID == caller {
+		return true, nil // own category
+	}
+	// Same-family check: caller and owner must share at least one family.
+	var sameFamily bool
+	err := tx.QueryRow(ctx,
+		`SELECT EXISTS(
+			SELECT 1 FROM family_members fm1
+			JOIN family_members fm2 ON fm1.family_id = fm2.family_id
+			WHERE fm1.user_id = $1 AND fm2.user_id = $2
+		)`,
+		caller, *ownerID,
+	).Scan(&sameFamily)
+	if err != nil {
+		return false, fmt.Errorf("failed to verify family membership for category access: %w", err)
+	}
+	return sameFamily, nil
+}
+
+// applyCategoryMergeOp replays a client-side category merge on the server.
+//
+// Mirrors the client's SyncEngine._applyCategoryMergeOp semantics:
+//  1. Re-point all transactions from source -> target category.
+//  2. Re-parent any sub-categories of source -> target.
+//  3. Soft-delete the source category itself (children already re-parented,
+//     so unlike applyCategoryDelete we must NOT cascade to parent_id here).
+//
+// Idempotent: if the source is already deleted (or gone), this is a no-op.
+//
+// Note on opType: category_merge is a one-shot action. The client always sends
+// opType="create" or "update" (both are equivalent here). A "delete" opType is
+// semantically meaningless for a merge, so it is treated as a no-op at the
+// router level. This function does not branch on opType.
+//
+// Note on category_usage tables: The client's _applyCategoryMergeOp also clears
+// categoryUsageSlots and categoryUsageSummary for the source category. The
+// server has NO equivalent tables (usage stats are client-local only, not
+// synced). No server-side cleanup is needed.
+func (s *Service) applyCategoryMergeOp(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, opType string, payload string) error {
+	// opType="delete" is meaningless for a merge; treat as idempotent no-op
+	// to match client-side behavior (which simply skips unknown opTypes).
+	if opType == "delete" {
+		log.Printf("sync: category_merge with op_type=delete is a no-op (entity %s)", entityID)
+		return nil
+	}
+
+	var p categoryMergePayload
+	if err := json.Unmarshal([]byte(payload), &p); err != nil {
+		return fmt.Errorf("invalid category_merge payload: %w", err)
+	}
+	if p.SourceCategoryID == "" || p.TargetCategoryID == "" {
+		return fmt.Errorf("category_merge requires source_category_id and target_category_id")
+	}
+
+	sourceID, err := uuid.Parse(p.SourceCategoryID)
+	if err != nil {
+		return fmt.Errorf("invalid source_category_id: %w", err)
+	}
+	targetID, err := uuid.Parse(p.TargetCategoryID)
+	if err != nil {
+		return fmt.Errorf("invalid target_category_id: %w", err)
+	}
+
+	// Self-merge is a no-op (idempotent). The client silently does nothing in
+	// this case, so we mirror that to avoid dead-lettering.
+	if sourceID == targetID {
+		log.Printf("sync: category_merge source==target (%s), treating as no-op", sourceID)
+		return nil
+	}
+
+	// Lock the source row (SELECT ... FOR UPDATE) to prevent TOCTOU races
+	// with concurrent delete/merge operations on the same source category.
+	var isPreset bool
+	var srcUserID *uuid.UUID
+	err = tx.QueryRow(ctx,
+		"SELECT user_id, is_preset FROM categories WHERE id = $1 AND deleted_at IS NULL FOR UPDATE",
+		sourceID,
+	).Scan(&srcUserID, &isPreset)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil // already merged/deleted — idempotent no-op
+		}
+		return fmt.Errorf("failed to load source category for merge: %w", err)
+	}
+
+	// Preset categories cannot be merged on the server. They are global/shared;
+	// the client hides them locally but never syncs that hide. Allowing a merge
+	// here would globally remove a preset for all users. Treat as no-op.
+	if isPreset {
+		log.Printf("sync: refusing to merge preset category %s, skipping", sourceID)
+		return nil
+	}
+
+	// Ownership check: caller must own the source, or share a family with the
+	// source's owner (family-scoped categories). Preset sources are rejected
+	// above, so srcUserID is non-nil here.
+	if allowed, err := s.callerCanAccessCategoryOwner(ctx, tx, userID, srcUserID); err != nil {
+		return err
+	} else if !allowed {
+		return fmt.Errorf("source category %s does not belong to user or their family", sourceID)
+	}
+
+	// Lock + verify target: must exist, not deleted, and be accessible to the
+	// caller (own category, preset, or same-family). Without this check a user
+	// could re-point transactions to an unrelated user's category, causing
+	// cross-user reference corruption.
+	var tgtUserID *uuid.UUID
+	err = tx.QueryRow(ctx,
+		"SELECT user_id FROM categories WHERE id = $1 AND deleted_at IS NULL FOR UPDATE",
+		targetID,
+	).Scan(&tgtUserID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return fmt.Errorf("target category %s not found or deleted", targetID)
+		}
+		return fmt.Errorf("failed to verify target category: %w", err)
+	}
+	// Target must be accessible: belong to the caller, be a preset (user_id=nil),
+	// or be owned by a member of the caller's family (family-scoped category).
+	if allowed, err := s.callerCanAccessCategoryOwner(ctx, tx, userID, tgtUserID); err != nil {
+		return err
+	} else if !allowed {
+		return fmt.Errorf("target category %s does not belong to user or their family", targetID)
+	}
+
+	// 1. Re-point transactions: source -> target.
+	if _, err := tx.Exec(ctx,
+		"UPDATE transactions SET category_id = $1, updated_at = NOW() WHERE category_id = $2 AND deleted_at IS NULL",
+		targetID, sourceID,
+	); err != nil {
+		return fmt.Errorf("failed to repoint transactions during merge: %w", err)
+	}
+
+	// 2. Re-parent sub-categories of source -> target.
+	if _, err := tx.Exec(ctx,
+		"UPDATE categories SET parent_id = $1 WHERE parent_id = $2 AND deleted_at IS NULL",
+		targetID, sourceID,
+	); err != nil {
+		return fmt.Errorf("failed to re-parent sub-categories during merge: %w", err)
+	}
+
+	// 3. Soft-delete ONLY the source category (children already re-parented).
+	if _, err := tx.Exec(ctx,
+		"UPDATE categories SET deleted_at = NOW() WHERE id = $1",
+		sourceID,
+	); err != nil {
+		return fmt.Errorf("failed to soft-delete source category during merge: %w", err)
+	}
+
+	return nil
+}
+
 func (s *Service) applyCategoryCreate(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, payload string) error {
 	var p categoryPayload
 	if err := json.Unmarshal([]byte(payload), &p); err != nil {
@@ -1066,8 +1250,12 @@ func (s *Service) applyCategoryUpdate(ctx context.Context, tx pgx.Tx, userID uui
 		log.Printf("sync: cannot update preset category %s, skipping", entityID)
 		return nil
 	}
-	if catUserID != nil && *catUserID != userID {
-		return fmt.Errorf("category %s does not belong to user", entityID)
+	// Access check: caller must own the category, or share a family with its
+	// owner (family-scoped categories). Preset categories are rejected above.
+	if allowed, err := s.callerCanAccessCategoryOwner(ctx, tx, userID, catUserID); err != nil {
+		return err
+	} else if !allowed {
+		return fmt.Errorf("category %s does not belong to user or their family", entityID)
 	}
 
 	// Build dynamic UPDATE
@@ -1132,8 +1320,12 @@ func (s *Service) applyCategoryDelete(ctx context.Context, tx pgx.Tx, userID uui
 		log.Printf("sync: cannot delete preset category %s, skipping", entityID)
 		return nil
 	}
-	if catUserID != nil && *catUserID != userID {
-		return fmt.Errorf("category %s does not belong to user", entityID)
+	// Access check: caller must own the category, or share a family with its
+	// owner (family-scoped categories).
+	if allowed, err := s.callerCanAccessCategoryOwner(ctx, tx, userID, catUserID); err != nil {
+		return err
+	} else if !allowed {
+		return fmt.Errorf("category %s does not belong to user or their family", entityID)
 	}
 
 	// Soft delete category and its children
