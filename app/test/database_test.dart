@@ -371,37 +371,49 @@ void main() {
       expect(page.any((t) => t.id == 'stxn_55'), isFalse,
           reason: '蜡烛店记录不在首页 50 条内');
 
-      final results = await db.searchTransactions(sUser, '蜡烛店');
-      expect(results.length, 1);
-      expect(results.first.id, 'stxn_55');
+      final result = await db.searchTransactions(sUser, '蜡烛店');
+      expect(result.items.length, 1);
+      expect(result.items.first.id, 'stxn_55');
+      expect(result.truncated, isFalse);
     });
 
     test('按分类名搜索', () async {
-      final results = await db.searchTransactions(sUser, '交通');
+      final result = await db.searchTransactions(sUser, '交通');
       // i 为奇数的 30 条用 交通 分类。
-      expect(results.length, 30);
+      expect(result.items.length, 30);
     });
 
     test('按账户名搜索', () async {
-      final results = await db.searchTransactions(sUser, '招商');
-      expect(results.length, 60); // 全部交易都在招商银行
+      final result = await db.searchTransactions(sUser, '招商');
+      expect(result.items.length, 60); // 全部交易都在招商银行
     });
 
-    test('空查询返回空列表', () async {
-      expect(await db.searchTransactions(sUser, ''), isEmpty);
-      expect(await db.searchTransactions(sUser, '   '), isEmpty);
+    test('超过展示上限时 truncated=true 且只返回 limit 条', () async {
+      // 60 条都在招商银行，设 limit=10 应被截断。
+      final result = await db.searchTransactions(sUser, '招商', limit: 10);
+      expect(result.items.length, 10);
+      expect(result.truncated, isTrue);
+      // 恰好等于总数时不算截断。
+      final exact = await db.searchTransactions(sUser, '招商', limit: 60);
+      expect(exact.items.length, 60);
+      expect(exact.truncated, isFalse);
+    });
+
+    test('空查询返回空结果', () async {
+      expect((await db.searchTransactions(sUser, '')).items, isEmpty);
+      expect((await db.searchTransactions(sUser, '   ')).items, isEmpty);
     });
 
     test('LIKE 通配符被转义（% 不匹配全部）', () async {
       // 输入 % 不应被当作“匹配一切”的通配符。
-      final results = await db.searchTransactions(sUser, '%');
-      expect(results, isEmpty, reason: '% 应被转义为字面量，无记录含字面 %');
+      final result = await db.searchTransactions(sUser, '%');
+      expect(result.items, isEmpty, reason: '% 应被转义为字面量，无记录含字面 %');
     });
 
     test('软删除的记录不被搜到', () async {
       await db.softDeleteTransaction('stxn_55');
-      final results = await db.searchTransactions(sUser, '蜡烛店');
-      expect(results, isEmpty);
+      final result = await db.searchTransactions(sUser, '蜡烛店');
+      expect(result.items, isEmpty);
     });
   });
 }

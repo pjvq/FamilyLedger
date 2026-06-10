@@ -50,7 +50,8 @@ class TransactionRepository implements ITransactionRepository {
 
   /// 全量搜索交易（非分页）——按备注 / 分类名 / 账户名模糊匹配。
   /// 用于流水页右上角搜索，直接查 DB 全量，不受分页加载状态影响。
-  Future<List<Transaction>> search(
+  /// 返回 [TransactionSearchResult]，含 truncated 标志（结果超过 limit 被截断）。
+  Future<TransactionSearchResult> search(
     String userId,
     String query, {
     String? familyId,
