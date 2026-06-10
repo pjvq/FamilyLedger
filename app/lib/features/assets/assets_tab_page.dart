@@ -65,7 +65,10 @@ class _AssetsBody extends ConsumerWidget {
         await Future.wait([
           ref.read(accountProvider.notifier).refresh(),
           ref.read(dashboardProvider.notifier).loadAll(),
-          ref.read(loanProvider.notifier).listLoans(),
+          // loadAll() = standalone loans + loan groups。
+          // 负债总额需要组合贷（loan group）的剩余本金，
+          // 以前只调 listLoans() 会漏掉组合贷。
+          ref.read(loanProvider.notifier).loadAll(),
           ref.read(investmentProvider.notifier).listInvestments(),
           ref.read(assetProvider.notifier).listAssets(),
         ]);
@@ -102,8 +105,13 @@ class _AssetsBody extends ConsumerWidget {
           // ── 负债 ──
           Consumer(builder: (ctx, ref, _) {
             final loans = ref.watch(loanProvider.select((s) => s.loans));
-            if (loans.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
-            return _LoanSection(loans: loans);
+            final loanGroups =
+                ref.watch(loanProvider.select((s) => s.loanGroups));
+            // 独立贷款和组合贷任一非空都要展示负债区。
+            if (loans.isEmpty && loanGroups.isEmpty) {
+              return const SliverToBoxAdapter(child: SizedBox.shrink());
+            }
+            return _LoanSection(loans: loans, loanGroups: loanGroups);
           }),
 
           // ── 实物资产 ──
@@ -212,11 +220,19 @@ class _InvestmentSection extends StatelessWidget {
 
 class _LoanSection extends StatelessWidget {
   final List loans;
-  const _LoanSection({required this.loans});
+  final List loanGroups;
+  const _LoanSection({required this.loans, this.loanGroups = const []});
 
   @override
   Widget build(BuildContext context) {
-    final totalDebt = loans.fold<int>(0, (s, l) => s + (l.remainingPrincipal as int));
+    // 负债总额 = 独立贷款剩余本金 + 组合贷剩余本金。
+    // 组合贷（LoanGroupDisplayItem）的 totalRemainingPrincipal 是其
+    // 子贷款剩余本金之和，独立于 standalone loans 维护，不能漏加。
+    final standaloneDebt =
+        loans.fold<int>(0, (s, l) => s + (l.remainingPrincipal as int));
+    final groupDebt = loanGroups.fold<int>(
+        0, (s, g) => s + (g.totalRemainingPrincipal as int));
+    final totalDebt = standaloneDebt + groupDebt;
     final displayCount = loans.length.clamp(0, 3);
 
     return SliverMainAxisGroup(slivers: [
@@ -236,10 +252,12 @@ class _LoanSection extends StatelessWidget {
           childCount: displayCount,
         ),
       ),
-      if (loans.length > 3)
+      if (loans.length > 3 || loanGroups.isNotEmpty)
         SliverToBoxAdapter(
           child: ShowMoreButton(
-            label: '查看全部 ${loans.length} 笔贷款',
+            // 总笔数 = 独立贷款 + 组合贷；组合贷明细不在本页列表展示，
+            // 只要存在组合贷就提供“查看全部”入口跳转贷款管理页。
+            label: '查看全部 ${loans.length + loanGroups.length} 笔贷款',
             onTap: () => context.push(AppRouter.loans),
           ),
         ),
