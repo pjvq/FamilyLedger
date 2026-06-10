@@ -407,9 +407,9 @@ func (s *Service) SimulatePrepayment(ctx context.Context, req *pb.SimulatePrepay
 	if monthsReduced < 0 {
 		monthsReduced = 0
 	}
-	var newMonthlyPayment int64
+	var displayMonthlyPayment int64
 	if len(newSchedule) > 0 {
-		newMonthlyPayment = newSchedule[0].payment
+		displayMonthlyPayment = newSchedule[0].payment
 	}
 
 	protoItems := make([]*pb.LoanScheduleItem, len(newSchedule))
@@ -431,7 +431,7 @@ func (s *Service) SimulatePrepayment(ctx context.Context, req *pb.SimulatePrepay
 		TotalInterestAfter:  totalInterestAfter,
 		InterestSaved:       interestSaved,
 		MonthsReduced:       monthsReduced,
-		NewMonthlyPayment:   newMonthlyPayment,
+		NewMonthlyPayment:   displayMonthlyPayment,
 		NewSchedule:         protoItems,
 	}, nil
 }
@@ -569,9 +569,9 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 	if monthsReduced < 0 {
 		monthsReduced = 0
 	}
-	var newMonthlyPayment int64
+	var displayMonthlyPayment int64
 	if len(newSchedule) > 0 {
-		newMonthlyPayment = newSchedule[0].payment
+		displayMonthlyPayment = newSchedule[0].payment
 	}
 
 	// ===== Execute in transaction =====
@@ -581,13 +581,19 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 	}
 	defer tx.Rollback(ctx)
 
-	// 1. Update loan: remaining_principal, total_months, monthly_payment
+	// 1. Update loan: remaining_principal, total_months
+	// NOTE: loans table intentionally has NO monthly_payment column. Monthly
+	// payment is a derived value (schedule[0].payment) that changes with LPR
+	// adjustments and prepayments — persisting it would inevitably go stale
+	// (dirty read). It is computed on demand and returned in the response only.
+	// Do not add a monthly_payment column or write it back here.
 	_, err = tx.Exec(ctx,
-		`UPDATE loans SET remaining_principal = $1, total_months = $2, monthly_payment = $3, updated_at = NOW()
-		 WHERE id = $4 AND deleted_at IS NULL`,
-		newPrincipal, newTotalMonths, newMonthlyPayment, req.LoanId,
+		`UPDATE loans SET remaining_principal = $1, total_months = $2, updated_at = NOW()
+		 WHERE id = $3 AND deleted_at IS NULL`,
+		newPrincipal, newTotalMonths, req.LoanId,
 	)
 	if err != nil {
+		log.Printf("loan: execute prepayment: update loan %s failed: %v", req.LoanId, err)
 		return nil, status.Error(codes.Internal, "failed to update loan")
 	}
 
@@ -628,25 +634,7 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 
 	// 5. Create transaction record for the prepayment
 	{
-		var categoryID string
-		var repCatID *uuid.UUID
-		err = tx.QueryRow(ctx,
-			`SELECT repayment_category_id FROM loans WHERE id = $1`,
-			req.LoanId,
-		).Scan(&repCatID)
-		if err == nil && repCatID != nil {
-			categoryID = repCatID.String()
-		} else {
-			_ = tx.QueryRow(ctx,
-				`SELECT id FROM categories WHERE name = '还款' LIMIT 1`,
-			).Scan(&categoryID)
-			if categoryID == "" {
-				_ = tx.QueryRow(ctx,
-					`SELECT id FROM categories WHERE name = '房贷' LIMIT 1`,
-				).Scan(&categoryID)
-			}
-		}
-
+		categoryID := resolveLoanRepaymentCategoryID(ctx, tx, req.LoanId)
 		accountID := loan.AccountId
 
 		if categoryID != "" && accountID != "" {
@@ -699,10 +687,54 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 			TotalInterestAfter:  totalInterestAfter,
 			InterestSaved:       interestSaved,
 			MonthsReduced:       monthsReduced,
-			NewMonthlyPayment:   newMonthlyPayment,
+			NewMonthlyPayment:   displayMonthlyPayment,
 		},
 		NewSchedule: protoNewItems,
 	}, nil
+}
+
+// resolveLoanRepaymentCategoryID picks the category to attach to an
+// auto-generated loan-payment transaction.
+//
+// Priority:
+//  1. The loan's explicit repayment_category_id, if set.
+//  2. A fallback to the globally-seeded "居住" (housing) preset expense
+//     category, gated by an EXISTS check.
+//
+// Returns "" when no usable category is found (caller skips the txn record).
+//
+// NOTE on the fallback UUID: preset categories are GLOBAL (single row, no
+// owner/user_id dimension — see migration 003) and are seeded with the
+// formula UUIDv5(ns, "{type}:{name}") WITHOUT an owner prefix (migration 032).
+// So "居住" is the fixed value below. Do NOT use category.UUID(owner, ...)
+// here: that helper prepends "{ownerID}:" (and even an empty owner leaves a
+// leading ":"), which is the formula for USER-CREATED categories in the
+// transaction pipeline — it will never match a preset and would silently
+// return "", dropping the repayment transaction.
+//
+// The previous fallback `SELECT id FROM categories WHERE name='还款' LIMIT 1`
+// was unsafe — no owner/type filter, LIMIT 1 could leak another tenant's
+// category, and "还款"/"房贷" aren't even seeded.
+const presetHousingExpenseCategoryID = "f925409c-19b9-5461-8a3d-5dc88e50efeb" // UUIDv5(ns, "expense:居住"), migration 032
+
+func resolveLoanRepaymentCategoryID(ctx context.Context, tx pgx.Tx, loanID string) string {
+	var repCatID *uuid.UUID
+	if err := tx.QueryRow(ctx,
+		`SELECT repayment_category_id FROM loans WHERE id = $1`,
+		loanID,
+	).Scan(&repCatID); err == nil && repCatID != nil {
+		return repCatID.String()
+	}
+
+	// Fallback to the global preset "居住" expense category, if it exists.
+	var exists bool
+	if err := tx.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1)`,
+		presetHousingExpenseCategoryID,
+	).Scan(&exists); err != nil || !exists {
+		return ""
+	}
+	return presetHousingExpenseCategoryID
 }
 
 // ── ExecuteGroupPrepayment ───────────────────────────────────────────────────

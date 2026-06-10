@@ -172,7 +172,7 @@ func TestExecutePrepayment_ReduceMonths_Success(t *testing.T) {
 	// Transaction
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE loans SET remaining_principal`).
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), loanID.String()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), loanID.String()).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	mock.ExpectExec(`DELETE FROM loan_schedules WHERE loan_id`).
 		WithArgs(loanID.String()).
@@ -192,13 +192,14 @@ func TestExecutePrepayment_ReduceMonths_Success(t *testing.T) {
 		WithArgs(int64(30000_00), accountID.String()).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
-	// Transaction record
+	// Transaction record — no explicit repayment_category_id, falls back to
+	// the deterministic owner-scoped "居住" category (EXISTS check returns true).
 	mock.ExpectQuery(`SELECT repayment_category_id FROM loans`).
 		WithArgs(loanID.String()).
 		WillReturnRows(pgxmock.NewRows([]string{"repayment_category_id"}).AddRow(nil))
-	catID := uuid.New()
-	mock.ExpectQuery(`SELECT id FROM categories WHERE name = '还款'`).
-		WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow(catID.String()))
+	mock.ExpectQuery(`SELECT EXISTS`).
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
 	mock.ExpectExec(`INSERT INTO transactions`).
 		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(),
 			pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg()).
@@ -270,7 +271,7 @@ func TestExecutePrepayment_ReducePayment_Success(t *testing.T) {
 	mock.MatchExpectationsInOrder(false)
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE loans SET remaining_principal`).
-		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), loanID.String()).
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), loanID.String()).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	mock.ExpectExec(`DELETE FROM loan_schedules`).
 		WithArgs(loanID.String()).
@@ -283,20 +284,15 @@ func TestExecutePrepayment_ReducePayment_Success(t *testing.T) {
 			WillReturnResult(pgxmock.NewResult("INSERT", 1)).Maybe()
 	}
 
-	// No account, so no account deduction
-	// Transaction record - repayment_category_id
+	// No account, so no account deduction.
+	// repayment_category_id is nil and the deterministic "居住" fallback does not
+	// exist (EXISTS=false) → categoryID empty → transaction insert skipped.
 	mock.ExpectQuery(`SELECT repayment_category_id FROM loans`).
 		WithArgs(loanID.String()).
 		WillReturnRows(pgxmock.NewRows([]string{"repayment_category_id"}).AddRow(nil))
-	mock.ExpectQuery(`SELECT id FROM categories WHERE name = '还款'`).
-		WillReturnRows(pgxmock.NewRows([]string{"id"})) // no rows
-	mock.ExpectQuery(`SELECT id FROM categories WHERE name = '房贷'`).
-		WillReturnRows(pgxmock.NewRows([]string{"id"})) // no rows
-
-	// No category found → skip transaction insert
-	// No account → skip account fallback... actually it tries:
-	mock.ExpectQuery(`SELECT id FROM accounts WHERE user_id`).
-		WillReturnRows(pgxmock.NewRows([]string{"id"})) // no rows
+	mock.ExpectQuery(`SELECT EXISTS`).
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
 
 	mock.ExpectCommit()
 
