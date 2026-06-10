@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/familyledger/server/pkg/category"
 	"github.com/familyledger/server/pkg/db"
 	"github.com/familyledger/server/pkg/permission"
 	"google.golang.org/grpc/codes"
@@ -407,9 +408,9 @@ func (s *Service) SimulatePrepayment(ctx context.Context, req *pb.SimulatePrepay
 	if monthsReduced < 0 {
 		monthsReduced = 0
 	}
-	var newMonthlyPayment int64
+	var displayMonthlyPayment int64
 	if len(newSchedule) > 0 {
-		newMonthlyPayment = newSchedule[0].payment
+		displayMonthlyPayment = newSchedule[0].payment
 	}
 
 	protoItems := make([]*pb.LoanScheduleItem, len(newSchedule))
@@ -431,7 +432,7 @@ func (s *Service) SimulatePrepayment(ctx context.Context, req *pb.SimulatePrepay
 		TotalInterestAfter:  totalInterestAfter,
 		InterestSaved:       interestSaved,
 		MonthsReduced:       monthsReduced,
-		NewMonthlyPayment:   newMonthlyPayment,
+		NewMonthlyPayment:   displayMonthlyPayment,
 		NewSchedule:         protoItems,
 	}, nil
 }
@@ -569,9 +570,9 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 	if monthsReduced < 0 {
 		monthsReduced = 0
 	}
-	var newMonthlyPayment int64
+	var displayMonthlyPayment int64
 	if len(newSchedule) > 0 {
-		newMonthlyPayment = newSchedule[0].payment
+		displayMonthlyPayment = newSchedule[0].payment
 	}
 
 	// ===== Execute in transaction =====
@@ -582,15 +583,19 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 	defer tx.Rollback(ctx)
 
 	// 1. Update loan: remaining_principal, total_months
-	// Note: loans table has no monthly_payment column — monthly payment is a
-	// computed field returned in the response, never persisted.
+	// NOTE: loans table intentionally has NO monthly_payment column. Monthly
+	// payment is a derived value (schedule[0].payment) that changes with LPR
+	// adjustments and prepayments — persisting it would inevitably go stale
+	// (dirty read). It is computed on demand and returned in the response only.
+	// Do not add a monthly_payment column or write it back here.
 	_, err = tx.Exec(ctx,
 		`UPDATE loans SET remaining_principal = $1, total_months = $2, updated_at = NOW()
 		 WHERE id = $3 AND deleted_at IS NULL`,
 		newPrincipal, newTotalMonths, req.LoanId,
 	)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to update loan: %v", err)
+		log.Printf("loan: execute prepayment: update loan %s failed: %v", req.LoanId, err)
+		return nil, status.Error(codes.Internal, "failed to update loan")
 	}
 
 	// 2. Delete all unpaid schedule items
@@ -630,25 +635,7 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 
 	// 5. Create transaction record for the prepayment
 	{
-		var categoryID string
-		var repCatID *uuid.UUID
-		err = tx.QueryRow(ctx,
-			`SELECT repayment_category_id FROM loans WHERE id = $1`,
-			req.LoanId,
-		).Scan(&repCatID)
-		if err == nil && repCatID != nil {
-			categoryID = repCatID.String()
-		} else {
-			_ = tx.QueryRow(ctx,
-				`SELECT id FROM categories WHERE name = '还款' LIMIT 1`,
-			).Scan(&categoryID)
-			if categoryID == "" {
-				_ = tx.QueryRow(ctx,
-					`SELECT id FROM categories WHERE name = '房贷' LIMIT 1`,
-				).Scan(&categoryID)
-			}
-		}
-
+		categoryID := resolveLoanRepaymentCategoryID(ctx, tx, req.LoanId, loan.UserId, loan.FamilyId)
 		accountID := loan.AccountId
 
 		if categoryID != "" && accountID != "" {
@@ -701,10 +688,55 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 			TotalInterestAfter:  totalInterestAfter,
 			InterestSaved:       interestSaved,
 			MonthsReduced:       monthsReduced,
-			NewMonthlyPayment:   newMonthlyPayment,
+			NewMonthlyPayment:   displayMonthlyPayment,
 		},
 		NewSchedule: protoNewItems,
 	}, nil
+}
+
+// resolveLoanRepaymentCategoryID picks the category to attach to an
+// auto-generated loan-payment transaction.
+//
+// Priority:
+//  1. The loan's explicit repayment_category_id, if set.
+//  2. A deterministic, owner-scoped fallback to the seeded "居住" (housing)
+//     expense category via UUID v5 — the same formula the client/seeder uses
+//     ({ownerID}:{type}:{name}). ownerID is family_id in family mode, else
+//     user_id.
+//
+// Returns "" when no usable category is found (caller skips the txn record).
+//
+// NOTE: the previous fallback `SELECT id FROM categories WHERE name='还款' LIMIT 1`
+// was unsafe — it had no owner/family/type filter and LIMIT 1 could return a
+// category belonging to a different user/family (cross-tenant data leak), and
+// the "还款"/"房贷" categories aren't even part of the seed set.
+func resolveLoanRepaymentCategoryID(ctx context.Context, tx pgx.Tx, loanID, userID, familyID string) string {
+	var repCatID *uuid.UUID
+	if err := tx.QueryRow(ctx,
+		`SELECT repayment_category_id FROM loans WHERE id = $1`,
+		loanID,
+	).Scan(&repCatID); err == nil && repCatID != nil {
+		return repCatID.String()
+	}
+
+	ownerID := userID
+	if familyID != "" {
+		ownerID = familyID
+	}
+	if ownerID == "" {
+		return ""
+	}
+
+	// Deterministic, owner-scoped fallback to the seeded "居住" expense category.
+	catID := category.UUID(ownerID, "expense", "居住").String()
+	var exists bool
+	if err := tx.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1)`,
+		catID,
+	).Scan(&exists); err != nil || !exists {
+		return ""
+	}
+	return catID
 }
 
 // ── ExecuteGroupPrepayment ───────────────────────────────────────────────────
