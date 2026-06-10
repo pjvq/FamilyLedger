@@ -5,6 +5,8 @@ import '../../../core/theme/design_tokens.dart';
 // ── Quick date range presets ──
 
 enum DatePreset {
+  today('今天'),
+  thisWeek('本周'),
   thisMonth('本月'),
   lastMonth('上月'),
   last30('近30天'),
@@ -22,6 +24,14 @@ DateTimeRange presetRange(DatePreset p) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day, 23, 59, 59);
   switch (p) {
+    case DatePreset.today:
+      return DateTimeRange(
+          start: DateTime(now.year, now.month, now.day), end: today);
+    case DatePreset.thisWeek:
+      // 周一为一周起点（DateTime.weekday: Mon=1 .. Sun=7）
+      final weekStart = DateTime(now.year, now.month, now.day)
+          .subtract(Duration(days: now.weekday - 1));
+      return DateTimeRange(start: weekStart, end: today);
     case DatePreset.thisMonth:
       return DateTimeRange(start: DateTime(now.year, now.month, 1), end: today);
     case DatePreset.lastMonth:
