@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../data/local/database.dart';
+import 'app_providers.dart';
 import 'transaction_provider.dart';
 import 'account_provider.dart';
 
@@ -138,18 +139,44 @@ final flowAccountMapProvider = Provider<Map<String, Account>>((ref) {
   return map;
 });
 
+/// 全量搜索结果（直接查 DB，不受流水页分页加载影响）。
+///
+/// 修复：右上角搜索原本只对已加载进内存的分页数据做过滤，未加载
+/// 的记录搜不到。现在改为查 DB 全量。query 为空时返回空列表（调用方
+/// 会回退到分页列表）。
+final flowSearchResultsProvider =
+    FutureProvider<List<Transaction>>((ref) async {
+  final query = ref.watch(transactionFlowProvider).searchQuery;
+  if (query.isEmpty) return const [];
+  final repo = ref.watch(transactionRepositoryProvider);
+  final userId = ref.watch(currentUserIdProvider);
+  final familyId = ref.watch(currentFamilyIdProvider);
+  if (userId == null || userId.isEmpty) return const [];
+  return repo.search(userId, query, familyId: familyId);
+});
+
 /// Filtered transactions based on search query.
+///
+/// - 无搜索词：返回流水页分页加载的内存列表（保持原有无限滚动行为）。
+/// - 有搜索词：使用 [flowSearchResultsProvider] 的 DB 全量结果。
+///   加载中或出错时临时回退到对已加载内存数据的本地过滤（避免闪空）。
 final flowFilteredTransactionsProvider = Provider<List<Transaction>>((ref) {
   final txnState = ref.watch(transactionProvider);
   final flowState = ref.watch(transactionFlowProvider);
   final categoryMap = ref.watch(flowCategoryMapProvider);
   final accountMap = ref.watch(flowAccountMapProvider);
 
-  final txnList = txnState.transactions;
   final query = flowState.searchQuery;
+  final txnList = txnState.transactions;
 
   if (query.isEmpty) return txnList;
 
+  // 全量 DB 搜索结果。
+  final searchAsync = ref.watch(flowSearchResultsProvider);
+  final dbResults = searchAsync.valueOrNull;
+  if (dbResults != null) return dbResults;
+
+  // 加载中 / 出错：回退到对已加载内存数据的本地过滤作为过渡。
   final q = query.toLowerCase();
   return txnList.where((t) {
     final cat = categoryMap[t.categoryId];

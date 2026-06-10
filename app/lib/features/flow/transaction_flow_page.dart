@@ -60,9 +60,13 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
       final filtered = ref.read(flowFilteredTransactionsProvider);
       ref.read(transactionFlowProvider.notifier).loadMore(filtered.length);
 
-      // Also load more from DB if we've exhausted current data
-      final txnState = ref.read(transactionProvider);
+      // 搜索模式下结果来自 DB 全量查询（flowSearchResultsProvider），
+      // 分页只是客户端 displayCount 截断，无需再去 DB 分页加载主列表。
       final flowState = ref.read(transactionFlowProvider);
+      if (flowState.searchQuery.isNotEmpty) return;
+
+      // 无搜索时：耗尽当前内存数据则从 DB 加载下一页。
+      final txnState = ref.read(transactionProvider);
       if (txnState.hasMore && flowState.displayCount >= txnState.transactions.length) {
         ref.read(transactionProvider.notifier).loadMore();
       }
@@ -173,7 +177,13 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     final sortedKeys = grouped.sortedKeys;
 
     final txnState = ref.watch(transactionProvider);
-    final hasMore = txnState.hasMore;
+    final flowState = ref.watch(transactionFlowProvider);
+    // 搜索模式下结果已是 DB 全量，底部 spinner 取决于还有未显示的
+    // 搜索结果（displayCount < 总数）；非搜索才看主列表 hasMore。
+    final hasMore = flowState.searchQuery.isNotEmpty
+        ? flowState.displayCount <
+            ref.watch(flowFilteredTransactionsProvider).length
+        : txnState.hasMore;
 
     return ListView.builder(
       controller: _scrollController,
