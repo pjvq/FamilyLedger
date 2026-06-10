@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/familyledger/server/pkg/category"
 	"github.com/familyledger/server/pkg/db"
 	"github.com/familyledger/server/pkg/permission"
 	"google.golang.org/grpc/codes"
@@ -635,7 +634,7 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 
 	// 5. Create transaction record for the prepayment
 	{
-		categoryID := resolveLoanRepaymentCategoryID(ctx, tx, req.LoanId, loan.UserId, loan.FamilyId)
+		categoryID := resolveLoanRepaymentCategoryID(ctx, tx, req.LoanId)
 		accountID := loan.AccountId
 
 		if categoryID != "" && accountID != "" {
@@ -699,18 +698,26 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 //
 // Priority:
 //  1. The loan's explicit repayment_category_id, if set.
-//  2. A deterministic, owner-scoped fallback to the seeded "居住" (housing)
-//     expense category via UUID v5 — the same formula the client/seeder uses
-//     ({ownerID}:{type}:{name}). ownerID is family_id in family mode, else
-//     user_id.
+//  2. A fallback to the globally-seeded "居住" (housing) preset expense
+//     category, gated by an EXISTS check.
 //
 // Returns "" when no usable category is found (caller skips the txn record).
 //
-// NOTE: the previous fallback `SELECT id FROM categories WHERE name='还款' LIMIT 1`
-// was unsafe — it had no owner/family/type filter and LIMIT 1 could return a
-// category belonging to a different user/family (cross-tenant data leak), and
-// the "还款"/"房贷" categories aren't even part of the seed set.
-func resolveLoanRepaymentCategoryID(ctx context.Context, tx pgx.Tx, loanID, userID, familyID string) string {
+// NOTE on the fallback UUID: preset categories are GLOBAL (single row, no
+// owner/user_id dimension — see migration 003) and are seeded with the
+// formula UUIDv5(ns, "{type}:{name}") WITHOUT an owner prefix (migration 032).
+// So "居住" is the fixed value below. Do NOT use category.UUID(owner, ...)
+// here: that helper prepends "{ownerID}:" (and even an empty owner leaves a
+// leading ":"), which is the formula for USER-CREATED categories in the
+// transaction pipeline — it will never match a preset and would silently
+// return "", dropping the repayment transaction.
+//
+// The previous fallback `SELECT id FROM categories WHERE name='还款' LIMIT 1`
+// was unsafe — no owner/type filter, LIMIT 1 could leak another tenant's
+// category, and "还款"/"房贷" aren't even seeded.
+const presetHousingExpenseCategoryID = "f925409c-19b9-5461-8a3d-5dc88e50efeb" // UUIDv5(ns, "expense:居住"), migration 032
+
+func resolveLoanRepaymentCategoryID(ctx context.Context, tx pgx.Tx, loanID string) string {
 	var repCatID *uuid.UUID
 	if err := tx.QueryRow(ctx,
 		`SELECT repayment_category_id FROM loans WHERE id = $1`,
@@ -719,24 +726,15 @@ func resolveLoanRepaymentCategoryID(ctx context.Context, tx pgx.Tx, loanID, user
 		return repCatID.String()
 	}
 
-	ownerID := userID
-	if familyID != "" {
-		ownerID = familyID
-	}
-	if ownerID == "" {
-		return ""
-	}
-
-	// Deterministic, owner-scoped fallback to the seeded "居住" expense category.
-	catID := category.UUID(ownerID, "expense", "居住").String()
+	// Fallback to the global preset "居住" expense category, if it exists.
 	var exists bool
 	if err := tx.QueryRow(ctx,
 		`SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1)`,
-		catID,
+		presetHousingExpenseCategoryID,
 	).Scan(&exists); err != nil || !exists {
 		return ""
 	}
-	return catID
+	return presetHousingExpenseCategoryID
 }
 
 // ── ExecuteGroupPrepayment ───────────────────────────────────────────────────

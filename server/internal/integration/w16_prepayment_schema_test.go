@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -123,4 +124,83 @@ func TestW16_ExecutePrepayment_FullPayoff_RealSchema(t *testing.T) {
 
 	t.Logf("W16-003 PASS: full payoff, remaining=%d saved=%d",
 		resp.Loan.RemainingPrincipal, resp.Simulation.InterestSaved)
+}
+
+// presetHousingExpenseCategoryID mirrors the seeded "居住" preset category
+// (migration 032: UUIDv5(ns, "expense:居住")). Kept here independently so the
+// test fails if production code drifts from the seed.
+const w16PresetHousingCategoryID = "f925409c-19b9-5461-8a3d-5dc88e50efeb"
+
+// W16-004: Prepayment on a loan WITH an account actually executes step 5
+// (account deduction + resolveLoanRepaymentCategoryID + INSERT transaction).
+//
+// This is the path the previous W16 cases never hit (their loans had no
+// AccountId, so the entire step 5 was gated out by `if loan.AccountId != ""`).
+// It asserts a real expense transaction lands with the global preset "居住"
+// category_id — catching any UUID-formula drift in resolveLoanRepaymentCategoryID.
+func TestW16_ExecutePrepayment_WithAccount_RecordsTransaction_RealSchema(t *testing.T) {
+	db := getDB(t)
+	ctx, userIDStr := w7Ctx(t, db)
+	svc := loan.NewService(db.pool)
+
+	userID, err := uuid.Parse(userIDStr)
+	require.NoError(t, err)
+	acctID := createTestAccount(t, db, userID, "W16 Account", nil)
+
+	// Sanity: the global preset "居住" category must be present (seeded by migration).
+	var presetExists bool
+	require.NoError(t, db.pool.QueryRow(context.Background(),
+		`SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1)`,
+		w16PresetHousingCategoryID,
+	).Scan(&presetExists))
+	require.True(t, presetExists, "seeded 居住 preset category must exist")
+
+	l, err := svc.CreateLoan(ctx, &pbLoan.CreateLoanRequest{
+		Name:            "W16 Mortgage w/ account",
+		LoanType:        pbLoan.LoanType_LOAN_TYPE_MORTGAGE,
+		Principal:       100000000,
+		AnnualRate:      4.2,
+		TotalMonths:     360,
+		RepaymentMethod: pbLoan.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT,
+		PaymentDay:      15,
+		StartDate:       timestamppb.New(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)),
+		AccountId:       acctID.String(),
+	})
+	require.NoError(t, err)
+	require.Equal(t, acctID.String(), l.AccountId)
+
+	const prepay = int64(20000000)
+	_, err = svc.ExecutePrepayment(ctx, &pbLoan.ExecutePrepaymentRequest{
+		LoanId:           l.Id,
+		PrepaymentAmount: prepay,
+		Strategy:         pbLoan.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_MONTHS,
+	})
+	require.NoError(t, err)
+
+	// 1) A real expense transaction must have been inserted with the preset category.
+	var txnCount int
+	var gotCategoryID, gotType string
+	var gotAmount int64
+	err = db.pool.QueryRow(context.Background(),
+		`SELECT count(*), max(category_id::text), max(type::text), max(amount)
+		   FROM transactions WHERE account_id = $1`,
+		acctID,
+	).Scan(&txnCount, &gotCategoryID, &gotType, &gotAmount)
+	require.NoError(t, err)
+	require.Equal(t, 1, txnCount, "prepayment must create exactly one transaction record")
+	assert.Equal(t, w16PresetHousingCategoryID, gotCategoryID,
+		"transaction must use the global preset 居住 category (UUID-formula drift guard)")
+	assert.Equal(t, "expense", gotType)
+	assert.Equal(t, prepay, gotAmount)
+
+	// 2) The account balance must have been deducted by the prepayment amount.
+	var balance int64
+	err = db.pool.QueryRow(context.Background(),
+		`SELECT balance FROM accounts WHERE id = $1`, acctID,
+	).Scan(&balance)
+	require.NoError(t, err)
+	assert.Equal(t, -prepay, balance, "account balance should be reduced by the prepayment")
+
+	t.Logf("W16-004 PASS: txn count=%d category=%s amount=%d balance=%d",
+		txnCount, gotCategoryID, gotAmount, balance)
 }
