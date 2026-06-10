@@ -1,4 +1,5 @@
 import 'package:drift/native.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:familyledger/core/utils/category_uuid.dart';
 import 'package:familyledger/data/local/database.dart';
@@ -319,6 +320,100 @@ void main() {
 
       final pending = await db.getPendingSyncOps(10);
       expect(pending, isEmpty);
+    });
+  });
+
+  // 回归：流水页右上角搜索原本只过滤已加载分页数据，未加载的搜不到。
+  // searchTransactions 直接查 DB 全量，不受分页影响。
+  group('searchTransactions (全量搜索)', () {
+    const sUser = 'search_user';
+    const sAcct = 'search_acct';
+    late String catFood;
+    late String catTransport;
+
+    setUp(() async {
+      await db.into(db.users).insert(UsersCompanion.insert(
+            id: sUser,
+            email: 'search@example.com',
+          ));
+      await db.seedCategoriesForOwner(sUser);
+      // 从实际种子数据取分类 id（避免依赖 UUID 推算，种子器多次调用可能去重）。
+      final expCats = await db.getCategoriesByType('expense', userId: sUser);
+      catFood = expCats.firstWhere((c) => c.name == '餐饮').id;
+      catTransport = expCats.firstWhere((c) => c.name == '交通').id;
+      await db.insertAccount(AccountsCompanion.insert(
+        id: sAcct,
+        userId: sUser,
+        name: '招商银行',
+      ));
+      // 插入 60 条交易（超过分页 50），验证搜索不受首页加载限制。
+      // 第 55 条带独特备注“蜡烛店”，按日期排序会落在第二页之后。
+      final base = DateTime(2026, 1, 1);
+      for (var i = 0; i < 60; i++) {
+        await db.insertTransaction(TransactionsCompanion.insert(
+          id: 'stxn_$i',
+          userId: sUser,
+          accountId: sAcct,
+          categoryId: i.isEven ? catFood : catTransport,
+          amount: 1000 + i,
+          amountCny: 1000 + i,
+          type: 'expense',
+          note: Value(i == 55 ? '蜡烛店晚餐' : '日常开销 $i'),
+          // i 越大日期越早 → 按 txn_date DESC，i=55 排在较后（第二页之后）。
+          txnDate: base.subtract(Duration(days: i)),
+        ));
+      }
+    });
+
+    test('能搜到首页之外的记录（按备注）', () async {
+      // 首页只加载 50 条，i=55 不在其中；全量搜索应能找到。
+      final page = await db.getTransactionPage(sUser, limit: 50, offset: 0);
+      expect(page.any((t) => t.id == 'stxn_55'), isFalse,
+          reason: '蜡烛店记录不在首页 50 条内');
+
+      final result = await db.searchTransactions(sUser, '蜡烛店');
+      expect(result.items.length, 1);
+      expect(result.items.first.id, 'stxn_55');
+      expect(result.truncated, isFalse);
+    });
+
+    test('按分类名搜索', () async {
+      final result = await db.searchTransactions(sUser, '交通');
+      // i 为奇数的 30 条用 交通 分类。
+      expect(result.items.length, 30);
+    });
+
+    test('按账户名搜索', () async {
+      final result = await db.searchTransactions(sUser, '招商');
+      expect(result.items.length, 60); // 全部交易都在招商银行
+    });
+
+    test('超过展示上限时 truncated=true 且只返回 limit 条', () async {
+      // 60 条都在招商银行，设 limit=10 应被截断。
+      final result = await db.searchTransactions(sUser, '招商', limit: 10);
+      expect(result.items.length, 10);
+      expect(result.truncated, isTrue);
+      // 恰好等于总数时不算截断。
+      final exact = await db.searchTransactions(sUser, '招商', limit: 60);
+      expect(exact.items.length, 60);
+      expect(exact.truncated, isFalse);
+    });
+
+    test('空查询返回空结果', () async {
+      expect((await db.searchTransactions(sUser, '')).items, isEmpty);
+      expect((await db.searchTransactions(sUser, '   ')).items, isEmpty);
+    });
+
+    test('LIKE 通配符被转义（% 不匹配全部）', () async {
+      // 输入 % 不应被当作“匹配一切”的通配符。
+      final result = await db.searchTransactions(sUser, '%');
+      expect(result.items, isEmpty, reason: '% 应被转义为字面量，无记录含字面 %');
+    });
+
+    test('软删除的记录不被搜到', () async {
+      await db.softDeleteTransaction('stxn_55');
+      final result = await db.searchTransactions(sUser, '蜡烛店');
+      expect(result.items, isEmpty);
     });
   });
 }

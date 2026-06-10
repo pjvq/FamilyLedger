@@ -699,6 +699,73 @@ class AppDatabase extends _$AppDatabase {
     return rows.map((row) => transactions.map(row.data)).toList();
   }
 
+  /// 全量搜索交易（非分页）—— 按备注 / 分类名 / 账户名模糊匹配。
+  ///
+  /// 直接查 DB 全量，不受流水页分页加载状态影响（修复：右上角搜索
+  /// 只能搜已加载数据的 bug）。结果按交易日期倒序。
+  ///
+  /// [limit] 为展示上限（默认 1000）。内部查询 limit+1 条以探测是否触顶：
+  /// 命中 [TransactionSearchResult.truncated]=true 时调用方可提示用户
+  /// “仅显示前 N 条，请缩小关键词”，避免静默丢弃较早的匹配记录。
+  ///
+  /// 单位/过滤口径与 [_buildTransactionQuery] 一致：软删除排除、
+  /// 个人模式排除家庭账户、家庭模式按 family_id 过滤。
+  Future<TransactionSearchResult> searchTransactions(
+    String userId,
+    String query, {
+    String? familyId,
+    int limit = 1000,
+  }) async {
+    final q = query.trim();
+    if (q.isEmpty) {
+      return const TransactionSearchResult(items: [], truncated: false);
+    }
+    // LIKE 通配并转义 % _ \ 防止用户输入被当作通配符。
+    final escaped = q
+        .replaceAll('\\', '\\\\')
+        .replaceAll('%', '\\%')
+        .replaceAll('_', '\\_');
+    final like = '%${escaped.toLowerCase()}%';
+
+    // LEFT JOIN categories：分类可能为空（未分类），不能用 INNER JOIN 丢记录。
+    final scopeClause = (familyId != null && familyId.isNotEmpty)
+        ? 'a.family_id = ?'
+        : "t.user_id = ? AND (a.family_id IS NULL OR a.family_id = '')";
+    final scopeVar = (familyId != null && familyId.isNotEmpty)
+        ? Variable.withString(familyId)
+        : Variable.withString(userId);
+
+    // 多查 1 条用于探测是否超过展示上限（truncated）。
+    final probeLimit = limit + 1;
+    final sql = 'SELECT t.* FROM transactions t '
+        'JOIN accounts a ON a.id = t.account_id '
+        'LEFT JOIN categories c ON c.id = t.category_id '
+        'WHERE t.deleted_at IS NULL AND $scopeClause '
+        'AND ('
+        '  LOWER(t.note) LIKE ? ESCAPE \'\\\' '
+        '  OR LOWER(c.name) LIKE ? ESCAPE \'\\\' '
+        '  OR LOWER(a.name) LIKE ? ESCAPE \'\\\' '
+        ') '
+        'ORDER BY t.txn_date DESC LIMIT ?';
+    final vars = [
+      scopeVar,
+      Variable.withString(like),
+      Variable.withString(like),
+      Variable.withString(like),
+      Variable.withInt(probeLimit),
+    ];
+    final rows = await customSelect(sql,
+            variables: vars,
+            readsFrom: {transactions, accounts, categories})
+        .get();
+    final all = rows.map((row) => transactions.map(row.data)).toList();
+    final truncated = all.length > limit;
+    return TransactionSearchResult(
+      items: truncated ? all.sublist(0, limit) : all,
+      truncated: truncated,
+    );
+  }
+
   // Sync queue
   Future<List<SyncQueueData>> getPendingSyncOps(int limit) =>
       (select(syncQueue)
@@ -1599,5 +1666,19 @@ LazyDatabase _openConnection() {
     final dir = await getApplicationDocumentsDirectory();
     final file = File(p.join(dir.path, 'familyledger.db'));
     return NativeDatabase.createInBackground(file);
+  });
+}
+
+/// 交易全量搜索结果。
+///
+/// [truncated] 为 true 表示匹配记录超过展示上限（limit），已被截断，
+/// UI 应提示用户缩小关键词，避免误以为“没有更多记录”。
+class TransactionSearchResult {
+  final List<Transaction> items;
+  final bool truncated;
+
+  const TransactionSearchResult({
+    required this.items,
+    required this.truncated,
   });
 }

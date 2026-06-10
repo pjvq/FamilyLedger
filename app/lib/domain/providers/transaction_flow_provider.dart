@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../data/local/database.dart';
+import 'app_providers.dart';
 import 'transaction_provider.dart';
 import 'account_provider.dart';
 
@@ -138,26 +139,59 @@ final flowAccountMapProvider = Provider<Map<String, Account>>((ref) {
   return map;
 });
 
+/// 全量搜索结果（直接查 DB，不受流水页分页加载影响）。
+///
+/// 修复：右上角搜索原本只对已加载进内存的分页数据做过滤，未加载
+/// 的记录搜不到。现在改为查 DB 全量。query 为空时返回空结果。
+final flowSearchResultsProvider =
+    FutureProvider<TransactionSearchResult>((ref) async {
+  final query = ref.watch(transactionFlowProvider).searchQuery;
+  if (query.isEmpty) {
+    return const TransactionSearchResult(items: [], truncated: false);
+  }
+  final repo = ref.watch(transactionRepositoryProvider);
+  final userId = ref.watch(currentUserIdProvider);
+  final familyId = ref.watch(currentFamilyIdProvider);
+  if (userId == null || userId.isEmpty) {
+    return const TransactionSearchResult(items: [], truncated: false);
+  }
+  return repo.search(userId, query, familyId: familyId);
+});
+
+/// 搜索是否正在加载（且尚无可用结果）——用于页面显示加载指示而
+/// 不是一份不完整的内存过滤结果（review #3：避免降级态误导用户）。
+final flowSearchLoadingProvider = Provider<bool>((ref) {
+  final flowState = ref.watch(transactionFlowProvider);
+  if (flowState.searchQuery.isEmpty) return false;
+  final searchAsync = ref.watch(flowSearchResultsProvider);
+  // 首次加载（还没有任何结果）时才算 loading；重查期间保留旧结果不闪动。
+  return searchAsync.isLoading && !searchAsync.hasValue;
+});
+
+/// 搜索结果是否被截断（超过展示上限）——用于 UI 提示“仅显示前 N 条”。
+final flowSearchTruncatedProvider = Provider<bool>((ref) {
+  final flowState = ref.watch(transactionFlowProvider);
+  if (flowState.searchQuery.isEmpty) return false;
+  return ref.watch(flowSearchResultsProvider).valueOrNull?.truncated ?? false;
+});
+
 /// Filtered transactions based on search query.
+///
+/// - 无搜索词：返回流水页分页加载的内存列表（保持原有无限滚动行为）。
+/// - 有搜索词：使用 [flowSearchResultsProvider] 的 DB 全量结果。
+///   首次加载中（还没结果）返回空列表，页面依 [flowSearchLoadingProvider]
+///   显示加载指示；不再回退到“仅覆盖已加载分页”的不完整内存过滤
+///   （那样会重现本 PR 要修的老行为，review #3）。
 final flowFilteredTransactionsProvider = Provider<List<Transaction>>((ref) {
   final txnState = ref.watch(transactionProvider);
   final flowState = ref.watch(transactionFlowProvider);
-  final categoryMap = ref.watch(flowCategoryMapProvider);
-  final accountMap = ref.watch(flowAccountMapProvider);
 
-  final txnList = txnState.transactions;
   final query = flowState.searchQuery;
+  if (query.isEmpty) return txnState.transactions;
 
-  if (query.isEmpty) return txnList;
-
-  final q = query.toLowerCase();
-  return txnList.where((t) {
-    final cat = categoryMap[t.categoryId];
-    final catName = cat?.name.toLowerCase() ?? '';
-    final note = t.note.toLowerCase();
-    final acct = accountMap[t.accountId]?.name.toLowerCase() ?? '';
-    return catName.contains(q) || note.contains(q) || acct.contains(q);
-  }).toList();
+  // 有结果（含重查期间保留的旧结果）则用全量 DB 结果；
+  // 首次加载中返回空（页面显示 loading），不给不完整的内存过滤结果。
+  return ref.watch(flowSearchResultsProvider).valueOrNull?.items ?? const [];
 });
 
 /// Visible (paginated) transactions.
