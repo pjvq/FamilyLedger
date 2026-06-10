@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/widgets.dart';
+import '../../data/local/database.dart' show Loan;
+import '../../domain/models/loan_models.dart' show LoanGroupDisplayItem;
 import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/asset_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
@@ -15,6 +17,7 @@ import 'widgets/section_header.dart';
 import 'widgets/account_item.dart';
 import 'widgets/investment_summary_card.dart';
 import 'widgets/loan_item.dart';
+import 'widgets/loan_group_item.dart';
 import 'widgets/fixed_asset_item.dart';
 import 'widgets/show_more_button.dart';
 
@@ -219,21 +222,31 @@ class _InvestmentSection extends StatelessWidget {
 }
 
 class _LoanSection extends StatelessWidget {
-  final List loans;
-  final List loanGroups;
+  final List<Loan> loans;
+  final List<LoanGroupDisplayItem> loanGroups;
   const _LoanSection({required this.loans, this.loanGroups = const []});
 
   @override
   Widget build(BuildContext context) {
     // 负债总额 = 独立贷款剩余本金 + 组合贷剩余本金。
-    // 组合贷（LoanGroupDisplayItem）的 totalRemainingPrincipal 是其
-    // 子贷款剩余本金之和，独立于 standalone loans 维护，不能漏加。
+    // 单位均为「分(cents)」：
+    //   - Loan.remainingPrincipal: int 分
+    //   - LoanGroupDisplayItem.totalRemainingPrincipal: int 分（其子贷款
+    //     剩余本金之和，独立于 standalone loans 维护，不能漏加）。
+    // 两个集合不相交（getStandaloneLoans 已排除 groupId 非空的子贷款），
+    // 直接相加不会重复计数。
     final standaloneDebt =
-        loans.fold<int>(0, (s, l) => s + (l.remainingPrincipal as int));
-    final groupDebt = loanGroups.fold<int>(
-        0, (s, g) => s + (g.totalRemainingPrincipal as int));
+        loans.fold<int>(0, (s, l) => s + l.remainingPrincipal);
+    final groupDebt =
+        loanGroups.fold<int>(0, (s, g) => s + g.totalRemainingPrincipal);
     final totalDebt = standaloneDebt + groupDebt;
-    final displayCount = loans.length.clamp(0, 3);
+
+    // 列表展示：组合贷优先（通常是房贷大头），再独立贷款；统一取前 3 项，
+    // 使可见行与“查看全部 N 笔”的计数口径一致，避免“显示 N 笔却空列表”。
+    const maxRows = 3;
+    final groupRows = loanGroups.length.clamp(0, maxRows);
+    final loanRows = (maxRows - groupRows).clamp(0, loans.length);
+    final totalCount = loans.length + loanGroups.length;
 
     return SliverMainAxisGroup(slivers: [
       SectionHeader(
@@ -243,21 +256,31 @@ class _LoanSection extends StatelessWidget {
         color: context.semanticColors.liability,
         onTap: () => context.push(AppRouter.loans),
       ),
+      // 组合贷行（汇总展示，点击进组合贷详情）。
+      SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (ctx, i) => LoanGroupItem(
+            item: loanGroups[i],
+            onTap: () =>
+                ctx.push(AppRouter.loanGroupDetail(loanGroups[i].group.id)),
+          ),
+          childCount: groupRows,
+        ),
+      ),
+      // 独立贷款行。
       SliverList(
         delegate: SliverChildBuilderDelegate(
           (ctx, i) => LoanItem(
             loan: loans[i],
             onTap: () => ctx.push(AppRouter.loanDetail(loans[i].id)),
           ),
-          childCount: displayCount,
+          childCount: loanRows,
         ),
       ),
-      if (loans.length > 3 || loanGroups.isNotEmpty)
+      if (totalCount > maxRows)
         SliverToBoxAdapter(
           child: ShowMoreButton(
-            // 总笔数 = 独立贷款 + 组合贷；组合贷明细不在本页列表展示，
-            // 只要存在组合贷就提供“查看全部”入口跳转贷款管理页。
-            label: '查看全部 ${loans.length + loanGroups.length} 笔贷款',
+            label: '查看全部 $totalCount 笔贷款',
             onTap: () => context.push(AppRouter.loans),
           ),
         ),

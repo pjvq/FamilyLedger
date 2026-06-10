@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:familyledger/features/assets/assets_tab_page.dart';
-import 'package:familyledger/features/assets/widgets/net_worth_hero.dart';
 import 'package:familyledger/features/assets/widgets/show_more_button.dart';
+import 'package:familyledger/features/assets/widgets/loan_group_item.dart';
 import 'package:familyledger/domain/providers/account_provider.dart';
 import 'package:familyledger/domain/providers/dashboard_provider.dart';
 import 'package:familyledger/domain/models/dashboard_models.dart';
@@ -273,8 +273,35 @@ void main() {
       // section 显示条件改为 loans 或 loanGroups 任一非空。
       expect(find.text('负债'), findsOneWidget);
       expect(find.text('-¥335.40万'), findsOneWidget);
-      // 组合贷明细不在本页列表展示，提供“查看全部”入口。
-      expect(find.text('查看全部 1 笔贷款'), findsOneWidget);
+      // 组合贷现在作为汇总行渲染（LoanGroupItem），不再是空列表。
+      expect(find.byType(LoanGroupItem), findsOneWidget);
+      expect(find.text('观晖美寓'), findsOneWidget);
+      expect(find.text('组合贷'), findsOneWidget);
+      // 总共 1 笔 ≤ 3，不应出现“查看全部”。
+      expect(find.textContaining('查看全部'), findsNothing);
+    });
+
+    testWidgets('超过 3 笔贷款（含组合贷）显示查看全部 N 笔', (tester) async {
+      await tester.pumpWidget(buildTestApp(
+        loan: LoanState(
+          loans: [
+            makeStandaloneLoan(id: 'l1'),
+            makeStandaloneLoan(id: 'l2'),
+            makeStandaloneLoan(id: 'l3'),
+          ],
+          loanGroups: [makeGroupDisplay()],
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      // 3 独立 + 1 组合 = 4 笔 > 3，应显示查看全部。
+      await tester.dragUntilVisible(
+        find.byType(ShowMoreButton),
+        find.byType(CustomScrollView),
+        const Offset(0, -200),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('查看全部 4 笔贷款'), findsOneWidget);
     });
 
     testWidgets('bar not shown when both assets and liabilities are 0',
