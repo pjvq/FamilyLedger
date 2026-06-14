@@ -69,23 +69,28 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Logo
+                  // Logo（与 app 图标一致：微信绿底 + 白「账」字）
                   Container(
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      color: const Color(0xFF07C160),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Icon(
-                      Icons.account_balance_wallet_rounded,
-                      size: 40,
-                      color: theme.colorScheme.primary,
+                    alignment: Alignment.center,
+                    child: const Text(
+                      '账',
+                      style: TextStyle(
+                        fontSize: 44,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.0,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'FamilyLedger',
+                    '家庭账本',
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),

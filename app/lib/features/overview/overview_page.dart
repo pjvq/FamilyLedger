@@ -53,7 +53,7 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('FamilyLedger'),
+        title: const Text('家庭账本'),
         centerTitle: false,
         actions: [
           const SyncStatusIndicator(),

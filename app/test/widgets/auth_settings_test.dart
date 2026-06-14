@@ -361,7 +361,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Logo / app name
-      expect(find.text('FamilyLedger'), findsOneWidget);
+      expect(find.text('家庭账本'), findsOneWidget);
       expect(find.text('家庭资产管理'), findsOneWidget);
 
       // Form fields
