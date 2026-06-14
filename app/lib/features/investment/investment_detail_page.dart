@@ -34,8 +34,23 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(investmentProvider.notifier).loadTrades(widget.investmentId);
+      _refreshQuote();
       _loadHistory();
     });
+  }
+
+  /// 主动拉取当前持仓的实时行情。
+  ///
+  /// 之前详情页仅依赖列表页填充的 quote，深链直达或行情未拉取成功时
+  /// 会回退到成本价（price=0），导致标题价/涨跌/市值显示不正常。
+  void _refreshQuote() {
+    final inv = ref
+        .read(investmentProvider)
+        .investments
+        .where((i) => i.id == widget.investmentId)
+        .firstOrNull;
+    if (inv == null) return;
+    ref.read(marketDataProvider.notifier).getQuote(inv.symbol, inv.marketType);
   }
 
   void _loadHistory() {
