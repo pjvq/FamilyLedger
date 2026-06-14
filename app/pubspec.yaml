@@ -63,6 +63,18 @@ dev_dependencies:
   drift_dev: ^2.25.0
   build_runner: ^2.4.15
   mocktail: ^1.0.5
+  flutter_launcher_icons: ^0.14.1
+
+# App 启动图标生成配置（占位版：微信绿 #07C160 底 + 白「账」字）
+# 重新生成: cd app && dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "assets/icon/app_icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  background_color_ios: "#07C160"
+  adaptive_icon_background: "#07C160"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
 
 flutter:
   uses-material-design: true

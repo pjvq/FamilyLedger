@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- 透明底；白「账」字缩小到安全区（自适应图标外圈约 1/3 会被裁，符号控制在中心 ~58%） -->
+  <text x="512" y="524" font-family="PingFang SC, Hiragino Sans GB, Heiti SC, sans-serif"
+        font-size="400" font-weight="700" fill="#FFFFFF"
+        text-anchor="middle" dominant-baseline="central">账</text>
+</svg>
