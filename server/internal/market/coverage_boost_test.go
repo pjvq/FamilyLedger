@@ -226,7 +226,7 @@ func TestBoost_EastMoneyMktNumToMarketType(t *testing.T) {
 // ── eastMoneySecID ──────────────────────────────────────────────────────────
 
 func TestBoost_EastMoneySecID(t *testing.T) {
-	tests := []struct {
+	valid := []struct {
 		symbol, expected string
 	}{
 		{"600519", "1.600519"}, // SH: starts with 6
@@ -236,11 +236,22 @@ func TestBoost_EastMoneySecID(t *testing.T) {
 		{"159915", "0.159915"}, // SZ: starts with 1
 		{"300750", "0.300750"}, // SZ: starts with 3
 		{"200000", "0.200000"}, // SZ: starts with 2
-		{"", "1."},             // empty symbol → default "1."
 	}
-	for _, tt := range tests {
+	for _, tt := range valid {
 		t.Run(tt.symbol, func(t *testing.T) {
-			assert.Equal(t, tt.expected, eastMoneySecID(tt.symbol))
+			got, err := eastMoneySecID(tt.symbol)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+
+	// Non-numeric / empty inputs must be rejected, not turned into a bogus
+	// secid like "0.Au99.99" (regression: precious-metal symbol mis-stored as a_share).
+	invalid := []string{"", "Au99.99", "AAPL", "00700hk", "6005 19"}
+	for _, sym := range invalid {
+		t.Run("invalid/"+sym, func(t *testing.T) {
+			_, err := eastMoneySecID(sym)
+			assert.Error(t, err)
 		})
 	}
 }
