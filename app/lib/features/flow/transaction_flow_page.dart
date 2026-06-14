@@ -84,13 +84,59 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     final searchLoading = ref.watch(flowSearchLoadingProvider);
     final searchTruncated = ref.watch(flowSearchTruncatedProvider);
 
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    final switchDuration =
+        reduceMotion ? Duration.zero : const Duration(milliseconds: 220);
+
     return Scaffold(
       appBar: AppBar(
-        title: flowState.showSearch ? _buildSearchField() : const Text('流水'),
+        title: AnimatedSwitcher(
+          duration: switchDuration,
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          // 左对齐 layoutBuilder：AppBar title 是左对齐，默认 Stack 居中
+          // 会导致切换瞬间跳动。
+          layoutBuilder: (currentChild, previousChildren) => Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              ...previousChildren,
+              ?currentChild,
+            ],
+          ),
+          // 标题/搜索框切换：水平方向轻微滑动 + 淡入，模拟搜索栏展开。
+          transitionBuilder: (child, animation) {
+            final isSearch = child.key == const ValueKey('flow-search-field');
+            final offsetTween = Tween<Offset>(
+              begin: Offset(isSearch ? 0.12 : -0.12, 0),
+              end: Offset.zero,
+            );
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: offsetTween.animate(animation),
+                child: child,
+              ),
+            );
+          },
+          child: flowState.showSearch
+              ? _buildSearchField(key: const ValueKey('flow-search-field'))
+              : const Text('流水', key: ValueKey('flow-title')),
+        ),
         centerTitle: false,
         actions: [
           IconButton(
-            icon: Icon(flowState.showSearch ? Icons.close : Icons.search),
+            icon: AnimatedSwitcher(
+              duration: switchDuration,
+              // search ↔ close：旋转 + 淡入淡出，避免图标硬跳。
+              transitionBuilder: (child, animation) => RotationTransition(
+                turns: Tween<double>(begin: 0.5, end: 1.0).animate(animation),
+                child: FadeTransition(opacity: animation, child: child),
+              ),
+              child: Icon(
+                flowState.showSearch ? Icons.close : Icons.search,
+                key: ValueKey(flowState.showSearch),
+              ),
+            ),
             onPressed: () {
               final wasSearching = flowState.showSearch;
               ref.read(transactionFlowProvider.notifier).toggleSearch();
@@ -171,8 +217,9 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     );
   }
 
-  Widget _buildSearchField() {
+  Widget _buildSearchField({Key? key}) {
     return TextField(
+      key: key,
       controller: _searchController,
       autofocus: true,
       decoration: InputDecoration(
