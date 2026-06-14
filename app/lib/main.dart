@@ -96,7 +96,7 @@ class FamilyLedgerApp extends ConsumerWidget {
 
     return SyncLifecycleObserver(
       child: MaterialApp.router(
-        title: 'FamilyLedger',
+        title: '家庭账本',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
