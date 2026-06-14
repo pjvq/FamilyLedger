@@ -90,12 +90,52 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
     ref.read(marketDataProvider.notifier).getQuote(result.symbol, result.marketType).then((quote) {
       if (mounted) {
         setState(() => _isLoadingPrice = false);
-        if (quote != null) {
+        // 仅在交易日期是今天时才用实时价预填；历史日期不能用当前价
+        // 当作成交价（否则成本=数量×今日价，盈亏永远 0）。
+        if (quote != null && _isToday(_tradeDate)) {
           _priceController.text = (quote.currentPrice / 100).toStringAsFixed(2);
         }
       }
     });
     FocusScope.of(context).unfocus();
+  }
+
+  /// 判断某日期是否为今天（只比较年月日）。
+  bool _isToday(DateTime d) {
+    final now = DateTime.now();
+    return d.year == now.year && d.month == now.month && d.day == now.day;
+  }
+
+  /// 交易日期变更后联动价格。
+  ///
+  /// 选历史日期：清空预填的当前价，要求用户手填该日成交价（避免用今价当历史成本）。
+  /// 改回今天且价格为空：重新拉实时价预填。
+  void _onTradeDateChanged() {
+    final sym = _selectedSymbol;
+    if (sym == null) return;
+
+    if (!_isToday(_tradeDate)) {
+      _priceController.clear();
+      setState(() {});
+      return;
+    }
+
+    if (_priceController.text.trim().isEmpty) {
+      setState(() => _isLoadingPrice = true);
+      ref
+          .read(marketDataProvider.notifier)
+          .getQuote(sym.symbol, sym.marketType)
+          .then((quote) {
+        if (!mounted) return;
+        setState(() {
+          _isLoadingPrice = false;
+          if (quote != null && _isToday(_tradeDate)) {
+            _priceController.text =
+                (quote.currentPrice / 100).toStringAsFixed(2);
+          }
+        });
+      });
+    }
   }
 
   void _selectPreciousMetal(_PreciousMetalOption pm) {
@@ -128,7 +168,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
       return;
     }
 
-    if (priceYuan <= 0 && _selectedMarket == 'precious_metal') {
+    if (priceYuan <= 0 && _selectedMarket == 'precious_metal' && _isToday(_tradeDate)) {
       final quote = await ref.read(marketDataProvider.notifier).getQuote(
             _selectedSymbol!.symbol, _selectedSymbol!.marketType);
       if (quote != null && quote.currentPrice > 0) {
@@ -138,7 +178,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
         return;
       }
     } else if (priceYuan <= 0) {
-      _showError('请输入有效的价格');
+      _showError(_isToday(_tradeDate) ? '请输入有效的价格' : '请输入该日期的成交价');
       return;
     }
 
@@ -407,7 +447,9 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
                         controller: _priceController,
                         label: _isPreciousMetal ? '单价 (元/克)' : '成交价',
                         prefix: '¥',
-                        hint: _isPreciousMetal ? '留空用实时价' : null,
+                        hint: _isToday(_tradeDate)
+                            ? (_isPreciousMetal ? '留空用实时价' : null)
+                            : '请输入该日成交价',
                         onChanged: () => setState(() {}),
                       ),
                     ),
@@ -437,7 +479,9 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
                             firstDate: DateTime(2000),
                             lastDate: DateTime.now(),
                           );
-                          if (date != null) setState(() => _tradeDate = date);
+                          if (date == null) return;
+                          setState(() => _tradeDate = date);
+                          _onTradeDateChanged();
                         },
                       ),
                     ),
