@@ -122,16 +122,34 @@ func (r *RealFetcher) SearchSymbol(ctx context.Context, query string, marketType
 // eastMoneySecID returns the secid prefix for an A-share symbol.
 // SH (prefix "1."): codes starting with 6, 9, 5
 // SZ (prefix "0."): codes starting with 0, 1, 2, 3
-func eastMoneySecID(symbol string) string {
-	if len(symbol) == 0 {
-		return "1." + symbol
+//
+// A-share codes are strictly 6-digit numeric. Non-numeric inputs (e.g. a
+// precious-metal symbol "Au99.99" mistakenly stored with market_type=a_share)
+// would otherwise produce a bogus secid like "0.Au99.99" and hammer the
+// upstream API with EOF errors — so reject them up front.
+func eastMoneySecID(symbol string) (string, error) {
+	if !isNumericSymbol(symbol) {
+		return "", fmt.Errorf("invalid A-share symbol %q (expected 6-digit numeric)", symbol)
 	}
 	switch symbol[0] {
 	case '6', '9', '5':
-		return "1." + symbol
+		return "1." + symbol, nil
 	default:
-		return "0." + symbol
+		return "0." + symbol, nil
 	}
+}
+
+// isNumericSymbol reports whether symbol is a non-empty all-digit string.
+func isNumericSymbol(symbol string) bool {
+	if symbol == "" {
+		return false
+	}
+	for i := 0; i < len(symbol); i++ {
+		if symbol[i] < '0' || symbol[i] > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func (r *RealFetcher) fetchEastMoneyStock(ctx context.Context, secid string, symbol string, marketType string) (*MarketQuote, error) {
@@ -209,11 +227,17 @@ func (r *RealFetcher) fetchEastMoneyStock(ctx context.Context, secid string, sym
 }
 
 func (r *RealFetcher) fetchEastMoneyAShare(ctx context.Context, symbol string) (*MarketQuote, error) {
-	secid := eastMoneySecID(symbol)
+	secid, err := eastMoneySecID(symbol)
+	if err != nil {
+		return nil, err
+	}
 	return r.fetchEastMoneyStock(ctx, secid, symbol, "a_share")
 }
 
 func (r *RealFetcher) fetchEastMoneyHKStock(ctx context.Context, symbol string) (*MarketQuote, error) {
+	if !isNumericSymbol(symbol) {
+		return nil, fmt.Errorf("invalid HK stock symbol %q (expected numeric code)", symbol)
+	}
 	secid := "116." + symbol
 	return r.fetchEastMoneyStock(ctx, secid, symbol, "hk_stock")
 }
