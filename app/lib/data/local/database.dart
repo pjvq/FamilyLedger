@@ -1573,6 +1573,12 @@ class AppDatabase extends _$AppDatabase {
   Future<int> insertInvestmentTrade(InvestmentTradesCompanion entry) =>
       into(investmentTrades).insert(entry);
 
+  /// Insert-or-update a trade by primary key (id). Used when hydrating trades
+  /// pulled from the server, which may already exist locally.
+  Future<void> upsertInvestmentTrade(InvestmentTradesCompanion entry) async {
+    await into(investmentTrades).insertOnConflictUpdate(entry);
+  }
+
   Future<List<InvestmentTrade>> getInvestmentTrades(String investmentId) =>
       (select(investmentTrades)
             ..where((t) => t.investmentId.equals(investmentId))

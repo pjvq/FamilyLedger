@@ -447,6 +447,7 @@ func TestMarketTypeConversions(t *testing.T) {
 		{"us_stock", pb.MarketType_MARKET_TYPE_US_STOCK},
 		{"crypto", pb.MarketType_MARKET_TYPE_CRYPTO},
 		{"fund", pb.MarketType_MARKET_TYPE_FUND},
+		{"precious_metal", pb.MarketType_MARKET_TYPE_PRECIOUS_METAL},
 	}
 	for _, tt := range types {
 		assert.Equal(t, tt.str, marketTypeToString(tt.val))
