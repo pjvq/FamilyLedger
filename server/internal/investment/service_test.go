@@ -301,8 +301,12 @@ func TestRecordTrade_Buy(t *testing.T) {
 	tradeID := uuid.New()
 
 	mock.ExpectBegin()
+	// ownership check: current user is owner, no family
+	mock.ExpectQuery("SELECT user_id, family_id FROM investments").
+		WithArgs(id.String()).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(testUserID, nil))
 	mock.ExpectQuery("SELECT quantity, cost_basis FROM investments").
-		WithArgs(id.String(), testUserID).
+		WithArgs(id.String()).
 		WillReturnRows(pgxmock.NewRows([]string{"quantity", "cost_basis"}).AddRow(float64(100), int64(1500000)))
 	mock.ExpectExec("UPDATE investments SET quantity").
 		WithArgs(float64(200), int64(3000500), id.String()).
@@ -333,8 +337,12 @@ func TestRecordTrade_SellExceedsHolding(t *testing.T) {
 	id := uuid.New()
 
 	mock.ExpectBegin()
+	// ownership check: current user is owner, no family
+	mock.ExpectQuery("SELECT user_id, family_id FROM investments").
+		WithArgs(id.String()).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(testUserID, nil))
 	mock.ExpectQuery("SELECT quantity, cost_basis FROM investments").
-		WithArgs(id.String(), testUserID).
+		WithArgs(id.String()).
 		WillReturnRows(pgxmock.NewRows([]string{"quantity", "cost_basis"}).AddRow(float64(10), int64(150000)))
 	mock.ExpectRollback()
 
@@ -367,9 +375,10 @@ func TestListTrades_Success(t *testing.T) {
 	invID := uuid.New()
 	now := time.Now()
 
-	mock.ExpectQuery("SELECT EXISTS").
-		WithArgs(invID.String(), testUserID).
-		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+	// ownership check: returns current user as owner, no family
+	mock.ExpectQuery("SELECT user_id, family_id FROM investments").
+		WithArgs(invID.String()).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(testUserID, nil))
 	mock.ExpectQuery("SELECT .+ FROM investment_trades").
 		WithArgs(invID.String()).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "investment_id", "trade_type", "quantity", "price", "total_amount", "fee", "trade_date"}).
@@ -378,6 +387,51 @@ func TestListTrades_Success(t *testing.T) {
 	resp, err := svc.ListTrades(authedCtx(), &pb.ListTradesRequest{InvestmentId: invID.String()})
 	require.NoError(t, err)
 	assert.Len(t, resp.Trades, 1)
+}
+
+func TestListTrades_FamilyMemberCanView(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+	invID := uuid.New()
+	now := time.Now()
+	familyID := uuid.New().String()
+	ownerID := uuid.New().String() // different user
+
+	// ownership check: returns different owner with family_id
+	mock.ExpectQuery("SELECT user_id, family_id FROM investments").
+		WithArgs(invID.String()).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(ownerID, &familyID))
+	// permission check: user is a member with view permission
+	mock.ExpectQuery("SELECT role, permissions FROM family_members").
+		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg()).
+		WillReturnRows(pgxmock.NewRows([]string{"role", "permissions"}).AddRow("member", []byte(`{"can_view":true}`)))
+	mock.ExpectQuery("SELECT .+ FROM investment_trades").
+		WithArgs(invID.String()).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "investment_id", "trade_type", "quantity", "price", "total_amount", "fee", "trade_date"}).
+			AddRow(uuid.New(), invID.String(), "buy", float64(50), int64(94000), int64(4700000), int64(0), now))
+
+	resp, err := svc.ListTrades(authedCtx(), &pb.ListTradesRequest{InvestmentId: invID.String()})
+	require.NoError(t, err)
+	assert.Len(t, resp.Trades, 1)
+}
+
+func TestListTrades_NonFamilyMemberDenied(t *testing.T) {
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
+	svc := NewService(mock)
+	invID := uuid.New()
+	ownerID := uuid.New().String()
+
+	// ownership check: returns different owner, no family
+	mock.ExpectQuery("SELECT user_id, family_id FROM investments").
+		WithArgs(invID.String()).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(ownerID, nil))
+
+	_, err = svc.ListTrades(authedCtx(), &pb.ListTradesRequest{InvestmentId: invID.String()})
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
 }
 
 func TestListTrades_EmptyID(t *testing.T) {

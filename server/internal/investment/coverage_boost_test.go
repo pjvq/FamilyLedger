@@ -429,8 +429,8 @@ func TestCB_RecordTrade_NotFound(t *testing.T) {
 	defer mock.Close()
 	svc := NewService(mock)
 	mock.ExpectBegin()
-	mock.ExpectQuery("SELECT quantity, cost_basis FROM investments").
-		WithArgs("x", testUserID).WillReturnError(pgx.ErrNoRows)
+	mock.ExpectQuery("SELECT user_id, family_id FROM investments").
+		WithArgs("x").WillReturnError(pgx.ErrNoRows)
 	mock.ExpectRollback()
 	_, err := svc.RecordTrade(authedCtx(), &pb.RecordTradeRequest{
 		InvestmentId: "x", TradeType: pb.TradeType_TRADE_TYPE_BUY, Quantity: 10, Price: 100,
@@ -443,8 +443,11 @@ func TestCB_RecordTrade_QueryError(t *testing.T) {
 	defer mock.Close()
 	svc := NewService(mock)
 	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT user_id, family_id FROM investments").
+		WithArgs("x").
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(testUserID, nil))
 	mock.ExpectQuery("SELECT quantity, cost_basis FROM investments").
-		WithArgs("x", testUserID).WillReturnError(errors.New("db err"))
+		WithArgs("x").WillReturnError(errors.New("db err"))
 	mock.ExpectRollback()
 	_, err := svc.RecordTrade(authedCtx(), &pb.RecordTradeRequest{
 		InvestmentId: "x", TradeType: pb.TradeType_TRADE_TYPE_BUY, Quantity: 10, Price: 100,
@@ -457,8 +460,11 @@ func TestCB_RecordTrade_UpdateError(t *testing.T) {
 	defer mock.Close()
 	svc := NewService(mock)
 	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT user_id, family_id FROM investments").
+		WithArgs("x").
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(testUserID, nil))
 	mock.ExpectQuery("SELECT quantity, cost_basis FROM investments").
-		WithArgs("x", testUserID).
+		WithArgs("x").
 		WillReturnRows(pgxmock.NewRows([]string{"quantity", "cost_basis"}).AddRow(100.0, int64(1500000)))
 	mock.ExpectExec("UPDATE investments SET quantity").
 		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), "x").
@@ -475,8 +481,11 @@ func TestCB_RecordTrade_InsertTradeError(t *testing.T) {
 	defer mock.Close()
 	svc := NewService(mock)
 	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT user_id, family_id FROM investments").
+		WithArgs("x").
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(testUserID, nil))
 	mock.ExpectQuery("SELECT quantity, cost_basis FROM investments").
-		WithArgs("x", testUserID).
+		WithArgs("x").
 		WillReturnRows(pgxmock.NewRows([]string{"quantity", "cost_basis"}).AddRow(100.0, int64(1500000)))
 	mock.ExpectExec("UPDATE investments SET quantity").
 		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), "x").
@@ -497,8 +506,11 @@ func TestCB_RecordTrade_CommitError(t *testing.T) {
 	svc := NewService(mock)
 	tradeID := uuid.New()
 	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT user_id, family_id FROM investments").
+		WithArgs("x").
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(testUserID, nil))
 	mock.ExpectQuery("SELECT quantity, cost_basis FROM investments").
-		WithArgs("x", testUserID).
+		WithArgs("x").
 		WillReturnRows(pgxmock.NewRows([]string{"quantity", "cost_basis"}).AddRow(100.0, int64(1500000)))
 	mock.ExpectExec("UPDATE investments SET quantity").
 		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), "x").
@@ -520,8 +532,11 @@ func TestCB_RecordTrade_SellSuccess(t *testing.T) {
 	svc := NewService(mock)
 	tradeID := uuid.New()
 	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT user_id, family_id FROM investments").
+		WithArgs("x").
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(testUserID, nil))
 	mock.ExpectQuery("SELECT quantity, cost_basis FROM investments").
-		WithArgs("x", testUserID).
+		WithArgs("x").
 		WillReturnRows(pgxmock.NewRows([]string{"quantity", "cost_basis"}).AddRow(100.0, int64(1500000)))
 	mock.ExpectExec("UPDATE investments SET quantity").
 		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), "x").
@@ -544,8 +559,11 @@ func TestCB_RecordTrade_SellAllToZero(t *testing.T) {
 	svc := NewService(mock)
 	tradeID := uuid.New()
 	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT user_id, family_id FROM investments").
+		WithArgs("x").
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(testUserID, nil))
 	mock.ExpectQuery("SELECT quantity, cost_basis FROM investments").
-		WithArgs("x", testUserID).
+		WithArgs("x").
 		WillReturnRows(pgxmock.NewRows([]string{"quantity", "cost_basis"}).AddRow(100.0, int64(1500000)))
 	mock.ExpectExec("UPDATE investments SET quantity").
 		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), "x").
@@ -569,8 +587,11 @@ func TestCB_RecordTrade_WithTradeDate(t *testing.T) {
 	tradeID := uuid.New()
 	tradeDate := timestamppb.New(time.Date(2025, 1, 15, 0, 0, 0, 0, time.UTC))
 	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT user_id, family_id FROM investments").
+		WithArgs("x").
+		WillReturnRows(pgxmock.NewRows([]string{"user_id", "family_id"}).AddRow(testUserID, nil))
 	mock.ExpectQuery("SELECT quantity, cost_basis FROM investments").
-		WithArgs("x", testUserID).
+		WithArgs("x").
 		WillReturnRows(pgxmock.NewRows([]string{"quantity", "cost_basis"}).AddRow(100.0, int64(1500000)))
 	mock.ExpectExec("UPDATE investments SET quantity").
 		WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), "x").
