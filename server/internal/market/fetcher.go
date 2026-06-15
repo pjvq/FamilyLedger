@@ -13,6 +13,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 )
 
 // MarketQuote represents a market quote from an external data source.
@@ -436,7 +439,7 @@ func (r *RealFetcher) fetchCoinGeckoQuote(ctx context.Context, symbol string) (*
 
 	// CoinGecko returns: {"bitcoin": {"usd": 12345.67, "usd_24h_change": -2.5}}
 	var data map[string]struct {
-		USD         float64 `json:"usd"`
+		USD          float64 `json:"usd"`
 		USD24hChange float64 `json:"usd_24h_change"`
 	}
 
@@ -659,7 +662,7 @@ func (m *MockFetcher) FetchQuote(_ context.Context, symbol string, marketType st
 	h.Write([]byte(symbol))
 	h.Write([]byte{byte(window), byte(window >> 8)})
 	noise := float64(h.Sum64()%1000) / 1000.0 // 0.0 ~ 0.999
-	volatility := (noise - 0.5) * 0.10         // ±5%
+	volatility := (noise - 0.5) * 0.10        // ±5%
 
 	currentPrice := int64(float64(basePrice) * (1.0 + volatility))
 	if currentPrice < 1 {
@@ -762,198 +765,126 @@ var preciousMetalList = []SymbolInfo{
 	{Symbol: "Au100g", Name: "黄金100克", MarketType: "precious_metal"},
 	{Symbol: "Au(T+D)", Name: "黄金T+D", MarketType: "precious_metal"},
 	{Symbol: "mAu(T+D)", Name: "迷你黄金T+D", MarketType: "precious_metal"},
-	{Symbol: "Ag99.99", Name: "白银9999", MarketType: "precious_metal"},
 	{Symbol: "Ag(T+D)", Name: "白银T+D", MarketType: "precious_metal"},
 	{Symbol: "Pt99.95", Name: "铂金9995", MarketType: "precious_metal"},
 }
 
-// preciousMetalSecID maps our display symbol to the SGE code (f12 field in clist API).
-var preciousMetalSecID = map[string]string{
-	"Au99.99":   "AU9999",
-	"Au99.95":   "AU9995",
-	"Au100g":    "AU100",
+// preciousMetalSinaCode maps our display symbol to the Sina SGE list code
+// (used as gds_<CODE> on hq.sinajs.cn). Sina is the primary precious-metal
+// source because the EastMoney clist/kline endpoints reject IDC/cloud IPs
+// (EOF / empty reply), while Sina serves cloud IPs reliably.
+//
+// Note: Ag99.99 (silver spot) is intentionally NOT included — Sina only
+// provides silver T+D (gds_AGTD), and SGE silver-spot turnover is negligible,
+// so it was dropped from the supported set.
+var preciousMetalSinaCode = map[string]string{
+	"Au99.99":  "AU9999",
+	"Au99.95":  "AU9995",
+	"Au100g":   "AU100G",
 	"Au(T+D)":  "AUTD",
-	"mAu(T+D)": "mAUTD",
-	"Ag99.99":  "AG9999",
+	"mAu(T+D)": "MAUTD",
 	"Ag(T+D)":  "AGTD",
 	"Pt99.95":  "PT9995",
 }
 
+// fetchPreciousMetal fetches an SGE precious-metal quote from Sina finance.
+//
+// Source rationale: EastMoney's clist/kline endpoints reject IDC/cloud-server
+// IPs (observed as EOF / "empty reply from server"), so they are unusable from
+// our deployment host. Sina's hq.sinajs.cn serves cloud IPs reliably, so it is
+// the sole source here. Stale-cache fallback lives in the Service layer
+// (getOrFetchQuote): if this fetch fails, the last cached quote is returned.
 func (r *RealFetcher) fetchPreciousMetal(ctx context.Context, symbol string) (*MarketQuote, error) {
-	// SGE uses clist endpoint (qt/stock/get doesn't work for market 118)
-	// Fetch all SGE products in one call and filter by code
-	code, ok := preciousMetalSecID[symbol]
+	code, ok := preciousMetalSinaCode[symbol]
 	if !ok {
-		return nil, fmt.Errorf("unknown precious metal symbol: %s", symbol)
+		return nil, fmt.Errorf("unsupported precious metal symbol: %s", symbol)
 	}
-
-	// Try realtime clist endpoint first
-	quote, err := r.fetchPreciousMetalRealtime(ctx, symbol, code)
-	if err == nil {
-		return quote, nil
-	}
-	log.Printf("market: realtime SGE fetch failed for %s: %v, trying kline fallback", symbol, err)
-
-	// Fallback: use kline history (works on weekends / non-trading hours)
-	return r.fetchPreciousMetalKline(ctx, symbol, code)
+	return r.fetchSinaPreciousMetal(ctx, symbol, code)
 }
 
-// fetchPreciousMetalRealtime fetches from the clist realtime endpoint (trading hours only).
-func (r *RealFetcher) fetchPreciousMetalRealtime(ctx context.Context, symbol, code string) (*MarketQuote, error) {
-	url := "https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=30&fs=m:118&fields=f2,f3,f4,f12,f14,f18&fltt=2"
-
-	// Retry up to 3 times (SGE endpoint can be flaky)
-	var lastErr error
-	for attempt := 0; attempt < 3; attempt++ {
-		if attempt > 0 {
-			time.Sleep(time.Duration(attempt) * 500 * time.Millisecond)
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			return nil, fmt.Errorf("create request: %w", err)
-		}
-		req.Header.Set("Referer", "https://www.eastmoney.com/")
-		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible)")
-
-		resp, err := r.client.Do(req)
-		if err != nil {
-			lastErr = fmt.Errorf("http get: %w", err)
-			continue
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
-			lastErr = fmt.Errorf("eastmoney returned status %d", resp.StatusCode)
-			continue
-		}
-
-		var result struct {
-			Data struct {
-				Diff map[string]struct {
-					F2  float64 `json:"f2"`  // current price (元/克)
-					F3  float64 `json:"f3"`  // change percent (%)
-					F4  float64 `json:"f4"`  // change amount (元)
-					F12 string  `json:"f12"` // code (AU9999)
-					F14 string  `json:"f14"` // name (黄金9999)
-					F18 float64 `json:"f18"` // prev close (昨收元/克)
-				} `json:"diff"`
-			} `json:"data"`
-		}
-
-		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-			resp.Body.Close()
-			lastErr = fmt.Errorf("decode json: %w", err)
-			continue
-		}
-		resp.Body.Close()
-
-		if result.Data.Diff == nil {
-			lastErr = fmt.Errorf("no data returned for SGE")
-			continue
-		}
-
-		for _, item := range result.Data.Diff {
-			if strings.EqualFold(item.F12, code) {
-				// Use current price; if market closed (f2=0), fall back to prev close
-				price := item.F2
-				if price <= 0 {
-					price = item.F18 // prev close
-				}
-				if price <= 0 {
-					return nil, fmt.Errorf("%s: no valid price (market closed, no prev close)", symbol)
-				}
-				priceCents := int64(math.Round(price * 100))
-				changeCents := int64(math.Round(item.F4 * 100))
-				return &MarketQuote{
-					Symbol:        symbol,
-					Name:          item.F14,
-					MarketType:    "precious_metal",
-					CurrentPrice:  priceCents,
-					ChangeAmount:  changeCents,
-					ChangePercent: item.F3,
-				}, nil
-			}
-		}
-		return nil, fmt.Errorf("%s: not found in SGE listing", symbol)
-	}
-
-	return nil, fmt.Errorf("fetchPreciousMetalRealtime(%s) failed after 3 retries: %w", symbol, lastErr)
-}
-
-// fetchPreciousMetalKline fetches the last close price from kline history.
-// Works on weekends and non-trading hours when the realtime endpoint is down.
-func (r *RealFetcher) fetchPreciousMetalKline(ctx context.Context, symbol, code string) (*MarketQuote, error) {
-	url := fmt.Sprintf(
-		"https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=118.%s&fields1=f1,f2,f3,f4&fields2=f51,f52,f53,f54,f55&klt=101&fqt=0&end=20500101&lmt=10",
-		code,
-	)
+// fetchSinaPreciousMetal queries https://hq.sinajs.cn/list=gds_<CODE>.
+//
+// Response is a single line, GBK-encoded:
+//
+//	var hq_str_gds_AU9999="937.52,0,938.50,939.89,943.00,909.00,15:30:01,907.47,912.60,...,沪金99";
+//
+// Comma-separated fields (0-indexed), verified against EastMoney kline history:
+//
+//	[0]  current price (元/克)
+//	[4]  high
+//	[5]  low
+//	[6]  time HH:MM:SS
+//	[7]  previous close  (used to derive change)
+//	[8]  open
+//	[13] product name
+func (r *RealFetcher) fetchSinaPreciousMetal(ctx context.Context, symbol, code string) (*MarketQuote, error) {
+	url := "https://hq.sinajs.cn/list=gds_" + code
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("create kline request: %w", err)
+		return nil, fmt.Errorf("create sina request: %w", err)
 	}
-	req.Header.Set("Referer", "https://www.eastmoney.com/")
+	// Sina rejects requests without a finance.sina.com.cn Referer.
+	req.Header.Set("Referer", "https://finance.sina.com.cn/")
 	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible)")
 
 	resp, err := r.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("kline http get: %w", err)
+		return nil, fmt.Errorf("sina http get: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("kline endpoint returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("sina returned status %d", resp.StatusCode)
 	}
 
-	var result struct {
-		Data struct {
-			Code   string   `json:"code"`
-			Name   string   `json:"name"`
-			Klines []string `json:"klines"`
-		} `json:"data"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("decode kline json: %w", err)
-	}
-
-	if len(result.Data.Klines) == 0 {
-		return nil, fmt.Errorf("%s: no kline data available", symbol)
-	}
-
-	// Parse last kline: "date,open,close,high,low"
-	lastKline := result.Data.Klines[len(result.Data.Klines)-1]
-	parts := strings.Split(lastKline, ",")
-	if len(parts) < 3 {
-		return nil, fmt.Errorf("%s: invalid kline format: %s", symbol, lastKline)
-	}
-
-	closePrice, err := strconv.ParseFloat(parts[2], 64) // close price
+	// Body is GBK; decode to UTF-8.
+	utf8Reader := transform.NewReader(resp.Body, simplifiedchinese.GBK.NewDecoder())
+	raw, err := io.ReadAll(utf8Reader)
 	if err != nil {
-		return nil, fmt.Errorf("%s: parse close price: %w", symbol, err)
+		return nil, fmt.Errorf("read sina body: %w", err)
 	}
 
-	// Calculate change from prev kline if available
-	var prevClose float64
-	if len(result.Data.Klines) >= 2 {
-		prevKline := result.Data.Klines[len(result.Data.Klines)-2]
-		prevParts := strings.Split(prevKline, ",")
-		if len(prevParts) >= 3 {
-			prevClose, _ = strconv.ParseFloat(prevParts[2], 64)
-		}
+	return parseSinaPreciousMetal(symbol, code, string(raw))
+}
+
+// parseSinaPreciousMetal parses a UTF-8 (already GBK-decoded) Sina gds_ line
+// into a MarketQuote. Split out from the HTTP path for testability.
+func parseSinaPreciousMetal(symbol, code, body string) (*MarketQuote, error) {
+	// Extract the quoted payload: var hq_str_gds_XXX="...";
+	start := strings.Index(body, "\"")
+	end := strings.LastIndex(body, "\"")
+	if start < 0 || end <= start {
+		return nil, fmt.Errorf("%s: unexpected sina response: %q", symbol, body)
+	}
+	payload := body[start+1 : end]
+	if payload == "" {
+		return nil, fmt.Errorf("%s: sina returned empty quote (delisted or wrong code %q)", symbol, code)
 	}
 
-	var changeAmount float64
-	var changePercent float64
+	fields := strings.Split(payload, ",")
+	if len(fields) < 14 {
+		return nil, fmt.Errorf("%s: sina payload has %d fields (expected >=14): %q", symbol, len(fields), payload)
+	}
+
+	price, err := strconv.ParseFloat(strings.TrimSpace(fields[0]), 64)
+	if err != nil {
+		return nil, fmt.Errorf("%s: parse current price %q: %w", symbol, fields[0], err)
+	}
+	if price <= 0 {
+		return nil, fmt.Errorf("%s: sina returned non-positive price %v", symbol, price)
+	}
+
+	prevClose, _ := strconv.ParseFloat(strings.TrimSpace(fields[7]), 64)
+
+	var changeAmount, changePercent float64
 	if prevClose > 0 {
-		changeAmount = closePrice - prevClose
+		changeAmount = price - prevClose
 		changePercent = (changeAmount / prevClose) * 100
 	}
 
-	name := result.Data.Name
+	name := strings.TrimSpace(fields[13])
 	if name == "" {
-		// Lookup from our static list
 		for _, pm := range preciousMetalList {
 			if pm.Symbol == symbol {
 				name = pm.Name
@@ -962,16 +893,21 @@ func (r *RealFetcher) fetchPreciousMetalKline(ctx context.Context, symbol, code 
 		}
 	}
 
-	priceCents := int64(math.Round(closePrice * 100))
-	changeCents := int64(math.Round(changeAmount * 100))
+	open, _ := strconv.ParseFloat(strings.TrimSpace(fields[8]), 64)
+	high, _ := strconv.ParseFloat(strings.TrimSpace(fields[4]), 64)
+	low, _ := strconv.ParseFloat(strings.TrimSpace(fields[5]), 64)
 
 	return &MarketQuote{
 		Symbol:        symbol,
 		Name:          name,
 		MarketType:    "precious_metal",
-		CurrentPrice:  priceCents,
-		ChangeAmount:  changeCents,
+		CurrentPrice:  int64(math.Round(price * 100)),
+		ChangeAmount:  int64(math.Round(changeAmount * 100)),
 		ChangePercent: changePercent,
+		Open:          int64(math.Round(open * 100)),
+		High:          int64(math.Round(high * 100)),
+		Low:           int64(math.Round(low * 100)),
+		PrevClose:     int64(math.Round(prevClose * 100)),
 	}, nil
 }
 
