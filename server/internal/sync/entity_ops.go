@@ -15,18 +15,18 @@ import (
 // ── Loan sync operations ────────────────────────────────────────────────────
 
 type loanPayload struct {
-	Name             string  `json:"name"`
-	LoanType         string  `json:"loan_type"`
-	Principal        int64   `json:"principal"`
-	RemainingPrincipal int64 `json:"remaining_principal"`
-	AnnualRate       float64 `json:"annual_rate"`
-	TotalMonths      int     `json:"total_months"`
-	PaidMonths       int     `json:"paid_months"`
-	RepaymentMethod  string  `json:"repayment_method"`
-	PaymentDay       int     `json:"payment_day"`
-	StartDate        string  `json:"start_date"`
-	AccountID        string  `json:"account_id"`
-	GroupID          string  `json:"group_id"`
+	Name               string  `json:"name"`
+	LoanType           string  `json:"loan_type"`
+	Principal          int64   `json:"principal"`
+	RemainingPrincipal int64   `json:"remaining_principal"`
+	AnnualRate         float64 `json:"annual_rate"`
+	TotalMonths        int     `json:"total_months"`
+	PaidMonths         int     `json:"paid_months"`
+	RepaymentMethod    string  `json:"repayment_method"`
+	PaymentDay         int     `json:"payment_day"`
+	StartDate          string  `json:"start_date"`
+	AccountID          string  `json:"account_id"`
+	GroupID            string  `json:"group_id"`
 }
 
 func (s *Service) applyLoanOp(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, opType string, payload string) error {
@@ -207,7 +207,7 @@ func (s *Service) applyLoanGroupUpdate(ctx context.Context, tx pgx.Tx, userID uu
 
 	var b dynupdate.Builder
 	b.SetString("name", p.Name)
-		b.SetInt64NonZero("total_principal", p.TotalPrincipal)
+	b.SetInt64NonZero("total_principal", p.TotalPrincipal)
 
 	query, args := b.BuildOrNoOp("loan_groups", entityID)
 	_, err := tx.Exec(ctx, query, args...)
@@ -220,11 +220,29 @@ func (s *Service) applyLoanGroupUpdate(ctx context.Context, tx pgx.Tx, userID uu
 // ── Investment sync operations ──────────────────────────────────────────────
 
 type investmentPayload struct {
-	Symbol     string  `json:"symbol"`
-	Name       string  `json:"name"`
-	MarketType string  `json:"market_type"`
-	Quantity   float64 `json:"quantity"`
-	CostBasis  int64   `json:"cost_basis"`
+	Symbol     string `json:"symbol"`
+	Name       string `json:"name"`
+	MarketType string `json:"market_type"`
+	// Pointers so update can distinguish "field absent" (nil = leave unchanged)
+	// from "explicitly set to 0" (e.g. full liquidation). A plain float64/int64
+	// would collapse both into 0, and the old `!= 0` guard would then drop
+	// legitimate zero writes, freezing a liquidated holding at its old size.
+	Quantity  *float64 `json:"quantity"`
+	CostBasis *int64   `json:"cost_basis"`
+}
+
+func (p investmentPayload) quantityOrZero() float64 {
+	if p.Quantity == nil {
+		return 0
+	}
+	return *p.Quantity
+}
+
+func (p investmentPayload) costBasisOrZero() int64 {
+	if p.CostBasis == nil {
+		return 0
+	}
+	return *p.CostBasis
 }
 
 func (s *Service) applyInvestmentOp(ctx context.Context, tx pgx.Tx, userID uuid.UUID, entityID uuid.UUID, opType string, payload string) error {
@@ -254,12 +272,17 @@ func (s *Service) applyInvestmentCreate(ctx context.Context, tx pgx.Tx, userID u
 		p.MarketType = "a_share"
 	}
 
+	// ON CONFLICT must NOT overwrite quantity/cost_basis. A create only
+	// (re)establishes the holding container; position size is owned by
+	// trades/updates. Overwriting here would let an offline create carrying a
+	// placeholder 0 silently zero out an existing position pushed from another
+	// device. Only un-delete and refresh the name.
 	_, err := tx.Exec(ctx,
 		`INSERT INTO investments (id, user_id, symbol, name, market_type, quantity, cost_basis)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7)
 		 ON CONFLICT (user_id, symbol, market_type) DO UPDATE SET
-		   name = EXCLUDED.name, quantity = EXCLUDED.quantity, cost_basis = EXCLUDED.cost_basis, updated_at = NOW(), deleted_at = NULL`,
-		entityID, userID, p.Symbol, p.Name, p.MarketType, p.Quantity, p.CostBasis,
+		   name = EXCLUDED.name, updated_at = NOW(), deleted_at = NULL`,
+		entityID, userID, p.Symbol, p.Name, p.MarketType, p.quantityOrZero(), p.costBasisOrZero(),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert investment: %w", err)
@@ -279,8 +302,10 @@ func (s *Service) applyInvestmentUpdate(ctx context.Context, tx pgx.Tx, userID u
 
 	var b dynupdate.Builder
 	b.SetString("name", p.Name)
-	b.Set("quantity", p.Quantity, p.Quantity != 0)
-	b.Set("cost_basis", p.CostBasis, p.CostBasis != 0)
+	// nil = field absent (leave unchanged); non-nil (incl. 0) = explicit write.
+	// This lets a full liquidation (quantity/cost_basis = 0) actually persist.
+	b.Set("quantity", p.quantityOrZero(), p.Quantity != nil)
+	b.Set("cost_basis", p.costBasisOrZero(), p.CostBasis != nil)
 
 	query, args := b.BuildOrNoOp("investments", entityID)
 	_, err := tx.Exec(ctx, query, args...)

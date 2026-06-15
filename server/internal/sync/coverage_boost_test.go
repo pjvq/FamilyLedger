@@ -360,7 +360,7 @@ func TestApplyInvestmentUpdate_Success(t *testing.T) {
 		WithArgs("新名字", 200.0, int64(360000), eid).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
-	p, _ := json.Marshal(investmentPayload{Name: "新名字", Quantity: 200, CostBasis: 360000})
+	p := []byte(`{"name":"新名字","quantity":200,"cost_basis":360000}`)
 	err := svc.applyInvestmentUpdate(context.Background(), tx, uid, eid, string(p))
 	assert.NoError(t, err)
 }
@@ -369,6 +369,43 @@ func TestApplyInvestmentUpdate_InvalidJSON(t *testing.T) {
 	svc, _, tx := newSvc(t)
 	err := svc.applyInvestmentUpdate(context.Background(), tx, uid, uuid.New(), "bad")
 	assert.Error(t, err)
+}
+
+// CRITICAL 2A regression: a full liquidation (quantity=0, cost_basis=0) must
+// actually be written. Pointer fields distinguish explicit-zero from absent,
+// so the SET clause includes the zeros instead of dropping them.
+func TestApplyInvestmentUpdate_ExplicitZero_Liquidation(t *testing.T) {
+	svc, mock, tx := newSvc(t)
+	eid := uuid.New()
+	mock.ExpectQuery("SELECT user_id FROM investments").
+		WithArgs(eid).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id"}).AddRow(uid))
+	mock.ExpectExec("UPDATE investments SET").
+		WithArgs(float64(0), int64(0), eid).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	p := []byte(`{"quantity":0,"cost_basis":0}`)
+	err := svc.applyInvestmentUpdate(context.Background(), tx, uid, eid, string(p))
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// Absent fields (nil pointers) must be left unchanged — the update becomes a
+// no-op when only nil fields are present.
+func TestApplyInvestmentUpdate_AbsentFields_NoOp(t *testing.T) {
+	svc, mock, tx := newSvc(t)
+	eid := uuid.New()
+	mock.ExpectQuery("SELECT user_id FROM investments").
+		WithArgs(eid).
+		WillReturnRows(pgxmock.NewRows([]string{"user_id"}).AddRow(uid))
+	// No SET on quantity/cost_basis; dynupdate emits a no-op (updated_at only).
+	mock.ExpectExec("UPDATE investments SET updated_at").
+		WithArgs(eid).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	p := []byte(`{}`)
+	err := svc.applyInvestmentUpdate(context.Background(), tx, uid, eid, string(p))
+	assert.NoError(t, err)
 }
 
 func TestApplyInvestmentUpdate_NoFields(t *testing.T) {

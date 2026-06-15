@@ -80,14 +80,7 @@ func TestApplyInvestmentOp_Create(t *testing.T) {
 	userUID := uuid.MustParse(testUserID)
 	entityID := uuid.New()
 
-	payload := investmentPayload{
-		Symbol:     "600519",
-		Name:       "贵州茅台",
-		MarketType: "a_share",
-		Quantity:   100.0,
-		CostBasis:  1800000,
-	}
-	payloadJSON, _ := json.Marshal(payload)
+	payloadJSON := []byte(`{"symbol":"600519","name":"贵州茅台","market_type":"a_share","quantity":100.0,"cost_basis":1800000}`)
 
 	mock.ExpectBegin()
 	tx, err := mock.Begin(context.Background())

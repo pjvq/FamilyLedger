@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer' as dev;
+import 'dart:io' show SocketException;
 import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -144,24 +145,43 @@ ts_pb.Timestamp _toTimestamp(DateTime dt) {
 }
 
 DateTime _fromTimestamp(ts_pb.Timestamp ts) =>
-    DateTime.fromMillisecondsSinceEpoch(ts.seconds.toInt() * 1000);
+    DateTime.fromMillisecondsSinceEpoch(
+      ts.seconds.toInt() * 1000 + (ts.nanos ~/ 1000000),
+      isUtc: true,
+    ).toLocal();
 
 /// Whether a failed RPC should be treated as "offline" and queued for later
-/// push. Only transient/connectivity errors qualify. Business rejections
-/// (already-exists, invalid-argument, permission-denied, unauthenticated, …)
-/// must NOT be queued — queuing them produces orphan sync ops that resurrect
-/// as "ghost" rows on every fresh device pull (the server applies the create
-/// via ON CONFLICT DO UPDATE, so the op sticks even though the original RPC
-/// was a hard rejection).
+/// push. Fail-closed: only errors we can positively identify as transient
+/// connectivity failures qualify. Everything else (business rejections like
+/// already-exists / invalid-argument / permission-denied / unauthenticated,
+/// AND unexpected non-gRPC errors such as serialization/assertion/local-DB
+/// failures) must NOT be queued — queuing them produces orphan sync ops that
+/// resurrect as "ghost" rows on every fresh device pull (the server applies
+/// the create via ON CONFLICT, so the op sticks even though the original RPC
+/// was a hard rejection or never a real network failure).
 bool _isOfflineError(Object e) {
   if (e is GrpcError) {
-    return e.code == StatusCode.unavailable ||
-        e.code == StatusCode.deadlineExceeded ||
-        e.code == StatusCode.resourceExhausted ||
-        e.code == StatusCode.aborted;
+    switch (e.code) {
+      case StatusCode.unavailable:
+      case StatusCode.deadlineExceeded:
+      case StatusCode.resourceExhausted:
+      case StatusCode.aborted:
+      // cancelled: RPC torn down by app backgrounding / connection drop —
+      // a transient condition that should be retried, not surfaced as a
+      // hard error to the user.
+      case StatusCode.cancelled:
+        return true;
+      default:
+        return false;
+    }
   }
-  // Non-gRPC errors (socket/timeout/TLS) are connectivity failures → queue.
-  return true;
+  // Raw socket / TLS / timeout exceptions surface as non-gRPC errors on some
+  // platforms; these ARE connectivity failures and should be queued.
+  if (e is SocketException || e is TimeoutException) {
+    return true;
+  }
+  // Unknown error type → fail-closed: do not queue, surface to UI.
+  return false;
 }
 
 String _tradeTypeToString(pb_enum.TradeType type) {
@@ -302,23 +322,24 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
         marketType: marketType,
       ));
 
-      // Payload fields MUST match server investmentPayload (entity_ops.go):
-      // symbol, name, market_type (string), quantity (float64), cost_basis (int64).
-      // family_id is included for client-side pull (_applyInvestmentOp reads it);
-      // the server create path ignores it (uses entityId + userId).
-      dev.log('createInvestment: gRPC failed, queueing create: $e',
+      // Payload MUST match server investmentPayload (entity_ops.go): only
+      // symbol/name/market_type/quantity/cost_basis are decoded; id & family_id
+      // are NOT fields on the struct and would be silently dropped.
+      //
+      // We deliberately omit quantity/cost_basis here: the server create path
+      // does NOT overwrite them on ON CONFLICT (it only re-establishes the
+      // holding container), and a brand-new holding starts at 0 via the INSERT
+      // default. Position size is established by the subsequent trade/update
+      // op, never by a placeholder in the create payload.
+      dev.log('createInvestment: offline, queueing create: $e',
           name: 'investment');
       await _syncQueue.enqueueCreate(
         entityType: 'investment',
         entityId: invId,
         payload: {
-          'id': invId,
           'symbol': symbol,
           'name': name,
           'market_type': marketType,
-          'quantity': 0.0,
-          'cost_basis': 0,
-          'family_id': fid,
         },
       );
     }
@@ -404,34 +425,26 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
         ),
       );
 
-      // Trade sync strategy: the server sync (applyOperation) has NO 'trade'
-      // entity — trades only reach the server via the live recordTrade RPC.
-      // When that RPC fails (offline), we converge by enqueuing an investment
-      // UPDATE carrying the recomputed quantity + cost_basis so the holding
-      // state still propagates once connectivity returns.
+      // Trade sync strategy: the server sync engine has NO 'trade' entity —
+      // trades only reach the server via the live recordTrade RPC. When that
+      // RPC fails (offline), we converge by enqueuing an investment UPDATE
+      // carrying the recomputed quantity + cost_basis so the holding state
+      // still propagates once connectivity returns.
       //
-      // Payload fields match server investmentPayload (entity_ops.go):
-      // symbol, name, market_type, quantity (float64), cost_basis (int64).
-      // We send the full identity fields (symbol/name/market_type) so a queued
-      // create+trade sequence stays consistent regardless of push ordering.
-      //
-      // KNOWN SERVER LIMITATION: applyInvestmentUpdate uses dynupdate with
-      // `quantity != 0` / `cost_basis != 0` guards, so a full liquidation
-      // (newQty == 0 / newCost == 0) will NOT be zeroed server-side via this
-      // update path. This is a pre-existing server constraint; not worked
-      // around here to avoid silently diverging behavior.
+      // Payload only carries fields on server investmentPayload (entity_ops.go):
+      // name/quantity/cost_basis. (symbol/market_type are immutable identity and
+      // not updatable; id/family_id are not struct fields.) Full liquidation
+      // (newQty == 0) now persists correctly: the server uses pointer fields to
+      // distinguish absent from explicit-zero, so 0 is written rather than
+      // dropped by the old `!= 0` guard.
       if (!syncedToServer) {
         await _syncQueue.enqueueUpdate(
           entityType: 'investment',
           entityId: investmentId,
           payload: {
-            'id': investmentId,
-            'symbol': investment.symbol,
             'name': investment.name,
-            'market_type': investment.marketType,
             'quantity': newQty,
             'cost_basis': newCost,
-            'family_id': investment.familyId,
           },
         );
       }

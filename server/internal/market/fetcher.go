@@ -848,6 +848,19 @@ func (r *RealFetcher) fetchSinaPreciousMetal(ctx context.Context, symbol, code s
 	return parseSinaPreciousMetal(symbol, code, string(raw))
 }
 
+// Sina gds_ payload field indices (comma-separated), verified against
+// EastMoney kline history. Documented here so a layout change is a one-line
+// fix instead of hunting magic numbers.
+const (
+	sinaIdxPrice     = 0  // current price (元/克)
+	sinaIdxHigh      = 4  // intraday high
+	sinaIdxLow       = 5  // intraday low
+	sinaIdxPrevClose = 7  // previous close (drives change)
+	sinaIdxOpen      = 8  // open
+	sinaIdxName      = 13 // product name
+	sinaFieldCount   = 14 // minimum field count required
+)
+
 // parseSinaPreciousMetal parses a UTF-8 (already GBK-decoded) Sina gds_ line
 // into a MarketQuote. Split out from the HTTP path for testability.
 func parseSinaPreciousMetal(symbol, code, body string) (*MarketQuote, error) {
@@ -863,19 +876,25 @@ func parseSinaPreciousMetal(symbol, code, body string) (*MarketQuote, error) {
 	}
 
 	fields := strings.Split(payload, ",")
-	if len(fields) < 14 {
-		return nil, fmt.Errorf("%s: sina payload has %d fields (expected >=14): %q", symbol, len(fields), payload)
+	if len(fields) < sinaFieldCount {
+		return nil, fmt.Errorf("%s: sina payload has %d fields (expected >=%d): %q", symbol, len(fields), sinaFieldCount, payload)
 	}
 
-	price, err := strconv.ParseFloat(strings.TrimSpace(fields[0]), 64)
+	price, err := strconv.ParseFloat(strings.TrimSpace(fields[sinaIdxPrice]), 64)
 	if err != nil {
-		return nil, fmt.Errorf("%s: parse current price %q: %w", symbol, fields[0], err)
+		return nil, fmt.Errorf("%s: parse current price %q: %w", symbol, fields[sinaIdxPrice], err)
 	}
 	if price <= 0 {
 		return nil, fmt.Errorf("%s: sina returned non-positive price %v", symbol, price)
 	}
 
-	prevClose, _ := strconv.ParseFloat(strings.TrimSpace(fields[7]), 64)
+	// prevClose drives change amount/percent. Treat a parse failure as a hard
+	// error rather than defaulting to 0 — a silent 0 would render as a bogus
+	// "zero change" instead of surfacing that the upstream data is malformed.
+	prevClose, err := strconv.ParseFloat(strings.TrimSpace(fields[sinaIdxPrevClose]), 64)
+	if err != nil {
+		return nil, fmt.Errorf("%s: parse prev close %q: %w", symbol, fields[sinaIdxPrevClose], err)
+	}
 
 	var changeAmount, changePercent float64
 	if prevClose > 0 {
@@ -883,7 +902,7 @@ func parseSinaPreciousMetal(symbol, code, body string) (*MarketQuote, error) {
 		changePercent = (changeAmount / prevClose) * 100
 	}
 
-	name := strings.TrimSpace(fields[13])
+	name := strings.TrimSpace(fields[sinaIdxName])
 	if name == "" {
 		for _, pm := range preciousMetalList {
 			if pm.Symbol == symbol {
@@ -893,9 +912,10 @@ func parseSinaPreciousMetal(symbol, code, body string) (*MarketQuote, error) {
 		}
 	}
 
-	open, _ := strconv.ParseFloat(strings.TrimSpace(fields[8]), 64)
-	high, _ := strconv.ParseFloat(strings.TrimSpace(fields[4]), 64)
-	low, _ := strconv.ParseFloat(strings.TrimSpace(fields[5]), 64)
+	// open/high/low are informational; tolerate parse failures (default 0).
+	open, _ := strconv.ParseFloat(strings.TrimSpace(fields[sinaIdxOpen]), 64)
+	high, _ := strconv.ParseFloat(strings.TrimSpace(fields[sinaIdxHigh]), 64)
+	low, _ := strconv.ParseFloat(strings.TrimSpace(fields[sinaIdxLow]), 64)
 
 	return &MarketQuote{
 		Symbol:        symbol,
