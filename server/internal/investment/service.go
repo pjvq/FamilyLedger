@@ -290,20 +290,38 @@ func (s *Service) RecordTrade(ctx context.Context, req *pb.RecordTradeRequest) (
 	}
 	defer tx.Rollback(ctx)
 
-	// Verify ownership and get current state
-	var curQuantity float64
-	var curCostBasis int64
+	// Check ownership or family permission
+	var ownerID string
+	var invFamilyID *string
 	err = tx.QueryRow(ctx,
-		`SELECT quantity, cost_basis FROM investments
-		 WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
-		 FOR UPDATE`,
-		req.InvestmentId, userID,
-	).Scan(&curQuantity, &curCostBasis)
+		"SELECT user_id, family_id FROM investments WHERE id = $1 AND deleted_at IS NULL FOR UPDATE",
+		req.InvestmentId,
+	).Scan(&ownerID, &invFamilyID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "investment not found")
 		}
 		return nil, status.Errorf(codes.Internal, "query investment: %v", err)
+	}
+	if ownerID != userID {
+		if invFamilyID != nil {
+			if err := permission.Check(ctx, s.pool, userID, *invFamilyID, permission.CanEdit); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, status.Error(codes.PermissionDenied, "not your investment")
+		}
+	}
+
+	// Get current state for quantity/cost update
+	var curQuantity float64
+	var curCostBasis int64
+	err = tx.QueryRow(ctx,
+		`SELECT quantity, cost_basis FROM investments WHERE id = $1`,
+		req.InvestmentId,
+	).Scan(&curQuantity, &curCostBasis)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "query investment state: %v", err)
 	}
 
 	var newQuantity float64
@@ -386,14 +404,27 @@ func (s *Service) ListTrades(ctx context.Context, req *pb.ListTradesRequest) (*p
 		return nil, status.Error(codes.InvalidArgument, "investment_id is required")
 	}
 
-	// Verify ownership
-	var exists bool
+	// Check ownership or family permission
+	var ownerID string
+	var invFamilyID *string
 	err = s.pool.QueryRow(ctx,
-		`SELECT EXISTS(SELECT 1 FROM investments WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL)`,
-		req.InvestmentId, userID,
-	).Scan(&exists)
-	if err != nil || !exists {
-		return nil, status.Error(codes.NotFound, "investment not found")
+		"SELECT user_id, family_id FROM investments WHERE id = $1 AND deleted_at IS NULL",
+		req.InvestmentId,
+	).Scan(&ownerID, &invFamilyID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, status.Error(codes.NotFound, "investment not found")
+		}
+		return nil, status.Errorf(codes.Internal, "query investment: %v", err)
+	}
+	if ownerID != userID {
+		if invFamilyID != nil {
+			if err := permission.Check(ctx, s.pool, userID, *invFamilyID, permission.CanView); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, status.Error(codes.PermissionDenied, "not your investment")
+		}
 	}
 
 	rows, err := s.pool.Query(ctx,
