@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"math"
 	"time"
 
@@ -393,7 +394,7 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 	}
 
 	// Record transaction
-	if err := recordPrepaymentTxn(ctx, tx, userID, req.LoanId, loan, req.PrepaymentAmount); err != nil {
+	if err := recordPrepaymentTxn(ctx, tx, userID, req.LoanId, loan.AccountId, loan.Name, loan.FamilyId, req.PrepaymentAmount); err != nil {
 		return nil, status.Error(codes.Internal, "failed to record prepayment transaction")
 	}
 
@@ -401,8 +402,7 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
 
-	log.Printf("loan: prepayment executed %s: amount=%d strategy=%s newPrincipal=%d newMonths=%d",
-		req.LoanId, req.PrepaymentAmount, req.Strategy, calc.newPrincipal, calc.newTotalMonths)
+	slog.Info("loan: prepayment executed", "loan_id", req.LoanId, "amount", req.PrepaymentAmount, "strategy", req.Strategy.String(), "new_principal", calc.newPrincipal, "new_months", calc.newTotalMonths)
 
 	// Build response
 	loan.RemainingPrincipal = calc.newPrincipal

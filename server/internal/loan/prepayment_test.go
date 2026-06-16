@@ -210,3 +210,36 @@ func TestCalcReduceMonths_PanicsOnUnknownMethod(t *testing.T) {
 		calcReduceMonths(loan, 80000, "progressive", "monthly", 15, time.Now())
 	})
 }
+
+func TestCalcPrepaymentSchedule_InterestSavedClampedToZero(t *testing.T) {
+	startDate := time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC)
+	// Tiny prepayment on a very low interest loan — rounding may cause
+	// totalInterestAfter >= totalInterestBefore, interestSaved should clamp to 0.
+	items := []*pb.LoanScheduleItem{
+		{MonthNumber: 1, Payment: 10100, PrincipalPart: 10000, InterestPart: 100, IsPaid: true, DueDate: timestamppb.New(startDate.AddDate(0, 1, 0))},
+		{MonthNumber: 2, Payment: 10100, PrincipalPart: 10000, InterestPart: 100, IsPaid: false, DueDate: timestamppb.New(startDate.AddDate(0, 2, 0))},
+		{MonthNumber: 3, Payment: 10100, PrincipalPart: 10000, InterestPart: 100, IsPaid: false, DueDate: timestamppb.New(startDate.AddDate(0, 3, 0))},
+	}
+
+	loan := &pb.Loan{
+		Principal:          30000,
+		RemainingPrincipal: 20000,
+		AnnualRate:         0.01, // extremely low rate
+		TotalMonths:        3,
+		PaidMonths:         1,
+		RepaymentMethod:    pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT,
+		PaymentDay:         15,
+		StartDate:          timestamppb.New(startDate),
+		InterestCalcMethod: pb.InterestCalcMethod_INTEREST_CALC_MONTHLY,
+	}
+
+	calc := calcPrepaymentSchedule(prepaymentInput{
+		loan:             loan,
+		items:            items,
+		prepaymentAmount: 1, // minimal prepayment
+		strategy:         pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_PAYMENT,
+	})
+
+	// interestSaved should never be negative
+	assert.GreaterOrEqual(t, calc.interestSaved, int64(0))
+}

@@ -233,18 +233,17 @@ func persistPrepayment(ctx context.Context, tx pgx.Tx, loanID string, paidMonths
 // recordPrepaymentTxn creates the expense transaction record for the prepayment.
 // Fatal: prefer consistency (no orphan balance deduction without matching
 // transaction record) over availability.
-func recordPrepaymentTxn(ctx context.Context, tx pgx.Tx, userID, loanID string, loan *pb.Loan, prepaymentAmount int64) error {
+func recordPrepaymentTxn(ctx context.Context, tx pgx.Tx, userID, loanID, accountID, loanName, familyID string, prepaymentAmount int64) error {
 	categoryID := resolveLoanRepaymentCategoryID(ctx, tx, loanID)
-	accountID := loan.AccountId
 
 	if categoryID == "" || accountID == "" {
 		return nil
 	}
 
-	note := fmt.Sprintf("%s 提前还款", loan.Name)
+	note := fmt.Sprintf("%s 提前还款", loanName)
 	var familyIDVal interface{}
-	if loan.FamilyId != "" {
-		familyIDVal = loan.FamilyId
+	if familyID != "" {
+		familyIDVal = familyID
 	}
 
 	_, err := tx.Exec(ctx,
