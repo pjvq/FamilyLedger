@@ -3,7 +3,7 @@ package loan
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"math"
 	"time"
 
@@ -33,7 +33,7 @@ type prepaymentCalcResult struct {
 	totalInterestAfter  int64
 	interestSaved       int64
 	monthsReduced       int32
-	displayMonthlyPmt   int64
+	displayMonthlyPayment   int64
 }
 
 // ── Pure Computation ─────────────────────────────────────────────────────────
@@ -108,9 +108,9 @@ func calcPrepaymentSchedule(in prepaymentInput) prepaymentCalcResult {
 	if monthsReduced < 0 {
 		monthsReduced = 0
 	}
-	var displayMonthlyPmt int64
+	var displayMonthlyPayment int64
 	if len(newSchedule) > 0 {
-		displayMonthlyPmt = newSchedule[0].payment
+		displayMonthlyPayment = newSchedule[0].payment
 	}
 
 	return prepaymentCalcResult{
@@ -121,7 +121,7 @@ func calcPrepaymentSchedule(in prepaymentInput) prepaymentCalcResult {
 		totalInterestAfter:  totalInterestAfter,
 		interestSaved:       interestSaved,
 		monthsReduced:       monthsReduced,
-		displayMonthlyPmt:   displayMonthlyPmt,
+		displayMonthlyPayment:   displayMonthlyPayment,
 	}
 }
 
@@ -161,6 +161,7 @@ func calcReduceMonths(loan *pb.Loan, newPrincipal int64, method, calcMethod stri
 
 // findNextUnpaidDueDate returns the due date of the first unpaid schedule item,
 // or fallback if all are paid / empty.
+// Unreachable fallback when called from calcPrepaymentSchedule (caller handles full-prepay separately).
 func findNextUnpaidDueDate(items []*pb.LoanScheduleItem, fallback time.Time) time.Time {
 	for _, it := range items {
 		if !it.IsPaid {
@@ -185,7 +186,7 @@ func persistPrepayment(ctx context.Context, tx pgx.Tx, loanID string, paidMonths
 		calc.newPrincipal, calc.newTotalMonths, loanID,
 	)
 	if err != nil {
-		log.Printf("loan: execute prepayment: update loan %s failed: %v", loanID, err)
+		slog.Error("loan: execute prepayment: update loan failed", "loan_id", loanID, "error", err)
 		return fmt.Errorf("failed to update loan")
 	}
 
@@ -195,7 +196,7 @@ func persistPrepayment(ctx context.Context, tx pgx.Tx, loanID string, paidMonths
 		loanID,
 	)
 	if err != nil {
-		log.Printf("loan: execute prepayment: delete schedule for loan %s failed: %v", loanID, err)
+		slog.Error("loan: execute prepayment: delete schedule failed", "loan_id", loanID, "error", err)
 		return fmt.Errorf("failed to delete unpaid schedule")
 	}
 
@@ -209,7 +210,7 @@ func persistPrepayment(ctx context.Context, tx pgx.Tx, loanID string, paidMonths
 			item.interestPart, item.remainingPrincipal, item.dueDate,
 		)
 		if err != nil {
-			log.Printf("loan: execute prepayment: insert schedule item %d for loan %s failed: %v", monthNum, loanID, err)
+			slog.Error("loan: execute prepayment: insert schedule item failed", "month", monthNum, "loan_id", loanID, "error", err)
 			return fmt.Errorf("failed to insert schedule item %d", monthNum)
 		}
 	}
@@ -221,7 +222,7 @@ func persistPrepayment(ctx context.Context, tx pgx.Tx, loanID string, paidMonths
 			prepaymentAmount, accountID,
 		)
 		if err != nil {
-			log.Printf("loan: execute prepayment: failed to deduct from account %s: %v", accountID, err)
+			slog.Error("loan: execute prepayment: failed to deduct from account", "account_id", accountID, "error", err)
 			return fmt.Errorf("failed to deduct from account")
 		}
 	}
@@ -252,7 +253,7 @@ func recordPrepaymentTxn(ctx context.Context, tx pgx.Tx, userID, loanID string, 
 		userID, accountID, categoryID, prepaymentAmount, note, time.Now(), familyIDVal,
 	)
 	if err != nil {
-		log.Printf("loan: execute prepayment: failed to create transaction record: %v", err)
+		slog.Error("loan: execute prepayment: failed to create transaction record", "error", err)
 		return fmt.Errorf("failed to record prepayment transaction")
 	}
 	return nil
@@ -269,7 +270,7 @@ func buildPrepaymentSimulationProto(calc prepaymentCalcResult, prepaymentAmount 
 		TotalInterestAfter:  calc.totalInterestAfter,
 		InterestSaved:       calc.interestSaved,
 		MonthsReduced:       calc.monthsReduced,
-		NewMonthlyPayment:   calc.displayMonthlyPmt,
+		NewMonthlyPayment:   calc.displayMonthlyPayment,
 	}
 }
 
