@@ -146,7 +146,10 @@ func calcReduceMonths(loan *pb.Loan, newPrincipal int64, method, calcMethod stri
 		remainingMonths := int(loan.TotalMonths - loan.PaidMonths)
 		return generateSchedule(newPrincipal, loan.AnnualRate, remainingMonths, method, paymentDay, startDate, calcMethod)
 
-	default: // equal_principal
+	default:
+		if method != "equal_principal" {
+			panic("loan: unsupported repayment method in calcReduceMonths: " + method)
+		}
 		origMonthlyPrincipal := roundCent(float64(loan.Principal) / float64(loan.TotalMonths))
 		newMonths := int(math.Ceil(float64(newPrincipal) / float64(origMonthlyPrincipal)))
 		if newMonths < 1 {
@@ -174,7 +177,7 @@ func findNextUnpaidDueDate(items []*pb.LoanScheduleItem, fallback time.Time) tim
 //  2. Delete all unpaid schedule items
 //  3. Insert new schedule items
 //  4. Deduct amount from associated account
-func persistPrepayment(ctx context.Context, tx pgx.Tx, loanID string, loan *pb.Loan, calc prepaymentCalcResult, prepaymentAmount int64) error {
+func persistPrepayment(ctx context.Context, tx pgx.Tx, loanID string, paidMonths int32, accountID string, calc prepaymentCalcResult, prepaymentAmount int64) error {
 	// 1. Update loan
 	_, err := tx.Exec(ctx,
 		`UPDATE loans SET remaining_principal = $1, total_months = $2, updated_at = NOW()
@@ -198,7 +201,7 @@ func persistPrepayment(ctx context.Context, tx pgx.Tx, loanID string, loan *pb.L
 
 	// 3. Insert new schedule (month_number continues from paid_months+1)
 	for i, item := range calc.newSchedule {
-		monthNum := int(loan.PaidMonths) + 1 + i
+		monthNum := int(paidMonths) + 1 + i
 		_, err = tx.Exec(ctx,
 			`INSERT INTO loan_schedules (loan_id, month_number, payment, principal_part,
 			 interest_part, remaining_principal, due_date) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
@@ -212,13 +215,13 @@ func persistPrepayment(ctx context.Context, tx pgx.Tx, loanID string, loan *pb.L
 	}
 
 	// 4. Deduct from associated account
-	if loan.AccountId != "" {
+	if accountID != "" {
 		_, err = tx.Exec(ctx,
 			`UPDATE accounts SET balance = balance - $1, updated_at = NOW() WHERE id = $2`,
-			prepaymentAmount, loan.AccountId,
+			prepaymentAmount, accountID,
 		)
 		if err != nil {
-			log.Printf("loan: execute prepayment: failed to deduct from account %s: %v", loan.AccountId, err)
+			log.Printf("loan: execute prepayment: failed to deduct from account %s: %v", accountID, err)
 			return fmt.Errorf("failed to deduct from account")
 		}
 	}
@@ -227,7 +230,8 @@ func persistPrepayment(ctx context.Context, tx pgx.Tx, loanID string, loan *pb.L
 }
 
 // recordPrepaymentTxn creates the expense transaction record for the prepayment.
-// Returns error to allow tx rollback on failure (avoids balance-deducted-but-no-record inconsistency).
+// Fatal: prefer consistency (no orphan balance deduction without matching
+// transaction record) over availability.
 func recordPrepaymentTxn(ctx context.Context, tx pgx.Tx, userID, loanID string, loan *pb.Loan, prepaymentAmount int64) error {
 	categoryID := resolveLoanRepaymentCategoryID(ctx, tx, loanID)
 	accountID := loan.AccountId
@@ -269,31 +273,12 @@ func buildPrepaymentSimulationProto(calc prepaymentCalcResult, prepaymentAmount 
 	}
 }
 
-// buildNewScheduleProto converts internal scheduleItems to proto, numbering
-// from paidMonths+1 (absolute month numbers for Execute).
-func buildNewScheduleProto(calc prepaymentCalcResult, paidMonths int32) []*pb.LoanScheduleItem {
+// buildScheduleProto converts internal scheduleItems to proto with caller-defined numbering.
+func buildScheduleProto(calc prepaymentCalcResult, monthNumFn func(i int) int32) []*pb.LoanScheduleItem {
 	protoItems := make([]*pb.LoanScheduleItem, len(calc.newSchedule))
 	for i, si := range calc.newSchedule {
 		protoItems[i] = &pb.LoanScheduleItem{
-			MonthNumber:        int32(int(paidMonths)+1+i),
-			Payment:            si.payment,
-			PrincipalPart:      si.principalPart,
-			InterestPart:       si.interestPart,
-			RemainingPrincipal: si.remainingPrincipal,
-			IsPaid:             false,
-			DueDate:            timestamppb.New(si.dueDate),
-		}
-	}
-	return protoItems
-}
-
-// buildNewScheduleProtoRelative converts internal scheduleItems to proto with
-// 1-based relative numbering (for Simulate responses).
-func buildNewScheduleProtoRelative(calc prepaymentCalcResult) []*pb.LoanScheduleItem {
-	protoItems := make([]*pb.LoanScheduleItem, len(calc.newSchedule))
-	for i, si := range calc.newSchedule {
-		protoItems[i] = &pb.LoanScheduleItem{
-			MonthNumber:        int32(i + 1),
+			MonthNumber:        monthNumFn(i),
 			Payment:            si.payment,
 			PrincipalPart:      si.principalPart,
 			InterestPart:       si.interestPart,
