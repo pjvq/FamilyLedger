@@ -39,8 +39,9 @@ type prepaymentCalcResult struct {
 // ── Pure Computation ─────────────────────────────────────────────────────────
 
 // calcPrepaymentSchedule computes the new schedule and savings for a
-// prepayment. It is a pure function with no side effects, shared by
+// prepayment. Pure computation with no side effects, shared by
 // SimulatePrepayment and ExecutePrepayment.
+// Caller must not mutate in.loan concurrently.
 func calcPrepaymentSchedule(in prepaymentInput) prepaymentCalcResult {
 	loan := in.loan
 	items := in.items
@@ -87,6 +88,9 @@ func calcPrepaymentSchedule(in prepaymentInput) prepaymentCalcResult {
 		case pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_PAYMENT:
 			newSchedule = generateSchedule(newPrincipal, loan.AnnualRate, remainingMonths, method, int(loan.PaymentDay), nextDueDate, calcMethod)
 			newTotalMonths = loan.TotalMonths
+
+		default:
+			panic(fmt.Sprintf("loan: unsupported prepayment strategy: %v", in.strategy))
 		}
 	}
 
@@ -179,7 +183,7 @@ func persistPrepayment(ctx context.Context, tx pgx.Tx, loanID string, loan *pb.L
 	)
 	if err != nil {
 		log.Printf("loan: execute prepayment: update loan %s failed: %v", loanID, err)
-		return fmt.Errorf("failed to update loan: %w", err)
+		return fmt.Errorf("failed to update loan")
 	}
 
 	// 2. Delete unpaid schedule items
@@ -188,7 +192,8 @@ func persistPrepayment(ctx context.Context, tx pgx.Tx, loanID string, loan *pb.L
 		loanID,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to delete unpaid schedule: %w", err)
+		log.Printf("loan: execute prepayment: delete schedule for loan %s failed: %v", loanID, err)
+		return fmt.Errorf("failed to delete unpaid schedule")
 	}
 
 	// 3. Insert new schedule (month_number continues from paid_months+1)
@@ -201,7 +206,8 @@ func persistPrepayment(ctx context.Context, tx pgx.Tx, loanID string, loan *pb.L
 			item.interestPart, item.remainingPrincipal, item.dueDate,
 		)
 		if err != nil {
-			return fmt.Errorf("failed to insert schedule item %d: %w", monthNum, err)
+			log.Printf("loan: execute prepayment: insert schedule item %d for loan %s failed: %v", monthNum, loanID, err)
+			return fmt.Errorf("failed to insert schedule item %d", monthNum)
 		}
 	}
 
@@ -213,21 +219,21 @@ func persistPrepayment(ctx context.Context, tx pgx.Tx, loanID string, loan *pb.L
 		)
 		if err != nil {
 			log.Printf("loan: execute prepayment: failed to deduct from account %s: %v", loan.AccountId, err)
-			return fmt.Errorf("failed to deduct from account: %w", err)
+			return fmt.Errorf("failed to deduct from account")
 		}
 	}
 
 	return nil
 }
 
-// recordPrepaymentTxn creates the expense transaction record for the
-// prepayment. Non-fatal: logs and continues on error.
-func recordPrepaymentTxn(ctx context.Context, tx pgx.Tx, userID, loanID string, loan *pb.Loan, prepaymentAmount int64) {
+// recordPrepaymentTxn creates the expense transaction record for the prepayment.
+// Returns error to allow tx rollback on failure (avoids balance-deducted-but-no-record inconsistency).
+func recordPrepaymentTxn(ctx context.Context, tx pgx.Tx, userID, loanID string, loan *pb.Loan, prepaymentAmount int64) error {
 	categoryID := resolveLoanRepaymentCategoryID(ctx, tx, loanID)
 	accountID := loan.AccountId
 
 	if categoryID == "" || accountID == "" {
-		return
+		return nil
 	}
 
 	note := fmt.Sprintf("%s 提前还款", loan.Name)
@@ -236,15 +242,16 @@ func recordPrepaymentTxn(ctx context.Context, tx pgx.Tx, userID, loanID string, 
 		familyIDVal = loan.FamilyId
 	}
 
-	_, txErr := tx.Exec(ctx,
+	_, err := tx.Exec(ctx,
 		`INSERT INTO transactions (user_id, account_id, category_id, amount, amount_cny, type, note, txn_date, family_id)
 		 VALUES ($1, $2, $3, $4, $4, 'expense', $5, $6, $7)`,
 		userID, accountID, categoryID, prepaymentAmount, note, time.Now(), familyIDVal,
 	)
-	if txErr != nil {
-		log.Printf("loan: execute prepayment: failed to create transaction record: %v", txErr)
-		// Non-fatal — payment still processed
+	if err != nil {
+		log.Printf("loan: execute prepayment: failed to create transaction record: %v", err)
+		return fmt.Errorf("failed to record prepayment transaction")
 	}
+	return nil
 }
 
 // ── Response Assembly ────────────────────────────────────────────────────────
@@ -263,12 +270,30 @@ func buildPrepaymentSimulationProto(calc prepaymentCalcResult, prepaymentAmount 
 }
 
 // buildNewScheduleProto converts internal scheduleItems to proto, numbering
-// from paidMonths+1.
+// from paidMonths+1 (absolute month numbers for Execute).
 func buildNewScheduleProto(calc prepaymentCalcResult, paidMonths int32) []*pb.LoanScheduleItem {
 	protoItems := make([]*pb.LoanScheduleItem, len(calc.newSchedule))
 	for i, si := range calc.newSchedule {
 		protoItems[i] = &pb.LoanScheduleItem{
 			MonthNumber:        int32(int(paidMonths)+1+i),
+			Payment:            si.payment,
+			PrincipalPart:      si.principalPart,
+			InterestPart:       si.interestPart,
+			RemainingPrincipal: si.remainingPrincipal,
+			IsPaid:             false,
+			DueDate:            timestamppb.New(si.dueDate),
+		}
+	}
+	return protoItems
+}
+
+// buildNewScheduleProtoRelative converts internal scheduleItems to proto with
+// 1-based relative numbering (for Simulate responses).
+func buildNewScheduleProtoRelative(calc prepaymentCalcResult) []*pb.LoanScheduleItem {
+	protoItems := make([]*pb.LoanScheduleItem, len(calc.newSchedule))
+	for i, si := range calc.newSchedule {
+		protoItems[i] = &pb.LoanScheduleItem{
+			MonthNumber:        int32(i + 1),
 			Payment:            si.payment,
 			PrincipalPart:      si.principalPart,
 			InterestPart:       si.interestPart,

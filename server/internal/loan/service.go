@@ -328,7 +328,7 @@ func (s *Service) SimulatePrepayment(ctx context.Context, req *pb.SimulatePrepay
 	})
 
 	sim := buildPrepaymentSimulationProto(calc, req.PrepaymentAmount)
-	sim.NewSchedule = buildNewScheduleProto(calc, loan.PaidMonths)
+	sim.NewSchedule = buildNewScheduleProtoRelative(calc)
 	return sim, nil
 }
 
@@ -389,11 +389,13 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 
 	// Persist: update loan + delete/insert schedule + deduct account
 	if err := persistPrepayment(ctx, tx, req.LoanId, loan, calc, req.PrepaymentAmount); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, "failed to execute prepayment")
 	}
 
-	// Record transaction (non-fatal)
-	recordPrepaymentTxn(ctx, tx, userID, req.LoanId, loan, req.PrepaymentAmount)
+	// Record transaction
+	if err := recordPrepaymentTxn(ctx, tx, userID, req.LoanId, loan, req.PrepaymentAmount); err != nil {
+		return nil, status.Error(codes.Internal, "failed to record prepayment transaction")
+	}
 
 	if err := tx.Commit(ctx); err != nil {
 		return nil, status.Error(codes.Internal, "failed to commit")
