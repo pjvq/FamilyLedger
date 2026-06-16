@@ -320,120 +320,16 @@ func (s *Service) SimulatePrepayment(ctx context.Context, req *pb.SimulatePrepay
 		return nil, err
 	}
 
-	// Original total interest
-	var totalInterestBefore int64
-	for _, it := range items {
-		totalInterestBefore += it.InterestPart
-	}
+	calc := calcPrepaymentSchedule(prepaymentInput{
+		loan:             loan,
+		items:            items,
+		prepaymentAmount: req.PrepaymentAmount,
+		strategy:         req.Strategy,
+	})
 
-	// Interest already paid (these don't change)
-	var paidInterest int64
-	for _, it := range items {
-		if it.IsPaid {
-			paidInterest += it.InterestPart
-		}
-	}
-
-	newPrincipal := loan.RemainingPrincipal - req.PrepaymentAmount
-	remainingMonths := int(loan.TotalMonths - loan.PaidMonths)
-	method := repaymentMethodToString(loan.RepaymentMethod)
-	calcMethodPrepay := interestCalcMethodToString(loan.InterestCalcMethod)
-
-	// Start date for new schedule = next unpaid due date.
-	// Normalize to 1st of month — see ExecutePrepayment comment for why.
-	var nextDueDate time.Time
-	for _, it := range items {
-		if !it.IsPaid {
-			nextDueDate = it.DueDate.AsTime()
-			break
-		}
-	}
-	if nextDueDate.IsZero() {
-		nextDueDate = loan.StartDate.AsTime()
-	}
-	nextDueDate = time.Date(nextDueDate.Year(), nextDueDate.Month(), 1, 0, 0, 0, 0, nextDueDate.Location())
-
-	var newSchedule []scheduleItem
-
-	switch req.Strategy {
-	case pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_MONTHS:
-		// Keep same monthly payment, reduce months.
-		// For equal_installment: compute original monthly payment, then figure out
-		// how many months needed to pay off newPrincipal with that payment.
-		// For equal_principal: same monthly principal portion, fewer months.
-
-		r := loan.AnnualRate / 100.0 / 12.0
-
-		if method == "equal_installment" {
-			// Original monthly payment
-			var originalMonthly float64
-			if r == 0 {
-				originalMonthly = float64(loan.Principal) / float64(loan.TotalMonths)
-			} else {
-				rn := math.Pow(1+r, float64(loan.TotalMonths))
-				originalMonthly = float64(loan.Principal) * r * rn / (rn - 1)
-			}
-			M := roundCent(originalMonthly)
-
-			// Generate month-by-month with fixed M until paid off
-			newSchedule = generateWithFixedPayment(newPrincipal, loan.AnnualRate, M, int(loan.PaymentDay), nextDueDate)
-		} else {
-			// equal_principal: original monthly principal = loan.Principal / totalMonths
-			origMonthlyPrincipal := roundCent(float64(loan.Principal) / float64(loan.TotalMonths))
-			// New months = ceil(newPrincipal / origMonthlyPrincipal)
-			newMonths := int(math.Ceil(float64(newPrincipal) / float64(origMonthlyPrincipal)))
-			if newMonths < 1 {
-				newMonths = 1
-			}
-			newSchedule = generateSchedule(newPrincipal, loan.AnnualRate, newMonths, method, int(loan.PaymentDay), nextDueDate, calcMethodPrepay)
-		}
-
-	case pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_PAYMENT:
-		// Keep same months, reduce payment
-		newSchedule = generateSchedule(newPrincipal, loan.AnnualRate, remainingMonths, method, int(loan.PaymentDay), nextDueDate, calcMethodPrepay)
-	}
-
-	var newInterest int64
-	for _, si := range newSchedule {
-		newInterest += si.interestPart
-	}
-	totalInterestAfter := paidInterest + newInterest
-
-	interestSaved := totalInterestBefore - totalInterestAfter
-	if interestSaved < 0 {
-		interestSaved = 0
-	}
-	monthsReduced := int32(remainingMonths) - int32(len(newSchedule))
-	if monthsReduced < 0 {
-		monthsReduced = 0
-	}
-	var displayMonthlyPayment int64
-	if len(newSchedule) > 0 {
-		displayMonthlyPayment = newSchedule[0].payment
-	}
-
-	protoItems := make([]*pb.LoanScheduleItem, len(newSchedule))
-	for i, si := range newSchedule {
-		protoItems[i] = &pb.LoanScheduleItem{
-			MonthNumber:        int32(i + 1),
-			Payment:            si.payment,
-			PrincipalPart:      si.principalPart,
-			InterestPart:       si.interestPart,
-			RemainingPrincipal: si.remainingPrincipal,
-			IsPaid:             false,
-			DueDate:            timestamppb.New(si.dueDate),
-		}
-	}
-
-	return &pb.PrepaymentSimulation{
-		PrepaymentAmount:    req.PrepaymentAmount,
-		TotalInterestBefore: totalInterestBefore,
-		TotalInterestAfter:  totalInterestAfter,
-		InterestSaved:       interestSaved,
-		MonthsReduced:       monthsReduced,
-		NewMonthlyPayment:   displayMonthlyPayment,
-		NewSchedule:         protoItems,
-	}, nil
+	sim := buildPrepaymentSimulationProto(calc, req.PrepaymentAmount)
+	sim.NewSchedule = buildNewScheduleProto(calc, loan.PaidMonths)
+	return sim, nil
 }
 
 
@@ -476,103 +372,13 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 		return nil, err
 	}
 
-	// Original total interest
-	var totalInterestBefore int64
-	for _, it := range items {
-		totalInterestBefore += it.InterestPart
-	}
-
-	// Interest already paid
-	var paidInterest int64
-	for _, it := range items {
-		if it.IsPaid {
-			paidInterest += it.InterestPart
-		}
-	}
-
-	newPrincipal := loan.RemainingPrincipal - req.PrepaymentAmount
-	remainingMonths := int(loan.TotalMonths - loan.PaidMonths)
-	method := repaymentMethodToString(loan.RepaymentMethod)
-	calcMethod := interestCalcMethodToString(loan.InterestCalcMethod)
-
-	// Find next unpaid due date as start for new schedule.
-	// We use the 1st of that month as the startDate for generateSchedule,
-	// because advanceMonths(startDate, 0, paymentDay) adds an extra month
-	// when startDate.Day() >= paymentDay. Since nextDueDate.Day() == paymentDay,
-	// passing it directly would shift the first period forward by one month.
-	var nextDueDate time.Time
-	for _, it := range items {
-		if !it.IsPaid {
-			nextDueDate = it.DueDate.AsTime()
-			break
-		}
-	}
-	if nextDueDate.IsZero() {
-		nextDueDate = loan.StartDate.AsTime()
-	}
-	// Normalize to 1st of the month so advanceMonths won't skip forward
-	nextDueDate = time.Date(nextDueDate.Year(), nextDueDate.Month(), 1, 0, 0, 0, 0, nextDueDate.Location())
-
-	// Calculate new schedule based on strategy
-	var newSchedule []scheduleItem
-	var newTotalMonths int32
-
-	if newPrincipal <= 0 {
-		// Full prepayment — loan is paid off
-		newSchedule = nil
-		newTotalMonths = loan.PaidMonths
-		newPrincipal = 0
-	} else {
-		switch req.Strategy {
-		case pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_MONTHS:
-			r := loan.AnnualRate / 100.0 / 12.0
-			if method == "equal_installment" {
-				var originalMonthly float64
-				if r == 0 {
-					originalMonthly = float64(loan.Principal) / float64(loan.TotalMonths)
-				} else {
-					rn := math.Pow(1+r, float64(loan.TotalMonths))
-					originalMonthly = float64(loan.Principal) * r * rn / (rn - 1)
-				}
-				M := roundCent(originalMonthly)
-				newSchedule = generateWithFixedPayment(newPrincipal, loan.AnnualRate, M, int(loan.PaymentDay), nextDueDate)
-			} else if method == "interest_only" || method == "bullet" {
-				// These methods can't meaningfully reduce months; fall back to reduce payment
-				newSchedule = generateSchedule(newPrincipal, loan.AnnualRate, remainingMonths, method, int(loan.PaymentDay), nextDueDate, calcMethod)
-			} else {
-				origMonthlyPrincipal := roundCent(float64(loan.Principal) / float64(loan.TotalMonths))
-				newMonths := int(math.Ceil(float64(newPrincipal) / float64(origMonthlyPrincipal)))
-				if newMonths < 1 {
-					newMonths = 1
-				}
-				newSchedule = generateSchedule(newPrincipal, loan.AnnualRate, newMonths, method, int(loan.PaymentDay), nextDueDate, calcMethod)
-			}
-			newTotalMonths = loan.PaidMonths + int32(len(newSchedule))
-
-		case pb.PrepaymentStrategy_PREPAYMENT_STRATEGY_REDUCE_PAYMENT:
-			newSchedule = generateSchedule(newPrincipal, loan.AnnualRate, remainingMonths, method, int(loan.PaymentDay), nextDueDate, calcMethod)
-			newTotalMonths = loan.TotalMonths
-		}
-	}
-
-	// Calculate interest savings
-	var newInterest int64
-	for _, si := range newSchedule {
-		newInterest += si.interestPart
-	}
-	totalInterestAfter := paidInterest + newInterest
-	interestSaved := totalInterestBefore - totalInterestAfter
-	if interestSaved < 0 {
-		interestSaved = 0
-	}
-	monthsReduced := int32(remainingMonths) - int32(len(newSchedule))
-	if monthsReduced < 0 {
-		monthsReduced = 0
-	}
-	var displayMonthlyPayment int64
-	if len(newSchedule) > 0 {
-		displayMonthlyPayment = newSchedule[0].payment
-	}
+	// Pure computation — shared with SimulatePrepayment
+	calc := calcPrepaymentSchedule(prepaymentInput{
+		loan:             loan,
+		items:            items,
+		prepaymentAmount: req.PrepaymentAmount,
+		strategy:         req.Strategy,
+	})
 
 	// ===== Execute in transaction =====
 	tx, err := s.pool.Begin(ctx)
@@ -581,115 +387,29 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 	}
 	defer tx.Rollback(ctx)
 
-	// 1. Update loan: remaining_principal, total_months
-	// NOTE: loans table intentionally has NO monthly_payment column. Monthly
-	// payment is a derived value (schedule[0].payment) that changes with LPR
-	// adjustments and prepayments — persisting it would inevitably go stale
-	// (dirty read). It is computed on demand and returned in the response only.
-	// Do not add a monthly_payment column or write it back here.
-	_, err = tx.Exec(ctx,
-		`UPDATE loans SET remaining_principal = $1, total_months = $2, updated_at = NOW()
-		 WHERE id = $3 AND deleted_at IS NULL`,
-		newPrincipal, newTotalMonths, req.LoanId,
-	)
-	if err != nil {
-		log.Printf("loan: execute prepayment: update loan %s failed: %v", req.LoanId, err)
-		return nil, status.Error(codes.Internal, "failed to update loan")
+	// Persist: update loan + delete/insert schedule + deduct account
+	if err := persistPrepayment(ctx, tx, req.LoanId, loan, calc, req.PrepaymentAmount); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	// 2. Delete all unpaid schedule items
-	_, err = tx.Exec(ctx,
-		`DELETE FROM loan_schedules WHERE loan_id = $1 AND is_paid = false`,
-		req.LoanId,
-	)
-	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to delete unpaid schedule")
-	}
-
-	// 3. Insert new schedule (month_number continues from paid_months+1)
-	for i, item := range newSchedule {
-		monthNum := int(loan.PaidMonths) + 1 + i
-		_, err = tx.Exec(ctx,
-			`INSERT INTO loan_schedules (loan_id, month_number, payment, principal_part,
-			 interest_part, remaining_principal, due_date) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-			req.LoanId, monthNum, item.payment, item.principalPart,
-			item.interestPart, item.remainingPrincipal, item.dueDate,
-		)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "failed to insert schedule item %d: %v", monthNum, err)
-		}
-	}
-
-	// 4. Deduct prepayment amount from associated account
-	if loan.AccountId != "" {
-		_, err = tx.Exec(ctx,
-			`UPDATE accounts SET balance = balance - $1, updated_at = NOW() WHERE id = $2`,
-			req.PrepaymentAmount, loan.AccountId,
-		)
-		if err != nil {
-			log.Printf("loan: execute prepayment: failed to deduct from account %s: %v", loan.AccountId, err)
-			return nil, status.Error(codes.Internal, "failed to deduct from account")
-		}
-	}
-
-	// 5. Create transaction record for the prepayment
-	{
-		categoryID := resolveLoanRepaymentCategoryID(ctx, tx, req.LoanId)
-		accountID := loan.AccountId
-
-		if categoryID != "" && accountID != "" {
-			note := fmt.Sprintf("%s 提前还款", loan.Name)
-			var familyIDVal interface{}
-			if loan.FamilyId != "" {
-				familyIDVal = loan.FamilyId
-			}
-			_, txErr := tx.Exec(ctx,
-				`INSERT INTO transactions (user_id, account_id, category_id, amount, amount_cny, type, note, txn_date, family_id)
-				 VALUES ($1, $2, $3, $4, $4, 'expense', $5, $6, $7)`,
-				userID, accountID, categoryID, req.PrepaymentAmount, note, time.Now(), familyIDVal,
-			)
-			if txErr != nil {
-				log.Printf("loan: execute prepayment: failed to create transaction record: %v", txErr)
-				// Non-fatal — payment still processed
-			}
-		}
-	}
+	// Record transaction (non-fatal)
+	recordPrepaymentTxn(ctx, tx, userID, req.LoanId, loan, req.PrepaymentAmount)
 
 	if err := tx.Commit(ctx); err != nil {
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
 
 	log.Printf("loan: prepayment executed %s: amount=%d strategy=%s newPrincipal=%d newMonths=%d",
-		req.LoanId, req.PrepaymentAmount, req.Strategy, newPrincipal, newTotalMonths)
+		req.LoanId, req.PrepaymentAmount, req.Strategy, calc.newPrincipal, calc.newTotalMonths)
 
-	// Build response — update the loan proto we already have
-	loan.RemainingPrincipal = newPrincipal
-	loan.TotalMonths = newTotalMonths
-
-	protoNewItems := make([]*pb.LoanScheduleItem, len(newSchedule))
-	for i, si := range newSchedule {
-		protoNewItems[i] = &pb.LoanScheduleItem{
-			MonthNumber:        int32(int(loan.PaidMonths) + 1 + i),
-			Payment:            si.payment,
-			PrincipalPart:      si.principalPart,
-			InterestPart:       si.interestPart,
-			RemainingPrincipal: si.remainingPrincipal,
-			IsPaid:             false,
-			DueDate:            timestamppb.New(si.dueDate),
-		}
-	}
+	// Build response
+	loan.RemainingPrincipal = calc.newPrincipal
+	loan.TotalMonths = calc.newTotalMonths
 
 	return &pb.ExecutePrepaymentResponse{
-		Loan: loan,
-		Simulation: &pb.PrepaymentSimulation{
-			PrepaymentAmount:    req.PrepaymentAmount,
-			TotalInterestBefore: totalInterestBefore,
-			TotalInterestAfter:  totalInterestAfter,
-			InterestSaved:       interestSaved,
-			MonthsReduced:       monthsReduced,
-			NewMonthlyPayment:   displayMonthlyPayment,
-		},
-		NewSchedule: protoNewItems,
+		Loan:        loan,
+		Simulation:  buildPrepaymentSimulationProto(calc, req.PrepaymentAmount),
+		NewSchedule: buildNewScheduleProto(calc, loan.PaidMonths),
 	}, nil
 }
 
