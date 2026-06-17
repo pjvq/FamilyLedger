@@ -3,7 +3,7 @@ package dashboard
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/familyledger/server/pkg/logger"
 	"math"
 	"sort"
 	"time"
@@ -91,7 +91,7 @@ func (s *Service) GetNetWorth(ctx context.Context, req *pb.GetNetWorthRequest) (
 		).Scan(&cashAndBank)
 	}
 	if err != nil {
-		log.Printf("dashboard: cashAndBank error: %v", err)
+		logger.Errorf("dashboard: cashAndBank error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to query cash and bank")
 	}
 
@@ -126,7 +126,7 @@ func (s *Service) GetNetWorth(ctx context.Context, req *pb.GetNetWorthRequest) (
 		).Scan(&investmentValue)
 	}
 	if err != nil {
-		log.Printf("dashboard: investmentValue error: %v", err)
+		logger.Errorf("dashboard: investmentValue error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to query investment value")
 	}
 
@@ -148,7 +148,7 @@ func (s *Service) GetNetWorth(ctx context.Context, req *pb.GetNetWorthRequest) (
 		).Scan(&fixedAssetValue)
 	}
 	if err != nil {
-		log.Printf("dashboard: fixedAssetValue error: %v", err)
+		logger.Errorf("dashboard: fixedAssetValue error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to query fixed asset value")
 	}
 
@@ -170,7 +170,7 @@ func (s *Service) GetNetWorth(ctx context.Context, req *pb.GetNetWorthRequest) (
 		).Scan(&loanBalance)
 	}
 	if err != nil {
-		log.Printf("dashboard: loanBalance error: %v", err)
+		logger.Errorf("dashboard: loanBalance error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to query loan balance")
 	}
 
@@ -266,7 +266,7 @@ func (s *Service) investmentValuation(ctx context.Context, ff *familyFilter, asO
 		 WHERE `+whereClause+` AND i.deleted_at IS NULL`+quantityFilter,
 		arg, asOf,
 	).Scan(&totalCost, &totalValue); err != nil {
-		log.Printf("investmentValuation: %v", err)
+		logger.Infof("investmentValuation: %v", err)
 	}
 	return totalCost, totalValue
 }
@@ -434,7 +434,7 @@ func (s *Service) GetIncomeExpenseTrend(ctx context.Context, req *pb.TrendReques
 		rows, err = s.pool.Query(ctx, query, userID, startDate)
 	}
 	if err != nil {
-		log.Printf("dashboard: income/expense trend error: %v", err)
+		logger.Errorf("dashboard: income/expense trend error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to query trend")
 	}
 	defer rows.Close()
@@ -545,7 +545,7 @@ func (s *Service) GetCategoryBreakdown(ctx context.Context, req *pb.CategoryBrea
 		)
 	}
 	if err != nil {
-		log.Printf("dashboard: category breakdown error: %v", err)
+		logger.Errorf("dashboard: category breakdown error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to query category breakdown")
 	}
 	defer catRows.Close()
@@ -762,8 +762,8 @@ func (s *Service) GetBudgetSummary(ctx context.Context, req *pb.BudgetSummaryReq
 	defer catBudgetRows.Close()
 
 	type catBudget struct {
-		catID      string
-		catName    string
+		catID     string
+		catName   string
 		budgetAmt int64
 	}
 	var catBudgets []catBudget
@@ -986,7 +986,6 @@ func (s *Service) GetNetWorthTrend(ctx context.Context, req *pb.TrendRequest) (*
 
 	return &pb.TrendResponse{Points: points}, nil
 }
-
 
 // sortCategoryItems sorts items by amount descending.
 func sortCategoryItems(items []*pb.CategoryItem) {

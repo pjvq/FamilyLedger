@@ -5,20 +5,20 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"github.com/familyledger/server/pkg/logger"
 	"io"
-	"log"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/familyledger/server/pkg/db"
+	"github.com/google/uuid"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-		"github.com/familyledger/server/pkg/middleware"
+	"github.com/familyledger/server/pkg/middleware"
 	pb "github.com/familyledger/server/proto/importpb"
 )
 
@@ -106,7 +106,7 @@ func (s *Service) ParseCSV(ctx context.Context, req *pb.ParseCSVRequest) (*pb.Pa
 		return nil, status.Errorf(codes.Internal, "store import session: %v", err)
 	}
 
-	log.Printf("import: created session %s with %d rows, %d headers", sessionID, totalRows, len(headers))
+	logger.Infof("import: created session %s with %d rows, %d headers", sessionID, totalRows, len(headers))
 
 	return &pb.ParseCSVResponse{
 		Headers:     headers,
@@ -309,7 +309,7 @@ func (s *Service) ConfirmImport(ctx context.Context, req *pb.ConfirmImportReques
 			balanceDelta, defaultAccountID,
 		)
 		if err != nil {
-			log.Printf("import: row %d: failed to update balance: %v", rowNum, err)
+			logger.Errorf("import: row %d: failed to update balance: %v", rowNum, err)
 		}
 	}
 
@@ -320,7 +320,7 @@ func (s *Service) ConfirmImport(ctx context.Context, req *pb.ConfirmImportReques
 	// Clean up session
 	_, _ = s.pool.Exec(ctx, `DELETE FROM import_sessions WHERE id = $1`, sessionID)
 
-	log.Printf("import: session %s done — imported=%d skipped=%d errors=%d",
+	logger.Errorf("import: session %s done — imported=%d skipped=%d errors=%d",
 		sessionID, importedCount, skippedCount, len(errors))
 
 	return &pb.ConfirmImportResponse{
@@ -340,7 +340,7 @@ func (s *Service) CleanupExpiredSessions(ctx context.Context) error {
 	}
 	count := result.RowsAffected()
 	if count > 0 {
-		log.Printf("import: cleaned up %d expired sessions", count)
+		logger.Infof("import: cleaned up %d expired sessions", count)
 	}
 	return nil
 }

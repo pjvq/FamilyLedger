@@ -3,13 +3,13 @@ package account
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"github.com/familyledger/server/pkg/logger"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/familyledger/server/pkg/db"
 	"github.com/familyledger/server/pkg/permission"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -73,11 +73,11 @@ func (s *Service) CreateAccount(ctx context.Context, req *pb.CreateAccountReques
 		uid, req.Name, acctType, req.InitialBalance, currency, req.Icon, familyID,
 	).Scan(&acctID, &createdAt, &updatedAt)
 	if err != nil {
-		log.Printf("account: create error: %v", err)
+		logger.Errorf("account: create error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create account")
 	}
 
-	log.Printf("account: created %s for user %s", acctID, userID)
+	logger.Infof("account: created %s for user %s", acctID, userID)
 
 	acct := &pb.Account{
 		Id:        acctID.String(),
@@ -355,7 +355,7 @@ func (s *Service) DeleteAccount(ctx context.Context, req *pb.DeleteAccountReques
 		return nil, status.Error(codes.Internal, "failed to delete account")
 	}
 
-	log.Printf("account: soft-deleted %s by user %s", acctID, userID)
+	logger.Infof("account: soft-deleted %s by user %s", acctID, userID)
 
 	return &pb.DeleteAccountResponse{}, nil
 }
@@ -475,7 +475,7 @@ func (s *Service) TransferBetween(ctx context.Context, req *pb.TransferBetweenRe
 		return nil, status.Error(codes.Internal, "failed to commit transfer")
 	}
 
-	log.Printf("account: transfer %d cents from %s to %s by user %s", req.Amount, fromID, toID, userID)
+	logger.Infof("account: transfer %d cents from %s to %s by user %s", req.Amount, fromID, toID, userID)
 
 	return &pb.TransferBetweenResponse{
 		Transfer: &pb.Transfer{

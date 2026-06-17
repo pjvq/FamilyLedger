@@ -2,14 +2,14 @@ package asset
 
 import (
 	"context"
-	"log"
+	"github.com/familyledger/server/pkg/logger"
 	"math"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/familyledger/server/pkg/db"
 	"github.com/familyledger/server/pkg/permission"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -79,7 +79,7 @@ func (s *Service) CreateAsset(ctx context.Context, req *pb.CreateAssetRequest) (
 		userID, req.Name, at, req.PurchasePrice, purchaseDate, req.Description, familyID,
 	).Scan(&id, &createdAt, &updatedAt)
 	if err != nil {
-		log.Printf("asset: create error: %v", err)
+		logger.Errorf("asset: create error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create asset")
 	}
 
@@ -90,7 +90,7 @@ func (s *Service) CreateAsset(ctx context.Context, req *pb.CreateAssetRequest) (
 		id, req.PurchasePrice, purchaseDate,
 	)
 	if err != nil {
-		log.Printf("asset: create initial valuation error: %v", err)
+		logger.Errorf("asset: create initial valuation error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create initial valuation")
 	}
 
@@ -98,7 +98,7 @@ func (s *Service) CreateAsset(ctx context.Context, req *pb.CreateAssetRequest) (
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
 
-	log.Printf("asset: created %s (%s) for user %s", id, at, userID)
+	logger.Infof("asset: created %s (%s) for user %s", id, at, userID)
 	return &pb.Asset{
 		Id:            id.String(),
 		UserId:        userID,
@@ -283,7 +283,7 @@ func (s *Service) DeleteAsset(ctx context.Context, req *pb.DeleteAssetRequest) (
 	if tag.RowsAffected() == 0 {
 		return nil, status.Error(codes.NotFound, "asset not found")
 	}
-	log.Printf("asset: soft-deleted %s by user %s", req.AssetId, userID)
+	logger.Infof("asset: soft-deleted %s by user %s", req.AssetId, userID)
 	return &emptypb.Empty{}, nil
 }
 
@@ -345,7 +345,7 @@ func (s *Service) UpdateValuation(ctx context.Context, req *pb.UpdateValuationRe
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
 
-	log.Printf("asset: valuation updated for %s to %d (%s) by user %s", req.AssetId, req.Value, source, userID)
+	logger.Infof("asset: valuation updated for %s to %d (%s) by user %s", req.AssetId, req.Value, source, userID)
 	return &pb.AssetValuation{
 		Id:            valID.String(),
 		AssetId:       req.AssetId,
@@ -481,11 +481,11 @@ func (s *Service) SetDepreciationRule(ctx context.Context, req *pb.SetDepreciati
 		req.AssetId, method, usefulLife, salvageRate,
 	).Scan(&ruleID, &createdAt)
 	if err != nil {
-		log.Printf("asset: set depreciation rule error: %v", err)
+		logger.Errorf("asset: set depreciation rule error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to set depreciation rule")
 	}
 
-	log.Printf("asset: depreciation rule set for %s: %s, %d years, %.4f salvage", req.AssetId, method, usefulLife, salvageRate)
+	logger.Infof("asset: depreciation rule set for %s: %s, %d years, %.4f salvage", req.AssetId, method, usefulLife, salvageRate)
 	return &pb.DepreciationRule{
 		Id:              ruleID.String(),
 		AssetId:         req.AssetId,
@@ -547,7 +547,7 @@ func (s *Service) RunMonthlyDepreciationAll(ctx context.Context) error {
 		var r ruleData
 		if err := rows.Scan(&a.id, &a.userID, &a.purchasePrice, &a.currentValue, &a.purchaseDate,
 			&r.method, &r.usefulLifeYears, &r.salvageRate); err != nil {
-			log.Printf("asset: depreciation scan error: %v", err)
+			logger.Errorf("asset: depreciation scan error: %v", err)
 			errors++
 			continue
 		}
@@ -555,14 +555,14 @@ func (s *Service) RunMonthlyDepreciationAll(ctx context.Context) error {
 
 		_, err := s.applyMonthlyDepreciation(ctx, &a, &r)
 		if err != nil {
-			log.Printf("asset: depreciation error for %s: %v", a.id, err)
+			logger.Errorf("asset: depreciation error for %s: %v", a.id, err)
 			errors++
 			continue
 		}
 		count++
 	}
 
-	log.Printf("asset: monthly depreciation complete — %d processed, %d errors", count, errors)
+	logger.Errorf("asset: monthly depreciation complete — %d processed, %d errors", count, errors)
 	return nil
 }
 
@@ -624,7 +624,7 @@ func (s *Service) applyMonthlyDepreciation(ctx context.Context, asset *assetData
 		return 0, status.Error(codes.Internal, "failed to commit")
 	}
 
-	log.Printf("asset: depreciated %s from %d to %d (method=%s)", asset.id, asset.currentValue, newValue, rule.method)
+	logger.Infof("asset: depreciated %s from %d to %d (method=%s)", asset.id, asset.currentValue, newValue, rule.method)
 	return newValue, nil
 }
 
@@ -687,10 +687,10 @@ type assetData struct {
 }
 
 type ruleData struct {
-	assetID        string
-	method         string
+	assetID         string
+	method          string
 	usefulLifeYears int
-	salvageRate    float64
+	salvageRate     float64
 }
 
 func (s *Service) loadAsset(ctx context.Context, assetID, userID string) (*pb.Asset, error) {
@@ -779,10 +779,10 @@ func (s *Service) loadAssetWithRule(ctx context.Context, assetID, userID string)
 	}
 
 	r := &ruleData{
-		assetID:        a.id,
-		method:         *rMethod,
+		assetID:         a.id,
+		method:          *rMethod,
 		usefulLifeYears: *rUsefulLife,
-		salvageRate:    *rSalvageRate,
+		salvageRate:     *rSalvageRate,
 	}
 	return &a, r, nil
 }

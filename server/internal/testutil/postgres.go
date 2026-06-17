@@ -8,12 +8,12 @@ package testutil
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"testing"
 	"time"
 
+	"github.com/familyledger/server/pkg/logger"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -102,7 +102,7 @@ func (db *TestDB) Teardown() {
 	}
 	if db.Container != nil {
 		if err := db.Container.Terminate(context.Background()); err != nil {
-			log.Printf("failed to terminate container: %v", err)
+			logger.Errorf("failed to terminate container: %v", err)
 		}
 	}
 }

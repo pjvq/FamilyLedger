@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/familyledger/server/pkg/logger"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/familyledger/server/pkg/audit"
 	catpkg "github.com/familyledger/server/pkg/category"
 	"github.com/familyledger/server/pkg/db"
 	"github.com/familyledger/server/pkg/permission"
 	"github.com/familyledger/server/pkg/storage"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -33,7 +33,7 @@ type Service struct {
 	uploadDir   string // image upload directory (kept for quota check)
 	baseURL     string // base URL for image access
 	fileStorage storage.FileStorage
-	hub         wsHub  // WebSocket hub for real-time notifications (optional)
+	hub         wsHub // WebSocket hub for real-time notifications (optional)
 }
 
 // wsHub is the interface for broadcasting WS notifications.
@@ -66,13 +66,13 @@ func newFileStorageFromEnv(uploadDir, baseURL string) storage.FileStorage {
 		bucket := os.Getenv("S3_BUCKET")
 		region := os.Getenv("S3_REGION")
 		if bucket == "" {
-			log.Printf("transaction: WARNING: FILE_STORAGE=s3 but S3_BUCKET not set, falling back to local")
+			logger.Warnf("transaction: FILE_STORAGE=s3 but S3_BUCKET not set, falling back to local")
 			return storage.NewLocalFileStorage(uploadDir, baseURL)
 		}
-		log.Printf("transaction: using S3 storage (bucket=%s, region=%s)", bucket, region)
+		logger.Infof("transaction: using S3 storage (bucket=%s, region=%s)", bucket, region)
 		return storage.NewS3Storage(bucket, region)
 	default:
-		log.Printf("transaction: using local file storage (dir=%s)", uploadDir)
+		logger.Infof("transaction: using local file storage (dir=%s)", uploadDir)
 		return storage.NewLocalFileStorage(uploadDir, baseURL)
 	}
 }
@@ -427,7 +427,7 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 		strings.Join(setClauses, ", "), argIdx)
 	_, err = tx.Exec(ctx, query, args...)
 	if err != nil {
-		log.Printf("transaction: update error: %v", err)
+		logger.Errorf("transaction: update error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update transaction")
 	}
 
@@ -481,16 +481,16 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 			return nil, status.Error(codes.Internal, "failed to read updated transaction for sync")
 		}
 		if err := insertTransactionSyncOp(ctx, tx, uid, txnID, "update", map[string]interface{}{
-			"id":           txnID.String(),
-			"user_id":      uid.String(),
-			"account_id":   syncAccID.String(),
-			"category_id":  syncCatID.String(),
-			"amount":       syncAmount,
-			"amount_cny":   syncAmountCny,
-			"type":         syncType,
-			"note":         syncNote,
-			"currency":     syncCurrency,
-			"txn_date":     syncTxnDate.Format("2006-01-02"),
+			"id":          txnID.String(),
+			"user_id":     uid.String(),
+			"account_id":  syncAccID.String(),
+			"category_id": syncCatID.String(),
+			"amount":      syncAmount,
+			"amount_cny":  syncAmountCny,
+			"type":        syncType,
+			"note":        syncNote,
+			"currency":    syncCurrency,
+			"txn_date":    syncTxnDate.Format("2006-01-02"),
 		}); err != nil {
 			slog.Error("transaction: sync update failed", "txn_id", txnID, "error", err)
 			return nil, status.Error(codes.Internal, "failed to record sync operation")
@@ -667,7 +667,7 @@ func (s *Service) BatchCreateTransactions(ctx context.Context, req *pb.BatchCrea
 		if err != nil {
 			errorMsg := fmt.Sprintf("[%d] %v", i, err)
 			errors = append(errors, errorMsg)
-			log.Printf("batch-create: item %d failed for user %s: %v", i, userID, err)
+			logger.Errorf("batch-create: item %d failed for user %s: %v", i, userID, err)
 			continue
 		}
 		created = append(created, resp.Transaction)
@@ -681,7 +681,7 @@ func (s *Service) BatchCreateTransactions(ctx context.Context, req *pb.BatchCrea
 		accountSet := make(map[uuid.UUID]struct{})
 		for _, txn := range created {
 			if uid, err := uuid.Parse(txn.AccountId); err != nil {
-				log.Printf("WARNING: batch-create: invalid account_id in created transaction: %s", txn.AccountId)
+				logger.Warnf("batch-create: invalid account_id in created transaction: %s", txn.AccountId)
 			} else {
 				accountSet[uid] = struct{}{}
 			}
@@ -695,31 +695,31 @@ func (s *Service) BatchCreateTransactions(ctx context.Context, req *pb.BatchCrea
 			accountIDs,
 		)
 		if err != nil {
-			log.Printf("WARNING: batch-create: failed to check post-import balances for user %s: %v", userID, err)
+			logger.Warnf("batch-create: failed to check post-import balances for user %s: %v", userID, err)
 		} else {
 			for rows.Next() {
 				var acctID uuid.UUID
 				var balance int64
 				if err := rows.Scan(&acctID, &balance); err != nil {
-					log.Printf("WARNING: batch-create: failed to scan balance row: %v", err)
+					logger.Warnf("batch-create: failed to scan balance row: %v", err)
 					continue
 				}
 				warn := fmt.Sprintf("account %s balance is negative (%d cents) after import", acctID, balance)
 				warnings = append(warnings, warn)
-				log.Printf("batch-create: WARNING: %s for user %s", warn, userID)
+				logger.Warnf("batch-create: %s for user %s", warn, userID)
 			}
 			if err := rows.Err(); err != nil {
-				log.Printf("WARNING: batch-create: rows iteration error: %v", err)
+				logger.Warnf("batch-create: rows iteration error: %v", err)
 			}
 			rows.Close()
 		}
 	}
 
 	return &pb.BatchCreateTransactionsResponse{
-		CreatedCount:  int32(len(created)),
-		Transactions:  created,
-		Errors:        errors,
-		Warnings:      warnings,
+		CreatedCount: int32(len(created)),
+		Transactions: created,
+		Errors:       errors,
+		Warnings:     warnings,
 	}, nil
 }
 
@@ -850,7 +850,7 @@ func (s *Service) BatchDeleteTransactions(ctx context.Context, req *pb.BatchDele
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
 
-	log.Printf("transaction: batch-deleted %d transactions by user %s", len(toDelete), userID)
+	logger.Infof("transaction: batch-deleted %d transactions by user %s", len(toDelete), userID)
 
 	// Real-time WS notification for each deleted transaction's account
 	notifiedAccounts := make(map[uuid.UUID]bool)
@@ -977,10 +977,10 @@ func (s *Service) UploadTransactionImage(ctx context.Context, req *pb.UploadTran
 			req.TransactionId,
 		).Scan(&ownerID)
 		if err != nil {
-			log.Printf("upload: transaction %s not found, skipping association", req.TransactionId)
+			logger.Warnf("upload: transaction %s not found, skipping association", req.TransactionId)
 		} else if ownerID != userID {
 			// 不是自己的交易，不允许关联
-			log.Printf("upload: user %s tried to attach image to transaction owned by %s", userID, ownerID)
+			logger.Infof("upload: user %s tried to attach image to transaction owned by %s", userID, ownerID)
 		} else {
 			_, err := s.pool.Exec(ctx,
 				`UPDATE transactions
@@ -993,12 +993,12 @@ func (s *Service) UploadTransactionImage(ctx context.Context, req *pb.UploadTran
 				imageURL, req.TransactionId,
 			)
 			if err != nil {
-				log.Printf("upload: saved image but failed to update transaction: %v", err)
+				logger.Errorf("upload: saved image but failed to update transaction: %v", err)
 			}
 		}
 	}
 
-	log.Printf("upload: user %s uploaded image %s (%d bytes)", userID, fileName, len(req.Data))
+	logger.Infof("upload: user %s uploaded image %s (%d bytes)", userID, fileName, len(req.Data))
 	return &pb.UploadTransactionImageResponse{ImageUrl: imageURL}, nil
 }
 
@@ -1039,7 +1039,7 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 
 	// Family filter: empty = personal accounts only, non-empty = family accounts
 	var familyID *uuid.UUID
-	log.Printf("ListTransactions: user=%s familyId=%q pageSize=%d updatedSince=%v includeDeleted=%v",
+	logger.Debugf("ListTransactions: user=%s familyId=%q pageSize=%d updatedSince=%v includeDeleted=%v",
 		userID, req.FamilyId, req.PageSize, req.UpdatedSince, req.IncludeDeleted)
 	if req.FamilyId != "" {
 		fid, err := uuid.Parse(req.FamilyId)
@@ -1180,7 +1180,7 @@ func (s *Service) ListTransactions(ctx context.Context, req *pb.ListTransactions
 		nextPageToken = fmt.Sprintf("%d|%s", lastDate.UnixNano(), last.Id)
 	}
 
-	log.Printf("ListTransactions: returning %d transactions (total=%d)", len(transactions), totalCount)
+	logger.Debugf("ListTransactions: returning %d transactions (total=%d)", len(transactions), totalCount)
 	return &pb.ListTransactionsResponse{
 		Transactions:  transactions,
 		NextPageToken: nextPageToken,
@@ -1294,7 +1294,7 @@ func (s *Service) listTransactionsIncremental(
 		nextPageToken = fmt.Sprintf("%d|%s", lastUpdated.UnixNano(), last.Id)
 	}
 
-	log.Printf("ListTransactions(incremental): returning %d transactions (since=%v)",
+	logger.Debugf("ListTransactions(incremental): returning %d transactions (since=%v)",
 		len(transactions), updatedSince.Format(time.RFC3339))
 	return &pb.ListTransactionsResponse{
 		Transactions:  transactions,

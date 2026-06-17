@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/familyledger/server/pkg/logger"
 	"strconv"
 	"strings"
 	"time"
@@ -137,7 +137,7 @@ func (s *Service) PushOperations(ctx context.Context, req *pb.PushOperationsRequ
 		spName := fmt.Sprintf("sp_%d", i)
 		_, err = tx.Exec(ctx, "SAVEPOINT "+spName)
 		if err != nil {
-			log.Printf("sync: savepoint error for %s: %v", op.Id, err)
+			logger.Errorf("sync: savepoint error for %s: %v", op.Id, err)
 			failedIDs = append(failedIDs, op.Id)
 			continue
 		}
@@ -160,14 +160,14 @@ func (s *Service) PushOperations(ctx context.Context, req *pb.PushOperationsRequ
 			continue
 		}
 		if err != nil {
-			log.Printf("sync: push op error for %s: %v", op.Id, err)
+			logger.Errorf("sync: push op error for %s: %v", op.Id, err)
 			opFailed = true
 		}
 
 		// Apply the operation to business tables
 		if !opFailed {
 			if err := s.applyOperation(ctx, tx, uid, op.EntityType, entityID, opType, op.Payload); err != nil {
-				log.Printf("sync: apply op error for %s/%s %s: %v", op.EntityType, opType, op.Id, err)
+				logger.Errorf("sync: apply op error for %s/%s %s: %v", op.EntityType, opType, op.Id, err)
 				opFailed = true
 			}
 		}
@@ -263,7 +263,7 @@ func (s *Service) applyTransactionOp(ctx context.Context, tx pgx.Tx, userID uuid
 	case "delete":
 		return s.applyTransactionDelete(ctx, tx, userID, entityID)
 	default:
-		log.Printf("sync: unknown op_type %q for transaction, skipping", opType)
+		logger.Warnf("sync: unknown op_type %q for transaction, skipping", opType)
 		return nil
 	}
 }
@@ -327,11 +327,11 @@ func (s *Service) applyTransactionCreate(ctx context.Context, tx pgx.Tx, userID 
 	if p.TxnDate != "" {
 		parsed, hadTZ, err := parseTxnDate(p.TxnDate)
 		if err != nil {
-			log.Printf("sync: create: parseTxnDate failed for %q: %v", p.TxnDate, err)
+			logger.Errorf("sync: create: parseTxnDate failed for %q: %v", p.TxnDate, err)
 			return fmt.Errorf("invalid txn_date format")
 		}
 		if !hadTZ {
-			log.Printf("sync: create: txn_date %q has no timezone, parsed as UTC (legacy client?)", p.TxnDate)
+			logger.Warnf("sync: create: txn_date %q has no timezone, parsed as UTC (legacy client?)", p.TxnDate)
 		}
 		txnDate = parsed
 	}
@@ -357,7 +357,7 @@ func (s *Service) applyTransactionCreate(ctx context.Context, tx pgx.Tx, userID 
 
 	// If the row already existed (duplicate push), skip balance update
 	if cmdTag.RowsAffected() == 0 {
-		log.Printf("sync: transaction %s already exists, skipping (idempotent)", entityID)
+		logger.Warnf("sync: transaction %s already exists, skipping (idempotent)", entityID)
 		return nil
 	}
 
@@ -486,11 +486,11 @@ func (s *Service) applyTransactionUpdate(ctx context.Context, tx pgx.Tx, userID 
 	if p.TxnDate != "" {
 		txnDate, hadTZ, err := parseTxnDate(p.TxnDate)
 		if err != nil {
-			log.Printf("sync: update: parseTxnDate failed for %q: %v", p.TxnDate, err)
+			logger.Errorf("sync: update: parseTxnDate failed for %q: %v", p.TxnDate, err)
 			return fmt.Errorf("invalid txn_date format")
 		}
 		if !hadTZ {
-			log.Printf("sync: update: txn_date %q has no timezone, parsed as UTC (legacy client?)", p.TxnDate)
+			logger.Warnf("sync: update: txn_date %q has no timezone, parsed as UTC (legacy client?)", p.TxnDate)
 		}
 		args = append(args, txnDate)
 		setClauses = append(setClauses, fmt.Sprintf("txn_date = $%d", argIdx))
@@ -604,7 +604,7 @@ func (s *Service) applyTransactionDelete(ctx context.Context, tx pgx.Tx, userID 
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			// Already deleted — idempotent
-			log.Printf("sync: transaction %s already deleted, skipping", entityID)
+			logger.Warnf("sync: transaction %s already deleted, skipping", entityID)
 			return nil
 		}
 		return fmt.Errorf("failed to fetch transaction for delete: %w", err)
@@ -661,7 +661,7 @@ func (s *Service) applyAccountOp(ctx context.Context, tx pgx.Tx, userID uuid.UUI
 	case "delete":
 		return s.applyAccountDelete(ctx, tx, userID, entityID)
 	default:
-		log.Printf("sync: unknown op_type %q for account, skipping", opType)
+		logger.Warnf("sync: unknown op_type %q for account, skipping", opType)
 		return nil
 	}
 }
@@ -777,7 +777,7 @@ func (s *Service) applyAccountDelete(ctx context.Context, tx pgx.Tx, userID uuid
 	).Scan(&ownerID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			log.Printf("sync: account %s already deleted, skipping", entityID)
+			logger.Warnf("sync: account %s already deleted, skipping", entityID)
 			return fmt.Errorf("account %s already deleted or not found", entityID)
 		}
 		return fmt.Errorf("failed to fetch account for delete: %w", err)
@@ -1002,7 +1002,7 @@ func (s *Service) applyCategoryOp(ctx context.Context, tx pgx.Tx, userID uuid.UU
 	case "delete":
 		return s.applyCategoryDelete(ctx, tx, userID, entityID)
 	default:
-		log.Printf("sync: unknown op_type %q for category, skipping", opType)
+		logger.Warnf("sync: unknown op_type %q for category, skipping", opType)
 		return nil
 	}
 }
@@ -1079,7 +1079,7 @@ func (s *Service) applyCategoryMergeOp(ctx context.Context, tx pgx.Tx, userID uu
 	// opType="delete" is meaningless for a merge; treat as idempotent no-op
 	// to match client-side behavior (which simply skips unknown opTypes).
 	if opType == "delete" {
-		log.Printf("sync: category_merge with op_type=delete is a no-op (entity %s)", entityID)
+		logger.Warnf("sync: category_merge with op_type=delete is a no-op (entity %s)", entityID)
 		return nil
 	}
 
@@ -1103,7 +1103,7 @@ func (s *Service) applyCategoryMergeOp(ctx context.Context, tx pgx.Tx, userID uu
 	// Self-merge is a no-op (idempotent). The client silently does nothing in
 	// this case, so we mirror that to avoid dead-lettering.
 	if sourceID == targetID {
-		log.Printf("sync: category_merge source==target (%s), treating as no-op", sourceID)
+		logger.Warnf("sync: category_merge source==target (%s), treating as no-op", sourceID)
 		return nil
 	}
 
@@ -1126,7 +1126,7 @@ func (s *Service) applyCategoryMergeOp(ctx context.Context, tx pgx.Tx, userID uu
 	// the client hides them locally but never syncs that hide. Allowing a merge
 	// here would globally remove a preset for all users. Treat as no-op.
 	if isPreset {
-		log.Printf("sync: refusing to merge preset category %s, skipping", sourceID)
+		logger.Warnf("sync: refusing to merge preset category %s, skipping", sourceID)
 		return nil
 	}
 
@@ -1247,7 +1247,7 @@ func (s *Service) applyCategoryUpdate(ctx context.Context, tx pgx.Tx, userID uui
 		return fmt.Errorf("failed to fetch category for update: %w", err)
 	}
 	if isPreset {
-		log.Printf("sync: cannot update preset category %s, skipping", entityID)
+		logger.Warnf("sync: cannot update preset category %s, skipping", entityID)
 		return nil
 	}
 	// Access check: caller must own the category, or share a family with its
@@ -1317,7 +1317,7 @@ func (s *Service) applyCategoryDelete(ctx context.Context, tx pgx.Tx, userID uui
 		return fmt.Errorf("failed to fetch category for delete: %w", err)
 	}
 	if isPreset {
-		log.Printf("sync: cannot delete preset category %s, skipping", entityID)
+		logger.Warnf("sync: cannot delete preset category %s, skipping", entityID)
 		return nil
 	}
 	// Access check: caller must own the category, or share a family with its

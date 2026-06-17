@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/familyledger/server/pkg/logger"
 	"hash/fnv"
 	"io"
-	"log"
 	"math"
 	"math/rand"
 	"net/http"
@@ -84,12 +84,12 @@ func (r *RealFetcher) FetchQuote(ctx context.Context, symbol string, marketType 
 	case "precious_metal":
 		quote, err = r.fetchPreciousMetal(ctx, symbol)
 	default:
-		log.Printf("market: unknown market type %q for symbol %s", marketType, symbol)
+		logger.Infof("market: unknown market type %q for symbol %s", marketType, symbol)
 		return nil, fmt.Errorf("unsupported market type: %s", marketType)
 	}
 
 	if err != nil {
-		log.Printf("market: FetchQuote(%s, %s) error: %v", symbol, marketType, err)
+		logger.Errorf("market: FetchQuote(%s, %s) error: %v", symbol, marketType, err)
 		return nil, fmt.Errorf("fetch %s/%s: %w", marketType, symbol, err)
 	}
 	return quote, nil
@@ -109,12 +109,12 @@ func (r *RealFetcher) SearchSymbol(ctx context.Context, query string, marketType
 	case "precious_metal":
 		results, err = r.searchPreciousMetal(ctx, query)
 	default:
-		log.Printf("market: unknown market type %q for search", marketType)
+		logger.Infof("market: unknown market type %q for search", marketType)
 		return nil, fmt.Errorf("unsupported market type for search: %s", marketType)
 	}
 
 	if err != nil {
-		log.Printf("market: SearchSymbol(%s, %s) error: %v", query, marketType, err)
+		logger.Errorf("market: SearchSymbol(%s, %s) error: %v", query, marketType, err)
 		return nil, fmt.Errorf("search %s/%s: %w", marketType, query, err)
 	}
 	return results, nil

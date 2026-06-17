@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/familyledger/server/pkg/logger"
 	"math"
 	"net/http"
 	"time"
@@ -62,11 +62,11 @@ func (s *ExchangeService) GetExchangeRate(ctx context.Context, from, to string) 
 		).Scan(&inverseRate)
 		if err2 != nil {
 			// Neither direct nor inverse pair exists — cannot convert
-			log.Printf("exchange: rate not found for %s or %s, refusing to guess", pair, inversePair)
+			logger.Warnf("exchange: rate not found for %s or %s, refusing to guess", pair, inversePair)
 			return 0, fmt.Errorf("exchange rate not available for %s", pair)
 		}
 		if inverseRate == 0 {
-			log.Printf("exchange: inverse rate is zero for %s, refusing to guess", inversePair)
+			logger.Warnf("exchange: inverse rate is zero for %s, refusing to guess", inversePair)
 			return 0, fmt.Errorf("exchange rate is zero for %s", inversePair)
 		}
 		return 1.0 / inverseRate, nil
@@ -81,7 +81,7 @@ func (s *ExchangeService) GetExchangeRate(ctx context.Context, from, to string) 
 func (s *ExchangeService) RefreshExchangeRates(ctx context.Context) error {
 	rates, err := s.fetchRealRates(ctx)
 	if err != nil {
-		log.Printf("exchange: real API failed (%v), falling back to mock", err)
+		logger.Warnf("exchange: real API failed (%v), falling back to mock", err)
 		return s.refreshMock(ctx)
 	}
 
@@ -114,7 +114,7 @@ func (s *ExchangeService) RefreshExchangeRates(ctx context.Context) error {
 
 		newRate, ok := s.computeRate(from, to, rates)
 		if !ok {
-			log.Printf("exchange: no rate data for %s", pair)
+			logger.Infof("exchange: no rate data for %s", pair)
 			continue
 		}
 
@@ -124,13 +124,13 @@ func (s *ExchangeService) RefreshExchangeRates(ctx context.Context) error {
 			newRate, pair,
 		)
 		if err != nil {
-			log.Printf("exchange: update rate error %s: %v", pair, err)
+			logger.Errorf("exchange: update rate error %s: %v", pair, err)
 			continue
 		}
 		updated++
 	}
 
-	log.Printf("exchange: refreshed %d/%d rates from real API", updated, len(pairs))
+	logger.Infof("exchange: refreshed %d/%d rates from real API", updated, len(pairs))
 	return nil
 }
 
@@ -228,10 +228,10 @@ func (s *ExchangeService) refreshMock(ctx context.Context) error {
 			newRate, e.pair,
 		)
 		if err != nil {
-			log.Printf("exchange: mock update error %s: %v", e.pair, err)
+			logger.Errorf("exchange: mock update error %s: %v", e.pair, err)
 		}
 	}
 
-	log.Printf("exchange: mock-refreshed %d rates", len(entries))
+	logger.Infof("exchange: mock-refreshed %d rates", len(entries))
 	return nil
 }

@@ -5,14 +5,14 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/familyledger/server/pkg/logger"
 	"math/big"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/familyledger/server/pkg/audit"
 	"github.com/familyledger/server/pkg/db"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -121,7 +121,7 @@ func (s *Service) CreateFamily(ctx context.Context, req *pb.CreateFamilyRequest)
 		return nil, status.Error(codes.Internal, "failed to commit transaction")
 	}
 
-	log.Printf("family: created family %s by user %s", familyID, userID)
+	logger.Infof("family: created family %s by user %s", familyID, userID)
 
 	audit.LogAudit(ctx, s.pool, familyID.String(), userID, "create_family", "family", familyID.String(), map[string]interface{}{"name": req.Name})
 
@@ -211,7 +211,7 @@ func (s *Service) JoinFamily(ctx context.Context, req *pb.JoinFamilyRequest) (*p
 		return nil, status.Error(codes.Internal, "failed to commit transaction")
 	}
 
-	log.Printf("family: user %s joined family %s", userID, familyID)
+	logger.Infof("family: user %s joined family %s", userID, familyID)
 
 	audit.LogAudit(ctx, s.pool, familyID.String(), userID, "join_family", "family_member", userID, map[string]interface{}{"invite_code": req.InviteCode})
 
@@ -400,7 +400,7 @@ func (s *Service) GenerateInviteCode(ctx context.Context, req *pb.GenerateInvite
 		return nil, status.Error(codes.Internal, "failed to update invite code")
 	}
 
-	log.Printf("family: generated invite code for family %s by user %s", familyID, userID)
+	logger.Infof("family: generated invite code for family %s by user %s", familyID, userID)
 
 	return &pb.GenerateInviteCodeResponse{
 		InviteCode: code,
@@ -468,7 +468,7 @@ func (s *Service) SetMemberRole(ctx context.Context, req *pb.SetMemberRoleReques
 		return nil, status.Error(codes.Internal, "failed to update role")
 	}
 
-	log.Printf("family: set role %s for user %s in family %s by %s", roleStr, req.UserId, req.FamilyId, callerID)
+	logger.Infof("family: set role %s for user %s in family %s by %s", roleStr, req.UserId, req.FamilyId, callerID)
 
 	audit.LogAudit(ctx, s.pool, req.FamilyId, callerID, "set_member_role", "family_member", req.UserId, map[string]interface{}{"new_role": roleStr})
 
@@ -523,7 +523,7 @@ func (s *Service) SetMemberPermissions(ctx context.Context, req *pb.SetMemberPer
 		return nil, status.Error(codes.NotFound, "member not found")
 	}
 
-	log.Printf("family: set permissions for user %s in family %s by %s", req.UserId, req.FamilyId, callerID)
+	logger.Infof("family: set permissions for user %s in family %s by %s", req.UserId, req.FamilyId, callerID)
 
 	audit.LogAudit(ctx, s.pool, req.FamilyId, callerID, "set_member_permissions", "family_member", req.UserId, map[string]interface{}{"permissions": req.Permissions})
 
@@ -604,7 +604,7 @@ func (s *Service) LeaveFamily(ctx context.Context, req *pb.LeaveFamilyRequest) (
 		return nil, status.Error(codes.Internal, "failed to leave family")
 	}
 
-	log.Printf("family: user %s left family %s", userID, familyID)
+	logger.Infof("family: user %s left family %s", userID, familyID)
 
 	audit.LogAudit(ctx, s.pool, familyID.String(), userID, "leave_family", "family_member", userID, nil)
 
@@ -682,7 +682,7 @@ func (s *Service) TransferOwnership(ctx context.Context, req *pb.TransferOwnersh
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
 
-	log.Printf("family: ownership transferred from %s to %s in family %s", callerID, req.NewOwnerId, req.FamilyId)
+	logger.Infof("family: ownership transferred from %s to %s in family %s", callerID, req.NewOwnerId, req.FamilyId)
 
 	audit.LogAudit(ctx, s.pool, req.FamilyId, callerID, "transfer_ownership", "family", req.FamilyId, map[string]interface{}{"new_owner": req.NewOwnerId})
 	return &pb.TransferOwnershipResponse{}, nil
@@ -742,26 +742,26 @@ func (s *Service) DeleteFamily(ctx context.Context, req *pb.DeleteFamilyRequest)
 	// 4. Delete/soft-delete other family-scoped entities
 	// budgets: no deleted_at column → hard delete
 	if _, err := tx.Exec(ctx, `DELETE FROM budgets WHERE family_id = $1`, familyID); err != nil {
-		log.Printf("family: failed to delete budgets for family %s: %v", familyID, err)
+		logger.Errorf("family: failed to delete budgets for family %s: %v", familyID, err)
 		return nil, status.Error(codes.Internal, "failed to delete family budgets")
 	}
 	// loans, investments, fixed_assets: have deleted_at → soft delete
 	if _, err := tx.Exec(ctx, `UPDATE loans SET deleted_at = NOW() WHERE family_id = $1 AND deleted_at IS NULL`, familyID); err != nil {
-		log.Printf("family: failed to soft-delete loans for family %s: %v", familyID, err)
+		logger.Errorf("family: failed to soft-delete loans for family %s: %v", familyID, err)
 		return nil, status.Error(codes.Internal, "failed to delete family loans")
 	}
 	if _, err := tx.Exec(ctx, `UPDATE investments SET deleted_at = NOW() WHERE family_id = $1 AND deleted_at IS NULL`, familyID); err != nil {
-		log.Printf("family: failed to soft-delete investments for family %s: %v", familyID, err)
+		logger.Errorf("family: failed to soft-delete investments for family %s: %v", familyID, err)
 		return nil, status.Error(codes.Internal, "failed to delete family investments")
 	}
 	if _, err := tx.Exec(ctx, `UPDATE fixed_assets SET deleted_at = NOW() WHERE family_id = $1 AND deleted_at IS NULL`, familyID); err != nil {
-		log.Printf("family: failed to soft-delete fixed_assets for family %s: %v", familyID, err)
+		logger.Errorf("family: failed to soft-delete fixed_assets for family %s: %v", familyID, err)
 		return nil, status.Error(codes.Internal, "failed to delete family fixed_assets")
 	}
 
 	// 5. Delete audit logs (hard delete is fine for logs)
 	if _, err := tx.Exec(ctx, `DELETE FROM audit_logs WHERE family_id = $1`, familyID); err != nil {
-		log.Printf("family: failed to delete audit_logs for family %s: %v", familyID, err)
+		logger.Errorf("family: failed to delete audit_logs for family %s: %v", familyID, err)
 		// Non-fatal: audit logs are not critical data
 	}
 
@@ -781,7 +781,7 @@ func (s *Service) DeleteFamily(ctx context.Context, req *pb.DeleteFamilyRequest)
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
 
-	log.Printf("family: deleted family %s by owner %s", req.FamilyId, callerID)
+	logger.Infof("family: deleted family %s by owner %s", req.FamilyId, callerID)
 
 	// Note: audit log for delete_family is NOT written because the family (and its audit_logs)
 	// are already deleted in the transaction. The deletion event is captured by the log line above.
