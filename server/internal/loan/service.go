@@ -3,15 +3,15 @@ package loan
 import (
 	"context"
 	"fmt"
-	"github.com/familyledger/server/pkg/logger"
 	"log/slog"
 	"math"
 	"time"
 
-	"github.com/familyledger/server/pkg/db"
-	"github.com/familyledger/server/pkg/permission"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/familyledger/server/pkg/logger"
+	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/permission"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -69,7 +69,7 @@ func (s *Service) CreateLoan(ctx context.Context, req *pb.CreateLoanRequest) (*p
 		}
 		familyID = &fid
 		if err := permission.Check(ctx, s.pool, userID, req.FamilyId, permission.CanEdit); err != nil {
-			logger.Errorf("loan: create: permission denied for user %s on family %s: %v", userID, req.FamilyId, err)
+			logger.Warnf("loan: create: permission denied for user %s on family %s: %v", userID, req.FamilyId, err)
 			return nil, err
 		}
 	}
@@ -333,6 +333,8 @@ func (s *Service) SimulatePrepayment(ctx context.Context, req *pb.SimulatePrepay
 	return sim, nil
 }
 
+
+
 // ── ExecutePrepayment ────────────────────────────────────────────────────────
 
 func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepaymentRequest) (*pb.ExecutePrepaymentResponse, error) {
@@ -409,7 +411,7 @@ func (s *Service) ExecutePrepayment(ctx context.Context, req *pb.ExecutePrepayme
 	return &pb.ExecutePrepaymentResponse{
 		Loan:        loan,
 		Simulation:  buildPrepaymentSimulationProto(calc, req.PrepaymentAmount),
-		NewSchedule: buildScheduleProto(calc, func(i int) int32 { return int32(int(loan.PaidMonths) + 1 + i) }),
+		NewSchedule: buildScheduleProto(calc, func(i int) int32 { return int32(int(loan.PaidMonths)+1+i) }),
 	}, nil
 }
 
@@ -1296,26 +1298,26 @@ func scanLoan(rows pgx.Rows) (*pb.Loan, error) {
 }
 
 type loanFields struct {
-	id, userID, name    string
-	loanType            pb.LoanType
-	principal           int64
-	remainingPrinc      int64
-	annualRate          float64
-	totalMonths         int32
-	paidMonths          int32
-	method              pb.RepaymentMethod
-	paymentDay          int32
-	startDate           time.Time
-	createdAt           time.Time
-	updatedAt           time.Time
-	accountID           string
-	groupID             string
-	subType             pb.LoanSubType
-	rateType            pb.RateType
-	lprBase             float64
-	lprSpread           float64
-	rateAdjustMonth     int32
-	familyID            string
+	id, userID, name string
+	loanType         pb.LoanType
+	principal        int64
+	remainingPrinc   int64
+	annualRate       float64
+	totalMonths      int32
+	paidMonths       int32
+	method           pb.RepaymentMethod
+	paymentDay       int32
+	startDate        time.Time
+	createdAt        time.Time
+	updatedAt        time.Time
+	accountID        string
+	groupID          string
+	subType          pb.LoanSubType
+	rateType         pb.RateType
+	lprBase          float64
+	lprSpread        float64
+	rateAdjustMonth  int32
+	familyID         string
 	repaymentCategoryID string
 	interestCalcMethod  pb.InterestCalcMethod
 }
@@ -1345,7 +1347,7 @@ func buildLoanProto(id, userID, name string, loanType pb.LoanType,
 }
 
 func buildLoanProtoFull(f loanFields) *pb.Loan {
-	loan := buildLoanProto(f.id, f.userID, f.name, f.loanType,
+		loan := buildLoanProto(f.id, f.userID, f.name, f.loanType,
 		f.principal, f.remainingPrinc, f.annualRate,
 		f.totalMonths, f.paidMonths, f.method, f.paymentDay,
 		f.startDate, f.createdAt, f.updatedAt, f.accountID, f.familyID)
@@ -1679,7 +1681,7 @@ func (s *Service) CreateLoanGroup(ctx context.Context, req *pb.CreateLoanGroupRe
 			subType: sl.SubType, rateType: sl.RateType,
 			lprBase: sl.LprBase, lprSpread: sl.LprSpread,
 			rateAdjustMonth: sl.RateAdjustMonth,
-			familyID:        req.FamilyId,
+			familyID: req.FamilyId,
 		}
 		subLoanProtos = append(subLoanProtos, buildLoanProtoFull(f))
 	}
@@ -1695,20 +1697,20 @@ func (s *Service) CreateLoanGroup(ctx context.Context, req *pb.CreateLoanGroupRe
 
 	logger.Infof("loan: created group %s (%s) with %d sub-loans for user %s familyId=%q", groupID, req.Name, len(subLoanProtos), userID, req.FamilyId)
 	return &pb.LoanGroup{
-		Id:                  groupID.String(),
-		UserId:              userID,
-		Name:                req.Name,
-		GroupType:           req.GroupType,
-		TotalPrincipal:      totalPrincipal,
-		PaymentDay:          req.PaymentDay,
-		LoanType:            req.LoanType,
-		FamilyId:            req.FamilyId,
-		StartDate:           timestamppb.New(startDate),
-		AccountId:           acctStr,
-		SubLoans:            subLoanProtos,
+		Id:                 groupID.String(),
+		UserId:             userID,
+		Name:               req.Name,
+		GroupType:          req.GroupType,
+		TotalPrincipal:     totalPrincipal,
+		PaymentDay:         req.PaymentDay,
+		LoanType:           req.LoanType,
+		FamilyId:           req.FamilyId,
+		StartDate:          timestamppb.New(startDate),
+		AccountId:          acctStr,
+		SubLoans:           subLoanProtos,
 		TotalMonthlyPayment: totalMonthlyPayment,
-		CreatedAt:           timestamppb.New(createdAt),
-		UpdatedAt:           timestamppb.New(updatedAt),
+		CreatedAt:          timestamppb.New(createdAt),
+		UpdatedAt:          timestamppb.New(updatedAt),
 	}, nil
 }
 
@@ -1798,19 +1800,19 @@ func (s *Service) ListLoanGroups(ctx context.Context, req *pb.ListLoanGroupsRequ
 		}
 
 		groups = append(groups, &pb.LoanGroup{
-			Id:                  gID.String(),
-			UserId:              userID,
-			FamilyId:            famStr,
-			Name:                name,
-			GroupType:           groupType,
-			TotalPrincipal:      totalPrincipal,
-			PaymentDay:          paymentDay,
-			StartDate:           timestamppb.New(startDate),
-			AccountId:           acctStr,
-			SubLoans:            subLoans,
+			Id:                 gID.String(),
+			UserId:             userID,
+			FamilyId:           famStr,
+			Name:               name,
+			GroupType:          groupType,
+			TotalPrincipal:     totalPrincipal,
+			PaymentDay:         paymentDay,
+			StartDate:          timestamppb.New(startDate),
+			AccountId:          acctStr,
+			SubLoans:           subLoans,
 			TotalMonthlyPayment: totalMonthly,
-			CreatedAt:           timestamppb.New(createdAt),
-			UpdatedAt:           timestamppb.New(updatedAt),
+			CreatedAt:          timestamppb.New(createdAt),
+			UpdatedAt:          timestamppb.New(updatedAt),
 		})
 	}
 	if groups == nil {
@@ -1924,18 +1926,18 @@ func (s *Service) loadLoanGroup(ctx context.Context, groupID, userID string) (*p
 	}
 
 	return &pb.LoanGroup{
-		Id:                  gID.String(),
-		UserId:              userID,
-		Name:                name,
-		GroupType:           groupType,
-		TotalPrincipal:      totalPrincipal,
-		PaymentDay:          paymentDay,
-		StartDate:           timestamppb.New(startDate),
-		AccountId:           acctStr,
-		SubLoans:            subLoans,
+		Id:                 gID.String(),
+		UserId:             userID,
+		Name:               name,
+		GroupType:          groupType,
+		TotalPrincipal:     totalPrincipal,
+		PaymentDay:         paymentDay,
+		StartDate:          timestamppb.New(startDate),
+		AccountId:          acctStr,
+		SubLoans:           subLoans,
 		TotalMonthlyPayment: totalMonthly,
-		CreatedAt:           timestamppb.New(createdAt),
-		UpdatedAt:           timestamppb.New(updatedAt),
+		CreatedAt:          timestamppb.New(createdAt),
+		UpdatedAt:          timestamppb.New(updatedAt),
 	}, nil
 }
 

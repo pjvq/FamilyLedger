@@ -24,11 +24,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/familyledger/server/pkg/logger"
 	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/familyledger/server/pkg/logger"
 )
 
 // Config holds TLS configuration parameters.

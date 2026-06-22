@@ -37,7 +37,6 @@ import (
 	"github.com/familyledger/server/pkg/middleware"
 	"github.com/familyledger/server/pkg/tlsconf"
 	"github.com/familyledger/server/pkg/ws"
-
 	acctpb "github.com/familyledger/server/proto/account"
 	assetpb "github.com/familyledger/server/proto/asset"
 	authpb "github.com/familyledger/server/proto/auth"
@@ -216,6 +215,11 @@ func main() {
 		logger.Infof("gRPC reflection enabled (ENABLE_GRPC_REFLECTION=true)")
 	}
 
+	// serverErr carries a fatal error from a server goroutine back to main so
+	// it can shut down gracefully (running defers) instead of os.Exit-ing from
+	// the goroutine and skipping pool.Close / context cancel / WS close.
+	serverErr := make(chan error, 2)
+
 	// Start gRPC
 	grpcLis, err := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%s", grpcPort))
 	if err != nil {
@@ -225,7 +229,8 @@ func main() {
 	go func() {
 		logger.Infof("gRPC server listening on :%s", grpcPort)
 		if err := grpcServer.Serve(grpcLis); err != nil {
-			logger.Fatalf("gRPC server error: %v", err)
+			logger.Errorf("gRPC server error: %v", err)
+			serverErr <- err
 		}
 	}()
 
@@ -257,12 +262,14 @@ func main() {
 			// Empty cert/key paths: TLS is handled by TLSConfig.GetCertificate
 			// which serves the hot-reloadable certificate via atomic.Pointer.
 			if err := wsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
-				logger.Fatalf("WebSocket server error: %v", err)
+				logger.Errorf("WebSocket server error: %v", err)
+				serverErr <- err
 			}
 		} else {
 			logger.Infof("WebSocket server listening on :%s (plaintext)", wsPort)
 			if err := wsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				logger.Fatalf("WebSocket server error: %v", err)
+				logger.Errorf("WebSocket server error: %v", err)
+				serverErr <- err
 			}
 		}
 	}()
@@ -274,12 +281,15 @@ func main() {
 	go runExchangeRateRefreshTask(ctx, exchangeService)
 	go runImportSessionCleanupTask(ctx, importService)
 
-	// Graceful shutdown
+	// Graceful shutdown: triggered by an OS signal or a fatal server error.
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	logger.Infof("shutting down...")
+	select {
+	case <-quit:
+		logger.Infof("shutting down...")
+	case err := <-serverErr:
+		logger.Errorf("fatal server error, shutting down: %v", err)
+	}
 	cancel() // signal scheduled tasks to stop
 
 	// Graceful stop with timeout

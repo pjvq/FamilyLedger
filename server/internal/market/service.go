@@ -2,11 +2,11 @@ package market
 
 import (
 	"context"
-	"github.com/familyledger/server/pkg/logger"
 	"time"
 
-	"github.com/familyledger/server/pkg/db"
 	"github.com/jackc/pgx/v5"
+	"github.com/familyledger/server/pkg/logger"
+	"github.com/familyledger/server/pkg/db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -18,7 +18,7 @@ const quoteCacheTTL = 15 * time.Minute
 
 type Service struct {
 	pb.UnimplementedMarketDataServiceServer
-	pool    db.Pool
+	pool db.Pool
 	fetcher MarketDataFetcher
 }
 

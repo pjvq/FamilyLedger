@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/familyledger/server/pkg/logger"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"

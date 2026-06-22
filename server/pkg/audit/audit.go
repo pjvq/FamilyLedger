@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/familyledger/server/pkg/logger"
 
-	"github.com/familyledger/server/pkg/db"
 	"github.com/google/uuid"
+	"github.com/familyledger/server/pkg/logger"
+	"github.com/familyledger/server/pkg/db"
 )
 
 // LogAudit records an audit log entry for a family operation.

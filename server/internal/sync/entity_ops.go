@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/familyledger/server/pkg/logger"
 	"time"
 
 	"github.com/familyledger/server/pkg/dynupdate"
+	"github.com/familyledger/server/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )

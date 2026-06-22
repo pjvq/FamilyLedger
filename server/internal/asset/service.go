@@ -2,14 +2,14 @@ package asset
 
 import (
 	"context"
-	"github.com/familyledger/server/pkg/logger"
 	"math"
 	"time"
 
-	"github.com/familyledger/server/pkg/db"
-	"github.com/familyledger/server/pkg/permission"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/familyledger/server/pkg/logger"
+	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/permission"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -687,10 +687,10 @@ type assetData struct {
 }
 
 type ruleData struct {
-	assetID         string
-	method          string
+	assetID        string
+	method         string
 	usefulLifeYears int
-	salvageRate     float64
+	salvageRate    float64
 }
 
 func (s *Service) loadAsset(ctx context.Context, assetID, userID string) (*pb.Asset, error) {
@@ -779,10 +779,10 @@ func (s *Service) loadAssetWithRule(ctx context.Context, assetID, userID string)
 	}
 
 	r := &ruleData{
-		assetID:         a.id,
-		method:          *rMethod,
+		assetID:        a.id,
+		method:         *rMethod,
 		usefulLifeYears: *rUsefulLife,
-		salvageRate:     *rSalvageRate,
+		salvageRate:    *rSalvageRate,
 	}
 	return &a, r, nil
 }

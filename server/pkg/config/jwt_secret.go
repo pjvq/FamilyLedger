@@ -2,9 +2,10 @@ package config
 
 import (
 	"fmt"
-	"github.com/familyledger/server/pkg/logger"
 	"os"
 	"strings"
+
+	"github.com/familyledger/server/pkg/logger"
 )
 
 const (

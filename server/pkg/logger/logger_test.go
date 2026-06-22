@@ -2,6 +2,7 @@ package logger
 
 import (
 	"bytes"
+	"context"
 	"log"
 	"log/slog"
 	"strings"
@@ -90,4 +91,43 @@ func TestLevelFiltering(t *testing.T) {
 	assert.NotContains(t, out, "should-be-dropped")
 	assert.Contains(t, out, "warn-should-appear")
 	assert.Equal(t, 1, strings.Count(out, "\n"))
+}
+
+func TestCtxHelpers_EmitCorrectLevels(t *testing.T) {
+	buf := withCapture(t)
+	InfoCtx(context.Background(), "ctx-info %d", 1)
+	WarnCtx(context.Background(), "ctx-warn %d", 2)
+	out := buf.String()
+	assert.Contains(t, out, "level=INFO")
+	assert.Contains(t, out, "ctx-info 1")
+	assert.Contains(t, out, "level=WARN")
+	assert.Contains(t, out, "ctx-warn 2")
+	// Source attribution must survive the ctx path too.
+	assert.Contains(t, out, "logger_test.go")
+}
+
+func TestFatal_LogsFatalLevelAndExits(t *testing.T) {
+	prev := slog.Default()
+	t.Cleanup(func() { slog.SetDefault(prev) })
+	buf := &bytes.Buffer{}
+	slog.SetDefault(slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{
+		Level:       slog.LevelDebug,
+		ReplaceAttr: replaceLevel,
+	})))
+
+	var code int
+	prevExit := exitFunc
+	exitFunc = func(c int) { code = c }
+	t.Cleanup(func() { exitFunc = prevExit })
+
+	Fatalf("boom %s", "now")
+	out := buf.String()
+	assert.Contains(t, out, "level=FATAL")
+	assert.Contains(t, out, "boom now")
+	assert.Equal(t, 1, code)
+
+	code = 0
+	Fatal("dead")
+	assert.Contains(t, buf.String(), "dead")
+	assert.Equal(t, 1, code)
 }

@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/familyledger/server/pkg/logger"
 	"time"
 
-	"github.com/familyledger/server/pkg/db"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/familyledger/server/pkg/logger"
+	"github.com/familyledger/server/pkg/db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -407,7 +407,7 @@ func (s *Service) CheckBudgets(ctx context.Context) error {
 					map[string]interface{}{"budget_id": b.ID.String(), "execution_rate": rate},
 				)
 				if err != nil {
-					logger.Warnf("notify: failed to create budget_warning notification: %v", err)
+					logger.Errorf("notify: failed to create budget_warning notification: %v", err)
 				} else {
 					logger.Infof("notify: budget_warning notification created for user %s budget %s (%.0f%%)", recipientID, b.ID, rate*100)
 				}
@@ -880,15 +880,15 @@ func (s *Service) CreateReminder(ctx context.Context, req *pb.CreateReminderRequ
 	}
 
 	reminder := &pb.Reminder{
-		Id:          id.String(),
-		UserId:      userID,
-		Title:       req.Title,
+		Id:         id.String(),
+		UserId:     userID,
+		Title:      req.Title,
 		Description: req.Description,
-		RemindAt:    req.RemindAt,
-		RepeatRule:  repeatRule,
-		IsActive:    true,
-		CreatedAt:   timestamppb.New(createdAt),
-		UpdatedAt:   timestamppb.New(updatedAt),
+		RemindAt:   req.RemindAt,
+		RepeatRule: repeatRule,
+		IsActive:   true,
+		CreatedAt:  timestamppb.New(createdAt),
+		UpdatedAt:  timestamppb.New(updatedAt),
 	}
 	if familyID != nil {
 		reminder.FamilyId = familyID.String()

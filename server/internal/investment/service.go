@@ -2,14 +2,14 @@ package investment
 
 import (
 	"context"
-	"github.com/familyledger/server/pkg/logger"
 	"math"
 	"time"
 
-	"github.com/familyledger/server/pkg/db"
-	"github.com/familyledger/server/pkg/permission"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/familyledger/server/pkg/logger"
+	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/permission"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -1024,3 +1024,4 @@ func calculateXIRR(cashFlows []*pb.CashFlow) float64 {
 
 	return rate
 }
+

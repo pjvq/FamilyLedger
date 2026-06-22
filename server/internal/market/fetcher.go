@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/familyledger/server/pkg/logger"
 	"hash/fnv"
 	"io"
 	"math"
@@ -16,6 +15,8 @@ import (
 
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
+
+	"github.com/familyledger/server/pkg/logger"
 )
 
 // MarketQuote represents a market quote from an external data source.

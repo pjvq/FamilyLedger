@@ -6,19 +6,19 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/familyledger/server/pkg/logger"
 
-	"github.com/familyledger/server/pkg/db"
-	"github.com/familyledger/server/pkg/middleware"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/familyledger/server/pkg/logger"
+	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/middleware"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/familyledger/server/pkg/jwt"
 	pb "github.com/familyledger/server/proto/auth"
+	"github.com/familyledger/server/pkg/jwt"
 )
 
 // bcryptCost is the work factor for password hashing.

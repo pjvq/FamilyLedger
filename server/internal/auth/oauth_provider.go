@@ -3,11 +3,12 @@ package auth
 import (
 	"context"
 	"fmt"
-	"github.com/familyledger/server/pkg/logger"
 	"os"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/familyledger/server/pkg/logger"
 )
 
 // OAuthUserInfo holds the user info returned from an OAuth provider.

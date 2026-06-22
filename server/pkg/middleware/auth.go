@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"github.com/familyledger/server/pkg/logger"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -11,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/familyledger/server/pkg/jwt"
+	"github.com/familyledger/server/pkg/logger"
 )
 
 type contextKey string

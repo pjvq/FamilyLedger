@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/familyledger/server/pkg/logger"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -12,13 +11,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/familyledger/server/pkg/logger"
 	"github.com/familyledger/server/pkg/audit"
 	catpkg "github.com/familyledger/server/pkg/category"
 	"github.com/familyledger/server/pkg/db"
 	"github.com/familyledger/server/pkg/permission"
 	"github.com/familyledger/server/pkg/storage"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -33,7 +33,7 @@ type Service struct {
 	uploadDir   string // image upload directory (kept for quota check)
 	baseURL     string // base URL for image access
 	fileStorage storage.FileStorage
-	hub         wsHub // WebSocket hub for real-time notifications (optional)
+	hub         wsHub  // WebSocket hub for real-time notifications (optional)
 }
 
 // wsHub is the interface for broadcasting WS notifications.
@@ -481,16 +481,16 @@ func (s *Service) UpdateTransaction(ctx context.Context, req *pb.UpdateTransacti
 			return nil, status.Error(codes.Internal, "failed to read updated transaction for sync")
 		}
 		if err := insertTransactionSyncOp(ctx, tx, uid, txnID, "update", map[string]interface{}{
-			"id":          txnID.String(),
-			"user_id":     uid.String(),
-			"account_id":  syncAccID.String(),
-			"category_id": syncCatID.String(),
-			"amount":      syncAmount,
-			"amount_cny":  syncAmountCny,
-			"type":        syncType,
-			"note":        syncNote,
-			"currency":    syncCurrency,
-			"txn_date":    syncTxnDate.Format("2006-01-02"),
+			"id":           txnID.String(),
+			"user_id":      uid.String(),
+			"account_id":   syncAccID.String(),
+			"category_id":  syncCatID.String(),
+			"amount":       syncAmount,
+			"amount_cny":   syncAmountCny,
+			"type":         syncType,
+			"note":         syncNote,
+			"currency":     syncCurrency,
+			"txn_date":     syncTxnDate.Format("2006-01-02"),
 		}); err != nil {
 			slog.Error("transaction: sync update failed", "txn_id", txnID, "error", err)
 			return nil, status.Error(codes.Internal, "failed to record sync operation")
@@ -716,10 +716,10 @@ func (s *Service) BatchCreateTransactions(ctx context.Context, req *pb.BatchCrea
 	}
 
 	return &pb.BatchCreateTransactionsResponse{
-		CreatedCount: int32(len(created)),
-		Transactions: created,
-		Errors:       errors,
-		Warnings:     warnings,
+		CreatedCount:  int32(len(created)),
+		Transactions:  created,
+		Errors:        errors,
+		Warnings:      warnings,
 	}, nil
 }
 

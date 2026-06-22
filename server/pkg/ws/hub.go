@@ -2,7 +2,6 @@ package ws
 
 import (
 	"encoding/json"
-	"github.com/familyledger/server/pkg/logger"
 	"net/http"
 	"os"
 	"strings"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"github.com/familyledger/server/pkg/logger"
 	jwtpkg "github.com/familyledger/server/pkg/jwt"
 )
 
@@ -102,7 +102,7 @@ func checkOrigin(r *http.Request) bool {
 		return true
 	}
 
-	logger.Infof("ws: rejected origin %q", origin)
+	logger.Warnf("ws: rejected origin %q", origin)
 	return false
 }
 
@@ -142,11 +142,11 @@ type Hub struct {
 type Client struct {
 	conn   *websocket.Conn
 	userID string
-	token  string // original JWT — for periodic re-verification
+	token  string     // original JWT — for periodic re-verification
 	send   chan []byte
 	done   chan struct{} // closed when client is unregistered
-	once   sync.Once     // ensures unregister logic runs only once
-	hub    *Hub          // back-reference for config access
+	once   sync.Once    // ensures unregister logic runs only once
+	hub    *Hub         // back-reference for config access
 }
 
 type ChangeNotification struct {
@@ -216,7 +216,7 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		newCount := h.pendingAuth.Add(1)
 		if newCount > int64(h.config.MaxPendingAuth) {
 			h.pendingAuth.Add(-1)
-			logger.Infof("ws: max pending auth connections exceeded, rejecting %s", clientAddr)
+			logger.Warnf("ws: max pending auth connections exceeded, rejecting %s", clientAddr)
 			http.Error(w, "too many pending connections", http.StatusServiceUnavailable)
 			return
 		}
@@ -246,7 +246,7 @@ func (h *Hub) handleFirstMessageAuth(conn *websocket.Conn, clientAddr string) {
 	conn.SetReadDeadline(time.Now().Add(h.config.AuthTimeout))
 	_, msg, err := conn.ReadMessage()
 	if err != nil {
-		logger.Errorf("ws: auth timeout or read error from %s: %v", clientAddr, err)
+		logger.Warnf("ws: auth timeout or read error from %s: %v", clientAddr, err)
 		if wErr := conn.WriteControl(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(4002, "auth timeout"),
@@ -352,7 +352,7 @@ func (h *Hub) registerAtomic(client *Client, clientAddr string) bool {
 		if len(h.clients[client.userID]) >= h.config.MaxConnsPerUser {
 			h.mu.Unlock()
 			// Network I/O outside lock to prevent Hub deadlock
-			logger.Infof("ws: max connections (%d) exceeded for user %s from %s", h.config.MaxConnsPerUser, client.userID, clientAddr)
+			logger.Warnf("ws: max connections (%d) exceeded for user %s from %s", h.config.MaxConnsPerUser, client.userID, clientAddr)
 			if wErr := client.conn.WriteControl(
 				websocket.CloseMessage,
 				websocket.FormatCloseMessage(4005, "max connections exceeded"),

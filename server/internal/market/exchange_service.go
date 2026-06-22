@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/familyledger/server/pkg/logger"
 	"math"
 	"net/http"
 	"time"
 
 	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/logger"
 )
 
 // ExchangeRate represents a currency exchange rate.
