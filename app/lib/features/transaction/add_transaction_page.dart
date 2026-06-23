@@ -32,8 +32,7 @@ class AddTransactionPage extends ConsumerStatefulWidget {
   const AddTransactionPage({super.key, this.existingTransaction});
 
   @override
-  ConsumerState<AddTransactionPage> createState() =>
-      _AddTransactionPageState();
+  ConsumerState<AddTransactionPage> createState() => _AddTransactionPageState();
 }
 
 class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
@@ -94,7 +93,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
           _imagePaths.addAll(List<String>.from(jsonDecode(txn.imageUrls)));
         } catch (_) {}
       }
-      _showDetails = _noteController.text.isNotEmpty ||
+      _showDetails =
+          _noteController.text.isNotEmpty ||
           _tags.isNotEmpty ||
           _imagePaths.isNotEmpty;
       // 编辑模式：预填交易日期
@@ -106,9 +106,11 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     }
 
     // Tab 切换时清空分类（只在用户手动切换时清，不在 initState 预填时清）
-    _tabController.addListener(() => setState(() {
-          _selectedCategoryId = null;
-        }));
+    _tabController.addListener(
+      () => setState(() {
+        _selectedCategoryId = null;
+      }),
+    );
   }
 
   @override
@@ -126,99 +128,100 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   @override
   Widget build(BuildContext context) {
     final txnState = ref.watch(transactionProvider);
-    final categories =
-        _isExpense ? txnState.expenseCategories : txnState.incomeCategories;
+    final categories = _isExpense
+        ? txnState.expenseCategories
+        : txnState.incomeCategories;
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Semantics(
-      label: _isEditMode ? '编辑交易页面' : '记一笔页面',
-      child: Scaffold(
-        appBar: AppBar(
-          leading: Semantics(
-            button: true,
-            label: '关闭',
-            child: IconButton(
-              icon: const Icon(Icons.close_rounded, size: 24),
-              tooltip: '关闭',
-              onPressed: () => context.pop(),
+        label: _isEditMode ? '编辑交易页面' : '记一笔页面',
+        child: Scaffold(
+          appBar: AppBar(
+            leading: Semantics(
+              button: true,
+              label: '关闭',
+              child: IconButton(
+                icon: const Icon(Icons.close_rounded, size: 24),
+                tooltip: '关闭',
+                onPressed: () => context.pop(),
+              ),
+            ),
+            title: Text(_isEditMode ? '编辑交易' : '记一笔'),
+            bottom: TabBar(
+              controller: _tabController,
+              indicatorSize: TabBarIndicatorSize.label,
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+              tabs: const [
+                Tab(text: '支出'),
+                Tab(text: '收入'),
+              ],
             ),
           ),
-          title: Text(_isEditMode ? '编辑交易' : '记一笔'),
-          bottom: TabBar(
-            controller: _tabController,
-            indicatorSize: TabBarIndicatorSize.label,
-            labelStyle: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
-            tabs: const [
-              Tab(text: '支出'),
-              Tab(text: '收入'),
+          body: Column(
+            children: [
+              // Amount display + currency selector
+              _buildAmountRow(context),
+              // CNY equivalent (when foreign currency)
+              if (_selectedCurrency != 'CNY') _buildCnyEquivalent(),
+              const SizedBox(height: 4),
+              // Date/time picker row
+              _buildDateRow(context),
+              // Detail toggle
+              _buildDetailToggle(context),
+              // Details panel (note, tags, images)
+              if (_showDetails)
+                TransactionDetailsPanel(
+                  noteController: _noteController,
+                  tagController: _tagController,
+                  tags: List.unmodifiable(_tags),
+                  imagePaths: List.unmodifiable(_imagePaths),
+                  onTagAdded: () => _addTag(_tagController.text),
+                  onTagRemoved: (tag) => setState(() => _tags.remove(tag)),
+                  onImageRemoved: (path) =>
+                      setState(() => _imagePaths.remove(path)),
+                  onPickImage: _pickImage,
+                ),
+              // Category selector
+              Expanded(
+                child: CategoryGrid(
+                  categories: categories,
+                  selectedId: _selectedCategoryId,
+                  onSelect: (id) {
+                    setState(() => _selectedCategoryId = id);
+                    HapticFeedback.selectionClick();
+                  },
+                  onAddCategory: (parentId) => _addNewCategory(parentId),
+                ),
+              ),
+              // Number pad
+              NumberPad(
+                onKey: _handleKey,
+                onDelete: _handleDelete,
+                onClear: () {
+                  HapticFeedback.mediumImpact();
+                  setState(() => _amountStr = '0');
+                },
+                onConfirm: _handleConfirm,
+                confirmEnabled:
+                    _selectedCategoryId != null &&
+                    _amountStr != '0' &&
+                    (double.tryParse(_amountStr) ?? 0) > 0 &&
+                    !_isSubmitting,
+              ),
             ],
           ),
         ),
-        body: Column(
-        children: [
-          // Amount display + currency selector
-          _buildAmountRow(context),
-          // CNY equivalent (when foreign currency)
-          if (_selectedCurrency != 'CNY') _buildCnyEquivalent(),
-          const SizedBox(height: 4),
-          // Date/time picker row
-          _buildDateRow(context),
-          // Detail toggle
-          _buildDetailToggle(context),
-          // Details panel (note, tags, images)
-          if (_showDetails) TransactionDetailsPanel(
-            noteController: _noteController,
-            tagController: _tagController,
-            tags: List.unmodifiable(_tags),
-            imagePaths: List.unmodifiable(_imagePaths),
-            onTagAdded: () => _addTag(_tagController.text),
-            onTagRemoved: (tag) => setState(() => _tags.remove(tag)),
-            onImageRemoved: (path) => setState(() => _imagePaths.remove(path)),
-            onPickImage: _pickImage,
-          ),
-          // Category selector
-          Expanded(
-            child: CategoryGrid(
-              categories: categories,
-              selectedId: _selectedCategoryId,
-              onSelect: (id) {
-                setState(() => _selectedCategoryId = id);
-                HapticFeedback.selectionClick();
-              },
-              onAddCategory: (parentId) => _addNewCategory(parentId),
-            ),
-          ),
-          // Number pad
-          NumberPad(
-            onKey: _handleKey,
-            onDelete: _handleDelete,
-            onClear: () {
-              HapticFeedback.mediumImpact();
-              setState(() => _amountStr = '0');
-            },
-            onConfirm: _handleConfirm,
-                        confirmEnabled:
-                _selectedCategoryId != null &&
-                _amountStr != '0' &&
-                (double.tryParse(_amountStr) ?? 0) > 0 &&
-                !_isSubmitting,
-          ),
-        ],
-        ),
       ),
-    ),
     );
   }
 
   Widget _buildAmountRow(BuildContext context) {
     final colors = context.semanticColors;
-    final color = _isExpense
-        ? colors.expense
-        : colors.income;
+    final color = _isExpense ? colors.expense : colors.income;
     final symbol = currencySymbols[_selectedCurrency] ?? _selectedCurrency;
 
     return Semantics(
@@ -227,56 +230,56 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Currency selector button
-          GestureDetector(
-            onTap: _showCurrencyPicker,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _selectedCurrency,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Currency selector button
+            GestureDetector(
+              onTap: _showCurrencyPicker,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _selectedCurrency,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  Icon(Icons.arrow_drop_down, color: color, size: 18),
-                ],
+                    Icon(Icons.arrow_drop_down, color: color, size: 18),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          // Amount
-          Text(
-            symbol,
-            style: TextStyle(
-              color: color,
-              fontSize: 28,
-              fontWeight: FontWeight.w500,
+            const SizedBox(width: 8),
+            // Amount
+            Text(
+              symbol,
+              style: TextStyle(
+                color: color,
+                fontSize: 28,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            _amountStr,
-            style: TextStyle(
-              color: color,
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
-              fontFeatures: const [FontFeature.tabularFigures()],
-              letterSpacing: -2,
+            const SizedBox(width: 4),
+            Text(
+              _amountStr,
+              style: TextStyle(
+                color: color,
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
+                fontFeatures: const [FontFeature.tabularFigures()],
+                letterSpacing: -2,
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -297,10 +300,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
           Text(
             '≈ ¥${cnyYuan.toStringAsFixed(2)}',
             style: TextStyle(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.45),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.45),
               fontSize: 14,
             ),
           ),
@@ -308,10 +310,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
           Text(
             '(1 $_selectedCurrency = ${rate.toStringAsFixed(4)} CNY)',
             style: TextStyle(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: 0.3),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.3),
               fontSize: 11,
             ),
           ),
@@ -329,7 +330,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     final minStr = date.minute.toString().padLeft(2, '0');
     final time = '$hourStr:$minStr';
 
-    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+    if (date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day) {
       return '$_kToday $time';
     } else if (date.year == now.year) {
       return '${date.month}月${date.day}日 $time';
@@ -381,7 +384,10 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                   onPressed: () => setState(() => _selectedDate = null),
                   icon: Icon(Icons.close_rounded, size: 14, color: muted),
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  constraints: const BoxConstraints(
+                    minWidth: 28,
+                    minHeight: 28,
+                  ),
                   style: IconButton.styleFrom(
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
@@ -430,7 +436,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   Widget _buildDetailToggle(BuildContext context) {
     final theme = Theme.of(context);
     final hasDetails =
-        _noteController.text.isNotEmpty || _tags.isNotEmpty || _imagePaths.isNotEmpty;
+        _noteController.text.isNotEmpty ||
+        _tags.isNotEmpty ||
+        _imagePaths.isNotEmpty;
 
     return GestureDetector(
       onTap: () => setState(() => _showDetails = !_showDetails),
@@ -460,7 +468,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     );
   }
 
-
   void _showCurrencyPicker() {
     showModalBottomSheet(
       context: context,
@@ -479,12 +486,19 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
               final symbol = currencySymbols[c] ?? c;
               final isSelected = c == _selectedCurrency;
               return ListTile(
-                leading: Text(symbol,
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.w600)),
+                leading: Text(
+                  symbol,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 title: Text(c),
                 trailing: isSelected
-                    ? Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary)
+                    ? Icon(
+                        Icons.check_rounded,
+                        color: Theme.of(context).colorScheme.primary,
+                      )
                     : null,
                 onTap: () {
                   setState(() => _selectedCurrency = c);
@@ -509,7 +523,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     }
   }
 
-
   Future<void> _pickImage() async {
     final path = await _imageService.pickAndSave(context);
     if (path != null && mounted) {
@@ -526,12 +539,14 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       final type = _isExpense
           ? pb.TransactionType.TRANSACTION_TYPE_EXPENSE
           : pb.TransactionType.TRANSACTION_TYPE_INCOME;
-      await client.createCategory(pbgrpc.CreateCategoryRequest(
-        name: result.$1,
-        iconKey: result.$2,
-        type: type,
-        parentId: parentId ?? '',
-      ));
+      await client.createCategory(
+        pbgrpc.CreateCategoryRequest(
+          name: result.$1,
+          iconKey: result.$2,
+          type: type,
+          parentId: parentId ?? '',
+        ),
+      );
       ref.read(transactionProvider.notifier).reload();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -552,7 +567,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   }
 
   /// 简化版分类编辑器（名称 + 图标）
-  Future<(String, String)?> _showQuickCategoryEditor(BuildContext context) async {
+  Future<(String, String)?> _showQuickCategoryEditor(
+    BuildContext context,
+  ) async {
     final theme = Theme.of(context);
     String name = '';
     String iconKey = 'other';
@@ -569,12 +586,16 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
 
           return Container(
             padding: EdgeInsets.only(
-              left: 20, right: 20, top: 12,
+              left: 20,
+              right: 20,
+              top: 12,
               bottom: 16 + bottom + MediaQuery.of(ctx).padding.bottom,
             ),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -582,7 +603,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
               children: [
                 Center(
                   child: Container(
-                    width: 40, height: 4,
+                    width: 40,
+                    height: 4,
                     decoration: BoxDecoration(
                       color: theme.colorScheme.onSurface.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(2),
@@ -590,33 +612,49 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text('新建分类',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  '新建分类',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     GestureDetector(
                       onTap: () {
-                        showIconPickerSheet(ctx,
-                            selectedKey: iconKey, onSelect: (key) {
-                          setLocalState(() => iconKey = key);
-                        });
+                        showIconPickerSheet(
+                          ctx,
+                          selectedKey: iconKey,
+                          onSelect: (key) {
+                            setLocalState(() => iconKey = key);
+                          },
+                        );
                       },
                       child: Container(
-                        width: 50, height: 50,
+                        width: 50,
+                        height: 50,
                         decoration: BoxDecoration(
                           color: color.withOpacity(0.12),
                           shape: BoxShape.circle,
-                          border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+                          border: Border.all(
+                            color: color.withOpacity(0.3),
+                            width: 1.5,
+                          ),
                         ),
                         child: CategoryIconWidget(
-                            iconKey: iconKey, size: 24, showBackground: false),
+                          iconKey: iconKey,
+                          size: 24,
+                          showBackground: false,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Icon(Icons.edit, size: 14,
-                        color: theme.colorScheme.onSurface.withOpacity(0.3)),
+                    Icon(
+                      Icons.edit,
+                      size: 14,
+                      color: theme.colorScheme.onSurface.withOpacity(0.3),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextField(
@@ -627,9 +665,12 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                           hintText: '输入分类名称',
                           counterText: '',
                           border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12),
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
                         ),
                         onChanged: (v) => setLocalState(() => name = v),
                       ),
@@ -714,17 +755,23 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
             if (await file.exists()) {
               final bytes = await file.readAsBytes();
               final ext = p.extension(path).toLowerCase();
-              final contentType = {
-                '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-                '.png': 'image/png', '.webp': 'image/webp',
-                '.heic': 'image/heic',
-              }[ext] ?? 'image/jpeg';
+              final contentType =
+                  {
+                    '.jpg': 'image/jpeg',
+                    '.jpeg': 'image/jpeg',
+                    '.png': 'image/png',
+                    '.webp': 'image/webp',
+                    '.heic': 'image/heic',
+                  }[ext] ??
+                  'image/jpeg';
               final uploadReq = pb.UploadTransactionImageRequest(
                 filename: p.basename(path),
                 data: bytes,
                 contentType: contentType,
               );
-              final resp = await ref.read(transactionProvider.notifier).uploadImage(uploadReq);
+              final resp = await ref
+                  .read(transactionProvider.notifier)
+                  .uploadImage(uploadReq);
               if (resp != null) {
                 imageUrls.add(resp);
                 continue;
@@ -739,7 +786,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
 
       if (_isEditMode) {
         // 编辑模式：更新已有交易
-        await ref.read(transactionProvider.notifier).updateTransaction(
+        await ref
+            .read(transactionProvider.notifier)
+            .updateTransaction(
               id: widget.existingTransaction!.id,
               categoryId: _selectedCategoryId!,
               amount: cents,
@@ -753,7 +802,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
             );
       } else {
         // 新建模式：创建交易
-        await ref.read(transactionProvider.notifier).addTransaction(
+        await ref
+            .read(transactionProvider.notifier)
+            .addTransaction(
               categoryId: _selectedCategoryId!,
               amount: cents,
               type: _type,

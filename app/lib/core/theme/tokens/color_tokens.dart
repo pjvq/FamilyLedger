@@ -142,7 +142,16 @@ abstract final class ChartColors {
 
   /// Full chart palette for pie/bar/line charts (color-blind safe, per UX design doc).
   static const List<Color> palette = [
-    slot1, slot2, slot3, slot4, slot5, slot6, slot7, slot8, slot9, slot10,
+    slot1,
+    slot2,
+    slot3,
+    slot4,
+    slot5,
+    slot6,
+    slot7,
+    slot8,
+    slot9,
+    slot10,
   ];
 }
 
@@ -202,6 +211,7 @@ abstract final class CommodityColors {
   static const Color gold = Color(0xFFD4AF37);
   static const Color silver = Color(0xFFA8A9AD);
   static const Color platinum = Color(0xFFE5E4E2);
+
   /// Fallback for unknown commodity types.
   static const Color fallback = Color(0xFF9E9E9E);
 }
@@ -220,4 +230,3 @@ abstract final class GradientTokens {
   static const Color primaryGradientDeep = Color(0xFF3D50E0);
   static const Color primaryGradientSoft = Color(0xFF4A5DE5);
 }
-

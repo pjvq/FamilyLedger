@@ -13,22 +13,13 @@ class AppConstants {
     defaultValue: 'localhost',
   );
 
-  static const grpcPort = int.fromEnvironment(
-    'GRPC_PORT',
-    defaultValue: 50051,
-  );
+  static const grpcPort = int.fromEnvironment('GRPC_PORT', defaultValue: 50051);
 
-  static const wsPort = int.fromEnvironment(
-    'WS_PORT',
-    defaultValue: 8080,
-  );
+  static const wsPort = int.fromEnvironment('WS_PORT', defaultValue: 8080);
 
   /// Whether to use TLS for gRPC and WebSocket connections.
   /// Override: --dart-define=USE_TLS=false (for local dev)
-  static const useTls = bool.fromEnvironment(
-    'USE_TLS',
-    defaultValue: true,
-  );
+  static const useTls = bool.fromEnvironment('USE_TLS', defaultValue: true);
 
   // ─── Auth ─────────────────────────────────────────────────────────────────
   static const accessTokenKey = 'access_token';

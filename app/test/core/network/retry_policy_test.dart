@@ -110,7 +110,13 @@ void main() {
             jitterFactor: 0.0,
           ),
         ),
-        throwsA(isA<GrpcError>().having((e) => e.code, 'code', StatusCode.unavailable)),
+        throwsA(
+          isA<GrpcError>().having(
+            (e) => e.code,
+            'code',
+            StatusCode.unavailable,
+          ),
+        ),
       );
       expect(callCount, 3);
     });
@@ -128,7 +134,13 @@ void main() {
             baseDelay: Duration(milliseconds: 1),
           ),
         ),
-        throwsA(isA<GrpcError>().having((e) => e.code, 'code', StatusCode.invalidArgument)),
+        throwsA(
+          isA<GrpcError>().having(
+            (e) => e.code,
+            'code',
+            StatusCode.invalidArgument,
+          ),
+        ),
       );
       expect(callCount, 1); // No retry
     });
@@ -157,13 +169,10 @@ void main() {
     test('noRetry policy fails immediately without retry', () async {
       int callCount = 0;
       await expectLater(
-        grpcRetry(
-          () async {
-            callCount++;
-            throw GrpcError.unavailable();
-          },
-          policy: RetryPolicy.noRetry,
-        ),
+        grpcRetry(() async {
+          callCount++;
+          throw GrpcError.unavailable();
+        }, policy: RetryPolicy.noRetry),
         throwsA(isA<GrpcError>()),
       );
       expect(callCount, 1);

@@ -22,8 +22,9 @@ const GetNetWorthRequest$json = {
 };
 
 /// Descriptor for `GetNetWorthRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getNetWorthRequestDescriptor = $convert.base64Decode(
-    'ChJHZXROZXRXb3J0aFJlcXVlc3QSGwoJZmFtaWx5X2lkGAEgASgJUghmYW1pbHlJZA==');
+final $typed_data.Uint8List getNetWorthRequestDescriptor =
+    $convert.base64Decode(
+        'ChJHZXROZXRXb3J0aFJlcXVlc3QSGwoJZmFtaWx5X2lkGAEgASgJUghmYW1pbHlJZA==');
 
 @$core.Deprecated('Use netWorthDescriptor instead')
 const NetWorth$json = {
@@ -34,9 +35,22 @@ const NetWorth$json = {
     {'1': 'investment_value', '3': 3, '4': 1, '5': 3, '10': 'investmentValue'},
     {'1': 'fixed_asset_value', '3': 4, '4': 1, '5': 3, '10': 'fixedAssetValue'},
     {'1': 'loan_balance', '3': 5, '4': 1, '5': 3, '10': 'loanBalance'},
-    {'1': 'change_from_last_month', '3': 6, '4': 1, '5': 3, '10': 'changeFromLastMonth'},
+    {
+      '1': 'change_from_last_month',
+      '3': 6,
+      '4': 1,
+      '5': 3,
+      '10': 'changeFromLastMonth'
+    },
     {'1': 'change_percent', '3': 7, '4': 1, '5': 1, '10': 'changePercent'},
-    {'1': 'composition', '3': 8, '4': 3, '5': 11, '6': '.familyledger.dashboard.v1.AssetComposition', '10': 'composition'},
+    {
+      '1': 'composition',
+      '3': 8,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.dashboard.v1.AssetComposition',
+      '10': 'composition'
+    },
   ],
 };
 
@@ -88,7 +102,14 @@ final $typed_data.Uint8List trendRequestDescriptor = $convert.base64Decode(
 const TrendResponse$json = {
   '1': 'TrendResponse',
   '2': [
-    {'1': 'points', '3': 1, '4': 3, '5': 11, '6': '.familyledger.dashboard.v1.TrendPoint', '10': 'points'},
+    {
+      '1': 'points',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.dashboard.v1.TrendPoint',
+      '10': 'points'
+    },
   ],
 };
 
@@ -136,7 +157,14 @@ const CategoryBreakdownResponse$json = {
   '1': 'CategoryBreakdownResponse',
   '2': [
     {'1': 'total', '3': 1, '4': 1, '5': 3, '10': 'total'},
-    {'1': 'items', '3': 2, '4': 3, '5': 11, '6': '.familyledger.dashboard.v1.CategoryItem', '10': 'items'},
+    {
+      '1': 'items',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.dashboard.v1.CategoryItem',
+      '10': 'items'
+    },
   ],
 };
 
@@ -155,7 +183,14 @@ const CategoryItem$json = {
     {'1': 'icon', '3': 3, '4': 1, '5': 9, '10': 'icon'},
     {'1': 'amount', '3': 4, '4': 1, '5': 3, '10': 'amount'},
     {'1': 'weight', '3': 5, '4': 1, '5': 1, '10': 'weight'},
-    {'1': 'children', '3': 6, '4': 3, '5': 11, '6': '.familyledger.dashboard.v1.CategoryItem', '10': 'children'},
+    {
+      '1': 'children',
+      '3': 6,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.dashboard.v1.CategoryItem',
+      '10': 'children'
+    },
     {'1': 'icon_key', '3': 7, '4': 1, '5': 9, '10': 'iconKey'},
   ],
 };
@@ -190,7 +225,14 @@ const BudgetSummaryResponse$json = {
     {'1': 'total_budget', '3': 1, '4': 1, '5': 3, '10': 'totalBudget'},
     {'1': 'total_spent', '3': 2, '4': 1, '5': 3, '10': 'totalSpent'},
     {'1': 'execution_rate', '3': 3, '4': 1, '5': 1, '10': 'executionRate'},
-    {'1': 'categories', '3': 4, '4': 3, '5': 11, '6': '.familyledger.dashboard.v1.CategoryBudgetItem', '10': 'categories'},
+    {
+      '1': 'categories',
+      '3': 4,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.dashboard.v1.CategoryBudgetItem',
+      '10': 'categories'
+    },
   ],
 };
 
@@ -210,7 +252,14 @@ const CategoryBudgetItem$json = {
     {'1': 'budget_amount', '3': 3, '4': 1, '5': 3, '10': 'budgetAmount'},
     {'1': 'spent_amount', '3': 4, '4': 1, '5': 3, '10': 'spentAmount'},
     {'1': 'execution_rate', '3': 5, '4': 1, '5': 1, '10': 'executionRate'},
-    {'1': 'children', '3': 6, '4': 3, '5': 11, '6': '.familyledger.dashboard.v1.CategoryBudgetItem', '10': 'children'},
+    {
+      '1': 'children',
+      '3': 6,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.dashboard.v1.CategoryBudgetItem',
+      '10': 'children'
+    },
   ],
 };
 
@@ -221,4 +270,3 @@ final $typed_data.Uint8List categoryBudgetItemDescriptor = $convert.base64Decode
     'KANSDGJ1ZGdldEFtb3VudBIhCgxzcGVudF9hbW91bnQYBCABKANSC3NwZW50QW1vdW50EiUKDm'
     'V4ZWN1dGlvbl9yYXRlGAUgASgBUg1leGVjdXRpb25SYXRlEkkKCGNoaWxkcmVuGAYgAygLMi0u'
     'ZmFtaWx5bGVkZ2VyLmRhc2hib2FyZC52MS5DYXRlZ29yeUJ1ZGdldEl0ZW1SCGNoaWxkcmVu');
-

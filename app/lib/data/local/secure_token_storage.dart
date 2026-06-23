@@ -48,10 +48,16 @@ class SecureTokenStorage implements TokenStorage {
 
     // Step 1: Write to secure storage (idempotent — safe to repeat)
     if (accessToken != null) {
-      await _storage.write(key: AppConstants.accessTokenKey, value: accessToken);
+      await _storage.write(
+        key: AppConstants.accessTokenKey,
+        value: accessToken,
+      );
     }
     if (refreshToken != null) {
-      await _storage.write(key: AppConstants.refreshTokenKey, value: refreshToken);
+      await _storage.write(
+        key: AppConstants.refreshTokenKey,
+        value: refreshToken,
+      );
     }
 
     // Step 2: Mark migration complete
@@ -107,8 +113,7 @@ class FakeSecureTokenStorage implements TokenStorage {
   }
 
   @override
-  Future<String?> getAccessToken() async =>
-      _store[AppConstants.accessTokenKey];
+  Future<String?> getAccessToken() async => _store[AppConstants.accessTokenKey];
 
   @override
   Future<String?> getRefreshToken() async =>

@@ -80,20 +80,24 @@ void main() {
     });
 
     testWidgets('shows budget warning when >80%', (tester) async {
-      await tester.pumpWidget(wrapInApp(
-        const RemindersCard(),
-        overrides: [
-          dashboardProvider.overrideWith((_) => FakeDashboardNotifier(
-            const DashboardState(
-              budgetSummary: BudgetSummaryData(
-                totalBudget: 1000000,
-                totalSpent: 900000,
-                executionRate: 0.9,
+      await tester.pumpWidget(
+        wrapInApp(
+          const RemindersCard(),
+          overrides: [
+            dashboardProvider.overrideWith(
+              (_) => FakeDashboardNotifier(
+                const DashboardState(
+                  budgetSummary: BudgetSummaryData(
+                    totalBudget: 1000000,
+                    totalSpent: 900000,
+                    executionRate: 0.9,
+                  ),
+                ),
               ),
             ),
-          )),
-        ],
-      ));
+          ],
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('待办提醒'), findsOneWidget);
@@ -101,8 +105,9 @@ void main() {
       expect(find.textContaining('已使用 90%'), findsOneWidget);
     });
 
-    testWidgets('shows loan payment reminder when due within 7 days',
-        (tester) async {
+    testWidgets('shows loan payment reminder when due within 7 days', (
+      tester,
+    ) async {
       // Compute a payDay that is always 2 days from today, ensuring
       // the reminder fires regardless of when the test runs.
       final now = DateTime.now();
@@ -113,43 +118,49 @@ void main() {
       final payDay = now.day + 2 <= daysInMonth
           ? now.day + 2
           : now.day + 1 <= daysInMonth
-              ? now.day + 1
-              : now.day; // today = last day → payDay = today (0 days)
+          ? now.day + 1
+          : now.day; // today = last day → payDay = today (0 days)
 
-      await tester.pumpWidget(wrapInApp(
-        const RemindersCard(),
-        overrides: [
-          loanProvider.overrideWith((_) => FakeLoanNotifier(
-            LoanState(loans: [
-              Loan(
-                id: 'loan-1',
-                userId: 'u1',
-                familyId: '',
-                name: '房贷',
-                loanType: 'mortgage',
-                principal: 100000000,
-                remainingPrincipal: 80000000,
-                annualRate: 3.85,
-                totalMonths: 360,
-                paidMonths: 24,
-                repaymentMethod: 'equal_installment',
-                paymentDay: payDay,
-                startDate: DateTime(2024, 1, 1),
-                accountId: '',
-                groupId: '',
-                subType: '',
-                rateType: 'lpr',
-                lprBase: 3.85,
-                lprSpread: 0.0,
-                rateAdjustMonth: 1,
-                repaymentCategoryId: '',
-                createdAt: DateTime.now(),
-                updatedAt: DateTime.now(),
+      await tester.pumpWidget(
+        wrapInApp(
+          const RemindersCard(),
+          overrides: [
+            loanProvider.overrideWith(
+              (_) => FakeLoanNotifier(
+                LoanState(
+                  loans: [
+                    Loan(
+                      id: 'loan-1',
+                      userId: 'u1',
+                      familyId: '',
+                      name: '房贷',
+                      loanType: 'mortgage',
+                      principal: 100000000,
+                      remainingPrincipal: 80000000,
+                      annualRate: 3.85,
+                      totalMonths: 360,
+                      paidMonths: 24,
+                      repaymentMethod: 'equal_installment',
+                      paymentDay: payDay,
+                      startDate: DateTime(2024, 1, 1),
+                      accountId: '',
+                      groupId: '',
+                      subType: '',
+                      rateType: 'lpr',
+                      lprBase: 3.85,
+                      lprSpread: 0.0,
+                      rateAdjustMonth: 1,
+                      repaymentCategoryId: '',
+                      createdAt: DateTime.now(),
+                      updatedAt: DateTime.now(),
+                    ),
+                  ],
+                ),
               ),
-            ]),
-          )),
-        ],
-      ));
+            ),
+          ],
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('待办提醒'), findsOneWidget);

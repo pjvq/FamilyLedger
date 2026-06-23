@@ -57,18 +57,17 @@ class TransactionState {
     bool? hasMore,
     String? error,
     bool clearError = false,
-  }) =>
-      TransactionState(
-        transactions: transactions ?? this.transactions,
-        expenseCategories: expenseCategories ?? this.expenseCategories,
-        incomeCategories: incomeCategories ?? this.incomeCategories,
-        totalBalance: totalBalance ?? this.totalBalance,
-        todayExpense: todayExpense ?? this.todayExpense,
-        monthExpense: monthExpense ?? this.monthExpense,
-        isLoading: isLoading ?? this.isLoading,
-        hasMore: hasMore ?? this.hasMore,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => TransactionState(
+    transactions: transactions ?? this.transactions,
+    expenseCategories: expenseCategories ?? this.expenseCategories,
+    incomeCategories: incomeCategories ?? this.incomeCategories,
+    totalBalance: totalBalance ?? this.totalBalance,
+    todayExpense: todayExpense ?? this.todayExpense,
+    monthExpense: monthExpense ?? this.monthExpense,
+    isLoading: isLoading ?? this.isLoading,
+    hasMore: hasMore ?? this.hasMore,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 // ─── Notifier ──────────────────────────────────────────────────────────────
@@ -109,15 +108,15 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     pb.TransactionServiceClient? txnClient,
     required String userId,
     String? familyId,
-  })  : _repo = repo,
-        _accountRepo = accountRepo,
-        _balanceCalc = balanceCalc,
-        _syncQueue = syncQueue,
-        _categorySvc = categorySvc,
-        _txnClient = txnClient,
-        _userId = userId,
-        _familyId = familyId,
-        super(const TransactionState()) {
+  }) : _repo = repo,
+       _accountRepo = accountRepo,
+       _balanceCalc = balanceCalc,
+       _syncQueue = syncQueue,
+       _categorySvc = categorySvc,
+       _txnClient = txnClient,
+       _userId = userId,
+       _familyId = familyId,
+       super(const TransactionState()) {
     _init();
   }
 
@@ -138,7 +137,10 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
     CategorySyncService? categorySvc;
     if (txnClient != null && userId.isNotEmpty) {
       categorySvc = CategorySyncService(
-        categoryRepo ?? CategoryRepository(db), txnClient, userId);
+        categoryRepo ?? CategoryRepository(db),
+        txnClient,
+        userId,
+      );
     }
     return TransactionNotifier(
       repo: repo,
@@ -153,15 +155,17 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   }
 
   void _init() {
-    _dbSub = _repo.watchAll(_userId, familyId: _familyId, limit: _pageSize).listen((txns) {
-      // Only update from stream when we haven't loaded extra pages.
-      // Once loadMore() is called, stream is cancelled to avoid conflicts.
-      state = state.copyWith(
-        transactions: txns,
-        hasMore: txns.length >= _pageSize,
-      );
-      _refreshSummary();
-    });
+    _dbSub = _repo
+        .watchAll(_userId, familyId: _familyId, limit: _pageSize)
+        .listen((txns) {
+          // Only update from stream when we haven't loaded extra pages.
+          // Once loadMore() is called, stream is cancelled to avoid conflicts.
+          state = state.copyWith(
+            transactions: txns,
+            hasMore: txns.length >= _pageSize,
+          );
+          _refreshSummary();
+        });
     _load();
   }
 
@@ -199,13 +203,15 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   /// Resets pagination state.
   void _resubscribeWatch() {
     _dbSub?.cancel();
-    _dbSub = _repo.watchAll(_userId, familyId: _familyId, limit: _pageSize).listen((txns) {
-      state = state.copyWith(
-        transactions: txns,
-        hasMore: txns.length >= _pageSize,
-      );
-      _refreshSummary();
-    });
+    _dbSub = _repo
+        .watchAll(_userId, familyId: _familyId, limit: _pageSize)
+        .listen((txns) {
+          state = state.copyWith(
+            transactions: txns,
+            hasMore: txns.length >= _pageSize,
+          );
+          _refreshSummary();
+        });
   }
 
   // ─── Load ────────────────────────────────────────────────────────────
@@ -231,9 +237,13 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       await _refreshSummary();
 
       // Background: sync categories (covers newly added remote categories)
-      _categorySvc?.syncFromServer().then((_) => _reloadCategories()).catchError(
-        (Object e, StackTrace st) => dev.log('Background category sync failed: $e', name: 'txn'),
-      );
+      _categorySvc
+          ?.syncFromServer()
+          .then((_) => _reloadCategories())
+          .catchError(
+            (Object e, StackTrace st) =>
+                dev.log('Background category sync failed: $e', name: 'txn'),
+          );
 
       // Background: incremental sync for family mode
       if (_familyId != null && _familyId.isNotEmpty && _txnClient != null) {
@@ -248,7 +258,10 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
   Future<void> _reloadCategories() async {
     final expCats = await _repo.getCategoriesByType('expense', userId: _userId);
     final incCats = await _repo.getCategoriesByType('income', userId: _userId);
-    state = state.copyWith(expenseCategories: expCats, incomeCategories: incCats);
+    state = state.copyWith(
+      expenseCategories: expCats,
+      incomeCategories: incCats,
+    );
   }
 
   /// Sync categories from server then reload local state.
@@ -289,7 +302,10 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
         if (lastSync != null) req.updatedSince = _toTimestamp(lastSync);
         if (pageToken.isNotEmpty) req.pageToken = pageToken;
 
-        final resp = await _txnClient!.listTransactions(req, options: defaultCallOptions);
+        final resp = await _txnClient!.listTransactions(
+          req,
+          options: defaultCallOptions,
+        );
 
         final toUpsert = <TransactionUpsertParams>[];
         final toDelete = <String>[];
@@ -298,17 +314,21 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
           if (t.hasDeletedAt()) {
             toDelete.add(t.id);
           } else {
-            toUpsert.add(TransactionUpsertParams(
-              id: t.id,
-              userId: t.userId,
-              accountId: t.accountId,
-              categoryId: t.categoryId,
-              amount: t.amount.toInt(),
-              amountCny: t.amountCny.toInt(),
-              type: t.type == pbe.TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
-              note: t.note,
-              txnDate: t.txnDate.toDateTime().toLocal(),
-            ));
+            toUpsert.add(
+              TransactionUpsertParams(
+                id: t.id,
+                userId: t.userId,
+                accountId: t.accountId,
+                categoryId: t.categoryId,
+                amount: t.amount.toInt(),
+                amountCny: t.amountCny.toInt(),
+                type: t.type == pbe.TransactionType.TRANSACTION_TYPE_INCOME
+                    ? 'income'
+                    : 'expense',
+                note: t.note,
+                txnDate: t.txnDate.toDateTime().toLocal(),
+              ),
+            );
           }
         }
 
@@ -320,7 +340,10 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       } while (pageToken.isNotEmpty && pagesFetched < _maxPages);
 
       await _repo.setFamilySyncTime(_familyId!, DateTime.now());
-      dev.log('Family incremental sync done (pages=$pagesFetched)', name: 'txn');
+      dev.log(
+        'Family incremental sync done (pages=$pagesFetched)',
+        name: 'txn',
+      );
     } catch (e) {
       dev.log('Family incremental sync failed: $e', name: 'txn');
     }
@@ -393,11 +416,17 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
               : pbe.TransactionType.TRANSACTION_TYPE_EXPENSE
           ..note = cleanNote
           ..txnDate = _toTimestamp(effectiveTxnDate);
-        final resp = await _txnClient.createTransaction(req, options: defaultCallOptions);
+        final resp = await _txnClient.createTransaction(
+          req,
+          options: defaultCallOptions,
+        );
         transactionId = resp.transaction.id;
         syncedToServer = true;
       } catch (e) {
-        dev.log('addTransaction: server-first failed, offline mode: $e', name: 'txn');
+        dev.log(
+          'addTransaction: server-first failed, offline mode: $e',
+          name: 'txn',
+        );
         transactionId = _repo.generateId();
       }
     } else {
@@ -458,7 +487,9 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
 
     final cleanNote = note != null ? sanitizeNote(note) : null;
     final cleanTags = tags != null ? sanitizeTags(tags) : null;
-    final cleanImageUrls = imageUrls != null ? sanitizeImageUrls(imageUrls) : null;
+    final cleanImageUrls = imageUrls != null
+        ? sanitizeImageUrls(imageUrls)
+        : null;
 
     final oldTxn = await _repo.update(
       id: id,
@@ -545,7 +576,10 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       }
     } catch (e) {
       dev.log('batchDelete: gRPC failed, queueing: $e', name: 'txn');
-      await _syncQueue.enqueueBatchDelete(entityType: 'transaction', entityIds: ids);
+      await _syncQueue.enqueueBatchDelete(
+        entityType: 'transaction',
+        entityIds: ids,
+      );
     }
 
     await _refreshSummary();
@@ -611,60 +645,63 @@ final offlineSyncQueueProvider = Provider<OfflineSyncQueue>((ref) {
 
 final transactionProvider =
     StateNotifierProvider<TransactionNotifier, TransactionState>((ref) {
-  final repo = ref.watch(transactionRepositoryProvider);
-  final accountRepo = ref.watch(accountRepositoryProvider);
-  final balanceCalc = ref.watch(balanceCalculatorProvider);
-  final syncQueue = ref.watch(offlineSyncQueueProvider);
-  final userId = ref.watch(currentUserIdProvider);
-  final familyId = ref.watch(currentFamilyIdProvider);
+      final repo = ref.watch(transactionRepositoryProvider);
+      final accountRepo = ref.watch(accountRepositoryProvider);
+      final balanceCalc = ref.watch(balanceCalculatorProvider);
+      final syncQueue = ref.watch(offlineSyncQueueProvider);
+      final userId = ref.watch(currentUserIdProvider);
+      final familyId = ref.watch(currentFamilyIdProvider);
 
-  pb.TransactionServiceClient? txnClient;
-  try {
-    txnClient = ref.watch(transactionClientProvider);
-  } catch (_) {}
+      pb.TransactionServiceClient? txnClient;
+      try {
+        txnClient = ref.watch(transactionClientProvider);
+      } catch (_) {}
 
-  CategorySyncService? categorySvc;
-  if (txnClient != null && userId != null) {
-    final categoryRepo = ref.watch(categoryRepositoryProvider);
-    categorySvc = CategorySyncService(categoryRepo, txnClient, userId);
-  }
+      CategorySyncService? categorySvc;
+      if (txnClient != null && userId != null) {
+        final categoryRepo = ref.watch(categoryRepositoryProvider);
+        categorySvc = CategorySyncService(categoryRepo, txnClient, userId);
+      }
 
-  if (userId == null) {
-    return TransactionNotifier(
-      repo: repo,
-      accountRepo: accountRepo,
-      balanceCalc: balanceCalc,
-      syncQueue: syncQueue,
-      userId: '',
-      familyId: null,
-    );
-  }
+      if (userId == null) {
+        return TransactionNotifier(
+          repo: repo,
+          accountRepo: accountRepo,
+          balanceCalc: balanceCalc,
+          syncQueue: syncQueue,
+          userId: '',
+          familyId: null,
+        );
+      }
 
-  final notifier = TransactionNotifier(
-    repo: repo,
-    accountRepo: accountRepo,
-    balanceCalc: balanceCalc,
-    syncQueue: syncQueue,
-    categorySvc: categorySvc,
-    txnClient: txnClient,
-    userId: userId,
-    familyId: familyId,
-  );
+      final notifier = TransactionNotifier(
+        repo: repo,
+        accountRepo: accountRepo,
+        balanceCalc: balanceCalc,
+        syncQueue: syncQueue,
+        categorySvc: categorySvc,
+        txnClient: txnClient,
+        userId: userId,
+        familyId: familyId,
+      );
 
-  // Forward sync queue notifications to SyncEngine
-  StreamSubscription<void>? syncSub;
-  syncSub = syncQueue.onEnqueued.listen((_) {
-    try {
-      final engine = ref.read(syncEngineProvider);
-      unawaited(engine.syncNow().catchError(
-        (Object e, StackTrace st) => dev.log('SyncEngine.syncNow() failed: $e', name: 'txn'),
-      ));
-    } on StateError catch (_) {}
-  });
-  ref.onDispose(() => syncSub?.cancel());
+      // Forward sync queue notifications to SyncEngine
+      StreamSubscription<void>? syncSub;
+      syncSub = syncQueue.onEnqueued.listen((_) {
+        try {
+          final engine = ref.read(syncEngineProvider);
+          unawaited(
+            engine.syncNow().catchError(
+              (Object e, StackTrace st) =>
+                  dev.log('SyncEngine.syncNow() failed: $e', name: 'txn'),
+            ),
+          );
+        } on StateError catch (_) {}
+      });
+      ref.onDispose(() => syncSub?.cancel());
 
-  return notifier;
-});
+      return notifier;
+    });
 
 /// Recent transactions (last 5) — derived provider with stable identity.
 ///

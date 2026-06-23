@@ -13,9 +13,7 @@ library;
 /// formatCents(500, showSign: true) → "+5.00"
 /// ```
 String formatCents(int cents, {bool showSign = false}) {
-  final sign = cents < 0
-      ? '-'
-      : (showSign ? '+' : '');
+  final sign = cents < 0 ? '-' : (showSign ? '+' : '');
   final abs = cents.abs();
   final yuan = abs ~/ 100;
   final fen = (abs % 100).toString().padLeft(2, '0');
@@ -60,9 +58,7 @@ String formatCentsWan(int cents) {
 /// ```
 String formatCentsDisplay(int cents, {bool showSign = false}) {
   final yuan = cents.abs() / 100;
-  final sign = cents < 0
-      ? '-'
-      : (showSign ? '+' : '');
+  final sign = cents < 0 ? '-' : (showSign ? '+' : '');
   if (yuan >= 10000) {
     return '$sign${(yuan / 10000).toStringAsFixed(2)}万';
   }

@@ -56,15 +56,15 @@ class FakeCreateTransactionClient implements pbgrpc.TransactionServiceClient {
     pbgrpc.ListTransactionsRequest request, {
     CallOptions? options,
   }) {
-    return _FakeResponseFuture.value(pb.ListTransactionsResponse(
-      transactions: [],
-      nextPageToken: '',
-    ));
+    return _FakeResponseFuture.value(
+      pb.ListTransactionsResponse(transactions: [], nextPageToken: ''),
+    );
   }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-      '${invocation.memberName} not implemented in fake');
+    '${invocation.memberName} not implemented in fake',
+  );
 }
 
 /// A fake that always throws (simulating offline).
@@ -78,8 +78,7 @@ class OfflineCreateTransactionClient
     CallOptions? options,
   }) {
     createCallCount++;
-    return _FakeResponseFuture.error(
-        GrpcError.unavailable('No connection'));
+    return _FakeResponseFuture.error(GrpcError.unavailable('No connection'));
   }
 
   @override
@@ -87,15 +86,15 @@ class OfflineCreateTransactionClient
     pbgrpc.ListTransactionsRequest request, {
     CallOptions? options,
   }) {
-    return _FakeResponseFuture.value(pb.ListTransactionsResponse(
-      transactions: [],
-      nextPageToken: '',
-    ));
+    return _FakeResponseFuture.value(
+      pb.ListTransactionsResponse(transactions: [], nextPageToken: ''),
+    );
   }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-      '${invocation.memberName} not implemented in fake');
+    '${invocation.memberName} not implemented in fake',
+  );
 }
 
 class _FakeResponseFuture<T> implements ResponseFuture<T> {
@@ -143,20 +142,24 @@ Future<AppDatabase> _setupDb() async {
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   // Insert required user for FK constraints
   await db.customStatement(
-      "INSERT OR IGNORE INTO users (id, email) "
-      "VALUES ('user1', 'test@test.com')");
+    "INSERT OR IGNORE INTO users (id, email) "
+    "VALUES ('user1', 'test@test.com')",
+  );
   // Insert account using Drift's insertAccount
-  await db.insertAccount(AccountsCompanion.insert(
-    id: 'acc1',
-    userId: 'user1',
-    name: 'Test Account',
-    familyId: const Value.absent(),
-    accountType: const Value('cash'),
-  ));
+  await db.insertAccount(
+    AccountsCompanion.insert(
+      id: 'acc1',
+      userId: 'user1',
+      name: 'Test Account',
+      familyId: const Value.absent(),
+      accountType: const Value('cash'),
+    ),
+  );
   // Insert a category for the test
   await db.customStatement(
-      "INSERT OR IGNORE INTO categories (id, name, icon_key, type, is_preset, sort_order) "
-      "VALUES ('cat1', 'Food', '🍔', 'expense', 1, 1)");
+    "INSERT OR IGNORE INTO categories (id, name, icon_key, type, is_preset, sort_order) "
+    "VALUES ('cat1', 'Food', '🍔', 'expense', 1, 1)",
+  );
   return db;
 }
 
@@ -174,56 +177,62 @@ void main() {
       await db.close();
     });
 
-    test('online: uses server-assigned ID directly (no delete+re-insert)',
-        () async {
-      final client =
-          FakeCreateTransactionClient(serverAssignedId: 'server_txn_42');
+    test(
+      'online: uses server-assigned ID directly (no delete+re-insert)',
+      () async {
+        final client = FakeCreateTransactionClient(
+          serverAssignedId: 'server_txn_42',
+        );
 
-      final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
-      await Future.delayed(const Duration(milliseconds: 200));
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
+        await Future.delayed(const Duration(milliseconds: 200));
 
-      // Collect stream events to detect flicker (delete+re-insert)
-      final streamEvents = <List<Transaction>>[];
-      final sub = db.watchTransactions('user1').listen((txns) {
-        streamEvents.add(List.from(txns));
-      });
+        // Collect stream events to detect flicker (delete+re-insert)
+        final streamEvents = <List<Transaction>>[];
+        final sub = db.watchTransactions('user1').listen((txns) {
+          streamEvents.add(List.from(txns));
+        });
 
-      await notifier.addTransaction(
-        categoryId: 'cat1',
-        amount: 1000,
-        type: 'expense',
-      );
+        await notifier.addTransaction(
+          categoryId: 'cat1',
+          amount: 1000,
+          type: 'expense',
+        );
 
-      // Give stream time to emit
-      await Future.delayed(const Duration(milliseconds: 300));
-      await sub.cancel();
+        // Give stream time to emit
+        await Future.delayed(const Duration(milliseconds: 300));
+        await sub.cancel();
 
-      // Server should have been called exactly once
-      expect(client.createCallCount, 1);
+        // Server should have been called exactly once
+        expect(client.createCallCount, 1);
 
-      // The transaction in DB should have the server-assigned ID
-      final txn = await db.getTransactionById('server_txn_42');
-      expect(txn, isNotNull);
-      expect(txn!.amount, 1000);
+        // The transaction in DB should have the server-assigned ID
+        final txn = await db.getTransactionById('server_txn_42');
+        expect(txn, isNotNull);
+        expect(txn!.amount, 1000);
 
-      // There should be NO transaction with a local UUID (would indicate flicker)
-      // Since we used server ID directly, no hardDelete happened
-      // Check that stream events never show a delete+re-insert pattern
-      // (i.e., we never see a transaction appear and then disappear)
-      final allIds = streamEvents
-          .expand((list) => list.map((t) => t.id))
-          .toSet();
-      // Only server_txn_42 should appear (no temporary local UUID)
-      expect(allIds.contains('server_txn_42'), isTrue);
-      // No other transaction IDs (local UUIDs) should appear
-      final nonServerIds =
-          allIds.where((id) => id != 'server_txn_42').toList();
-      expect(nonServerIds, isEmpty,
-          reason:
-              'No temporary local ID should appear in stream events');
+        // There should be NO transaction with a local UUID (would indicate flicker)
+        // Since we used server ID directly, no hardDelete happened
+        // Check that stream events never show a delete+re-insert pattern
+        // (i.e., we never see a transaction appear and then disappear)
+        final allIds = streamEvents
+            .expand((list) => list.map((t) => t.id))
+            .toSet();
+        // Only server_txn_42 should appear (no temporary local UUID)
+        expect(allIds.contains('server_txn_42'), isTrue);
+        // No other transaction IDs (local UUIDs) should appear
+        final nonServerIds = allIds
+            .where((id) => id != 'server_txn_42')
+            .toList();
+        expect(
+          nonServerIds,
+          isEmpty,
+          reason: 'No temporary local ID should appear in stream events',
+        );
 
-      notifier.dispose();
-    });
+        notifier.dispose();
+      },
+    );
 
     test('offline: uses local UUID and queues sync op', () async {
       final client = OfflineCreateTransactionClient();
@@ -252,17 +261,18 @@ void main() {
       expect(txn.id.length, 36); // UUID format
 
       // Sync queue should have an entry
-      final syncOps = await db.customSelect(
-        "SELECT * FROM sync_queue WHERE entity_id = '${txn.id}'",
-      ).get();
+      final syncOps = await db
+          .customSelect(
+            "SELECT * FROM sync_queue WHERE entity_id = '${txn.id}'",
+          )
+          .get();
       expect(syncOps, isNotEmpty);
       expect(syncOps.first.data['op_type'], 'create');
 
       notifier.dispose();
     });
 
-    test('no client: uses local UUID without attempting server call',
-        () async {
+    test('no client: uses local UUID without attempting server call', () async {
       final notifier = TransactionNotifier.fromDb(db, 'user1', null, null);
       await Future.delayed(const Duration(milliseconds: 200));
 

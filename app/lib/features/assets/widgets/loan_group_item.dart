@@ -49,8 +49,7 @@ class LoanGroupItem extends StatelessWidget {
                           backgroundColor: isDark
                               ? NeutralColorsDark.neutral3
                               : NeutralColorsLight.neutral3,
-                          valueColor:
-                              AlwaysStoppedAnimation(colors.liability),
+                          valueColor: AlwaysStoppedAnimation(colors.liability),
                         ),
                         Text(
                           '${(progress * 100).toInt()}%',
@@ -83,7 +82,9 @@ class LoanGroupItem extends StatelessWidget {
                             const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1),
+                                horizontal: 6,
+                                vertical: 1,
+                              ),
                               decoration: BoxDecoration(
                                 color: colors.liability.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(4),
@@ -101,8 +102,9 @@ class LoanGroupItem extends StatelessWidget {
                         Text(
                           '${item.subLoans.length} 笔子贷款',
                           style: TypographyTokens.caption(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
                       ],
@@ -122,8 +124,9 @@ class LoanGroupItem extends StatelessWidget {
                       Text(
                         '剩余本金',
                         style: TypographyTokens.caption(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.4),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
                         ),
                       ),
                     ],

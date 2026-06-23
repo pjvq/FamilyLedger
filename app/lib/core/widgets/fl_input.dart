@@ -85,12 +85,15 @@ class FlInput extends StatelessWidget {
     final brightness = Theme.of(context).brightness;
     final isLight = brightness == Brightness.light;
 
-    final fillColor =
-        isLight ? NeutralColorsLight.neutral2 : NeutralColorsDark.neutral2;
-    final textColor =
-        isLight ? NeutralColorsLight.neutral7 : NeutralColorsDark.neutral7;
-    final hintColor =
-        isLight ? NeutralColorsLight.neutral4 : NeutralColorsDark.neutral4;
+    final fillColor = isLight
+        ? NeutralColorsLight.neutral2
+        : NeutralColorsDark.neutral2;
+    final textColor = isLight
+        ? NeutralColorsLight.neutral7
+        : NeutralColorsDark.neutral7;
+    final hintColor = isLight
+        ? NeutralColorsLight.neutral4
+        : NeutralColorsDark.neutral4;
     final errorColor = context.semanticColors.error;
 
     final hasError = error != null && error!.isNotEmpty;
@@ -117,10 +120,7 @@ class FlInput extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (label != null) ...[
-          Text(
-            label!,
-            style: TypographyTokens.bodyMd(color: textColor),
-          ),
+          Text(label!, style: TypographyTokens.bodyMd(color: textColor)),
           const SizedBox(height: SpacingTokens.sm),
         ],
         TextField(
@@ -153,18 +153,18 @@ class FlInput extends StatelessWidget {
             suffixIcon: suffixIcon != null
                 ? GestureDetector(
                     onTap: onSuffixTap,
-                    child: Icon(suffixIcon,
-                        size: IconSizeTokens.md, color: hintColor),
+                    child: Icon(
+                      suffixIcon,
+                      size: IconSizeTokens.md,
+                      color: hintColor,
+                    ),
                   )
                 : null,
           ),
         ),
         if (hasError) ...[
           const SizedBox(height: SpacingTokens.xs),
-          Text(
-            error!,
-            style: TypographyTokens.caption(color: errorColor),
-          ),
+          Text(error!, style: TypographyTokens.caption(color: errorColor)),
         ],
       ],
     );

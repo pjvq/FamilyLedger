@@ -25,9 +25,7 @@ class SettingsPage extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('设置'),
-      ),
+      appBar: AppBar(title: const Text('设置')),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
@@ -152,14 +150,17 @@ class SettingsPage extends ConsumerWidget {
                 if (familyId != null) {
                   // Auto-switch to family mode
                   ref.read(currentFamilyIdProvider.notifier).state = familyId;
-                  ref.read(sharedPreferencesProvider)
+                  ref
+                      .read(sharedPreferencesProvider)
                       .setString(AppConstants.familyIdKey, familyId);
                   // Auto-create default family account
-                  await ref.read(accountProvider.notifier).createAccount(
-                    name: '家庭共享账户',
-                    accountType: 'cash',
-                    familyId: familyId,
-                  );
+                  await ref
+                      .read(accountProvider.notifier)
+                      .createAccount(
+                        name: '家庭共享账户',
+                        accountType: 'cash',
+                        familyId: familyId,
+                      );
                 }
               }
             },
@@ -200,17 +201,22 @@ class SettingsPage extends ConsumerWidget {
                     .joinFamily(code);
                 if (familyId != null) {
                   ref.read(currentFamilyIdProvider.notifier).state = familyId;
-                  ref.read(sharedPreferencesProvider)
+                  ref
+                      .read(sharedPreferencesProvider)
                       .setString(AppConstants.familyIdKey, familyId);
                   // Ensure family has at least one account locally
                   final db = ref.read(databaseProvider);
-                  final existingAccounts = await db.getAccountsByFamily(familyId);
+                  final existingAccounts = await db.getAccountsByFamily(
+                    familyId,
+                  );
                   if (existingAccounts.isEmpty) {
-                    await ref.read(accountProvider.notifier).createAccount(
-                      name: '家庭共享账户',
-                      accountType: 'cash',
-                      familyId: familyId,
-                    );
+                    await ref
+                        .read(accountProvider.notifier)
+                        .createAccount(
+                          name: '家庭共享账户',
+                          accountType: 'cash',
+                          familyId: familyId,
+                        );
                   }
                 }
               }
@@ -241,9 +247,9 @@ class SettingsPage extends ConsumerWidget {
                 child: SelectableText(
                   code,
                   style: Theme.of(ctx).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 3,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 3,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -251,11 +257,10 @@ class SettingsPage extends ConsumerWidget {
               Text(
                 '有效期 7 天',
                 style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(ctx)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.5),
-                    ),
+                  color: Theme.of(
+                    ctx,
+                  ).colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
               ),
             ],
           ),
@@ -263,9 +268,9 @@ class SettingsPage extends ConsumerWidget {
             TextButton(
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: code));
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('已复制到剪贴板')),
-                );
+                ScaffoldMessenger.of(
+                  ctx,
+                ).showSnackBar(const SnackBar(content: Text('已复制到剪贴板')));
               },
               child: const Text('复制'),
             ),
@@ -426,8 +431,14 @@ class _FamilyInfoCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isDark
-                        ? [DarkCardGradients.primaryStart, DarkCardGradients.primaryEnd]
-                        : [ColorTokens.primary, GradientTokens.primaryGradientAlt],
+                        ? [
+                            DarkCardGradients.primaryStart,
+                            DarkCardGradients.primaryEnd,
+                          ]
+                        : [
+                            ColorTokens.primary,
+                            GradientTokens.primaryGradientAlt,
+                          ],
                   ),
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -450,8 +461,9 @@ class _FamilyInfoCard extends StatelessWidget {
                     Text(
                       '$memberCount 位成员',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color:
-                            theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                     ),
                   ],
@@ -508,7 +520,9 @@ class _SettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = isDestructive ? context.semanticColors.expense : theme.colorScheme.onSurface;
+    final color = isDestructive
+        ? context.semanticColors.expense
+        : theme.colorScheme.onSurface;
 
     return Semantics(
       label: title,
@@ -520,17 +534,13 @@ class _SettingsTile extends StatelessWidget {
           leading: Icon(icon, color: color.withValues(alpha: 0.7)),
           title: Text(
             title,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(color: color, fontWeight: FontWeight.w500),
           ),
           subtitle: subtitle != null
               ? Text(
                   subtitle!,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color:
-                        theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                 )
               : null,
@@ -538,8 +548,9 @@ class _SettingsTile extends StatelessWidget {
             Icons.chevron_right_rounded,
             color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
           ),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           onTap: onTap,
         ),
       ),
@@ -567,8 +578,14 @@ class _ThemeModeTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
       child: ListTile(
-        leading: Icon(icon, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
-        title: const Text('外观模式', style: TextStyle(fontWeight: FontWeight.w500)),
+        leading: Icon(
+          icon,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+        ),
+        title: const Text(
+          '外观模式',
+          style: TextStyle(fontWeight: FontWeight.w500),
+        ),
         subtitle: Text(
           label,
           style: theme.textTheme.bodySmall?.copyWith(
@@ -577,9 +594,18 @@ class _ThemeModeTile extends StatelessWidget {
         ),
         trailing: SegmentedButton<ThemeMode>(
           segments: const [
-            ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto_rounded, size: 18)),
-            ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode_rounded, size: 18)),
-            ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode_rounded, size: 18)),
+            ButtonSegment(
+              value: ThemeMode.system,
+              icon: Icon(Icons.brightness_auto_rounded, size: 18),
+            ),
+            ButtonSegment(
+              value: ThemeMode.light,
+              icon: Icon(Icons.light_mode_rounded, size: 18),
+            ),
+            ButtonSegment(
+              value: ThemeMode.dark,
+              icon: Icon(Icons.dark_mode_rounded, size: 18),
+            ),
           ],
           selected: {themeMode},
           onSelectionChanged: (s) {
@@ -599,4 +625,3 @@ class _ThemeModeTile extends StatelessWidget {
 }
 
 // ────────── Sync status tile ──────────
-

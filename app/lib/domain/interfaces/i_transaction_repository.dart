@@ -18,7 +18,11 @@ abstract interface class ITransactionRepository {
   Future<TransactionEntity?> getById(String id);
 
   /// Get recent transactions for a user, optionally filtered by family.
-  Future<List<TransactionEntity>> getRecent(String userId, int limit, {String? familyId});
+  Future<List<TransactionEntity>> getRecent(
+    String userId,
+    int limit, {
+    String? familyId,
+  });
 
   /// Watch all transactions (reactive stream).
   Stream<List<TransactionEntity>> watch(String userId, {String? familyId});

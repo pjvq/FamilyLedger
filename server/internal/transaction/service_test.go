@@ -191,8 +191,8 @@ func TestListTransactions_Success(t *testing.T) {
 	now := time.Now()
 
 	// Count query (first page, no cursor) — personal mode (family_id IS NULL)
-	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM transactions t`).  // now JOINs accounts
-		WithArgs(
+	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM transactions t`). // now JOINs accounts
+									WithArgs(
 			userUUID,
 			pgxmock.AnyArg(), // account_id
 			pgxmock.AnyArg(), // start_date
@@ -201,8 +201,8 @@ func TestListTransactions_Success(t *testing.T) {
 		WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(int32(1)))
 
 	// List query — personal mode (family_id IS NULL)
-	mock.ExpectQuery(`SELECT t.id, t.user_id, t.account_id, t.category_id, t.amount, t.currency, t.amount_cny, t.exchange_rate, t.type, t.note, t.txn_date, t.created_at, t.updated_at, t.tags, t.image_urls`).  // now JOINs accounts
-		WithArgs(
+	mock.ExpectQuery(`SELECT t.id, t.user_id, t.account_id, t.category_id, t.amount, t.currency, t.amount_cny, t.exchange_rate, t.type, t.note, t.txn_date, t.created_at, t.updated_at, t.tags, t.image_urls`). // now JOINs accounts
+																											WithArgs(
 			userUUID,
 			pgxmock.AnyArg(), // account_id
 			pgxmock.AnyArg(), // start_date
@@ -301,9 +301,9 @@ func TestListTransactions_WithPagination(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.Len(t, resp.Transactions, 10)  // trimmed from 11 to 10
+	assert.Len(t, resp.Transactions, 10) // trimmed from 11 to 10
 	assert.Equal(t, int32(30), resp.TotalCount)
-	assert.NotEmpty(t, resp.NextPageToken) // cursor token present
+	assert.NotEmpty(t, resp.NextPageToken)      // cursor token present
 	assert.Contains(t, resp.NextPageToken, "|") // format: "unixnano|uuid"
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

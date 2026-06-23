@@ -45,9 +45,9 @@ class MainShell extends ConsumerWidget {
           if (index == 2) {
             // Center tab: open quick-add sheet
             if (!canCreate) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('当前角色无记账权限')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('当前角色无记账权限')));
               return;
             }
             QuickAddSheet.show(context);
@@ -76,9 +76,15 @@ class MainShell extends ConsumerWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
+                  color: isDark
+                      ? ColorTokens.primaryLight
+                      : ColorTokens.primary,
                 ),
-                child: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
+                child: const Icon(
+                  Icons.add_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
             ),
             label: '记账',

@@ -161,7 +161,7 @@ func (SyncStage) Execute(ctx context.Context, state *PipelineState) error {
 		"amount":        cr.amount,
 		"currency":      cr.currency,
 		"amount_cny":    cr.amountCny,
-		"exchange_rate":  cr.exchangeRate,
+		"exchange_rate": cr.exchangeRate,
 		"type":          cr.txnType,
 		"note":          cr.note,
 		"txn_date":      cr.txnDate.Format("2006-01-02"),

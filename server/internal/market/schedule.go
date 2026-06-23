@@ -49,9 +49,9 @@ var marketSchedules = map[string]MarketSchedule{
 }
 
 const (
-	intervalTrading    = 15 * time.Minute
-	intervalOffHours   = 4 * time.Hour
-	intervalCrypto     = 15 * time.Minute
+	intervalTrading  = 15 * time.Minute
+	intervalOffHours = 4 * time.Hour
+	intervalCrypto   = 15 * time.Minute
 )
 
 // IsTradingHours checks if the given time falls within trading hours

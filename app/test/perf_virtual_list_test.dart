@@ -79,22 +79,24 @@ void main() {
     });
 
     testWidgets('builds 1000+ items without error', (tester) async {
-      await tester.pumpWidget(_wrap(
-        VirtualList<Transaction>(
-          items: transactions,
-          itemBuilder: (ctx, txn, index) => SizedBox(
-            height: 72,
-            child: ListTile(
-              leading: Text(txn.type == 'expense' ? '📉' : '📈'),
-              title: Text(txn.note),
-              subtitle: Text('¥${(txn.amountCny / 100).toStringAsFixed(2)}'),
-              trailing: Text('${txn.txnDate.month}/${txn.txnDate.day}'),
+      await tester.pumpWidget(
+        _wrap(
+          VirtualList<Transaction>(
+            items: transactions,
+            itemBuilder: (ctx, txn, index) => SizedBox(
+              height: 72,
+              child: ListTile(
+                leading: Text(txn.type == 'expense' ? '📉' : '📈'),
+                title: Text(txn.note),
+                subtitle: Text('¥${(txn.amountCny / 100).toStringAsFixed(2)}'),
+                trailing: Text('${txn.txnDate.month}/${txn.txnDate.day}'),
+              ),
             ),
+            itemExtent: 72,
+            controller: controller,
           ),
-          itemExtent: 72,
-          controller: controller,
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // VirtualList should build successfully
@@ -104,21 +106,23 @@ void main() {
     });
 
     testWidgets('scrolls to bottom successfully', (tester) async {
-      await tester.pumpWidget(_wrap(
-        VirtualList<Transaction>(
-          items: transactions,
-          itemBuilder: (ctx, txn, index) => SizedBox(
-            height: 72,
-            child: ListTile(
-              key: ValueKey('txn_item_$index'),
-              title: Text(txn.note),
-              subtitle: Text('¥${(txn.amountCny / 100).toStringAsFixed(2)}'),
+      await tester.pumpWidget(
+        _wrap(
+          VirtualList<Transaction>(
+            items: transactions,
+            itemBuilder: (ctx, txn, index) => SizedBox(
+              height: 72,
+              child: ListTile(
+                key: ValueKey('txn_item_$index'),
+                title: Text(txn.note),
+                subtitle: Text('¥${(txn.amountCny / 100).toStringAsFixed(2)}'),
+              ),
             ),
+            itemExtent: 72,
+            controller: controller,
           ),
-          itemExtent: 72,
-          controller: controller,
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Jump to the very bottom
@@ -131,51 +135,57 @@ void main() {
       expect(find.text(lastNote), findsOneWidget);
     });
 
-    testWidgets('only visible items are built (virtualization works)',
-        (tester) async {
+    testWidgets('only visible items are built (virtualization works)', (
+      tester,
+    ) async {
       int buildCount = 0;
 
-      await tester.pumpWidget(_wrap(
-        VirtualList<Transaction>(
-          items: transactions,
-          itemBuilder: (ctx, txn, index) {
-            buildCount++;
-            return SizedBox(
-              height: 72,
-              child: Text(txn.note),
-            );
-          },
-          itemExtent: 72,
-          controller: controller,
+      await tester.pumpWidget(
+        _wrap(
+          VirtualList<Transaction>(
+            items: transactions,
+            itemBuilder: (ctx, txn, index) {
+              buildCount++;
+              return SizedBox(height: 72, child: Text(txn.note));
+            },
+            itemExtent: 72,
+            controller: controller,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // With itemExtent=72 and typical screen ~800px,
       // only ~11-15 items should be built (not 1100).
       // Allow generous margin for caching.
-      expect(buildCount, lessThan(50),
-          reason: 'VirtualList should only build visible items, '
-              'got $buildCount builds for ${transactions.length} items');
+      expect(
+        buildCount,
+        lessThan(50),
+        reason:
+            'VirtualList should only build visible items, '
+            'got $buildCount builds for ${transactions.length} items',
+      );
     });
 
     testWidgets('measures build time for 1000+ items', (tester) async {
       final sw = Stopwatch()..start();
 
-      await tester.pumpWidget(_wrap(
-        VirtualList<Transaction>(
-          items: transactions,
-          itemBuilder: (ctx, txn, index) => SizedBox(
-            height: 72,
-            child: ListTile(
-              title: Text(txn.note),
-              subtitle: Text('¥${(txn.amountCny / 100).toStringAsFixed(2)}'),
+      await tester.pumpWidget(
+        _wrap(
+          VirtualList<Transaction>(
+            items: transactions,
+            itemBuilder: (ctx, txn, index) => SizedBox(
+              height: 72,
+              child: ListTile(
+                title: Text(txn.note),
+                subtitle: Text('¥${(txn.amountCny / 100).toStringAsFixed(2)}'),
+              ),
             ),
+            itemExtent: 72,
+            controller: controller,
           ),
-          itemExtent: 72,
-          controller: controller,
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       sw.stop();
@@ -183,25 +193,30 @@ void main() {
 
       // Should be very fast since only visible items are built
       // In test environment, allow generous timeout
-      expect(buildTimeMs, lessThan(5000),
-          reason: 'VirtualList build took ${buildTimeMs}ms, expected < 5000ms');
+      expect(
+        buildTimeMs,
+        lessThan(5000),
+        reason: 'VirtualList build took ${buildTimeMs}ms, expected < 5000ms',
+      );
 
       // ignore: avoid_print
       print('VirtualList build time (1100 items): ${buildTimeMs}ms');
     });
 
     testWidgets('scroll to middle then to bottom', (tester) async {
-      await tester.pumpWidget(_wrap(
-        VirtualList<Transaction>(
-          items: transactions,
-          itemBuilder: (ctx, txn, index) => SizedBox(
-            height: 72,
-            child: Text(txn.note, key: ValueKey('note_$index')),
+      await tester.pumpWidget(
+        _wrap(
+          VirtualList<Transaction>(
+            items: transactions,
+            itemBuilder: (ctx, txn, index) => SizedBox(
+              height: 72,
+              child: Text(txn.note, key: ValueKey('note_$index')),
+            ),
+            itemExtent: 72,
+            controller: controller,
           ),
-          itemExtent: 72,
-          controller: controller,
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Scroll to middle (~item 550)
@@ -221,23 +236,25 @@ void main() {
     });
 
     testWidgets('handles rapid scrolling without crash', (tester) async {
-      await tester.pumpWidget(_wrap(
-        VirtualList<Transaction>(
-          items: transactions,
-          itemBuilder: (ctx, txn, index) => SizedBox(
-            height: 72,
-            child: Text(txn.note),
+      await tester.pumpWidget(
+        _wrap(
+          VirtualList<Transaction>(
+            items: transactions,
+            itemBuilder: (ctx, txn, index) =>
+                SizedBox(height: 72, child: Text(txn.note)),
+            itemExtent: 72,
+            controller: controller,
           ),
-          itemExtent: 72,
-          controller: controller,
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Rapid scroll through multiple positions
-      for (var pos = 0.0;
-          pos < controller.position.maxScrollExtent;
-          pos += 5000) {
+      for (
+        var pos = 0.0;
+        pos < controller.position.maxScrollExtent;
+        pos += 5000
+      ) {
         controller.jumpTo(pos);
         await tester.pump();
       }

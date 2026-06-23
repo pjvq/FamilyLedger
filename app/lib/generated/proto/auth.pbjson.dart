@@ -34,7 +34,14 @@ const RegisterResponse$json = {
     {'1': 'user_id', '3': 1, '4': 1, '5': 9, '10': 'userId'},
     {'1': 'access_token', '3': 2, '4': 1, '5': 9, '10': 'accessToken'},
     {'1': 'refresh_token', '3': 3, '4': 1, '5': 9, '10': 'refreshToken'},
-    {'1': 'expires_at', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'expiresAt'},
+    {
+      '1': 'expires_at',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'expiresAt'
+    },
   ],
 };
 
@@ -66,7 +73,14 @@ const LoginResponse$json = {
     {'1': 'user_id', '3': 1, '4': 1, '5': 9, '10': 'userId'},
     {'1': 'access_token', '3': 2, '4': 1, '5': 9, '10': 'accessToken'},
     {'1': 'refresh_token', '3': 3, '4': 1, '5': 9, '10': 'refreshToken'},
-    {'1': 'expires_at', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'expiresAt'},
+    {
+      '1': 'expires_at',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'expiresAt'
+    },
   ],
 };
 
@@ -96,7 +110,14 @@ const RefreshTokenResponse$json = {
   '2': [
     {'1': 'access_token', '3': 1, '4': 1, '5': 9, '10': 'accessToken'},
     {'1': 'refresh_token', '3': 2, '4': 1, '5': 9, '10': 'refreshToken'},
-    {'1': 'expires_at', '3': 3, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'expiresAt'},
+    {
+      '1': 'expires_at',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'expiresAt'
+    },
   ],
 };
 
@@ -128,7 +149,14 @@ const OAuthLoginResponse$json = {
     {'1': 'user_id', '3': 1, '4': 1, '5': 9, '10': 'userId'},
     {'1': 'access_token', '3': 2, '4': 1, '5': 9, '10': 'accessToken'},
     {'1': 'refresh_token', '3': 3, '4': 1, '5': 9, '10': 'refreshToken'},
-    {'1': 'expires_at', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'expiresAt'},
+    {
+      '1': 'expires_at',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'expiresAt'
+    },
     {'1': 'is_new_user', '3': 5, '4': 1, '5': 8, '10': 'isNewUser'},
   ],
 };
@@ -139,4 +167,3 @@ final $typed_data.Uint8List oAuthLoginResponseDescriptor = $convert.base64Decode
     '90b2tlbhgCIAEoCVILYWNjZXNzVG9rZW4SIwoNcmVmcmVzaF90b2tlbhgDIAEoCVIMcmVmcmVz'
     'aFRva2VuEjkKCmV4cGlyZXNfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wUg'
     'lleHBpcmVzQXQSHgoLaXNfbmV3X3VzZXIYBSABKAhSCWlzTmV3VXNlcg==');
-

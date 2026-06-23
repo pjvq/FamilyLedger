@@ -26,10 +26,10 @@ import 'test_helpers.dart';
 late SharedPreferences _prefs;
 
 List<Override> _themeOverrides() => [
-      sharedPreferencesProvider.overrideWithValue(_prefs),
-      themeModeProvider.overrideWith((_) => ThemeModeNotifier(_prefs)),
-      currentUserIdProvider.overrideWith((ref) => 'user-1'),
-    ];
+  sharedPreferencesProvider.overrideWithValue(_prefs),
+  themeModeProvider.overrideWith((_) => ThemeModeNotifier(_prefs)),
+  currentUserIdProvider.overrideWith((ref) => 'user-1'),
+];
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -37,14 +37,13 @@ db.Family _makeFamily({
   String id = 'fam-1',
   String name = '小Q的家庭',
   String ownerId = 'user-1',
-}) =>
-    db.Family(
-      id: id,
-      name: name,
-      ownerId: ownerId,
-      inviteCode: 'ABC123',
-      createdAt: DateTime(2025, 1, 1),
-    );
+}) => db.Family(
+  id: id,
+  name: name,
+  ownerId: ownerId,
+  inviteCode: 'ABC123',
+  createdAt: DateTime(2025, 1, 1),
+);
 
 db.FamilyMember _makeMember({
   String id = 'mem-1',
@@ -52,20 +51,19 @@ db.FamilyMember _makeMember({
   String userId = 'user-1',
   String email = 'alice@example.com',
   String role = 'owner',
-}) =>
-    db.FamilyMember(
-      id: id,
-      familyId: familyId,
-      userId: userId,
-      email: email,
-      role: role,
-      canView: true,
-      canCreate: true,
-      canEdit: true,
-      canDelete: false,
-      canManageAccounts: false,
-      joinedAt: DateTime(2025, 1, 1),
-    );
+}) => db.FamilyMember(
+  id: id,
+  familyId: familyId,
+  userId: userId,
+  email: email,
+  role: role,
+  canView: true,
+  canCreate: true,
+  canEdit: true,
+  canDelete: false,
+  canManageAccounts: false,
+  joinedAt: DateTime(2025, 1, 1),
+);
 
 db.Notification _makeNotification({
   String id = 'n-1',
@@ -74,17 +72,16 @@ db.Notification _makeNotification({
   String body = '餐饮分类已超出预算',
   bool isRead = false,
   DateTime? createdAt,
-}) =>
-    db.Notification(
-      id: id,
-      userId: 'user-1',
-      type: type,
-      title: title,
-      body: body,
-      dataJson: '{}',
-      isRead: isRead,
-      createdAt: createdAt ?? DateTime.now(),
-    );
+}) => db.Notification(
+  id: id,
+  userId: 'user-1',
+  type: type,
+  title: title,
+  body: body,
+  dataJson: '{}',
+  isRead: isRead,
+  createdAt: createdAt ?? DateTime.now(),
+);
 
 // ─── Main ──────────────────────────────────────────────────────
 
@@ -99,40 +96,44 @@ void main() {
   // ═══════════════════════════════════════════════════════════
   group('SettingsPage', () {
     testWidgets('renders appbar title "设置"', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const SettingsPage(),
-        auth: const AuthState(
-          status: AuthStatus.authenticated,
-          userId: 'test@example.com',
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const SettingsPage(),
+          auth: const AuthState(
+            status: AuthStatus.authenticated,
+            userId: 'test@example.com',
+          ),
+          extra: _themeOverrides(),
+          routes: {
+            '/settings/members': (_) => const Scaffold(),
+            '/loans': (_) => const Scaffold(),
+            '/notifications/settings': (_) => const Scaffold(),
+            '/login': (_) => const Scaffold(),
+          },
         ),
-        extra: _themeOverrides(),
-        routes: {
-          '/settings/members': (_) => const Scaffold(),
-          '/loans': (_) => const Scaffold(),
-          '/notifications/settings': (_) => const Scaffold(),
-          '/login': (_) => const Scaffold(),
-        },
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('设置'), findsOneWidget);
     });
 
     testWidgets('shows user email in user info card', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const SettingsPage(),
-        auth: const AuthState(
-          status: AuthStatus.authenticated,
-          userId: 'alice@example.com',
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const SettingsPage(),
+          auth: const AuthState(
+            status: AuthStatus.authenticated,
+            userId: 'alice@example.com',
+          ),
+          extra: _themeOverrides(),
+          routes: {
+            '/settings/members': (_) => const Scaffold(),
+            '/loans': (_) => const Scaffold(),
+            '/notifications/settings': (_) => const Scaffold(),
+            '/login': (_) => const Scaffold(),
+          },
         ),
-        extra: _themeOverrides(),
-        routes: {
-          '/settings/members': (_) => const Scaffold(),
-          '/loans': (_) => const Scaffold(),
-          '/notifications/settings': (_) => const Scaffold(),
-          '/login': (_) => const Scaffold(),
-        },
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('alice@example.com'), findsOneWidget);
@@ -140,24 +141,34 @@ void main() {
     });
 
     testWidgets('shows family info when family exists', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const SettingsPage(),
-        auth: const AuthState(
-          status: AuthStatus.authenticated,
-          userId: 'user-1',
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const SettingsPage(),
+          auth: const AuthState(
+            status: AuthStatus.authenticated,
+            userId: 'user-1',
+          ),
+          family: FamilyState(
+            currentFamily: _makeFamily(),
+            members: [
+              _makeMember(),
+              _makeMember(
+                id: 'mem-2',
+                userId: 'user-2',
+                email: 'bob@example.com',
+                role: 'member',
+              ),
+            ],
+          ),
+          extra: _themeOverrides(),
+          routes: {
+            '/settings/members': (_) => const Scaffold(),
+            '/loans': (_) => const Scaffold(),
+            '/notifications/settings': (_) => const Scaffold(),
+            '/login': (_) => const Scaffold(),
+          },
         ),
-        family: FamilyState(
-          currentFamily: _makeFamily(),
-          members: [_makeMember(), _makeMember(id: 'mem-2', userId: 'user-2', email: 'bob@example.com', role: 'member')],
-        ),
-        extra: _themeOverrides(),
-        routes: {
-          '/settings/members': (_) => const Scaffold(),
-          '/loans': (_) => const Scaffold(),
-          '/notifications/settings': (_) => const Scaffold(),
-          '/login': (_) => const Scaffold(),
-        },
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('小Q的家庭'), findsOneWidget);
@@ -167,42 +178,47 @@ void main() {
     });
 
     testWidgets('shows create/join family when no family', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const SettingsPage(),
-        auth: const AuthState(
-          status: AuthStatus.authenticated,
-          userId: 'user-1',
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const SettingsPage(),
+          auth: const AuthState(
+            status: AuthStatus.authenticated,
+            userId: 'user-1',
+          ),
+          extra: _themeOverrides(),
+          routes: {
+            '/settings/members': (_) => const Scaffold(),
+            '/loans': (_) => const Scaffold(),
+            '/notifications/settings': (_) => const Scaffold(),
+            '/login': (_) => const Scaffold(),
+          },
         ),
-        extra: _themeOverrides(),
-        routes: {
-          '/settings/members': (_) => const Scaffold(),
-          '/loans': (_) => const Scaffold(),
-          '/notifications/settings': (_) => const Scaffold(),
-          '/login': (_) => const Scaffold(),
-        },
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('创建家庭'), findsOneWidget);
       expect(find.text('加入家庭'), findsOneWidget);
     });
 
-    testWidgets('shows theme, sync, loans, notification, logout sections',
-        (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const SettingsPage(),
-        auth: const AuthState(
-          status: AuthStatus.authenticated,
-          userId: 'user-1',
+    testWidgets('shows theme, sync, loans, notification, logout sections', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const SettingsPage(),
+          auth: const AuthState(
+            status: AuthStatus.authenticated,
+            userId: 'user-1',
+          ),
+          extra: _themeOverrides(),
+          routes: {
+            '/settings/members': (_) => const Scaffold(),
+            '/loans': (_) => const Scaffold(),
+            '/notifications/settings': (_) => const Scaffold(),
+            '/login': (_) => const Scaffold(),
+          },
         ),
-        extra: _themeOverrides(),
-        routes: {
-          '/settings/members': (_) => const Scaffold(),
-          '/loans': (_) => const Scaffold(),
-          '/notifications/settings': (_) => const Scaffold(),
-          '/login': (_) => const Scaffold(),
-        },
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('外观模式'), findsOneWidget);
@@ -218,21 +234,23 @@ void main() {
     });
 
     testWidgets('shows sync status pending state', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const SettingsPage(),
-        auth: const AuthState(
-          status: AuthStatus.authenticated,
-          userId: 'user-1',
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const SettingsPage(),
+          auth: const AuthState(
+            status: AuthStatus.authenticated,
+            userId: 'user-1',
+          ),
+          sync: const SyncState(status: SyncStatus.pending, pendingCount: 5),
+          extra: _themeOverrides(),
+          routes: {
+            '/settings/members': (_) => const Scaffold(),
+            '/loans': (_) => const Scaffold(),
+            '/notifications/settings': (_) => const Scaffold(),
+            '/login': (_) => const Scaffold(),
+          },
         ),
-        sync: const SyncState(status: SyncStatus.pending, pendingCount: 5),
-        extra: _themeOverrides(),
-        routes: {
-          '/settings/members': (_) => const Scaffold(),
-          '/loans': (_) => const Scaffold(),
-          '/notifications/settings': (_) => const Scaffold(),
-          '/login': (_) => const Scaffold(),
-        },
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('待同步'), findsOneWidget);
@@ -240,20 +258,22 @@ void main() {
     });
 
     testWidgets('tapping logout shows confirmation dialog', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const SettingsPage(),
-        auth: const AuthState(
-          status: AuthStatus.authenticated,
-          userId: 'user-1',
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const SettingsPage(),
+          auth: const AuthState(
+            status: AuthStatus.authenticated,
+            userId: 'user-1',
+          ),
+          extra: _themeOverrides(),
+          routes: {
+            '/settings/members': (_) => const Scaffold(),
+            '/loans': (_) => const Scaffold(),
+            '/notifications/settings': (_) => const Scaffold(),
+            '/login': (_) => const Scaffold(),
+          },
         ),
-        extra: _themeOverrides(),
-        routes: {
-          '/settings/members': (_) => const Scaffold(),
-          '/loans': (_) => const Scaffold(),
-          '/notifications/settings': (_) => const Scaffold(),
-          '/login': (_) => const Scaffold(),
-        },
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Scroll down to reveal the logout button
@@ -272,12 +292,12 @@ void main() {
   // ═══════════════════════════════════════════════════════════
   group('NotificationsPage', () {
     testWidgets('shows empty state when no notifications', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const NotificationsPage(),
-        routes: {
-          '/notifications/settings': (_) => const Scaffold(),
-        },
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const NotificationsPage(),
+          routes: {'/notifications/settings': (_) => const Scaffold()},
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('通知'), findsOneWidget);
@@ -286,13 +306,13 @@ void main() {
     });
 
     testWidgets('shows loading indicator when loading', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const NotificationsPage(),
-        notification: const NotificationState(isLoading: true),
-        routes: {
-          '/notifications/settings': (_) => const Scaffold(),
-        },
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const NotificationsPage(),
+          notification: const NotificationState(isLoading: true),
+          routes: {'/notifications/settings': (_) => const Scaffold()},
+        ),
+      );
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
@@ -317,13 +337,13 @@ void main() {
         ),
       ];
 
-      await tester.pumpWidget(wrapWithProviders(
-        const NotificationsPage(),
-        notification: NotificationState(notifications: notifications),
-        routes: {
-          '/notifications/settings': (_) => const Scaffold(),
-        },
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const NotificationsPage(),
+          notification: NotificationState(notifications: notifications),
+          routes: {'/notifications/settings': (_) => const Scaffold()},
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('餐饮预算超支'), findsOneWidget);
@@ -332,13 +352,15 @@ void main() {
     });
 
     testWidgets('has settings icon button in appbar', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const NotificationsPage(),
-        routes: {
-          '/notifications/settings': (_) =>
-              const Scaffold(body: Text('Settings Page')),
-        },
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const NotificationsPage(),
+          routes: {
+            '/notifications/settings': (_) =>
+                const Scaffold(body: Text('Settings Page')),
+          },
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.settings_rounded), findsOneWidget);
@@ -351,9 +373,9 @@ void main() {
   // ═══════════════════════════════════════════════════════════
   group('NotificationSettingsPage', () {
     testWidgets('renders appbar and section headers', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const NotificationSettingsPage(),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(const NotificationSettingsPage()),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('通知设置'), findsOneWidget);
@@ -362,9 +384,9 @@ void main() {
     });
 
     testWidgets('renders all switch tiles with labels', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const NotificationSettingsPage(),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(const NotificationSettingsPage()),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('预算超支提醒'), findsOneWidget);
@@ -373,28 +395,32 @@ void main() {
       expect(find.text('还款日提醒'), findsOneWidget);
     });
 
-    testWidgets('shows reminder days slider when loan reminder on',
-        (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const NotificationSettingsPage(),
-        notification: const NotificationState(
-          settings: NotificationSettingsModel(loanReminder: true),
+    testWidgets('shows reminder days slider when loan reminder on', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const NotificationSettingsPage(),
+          notification: const NotificationState(
+            settings: NotificationSettingsModel(loanReminder: true),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('提前提醒天数'), findsOneWidget);
       expect(find.byType(Slider), findsOneWidget);
     });
 
-    testWidgets('hides reminder slider when loan reminder off',
-        (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const NotificationSettingsPage(),
-        notification: const NotificationState(
-          settings: NotificationSettingsModel(loanReminder: false),
+    testWidgets('hides reminder slider when loan reminder off', (tester) async {
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const NotificationSettingsPage(),
+          notification: const NotificationState(
+            settings: NotificationSettingsModel(loanReminder: false),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('提前提醒天数'), findsNothing);
@@ -402,9 +428,9 @@ void main() {
     });
 
     testWidgets('switch tiles use SwitchListTile widgets', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const NotificationSettingsPage(),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(const NotificationSettingsPage()),
+      );
       await tester.pumpAndSettle();
 
       // Default settings: budgetAlert=true, budgetWarning=true, dailySummary=false, loanReminder=true
@@ -417,12 +443,12 @@ void main() {
   // ═══════════════════════════════════════════════════════════
   group('FamilyMembersPage', () {
     testWidgets('shows empty state when no members', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const FamilyMembersPage(),
-        extra: [
-          currentUserIdProvider.overrideWith((ref) => 'user-1'),
-        ],
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const FamilyMembersPage(),
+          extra: [currentUserIdProvider.overrideWith((ref) => 'user-1')],
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('家庭成员'), findsOneWidget);
@@ -431,29 +457,29 @@ void main() {
     });
 
     testWidgets('shows member list with roles', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const FamilyMembersPage(),
-        family: FamilyState(
-          currentFamily: _makeFamily(),
-          members: [
-            _makeMember(
-              id: 'mem-1',
-              userId: 'user-1',
-              email: 'alice@example.com',
-              role: 'owner',
-            ),
-            _makeMember(
-              id: 'mem-2',
-              userId: 'user-2',
-              email: 'bob@example.com',
-              role: 'member',
-            ),
-          ],
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const FamilyMembersPage(),
+          family: FamilyState(
+            currentFamily: _makeFamily(),
+            members: [
+              _makeMember(
+                id: 'mem-1',
+                userId: 'user-1',
+                email: 'alice@example.com',
+                role: 'owner',
+              ),
+              _makeMember(
+                id: 'mem-2',
+                userId: 'user-2',
+                email: 'bob@example.com',
+                role: 'member',
+              ),
+            ],
+          ),
+          extra: [currentUserIdProvider.overrideWith((ref) => 'user-1')],
         ),
-        extra: [
-          currentUserIdProvider.overrideWith((ref) => 'user-1'),
-        ],
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('alice'), findsOneWidget);
@@ -464,29 +490,29 @@ void main() {
     });
 
     testWidgets('shows settings icon for manageable members', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const FamilyMembersPage(),
-        family: FamilyState(
-          currentFamily: _makeFamily(),
-          members: [
-            _makeMember(
-              id: 'mem-1',
-              userId: 'user-1',
-              email: 'alice@example.com',
-              role: 'owner',
-            ),
-            _makeMember(
-              id: 'mem-2',
-              userId: 'user-2',
-              email: 'bob@example.com',
-              role: 'member',
-            ),
-          ],
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const FamilyMembersPage(),
+          family: FamilyState(
+            currentFamily: _makeFamily(),
+            members: [
+              _makeMember(
+                id: 'mem-1',
+                userId: 'user-1',
+                email: 'alice@example.com',
+                role: 'owner',
+              ),
+              _makeMember(
+                id: 'mem-2',
+                userId: 'user-2',
+                email: 'bob@example.com',
+                role: 'member',
+              ),
+            ],
+          ),
+          extra: [currentUserIdProvider.overrideWith((ref) => 'user-1')],
         ),
-        extra: [
-          currentUserIdProvider.overrideWith((ref) => 'user-1'),
-        ],
-      ));
+      );
       await tester.pumpAndSettle();
 
       // The owner (user-1) can manage user-2 → settings icon appears
@@ -499,9 +525,7 @@ void main() {
   // ═══════════════════════════════════════════════════════════
   group('BudgetPage', () {
     testWidgets('shows empty state when no budget', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const BudgetPage(),
-      ));
+      await tester.pumpWidget(wrapWithProviders(const BudgetPage()));
       await tester.pumpAndSettle();
 
       expect(find.text('还没有设置预算'), findsOneWidget);
@@ -511,10 +535,12 @@ void main() {
     });
 
     testWidgets('shows loading indicator when loading', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const BudgetPage(),
-        budget: const BudgetState(isLoading: true),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const BudgetPage(),
+          budget: const BudgetState(isLoading: true),
+        ),
+      );
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
@@ -532,40 +558,56 @@ void main() {
         updatedAt: DateTime(2026, 4, 1),
       );
 
-      await tester.pumpWidget(wrapWithProviders(
-        const BudgetPage(),
-        transaction: TransactionState(
-          isLoading: false,
-          expenseCategories: const [
-            db.Category(id: 'cat-1', name: '餐饮', type: 'expense', isPreset: true, sortOrder: 1, iconKey: ''),
-            db.Category(id: 'cat-2', name: '交通', type: 'expense', isPreset: true, sortOrder: 2, iconKey: ''),
-          ],
-        ),
-        budget: BudgetState(
-          currentBudget: budget,
-          execution: const BudgetExecutionData(
-            totalBudget: 500000,
-            totalSpent: 250000,
-            executionRate: 0.5,
-            categoryExecutions: [
-              CategoryExecutionData(
-                categoryId: 'cat-1',
-                categoryName: '餐饮',
-                budgetAmount: 200000,
-                spentAmount: 120000,
-                executionRate: 0.6,
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const BudgetPage(),
+          transaction: TransactionState(
+            isLoading: false,
+            expenseCategories: const [
+              db.Category(
+                id: 'cat-1',
+                name: '餐饮',
+                type: 'expense',
+                isPreset: true,
+                sortOrder: 1,
+                iconKey: '',
               ),
-              CategoryExecutionData(
-                categoryId: 'cat-2',
-                categoryName: '交通',
-                budgetAmount: 100000,
-                spentAmount: 30000,
-                executionRate: 0.3,
+              db.Category(
+                id: 'cat-2',
+                name: '交通',
+                type: 'expense',
+                isPreset: true,
+                sortOrder: 2,
+                iconKey: '',
               ),
             ],
           ),
+          budget: BudgetState(
+            currentBudget: budget,
+            execution: const BudgetExecutionData(
+              totalBudget: 500000,
+              totalSpent: 250000,
+              executionRate: 0.5,
+              categoryExecutions: [
+                CategoryExecutionData(
+                  categoryId: 'cat-1',
+                  categoryName: '餐饮',
+                  budgetAmount: 200000,
+                  spentAmount: 120000,
+                  executionRate: 0.6,
+                ),
+                CategoryExecutionData(
+                  categoryId: 'cat-2',
+                  categoryName: '交通',
+                  budgetAmount: 100000,
+                  spentAmount: 30000,
+                  executionRate: 0.3,
+                ),
+              ],
+            ),
+          ),
         ),
-      ));
+      );
       // Need extra pump for BudgetExecutionCard animation
       await tester.pump(const Duration(milliseconds: 1300));
       await tester.pumpAndSettle();
@@ -578,9 +620,7 @@ void main() {
     });
 
     testWidgets('appbar shows current month', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const BudgetPage(),
-      ));
+      await tester.pumpWidget(wrapWithProviders(const BudgetPage()));
       await tester.pumpAndSettle();
 
       expect(find.text('预算'), findsOneWidget);
@@ -592,22 +632,24 @@ void main() {
   // ═══════════════════════════════════════════════════════════
   group('SetBudgetSheet', () {
     testWidgets('renders title and total budget input', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        Scaffold(
-          body: Builder(
-            builder: (context) => ElevatedButton(
-              onPressed: () => showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                useSafeArea: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => const SetBudgetSheet(),
+      await tester.pumpWidget(
+        wrapWithProviders(
+          Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => const SetBudgetSheet(),
+                ),
+                child: const Text('Open'),
               ),
-              child: const Text('Open'),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Open the sheet
@@ -620,22 +662,24 @@ void main() {
     });
 
     testWidgets('shows category budget toggle', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        Scaffold(
-          body: Builder(
-            builder: (context) => ElevatedButton(
-              onPressed: () => showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                useSafeArea: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => const SetBudgetSheet(),
+      await tester.pumpWidget(
+        wrapWithProviders(
+          Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => const SetBudgetSheet(),
+                ),
+                child: const Text('Open'),
               ),
-              child: const Text('Open'),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Open'));
@@ -646,22 +690,24 @@ void main() {
     });
 
     testWidgets('has close button', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        Scaffold(
-          body: Builder(
-            builder: (context) => ElevatedButton(
-              onPressed: () => showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                useSafeArea: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => const SetBudgetSheet(),
+      await tester.pumpWidget(
+        wrapWithProviders(
+          Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => const SetBudgetSheet(),
+                ),
+                child: const Text('Open'),
               ),
-              child: const Text('Open'),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Open'));

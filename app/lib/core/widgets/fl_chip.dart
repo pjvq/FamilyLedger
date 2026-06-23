@@ -64,8 +64,7 @@ class FlChip extends StatelessWidget {
           child: SizedBox(
             height: 32,
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: SpacingTokens.md),
+              padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.md),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -75,9 +74,9 @@ class FlChip extends StatelessWidget {
                   ],
                   Text(
                     label,
-                    style: TypographyTokens.bodyMd(color: fgColor).copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: TypographyTokens.bodyMd(
+                      color: fgColor,
+                    ).copyWith(fontWeight: FontWeight.w500),
                   ),
                 ],
               ),

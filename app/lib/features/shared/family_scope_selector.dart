@@ -54,11 +54,15 @@ class _FamilyScopeSelectorState extends ConsumerState<FamilyScopeSelector> {
           SegmentedButton<bool>(
             segments: [
               const ButtonSegment<bool>(
-                  value: false, label: Text('个人'), icon: Icon(Icons.person)),
+                value: false,
+                label: Text('个人'),
+                icon: Icon(Icons.person),
+              ),
               ButtonSegment<bool>(
-                  value: true,
-                  label: Text(family.name),
-                  icon: const Icon(Icons.family_restroom)),
+                value: true,
+                label: Text(family.name),
+                icon: const Icon(Icons.family_restroom),
+              ),
             ],
             selected: {_isFamily},
             onSelectionChanged: (v) {

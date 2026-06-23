@@ -52,17 +52,24 @@ class _ReportPageState extends ConsumerState<ReportPage>
     final database = ref.read(databaseProvider);
     final familyId = ref.read(currentFamilyIdProvider);
     // Fetch transactions (capped at 10000 for perf; report uses date filter anyway)
-    final allTxns =
-        await database.getRecentTransactions(userId, 10000, familyId: familyId);
+    final allTxns = await database.getRecentTransactions(
+      userId,
+      10000,
+      familyId: familyId,
+    );
 
     final rangeStart = _dateRange!.start;
     final rangeEnd = _dateRange!.end.add(const Duration(days: 1));
 
-    final filtered = allTxns
-        .where(
-            (t) => !t.txnDate.isBefore(rangeStart) && t.txnDate.isBefore(rangeEnd))
-        .toList()
-      ..sort((a, b) => b.txnDate.compareTo(a.txnDate));
+    final filtered =
+        allTxns
+            .where(
+              (t) =>
+                  !t.txnDate.isBefore(rangeStart) &&
+                  t.txnDate.isBefore(rangeEnd),
+            )
+            .toList()
+          ..sort((a, b) => b.txnDate.compareTo(a.txnDate));
 
     setState(() {
       _filteredTransactions = filtered;

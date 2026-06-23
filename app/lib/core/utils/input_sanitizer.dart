@@ -31,7 +31,10 @@ String sanitizeNote(String? input) {
   // Strip control characters except \n and \t (which users may legitimately type).
   // Note: sanitizeTags uses a broader range (includes \n/\t) because tags
   // are single-line comma-separated values where newlines are never valid.
-  final cleaned = input.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '');
+  final cleaned = input.replaceAll(
+    RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'),
+    '',
+  );
 
   final trimmed = cleaned.trim();
   if (trimmed.length > maxNoteLength) {

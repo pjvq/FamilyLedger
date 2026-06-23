@@ -22,13 +22,16 @@ void main() {
   });
 
   group('Database schema & seed', () {
-    test('creates tables and seeds preset categories with subcategories', () async {
-      final cats = await db.getAllCategories();
-      final parents = cats.where((c) => c.parentId == null).toList();
-      final subs = cats.where((c) => c.parentId != null).toList();
-      expect(parents.length, 21);
-      expect(subs.length, greaterThan(0));
-    });
+    test(
+      'creates tables and seeds preset categories with subcategories',
+      () async {
+        final cats = await db.getAllCategories();
+        final parents = cats.where((c) => c.parentId == null).toList();
+        final subs = cats.where((c) => c.parentId != null).toList();
+        expect(parents.length, 21);
+        expect(subs.length, greaterThan(0));
+      },
+    );
 
     test('seeds 14 expense + 7 income parent categories', () async {
       final expense = await db.getCategoriesByType('expense');
@@ -39,32 +42,47 @@ void main() {
       expect(incParents.length, 7);
     });
 
-    test('clearAllData clears all data (categories re-seeded separately)', () async {
-      // Verify initial seed
-      var cats = await db.getAllCategories();
-      var parents = cats.where((c) => c.parentId == null).toList();
-      expect(parents.length, 21);
+    test(
+      'clearAllData clears all data (categories re-seeded separately)',
+      () async {
+        // Verify initial seed
+        var cats = await db.getAllCategories();
+        var parents = cats.where((c) => c.parentId == null).toList();
+        expect(parents.length, 21);
 
-      // Clear all data
-      await db.clearAllData();
+        // Clear all data
+        await db.clearAllData();
 
-      // After clearAllData, no categories (re-seed happens after next login)
-      cats = await db.getAllCategories();
-      expect(cats, isEmpty, reason: 'clearAllData should remove all data');
+        // After clearAllData, no categories (re-seed happens after next login)
+        cats = await db.getAllCategories();
+        expect(cats, isEmpty, reason: 'clearAllData should remove all data');
 
-      // Re-seed manually (simulates post-login behavior)
-      await db.seedCategoriesForOwner('test-user');
-      cats = await db.getAllCategories();
-      parents = cats.where((c) => c.parentId == null).toList();
-      final subs = cats.where((c) => c.parentId != null).toList();
-      expect(parents.length, 21, reason: 'seedCategoriesForOwner should seed 21 parent categories');
-      expect(subs.length, greaterThan(0), reason: 'seedCategoriesForOwner should seed subcategories');
+        // Re-seed manually (simulates post-login behavior)
+        await db.seedCategoriesForOwner('test-user');
+        cats = await db.getAllCategories();
+        parents = cats.where((c) => c.parentId == null).toList();
+        final subs = cats.where((c) => c.parentId != null).toList();
+        expect(
+          parents.length,
+          21,
+          reason: 'seedCategoriesForOwner should seed 21 parent categories',
+        );
+        expect(
+          subs.length,
+          greaterThan(0),
+          reason: 'seedCategoriesForOwner should seed subcategories',
+        );
 
-      // Verify they are all preset
-      for (final cat in parents) {
-        expect(cat.isPreset, true, reason: '${cat.name} should be preset after re-seed');
-      }
-    });
+        // Verify they are all preset
+        for (final cat in parents) {
+          expect(
+            cat.isPreset,
+            true,
+            reason: '${cat.name} should be preset after re-seed',
+          );
+        }
+      },
+    );
 
     test('categories have correct fields', () async {
       final cats = await db.getCategoriesByType('expense');
@@ -78,15 +96,16 @@ void main() {
   group('User & Account', () {
     test('register creates user and default account', () async {
       final userId = 'test_user_1';
-      await db.into(db.users).insert(UsersCompanion.insert(
-            id: userId,
-            email: 'test@example.com',
-          ));
-      await db.insertAccount(AccountsCompanion.insert(
-        id: 'acc_default_$userId',
-        userId: userId,
-        name: '默认账户',
-      ));
+      await db
+          .into(db.users)
+          .insert(UsersCompanion.insert(id: userId, email: 'test@example.com'));
+      await db.insertAccount(
+        AccountsCompanion.insert(
+          id: 'acc_default_$userId',
+          userId: userId,
+          name: '默认账户',
+        ),
+      );
 
       final accounts = await db.getAllAccounts(userId);
       expect(accounts.length, 1);
@@ -96,15 +115,14 @@ void main() {
 
     test('getDefaultAccount returns first account', () async {
       final userId = 'test_user_2';
-      await db.into(db.users).insert(UsersCompanion.insert(
-            id: userId,
-            email: 'test2@example.com',
-          ));
-      await db.insertAccount(AccountsCompanion.insert(
-        id: 'acc_1',
-        userId: userId,
-        name: '工资卡',
-      ));
+      await db
+          .into(db.users)
+          .insert(
+            UsersCompanion.insert(id: userId, email: 'test2@example.com'),
+          );
+      await db.insertAccount(
+        AccountsCompanion.insert(id: 'acc_1', userId: userId, name: '工资卡'),
+      );
 
       final acc = await db.getDefaultAccount(userId);
       expect(acc, isNotNull);
@@ -119,28 +137,27 @@ void main() {
     setUp(() async {
       userId = 'txn_test_user';
       accountId = 'txn_test_acc';
-      await db.into(db.users).insert(UsersCompanion.insert(
-            id: userId,
-            email: 'txn@example.com',
-          ));
-      await db.insertAccount(AccountsCompanion.insert(
-        id: accountId,
-        userId: userId,
-        name: '测试账户',
-      ));
+      await db
+          .into(db.users)
+          .insert(UsersCompanion.insert(id: userId, email: 'txn@example.com'));
+      await db.insertAccount(
+        AccountsCompanion.insert(id: accountId, userId: userId, name: '测试账户'),
+      );
     });
 
     test('insert expense and query', () async {
-      await db.insertTransaction(TransactionsCompanion.insert(
-        id: 'txn_1',
-        userId: userId,
-        accountId: accountId,
-        categoryId: _catFood,
-        amount: 3500, // ¥35.00
-        amountCny: 3500,
-        type: 'expense',
-        txnDate: DateTime.now(),
-      ));
+      await db.insertTransaction(
+        TransactionsCompanion.insert(
+          id: 'txn_1',
+          userId: userId,
+          accountId: accountId,
+          categoryId: _catFood,
+          amount: 3500, // ¥35.00
+          amountCny: 3500,
+          type: 'expense',
+          txnDate: DateTime.now(),
+        ),
+      );
 
       final txns = await db.getRecentTransactions(userId, 10);
       expect(txns.length, 1);
@@ -149,16 +166,18 @@ void main() {
     });
 
     test('insert income and query', () async {
-      await db.insertTransaction(TransactionsCompanion.insert(
-        id: 'txn_2',
-        userId: userId,
-        accountId: accountId,
-        categoryId: _catSalary,
-        amount: 1000000, // ¥10,000.00
-        amountCny: 1000000,
-        type: 'income',
-        txnDate: DateTime.now(),
-      ));
+      await db.insertTransaction(
+        TransactionsCompanion.insert(
+          id: 'txn_2',
+          userId: userId,
+          accountId: accountId,
+          categoryId: _catSalary,
+          amount: 1000000, // ¥10,000.00
+          amountCny: 1000000,
+          type: 'income',
+          txnDate: DateTime.now(),
+        ),
+      );
 
       final txns = await db.getRecentTransactions(userId, 10);
       expect(txns.length, 1);
@@ -180,33 +199,39 @@ void main() {
     test('getTotalBalance aggregates accounts', () async {
       // getTotalBalance sums transactions, not account balances.
       // Insert income transactions to both accounts.
-      await db.insertTransaction(TransactionsCompanion.insert(
-        id: 'txn_bal_1',
-        userId: userId,
-        accountId: accountId,
-        categoryId: '',
-        type: 'income',
-        amount: 50000,
-        amountCny: 50000,
-        txnDate: DateTime.now(),
-      ));
+      await db.insertTransaction(
+        TransactionsCompanion.insert(
+          id: 'txn_bal_1',
+          userId: userId,
+          accountId: accountId,
+          categoryId: '',
+          type: 'income',
+          amount: 50000,
+          amountCny: 50000,
+          txnDate: DateTime.now(),
+        ),
+      );
 
       // Add another account
-      await db.insertAccount(AccountsCompanion.insert(
-        id: '${accountId}_2',
-        userId: userId,
-        name: '储蓄卡',
-      ));
-      await db.insertTransaction(TransactionsCompanion.insert(
-        id: 'txn_bal_2',
-        userId: userId,
-        accountId: '${accountId}_2',
-        categoryId: '',
-        type: 'income',
-        amount: 30000,
-        amountCny: 30000,
-        txnDate: DateTime.now(),
-      ));
+      await db.insertAccount(
+        AccountsCompanion.insert(
+          id: '${accountId}_2',
+          userId: userId,
+          name: '储蓄卡',
+        ),
+      );
+      await db.insertTransaction(
+        TransactionsCompanion.insert(
+          id: 'txn_bal_2',
+          userId: userId,
+          accountId: '${accountId}_2',
+          categoryId: '',
+          type: 'income',
+          amount: 30000,
+          amountCny: 30000,
+          txnDate: DateTime.now(),
+        ),
+      );
 
       final total = await db.getTotalBalance(userId);
       expect(total, 80000); // ¥800.00
@@ -214,38 +239,44 @@ void main() {
 
     test('getTodayExpense sums only today expenses', () async {
       // Today expense
-      await db.insertTransaction(TransactionsCompanion.insert(
-        id: 'txn_today_1',
-        userId: userId,
-        accountId: accountId,
-        categoryId: _catFood,
-        amount: 2000,
-        amountCny: 2000,
-        type: 'expense',
-        txnDate: DateTime.now(),
-      ));
+      await db.insertTransaction(
+        TransactionsCompanion.insert(
+          id: 'txn_today_1',
+          userId: userId,
+          accountId: accountId,
+          categoryId: _catFood,
+          amount: 2000,
+          amountCny: 2000,
+          type: 'expense',
+          txnDate: DateTime.now(),
+        ),
+      );
       // Today income (should not count)
-      await db.insertTransaction(TransactionsCompanion.insert(
-        id: 'txn_today_2',
-        userId: userId,
-        accountId: accountId,
-        categoryId: _catSalary,
-        amount: 50000,
-        amountCny: 50000,
-        type: 'income',
-        txnDate: DateTime.now(),
-      ));
+      await db.insertTransaction(
+        TransactionsCompanion.insert(
+          id: 'txn_today_2',
+          userId: userId,
+          accountId: accountId,
+          categoryId: _catSalary,
+          amount: 50000,
+          amountCny: 50000,
+          type: 'income',
+          txnDate: DateTime.now(),
+        ),
+      );
       // Yesterday expense (should not count)
-      await db.insertTransaction(TransactionsCompanion.insert(
-        id: 'txn_yesterday',
-        userId: userId,
-        accountId: accountId,
-        categoryId: _catTransport,
-        amount: 1500,
-        amountCny: 1500,
-        type: 'expense',
-        txnDate: DateTime.now().subtract(const Duration(days: 1)),
-      ));
+      await db.insertTransaction(
+        TransactionsCompanion.insert(
+          id: 'txn_yesterday',
+          userId: userId,
+          accountId: accountId,
+          categoryId: _catTransport,
+          amount: 1500,
+          amountCny: 1500,
+          type: 'expense',
+          txnDate: DateTime.now().subtract(const Duration(days: 1)),
+        ),
+      );
 
       final todayExp = await db.getTodayExpense(userId);
       expect(todayExp, 2000); // Only today's expense
@@ -254,26 +285,30 @@ void main() {
     test('getMonthExpense sums current month expenses', () async {
       final now = DateTime.now();
       // This month
-      await db.insertTransaction(TransactionsCompanion.insert(
-        id: 'txn_m1',
-        userId: userId,
-        accountId: accountId,
-        categoryId: _catFood,
-        amount: 3000,
-        amountCny: 3000,
-        type: 'expense',
-        txnDate: now,
-      ));
-      await db.insertTransaction(TransactionsCompanion.insert(
-        id: 'txn_m2',
-        userId: userId,
-        accountId: accountId,
-        categoryId: _catTransport,
-        amount: 1000,
-        amountCny: 1000,
-        type: 'expense',
-        txnDate: now,
-      ));
+      await db.insertTransaction(
+        TransactionsCompanion.insert(
+          id: 'txn_m1',
+          userId: userId,
+          accountId: accountId,
+          categoryId: _catFood,
+          amount: 3000,
+          amountCny: 3000,
+          type: 'expense',
+          txnDate: now,
+        ),
+      );
+      await db.insertTransaction(
+        TransactionsCompanion.insert(
+          id: 'txn_m2',
+          userId: userId,
+          accountId: accountId,
+          categoryId: _catTransport,
+          amount: 1000,
+          amountCny: 1000,
+          type: 'expense',
+          txnDate: now,
+        ),
+      );
 
       final monthExp = await db.getMonthExpense(userId);
       expect(monthExp, 4000);
@@ -282,39 +317,45 @@ void main() {
 
   group('Sync Queue', () {
     test('insert and query pending ops', () async {
-      await db.insertSyncOp(SyncQueueCompanion.insert(
-        id: 'sync_1',
-        entityType: 'transaction',
-        entityId: 'txn_1',
-        opType: 'create',
-        payload: '{"test": true}',
-        clientId: 'client_1',
-        timestamp: DateTime.now(),
-      ));
-      await db.insertSyncOp(SyncQueueCompanion.insert(
-        id: 'sync_2',
-        entityType: 'transaction',
-        entityId: 'txn_2',
-        opType: 'create',
-        payload: '{"test": true}',
-        clientId: 'client_1',
-        timestamp: DateTime.now(),
-      ));
+      await db.insertSyncOp(
+        SyncQueueCompanion.insert(
+          id: 'sync_1',
+          entityType: 'transaction',
+          entityId: 'txn_1',
+          opType: 'create',
+          payload: '{"test": true}',
+          clientId: 'client_1',
+          timestamp: DateTime.now(),
+        ),
+      );
+      await db.insertSyncOp(
+        SyncQueueCompanion.insert(
+          id: 'sync_2',
+          entityType: 'transaction',
+          entityId: 'txn_2',
+          opType: 'create',
+          payload: '{"test": true}',
+          clientId: 'client_1',
+          timestamp: DateTime.now(),
+        ),
+      );
 
       final pending = await db.getPendingSyncOps(10);
       expect(pending.length, 2);
     });
 
     test('markSyncOpsUploaded marks as uploaded', () async {
-      await db.insertSyncOp(SyncQueueCompanion.insert(
-        id: 'sync_3',
-        entityType: 'transaction',
-        entityId: 'txn_3',
-        opType: 'create',
-        payload: '{}',
-        clientId: 'client_1',
-        timestamp: DateTime.now(),
-      ));
+      await db.insertSyncOp(
+        SyncQueueCompanion.insert(
+          id: 'sync_3',
+          entityType: 'transaction',
+          entityId: 'txn_3',
+          opType: 'create',
+          payload: '{}',
+          clientId: 'client_1',
+          timestamp: DateTime.now(),
+        ),
+      );
 
       await db.markSyncOpsUploaded(['sync_3']);
 
@@ -332,44 +373,48 @@ void main() {
     late String catTransport;
 
     setUp(() async {
-      await db.into(db.users).insert(UsersCompanion.insert(
-            id: sUser,
-            email: 'search@example.com',
-          ));
+      await db
+          .into(db.users)
+          .insert(
+            UsersCompanion.insert(id: sUser, email: 'search@example.com'),
+          );
       await db.seedCategoriesForOwner(sUser);
       // 从实际种子数据取分类 id（避免依赖 UUID 推算，种子器多次调用可能去重）。
       final expCats = await db.getCategoriesByType('expense', userId: sUser);
       catFood = expCats.firstWhere((c) => c.name == '餐饮').id;
       catTransport = expCats.firstWhere((c) => c.name == '交通').id;
-      await db.insertAccount(AccountsCompanion.insert(
-        id: sAcct,
-        userId: sUser,
-        name: '招商银行',
-      ));
+      await db.insertAccount(
+        AccountsCompanion.insert(id: sAcct, userId: sUser, name: '招商银行'),
+      );
       // 插入 60 条交易（超过分页 50），验证搜索不受首页加载限制。
       // 第 55 条带独特备注“蜡烛店”，按日期排序会落在第二页之后。
       final base = DateTime(2026, 1, 1);
       for (var i = 0; i < 60; i++) {
-        await db.insertTransaction(TransactionsCompanion.insert(
-          id: 'stxn_$i',
-          userId: sUser,
-          accountId: sAcct,
-          categoryId: i.isEven ? catFood : catTransport,
-          amount: 1000 + i,
-          amountCny: 1000 + i,
-          type: 'expense',
-          note: Value(i == 55 ? '蜡烛店晚餐' : '日常开销 $i'),
-          // i 越大日期越早 → 按 txn_date DESC，i=55 排在较后（第二页之后）。
-          txnDate: base.subtract(Duration(days: i)),
-        ));
+        await db.insertTransaction(
+          TransactionsCompanion.insert(
+            id: 'stxn_$i',
+            userId: sUser,
+            accountId: sAcct,
+            categoryId: i.isEven ? catFood : catTransport,
+            amount: 1000 + i,
+            amountCny: 1000 + i,
+            type: 'expense',
+            note: Value(i == 55 ? '蜡烛店晚餐' : '日常开销 $i'),
+            // i 越大日期越早 → 按 txn_date DESC，i=55 排在较后（第二页之后）。
+            txnDate: base.subtract(Duration(days: i)),
+          ),
+        );
       }
     });
 
     test('能搜到首页之外的记录（按备注）', () async {
       // 首页只加载 50 条，i=55 不在其中；全量搜索应能找到。
       final page = await db.getTransactionPage(sUser, limit: 50, offset: 0);
-      expect(page.any((t) => t.id == 'stxn_55'), isFalse,
-          reason: '蜡烛店记录不在首页 50 条内');
+      expect(
+        page.any((t) => t.id == 'stxn_55'),
+        isFalse,
+        reason: '蜡烛店记录不在首页 50 条内',
+      );
 
       final result = await db.searchTransactions(sUser, '蜡烛店');
       expect(result.items.length, 1);

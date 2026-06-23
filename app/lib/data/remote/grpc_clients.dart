@@ -36,7 +36,8 @@ Future<void> loadTlsCertificate() async {
 Uint8List get caCertBytes {
   if (_caCertBytes == null) {
     throw StateError(
-        'loadTlsCertificate() must be called before accessing caCertBytes');
+      'loadTlsCertificate() must be called before accessing caCertBytes',
+    );
   }
   return _caCertBytes!;
 }
@@ -225,15 +226,21 @@ Provider<T> _grpcClientProvider<T extends Client>(
 }
 
 final authClientProvider = _grpcClientProvider(AuthServiceClient.new);
-final transactionClientProvider = _grpcClientProvider(TransactionServiceClient.new);
+final transactionClientProvider = _grpcClientProvider(
+  TransactionServiceClient.new,
+);
 final syncClientProvider = _grpcClientProvider(SyncServiceClient.new);
 final familyClientProvider = _grpcClientProvider(FamilyServiceClient.new);
 final accountClientProvider = _grpcClientProvider(AccountServiceClient.new);
 final budgetClientProvider = _grpcClientProvider(BudgetServiceClient.new);
 final notifyClientProvider = _grpcClientProvider(NotifyServiceClient.new);
 final loanClientProvider = _grpcClientProvider(LoanServiceClient.new);
-final investmentClientProvider = _grpcClientProvider(InvestmentServiceClient.new);
-final marketDataClientProvider = _grpcClientProvider(MarketDataServiceClient.new);
+final investmentClientProvider = _grpcClientProvider(
+  InvestmentServiceClient.new,
+);
+final marketDataClientProvider = _grpcClientProvider(
+  MarketDataServiceClient.new,
+);
 final assetClientProvider = _grpcClientProvider(AssetServiceClient.new);
 final dashboardClientProvider = _grpcClientProvider(DashboardServiceClient.new);
 final exportClientProvider = _grpcClientProvider(ExportServiceClient.new);

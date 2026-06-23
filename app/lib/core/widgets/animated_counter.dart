@@ -41,8 +41,7 @@ class AnimatedCounter extends StatelessWidget {
 
         return Text(
           text,
-          style: (style ?? Theme.of(context).textTheme.headlineSmall)
-              ?.copyWith(
+          style: (style ?? Theme.of(context).textTheme.headlineSmall)?.copyWith(
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         );
@@ -83,10 +82,7 @@ class _RollingCounterState extends State<RollingCounter>
   void initState() {
     super.initState();
     _oldValue = widget.value;
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
+    _controller = AnimationController(vsync: this, duration: widget.duration);
   }
 
   @override
@@ -108,8 +104,8 @@ class _RollingCounterState extends State<RollingCounter>
   Widget build(BuildContext context) {
     final effectiveStyle =
         (widget.style ?? Theme.of(context).textTheme.headlineSmall)?.copyWith(
-      fontFeatures: const [FontFeature.tabularFigures()],
-    );
+          fontFeatures: const [FontFeature.tabularFigures()],
+        );
 
     return AnimatedBuilder(
       animation: _controller,

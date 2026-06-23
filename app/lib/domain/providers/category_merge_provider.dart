@@ -94,8 +94,9 @@ final semanticScorerProvider = Provider<SemanticScorer>((ref) {
 });
 
 /// CategoryMergeDetector — 异步初始化（探测 NLEmbedding 可用性）
-final categoryMergeDetectorProvider =
-    FutureProvider<CategoryMergeDetector>((ref) async {
+final categoryMergeDetectorProvider = FutureProvider<CategoryMergeDetector>((
+  ref,
+) async {
   ref.keepAlive();
   final db = ref.watch(databaseProvider);
   final profiler = ref.watch(categoryUsageProfilerProvider);
@@ -122,8 +123,9 @@ final categoryMergeExecutorProvider = Provider<CategoryMergeExecutor>((ref) {
 });
 
 /// 合并建议列表（CRITICAL #3 — 正确传播 loading/error 状态）
-final categoryMergeSuggestionsProvider =
-    FutureProvider<List<MergeSuggestion>>((ref) async {
+final categoryMergeSuggestionsProvider = FutureProvider<List<MergeSuggestion>>((
+  ref,
+) async {
   ref.keepAlive();
   // 等待 detector 初始化完成（传播 loading/error）
   final detector = await ref.watch(categoryMergeDetectorProvider.future);
@@ -131,8 +133,9 @@ final categoryMergeSuggestionsProvider =
 });
 
 /// 可撤销的合并日志
-final undoableMergeLogsProvider =
-    FutureProvider<List<CategoryMergeLogData>>((ref) async {
+final undoableMergeLogsProvider = FutureProvider<List<CategoryMergeLogData>>((
+  ref,
+) async {
   ref.keepAlive();
   final executor = ref.watch(categoryMergeExecutorProvider);
   return executor.getUndoableMergeLogs();
@@ -197,5 +200,5 @@ class CategoryMergeActionsNotifier extends Notifier<void> {
 
 final categoryMergeActionsProvider =
     NotifierProvider<CategoryMergeActionsNotifier, void>(
-  CategoryMergeActionsNotifier.new,
-);
+      CategoryMergeActionsNotifier.new,
+    );

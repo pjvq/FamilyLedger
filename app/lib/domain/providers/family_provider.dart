@@ -38,16 +38,16 @@ class FamilyState {
     bool? isLoading,
     String? error,
     bool clearError = false,
-  }) =>
-      FamilyState(
-        currentFamily:
-            clearCurrentFamily ? null : (currentFamily ?? this.currentFamily),
-        families: families ?? this.families,
-        members: members ?? this.members,
-        myPermissions: myPermissions ?? this.myPermissions,
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => FamilyState(
+    currentFamily: clearCurrentFamily
+        ? null
+        : (currentFamily ?? this.currentFamily),
+    families: families ?? this.families,
+    members: members ?? this.members,
+    myPermissions: myPermissions ?? this.myPermissions,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 class FamilyNotifier extends StateNotifier<FamilyState> {
@@ -59,7 +59,7 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
   static final _callOpts = CallOptions(timeout: const Duration(seconds: 5));
 
   FamilyNotifier(this._db, this._userId, this._familyClient, [this._ref])
-      : super(const FamilyState()) {
+    : super(const FamilyState()) {
     _load();
   }
 
@@ -129,49 +129,55 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
           final family = resp.family;
           createdFamilyId = family.id;
           // Save to local DB
-          await _db.insertFamily(FamiliesCompanion.insert(
-            id: family.id,
-            name: family.name,
-            ownerId: family.ownerId,
-          ));
+          await _db.insertFamily(
+            FamiliesCompanion.insert(
+              id: family.id,
+              name: family.name,
+              ownerId: family.ownerId,
+            ),
+          );
           // Add self as owner member
-          await _db.insertFamilyMember(FamilyMembersCompanion.insert(
-            id: _uuid.v4(),
-            familyId: family.id,
-            userId: _userId,
-            role: Value('owner'),
-            canView: Value(true),
-            canCreate: Value(true),
-            canEdit: Value(true),
-            canDelete: Value(true),
-            canManageAccounts: Value(true),
-          ));
+          await _db.insertFamilyMember(
+            FamilyMembersCompanion.insert(
+              id: _uuid.v4(),
+              familyId: family.id,
+              userId: _userId,
+              role: Value('owner'),
+              canView: Value(true),
+              canCreate: Value(true),
+              canEdit: Value(true),
+              canDelete: Value(true),
+              canManageAccounts: Value(true),
+            ),
+          );
           await _load();
           return createdFamilyId;
         } catch (e) {
-          dev.log('FamilyNotifier: gRPC createFamily failed, fallback local: $e',
-              name: 'family');
+          dev.log(
+            'FamilyNotifier: gRPC createFamily failed, fallback local: $e',
+            name: 'family',
+          );
         }
       }
 
       // Fallback: local only
       final familyId = _uuid.v4();
-      await _db.insertFamily(FamiliesCompanion.insert(
-        id: familyId,
-        name: name,
-        ownerId: _userId,
-      ));
-      await _db.insertFamilyMember(FamilyMembersCompanion.insert(
-        id: _uuid.v4(),
-        familyId: familyId,
-        userId: _userId,
-        role: Value('owner'),
-        canView: Value(true),
-        canCreate: Value(true),
-        canEdit: Value(true),
-        canDelete: Value(true),
-        canManageAccounts: Value(true),
-      ));
+      await _db.insertFamily(
+        FamiliesCompanion.insert(id: familyId, name: name, ownerId: _userId),
+      );
+      await _db.insertFamilyMember(
+        FamilyMembersCompanion.insert(
+          id: _uuid.v4(),
+          familyId: familyId,
+          userId: _userId,
+          role: Value('owner'),
+          canView: Value(true),
+          canCreate: Value(true),
+          canEdit: Value(true),
+          canDelete: Value(true),
+          canManageAccounts: Value(true),
+        ),
+      );
       await _load();
       return familyId;
     } catch (e) {
@@ -192,17 +198,21 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
           );
           final family = resp.family;
           // Save to local
-          await _db.insertFamily(FamiliesCompanion.insert(
-            id: family.id,
-            name: family.name,
-            ownerId: family.ownerId,
-          ));
-          await _db.insertFamilyMember(FamilyMembersCompanion.insert(
-            id: _uuid.v4(),
-            familyId: family.id,
-            userId: _userId,
-            role: Value('member'),
-          ));
+          await _db.insertFamily(
+            FamiliesCompanion.insert(
+              id: family.id,
+              name: family.name,
+              ownerId: family.ownerId,
+            ),
+          );
+          await _db.insertFamilyMember(
+            FamilyMembersCompanion.insert(
+              id: _uuid.v4(),
+              familyId: family.id,
+              userId: _userId,
+              role: Value('member'),
+            ),
+          );
 
           // Pull members
           try {
@@ -212,13 +222,15 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
             );
             for (final m in membersResp.members) {
               if (m.userId == _userId) continue; // skip self, already added
-              await _db.insertFamilyMember(FamilyMembersCompanion.insert(
-                id: m.id,
-                familyId: family.id,
-                userId: m.userId,
-                email: Value(m.email),
-                role: Value(_protoRoleToString(m.role)),
-              ));
+              await _db.insertFamilyMember(
+                FamilyMembersCompanion.insert(
+                  id: m.id,
+                  familyId: family.id,
+                  userId: m.userId,
+                  email: Value(m.email),
+                  role: Value(_protoRoleToString(m.role)),
+                ),
+              );
             }
           } catch (_) {}
 
@@ -226,7 +238,9 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
           return family.id;
         } catch (e) {
           state = state.copyWith(
-              isLoading: false, error: '加入家庭失败: ${e.toString()}');
+            isLoading: false,
+            error: '加入家庭失败: ${e.toString()}',
+          );
           return null;
         }
       }
@@ -252,32 +266,39 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
           // Update local family
           final expiresAt = resp.hasExpiresAt()
               ? DateTime.fromMillisecondsSinceEpoch(
-                  resp.expiresAt.seconds.toInt() * 1000)
+                  resp.expiresAt.seconds.toInt() * 1000,
+                )
               : DateTime.now().add(const Duration(days: 7));
-          await _db.updateFamily(FamiliesCompanion(
-            id: Value(family.id),
-            name: Value(family.name),
-            ownerId: Value(family.ownerId),
-            inviteCode: Value(resp.inviteCode),
-            inviteExpiresAt: Value(expiresAt),
-          ));
+          await _db.updateFamily(
+            FamiliesCompanion(
+              id: Value(family.id),
+              name: Value(family.name),
+              ownerId: Value(family.ownerId),
+              inviteCode: Value(resp.inviteCode),
+              inviteExpiresAt: Value(expiresAt),
+            ),
+          );
           await _load();
           return resp.inviteCode;
         } catch (e) {
-          dev.log('FamilyNotifier: gRPC generateInviteCode failed: $e',
-              name: 'family');
+          dev.log(
+            'FamilyNotifier: gRPC generateInviteCode failed: $e',
+            name: 'family',
+          );
         }
       }
       // Fallback: generate local code (6-char alphanumeric)
       final code = _uuid.v4().substring(0, 8).toUpperCase();
       final expires = DateTime.now().add(const Duration(days: 7));
-      await _db.updateFamily(FamiliesCompanion(
-        id: Value(family.id),
-        name: Value(family.name),
-        ownerId: Value(family.ownerId),
-        inviteCode: Value(code),
-        inviteExpiresAt: Value(expires),
-      ));
+      await _db.updateFamily(
+        FamiliesCompanion(
+          id: Value(family.id),
+          name: Value(family.name),
+          ownerId: Value(family.ownerId),
+          inviteCode: Value(code),
+          inviteExpiresAt: Value(expires),
+        ),
+      );
       await _load();
       return code;
     } catch (e) {
@@ -301,8 +322,10 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
             options: _callOpts,
           );
         } catch (e) {
-          dev.log('FamilyNotifier: gRPC setMemberRole failed: $e',
-              name: 'family');
+          dev.log(
+            'FamilyNotifier: gRPC setMemberRole failed: $e',
+            name: 'family',
+          );
         }
       }
       await _db.updateFamilyMemberRole(family.id, targetUserId, role);
@@ -339,8 +362,10 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
             options: _callOpts,
           );
         } catch (e) {
-          dev.log('FamilyNotifier: gRPC setMemberPermissions failed: $e',
-              name: 'family');
+          dev.log(
+            'FamilyNotifier: gRPC setMemberPermissions failed: $e',
+            name: 'family',
+          );
         }
       }
       await _db.updateFamilyMemberPermissions(
@@ -416,18 +441,20 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
         // Clear and re-insert
         await _db.deleteAllFamilyMembers(family.id);
         for (final m in resp.members) {
-          await _db.insertFamilyMember(FamilyMembersCompanion.insert(
-            id: m.id,
-            familyId: family.id,
-            userId: m.userId,
-            email: Value(m.email),
-            role: Value(_protoRoleToString(m.role)),
-            canView: Value(m.permissions.canView),
-            canCreate: Value(m.permissions.canCreate),
-            canEdit: Value(m.permissions.canEdit),
-            canDelete: Value(m.permissions.canDelete),
-            canManageAccounts: Value(m.permissions.canManageAccounts),
-          ));
+          await _db.insertFamilyMember(
+            FamilyMembersCompanion.insert(
+              id: m.id,
+              familyId: family.id,
+              userId: m.userId,
+              email: Value(m.email),
+              role: Value(_protoRoleToString(m.role)),
+              canView: Value(m.permissions.canView),
+              canCreate: Value(m.permissions.canCreate),
+              canEdit: Value(m.permissions.canEdit),
+              canDelete: Value(m.permissions.canDelete),
+              canManageAccounts: Value(m.permissions.canManageAccounts),
+            ),
+          );
         }
       } catch (e) {
         dev.log('FamilyNotifier: refreshMembers failed: $e', name: 'family');
@@ -464,8 +491,9 @@ class FamilyNotifier extends StateNotifier<FamilyState> {
   }
 }
 
-final familyProvider =
-    StateNotifierProvider<FamilyNotifier, FamilyState>((ref) {
+final familyProvider = StateNotifierProvider<FamilyNotifier, FamilyState>((
+  ref,
+) {
   final db = ref.watch(databaseProvider);
   final userId = ref.watch(currentUserIdProvider);
   pb.FamilyServiceClient? familyClient;

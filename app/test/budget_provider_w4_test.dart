@@ -47,28 +47,33 @@ class OfflineBudgetClient extends BudgetServiceClient {
 
   @override
   ResponseFuture<pb.ListBudgetsResponse> listBudgets(
-    pb.ListBudgetsRequest request, {CallOptions? options}) =>
-      FakeResponseFuture.error(GrpcError.unavailable('offline'));
+    pb.ListBudgetsRequest request, {
+    CallOptions? options,
+  }) => FakeResponseFuture.error(GrpcError.unavailable('offline'));
 
   @override
   ResponseFuture<pb.GetBudgetExecutionResponse> getBudgetExecution(
-    pb.GetBudgetExecutionRequest request, {CallOptions? options}) =>
-      FakeResponseFuture.error(GrpcError.unavailable('offline'));
+    pb.GetBudgetExecutionRequest request, {
+    CallOptions? options,
+  }) => FakeResponseFuture.error(GrpcError.unavailable('offline'));
 
   @override
   ResponseFuture<pb.CreateBudgetResponse> createBudget(
-    pb.CreateBudgetRequest request, {CallOptions? options}) =>
-      FakeResponseFuture.error(GrpcError.unavailable('offline'));
+    pb.CreateBudgetRequest request, {
+    CallOptions? options,
+  }) => FakeResponseFuture.error(GrpcError.unavailable('offline'));
 
   @override
   ResponseFuture<pb.DeleteBudgetResponse> deleteBudget(
-    pb.DeleteBudgetRequest request, {CallOptions? options}) =>
-      FakeResponseFuture.error(GrpcError.unavailable('offline'));
+    pb.DeleteBudgetRequest request, {
+    CallOptions? options,
+  }) => FakeResponseFuture.error(GrpcError.unavailable('offline'));
 
   @override
   ResponseFuture<pb.UpdateBudgetResponse> updateBudget(
-    pb.UpdateBudgetRequest request, {CallOptions? options}) =>
-      FakeResponseFuture.error(GrpcError.unavailable('offline'));
+    pb.UpdateBudgetRequest request, {
+    CallOptions? options,
+  }) => FakeResponseFuture.error(GrpcError.unavailable('offline'));
 }
 
 // ─── Fake BudgetServiceClient (online with mock data) ──────────────────────
@@ -78,18 +83,22 @@ class OnlineBudgetClient extends BudgetServiceClient {
   pb.BudgetExecution? execution;
 
   OnlineBudgetClient({this.budgets = const [], this.execution})
-      : super(ClientChannel('localhost', port: 1));
+    : super(ClientChannel('localhost', port: 1));
 
   @override
   ResponseFuture<pb.ListBudgetsResponse> listBudgets(
-    pb.ListBudgetsRequest request, {CallOptions? options}) {
+    pb.ListBudgetsRequest request, {
+    CallOptions? options,
+  }) {
     final resp = pb.ListBudgetsResponse()..budgets.addAll(budgets);
     return FakeResponseFuture.value(resp);
   }
 
   @override
   ResponseFuture<pb.GetBudgetExecutionResponse> getBudgetExecution(
-    pb.GetBudgetExecutionRequest request, {CallOptions? options}) {
+    pb.GetBudgetExecutionRequest request, {
+    CallOptions? options,
+  }) {
     if (execution == null) {
       return FakeResponseFuture.error(GrpcError.notFound('no execution'));
     }
@@ -113,12 +122,15 @@ void main() {
       await db.close();
     });
 
-    test('initial state is loading then resolves (offline = no data)', () async {
-      // Wait for loadCurrentMonth to complete
-      await Future.delayed(const Duration(milliseconds: 200));
-      expect(notifier.state.isLoading, isFalse);
-      expect(notifier.state.currentBudget, isNull);
-    });
+    test(
+      'initial state is loading then resolves (offline = no data)',
+      () async {
+        // Wait for loadCurrentMonth to complete
+        await Future.delayed(const Duration(milliseconds: 200));
+        expect(notifier.state.isLoading, isFalse);
+        expect(notifier.state.currentBudget, isNull);
+      },
+    );
 
     test('loadCurrentMonth offline falls back to local DB (empty)', () async {
       await Future.delayed(const Duration(milliseconds: 200));

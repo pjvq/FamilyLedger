@@ -135,6 +135,6 @@ func TestDefaultRateLimiterConfig_InvalidEnv(t *testing.T) {
 	t.Setenv("AUTH_RATE_RPS", "not-a-number")
 	t.Setenv("AUTH_RATE_BURST", "-1")
 	cfg := DefaultRateLimiterConfig()
-	assert.Equal(t, 5, cfg.AuthRPS)   // default
+	assert.Equal(t, 5, cfg.AuthRPS)    // default
 	assert.Equal(t, 10, cfg.AuthBurst) // default
 }

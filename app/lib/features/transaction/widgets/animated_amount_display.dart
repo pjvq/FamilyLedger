@@ -25,9 +25,13 @@ class AnimatedAmountDisplay extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final displayAmount = expression.isEmpty || expression == '0' ? '0' : expression;
+    final displayAmount = expression.isEmpty || expression == '0'
+        ? '0'
+        : expression;
     final hasOp = AmountExpression.hasOperator(expression);
-    final computedCents = hasOp ? AmountExpression.evaluateCents(expression) : null;
+    final computedCents = hasOp
+        ? AmountExpression.evaluateCents(expression)
+        : null;
 
     return GestureDetector(
       onTap: onNoteTap,
@@ -59,13 +63,16 @@ class AnimatedAmountDisplay extends StatelessWidget {
                       return FadeTransition(
                         opacity: animation,
                         child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 0.3),
-                            end: Offset.zero,
-                          ).animate(CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOutCubic,
-                          )),
+                          position:
+                              Tween<Offset>(
+                                begin: const Offset(0, 0.3),
+                                end: Offset.zero,
+                              ).animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOutCubic,
+                                ),
+                              ),
                           child: child,
                         ),
                       );
@@ -112,18 +119,20 @@ class AnimatedAmountDisplay extends StatelessWidget {
             const SizedBox(height: 8),
 
             // Note area
-            Builder(builder: (_) {
-              final hasNote = note?.isNotEmpty ?? false;
-              return Text(
-                hasNote ? note! : '添加备注...',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: hasNote
-                      ? theme.colorScheme.onSurface.withValues(alpha: 0.7)
-                      : theme.colorScheme.onSurface.withValues(alpha: 0.35),
-                ),
-              );
-            }),
+            Builder(
+              builder: (_) {
+                final hasNote = note?.isNotEmpty ?? false;
+                return Text(
+                  hasNote ? note! : '添加备注...',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: hasNote
+                        ? theme.colorScheme.onSurface.withValues(alpha: 0.7)
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.35),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),

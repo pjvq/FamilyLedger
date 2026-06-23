@@ -18,7 +18,11 @@ class OverviewCardContainer extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(SpacingTokens.base),
     this.margin = const EdgeInsets.fromLTRB(
-        SpacingTokens.base, SpacingTokens.sm, SpacingTokens.base, SpacingTokens.sm),
+      SpacingTokens.base,
+      SpacingTokens.sm,
+      SpacingTokens.base,
+      SpacingTokens.sm,
+    ),
   });
 
   @override
@@ -29,10 +33,14 @@ class OverviewCardContainer extends StatelessWidget {
       child: Container(
         padding: padding,
         decoration: BoxDecoration(
-          color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral1,
+          color: isDark
+              ? NeutralColorsDark.neutral2
+              : NeutralColorsLight.neutral1,
           borderRadius: BorderRadius.circular(RadiusTokens.lg),
           border: Border.all(
-            color: isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral3,
+            color: isDark
+                ? NeutralColorsDark.neutral3
+                : NeutralColorsLight.neutral3,
             width: OverviewCardContainer.borderWidth,
           ),
         ),

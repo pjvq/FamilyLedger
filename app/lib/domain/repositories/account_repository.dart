@@ -36,14 +36,16 @@ class AccountRepository implements IAccountRepository {
 
   @override
   Future<void> upsert(AccountEntity entity) async {
-    await _db.insertAccount(AccountsCompanion.insert(
-      id: entity.id,
-      userId: entity.userId,
-      name: entity.name,
-      balance: Value(entity.balance),
-      familyId: Value(entity.familyId ?? ''),
-      accountType: Value(entity.type),
-    ));
+    await _db.insertAccount(
+      AccountsCompanion.insert(
+        id: entity.id,
+        userId: entity.userId,
+        name: entity.name,
+        balance: Value(entity.balance),
+        familyId: Value(entity.familyId ?? ''),
+        accountType: Value(entity.type),
+      ),
+    );
   }
 
   @override
@@ -53,18 +55,19 @@ class AccountRepository implements IAccountRepository {
 
   @override
   Future<void> delete(String id) async {
-    await (_db.update(_db.accounts)..where((a) => a.id.equals(id)))
-        .write(const AccountsCompanion(isActive: Value(false)));
+    await (_db.update(_db.accounts)..where((a) => a.id.equals(id))).write(
+      const AccountsCompanion(isActive: Value(false)),
+    );
   }
 
   /// Convert Drift model to domain entity.
   static AccountEntity _toEntity(Account row) => AccountEntity(
-        id: row.id,
-        userId: row.userId,
-        name: row.name,
-        type: row.accountType,
-        balance: row.balance,
-        currency: row.currency,
-        familyId: row.familyId.isNotEmpty ? row.familyId : null,
-      );
+    id: row.id,
+    userId: row.userId,
+    name: row.name,
+    type: row.accountType,
+    balance: row.balance,
+    currency: row.currency,
+    familyId: row.familyId.isNotEmpty ? row.familyId : null,
+  );
 }

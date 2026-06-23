@@ -15,13 +15,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	syncpkg "github.com/familyledger/server/internal/sync"
 	"github.com/familyledger/server/internal/transaction"
 	"github.com/familyledger/server/pkg/middleware"
 	"github.com/familyledger/server/pkg/ws"
 	pb "github.com/familyledger/server/proto/sync"
 	txnpb "github.com/familyledger/server/proto/transaction"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -174,9 +174,7 @@ class TrackingBudgetClient implements BudgetServiceClient {
     CallOptions? options,
   }) {
     listCalls.add(request);
-    return FakeResponseFuture.value(
-      bpb.ListBudgetsResponse(budgets: []),
-    );
+    return FakeResponseFuture.value(bpb.ListBudgetsResponse(budgets: []));
   }
 
   @override
@@ -193,22 +191,27 @@ class TrackingBudgetClient implements BudgetServiceClient {
 Future<AppDatabase> _setupDb() async {
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   await db.customStatement(
-      "INSERT OR IGNORE INTO users (id, email, created_at) "
-      "VALUES ('user1', 'test@test.com', "
-      "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
-  await db.insertAccount(AccountsCompanion.insert(
-    id: 'acc1',
-    userId: 'user1',
-    name: 'Test Account',
-    familyId: const Value(''),
-    accountType: const Value('bank_card'),
-  ));
+    "INSERT OR IGNORE INTO users (id, email, created_at) "
+    "VALUES ('user1', 'test@test.com', "
+    "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+  );
+  await db.insertAccount(
+    AccountsCompanion.insert(
+      id: 'acc1',
+      userId: 'user1',
+      name: 'Test Account',
+      familyId: const Value(''),
+      accountType: const Value('bank_card'),
+    ),
+  );
   await db.customStatement(
-      "INSERT OR IGNORE INTO categories (id, name, type, icon_key) "
-      "VALUES ('cat_food', '餐饮', 'expense', 'restaurant')");
+    "INSERT OR IGNORE INTO categories (id, name, type, icon_key) "
+    "VALUES ('cat_food', '餐饮', 'expense', 'restaurant')",
+  );
   await db.customStatement(
-      "INSERT OR IGNORE INTO categories (id, name, type, icon_key) "
-      "VALUES ('cat_salary', '工资', 'income', 'work')");
+    "INSERT OR IGNORE INTO categories (id, name, type, icon_key) "
+    "VALUES ('cat_salary', '工资', 'income', 'work')",
+  );
   return db;
 }
 
@@ -281,35 +284,37 @@ void main() {
       notifier.dispose();
     });
 
-    test('deleteTransaction → verify deleteTransaction 被调用且 txnId 正确',
-        () async {
-      final client = TrackingTransactionClient();
-      final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
-      await Future.delayed(const Duration(milliseconds: 200));
+    test(
+      'deleteTransaction → verify deleteTransaction 被调用且 txnId 正确',
+      () async {
+        final client = TrackingTransactionClient();
+        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
+        await Future.delayed(const Duration(milliseconds: 200));
 
-      // Add a transaction first
-      await notifier.addTransaction(
-        categoryId: 'cat_food',
-        amount: 3000,
-        type: 'expense',
-      );
-      await Future.delayed(const Duration(milliseconds: 100));
+        // Add a transaction first
+        await notifier.addTransaction(
+          categoryId: 'cat_food',
+          amount: 3000,
+          type: 'expense',
+        );
+        await Future.delayed(const Duration(milliseconds: 100));
 
-      // The createTransaction gave it id 'gen_1'
-      final txnId = client.createCalls.first.accountId.isNotEmpty
-          ? 'gen_1'
-          : 'gen_1';
+        // The createTransaction gave it id 'gen_1'
+        final txnId = client.createCalls.first.accountId.isNotEmpty
+            ? 'gen_1'
+            : 'gen_1';
 
-      // Act: delete it
-      await notifier.deleteTransaction(txnId);
+        // Act: delete it
+        await notifier.deleteTransaction(txnId);
 
-      // Assert: verify deleteTransaction was called with correct ID
-      expect(client.deleteCalls, hasLength(1));
-      expect(client.deleteCalls.first.transactionId, txnId);
+        // Assert: verify deleteTransaction was called with correct ID
+        expect(client.deleteCalls, hasLength(1));
+        expect(client.deleteCalls.first.transactionId, txnId);
 
-      await Future.delayed(const Duration(milliseconds: 300));
-      notifier.dispose();
-    });
+        await Future.delayed(const Duration(milliseconds: 300));
+        notifier.dispose();
+      },
+    );
 
     test('deleteTransaction 对不存在的 txnId → 不调用 gRPC', () async {
       final client = TrackingTransactionClient();
@@ -320,8 +325,11 @@ void main() {
       await notifier.deleteTransaction('nonexistent_id');
 
       // Assert: deleteTransaction should NOT have been called
-      expect(client.deleteCalls, isEmpty,
-          reason: '对不存在的 ID 调用 deleteTransaction 不应发起 gRPC 请求');
+      expect(
+        client.deleteCalls,
+        isEmpty,
+        reason: '对不存在的 ID 调用 deleteTransaction 不应发起 gRPC 请求',
+      );
 
       await Future.delayed(const Duration(milliseconds: 300));
       notifier.dispose();
@@ -448,8 +456,12 @@ void main() {
       expect(client.createCalls, hasLength(1));
 
       // Budget should exist locally
-      final localBudget =
-          await db.getBudgetByMonth('user1', 2025, 5, familyId: 'fam1');
+      final localBudget = await db.getBudgetByMonth(
+        'user1',
+        2025,
+        5,
+        familyId: 'fam1',
+      );
       expect(localBudget, isNotNull);
       expect(localBudget!.totalAmount, 300000);
 

@@ -45,22 +45,27 @@ Future<AppDatabase> _createDb() async {
   // NOTE: Drift is configured with DateTimeColumn storing unix seconds (int).
   // Raw SQL below uses seconds since epoch, matching that configuration.
   await db.customStatement(
-      "INSERT OR IGNORE INTO users (id, email, created_at) "
-      "VALUES ('u1', 'test@test.com', ${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
-  await db.insertAccount(AccountsCompanion.insert(
-    id: 'acc1',
-    userId: 'u1',
-    name: 'Main Account',
-    familyId: const Value(''),
-    accountType: const Value('bank_card'),
-  ));
-  await db.insertAccount(AccountsCompanion.insert(
-    id: 'acc2',
-    userId: 'u1',
-    name: 'Second Account',
-    familyId: const Value(''),
-    accountType: const Value('bank_card'),
-  ));
+    "INSERT OR IGNORE INTO users (id, email, created_at) "
+    "VALUES ('u1', 'test@test.com', ${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+  );
+  await db.insertAccount(
+    AccountsCompanion.insert(
+      id: 'acc1',
+      userId: 'u1',
+      name: 'Main Account',
+      familyId: const Value(''),
+      accountType: const Value('bank_card'),
+    ),
+  );
+  await db.insertAccount(
+    AccountsCompanion.insert(
+      id: 'acc2',
+      userId: 'u1',
+      name: 'Second Account',
+      familyId: const Value(''),
+      accountType: const Value('bank_card'),
+    ),
+  );
   return db;
 }
 
@@ -96,12 +101,14 @@ void main() {
       );
       // Set initial account balance to 1000
       await db.customStatement(
-          "UPDATE accounts SET balance = 1000 WHERE id = 'acc1'");
+        "UPDATE accounts SET balance = 1000 WHERE id = 'acc1'",
+      );
       // Set txn updatedAt to past so LWW doesn't skip the remote op
       // Drift DateTimeColumn stores unix seconds (int) in this project config.
       final pastTs = DateTime(2020, 1, 1).millisecondsSinceEpoch ~/ 1000;
       await db.customStatement(
-          "UPDATE transactions SET updated_at = $pastTs WHERE id = 'txn1'");
+        "UPDATE transactions SET updated_at = $pastTs WHERE id = 'txn1'",
+      );
 
       // Remote UPDATE op: change amount from 100 to 200
       final remoteTs = DateTime.now().add(const Duration(hours: 1));
@@ -141,8 +148,11 @@ void main() {
       // After replay: balance should STILL be 900 (idempotent — no change
       // because oldTxn.amountCny == newAmountCny == 200 after first apply)
       acc = await db.getAccountById('acc1');
-      expect(acc!.balance, 900,
-          reason: 'Replay same UPDATE should be idempotent');
+      expect(
+        acc!.balance,
+        900,
+        reason: 'Replay same UPDATE should be idempotent',
+      );
     });
 
     test('UPDATE changing account moves balance between accounts', () async {
@@ -158,14 +168,17 @@ void main() {
         txnDate: DateTime(2025, 1, 1),
       );
       await db.customStatement(
-          "UPDATE accounts SET balance = 1000 WHERE id = 'acc1'");
+        "UPDATE accounts SET balance = 1000 WHERE id = 'acc1'",
+      );
       await db.customStatement(
-          "UPDATE accounts SET balance = 500 WHERE id = 'acc2'");
+        "UPDATE accounts SET balance = 500 WHERE id = 'acc2'",
+      );
       // Set txn updatedAt to past so LWW doesn't skip
       // Drift DateTimeColumn stores unix seconds (int) in this project config.
       final pastTs = DateTime(2020, 1, 1).millisecondsSinceEpoch ~/ 1000;
       await db.customStatement(
-          "UPDATE transactions SET updated_at = $pastTs WHERE id = 'txn2'");
+        "UPDATE transactions SET updated_at = $pastTs WHERE id = 'txn2'",
+      );
 
       final remoteTs = DateTime.now().add(const Duration(hours: 1));
       // Move transaction from acc1 to acc2
@@ -209,46 +222,49 @@ void main() {
       expect(acc2!.balance, 450, reason: 'Replay should not re-apply acc2');
     });
 
-    test('UPDATE for non-existent txn (CREATE semantics) applies balance once',
-        () async {
-      await db.customStatement(
-          "UPDATE accounts SET balance = 1000 WHERE id = 'acc1'");
+    test(
+      'UPDATE for non-existent txn (CREATE semantics) applies balance once',
+      () async {
+        await db.customStatement(
+          "UPDATE accounts SET balance = 1000 WHERE id = 'acc1'",
+        );
 
-      final remoteTs = DateTime.now().add(const Duration(hours: 1));
-      final op = _makeOp(
-        entityType: 'transaction',
-        entityId: 'txn_ghost',
-        opType: sync_enum.OperationType.OPERATION_TYPE_UPDATE,
-        payload: {
-          'user_id': 'u1',
-          'account_id': 'acc1',
-          'category_id': 'cat1',
-          'amount': 300,
-          'amount_cny': 300,
-          'type': 'income',
-          'note': 'ghost update',
-          'txn_date': '2025-01-01T00:00:00',
-          'updated_at': remoteTs.toIso8601String(),
-        },
-        timestampMs: remoteTs.millisecondsSinceEpoch,
-      );
+        final remoteTs = DateTime.now().add(const Duration(hours: 1));
+        final op = _makeOp(
+          entityType: 'transaction',
+          entityId: 'txn_ghost',
+          opType: sync_enum.OperationType.OPERATION_TYPE_UPDATE,
+          payload: {
+            'user_id': 'u1',
+            'account_id': 'acc1',
+            'category_id': 'cat1',
+            'amount': 300,
+            'amount_cny': 300,
+            'type': 'income',
+            'note': 'ghost update',
+            'txn_date': '2025-01-01T00:00:00',
+            'updated_at': remoteTs.toIso8601String(),
+          },
+          timestampMs: remoteTs.millisecondsSinceEpoch,
+        );
 
-      await db.transaction(() async {
-        await engine.applyRemoteOpForTest(op);
-      });
+        await db.transaction(() async {
+          await engine.applyRemoteOpForTest(op);
+        });
 
-      // oldTxn == null, so shouldAdjustBalance == true
-      // No revert, apply +300 (income)
-      var acc = await db.getAccountById('acc1');
-      expect(acc!.balance, 1300);
+        // oldTxn == null, so shouldAdjustBalance == true
+        // No revert, apply +300 (income)
+        var acc = await db.getAccountById('acc1');
+        expect(acc!.balance, 1300);
 
-      // Replay: now oldTxn exists with same values → no change
-      await db.transaction(() async {
-        await engine.applyRemoteOpForTest(op);
-      });
+        // Replay: now oldTxn exists with same values → no change
+        await db.transaction(() async {
+          await engine.applyRemoteOpForTest(op);
+        });
 
-      acc = await db.getAccountById('acc1');
-      expect(acc!.balance, 1300, reason: 'Replay should be idempotent');
-    });
+        acc = await db.getAccountById('acc1');
+        expect(acc!.balance, 1300, reason: 'Replay should be idempotent');
+      },
+    );
   });
 }

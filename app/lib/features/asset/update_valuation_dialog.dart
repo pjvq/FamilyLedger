@@ -51,8 +51,7 @@ class _UpdateValuationDialogState extends State<UpdateValuationDialog> {
             prefixText: '¥ ',
             hintText: '0.00',
           ),
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
           ],
@@ -71,7 +70,9 @@ class _UpdateValuationDialogState extends State<UpdateValuationDialog> {
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : const Text('确认'),
         ),

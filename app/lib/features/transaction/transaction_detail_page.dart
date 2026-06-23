@@ -23,10 +23,7 @@ class TransactionDetailArgs {
   final Transaction transaction;
   final Category? category;
 
-  const TransactionDetailArgs({
-    required this.transaction,
-    this.category,
-  });
+  const TransactionDetailArgs({required this.transaction, this.category});
 }
 
 class TransactionDetailPage extends ConsumerWidget {
@@ -45,9 +42,13 @@ class TransactionDetailPage extends ConsumerWidget {
 
     // Resolve parent category for display
     final txnState = ref.watch(transactionProvider);
-    final allCats = [...txnState.expenseCategories, ...txnState.incomeCategories];
+    final allCats = [
+      ...txnState.expenseCategories,
+      ...txnState.incomeCategories,
+    ];
     final catMap = {for (final c in allCats) c.id: c};
-    final parentCategory = category?.parentId != null && category!.parentId!.isNotEmpty
+    final parentCategory =
+        category?.parentId != null && category!.parentId!.isNotEmpty
         ? catMap[category.parentId!]
         : null;
     final catDisplayName = parentCategory != null
@@ -55,14 +56,14 @@ class TransactionDetailPage extends ConsumerWidget {
         : (category?.name ?? '未分类');
 
     // 获取账户名称
-        // 获取账户名称
+    // 获取账户名称
     final accountState = ref.watch(accountProvider);
-    final account = accountState.accounts.where((a) => a.id == txn.accountId).firstOrNull;
+    final account = accountState.accounts
+        .where((a) => a.id == txn.accountId)
+        .firstOrNull;
     final accountName = account?.name ?? txn.accountId;
 
-    final amountColor = isIncome
-        ? colors.income
-        : colors.expense;
+    final amountColor = isIncome ? colors.income : colors.expense;
     final prefix = isIncome ? '+' : '-';
     final yuan = txn.amountCny / 100;
     final amountText = yuan == yuan.truncateToDouble()
@@ -77,103 +78,185 @@ class TransactionDetailPage extends ConsumerWidget {
           centerTitle: false,
           actions: [
             if (ref.watch(canEditProvider))
-            Semantics(
-              button: true,
-              label: '编辑交易',
-              child: IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: '编辑',
-                onPressed: () async {
-                  final edited = await QuickAddSheet.show(context, transaction: txn);
-                  if (edited == true && context.mounted) {
-                    context.pop();
-                  }
-                },
+              Semantics(
+                button: true,
+                label: '编辑交易',
+                child: IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: '编辑',
+                  onPressed: () async {
+                    final edited = await QuickAddSheet.show(
+                      context,
+                      transaction: txn,
+                    );
+                    if (edited == true && context.mounted) {
+                      context.pop();
+                    }
+                  },
+                ),
               ),
-            ),
           ],
         ),
         body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: [
-                  const SizedBox(height: 24),
-                  // ── 大金额显示 ──
-                  Semantics(
-                    label: '金额 $amountText元',
-                    child: SharedElement(
-                      tag: HeroTags.transaction(txn.id),
-                      child: Text(
-                        '$prefix¥$amountText',
-                        style: TextStyle(
-                          fontSize: 42,
-                          fontWeight: FontWeight.bold,
-                          color: amountColor,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                          letterSpacing: -1,
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 24),
+                    // ── 大金额显示 ──
+                    Semantics(
+                      label: '金额 $amountText元',
+                      child: SharedElement(
+                        tag: HeroTags.transaction(txn.id),
+                        child: Text(
+                          '$prefix¥$amountText',
+                          style: TextStyle(
+                            fontSize: 42,
+                            fontWeight: FontWeight.bold,
+                            color: amountColor,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                            letterSpacing: -1,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  if (txn.currency != 'CNY') ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      '${txn.currency} ${txn.amount / 100}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isDark
-                            ? NeutralColorsDark.neutral5
-                            : NeutralColorsLight.neutral5,
+                    if (txn.currency != 'CNY') ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        '${txn.currency} ${txn.amount / 100}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark
+                              ? NeutralColorsDark.neutral5
+                              : NeutralColorsLight.neutral5,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+
+                    // ── 分类卡片 ──
+                    Semantics(
+                      label: '分类：$catDisplayName，${isIncome ? "收入" : "支出"}',
+                      child: _buildCard(
+                        isDark: isDark,
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? NeutralColorsDark.neutral3
+                                    : NeutralColorsLight.neutral2,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              alignment: Alignment.center,
+                              child: CategoryIconWidget(
+                                iconKey: category?.iconKey,
+
+                                size: 24,
+                                showBackground: false,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    catDisplayName,
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? NeutralColorsDark.neutral7
+                                          : NeutralColorsLight.neutral7,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    isIncome ? '收入' : '支出',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: isDark
+                                          ? NeutralColorsDark.neutral5
+                                          : NeutralColorsLight.neutral5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 24),
 
-                  // ── 分类卡片 ──
-                  Semantics(
-                    label: '分类：$catDisplayName，${isIncome ? "收入" : "支出"}',
-                    child: _buildCard(
+                    const SizedBox(height: 12),
+
+                    // ── 详情卡片 ──
+                    _buildCard(
                       isDark: isDark,
-                      child: Row(
+                      child: Column(
                         children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? NeutralColorsDark.neutral3
-                                  : NeutralColorsLight.neutral2,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            alignment: Alignment.center,
-                            child: CategoryIconWidget(
-                              iconKey: category?.iconKey,
-
-                              size: 24,
-                              showBackground: false,
-                            ),
+                          _detailRow(
+                            isDark: isDark,
+                            icon: Icons.access_time_rounded,
+                            label: '时间',
+                            value: DateFormat(
+                              'yyyy-MM-dd HH:mm',
+                            ).format(txn.txnDate),
                           ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          _divider(isDark),
+                          _detailRow(
+                            isDark: isDark,
+                            icon: Icons.account_balance_wallet_outlined,
+                            label: '账户',
+                            value: accountName,
+                          ),
+                          if (txn.note.isNotEmpty) ...[
+                            _divider(isDark),
+                            _detailRow(
+                              isDark: isDark,
+                              icon: Icons.note_outlined,
+                              label: '备注',
+                              value: txn.note,
+                            ),
+                          ],
+                          if (creatorDisplayName(ref, txn.userId) != null) ...[
+                            _divider(isDark),
+                            _detailRow(
+                              isDark: isDark,
+                              icon: Icons.person_outline_rounded,
+                              label: '记录人',
+                              value: creatorDisplayName(ref, txn.userId)!,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+
+                    // ── 标签 ──
+                    if (txn.tags.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _buildCard(
+                        isDark: isDark,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
                               children: [
-                                Text(
-                                  catDisplayName,
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark
-                                        ? NeutralColorsDark.neutral7
-                                        : NeutralColorsLight.neutral7,
-                                  ),
+                                Icon(
+                                  Icons.label_outline_rounded,
+                                  size: 18,
+                                  color: isDark
+                                      ? NeutralColorsDark.neutral5
+                                      : NeutralColorsLight.neutral5,
                                 ),
-                                const SizedBox(height: 2),
+                                const SizedBox(width: 8),
                                 Text(
-                                  isIncome ? '收入' : '支出',
+                                  '标签',
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: isDark
@@ -183,211 +266,156 @@ class TransactionDetailPage extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // ── 详情卡片 ──
-                  _buildCard(
-                    isDark: isDark,
-                    child: Column(
-                      children: [
-                        _detailRow(
-                          isDark: isDark,
-                          icon: Icons.access_time_rounded,
-                          label: '时间',
-                          value: DateFormat('yyyy-MM-dd HH:mm')
-                              .format(txn.txnDate),
-                        ),
-                        _divider(isDark),
-                        _detailRow(
-                          isDark: isDark,
-                          icon: Icons.account_balance_wallet_outlined,
-                          label: '账户',
-                          value: accountName,
-                        ),
-                        if (txn.note.isNotEmpty) ...[
-                          _divider(isDark),
-                          _detailRow(
-                            isDark: isDark,
-                            icon: Icons.note_outlined,
-                            label: '备注',
-                            value: txn.note,
-                          ),
-                        ],
-                        if (creatorDisplayName(ref, txn.userId) != null) ...[
-                          _divider(isDark),
-                          _detailRow(
-                            isDark: isDark,
-                            icon: Icons.person_outline_rounded,
-                            label: '记录人',
-                            value: creatorDisplayName(ref, txn.userId)!,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-
-                  // ── 标签 ──
-                  if (txn.tags.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    _buildCard(
-                      isDark: isDark,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.label_outline_rounded,
-                                  size: 18,
-                                  color: isDark
-                                      ? NeutralColorsDark.neutral5
-                                      : NeutralColorsLight.neutral5),
-                              const SizedBox(width: 8),
-                              Text(
-                                '标签',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: isDark
-                                      ? NeutralColorsDark.neutral5
-                                      : NeutralColorsLight.neutral5,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 6,
-                            children: _parseTags(txn.tags)
-                                .map(
-                                  (tag) => Chip(
-                                    label: Text(tag,
-                                        style: const TextStyle(fontSize: 13)),
-                                    visualDensity: VisualDensity.compact,
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  // ── 图片 ──
-                  if (txn.imageUrls.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    _buildCard(
-                      isDark: isDark,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.photo_library_outlined,
-                                  size: 18,
-                                  color: isDark
-                                      ? NeutralColorsDark.neutral5
-                                      : NeutralColorsLight.neutral5),
-                              const SizedBox(width: 8),
-                              Text(
-                                '图片',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: isDark
-                                      ? NeutralColorsDark.neutral5
-                                      : NeutralColorsLight.neutral5,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            height: 80,
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              children: _parseImageUrls(txn.imageUrls)
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 6,
+                              children: _parseTags(txn.tags)
                                   .map(
-                                    (url) => Padding(
-                                      padding: const EdgeInsets.only(right: 8),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: url.startsWith('http')
-                                            ? Image.network(
-                                                url,
-                                                width: 80,
-                                                height: 80,
-                                                fit: BoxFit.cover,
-                                                errorBuilder:
-                                                    (context, error, stackTrace) =>
-                                                        _brokenImagePlaceholder(isDark),
-                                              )
-                                            : Image.file(
-                                          File(url),
-                                          width: 80,
-                                          height: 80,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) =>
-                                                  _brokenImagePlaceholder(isDark),
-                                        ),
+                                    (tag) => Chip(
+                                      label: Text(
+                                        tag,
+                                        style: const TextStyle(fontSize: 13),
                                       ),
+                                      visualDensity: VisualDensity.compact,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
                                     ),
                                   )
                                   .toList(),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
 
-                  const SizedBox(height: 24),
-                ],
+                    // ── 图片 ──
+                    if (txn.imageUrls.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _buildCard(
+                        isDark: isDark,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.photo_library_outlined,
+                                  size: 18,
+                                  color: isDark
+                                      ? NeutralColorsDark.neutral5
+                                      : NeutralColorsLight.neutral5,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '图片',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isDark
+                                        ? NeutralColorsDark.neutral5
+                                        : NeutralColorsLight.neutral5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 80,
+                              child: ListView(
+                                scrollDirection: Axis.horizontal,
+                                children: _parseImageUrls(txn.imageUrls)
+                                    .map(
+                                      (url) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 8,
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          child: url.startsWith('http')
+                                              ? Image.network(
+                                                  url,
+                                                  width: 80,
+                                                  height: 80,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder:
+                                                      (
+                                                        context,
+                                                        error,
+                                                        stackTrace,
+                                                      ) =>
+                                                          _brokenImagePlaceholder(
+                                                            isDark,
+                                                          ),
+                                                )
+                                              : Image.file(
+                                                  File(url),
+                                                  width: 80,
+                                                  height: 80,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder:
+                                                      (
+                                                        context,
+                                                        error,
+                                                        stackTrace,
+                                                      ) =>
+                                                          _brokenImagePlaceholder(
+                                                            isDark,
+                                                          ),
+                                                ),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // ── 底部删除按钮 (权限控制) ──
-          if (ref.watch(canDeleteProvider))
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Semantics(
-                button: true,
-                label: '删除交易',
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showDeleteConfirm(context, ref, txn),
-                    icon: const Icon(Icons.delete_outline_rounded, size: 20),
-                    label: const Text('删除交易'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor:
-                          colors.expense,
-                      side: BorderSide(
-                        color: colors.expense
-                            .withValues(alpha: 0.4),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+            // ── 底部删除按钮 (权限控制) ──
+            if (ref.watch(canDeleteProvider))
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Semantics(
+                    button: true,
+                    label: '删除交易',
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showDeleteConfirm(context, ref, txn),
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 20,
+                        ),
+                        label: const Text('删除交易'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: colors.expense,
+                          side: BorderSide(
+                            color: colors.expense.withValues(alpha: 0.4),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -397,17 +425,20 @@ class TransactionDetailPage extends ConsumerWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
+        color: isDark
+            ? NeutralColorsDark.neutral2
+            : NeutralColorsLight.neutral0,
         borderRadius: BorderRadius.circular(14),
         border: isDark
             ? null
-            : Border.all(color: NeutralColorsLight.neutral3.withValues(alpha: 0.5)),
+            : Border.all(
+                color: NeutralColorsLight.neutral3.withValues(alpha: 0.5),
+              ),
       ),
       child: child,
     );
   }
 
-  
   Widget _detailRow({
     required bool isDark,
     required IconData icon,
@@ -418,18 +449,21 @@ class TransactionDetailPage extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon,
-              size: 18,
-              color: isDark
-                  ? NeutralColorsDark.neutral5
-                  : NeutralColorsLight.neutral5),
+          Icon(
+            icon,
+            size: 18,
+            color: isDark
+                ? NeutralColorsDark.neutral5
+                : NeutralColorsLight.neutral5,
+          ),
           const SizedBox(width: 10),
           Text(
             label,
             style: TextStyle(
               fontSize: 14,
-              color:
-                  isDark ? NeutralColorsDark.neutral5 : NeutralColorsLight.neutral5,
+              color: isDark
+                  ? NeutralColorsDark.neutral5
+                  : NeutralColorsLight.neutral5,
             ),
           ),
           const Spacer(),
@@ -439,7 +473,9 @@ class TransactionDetailPage extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: isDark ? NeutralColorsDark.neutral7 : NeutralColorsLight.neutral7,
+                color: isDark
+                    ? NeutralColorsDark.neutral7
+                    : NeutralColorsLight.neutral7,
               ),
               textAlign: TextAlign.end,
               overflow: TextOverflow.ellipsis,
@@ -465,7 +501,11 @@ class TransactionDetailPage extends ConsumerWidget {
       if (decoded is List) return decoded.cast<String>();
     } catch (_) {}
     // Fallback: comma-separated or single tag
-    return tags.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
+    return tags
+        .split(',')
+        .map((t) => t.trim())
+        .where((t) => t.isNotEmpty)
+        .toList();
   }
 
   List<String> _parseImageUrls(String urls) {
@@ -483,13 +523,18 @@ class TransactionDetailPage extends ConsumerWidget {
       height: 80,
       color: isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral2,
       alignment: Alignment.center,
-      child: Icon(Icons.broken_image_outlined,
-          color: isDark ? Colors.white54 : Colors.black38),
+      child: Icon(
+        Icons.broken_image_outlined,
+        color: isDark ? Colors.white54 : Colors.black38,
+      ),
     );
   }
 
   void _showDeleteConfirm(
-      BuildContext context, WidgetRef ref, Transaction txn) {
+    BuildContext context,
+    WidgetRef ref,
+    Transaction txn,
+  ) {
     final yuan = txn.amountCny / 100;
     final amountText = yuan == yuan.truncateToDouble()
         ? '${yuan.toInt()}'
@@ -499,9 +544,7 @@ class TransactionDetailPage extends ConsumerWidget {
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
         title: const Text('确定删除这笔交易？'),
-        content: Text(
-          '${txn.type == 'income' ? '收入' : '支出'} ¥$amountText',
-        ),
+        content: Text('${txn.type == 'income' ? '收入' : '支出'} ¥$amountText'),
         actions: [
           CupertinoDialogAction(
             child: const Text('取消'),

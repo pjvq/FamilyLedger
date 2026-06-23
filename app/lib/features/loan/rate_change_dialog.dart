@@ -59,11 +59,9 @@ class _RateChangeDialogState extends ConsumerState<RateChangeDialog> {
               hintText: '例如：3.85',
               suffixText: '%',
             ),
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
-              FilteringTextInputFormatter.allow(
-                  RegExp(r'^\d{0,2}\.?\d{0,2}')),
+              FilteringTextInputFormatter.allow(RegExp(r'^\d{0,2}\.?\d{0,2}')),
             ],
           ),
           const SizedBox(height: 16),
@@ -81,9 +79,7 @@ class _RateChangeDialogState extends ConsumerState<RateChangeDialog> {
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.event_rounded),
               ),
-              child: Text(
-                DateFormat('yyyy年MM月dd日').format(_effectiveDate),
-              ),
+              child: Text(DateFormat('yyyy年MM月dd日').format(_effectiveDate)),
             ),
           ),
         ],
@@ -125,16 +121,18 @@ class _RateChangeDialogState extends ConsumerState<RateChangeDialog> {
   void _submit() async {
     final rate = double.tryParse(_rateController.text.trim());
     if (rate == null || rate < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入有效利率')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请输入有效利率')));
       return;
     }
 
     setState(() => _isSubmitting = true);
 
     try {
-      await ref.read(loanProvider.notifier).recordRateChange(
+      await ref
+          .read(loanProvider.notifier)
+          .recordRateChange(
             loanId: widget.loanId,
             newRate: rate,
             effectiveDate: _effectiveDate,
@@ -142,9 +140,9 @@ class _RateChangeDialogState extends ConsumerState<RateChangeDialog> {
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

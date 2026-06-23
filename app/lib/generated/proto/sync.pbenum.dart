@@ -14,23 +14,27 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 class OperationType extends $pb.ProtobufEnum {
-  static const OperationType OPERATION_TYPE_UNSPECIFIED = OperationType._(0, _omitEnumNames ? '' : 'OPERATION_TYPE_UNSPECIFIED');
-  static const OperationType OPERATION_TYPE_CREATE = OperationType._(1, _omitEnumNames ? '' : 'OPERATION_TYPE_CREATE');
-  static const OperationType OPERATION_TYPE_UPDATE = OperationType._(2, _omitEnumNames ? '' : 'OPERATION_TYPE_UPDATE');
-  static const OperationType OPERATION_TYPE_DELETE = OperationType._(3, _omitEnumNames ? '' : 'OPERATION_TYPE_DELETE');
+  static const OperationType OPERATION_TYPE_UNSPECIFIED =
+      OperationType._(0, _omitEnumNames ? '' : 'OPERATION_TYPE_UNSPECIFIED');
+  static const OperationType OPERATION_TYPE_CREATE =
+      OperationType._(1, _omitEnumNames ? '' : 'OPERATION_TYPE_CREATE');
+  static const OperationType OPERATION_TYPE_UPDATE =
+      OperationType._(2, _omitEnumNames ? '' : 'OPERATION_TYPE_UPDATE');
+  static const OperationType OPERATION_TYPE_DELETE =
+      OperationType._(3, _omitEnumNames ? '' : 'OPERATION_TYPE_DELETE');
 
-  static const $core.List<OperationType> values = <OperationType> [
+  static const $core.List<OperationType> values = <OperationType>[
     OPERATION_TYPE_UNSPECIFIED,
     OPERATION_TYPE_CREATE,
     OPERATION_TYPE_UPDATE,
     OPERATION_TYPE_DELETE,
   ];
 
-  static final $core.Map<$core.int, OperationType> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static final $core.Map<$core.int, OperationType> _byValue =
+      $pb.ProtobufEnum.initByValue(values);
   static OperationType? valueOf($core.int value) => _byValue[value];
 
   const OperationType._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

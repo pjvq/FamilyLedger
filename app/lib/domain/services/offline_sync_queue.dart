@@ -37,7 +37,12 @@ class OfflineSyncQueue {
     required String entityId,
     required Map<String, dynamic> payload,
   }) async {
-    await _enqueue(entityType: entityType, entityId: entityId, opType: 'create', payload: payload);
+    await _enqueue(
+      entityType: entityType,
+      entityId: entityId,
+      opType: 'create',
+      payload: payload,
+    );
   }
 
   /// Enqueue an update operation for later sync.
@@ -46,7 +51,12 @@ class OfflineSyncQueue {
     required String entityId,
     required Map<String, dynamic> payload,
   }) async {
-    await _enqueue(entityType: entityType, entityId: entityId, opType: 'update', payload: payload);
+    await _enqueue(
+      entityType: entityType,
+      entityId: entityId,
+      opType: 'update',
+      payload: payload,
+    );
   }
 
   /// Enqueue a delete operation for later sync.
@@ -69,15 +79,17 @@ class OfflineSyncQueue {
   }) async {
     for (final id in entityIds) {
       final syncOpId = _uuid.v4();
-      await _db.insertSyncOp(SyncQueueCompanion.insert(
-        id: syncOpId,
-        entityType: entityType,
-        entityId: id,
-        opType: 'delete',
-        payload: jsonEncode({'id': id}),
-        clientId: syncOpId,
-        timestamp: DateTime.now(),
-      ));
+      await _db.insertSyncOp(
+        SyncQueueCompanion.insert(
+          id: syncOpId,
+          entityType: entityType,
+          entityId: id,
+          opType: 'delete',
+          payload: jsonEncode({'id': id}),
+          clientId: syncOpId,
+          timestamp: DateTime.now(),
+        ),
+      );
     }
     // Single notification for the entire batch — avoids N sync cycles.
     if (entityIds.isNotEmpty) {
@@ -98,15 +110,17 @@ class OfflineSyncQueue {
     required Map<String, dynamic> payload,
   }) async {
     final syncOpId = _uuid.v4();
-    await _db.insertSyncOp(SyncQueueCompanion.insert(
-      id: syncOpId,
-      entityType: entityType,
-      entityId: entityId,
-      opType: opType,
-      payload: jsonEncode(payload),
-      clientId: syncOpId,
-      timestamp: DateTime.now(),
-    ));
+    await _db.insertSyncOp(
+      SyncQueueCompanion.insert(
+        id: syncOpId,
+        entityType: entityType,
+        entityId: entityId,
+        opType: opType,
+        payload: jsonEncode(payload),
+        clientId: syncOpId,
+        timestamp: DateTime.now(),
+      ),
+    );
     _enqueueController.add(null);
   }
 }

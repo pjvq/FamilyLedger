@@ -37,7 +37,13 @@ const MemberPermissions$json = {
     {'1': 'can_create', '3': 2, '4': 1, '5': 8, '10': 'canCreate'},
     {'1': 'can_edit', '3': 3, '4': 1, '5': 8, '10': 'canEdit'},
     {'1': 'can_delete', '3': 4, '4': 1, '5': 8, '10': 'canDelete'},
-    {'1': 'can_manage_accounts', '3': 5, '4': 1, '5': 8, '10': 'canManageAccounts'},
+    {
+      '1': 'can_manage_accounts',
+      '3': 5,
+      '4': 1,
+      '5': 8,
+      '10': 'canManageAccounts'
+    },
   ],
 };
 
@@ -56,9 +62,30 @@ const Family$json = {
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
     {'1': 'owner_id', '3': 3, '4': 1, '5': 9, '10': 'ownerId'},
     {'1': 'invite_code', '3': 4, '4': 1, '5': 9, '10': 'inviteCode'},
-    {'1': 'invite_expires_at', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'inviteExpiresAt'},
-    {'1': 'created_at', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'updated_at', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+    {
+      '1': 'invite_expires_at',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'inviteExpiresAt'
+    },
+    {
+      '1': 'created_at',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
+    {
+      '1': 'updated_at',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'updatedAt'
+    },
   ],
 };
 
@@ -78,9 +105,30 @@ const FamilyMember$json = {
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {'1': 'user_id', '3': 2, '4': 1, '5': 9, '10': 'userId'},
     {'1': 'email', '3': 3, '4': 1, '5': 9, '10': 'email'},
-    {'1': 'role', '3': 4, '4': 1, '5': 14, '6': '.familyledger.family.v1.FamilyRole', '10': 'role'},
-    {'1': 'permissions', '3': 5, '4': 1, '5': 11, '6': '.familyledger.family.v1.MemberPermissions', '10': 'permissions'},
-    {'1': 'joined_at', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'joinedAt'},
+    {
+      '1': 'role',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.family.v1.FamilyRole',
+      '10': 'role'
+    },
+    {
+      '1': 'permissions',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.family.v1.MemberPermissions',
+      '10': 'permissions'
+    },
+    {
+      '1': 'joined_at',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'joinedAt'
+    },
   ],
 };
 
@@ -101,14 +149,21 @@ const CreateFamilyRequest$json = {
 };
 
 /// Descriptor for `CreateFamilyRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List createFamilyRequestDescriptor = $convert.base64Decode(
-    'ChNDcmVhdGVGYW1pbHlSZXF1ZXN0EhIKBG5hbWUYASABKAlSBG5hbWU=');
+final $typed_data.Uint8List createFamilyRequestDescriptor = $convert
+    .base64Decode('ChNDcmVhdGVGYW1pbHlSZXF1ZXN0EhIKBG5hbWUYASABKAlSBG5hbWU=');
 
 @$core.Deprecated('Use createFamilyResponseDescriptor instead')
 const CreateFamilyResponse$json = {
   '1': 'CreateFamilyResponse',
   '2': [
-    {'1': 'family', '3': 1, '4': 1, '5': 11, '6': '.familyledger.family.v1.Family', '10': 'family'},
+    {
+      '1': 'family',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.family.v1.Family',
+      '10': 'family'
+    },
   ],
 };
 
@@ -133,7 +188,14 @@ final $typed_data.Uint8List joinFamilyRequestDescriptor = $convert.base64Decode(
 const JoinFamilyResponse$json = {
   '1': 'JoinFamilyResponse',
   '2': [
-    {'1': 'family', '3': 1, '4': 1, '5': 11, '6': '.familyledger.family.v1.Family', '10': 'family'},
+    {
+      '1': 'family',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.family.v1.Family',
+      '10': 'family'
+    },
   ],
 };
 
@@ -158,8 +220,22 @@ final $typed_data.Uint8List getFamilyRequestDescriptor = $convert.base64Decode(
 const GetFamilyResponse$json = {
   '1': 'GetFamilyResponse',
   '2': [
-    {'1': 'family', '3': 1, '4': 1, '5': 11, '6': '.familyledger.family.v1.Family', '10': 'family'},
-    {'1': 'members', '3': 2, '4': 3, '5': 11, '6': '.familyledger.family.v1.FamilyMember', '10': 'members'},
+    {
+      '1': 'family',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.family.v1.Family',
+      '10': 'family'
+    },
+    {
+      '1': 'members',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.family.v1.FamilyMember',
+      '10': 'members'
+    },
   ],
 };
 
@@ -178,24 +254,33 @@ const GenerateInviteCodeRequest$json = {
 };
 
 /// Descriptor for `GenerateInviteCodeRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List generateInviteCodeRequestDescriptor = $convert.base64Decode(
-    'ChlHZW5lcmF0ZUludml0ZUNvZGVSZXF1ZXN0EhsKCWZhbWlseV9pZBgBIAEoCVIIZmFtaWx5SW'
-    'Q=');
+final $typed_data.Uint8List generateInviteCodeRequestDescriptor =
+    $convert.base64Decode(
+        'ChlHZW5lcmF0ZUludml0ZUNvZGVSZXF1ZXN0EhsKCWZhbWlseV9pZBgBIAEoCVIIZmFtaWx5SW'
+        'Q=');
 
 @$core.Deprecated('Use generateInviteCodeResponseDescriptor instead')
 const GenerateInviteCodeResponse$json = {
   '1': 'GenerateInviteCodeResponse',
   '2': [
     {'1': 'invite_code', '3': 1, '4': 1, '5': 9, '10': 'inviteCode'},
-    {'1': 'expires_at', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'expiresAt'},
+    {
+      '1': 'expires_at',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'expiresAt'
+    },
   ],
 };
 
 /// Descriptor for `GenerateInviteCodeResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List generateInviteCodeResponseDescriptor = $convert.base64Decode(
-    'ChpHZW5lcmF0ZUludml0ZUNvZGVSZXNwb25zZRIfCgtpbnZpdGVfY29kZRgBIAEoCVIKaW52aX'
-    'RlQ29kZRI5CgpleHBpcmVzX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJ'
-    'ZXhwaXJlc0F0');
+final $typed_data.Uint8List generateInviteCodeResponseDescriptor =
+    $convert.base64Decode(
+        'ChpHZW5lcmF0ZUludml0ZUNvZGVSZXNwb25zZRIfCgtpbnZpdGVfY29kZRgBIAEoCVIKaW52aX'
+        'RlQ29kZRI5CgpleHBpcmVzX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIJ'
+        'ZXhwaXJlc0F0');
 
 @$core.Deprecated('Use setMemberRoleRequestDescriptor instead')
 const SetMemberRoleRequest$json = {
@@ -203,7 +288,14 @@ const SetMemberRoleRequest$json = {
   '2': [
     {'1': 'family_id', '3': 1, '4': 1, '5': 9, '10': 'familyId'},
     {'1': 'user_id', '3': 2, '4': 1, '5': 9, '10': 'userId'},
-    {'1': 'role', '3': 3, '4': 1, '5': 14, '6': '.familyledger.family.v1.FamilyRole', '10': 'role'},
+    {
+      '1': 'role',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.family.v1.FamilyRole',
+      '10': 'role'
+    },
   ],
 };
 
@@ -219,8 +311,8 @@ const SetMemberRoleResponse$json = {
 };
 
 /// Descriptor for `SetMemberRoleResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setMemberRoleResponseDescriptor = $convert.base64Decode(
-    'ChVTZXRNZW1iZXJSb2xlUmVzcG9uc2U=');
+final $typed_data.Uint8List setMemberRoleResponseDescriptor =
+    $convert.base64Decode('ChVTZXRNZW1iZXJSb2xlUmVzcG9uc2U=');
 
 @$core.Deprecated('Use setMemberPermissionsRequestDescriptor instead')
 const SetMemberPermissionsRequest$json = {
@@ -228,15 +320,23 @@ const SetMemberPermissionsRequest$json = {
   '2': [
     {'1': 'family_id', '3': 1, '4': 1, '5': 9, '10': 'familyId'},
     {'1': 'user_id', '3': 2, '4': 1, '5': 9, '10': 'userId'},
-    {'1': 'permissions', '3': 3, '4': 1, '5': 11, '6': '.familyledger.family.v1.MemberPermissions', '10': 'permissions'},
+    {
+      '1': 'permissions',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.family.v1.MemberPermissions',
+      '10': 'permissions'
+    },
   ],
 };
 
 /// Descriptor for `SetMemberPermissionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setMemberPermissionsRequestDescriptor = $convert.base64Decode(
-    'ChtTZXRNZW1iZXJQZXJtaXNzaW9uc1JlcXVlc3QSGwoJZmFtaWx5X2lkGAEgASgJUghmYW1pbH'
-    'lJZBIXCgd1c2VyX2lkGAIgASgJUgZ1c2VySWQSSwoLcGVybWlzc2lvbnMYAyABKAsyKS5mYW1p'
-    'bHlsZWRnZXIuZmFtaWx5LnYxLk1lbWJlclBlcm1pc3Npb25zUgtwZXJtaXNzaW9ucw==');
+final $typed_data.Uint8List setMemberPermissionsRequestDescriptor =
+    $convert.base64Decode(
+        'ChtTZXRNZW1iZXJQZXJtaXNzaW9uc1JlcXVlc3QSGwoJZmFtaWx5X2lkGAEgASgJUghmYW1pbH'
+        'lJZBIXCgd1c2VyX2lkGAIgASgJUgZ1c2VySWQSSwoLcGVybWlzc2lvbnMYAyABKAsyKS5mYW1p'
+        'bHlsZWRnZXIuZmFtaWx5LnYxLk1lbWJlclBlcm1pc3Npb25zUgtwZXJtaXNzaW9ucw==');
 
 @$core.Deprecated('Use setMemberPermissionsResponseDescriptor instead')
 const SetMemberPermissionsResponse$json = {
@@ -244,8 +344,8 @@ const SetMemberPermissionsResponse$json = {
 };
 
 /// Descriptor for `SetMemberPermissionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List setMemberPermissionsResponseDescriptor = $convert.base64Decode(
-    'ChxTZXRNZW1iZXJQZXJtaXNzaW9uc1Jlc3BvbnNl');
+final $typed_data.Uint8List setMemberPermissionsResponseDescriptor =
+    $convert.base64Decode('ChxTZXRNZW1iZXJQZXJtaXNzaW9uc1Jlc3BvbnNl');
 
 @$core.Deprecated('Use listFamilyMembersRequestDescriptor instead')
 const ListFamilyMembersRequest$json = {
@@ -256,22 +356,31 @@ const ListFamilyMembersRequest$json = {
 };
 
 /// Descriptor for `ListFamilyMembersRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listFamilyMembersRequestDescriptor = $convert.base64Decode(
-    'ChhMaXN0RmFtaWx5TWVtYmVyc1JlcXVlc3QSGwoJZmFtaWx5X2lkGAEgASgJUghmYW1pbHlJZA'
-    '==');
+final $typed_data.Uint8List listFamilyMembersRequestDescriptor =
+    $convert.base64Decode(
+        'ChhMaXN0RmFtaWx5TWVtYmVyc1JlcXVlc3QSGwoJZmFtaWx5X2lkGAEgASgJUghmYW1pbHlJZA'
+        '==');
 
 @$core.Deprecated('Use listFamilyMembersResponseDescriptor instead')
 const ListFamilyMembersResponse$json = {
   '1': 'ListFamilyMembersResponse',
   '2': [
-    {'1': 'members', '3': 1, '4': 3, '5': 11, '6': '.familyledger.family.v1.FamilyMember', '10': 'members'},
+    {
+      '1': 'members',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.family.v1.FamilyMember',
+      '10': 'members'
+    },
   ],
 };
 
 /// Descriptor for `ListFamilyMembersResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listFamilyMembersResponseDescriptor = $convert.base64Decode(
-    'ChlMaXN0RmFtaWx5TWVtYmVyc1Jlc3BvbnNlEj4KB21lbWJlcnMYASADKAsyJC5mYW1pbHlsZW'
-    'RnZXIuZmFtaWx5LnYxLkZhbWlseU1lbWJlclIHbWVtYmVycw==');
+final $typed_data.Uint8List listFamilyMembersResponseDescriptor =
+    $convert.base64Decode(
+        'ChlMaXN0RmFtaWx5TWVtYmVyc1Jlc3BvbnNlEj4KB21lbWJlcnMYASADKAsyJC5mYW1pbHlsZW'
+        'RnZXIuZmFtaWx5LnYxLkZhbWlseU1lbWJlclIHbWVtYmVycw==');
 
 @$core.Deprecated('Use leaveFamilyRequestDescriptor instead')
 const LeaveFamilyRequest$json = {
@@ -282,8 +391,9 @@ const LeaveFamilyRequest$json = {
 };
 
 /// Descriptor for `LeaveFamilyRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List leaveFamilyRequestDescriptor = $convert.base64Decode(
-    'ChJMZWF2ZUZhbWlseVJlcXVlc3QSGwoJZmFtaWx5X2lkGAEgASgJUghmYW1pbHlJZA==');
+final $typed_data.Uint8List leaveFamilyRequestDescriptor =
+    $convert.base64Decode(
+        'ChJMZWF2ZUZhbWlseVJlcXVlc3QSGwoJZmFtaWx5X2lkGAEgASgJUghmYW1pbHlJZA==');
 
 @$core.Deprecated('Use leaveFamilyResponseDescriptor instead')
 const LeaveFamilyResponse$json = {
@@ -291,8 +401,8 @@ const LeaveFamilyResponse$json = {
 };
 
 /// Descriptor for `LeaveFamilyResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List leaveFamilyResponseDescriptor = $convert.base64Decode(
-    'ChNMZWF2ZUZhbWlseVJlc3BvbnNl');
+final $typed_data.Uint8List leaveFamilyResponseDescriptor =
+    $convert.base64Decode('ChNMZWF2ZUZhbWlseVJlc3BvbnNl');
 
 @$core.Deprecated('Use transferOwnershipRequestDescriptor instead')
 const TransferOwnershipRequest$json = {
@@ -304,9 +414,10 @@ const TransferOwnershipRequest$json = {
 };
 
 /// Descriptor for `TransferOwnershipRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List transferOwnershipRequestDescriptor = $convert.base64Decode(
-    'ChhUcmFuc2Zlck93bmVyc2hpcFJlcXVlc3QSGwoJZmFtaWx5X2lkGAEgASgJUghmYW1pbHlJZB'
-    'IgCgxuZXdfb3duZXJfaWQYAiABKAlSCm5ld093bmVySWQ=');
+final $typed_data.Uint8List transferOwnershipRequestDescriptor =
+    $convert.base64Decode(
+        'ChhUcmFuc2Zlck93bmVyc2hpcFJlcXVlc3QSGwoJZmFtaWx5X2lkGAEgASgJUghmYW1pbHlJZB'
+        'IgCgxuZXdfb3duZXJfaWQYAiABKAlSCm5ld093bmVySWQ=');
 
 @$core.Deprecated('Use transferOwnershipResponseDescriptor instead')
 const TransferOwnershipResponse$json = {
@@ -314,8 +425,8 @@ const TransferOwnershipResponse$json = {
 };
 
 /// Descriptor for `TransferOwnershipResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List transferOwnershipResponseDescriptor = $convert.base64Decode(
-    'ChlUcmFuc2Zlck93bmVyc2hpcFJlc3BvbnNl');
+final $typed_data.Uint8List transferOwnershipResponseDescriptor =
+    $convert.base64Decode('ChlUcmFuc2Zlck93bmVyc2hpcFJlc3BvbnNl');
 
 @$core.Deprecated('Use deleteFamilyRequestDescriptor instead')
 const DeleteFamilyRequest$json = {
@@ -326,8 +437,9 @@ const DeleteFamilyRequest$json = {
 };
 
 /// Descriptor for `DeleteFamilyRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteFamilyRequestDescriptor = $convert.base64Decode(
-    'ChNEZWxldGVGYW1pbHlSZXF1ZXN0EhsKCWZhbWlseV9pZBgBIAEoCVIIZmFtaWx5SWQ=');
+final $typed_data.Uint8List deleteFamilyRequestDescriptor =
+    $convert.base64Decode(
+        'ChNEZWxldGVGYW1pbHlSZXF1ZXN0EhsKCWZhbWlseV9pZBgBIAEoCVIIZmFtaWx5SWQ=');
 
 @$core.Deprecated('Use deleteFamilyResponseDescriptor instead')
 const DeleteFamilyResponse$json = {
@@ -335,8 +447,8 @@ const DeleteFamilyResponse$json = {
 };
 
 /// Descriptor for `DeleteFamilyResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteFamilyResponseDescriptor = $convert.base64Decode(
-    'ChREZWxldGVGYW1pbHlSZXNwb25zZQ==');
+final $typed_data.Uint8List deleteFamilyResponseDescriptor =
+    $convert.base64Decode('ChREZWxldGVGYW1pbHlSZXNwb25zZQ==');
 
 @$core.Deprecated('Use getAuditLogRequestDescriptor instead')
 const GetAuditLogRequest$json = {
@@ -359,7 +471,14 @@ final $typed_data.Uint8List getAuditLogRequestDescriptor = $convert.base64Decode
 const GetAuditLogResponse$json = {
   '1': 'GetAuditLogResponse',
   '2': [
-    {'1': 'entries', '3': 1, '4': 3, '5': 11, '6': '.familyledger.family.v1.AuditEntry', '10': 'entries'},
+    {
+      '1': 'entries',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.family.v1.AuditEntry',
+      '10': 'entries'
+    },
     {'1': 'next_page_token', '3': 2, '4': 1, '5': 9, '10': 'nextPageToken'},
   ],
 };
@@ -399,15 +518,29 @@ const ListMyFamiliesRequest$json = {
 };
 
 /// Descriptor for `ListMyFamiliesRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listMyFamiliesRequestDescriptor = $convert.base64Decode(
-    'ChVMaXN0TXlGYW1pbGllc1JlcXVlc3Q=');
+final $typed_data.Uint8List listMyFamiliesRequestDescriptor =
+    $convert.base64Decode('ChVMaXN0TXlGYW1pbGllc1JlcXVlc3Q=');
 
 @$core.Deprecated('Use listMyFamiliesResponseDescriptor instead')
 const ListMyFamiliesResponse$json = {
   '1': 'ListMyFamiliesResponse',
   '2': [
-    {'1': 'families', '3': 1, '4': 3, '5': 11, '6': '.familyledger.family.v1.Family', '10': 'families'},
-    {'1': 'memberships', '3': 2, '4': 3, '5': 11, '6': '.familyledger.family.v1.FamilyMember', '10': 'memberships'},
+    {
+      '1': 'families',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.family.v1.Family',
+      '10': 'families'
+    },
+    {
+      '1': 'memberships',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.family.v1.FamilyMember',
+      '10': 'memberships'
+    },
   ],
 };
 
@@ -416,4 +549,3 @@ final $typed_data.Uint8List listMyFamiliesResponseDescriptor = $convert.base64De
     'ChZMaXN0TXlGYW1pbGllc1Jlc3BvbnNlEjoKCGZhbWlsaWVzGAEgAygLMh4uZmFtaWx5bGVkZ2'
     'VyLmZhbWlseS52MS5GYW1pbHlSCGZhbWlsaWVzEkYKC21lbWJlcnNoaXBzGAIgAygLMiQuZmFt'
     'aWx5bGVkZ2VyLmZhbWlseS52MS5GYW1pbHlNZW1iZXJSC21lbWJlcnNoaXBz');
-

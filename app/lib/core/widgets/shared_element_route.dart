@@ -36,10 +36,7 @@ class SharedElement extends StatelessWidget {
       createRectTween: createRectTween ?? _materialRectTween,
       placeholderBuilder: placeholderBuilder,
       flightShuttleBuilder: _flightShuttleBuilder,
-      child: Material(
-        type: MaterialType.transparency,
-        child: child,
-      ),
+      child: Material(type: MaterialType.transparency, child: child),
     );
   }
 
@@ -68,23 +65,18 @@ class SharedElement extends StatelessWidget {
 
 /// 带 Hero 转场的页面路由
 class SharedElementRoute<T> extends PageRouteBuilder<T> {
-  SharedElementRoute({
-    required WidgetBuilder builder,
-    super.settings,
-  }) : super(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              builder(context),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            final curved = CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeInOutCubic,
-            );
-            return FadeTransition(
-              opacity: curved,
-              child: child,
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 350),
-          reverseTransitionDuration: const Duration(milliseconds: 300),
-        );
+  SharedElementRoute({required WidgetBuilder builder, super.settings})
+    : super(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            builder(context),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeInOutCubic,
+          );
+          return FadeTransition(opacity: curved, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 350),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+      );
 }

@@ -304,13 +304,13 @@ func TestAccount_AllAccountTypes(t *testing.T) {
 	userID := createTestUser(t, db, "acct_types@test.com")
 
 	accountTypes := []string{
-		"cash",           // 现金
-		"savings",        // 储蓄卡
-		"credit_card",    // 信用卡
-		"alipay",         // 支付宝
-		"wechat_pay",     // 微信支付
-		"investment",     // 投资账户
-		"debt",           // 负债
+		"cash",        // 现金
+		"savings",     // 储蓄卡
+		"credit_card", // 信用卡
+		"alipay",      // 支付宝
+		"wechat_pay",  // 微信支付
+		"investment",  // 投资账户
+		"debt",        // 负债
 	}
 
 	for _, acctType := range accountTypes {

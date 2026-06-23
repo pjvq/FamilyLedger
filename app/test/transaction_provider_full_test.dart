@@ -81,14 +81,18 @@ class ConfigurableTransactionClient implements pbgrpc.TransactionServiceClient {
   }) {
     final pageIndex = listCallCount;
     listCallCount++;
-    final transactions =
-        pageIndex < listPages.length ? listPages[pageIndex] : <pb.Transaction>[];
-    final nextPageToken =
-        (pageIndex + 1 < listPages.length) ? 'page_${pageIndex + 1}' : '';
-    return FakeResponseFuture.value(pb.ListTransactionsResponse(
-      transactions: transactions,
-      nextPageToken: nextPageToken,
-    ));
+    final transactions = pageIndex < listPages.length
+        ? listPages[pageIndex]
+        : <pb.Transaction>[];
+    final nextPageToken = (pageIndex + 1 < listPages.length)
+        ? 'page_${pageIndex + 1}'
+        : '';
+    return FakeResponseFuture.value(
+      pb.ListTransactionsResponse(
+        transactions: transactions,
+        nextPageToken: nextPageToken,
+      ),
+    );
   }
 
   @override
@@ -144,7 +148,8 @@ class ConfigurableTransactionClient implements pbgrpc.TransactionServiceClient {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-      '${invocation.memberName} not implemented in fake');
+    '${invocation.memberName} not implemented in fake',
+  );
 }
 
 // ─── Test Helpers ────────────────────────────────────────────
@@ -152,31 +157,37 @@ class ConfigurableTransactionClient implements pbgrpc.TransactionServiceClient {
 Future<AppDatabase> _setupDb({bool withFamilyAccount = false}) async {
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   await db.customStatement(
-      "INSERT OR IGNORE INTO users (id, email, created_at) "
-      "VALUES ('user1', 'test@test.com', "
-      "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
+    "INSERT OR IGNORE INTO users (id, email, created_at) "
+    "VALUES ('user1', 'test@test.com', "
+    "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+  );
 
   if (withFamilyAccount) {
-    await db.insertAccount(AccountsCompanion.insert(
-      id: 'acc_fam',
-      userId: 'user1',
-      name: 'Family Account',
-      familyId: const Value('fam1'),
-      accountType: const Value('bank_card'),
-    ));
+    await db.insertAccount(
+      AccountsCompanion.insert(
+        id: 'acc_fam',
+        userId: 'user1',
+        name: 'Family Account',
+        familyId: const Value('fam1'),
+        accountType: const Value('bank_card'),
+      ),
+    );
   } else {
-    await db.insertAccount(AccountsCompanion.insert(
-      id: 'acc1',
-      userId: 'user1',
-      name: 'Personal Account',
-      familyId: const Value(''),
-      accountType: const Value('bank_card'),
-    ));
+    await db.insertAccount(
+      AccountsCompanion.insert(
+        id: 'acc1',
+        userId: 'user1',
+        name: 'Personal Account',
+        familyId: const Value(''),
+        accountType: const Value('bank_card'),
+      ),
+    );
   }
   return db;
 }
 
-Future<void> _insertCategory(AppDatabase db, {
+Future<void> _insertCategory(
+  AppDatabase db, {
   String id = 'cat1',
   String name = 'Food',
   String type = 'expense',
@@ -199,7 +210,12 @@ void main() {
     setUp(() async {
       db = await _setupDb();
       await _insertCategory(db);
-      await _insertCategory(db, id: 'cat_income', name: 'Salary', type: 'income');
+      await _insertCategory(
+        db,
+        id: 'cat_income',
+        name: 'Salary',
+        type: 'income',
+      );
     });
 
     tearDown(() async {
@@ -240,7 +256,12 @@ void main() {
         // Make listTransactions throw
         final errorClient = _ThrowingListClient();
 
-        final notifier = TransactionNotifier.fromDb(famDb, 'user1', 'fam1', errorClient);
+        final notifier = TransactionNotifier.fromDb(
+          famDb,
+          'user1',
+          'fam1',
+          errorClient,
+        );
         await Future.delayed(const Duration(milliseconds: 300));
 
         // Should not crash — fallback to local data
@@ -398,17 +419,19 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 200));
 
         // Insert transaction directly for testing update
-        await db.insertTransaction(TransactionsCompanion.insert(
-          id: 'txn_to_update',
-          userId: 'user1',
-          accountId: 'acc1',
-          categoryId: 'cat1',
-          amount: 1000,
-          amountCny: 1000,
-          type: 'expense',
-          note: Value('before'),
-          txnDate: DateTime(2025, 1, 1),
-        ));
+        await db.insertTransaction(
+          TransactionsCompanion.insert(
+            id: 'txn_to_update',
+            userId: 'user1',
+            accountId: 'acc1',
+            categoryId: 'cat1',
+            amount: 1000,
+            amountCny: 1000,
+            type: 'expense',
+            note: Value('before'),
+            txnDate: DateTime(2025, 1, 1),
+          ),
+        );
 
         await notifier.updateTransaction(
           id: 'txn_to_update',
@@ -418,8 +441,7 @@ void main() {
 
         // Should queue a sync op for the failed update
         final ops = await db.getPendingSyncOps(10);
-        final updateOps =
-            ops.where((o) => o.opType == 'update').toList();
+        final updateOps = ops.where((o) => o.opType == 'update').toList();
         expect(updateOps, hasLength(1));
         expect(updateOps.first.entityId, 'txn_to_update');
 
@@ -431,17 +453,19 @@ void main() {
     group('deleteTransaction', () {
       test('soft deletes and recalculates balance', () async {
         // Insert a transaction directly
-        await db.insertTransaction(TransactionsCompanion.insert(
-          id: 'txn_del',
-          userId: 'user1',
-          accountId: 'acc1',
-          categoryId: 'cat1',
-          amount: 5000,
-          amountCny: 5000,
-          type: 'expense',
-          note: Value('to delete'),
-          txnDate: DateTime(2025, 1, 1),
-        ));
+        await db.insertTransaction(
+          TransactionsCompanion.insert(
+            id: 'txn_del',
+            userId: 'user1',
+            accountId: 'acc1',
+            categoryId: 'cat1',
+            amount: 5000,
+            amountCny: 5000,
+            type: 'expense',
+            note: Value('to delete'),
+            txnDate: DateTime(2025, 1, 1),
+          ),
+        );
         // Set account balance to reflect this transaction
         await db.updateAccountBalance('acc1', -5000);
 
@@ -464,17 +488,19 @@ void main() {
       });
 
       test('queues sync op when gRPC fails', () async {
-        await db.insertTransaction(TransactionsCompanion.insert(
-          id: 'txn_del2',
-          userId: 'user1',
-          accountId: 'acc1',
-          categoryId: 'cat1',
-          amount: 1000,
-          amountCny: 1000,
-          type: 'expense',
-          note: Value('del offline'),
-          txnDate: DateTime(2025, 1, 1),
-        ));
+        await db.insertTransaction(
+          TransactionsCompanion.insert(
+            id: 'txn_del2',
+            userId: 'user1',
+            accountId: 'acc1',
+            categoryId: 'cat1',
+            amount: 1000,
+            amountCny: 1000,
+            type: 'expense',
+            note: Value('del offline'),
+            txnDate: DateTime(2025, 1, 1),
+          ),
+        );
 
         final client = ConfigurableTransactionClient(
           deleteError: GrpcError.unavailable('offline'),
@@ -485,8 +511,7 @@ void main() {
         await notifier.deleteTransaction('txn_del2');
 
         final ops = await db.getPendingSyncOps(10);
-        final deleteOps =
-            ops.where((o) => o.opType == 'delete').toList();
+        final deleteOps = ops.where((o) => o.opType == 'delete').toList();
         expect(deleteOps, hasLength(1));
         expect(deleteOps.first.entityId, 'txn_del2');
 
@@ -496,71 +521,83 @@ void main() {
     });
 
     group('family mode: familyId query correctness', () {
-      test('family transactions are loaded from server with familyId', () async {
-        final famDb = await _setupDb(withFamilyAccount: true);
-        await _insertCategory(famDb);
+      test(
+        'family transactions are loaded from server with familyId',
+        () async {
+          final famDb = await _setupDb(withFamilyAccount: true);
+          await _insertCategory(famDb);
 
-        final client = ConfigurableTransactionClient(
-          listPages: [
-            [
-              pb.Transaction(
-                id: 'fam_txn_1',
-                userId: 'user2', // another family member
-                accountId: 'acc_fam',
-                categoryId: 'cat1',
-                amount: Int64(3000),
-                amountCny: Int64(3000),
-                type: pbe.TransactionType.TRANSACTION_TYPE_EXPENSE,
-                note: 'family expense',
-                txnDate: proto_ts.Timestamp(
-                  seconds: Int64(DateTime(2025, 1, 1).millisecondsSinceEpoch ~/ 1000),
+          final client = ConfigurableTransactionClient(
+            listPages: [
+              [
+                pb.Transaction(
+                  id: 'fam_txn_1',
+                  userId: 'user2', // another family member
+                  accountId: 'acc_fam',
+                  categoryId: 'cat1',
+                  amount: Int64(3000),
+                  amountCny: Int64(3000),
+                  type: pbe.TransactionType.TRANSACTION_TYPE_EXPENSE,
+                  note: 'family expense',
+                  txnDate: proto_ts.Timestamp(
+                    seconds: Int64(
+                      DateTime(2025, 1, 1).millisecondsSinceEpoch ~/ 1000,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ],
-          ],
-        );
+          );
 
-        final notifier = TransactionNotifier.fromDb(famDb, 'user1', 'fam1', client);
-        await Future.delayed(const Duration(milliseconds: 500));
+          final notifier = TransactionNotifier.fromDb(
+            famDb,
+            'user1',
+            'fam1',
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 500));
 
-        // Verify the request had familyId
-        expect(client.listCallCount, greaterThan(0));
+          // Verify the request had familyId
+          expect(client.listCallCount, greaterThan(0));
 
-        // Transaction should be in local DB
-        final txn = await famDb.getTransactionById('fam_txn_1');
-        expect(txn, isNotNull);
-        expect(txn!.note, 'family expense');
+          // Transaction should be in local DB
+          final txn = await famDb.getTransactionById('fam_txn_1');
+          expect(txn, isNotNull);
+          expect(txn!.note, 'family expense');
 
-        await Future.delayed(const Duration(milliseconds: 300));
-        notifier.dispose();
-        await famDb.close();
-      });
+          await Future.delayed(const Duration(milliseconds: 300));
+          notifier.dispose();
+          await famDb.close();
+        },
+      );
     });
 
     group('summary calculations', () {
-      test('balance, todayExpense, monthExpense are refreshed after add',
-          () async {
-        final notifier = TransactionNotifier.fromDb(db, 'user1', null, null);
-        await Future.delayed(const Duration(milliseconds: 200));
+      test(
+        'balance, todayExpense, monthExpense are refreshed after add',
+        () async {
+          final notifier = TransactionNotifier.fromDb(db, 'user1', null, null);
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        // Add an expense for today
-        await notifier.addTransaction(
-          categoryId: 'cat1',
-          amount: 10000, // 100 元
-          type: 'expense',
-          note: 'today expense',
-          txnDate: DateTime.now(),
-        );
-        await Future.delayed(const Duration(milliseconds: 200));
+          // Add an expense for today
+          await notifier.addTransaction(
+            categoryId: 'cat1',
+            amount: 10000, // 100 元
+            type: 'expense',
+            note: 'today expense',
+            txnDate: DateTime.now(),
+          );
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        expect(notifier.state.todayExpense, 10000);
-        expect(notifier.state.monthExpense, 10000);
-        // Balance = all income - all expense = -10000
-        expect(notifier.state.totalBalance, -10000);
+          expect(notifier.state.todayExpense, 10000);
+          expect(notifier.state.monthExpense, 10000);
+          // Balance = all income - all expense = -10000
+          expect(notifier.state.totalBalance, -10000);
 
-        await Future.delayed(const Duration(milliseconds: 300));
-        notifier.dispose();
-      });
+          await Future.delayed(const Duration(milliseconds: 300));
+          notifier.dispose();
+        },
+      );
     });
   });
 }
@@ -579,5 +616,6 @@ class _ThrowingListClient implements pbgrpc.TransactionServiceClient {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-      '${invocation.memberName} not implemented in fake');
+    '${invocation.memberName} not implemented in fake',
+  );
 }

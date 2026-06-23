@@ -148,8 +148,8 @@ class FlButton extends StatelessWidget {
           ? BorderSide(
               color: _disabled
                   ? (brightness == Brightness.light
-                      ? NeutralColorsLight.neutral3
-                      : NeutralColorsDark.neutral3)
+                        ? NeutralColorsLight.neutral3
+                        : NeutralColorsDark.neutral3)
                   : ColorTokens.primary,
             )
           : BorderSide.none,
@@ -198,10 +198,7 @@ class FlButton extends StatelessWidget {
 
     final textWidget = Text(
       label,
-      style: TextStyle(
-        fontSize: _fontSize,
-        fontWeight: FontWeight.w500,
-      ),
+      style: TextStyle(fontSize: _fontSize, fontWeight: FontWeight.w500),
     );
 
     if (icon == null) return textWidget;
@@ -227,7 +224,8 @@ class FlButton extends StatelessWidget {
 
     if (_disabled) {
       return _ButtonColors(
-        background: variant == FlButtonVariant.text ||
+        background:
+            variant == FlButtonVariant.text ||
                 variant == FlButtonVariant.outline
             ? Colors.transparent
             : disabledBg,
@@ -263,10 +261,7 @@ class FlButton extends StatelessWidget {
 }
 
 class _ButtonColors {
-  const _ButtonColors({
-    required this.background,
-    required this.foreground,
-  });
+  const _ButtonColors({required this.background, required this.foreground});
 
   final Color background;
   final Color foreground;

@@ -18,35 +18,35 @@ class SyncStatusTile extends ConsumerWidget {
 
     final (icon, label, subtitle, color) = switch (syncState.status) {
       SyncStatus.synced => (
-          Icons.cloud_done_rounded,
-          '已同步',
-          '所有数据均已同步到服务器',
-          colors.success,
-        ),
+        Icons.cloud_done_rounded,
+        '已同步',
+        '所有数据均已同步到服务器',
+        colors.success,
+      ),
       SyncStatus.syncing => (
-          Icons.sync_rounded,
-          '同步中...',
-          '正在上传本地变更',
-          theme.colorScheme.primary,
-        ),
+        Icons.sync_rounded,
+        '同步中...',
+        '正在上传本地变更',
+        theme.colorScheme.primary,
+      ),
       SyncStatus.pending => (
-          Icons.cloud_upload_outlined,
-          '待同步',
-          '${syncState.pendingCount} 条操作等待上传',
-          colors.warning,
-        ),
+        Icons.cloud_upload_outlined,
+        '待同步',
+        '${syncState.pendingCount} 条操作等待上传',
+        colors.warning,
+      ),
       SyncStatus.offline => (
-          Icons.cloud_off_rounded,
-          '离线模式',
-          '数据仅保存在本地',
-          colors.warning,
-        ),
+        Icons.cloud_off_rounded,
+        '离线模式',
+        '数据仅保存在本地',
+        colors.warning,
+      ),
       SyncStatus.failed => (
-          Icons.error_outline_rounded,
-          '同步失败',
-          '${syncState.failedCount} 条操作上传失败，请检查网络',
-          colors.error,
-        ),
+        Icons.error_outline_rounded,
+        '同步失败',
+        '${syncState.failedCount} 条操作上传失败，请检查网络',
+        colors.error,
+      ),
     };
 
     return ListTile(
@@ -65,19 +65,19 @@ class SyncStatusTile extends ConsumerWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : syncState.status == SyncStatus.failed
-              ? TextButton.icon(
-                  onPressed: () async {
-                    await ref.read(databaseProvider).resetDeadSyncOps();
-                    ref.read(syncEngineProvider).syncNow();
-                  },
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('重试'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: colors.error,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                  ),
-                )
-              : null,
+          ? TextButton.icon(
+              onPressed: () async {
+                await ref.read(databaseProvider).resetDeadSyncOps();
+                ref.read(syncEngineProvider).syncNow();
+              },
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('重试'),
+              style: TextButton.styleFrom(
+                foregroundColor: colors.error,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+            )
+          : null,
     );
   }
 }

@@ -29,8 +29,8 @@ class LoanCalculator {
 
   /// 等额本息还款计划
   static List<LoanScheduleDisplayItem> _equalInstallment({
-    required int principal,       // 分
-    required double annualRate,   // 如 4.2
+    required int principal, // 分
+    required double annualRate, // 如 4.2
     required int totalMonths,
     required DateTime startDate,
     required int paymentDay,
@@ -44,27 +44,29 @@ class LoanCalculator {
       final monthlyPayment = (principal / totalMonths).round();
       var remaining = principal;
       for (var i = 1; i <= totalMonths; i++) {
-        final principalPart =
-            i == totalMonths ? remaining : math.min(monthlyPayment, remaining);
+        final principalPart = i == totalMonths
+            ? remaining
+            : math.min(monthlyPayment, remaining);
         remaining -= principalPart;
         if (remaining < 0) remaining = 0;
-        items.add(LoanScheduleDisplayItem(
-          monthNumber: i,
-          payment: principalPart,
-          principalPart: principalPart,
-          interestPart: 0,
-          remainingPrincipal: remaining,
-          dueDate: calcDueDate(startDate, i, paymentDay),
-          isPaid: i <= paidMonths,
-        ));
+        items.add(
+          LoanScheduleDisplayItem(
+            monthNumber: i,
+            payment: principalPart,
+            principalPart: principalPart,
+            interestPart: 0,
+            remainingPrincipal: remaining,
+            dueDate: calcDueDate(startDate, i, paymentDay),
+            isPaid: i <= paidMonths,
+          ),
+        );
       }
       return items;
     }
 
     // 标准等额本息: M = P * r * (1+r)^n / ((1+r)^n - 1)
     final pow = math.pow(1 + monthlyRate, totalMonths);
-    final monthlyPayment =
-        (principal * monthlyRate * pow / (pow - 1)).round();
+    final monthlyPayment = (principal * monthlyRate * pow / (pow - 1)).round();
 
     var remaining = principal;
     for (var i = 1; i <= totalMonths; i++) {
@@ -75,23 +77,27 @@ class LoanCalculator {
       remaining -= principalPart;
       if (remaining < 0) remaining = 0;
 
-      items.add(LoanScheduleDisplayItem(
-        monthNumber: i,
-        payment: i == totalMonths ? principalPart + interestPart : monthlyPayment,
-        principalPart: principalPart,
-        interestPart: interestPart,
-        remainingPrincipal: remaining,
-        dueDate: calcDueDate(startDate, i, paymentDay),
-        isPaid: i <= paidMonths,
-      ));
+      items.add(
+        LoanScheduleDisplayItem(
+          monthNumber: i,
+          payment: i == totalMonths
+              ? principalPart + interestPart
+              : monthlyPayment,
+          principalPart: principalPart,
+          interestPart: interestPart,
+          remainingPrincipal: remaining,
+          dueDate: calcDueDate(startDate, i, paymentDay),
+          isPaid: i <= paidMonths,
+        ),
+      );
     }
     return items;
   }
 
   /// 等额本金还款计划
   static List<LoanScheduleDisplayItem> _equalPrincipal({
-    required int principal,       // 分
-    required double annualRate,   // 如 4.2
+    required int principal, // 分
+    required double annualRate, // 如 4.2
     required int totalMonths,
     required DateTime startDate,
     required int paymentDay,
@@ -104,20 +110,21 @@ class LoanCalculator {
     var remaining = principal;
     for (var i = 1; i <= totalMonths; i++) {
       final interestPart = (remaining * monthlyRate).round();
-      final principalPart =
-          i == totalMonths ? remaining : monthlyPrincipal;
+      final principalPart = i == totalMonths ? remaining : monthlyPrincipal;
       remaining -= principalPart;
       if (remaining < 0) remaining = 0;
 
-      items.add(LoanScheduleDisplayItem(
-        monthNumber: i,
-        payment: principalPart + interestPart,
-        principalPart: principalPart,
-        interestPart: interestPart,
-        remainingPrincipal: remaining,
-        dueDate: calcDueDate(startDate, i, paymentDay),
-        isPaid: i <= paidMonths,
-      ));
+      items.add(
+        LoanScheduleDisplayItem(
+          monthNumber: i,
+          payment: principalPart + interestPart,
+          principalPart: principalPart,
+          interestPart: interestPart,
+          remainingPrincipal: remaining,
+          dueDate: calcDueDate(startDate, i, paymentDay),
+          isPaid: i <= paidMonths,
+        ),
+      );
     }
     return items;
   }
@@ -145,15 +152,17 @@ class LoanCalculator {
         final interest = (principal * dailyRate * days).round();
         final isLast = i == totalMonths;
         final principalPart = isLast ? principal : 0;
-        items.add(LoanScheduleDisplayItem(
-          monthNumber: i,
-          payment: principalPart + interest,
-          principalPart: principalPart,
-          interestPart: interest,
-          remainingPrincipal: isLast ? 0 : principal,
-          dueDate: dueDate,
-          isPaid: i <= paidMonths,
-        ));
+        items.add(
+          LoanScheduleDisplayItem(
+            monthNumber: i,
+            payment: principalPart + interest,
+            principalPart: principalPart,
+            interestPart: interest,
+            remainingPrincipal: isLast ? 0 : principal,
+            dueDate: dueDate,
+            isPaid: i <= paidMonths,
+          ),
+        );
         periodStart = dueDate;
       }
     } else {
@@ -162,15 +171,17 @@ class LoanCalculator {
       for (var i = 1; i <= totalMonths; i++) {
         final isLast = i == totalMonths;
         final principalPart = isLast ? principal : 0;
-        items.add(LoanScheduleDisplayItem(
-          monthNumber: i,
-          payment: principalPart + monthlyInterest,
-          principalPart: principalPart,
-          interestPart: monthlyInterest,
-          remainingPrincipal: isLast ? 0 : principal,
-          dueDate: calcDueDate(startDate, i, paymentDay),
-          isPaid: i <= paidMonths,
-        ));
+        items.add(
+          LoanScheduleDisplayItem(
+            monthNumber: i,
+            payment: principalPart + monthlyInterest,
+            principalPart: principalPart,
+            interestPart: monthlyInterest,
+            remainingPrincipal: isLast ? 0 : principal,
+            dueDate: calcDueDate(startDate, i, paymentDay),
+            isPaid: i <= paidMonths,
+          ),
+        );
       }
     }
     return items;
@@ -209,15 +220,17 @@ class LoanCalculator {
 
     for (var i = 1; i <= totalMonths; i++) {
       final isLast = i == totalMonths;
-      items.add(LoanScheduleDisplayItem(
-        monthNumber: i,
-        payment: isLast ? principal + totalInterest : 0,
-        principalPart: isLast ? principal : 0,
-        interestPart: isLast ? totalInterest : 0,
-        remainingPrincipal: isLast ? 0 : principal,
-        dueDate: calcDueDate(startDate, i, paymentDay),
-        isPaid: i <= paidMonths,
-      ));
+      items.add(
+        LoanScheduleDisplayItem(
+          monthNumber: i,
+          payment: isLast ? principal + totalInterest : 0,
+          principalPart: isLast ? principal : 0,
+          interestPart: isLast ? totalInterest : 0,
+          remainingPrincipal: isLast ? 0 : principal,
+          dueDate: calcDueDate(startDate, i, paymentDay),
+          isPaid: i <= paidMonths,
+        ),
+      );
     }
     return items;
   }
@@ -242,15 +255,17 @@ class LoanCalculator {
       remaining -= principalPart;
       if (remaining < 0) remaining = 0;
 
-      items.add(LoanScheduleDisplayItem(
-        monthNumber: i,
-        payment: principalPart + monthlyInterest,
-        principalPart: principalPart,
-        interestPart: monthlyInterest,
-        remainingPrincipal: remaining,
-        dueDate: calcDueDate(startDate, i, paymentDay),
-        isPaid: i <= paidMonths,
-      ));
+      items.add(
+        LoanScheduleDisplayItem(
+          monthNumber: i,
+          payment: principalPart + monthlyInterest,
+          principalPart: principalPart,
+          interestPart: monthlyInterest,
+          remainingPrincipal: remaining,
+          dueDate: calcDueDate(startDate, i, paymentDay),
+          isPaid: i <= paidMonths,
+        ),
+      );
     }
     return items;
   }
@@ -266,7 +281,12 @@ class LoanCalculator {
     int paidMonths = 0,
     String calcMethod = 'monthly',
   }) {
-    _validateInputs(principal: principal, annualRate: annualRate, totalMonths: totalMonths, paymentDay: paymentDay);
+    _validateInputs(
+      principal: principal,
+      annualRate: annualRate,
+      totalMonths: totalMonths,
+      paymentDay: paymentDay,
+    );
     switch (repaymentMethod) {
       case 'equal_principal':
         return _equalPrincipal(
@@ -353,8 +373,10 @@ class LoanCalculator {
       startDate: startDate,
       paymentDay: paymentDay,
     );
-    final totalInterestBefore =
-        originalSchedule.fold<int>(0, (s, i) => s + i.interestPart);
+    final totalInterestBefore = originalSchedule.fold<int>(
+      0,
+      (s, i) => s + i.interestPart,
+    );
 
     // 提前还款后剩余本金
     final newRemaining = remainingPrincipal - prepaymentAmount;
@@ -365,7 +387,8 @@ class LoanCalculator {
         totalInterestAfter: originalSchedule
             .where((i) => i.monthNumber <= paidMonths)
             .fold<int>(0, (s, i) => s + i.interestPart),
-        interestSaved: totalInterestBefore -
+        interestSaved:
+            totalInterestBefore -
             originalSchedule
                 .where((i) => i.monthNumber <= paidMonths)
                 .fold<int>(0, (s, i) => s + i.interestPart),
@@ -392,8 +415,10 @@ class LoanCalculator {
       }
     } else {
       final origMonthlyPayment = originalSchedule
-          .firstWhere((i) => i.monthNumber == paidMonths + 1,
-              orElse: () => originalSchedule.last)
+          .firstWhere(
+            (i) => i.monthNumber == paidMonths + 1,
+            orElse: () => originalSchedule.last,
+          )
           .payment;
       monthlyPayment = origMonthlyPayment;
 
@@ -465,8 +490,10 @@ class LoanCalculator {
       startDate: startDate,
       paymentDay: paymentDay,
     );
-    final totalInterestBefore =
-        originalSchedule.fold<int>(0, (s, i) => s + i.interestPart);
+    final totalInterestBefore = originalSchedule.fold<int>(
+      0,
+      (s, i) => s + i.interestPart,
+    );
 
     final newRemaining = remainingPrincipal - prepaymentAmount;
     if (newRemaining <= 0) {
@@ -511,9 +538,17 @@ class LoanCalculator {
     );
   }
 
-  static DateTime calcDueDate(DateTime startDate, int monthOffset, int paymentDay) {
+  static DateTime calcDueDate(
+    DateTime startDate,
+    int monthOffset,
+    int paymentDay,
+  ) {
     if (monthOffset < 0) {
-      throw ArgumentError.value(monthOffset, 'monthOffset', 'must be non-negative');
+      throw ArgumentError.value(
+        monthOffset,
+        'monthOffset',
+        'must be non-negative',
+      );
     }
     if (paymentDay < 1 || paymentDay > 31) {
       throw ArgumentError.value(paymentDay, 'paymentDay', 'must be 1-31');
@@ -526,4 +561,3 @@ class LoanCalculator {
     return DateTime(year, month, day);
   }
 }
-

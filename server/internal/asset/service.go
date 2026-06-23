@@ -691,10 +691,10 @@ type assetData struct {
 }
 
 type ruleData struct {
-	assetID        string
-	method         string
+	assetID         string
+	method          string
 	usefulLifeYears int
-	salvageRate    float64
+	salvageRate     float64
 }
 
 func (s *Service) loadAsset(ctx context.Context, assetID, userID string) (*pb.Asset, error) {
@@ -783,10 +783,10 @@ func (s *Service) loadAssetWithRule(ctx context.Context, assetID, userID string)
 	}
 
 	r := &ruleData{
-		assetID:        a.id,
-		method:         *rMethod,
+		assetID:         a.id,
+		method:          *rMethod,
 		usefulLifeYears: *rUsefulLife,
-		salvageRate:    *rSalvageRate,
+		salvageRate:     *rSalvageRate,
 	}
 	return &a, r, nil
 }

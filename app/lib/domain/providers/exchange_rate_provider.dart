@@ -28,9 +28,9 @@ const currencySymbols = <String, String>{
 /// Exchange rate provider
 final exchangeRateProvider =
     StateNotifierProvider<ExchangeRateNotifier, Map<String, double>>((ref) {
-  final db = ref.watch(databaseProvider);
-  return ExchangeRateNotifier(db);
-});
+      final db = ref.watch(databaseProvider);
+      return ExchangeRateNotifier(db);
+    });
 
 class ExchangeRateNotifier extends StateNotifier<Map<String, double>> {
   final AppDatabase _db;
@@ -88,7 +88,9 @@ class ExchangeRateNotifier extends StateNotifier<Map<String, double>> {
   /// Save rates to local DB
   Future<void> saveRates(Map<String, double> rates) async {
     for (final entry in rates.entries) {
-      await _db.into(_db.exchangeRates).insertOnConflictUpdate(
+      await _db
+          .into(_db.exchangeRates)
+          .insertOnConflictUpdate(
             ExchangeRatesCompanion.insert(
               currencyPair: entry.key,
               rate: entry.value,

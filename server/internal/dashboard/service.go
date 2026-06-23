@@ -762,8 +762,8 @@ func (s *Service) GetBudgetSummary(ctx context.Context, req *pb.BudgetSummaryReq
 	defer catBudgetRows.Close()
 
 	type catBudget struct {
-		catID      string
-		catName    string
+		catID     string
+		catName   string
 		budgetAmt int64
 	}
 	var catBudgets []catBudget
@@ -986,7 +986,6 @@ func (s *Service) GetNetWorthTrend(ctx context.Context, req *pb.TrendRequest) (*
 
 	return &pb.TrendResponse{Points: points}, nil
 }
-
 
 // sortCategoryItems sorts items by amount descending.
 func sortCategoryItems(items []*pb.CategoryItem) {

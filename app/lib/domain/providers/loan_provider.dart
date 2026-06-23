@@ -15,7 +15,6 @@ import '../models/loan_models.dart';
 import '../models/loan_calculator.dart';
 import '../models/loan_proto_helpers.dart';
 
-
 class LoanNotifier extends StateNotifier<LoanState> {
   final db.AppDatabase _db;
   final LoanServiceClient _client;
@@ -23,8 +22,11 @@ class LoanNotifier extends StateNotifier<LoanState> {
   final String? _familyId;
 
   LoanNotifier(this._db, this._client, this._userId, this._familyId)
-      : super(const LoanState()) {
-    developer.log('[Loan] LoanNotifier created: userId=$_userId, familyId=$_familyId', name: 'LoanProvider');
+    : super(const LoanState()) {
+    developer.log(
+      '[Loan] LoanNotifier created: userId=$_userId, familyId=$_familyId',
+      name: 'LoanProvider',
+    );
     if (_userId != null) {
       loadAll();
     }
@@ -38,7 +40,10 @@ class LoanNotifier extends StateNotifier<LoanState> {
   Future<void> listLoans() async {
     if (_userId == null) return;
     state = state.copyWith(isLoading: true, clearError: true);
-    developer.log('[Loan] listLoans: userId=$_userId familyId=$_familyId', name: 'LoanProvider');
+    developer.log(
+      '[Loan] listLoans: userId=$_userId familyId=$_familyId',
+      name: 'LoanProvider',
+    );
 
     try {
       // gRPC first
@@ -46,9 +51,14 @@ class LoanNotifier extends StateNotifier<LoanState> {
       if (_familyId != null && _familyId.isNotEmpty) {
         req.familyId = _familyId;
       }
-      final resp = await _client.listLoans(req,
-          options: CallOptions(timeout: const Duration(seconds: 10)));
-      developer.log('[Loan] listLoans: gRPC returned ${resp.loans.length} loans', name: 'LoanProvider');
+      final resp = await _client.listLoans(
+        req,
+        options: CallOptions(timeout: const Duration(seconds: 10)),
+      );
+      developer.log(
+        '[Loan] listLoans: gRPC returned ${resp.loans.length} loans',
+        name: 'LoanProvider',
+      );
       for (final loan in resp.loans) {
         await _db.upsertLoan(_loanFromProto(loan));
       }
@@ -58,10 +68,16 @@ class LoanNotifier extends StateNotifier<LoanState> {
 
     try {
       final loans = await _db.getStandaloneLoans(_userId, familyId: _familyId);
-      developer.log('[Loan] listLoans: local DB returned ${loans.length} standalone loans (userId=$_userId, familyId=$_familyId)', name: 'LoanProvider');
+      developer.log(
+        '[Loan] listLoans: local DB returned ${loans.length} standalone loans (userId=$_userId, familyId=$_familyId)',
+        name: 'LoanProvider',
+      );
       state = state.copyWith(loans: loans, isLoading: false);
     } catch (e) {
-      developer.log('[Loan] listLoans: local DB error: $e', name: 'LoanProvider');
+      developer.log(
+        '[Loan] listLoans: local DB error: $e',
+        name: 'LoanProvider',
+      );
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
@@ -69,43 +85,65 @@ class LoanNotifier extends StateNotifier<LoanState> {
   Future<void> listLoanGroups() async {
     if (_userId == null) return;
 
-    developer.log('[Loan] listLoanGroups: userId=$_userId familyId=$_familyId', name: 'LoanProvider');
+    developer.log(
+      '[Loan] listLoanGroups: userId=$_userId familyId=$_familyId',
+      name: 'LoanProvider',
+    );
 
     try {
       final grpReq = pb.ListLoanGroupsRequest();
       if (_familyId != null && _familyId.isNotEmpty) {
         grpReq.familyId = _familyId;
       }
-      final resp = await _client.listLoanGroups(grpReq,
-          options: CallOptions(timeout: const Duration(seconds: 10)));
-      developer.log('[Loan] listLoanGroups: gRPC returned ${resp.groups.length} groups', name: 'LoanProvider');
+      final resp = await _client.listLoanGroups(
+        grpReq,
+        options: CallOptions(timeout: const Duration(seconds: 10)),
+      );
+      developer.log(
+        '[Loan] listLoanGroups: gRPC returned ${resp.groups.length} groups',
+        name: 'LoanProvider',
+      );
       for (final group in resp.groups) {
-        developer.log('[Loan] listLoanGroups: upserting group id=${group.id} name=${group.name} familyId="${group.familyId}" userId=${group.userId}', name: 'LoanProvider');
-        await _db.upsertLoanGroup(db.LoanGroupsCompanion.insert(
-          id: group.id,
-          userId: group.userId,
-          familyId: Value(group.familyId),
-          name: group.name,
-          groupType: group.groupType,
-          totalPrincipal: group.totalPrincipal.toInt(),
-          paymentDay: group.paymentDay,
-          startDate: fromTimestamp(group.startDate),
-          accountId: Value(group.accountId),
-        ));
+        developer.log(
+          '[Loan] listLoanGroups: upserting group id=${group.id} name=${group.name} familyId="${group.familyId}" userId=${group.userId}',
+          name: 'LoanProvider',
+        );
+        await _db.upsertLoanGroup(
+          db.LoanGroupsCompanion.insert(
+            id: group.id,
+            userId: group.userId,
+            familyId: Value(group.familyId),
+            name: group.name,
+            groupType: group.groupType,
+            totalPrincipal: group.totalPrincipal.toInt(),
+            paymentDay: group.paymentDay,
+            startDate: fromTimestamp(group.startDate),
+            accountId: Value(group.accountId),
+          ),
+        );
         for (final loan in group.subLoans) {
           await _db.upsertLoan(_loanFromProto(loan));
         }
       }
     } catch (e) {
-      developer.log('[Loan] listLoanGroups: gRPC error: $e', name: 'LoanProvider');
+      developer.log(
+        '[Loan] listLoanGroups: gRPC error: $e',
+        name: 'LoanProvider',
+      );
       // Offline fallback
     }
 
     try {
       final groups = await _db.getLoanGroups(_userId, familyId: _familyId);
-      developer.log('[Loan] listLoanGroups: local DB returned ${groups.length} groups (query: userId=$_userId, familyId=$_familyId)', name: 'LoanProvider');
+      developer.log(
+        '[Loan] listLoanGroups: local DB returned ${groups.length} groups (query: userId=$_userId, familyId=$_familyId)',
+        name: 'LoanProvider',
+      );
       for (final g in groups) {
-        developer.log('[Loan] listLoanGroups: local group id=${g.id} name=${g.name} familyId="${g.familyId}"', name: 'LoanProvider');
+        developer.log(
+          '[Loan] listLoanGroups: local group id=${g.id} name=${g.name} familyId="${g.familyId}"',
+          name: 'LoanProvider',
+        );
       }
       final displayGroups = <LoanGroupDisplayItem>[];
       for (final group in groups) {
@@ -114,7 +152,10 @@ class LoanNotifier extends StateNotifier<LoanState> {
       }
       state = state.copyWith(loanGroups: displayGroups);
     } catch (e) {
-      developer.log('[Loan] listLoanGroups: local DB error: $e', name: 'LoanProvider');
+      developer.log(
+        '[Loan] listLoanGroups: local DB error: $e',
+        name: 'LoanProvider',
+      );
       // ignore
     }
   }
@@ -146,7 +187,9 @@ class LoanNotifier extends StateNotifier<LoanState> {
   }
 
   LoanGroupDisplayItem _buildGroupDisplay(
-      db.LoanGroup group, List<db.Loan> subLoans) {
+    db.LoanGroup group,
+    List<db.Loan> subLoans,
+  ) {
     int totalMonthly = 0;
     int totalRemaining = 0;
     double totalProgress = 0;
@@ -159,8 +202,9 @@ class LoanNotifier extends StateNotifier<LoanState> {
       totalMonthsSum += loan.totalMonths;
     }
 
-    final overallProgress =
-        totalMonthsSum > 0 ? totalProgress / totalMonthsSum : 0.0;
+    final overallProgress = totalMonthsSum > 0
+        ? totalProgress / totalMonthsSum
+        : 0.0;
 
     return LoanGroupDisplayItem(
       group: group,
@@ -190,46 +234,55 @@ class LoanNotifier extends StateNotifier<LoanState> {
   }) async {
     if (_userId == null) return;
     state = state.copyWith(isLoading: true, clearError: true);
-    developer.log('[Loan] createLoan: name=$name familyId=$familyId userId=$_userId', name: 'LoanProvider');
+    developer.log(
+      '[Loan] createLoan: name=$name familyId=$familyId userId=$_userId',
+      name: 'LoanProvider',
+    );
 
     String loanId = const Uuid().v4();
 
     try {
-      final resp = await _client.createLoan(pb.CreateLoanRequest()
-        ..name = name
-        ..loanType = stringToLoanType(loanType)
-        ..principal = Int64(principal)
-        ..annualRate = annualRate
-        ..totalMonths = totalMonths
-        ..repaymentMethod = stringToRepaymentMethod(repaymentMethod)
-        ..paymentDay = paymentDay
-        ..startDate = toTimestamp(startDate)
-        ..accountId = accountId ?? ''
-        ..familyId = familyId ?? ''
-        ..interestCalcMethod = stringToInterestCalcMethod(interestCalcMethod ?? 'monthly'));
+      final resp = await _client.createLoan(
+        pb.CreateLoanRequest()
+          ..name = name
+          ..loanType = stringToLoanType(loanType)
+          ..principal = Int64(principal)
+          ..annualRate = annualRate
+          ..totalMonths = totalMonths
+          ..repaymentMethod = stringToRepaymentMethod(repaymentMethod)
+          ..paymentDay = paymentDay
+          ..startDate = toTimestamp(startDate)
+          ..accountId = accountId ?? ''
+          ..familyId = familyId ?? ''
+          ..interestCalcMethod = stringToInterestCalcMethod(
+            interestCalcMethod ?? 'monthly',
+          ),
+      );
       loanId = resp.id;
       await _db.upsertLoan(_loanFromProto(resp));
     } catch (e, st) {
       // Offline: save locally
-      await _db.upsertLoan(db.LoansCompanion.insert(
-        id: loanId,
-        userId: _userId,
-        familyId: Value(familyId ?? ''),
-        name: name,
-        principal: principal,
-        remainingPrincipal: principal,
-        annualRate: annualRate,
-        totalMonths: totalMonths,
-        paymentDay: paymentDay,
-        startDate: startDate,
-        loanType: Value(loanType),
-        repaymentMethod: Value(repaymentMethod),
-        accountId: Value(accountId ?? ''),
-        rateType: Value(rateType ?? 'fixed'),
-        lprBase: Value(lprBase ?? 0.0),
-        lprSpread: Value(lprSpread ?? 0.0),
-        rateAdjustMonth: Value(rateAdjustMonth ?? 1),
-      ));
+      await _db.upsertLoan(
+        db.LoansCompanion.insert(
+          id: loanId,
+          userId: _userId,
+          familyId: Value(familyId ?? ''),
+          name: name,
+          principal: principal,
+          remainingPrincipal: principal,
+          annualRate: annualRate,
+          totalMonths: totalMonths,
+          paymentDay: paymentDay,
+          startDate: startDate,
+          loanType: Value(loanType),
+          repaymentMethod: Value(repaymentMethod),
+          accountId: Value(accountId ?? ''),
+          rateType: Value(rateType ?? 'fixed'),
+          lprBase: Value(lprBase ?? 0.0),
+          lprSpread: Value(lprSpread ?? 0.0),
+          rateAdjustMonth: Value(rateAdjustMonth ?? 1),
+        ),
+      );
     }
 
     // Generate local schedule
@@ -244,16 +297,18 @@ class LoanNotifier extends StateNotifier<LoanState> {
 
     await _db.deleteLoanSchedules(loanId);
     for (final item in schedule) {
-      await _db.insertLoanSchedule(db.LoanSchedulesCompanion.insert(
-        id: const Uuid().v4(),
-        loanId: loanId,
-        monthNumber: item.monthNumber,
-        payment: item.payment,
-        principalPart: item.principalPart,
-        interestPart: item.interestPart,
-        remainingPrincipal: item.remainingPrincipal,
-        dueDate: item.dueDate,
-      ));
+      await _db.insertLoanSchedule(
+        db.LoanSchedulesCompanion.insert(
+          id: const Uuid().v4(),
+          loanId: loanId,
+          monthNumber: item.monthNumber,
+          payment: item.payment,
+          principalPart: item.principalPart,
+          interestPart: item.interestPart,
+          remainingPrincipal: item.remainingPrincipal,
+          dueDate: item.dueDate,
+        ),
+      );
     }
 
     await loadAll();
@@ -274,8 +329,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     final groupId = const Uuid().v4();
-    final totalPrincipal =
-        subLoans.fold<int>(0, (sum, l) => sum + l.principal);
+    final totalPrincipal = subLoans.fold<int>(0, (sum, l) => sum + l.principal);
 
     try {
       // Try gRPC
@@ -289,82 +343,103 @@ class LoanNotifier extends StateNotifier<LoanState> {
         ..familyId = familyId ?? '';
 
       for (final sub in subLoans) {
-        req.subLoans.add(pb.SubLoanSpec()
-          ..name = sub.name
-          ..subType = stringToSubType(sub.subType)
-          ..principal = Int64(sub.principal)
-          ..annualRate = sub.annualRate
-          ..totalMonths = sub.totalMonths
-          ..repaymentMethod = stringToRepaymentMethod(sub.repaymentMethod)
-          ..rateType = stringToRateType(sub.rateType)
-          ..lprBase = sub.lprBase
-          ..lprSpread = sub.lprSpread
-          ..rateAdjustMonth = sub.rateAdjustMonth
-          ..interestCalcMethod = stringToInterestCalcMethod(sub.interestCalcMethod));
+        req.subLoans.add(
+          pb.SubLoanSpec()
+            ..name = sub.name
+            ..subType = stringToSubType(sub.subType)
+            ..principal = Int64(sub.principal)
+            ..annualRate = sub.annualRate
+            ..totalMonths = sub.totalMonths
+            ..repaymentMethod = stringToRepaymentMethod(sub.repaymentMethod)
+            ..rateType = stringToRateType(sub.rateType)
+            ..lprBase = sub.lprBase
+            ..lprSpread = sub.lprSpread
+            ..rateAdjustMonth = sub.rateAdjustMonth
+            ..interestCalcMethod = stringToInterestCalcMethod(
+              sub.interestCalcMethod,
+            ),
+        );
       }
 
       final resp = await _client.createLoanGroup(req);
-      await _db.upsertLoanGroup(db.LoanGroupsCompanion.insert(
-        id: resp.id,
-        userId: resp.userId,
-        name: resp.name,
-        groupType: resp.groupType,
-        totalPrincipal: resp.totalPrincipal.toInt(),
-        paymentDay: resp.paymentDay,
-        startDate: fromTimestamp(resp.startDate),
-        accountId: Value(resp.accountId),
-        familyId: Value(resp.familyId),
-        loanType: Value(loanTypeToString(resp.loanType)),
-      ));
+      await _db.upsertLoanGroup(
+        db.LoanGroupsCompanion.insert(
+          id: resp.id,
+          userId: resp.userId,
+          name: resp.name,
+          groupType: resp.groupType,
+          totalPrincipal: resp.totalPrincipal.toInt(),
+          paymentDay: resp.paymentDay,
+          startDate: fromTimestamp(resp.startDate),
+          accountId: Value(resp.accountId),
+          familyId: Value(resp.familyId),
+          loanType: Value(loanTypeToString(resp.loanType)),
+        ),
+      );
       for (final loan in resp.subLoans) {
         await _db.upsertLoan(_loanFromProto(loan));
-        await _generateScheduleForLoan(loan.id, loan.principal.toInt(),
-            loan.annualRate, loan.totalMonths,
-            repaymentMethodToString(loan.repaymentMethod),
-            fromTimestamp(loan.startDate), loan.paymentDay);
+        await _generateScheduleForLoan(
+          loan.id,
+          loan.principal.toInt(),
+          loan.annualRate,
+          loan.totalMonths,
+          repaymentMethodToString(loan.repaymentMethod),
+          fromTimestamp(loan.startDate),
+          loan.paymentDay,
+        );
       }
     } catch (_) {
       // Offline: save locally
-      await _db.upsertLoanGroup(db.LoanGroupsCompanion.insert(
-        id: groupId,
-        userId: _userId,
-        name: name,
-        groupType: groupType,
-        totalPrincipal: totalPrincipal,
-        paymentDay: paymentDay,
-        startDate: startDate,
-        accountId: Value(accountId ?? ''),
-        loanType: Value(loanType),
-        familyId: Value(familyId ?? ''),
-      ));
+      await _db.upsertLoanGroup(
+        db.LoanGroupsCompanion.insert(
+          id: groupId,
+          userId: _userId,
+          name: name,
+          groupType: groupType,
+          totalPrincipal: totalPrincipal,
+          paymentDay: paymentDay,
+          startDate: startDate,
+          accountId: Value(accountId ?? ''),
+          loanType: Value(loanType),
+          familyId: Value(familyId ?? ''),
+        ),
+      );
 
       for (final sub in subLoans) {
         final loanId = const Uuid().v4();
-        await _db.upsertLoan(db.LoansCompanion.insert(
-          id: loanId,
-          userId: _userId,
-          name: sub.name,
-          principal: sub.principal,
-          remainingPrincipal: sub.principal,
-          annualRate: sub.annualRate,
-          totalMonths: sub.totalMonths,
-          paymentDay: paymentDay,
-          startDate: startDate,
-          loanType: Value(loanType),
-          repaymentMethod: Value(sub.repaymentMethod),
-          accountId: Value(accountId ?? ''),
-          familyId: Value(familyId ?? ''),
-          groupId: Value(groupId),
-          subType: Value(sub.subType),
-          rateType: Value(sub.rateType),
-          lprBase: Value(sub.lprBase),
-          lprSpread: Value(sub.lprSpread),
-          rateAdjustMonth: Value(sub.rateAdjustMonth),
-        ));
+        await _db.upsertLoan(
+          db.LoansCompanion.insert(
+            id: loanId,
+            userId: _userId,
+            name: sub.name,
+            principal: sub.principal,
+            remainingPrincipal: sub.principal,
+            annualRate: sub.annualRate,
+            totalMonths: sub.totalMonths,
+            paymentDay: paymentDay,
+            startDate: startDate,
+            loanType: Value(loanType),
+            repaymentMethod: Value(sub.repaymentMethod),
+            accountId: Value(accountId ?? ''),
+            familyId: Value(familyId ?? ''),
+            groupId: Value(groupId),
+            subType: Value(sub.subType),
+            rateType: Value(sub.rateType),
+            lprBase: Value(sub.lprBase),
+            lprSpread: Value(sub.lprSpread),
+            rateAdjustMonth: Value(sub.rateAdjustMonth),
+          ),
+        );
 
-        await _generateScheduleForLoan(loanId, sub.principal,
-            sub.annualRate, sub.totalMonths, sub.repaymentMethod,
-            startDate, paymentDay);
+        await _generateScheduleForLoan(
+          loanId,
+          sub.principal,
+          sub.annualRate,
+          sub.totalMonths,
+          sub.repaymentMethod,
+          startDate,
+          paymentDay,
+        );
       }
     }
 
@@ -391,22 +466,28 @@ class LoanNotifier extends StateNotifier<LoanState> {
 
     await _db.deleteLoanSchedules(loanId);
     for (final item in schedule) {
-      await _db.insertLoanSchedule(db.LoanSchedulesCompanion.insert(
-        id: const Uuid().v4(),
-        loanId: loanId,
-        monthNumber: item.monthNumber,
-        payment: item.payment,
-        principalPart: item.principalPart,
-        interestPart: item.interestPart,
-        remainingPrincipal: item.remainingPrincipal,
-        dueDate: item.dueDate,
-      ));
+      await _db.insertLoanSchedule(
+        db.LoanSchedulesCompanion.insert(
+          id: const Uuid().v4(),
+          loanId: loanId,
+          monthNumber: item.monthNumber,
+          payment: item.payment,
+          principalPart: item.principalPart,
+          interestPart: item.interestPart,
+          remainingPrincipal: item.remainingPrincipal,
+          dueDate: item.dueDate,
+        ),
+      );
     }
   }
 
   /// Load loan group detail with sub-loans
   Future<void> getLoanGroupDetail(String groupId) async {
-    state = state.copyWith(isLoading: true, clearError: true, clearSimulation: true);
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      clearSimulation: true,
+    );
 
     try {
       final group = await _db.getLoanGroupById(groupId);
@@ -418,17 +499,18 @@ class LoanNotifier extends StateNotifier<LoanState> {
       final subLoans = await _db.getLoansByGroupId(groupId);
       final displayGroup = _buildGroupDisplay(group, subLoans);
 
-      state = state.copyWith(
-        currentGroup: displayGroup,
-        isLoading: false,
-      );
+      state = state.copyWith(currentGroup: displayGroup, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
   Future<void> getLoanDetail(String loanId) async {
-    state = state.copyWith(isLoading: true, clearError: true, clearSimulation: true);
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      clearSimulation: true,
+    );
 
     try {
       final loan = await _db.getLoanById(loanId);
@@ -444,30 +526,40 @@ class LoanNotifier extends StateNotifier<LoanState> {
         final resp = await _client.getLoanSchedule(
           pb.GetLoanScheduleRequest()..loanId = loanId,
         );
-        schedule = resp.items.map((item) => LoanScheduleDisplayItem(
-          monthNumber: item.monthNumber,
-          payment: item.payment.toInt(),
-          principalPart: item.principalPart.toInt(),
-          interestPart: item.interestPart.toInt(),
-          remainingPrincipal: item.remainingPrincipal.toInt(),
-          dueDate: fromTimestamp(item.dueDate),
-          isPaid: item.isPaid,
-          paidDate: item.hasPaidDate() ? fromTimestamp(item.paidDate) : null,
-        )).toList();
+        schedule = resp.items
+            .map(
+              (item) => LoanScheduleDisplayItem(
+                monthNumber: item.monthNumber,
+                payment: item.payment.toInt(),
+                principalPart: item.principalPart.toInt(),
+                interestPart: item.interestPart.toInt(),
+                remainingPrincipal: item.remainingPrincipal.toInt(),
+                dueDate: fromTimestamp(item.dueDate),
+                isPaid: item.isPaid,
+                paidDate: item.hasPaidDate()
+                    ? fromTimestamp(item.paidDate)
+                    : null,
+              ),
+            )
+            .toList();
       } catch (_) {
         // Local fallback
         final dbSchedules = await _db.getLoanSchedules(loanId);
         if (dbSchedules.isNotEmpty) {
-          schedule = dbSchedules.map((s) => LoanScheduleDisplayItem(
-            monthNumber: s.monthNumber,
-            payment: s.payment,
-            principalPart: s.principalPart,
-            interestPart: s.interestPart,
-            remainingPrincipal: s.remainingPrincipal,
-            dueDate: s.dueDate,
-            isPaid: s.isPaid,
-            paidDate: s.paidDate,
-          )).toList();
+          schedule = dbSchedules
+              .map(
+                (s) => LoanScheduleDisplayItem(
+                  monthNumber: s.monthNumber,
+                  payment: s.payment,
+                  principalPart: s.principalPart,
+                  interestPart: s.interestPart,
+                  remainingPrincipal: s.remainingPrincipal,
+                  dueDate: s.dueDate,
+                  isPaid: s.isPaid,
+                  paidDate: s.paidDate,
+                ),
+              )
+              .toList();
         } else {
           schedule = LoanCalculator.calculate(
             principal: loan.principal,
@@ -492,22 +584,28 @@ class LoanNotifier extends StateNotifier<LoanState> {
   }
 
   /// Get schedule for a specific sub-loan (used in group detail tabs)
-  Future<List<LoanScheduleDisplayItem>> getScheduleForLoan(String loanId) async {
+  Future<List<LoanScheduleDisplayItem>> getScheduleForLoan(
+    String loanId,
+  ) async {
     final loan = await _db.getLoanById(loanId);
     if (loan == null) return [];
 
     final dbSchedules = await _db.getLoanSchedules(loanId);
     if (dbSchedules.isNotEmpty) {
-      return dbSchedules.map((s) => LoanScheduleDisplayItem(
-        monthNumber: s.monthNumber,
-        payment: s.payment,
-        principalPart: s.principalPart,
-        interestPart: s.interestPart,
-        remainingPrincipal: s.remainingPrincipal,
-        dueDate: s.dueDate,
-        isPaid: s.isPaid,
-        paidDate: s.paidDate,
-      )).toList();
+      return dbSchedules
+          .map(
+            (s) => LoanScheduleDisplayItem(
+              monthNumber: s.monthNumber,
+              payment: s.payment,
+              principalPart: s.principalPart,
+              interestPart: s.interestPart,
+              remainingPrincipal: s.remainingPrincipal,
+              dueDate: s.dueDate,
+              isPaid: s.isPaid,
+              paidDate: s.paidDate,
+            ),
+          )
+          .toList();
     }
 
     return LoanCalculator.calculate(
@@ -555,15 +653,19 @@ class LoanNotifier extends StateNotifier<LoanState> {
           interestSaved: resp.interestSaved.toInt(),
           monthsReduced: resp.monthsReduced,
           newMonthlyPayment: resp.newMonthlyPayment.toInt(),
-          newSchedule: resp.newSchedule.map((item) => LoanScheduleDisplayItem(
-            monthNumber: item.monthNumber,
-            payment: item.payment.toInt(),
-            principalPart: item.principalPart.toInt(),
-            interestPart: item.interestPart.toInt(),
-            remainingPrincipal: item.remainingPrincipal.toInt(),
-            dueDate: fromTimestamp(item.dueDate),
-            isPaid: item.isPaid,
-          )).toList(),
+          newSchedule: resp.newSchedule
+              .map(
+                (item) => LoanScheduleDisplayItem(
+                  monthNumber: item.monthNumber,
+                  payment: item.payment.toInt(),
+                  principalPart: item.principalPart.toInt(),
+                  interestPart: item.interestPart.toInt(),
+                  remainingPrincipal: item.remainingPrincipal.toInt(),
+                  dueDate: fromTimestamp(item.dueDate),
+                  isPaid: item.isPaid,
+                ),
+              )
+              .toList(),
         ),
         isLoading: false,
       );
@@ -620,28 +722,35 @@ class LoanNotifier extends StateNotifier<LoanState> {
     }
 
     try {
-      await _client.recordRateChange(pb.RecordRateChangeRequest()
-        ..loanId = loanId
-        ..newRate = newRate
-        ..effectiveDate = toTimestamp(effectiveDate));
+      await _client.recordRateChange(
+        pb.RecordRateChangeRequest()
+          ..loanId = loanId
+          ..newRate = newRate
+          ..effectiveDate = toTimestamp(effectiveDate),
+      );
     } catch (_) {
       // Offline
     }
 
     // Save rate change record
-    await _db.insertLoanRateChange(db.LoanRateChangesCompanion.insert(
-      id: const Uuid().v4(),
-      loanId: loanId,
-      oldRate: loan.annualRate,
-      newRate: newRate,
-      effectiveDate: effectiveDate,
-    ));
+    await _db.insertLoanRateChange(
+      db.LoanRateChangesCompanion.insert(
+        id: const Uuid().v4(),
+        loanId: loanId,
+        oldRate: loan.annualRate,
+        newRate: newRate,
+        effectiveDate: effectiveDate,
+      ),
+    );
 
     // Update loan rate
-    await _db.updateLoanFields(loanId, db.LoansCompanion(
-      annualRate: Value(newRate),
-      updatedAt: Value(DateTime.now()),
-    ));
+    await _db.updateLoanFields(
+      loanId,
+      db.LoansCompanion(
+        annualRate: Value(newRate),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
 
     // Regenerate schedule for remaining months
     final remainingPrincipal = loan.remainingPrincipal;
@@ -652,42 +761,47 @@ class LoanNotifier extends StateNotifier<LoanState> {
       totalMonths: remainingMonths,
       repaymentMethod: loan.repaymentMethod,
       startDate: LoanCalculator.calcDueDate(
-          loan.startDate, loan.paidMonths, loan.paymentDay),
+        loan.startDate,
+        loan.paidMonths,
+        loan.paymentDay,
+      ),
       paymentDay: loan.paymentDay,
     );
 
     final existingSchedules = await _db.getLoanSchedules(loanId);
-    final paidSchedules = existingSchedules
-        .where((s) => s.isPaid)
-        .toList();
+    final paidSchedules = existingSchedules.where((s) => s.isPaid).toList();
     await _db.deleteLoanSchedules(loanId);
 
     for (final s in paidSchedules) {
-      await _db.insertLoanSchedule(db.LoanSchedulesCompanion.insert(
-        id: s.id,
-        loanId: loanId,
-        monthNumber: s.monthNumber,
-        payment: s.payment,
-        principalPart: s.principalPart,
-        interestPart: s.interestPart,
-        remainingPrincipal: s.remainingPrincipal,
-        dueDate: s.dueDate,
-        isPaid: Value(true),
-        paidDate: Value(s.paidDate),
-      ));
+      await _db.insertLoanSchedule(
+        db.LoanSchedulesCompanion.insert(
+          id: s.id,
+          loanId: loanId,
+          monthNumber: s.monthNumber,
+          payment: s.payment,
+          principalPart: s.principalPart,
+          interestPart: s.interestPart,
+          remainingPrincipal: s.remainingPrincipal,
+          dueDate: s.dueDate,
+          isPaid: Value(true),
+          paidDate: Value(s.paidDate),
+        ),
+      );
     }
 
     for (final item in newSchedule) {
-      await _db.insertLoanSchedule(db.LoanSchedulesCompanion.insert(
-        id: const Uuid().v4(),
-        loanId: loanId,
-        monthNumber: loan.paidMonths + item.monthNumber,
-        payment: item.payment,
-        principalPart: item.principalPart,
-        interestPart: item.interestPart,
-        remainingPrincipal: item.remainingPrincipal,
-        dueDate: item.dueDate,
-      ));
+      await _db.insertLoanSchedule(
+        db.LoanSchedulesCompanion.insert(
+          id: const Uuid().v4(),
+          loanId: loanId,
+          monthNumber: loan.paidMonths + item.monthNumber,
+          payment: item.payment,
+          principalPart: item.principalPart,
+          interestPart: item.interestPart,
+          remainingPrincipal: item.remainingPrincipal,
+          dueDate: item.dueDate,
+        ),
+      );
     }
 
     await getLoanDetail(loanId);
@@ -736,16 +850,20 @@ class LoanNotifier extends StateNotifier<LoanState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _client.recordPayment(pb.RecordPaymentRequest()
-        ..loanId = loanId
-        ..monthNumber = monthNumber);
+      await _client.recordPayment(
+        pb.RecordPaymentRequest()
+          ..loanId = loanId
+          ..monthNumber = monthNumber,
+      );
     } catch (_) {
       // Offline
     }
 
     // Update local DB
     final schedules = await _db.getLoanSchedules(loanId);
-    final target = schedules.where((s) => s.monthNumber == monthNumber).firstOrNull;
+    final target = schedules
+        .where((s) => s.monthNumber == monthNumber)
+        .firstOrNull;
     if (target != null) {
       await _db.markSchedulePaid(target.id);
     }
@@ -754,14 +872,20 @@ class LoanNotifier extends StateNotifier<LoanState> {
     final loan = await _db.getLoanById(loanId);
     if (loan != null) {
       final newPaidMonths = loan.paidMonths + 1;
-      final scheduleItem = schedules.where((s) => s.monthNumber == monthNumber).firstOrNull;
-      final newRemaining = scheduleItem?.remainingPrincipal ?? loan.remainingPrincipal;
+      final scheduleItem = schedules
+          .where((s) => s.monthNumber == monthNumber)
+          .firstOrNull;
+      final newRemaining =
+          scheduleItem?.remainingPrincipal ?? loan.remainingPrincipal;
 
-      await _db.updateLoanFields(loanId, db.LoansCompanion(
-        paidMonths: Value(newPaidMonths),
-        remainingPrincipal: Value(newRemaining),
-        updatedAt: Value(DateTime.now()),
-      ));
+      await _db.updateLoanFields(
+        loanId,
+        db.LoansCompanion(
+          paidMonths: Value(newPaidMonths),
+          remainingPrincipal: Value(newRemaining),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
     }
 
     await getLoanDetail(loanId);
@@ -770,7 +894,10 @@ class LoanNotifier extends StateNotifier<LoanState> {
   /// Expose database for UI to query categories
   db.AppDatabase get database => _db;
 
-  Future<void> updateLoanRepaymentCategory(String loanId, String categoryId) async {
+  Future<void> updateLoanRepaymentCategory(
+    String loanId,
+    String categoryId,
+  ) async {
     try {
       await _client.updateLoan(
         pb.UpdateLoanRequest()
@@ -780,12 +907,12 @@ class LoanNotifier extends StateNotifier<LoanState> {
     } catch (_) {
       // Offline — still update locally
     }
-    await (_db.update(_db.loans)
-          ..where((l) => l.id.equals(loanId)))
-        .write(db.LoansCompanion(
-      repaymentCategoryId: Value(categoryId),
-      updatedAt: Value(DateTime.now()),
-    ));
+    await (_db.update(_db.loans)..where((l) => l.id.equals(loanId))).write(
+      db.LoansCompanion(
+        repaymentCategoryId: Value(categoryId),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
     // Refresh current loan detail
     await getLoanDetail(loanId);
   }
@@ -837,7 +964,10 @@ class LoanNotifier extends StateNotifier<LoanState> {
   DateTime? getNextPaymentDate(db.Loan loan) {
     if (loan.paidMonths >= loan.totalMonths) return null;
     return LoanCalculator.calcDueDate(
-        loan.startDate, loan.paidMonths + 1, loan.paymentDay);
+      loan.startDate,
+      loan.paidMonths + 1,
+      loan.paymentDay,
+    );
   }
 }
 
@@ -873,8 +1003,7 @@ class SubLoanInput {
 
 // ── Provider ──
 
-final loanProvider =
-    StateNotifierProvider<LoanNotifier, LoanState>((ref) {
+final loanProvider = StateNotifierProvider<LoanNotifier, LoanState>((ref) {
   final database = ref.watch(databaseProvider);
   final client = ref.watch(loanClientProvider);
   final userId = ref.watch(currentUserIdProvider);

@@ -32,16 +32,15 @@ class ExportState {
     String? lastContentType,
     bool clearError = false,
     bool clearData = false,
-  }) =>
-      ExportState(
-        isExporting: isExporting ?? this.isExporting,
-        error: clearError ? null : (error ?? this.error),
-        lastExportData:
-            clearData ? null : (lastExportData ?? this.lastExportData),
-        lastFilename: clearData ? null : (lastFilename ?? this.lastFilename),
-        lastContentType:
-            clearData ? null : (lastContentType ?? this.lastContentType),
-      );
+  }) => ExportState(
+    isExporting: isExporting ?? this.isExporting,
+    error: clearError ? null : (error ?? this.error),
+    lastExportData: clearData ? null : (lastExportData ?? this.lastExportData),
+    lastFilename: clearData ? null : (lastFilename ?? this.lastFilename),
+    lastContentType: clearData
+        ? null
+        : (lastContentType ?? this.lastContentType),
+  );
 }
 
 // ── Notifier ──
@@ -53,7 +52,7 @@ class ExportNotifier extends StateNotifier<ExportState> {
   final String? _familyId;
 
   ExportNotifier(this._db, this._client, this._userId, this._familyId)
-      : super(const ExportState());
+    : super(const ExportState());
 
   /// Export transactions to the specified format
   Future<Uint8List?> exportTransactions({
@@ -63,7 +62,11 @@ class ExportNotifier extends StateNotifier<ExportState> {
     List<String> categoryIds = const [],
   }) async {
     if (_userId == null) return null;
-    state = state.copyWith(isExporting: true, clearError: true, clearData: true);
+    state = state.copyWith(
+      isExporting: true,
+      clearError: true,
+      clearData: true,
+    );
 
     try {
       final resp = await _client.exportTransactions(
@@ -88,10 +91,7 @@ class ExportNotifier extends StateNotifier<ExportState> {
     }
 
     if (format != 'csv') {
-      state = state.copyWith(
-        isExporting: false,
-        error: '离线模式仅支持CSV格式导出',
-      );
+      state = state.copyWith(isExporting: false, error: '离线模式仅支持CSV格式导出');
       return null;
     }
 
@@ -106,8 +106,11 @@ class ExportNotifier extends StateNotifier<ExportState> {
     if (_userId == null) return null;
 
     try {
-      final allTxns = await _db.getRecentTransactions(_userId, 100000,
-          familyId: _familyId);
+      final allTxns = await _db.getRecentTransactions(
+        _userId,
+        100000,
+        familyId: _familyId,
+      );
       final categories = await _db.getAllCategories();
       final catMap = {for (final c in categories) c.id: c};
       List<db.Account> accounts;
@@ -139,7 +142,8 @@ class ExportNotifier extends StateNotifier<ExportState> {
       for (final t in filtered) {
         final cat = catMap[t.categoryId];
         final acc = accMap[t.accountId];
-        final date = '${t.txnDate.year}-'
+        final date =
+            '${t.txnDate.year}-'
             '${t.txnDate.month.toString().padLeft(2, '0')}-'
             '${t.txnDate.day.toString().padLeft(2, '0')}';
         final typeLabel = t.type == 'income' ? '收入' : '支出';
@@ -177,8 +181,9 @@ class ExportNotifier extends StateNotifier<ExportState> {
 
 // ── Provider ──
 
-final exportProvider =
-    StateNotifierProvider<ExportNotifier, ExportState>((ref) {
+final exportProvider = StateNotifierProvider<ExportNotifier, ExportState>((
+  ref,
+) {
   final database = ref.watch(databaseProvider);
   final client = ref.watch(exportClientProvider);
   final userId = ref.watch(currentUserIdProvider);

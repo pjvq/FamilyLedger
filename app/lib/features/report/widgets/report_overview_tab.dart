@@ -57,10 +57,9 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
     final parentAmounts = <String, int>{};
     for (final t in widget.transactions.where((t) => t.type == 'expense')) {
       final cat = widget.categoryMap[t.categoryId];
-      final parentId =
-          (cat?.parentId != null && cat!.parentId!.isNotEmpty)
-              ? cat.parentId!
-              : t.categoryId;
+      final parentId = (cat?.parentId != null && cat!.parentId!.isNotEmpty)
+          ? cat.parentId!
+          : t.categoryId;
       parentAmounts[parentId] = (parentAmounts[parentId] ?? 0) + t.amountCny;
     }
     final sortedExpenseIds = parentAmounts.keys.toList()
@@ -71,15 +70,26 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
       children: [
         // ── Summary card ──
         _buildSummaryCard(
-            theme, isDark, colors, totalExpense, totalIncome, balance),
+          theme,
+          isDark,
+          colors,
+          totalExpense,
+          totalIncome,
+          balance,
+        ),
         const SizedBox(height: 16),
 
         // ── Pie chart (expense breakdown) ──
         if (sortedExpenseIds.isNotEmpty && totalExpense > 0) ...[
           _buildSectionTitle(theme, '支出构成'),
           const SizedBox(height: 8),
-          _buildPieChart(sortedExpenseIds, parentAmounts, totalExpense,
-              isDark, theme),
+          _buildPieChart(
+            sortedExpenseIds,
+            parentAmounts,
+            totalExpense,
+            isDark,
+            theme,
+          ),
           const SizedBox(height: 16),
         ],
 
@@ -98,27 +108,31 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
     );
   }
 
-  Widget _buildSummaryCard(ThemeData theme, bool isDark, AppSemanticColors colors,
-      int expense, int income, int balance) {
+  Widget _buildSummaryCard(
+    ThemeData theme,
+    bool isDark,
+    AppSemanticColors colors,
+    int expense,
+    int income,
+    int balance,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
+        color: isDark
+            ? NeutralColorsDark.neutral2
+            : NeutralColorsLight.neutral0,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          Expanded(
-            child: _summaryItem('支出', expense, colors.expense, theme),
-          ),
+          Expanded(child: _summaryItem('支出', expense, colors.expense, theme)),
           Container(
             width: 1,
             height: 40,
             color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
           ),
-          Expanded(
-            child: _summaryItem('收入', income, colors.income, theme),
-          ),
+          Expanded(child: _summaryItem('收入', income, colors.income, theme)),
           Container(
             width: 1,
             height: 40,
@@ -126,7 +140,11 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
           ),
           Expanded(
             child: _summaryItem(
-                '结余', balance, balance >= 0 ? colors.income : colors.expense, theme),
+              '结余',
+              balance,
+              balance >= 0 ? colors.income : colors.expense,
+              theme,
+            ),
           ),
         ],
       ),
@@ -138,10 +156,12 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
         children: [
-          Text(label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              )),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
           const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -185,48 +205,57 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
       final color = chartColors[i % chartColors.length];
       final isTouched = i == _pieTouchedIndex;
 
-      sections.add(PieChartSectionData(
-        color: color,
-        value: amt.toDouble(),
-        title: isTouched
-            ? '¥${fmtYuan(amt)}'
-            : (pct >= 5 ? '${pct.toStringAsFixed(0)}%' : ''),
-        titleStyle: TextStyle(
-          fontSize: isTouched ? 12 : 11,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
+      sections.add(
+        PieChartSectionData(
+          color: color,
+          value: amt.toDouble(),
+          title: isTouched
+              ? '¥${fmtYuan(amt)}'
+              : (pct >= 5 ? '${pct.toStringAsFixed(0)}%' : ''),
+          titleStyle: TextStyle(
+            fontSize: isTouched ? 12 : 11,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          radius: isTouched ? 58 : 50,
+          badgeWidget: pct >= 8 && !isTouched
+              ? CategoryIconWidget(
+                  iconKey: cat?.iconKey,
+                  size: 14,
+                  showBackground: false,
+                )
+              : null,
+          badgePositionPercentageOffset: 1.3,
         ),
-        radius: isTouched ? 58 : 50,
-        badgeWidget: pct >= 8 && !isTouched
-            ? CategoryIconWidget(
-                iconKey: cat?.iconKey, size: 14, showBackground: false)
-            : null,
-        badgePositionPercentageOffset: 1.3,
-      ));
+      );
     }
 
     if (othersAmount > 0) {
       final pct = othersAmount / total * 100;
       final isTouched = displayIds.length == _pieTouchedIndex;
-      sections.add(PieChartSectionData(
-        color: Colors.grey,
-        value: othersAmount.toDouble(),
-        title: isTouched
-            ? '¥${fmtYuan(othersAmount)}'
-            : (pct >= 5 ? '${pct.toStringAsFixed(0)}%' : ''),
-        titleStyle: TextStyle(
-          fontSize: isTouched ? 12 : 11,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
+      sections.add(
+        PieChartSectionData(
+          color: Colors.grey,
+          value: othersAmount.toDouble(),
+          title: isTouched
+              ? '¥${fmtYuan(othersAmount)}'
+              : (pct >= 5 ? '${pct.toStringAsFixed(0)}%' : ''),
+          titleStyle: TextStyle(
+            fontSize: isTouched ? 12 : 11,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          radius: isTouched ? 58 : 50,
         ),
-        radius: isTouched ? 58 : 50,
-      ));
+      );
     }
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
+        color: isDark
+            ? NeutralColorsDark.neutral2
+            : NeutralColorsLight.neutral0,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -234,7 +263,9 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
           SizedBox(
             height: 180,
             child: PieChart(
-              key: ValueKey(sections.where((s) => s.badgeWidget != null).length),
+              key: ValueKey(
+                sections.where((s) => s.badgeWidget != null).length,
+              ),
               PieChartData(
                 pieTouchData: PieTouchData(
                   touchCallback: (FlTouchEvent event, pieTouchResponse) {
@@ -245,8 +276,8 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
                         _pieTouchedIndex = -1;
                         return;
                       }
-                      _pieTouchedIndex = pieTouchResponse
-                          .touchedSection!.touchedSectionIndex;
+                      _pieTouchedIndex =
+                          pieTouchResponse.touchedSection!.touchedSectionIndex;
                     });
                   },
                 ),
@@ -297,7 +328,11 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
     );
   }
 
-  Widget _buildMonthlyTrend(bool isDark, ThemeData theme, AppSemanticColors colors) {
+  Widget _buildMonthlyTrend(
+    bool isDark,
+    ThemeData theme,
+    AppSemanticColors colors,
+  ) {
     final monthlyExpense = List.filled(12, 0);
     final monthlyIncome = List.filled(12, 0);
 
@@ -311,8 +346,10 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
       }
     }
 
-    final monthlyBalance =
-        List.generate(12, (i) => monthlyIncome[i] - monthlyExpense[i]);
+    final monthlyBalance = List.generate(
+      12,
+      (i) => monthlyIncome[i] - monthlyExpense[i],
+    );
 
     List<int> data;
     switch (_trendTab) {
@@ -330,7 +367,9 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
+        color: isDark
+            ? NeutralColorsDark.neutral2
+            : NeutralColorsLight.neutral0,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -353,13 +392,20 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  '${_trendTouchedMonth! + 1}月 ${_trendTab == 1 ? "收入" : _trendTab == 2 ? "结余" : "支出"} ${_trendTab == 2 && data[_trendTouchedMonth!] < 0 ? "-" : ""}¥${fmtYuan(data[_trendTouchedMonth!].abs())}',
+                  '${_trendTouchedMonth! + 1}月 ${_trendTab == 1
+                      ? "收入"
+                      : _trendTab == 2
+                      ? "结余"
+                      : "支出"} ${_trendTab == 2 && data[_trendTouchedMonth!] < 0 ? "-" : ""}¥${fmtYuan(data[_trendTouchedMonth!].abs())}',
                   style: theme.textTheme.bodySmall,
                 ),
               ),
@@ -374,8 +420,10 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
                 barTouchData: BarTouchData(
                   touchCallback: (event, response) {
                     if (response?.spot != null) {
-                      setState(() => _trendTouchedMonth =
-                          response!.spot!.touchedBarGroupIndex);
+                      setState(
+                        () => _trendTouchedMonth =
+                            response!.spot!.touchedBarGroupIndex,
+                      );
                     }
                   },
                   touchTooltipData: BarTouchTooltipData(
@@ -384,12 +432,15 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
                   ),
                 ),
                 titlesData: FlTitlesData(
-                  topTitles:
-                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles:
-                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  leftTitles:
-                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  leftTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
@@ -399,8 +450,9 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
                           '${val.toInt() + 1}月',
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontSize: 10,
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
                       ),
@@ -423,8 +475,8 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
                   final color = _trendTab == 2
                       ? (val >= 0 ? colors.income : colors.expense)
                       : (_trendTab == 1
-                          ? colors.income
-                          : (isDark ? colors.expense : ColorTokens.primary));
+                            ? colors.income
+                            : (isDark ? colors.expense : ColorTokens.primary));
                   return BarChartGroupData(
                     x: i,
                     barRods: [
@@ -437,9 +489,11 @@ class _ReportOverviewTabState extends State<ReportOverviewTab> {
                         width: 14,
                         borderRadius: _trendTab == 2 && val < 0
                             ? const BorderRadius.vertical(
-                                bottom: Radius.circular(4))
+                                bottom: Radius.circular(4),
+                              )
                             : const BorderRadius.vertical(
-                                top: Radius.circular(4)),
+                                top: Radius.circular(4),
+                              ),
                       ),
                     ],
                   );

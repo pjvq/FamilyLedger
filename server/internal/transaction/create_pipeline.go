@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	db "github.com/familyledger/server/pkg/db"
-	"github.com/familyledger/server/pkg/permission"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	db "github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/permission"
 
 	pb "github.com/familyledger/server/proto/transaction"
 )
@@ -141,9 +142,9 @@ func checkAccountPermission(ctx context.Context, pool db.Pool, userID uuid.UUID,
 // For family accounts, verifies membership + create permission (consistent with checkAccountPermission).
 // Returns account metadata needed for subsequent steps.
 type accountMeta struct {
-	ownerID    uuid.UUID
-	familyID   *uuid.UUID
-	acctType   string
+	ownerID  uuid.UUID
+	familyID *uuid.UUID
+	acctType string
 }
 
 func verifyAccountInTx(ctx context.Context, tx pgx.Tx, userID, accountID uuid.UUID) (*accountMeta, error) {

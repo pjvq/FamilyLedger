@@ -81,8 +81,10 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline_rounded,
-                        color: context.semanticColors.expense),
+                    Icon(
+                      Icons.delete_outline_rounded,
+                      color: context.semanticColors.expense,
+                    ),
                     const SizedBox(width: 8),
                     Text('删除'),
                   ],
@@ -166,18 +168,19 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
       builder: (ctx) => UpdateValuationDialog(
         assetId: widget.assetId,
         onSubmit: (value) async {
-          await ref.read(assetProvider.notifier).updateValuation(
-                widget.assetId,
-                value,
-                DateTime.now(),
-              );
+          await ref
+              .read(assetProvider.notifier)
+              .updateValuation(widget.assetId, value, DateTime.now());
         },
       ),
     );
   }
 
   void _showDepreciationRuleDialog(
-      BuildContext context, WidgetRef ref, AssetDisplayItem asset) {
+    BuildContext context,
+    WidgetRef ref,
+    AssetDisplayItem asset,
+  ) {
     String method = asset.depreciationMethod;
     int years = asset.usefulLifeYears;
     double rate = asset.salvageRate;
@@ -225,8 +228,7 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
                     max: 30,
                     divisions: 29,
                     label: '$years年',
-                    onChanged: (v) =>
-                        setDialogState(() => years = v.round()),
+                    onChanged: (v) => setDialogState(() => years = v.round()),
                   ),
                   const SizedBox(height: 8),
                   Text('残值率: ${(rate * 100).toStringAsFixed(0)}%'),
@@ -250,7 +252,9 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
             FilledButton(
               onPressed: () async {
                 Navigator.of(ctx).pop();
-                await ref.read(assetProvider.notifier).setDepreciationRule(
+                await ref
+                    .read(assetProvider.notifier)
+                    .setDepreciationRule(
                       widget.assetId,
                       method: method,
                       usefulLifeYears: years,
@@ -375,8 +379,9 @@ class _HeaderCard extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: asset.depreciationProgress,
                 backgroundColor: Colors.white.withValues(alpha: 0.2),
-                valueColor:
-                    AlwaysStoppedAnimation<Color>(Colors.white.withValues(alpha: 0.8)),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Colors.white.withValues(alpha: 0.8),
+                ),
                 minHeight: 6,
               ),
             ),
@@ -410,7 +415,7 @@ class _ValuationChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     if (valuations.length < 2) {
       return SizedBox(
         height: 180,
@@ -453,8 +458,9 @@ class _ValuationChart extends StatelessWidget {
                       final idx = spot.spotIndex;
                       if (idx >= 0 && idx < sorted.length) {
                         final record = sorted[idx];
-                        final dateStr = DateFormat('yyyy/MM/dd')
-                            .format(record.valuationDate);
+                        final dateStr = DateFormat(
+                          'yyyy/MM/dd',
+                        ).format(record.valuationDate);
                         return LineTooltipItem(
                           '¥${(record.value / 100).toStringAsFixed(2)}\n$dateStr',
                           TextStyle(
@@ -480,11 +486,11 @@ class _ValuationChart extends StatelessWidget {
                         show: true,
                         getDotPainter: (spot, percent, bar, index) =>
                             FlDotCirclePainter(
-                          radius: 4,
-                          color: chartColor,
-                          strokeWidth: 2,
-                          strokeColor: isDark ? Colors.black : Colors.white,
-                        ),
+                              radius: 4,
+                              color: chartColor,
+                              strokeWidth: 2,
+                              strokeColor: isDark ? Colors.black : Colors.white,
+                            ),
                       ),
                     );
                   }).toList();
@@ -503,11 +509,11 @@ class _ValuationChart extends StatelessWidget {
                     show: sorted.length <= 20,
                     getDotPainter: (spot, percent, bar, index) =>
                         FlDotCirclePainter(
-                      radius: 3,
-                      color: chartColor,
-                      strokeWidth: 1.5,
-                      strokeColor: isDark ? Colors.black : Colors.white,
-                    ),
+                          radius: 3,
+                          color: chartColor,
+                          strokeWidth: 1.5,
+                          strokeColor: isDark ? Colors.black : Colors.white,
+                        ),
                   ),
                   belowBarData: BarAreaData(
                     show: true,
@@ -564,16 +570,15 @@ class _AssetInfoCard extends StatelessWidget {
               '购入日期',
               DateFormat('yyyy年M月d日').format(asset.purchaseDate),
             ),
-            _infoRow(
-              '折旧方式',
-              depreciationMethodLabel(asset.depreciationMethod),
-            ),
+            _infoRow('折旧方式', depreciationMethodLabel(asset.depreciationMethod)),
             if (asset.depreciationMethod != 'none') ...[
               _infoRow('使用年限', '${asset.usefulLifeYears}年'),
-              _infoRow('残值率', '${(asset.salvageRate * 100).toStringAsFixed(0)}%'),
+              _infoRow(
+                '残值率',
+                '${(asset.salvageRate * 100).toStringAsFixed(0)}%',
+              ),
             ],
-            if (asset.description.isNotEmpty)
-              _infoRow('描述', asset.description),
+            if (asset.description.isNotEmpty) _infoRow('描述', asset.description),
           ],
         ),
       ),
@@ -632,7 +637,7 @@ class _ValuationList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     if (valuations.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(20),
@@ -665,15 +670,17 @@ class _ValuationList extends StatelessWidget {
             : Icons.trending_down_rounded;
         final sourceColor = isManual
             ? colors.asset
-            : (isDark ? NeutralColorsDark.neutral5 : NeutralColorsLight.neutral5);
+            : (isDark
+                  ? NeutralColorsDark.neutral5
+                  : NeutralColorsLight.neutral5);
 
         return Semantics(
-          label: '$sourceLabel，${_fmtYuan(record.value)}元，${DateFormat('yyyy年M月d日').format(record.valuationDate)}',
+          label:
+              '$sourceLabel，${_fmtYuan(record.value)}元，${DateFormat('yyyy年M月d日').format(record.valuationDate)}',
           child: Card(
             margin: const EdgeInsets.only(bottom: 4),
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
                   Container(
@@ -699,11 +706,11 @@ class _ValuationList extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          DateFormat('yyyy-MM-dd')
-                              .format(record.valuationDate),
+                          DateFormat('yyyy-MM-dd').format(record.valuationDate),
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.4),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.4,
+                            ),
                             fontSize: 11,
                           ),
                         ),

@@ -92,7 +92,9 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
         appBar: AppBar(title: const Text('贷款详情')),
         body: ErrorState(
           message: loanState.error ?? '贷款组不存在',
-          onRetry: () => ref.read(loanProvider.notifier).getLoanGroupDetail(widget.groupId),
+          onRetry: () => ref
+              .read(loanProvider.notifier)
+              .getLoanGroupDetail(widget.groupId),
         ),
       );
     }
@@ -109,8 +111,10 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
             itemBuilder: (context) => [
               PopupMenuItem(
                 value: 'delete',
-                child: Text('删除贷款组',
-                    style: TextStyle(color: context.semanticColors.expense)),
+                child: Text(
+                  '删除贷款组',
+                  style: TextStyle(color: context.semanticColors.expense),
+                ),
               ),
             ],
           ),
@@ -119,11 +123,7 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
       body: Column(
         children: [
           // Summary card
-          _GroupSummaryCard(
-            group: group,
-            isDark: isDark,
-            theme: theme,
-          ),
+          _GroupSummaryCard(group: group, isDark: isDark, theme: theme),
           // Action buttons
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -150,7 +150,8 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
                       icon: Icons.account_balance_rounded,
                       label: '商贷详情',
                       semanticLabel: '查看商业贷款详情',
-                      onTap: () => context.push(AppRouter.loanDetail(comLoan.id)),
+                      onTap: () =>
+                          context.push(AppRouter.loanDetail(comLoan.id)),
                     ),
                   ),
                 if (pvdLoan != null) ...[
@@ -160,7 +161,8 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
                       icon: Icons.home_rounded,
                       label: '公积金详情',
                       semanticLabel: '查看公积金贷款详情',
-                      onTap: () => context.push(AppRouter.loanDetail(pvdLoan.id)),
+                      onTap: () =>
+                          context.push(AppRouter.loanDetail(pvdLoan.id)),
                     ),
                   ),
                 ],
@@ -231,7 +233,8 @@ class _LoanGroupDetailPageState extends ConsumerState<LoanGroupDetailPage>
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                  backgroundColor: context.semanticColors.expense),
+                backgroundColor: context.semanticColors.expense,
+              ),
               onPressed: () => Navigator.of(ctx).pop(true),
               child: const Text('删除'),
             ),
@@ -261,7 +264,7 @@ class _GroupSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     final comLoan = group.commercialLoan;
     final pvdLoan = group.providentLoan;
 
@@ -273,7 +276,10 @@ class _GroupSummaryCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? [DarkCardGradients.loanGroupStart, DarkCardGradients.loanGroupEnd]
+              ? [
+                  DarkCardGradients.loanGroupStart,
+                  DarkCardGradients.loanGroupEnd,
+                ]
               : [
                   GradientTokens.primaryGradientStart.withValues(alpha: 0.08),
                   ColorTokens.primaryLight.withValues(alpha: 0.04),
@@ -290,10 +296,14 @@ class _GroupSummaryCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
-                  color: GradientTokens.primaryGradientStart.withValues(alpha: 0.15),
+                  color: GradientTokens.primaryGradientStart.withValues(
+                    alpha: 0.15,
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
@@ -315,10 +325,14 @@ class _GroupSummaryCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('总月供',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5))),
+                    Text(
+                      '总月供',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       '¥${_fmtCents(group.totalMonthlyPayment)}',
@@ -329,10 +343,14 @@ class _GroupSummaryCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text('剩余本金',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5))),
+                    Text(
+                      '剩余本金',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       '¥${_fmtCents(group.totalRemainingPrincipal)}',
@@ -383,8 +401,7 @@ class _GroupSummaryCard extends StatelessWidget {
                   principal: '¥${_fmtCents(comLoan.principal)}',
                   theme: theme,
                 ),
-              if (comLoan != null && pvdLoan != null)
-                const SizedBox(width: 8),
+              if (comLoan != null && pvdLoan != null) const SizedBox(width: 8),
               if (pvdLoan != null)
                 _SubLoanSummaryChip(
                   label: '公积金',
@@ -439,24 +456,31 @@ class _SubLoanSummaryChip extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 6),
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: color)),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 4),
-            Text(principal,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                  fontWeight: FontWeight.w500,
-                )),
-            Text('利率 $rate',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                )),
+            Text(
+              principal,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Text(
+              '利率 $rate',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
           ],
         ),
       ),
@@ -483,14 +507,13 @@ class _OverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     if (!loaded) {
       return const SingleChildScrollView(
         child: SkeletonList(count: 3, itemHeight: 64),
       );
     }
-    final maxMonths =
-        math.max(comSchedule.length, pvdSchedule.length);
+    final maxMonths = math.max(comSchedule.length, pvdSchedule.length);
     if (maxMonths == 0) {
       return const Center(child: Text('暂无还款计划'));
     }
@@ -499,17 +522,14 @@ class _OverviewTab extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: maxMonths,
       itemBuilder: (context, index) {
-        final comItem =
-            index < comSchedule.length ? comSchedule[index] : null;
-        final pvdItem =
-            index < pvdSchedule.length ? pvdSchedule[index] : null;
+        final comItem = index < comSchedule.length ? comSchedule[index] : null;
+        final pvdItem = index < pvdSchedule.length ? pvdSchedule[index] : null;
 
-        final totalPayment =
-            (comItem?.payment ?? 0) + (pvdItem?.payment ?? 0);
-        final totalPrincipal = (comItem?.principalPart ?? 0) +
-            (pvdItem?.principalPart ?? 0);
-        final totalInterest = (comItem?.interestPart ?? 0) +
-            (pvdItem?.interestPart ?? 0);
+        final totalPayment = (comItem?.payment ?? 0) + (pvdItem?.payment ?? 0);
+        final totalPrincipal =
+            (comItem?.principalPart ?? 0) + (pvdItem?.principalPart ?? 0);
+        final totalInterest =
+            (comItem?.interestPart ?? 0) + (pvdItem?.interestPart ?? 0);
         final dueDate = comItem?.dueDate ?? pvdItem!.dueDate;
         final isPaid = (comItem?.isPaid ?? true) && (pvdItem?.isPaid ?? true);
 
@@ -519,8 +539,8 @@ class _OverviewTab extends StatelessWidget {
           decoration: BoxDecoration(
             color: isPaid
                 ? (isDark
-                    ? context.semanticColors.income.withValues(alpha: 0.05)
-                    : context.semanticColors.income.withValues(alpha: 0.02))
+                      ? context.semanticColors.income.withValues(alpha: 0.05)
+                      : context.semanticColors.income.withValues(alpha: 0.02))
                 : null,
             border: Border(
               bottom: BorderSide(
@@ -544,16 +564,16 @@ class _OverviewTab extends StatelessWidget {
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w500,
                         color: isPaid
-                            ? theme.colorScheme.onSurface
-                                .withValues(alpha: 0.4)
+                            ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
                             : null,
                       ),
                     ),
                     Text(
                       DateFormat('yyyy/MM').format(dueDate),
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.35),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.35,
+                        ),
                       ),
                     ),
                   ],
@@ -570,10 +590,12 @@ class _OverviewTab extends StatelessWidget {
                         flex: comItem.payment,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: ColorTokens.primaryDark
-                                .withValues(alpha: isPaid ? 0.3 : 0.7),
+                            color: ColorTokens.primaryDark.withValues(
+                              alpha: isPaid ? 0.3 : 0.7,
+                            ),
                             borderRadius: const BorderRadius.horizontal(
-                                left: Radius.circular(3)),
+                              left: Radius.circular(3),
+                            ),
                           ),
                         ),
                       ),
@@ -582,10 +604,12 @@ class _OverviewTab extends StatelessWidget {
                         flex: pvdItem.payment,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: ColorTokens.primaryLight
-                                .withValues(alpha: isPaid ? 0.3 : 0.7),
+                            color: ColorTokens.primaryLight.withValues(
+                              alpha: isPaid ? 0.3 : 0.7,
+                            ),
                             borderRadius: const BorderRadius.horizontal(
-                                right: Radius.circular(3)),
+                              right: Radius.circular(3),
+                            ),
                           ),
                         ),
                       ),
@@ -604,16 +628,16 @@ class _OverviewTab extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         fontFeatures: const [FontFeature.tabularFigures()],
                         color: isPaid
-                            ? theme.colorScheme.onSurface
-                                .withValues(alpha: 0.4)
+                            ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
                             : null,
                       ),
                     ),
                     Text(
                       '本金 ${_fmtCents(totalPrincipal)}  利息 ${_fmtCents(totalInterest)}',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.35),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.35,
+                        ),
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -622,9 +646,11 @@ class _OverviewTab extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               if (isPaid)
-                Icon(Icons.check_circle_rounded,
-                    size: 16,
-                    color: colors.income),
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 16,
+                  color: colors.income,
+                ),
             ],
           ),
         );
@@ -656,7 +682,7 @@ class _SubLoanTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     if (loan == null) {
       return Center(child: Text('无$label贷款'));
     }
@@ -694,35 +720,20 @@ class _SubLoanTab extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('本金',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.5))),
-                        Text('¥${_fmtCents(loan!.principal)}',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures()
-                                ])),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('年利率',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.5))),
                         Text(
-                          '${loan!.annualRate.toStringAsFixed(2)}%'
-                          '${loan!.rateType == "lpr_floating" ? " (LPR)" : ""}',
+                          '本金',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '¥${_fmtCents(loan!.principal)}',
                           style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures()
-                              ]),
+                            fontWeight: FontWeight.bold,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                         ),
                       ],
                     ),
@@ -731,17 +742,43 @@ class _SubLoanTab extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('进度',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.5))),
+                        Text(
+                          '年利率',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${loan!.annualRate.toStringAsFixed(2)}%'
+                          '${loan!.rateType == "lpr_floating" ? " (LPR)" : ""}',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '进度',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                        ),
                         Text(
                           '${loan!.paidMonths}/${loan!.totalMonths}期·${(progress * 100).toStringAsFixed(0)}%',
                           style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures()
-                              ]),
+                            fontWeight: FontWeight.bold,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                         ),
                       ],
                     ),
@@ -756,17 +793,22 @@ class _SubLoanTab extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('剩余本金',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.5))),
-                        Text('¥${_fmtCents(loan!.remainingPrincipal)}',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: colors.liability,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures()
-                                ])),
+                        Text(
+                          '剩余本金',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '¥${_fmtCents(loan!.remainingPrincipal)}',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colors.liability,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -774,16 +816,21 @@ class _SubLoanTab extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('剩余利息',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.5))),
-                        Text('¥${_fmtCents(remainingInterest)}',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures()
-                                ])),
+                        Text(
+                          '剩余利息',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '¥${_fmtCents(remainingInterest)}',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -805,20 +852,20 @@ class _SubLoanTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        Text('还款计划',
-            style: theme.textTheme.titleSmall
-                ?.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          '还款计划',
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 8),
         // Schedule list
         ...schedule.map((item) {
-          final isCurrent =
-              item.monthNumber == loan!.paidMonths + 1;
+          final isCurrent = item.monthNumber == loan!.paidMonths + 1;
           return Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             decoration: BoxDecoration(
-              color: isCurrent
-                  ? color.withValues(alpha: 0.06)
-                  : null,
+              color: isCurrent ? color.withValues(alpha: 0.06) : null,
               border: Border(
                 bottom: BorderSide(
                   color: isDark
@@ -846,8 +893,9 @@ class _SubLoanTab extends StatelessWidget {
                   child: Text(
                     DateFormat('yyyy/MM').format(item.dueDate),
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color:
-                          theme.colorScheme.onSurface.withValues(alpha: 0.35),
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.35,
+                      ),
                     ),
                   ),
                 ),
@@ -863,9 +911,11 @@ class _SubLoanTab extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 if (item.isPaid)
-                  Icon(Icons.check_circle_rounded,
-                      size: 14,
-                      color: colors.income)
+                  Icon(
+                    Icons.check_circle_rounded,
+                    size: 14,
+                    color: colors.income,
+                  )
                 else
                   const SizedBox(width: 14),
               ],
@@ -903,7 +953,9 @@ class _ActionButton extends StatelessWidget {
       label: semanticLabel,
       button: true,
       child: Material(
-        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
+        color: isDark
+            ? NeutralColorsDark.neutral2
+            : NeutralColorsLight.neutral2,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
@@ -911,27 +963,37 @@ class _ActionButton extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 68),
             child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    icon,
                     size: 22,
-                    color:
-                        isDark ? ColorTokens.primaryLight : ColorTokens.primary),
-                const SizedBox(height: 4),
-                Text(label,
-                    style: theme.textTheme.labelSmall
-                        ?.copyWith(fontWeight: FontWeight.w500)),
-                if (sublabel != null)
-                  Text(sublabel!,
+                    color: isDark
+                        ? ColorTokens.primaryLight
+                        : ColorTokens.primary,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (sublabel != null)
+                    Text(
+                      sublabel!,
                       style: theme.textTheme.labelSmall?.copyWith(
-                          fontSize: 9,
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.4))),
-              ],
+                        fontSize: 9,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
           ),
         ),
       ),

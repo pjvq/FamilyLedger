@@ -55,7 +55,9 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
     final price = (double.tryParse(_priceController.text) ?? 0) * 100;
     if (price <= 0) return;
 
-    await ref.read(assetProvider.notifier).createAsset(
+    await ref
+        .read(assetProvider.notifier)
+        .createAsset(
           name: _nameController.text.trim(),
           assetType: _selectedType,
           purchasePrice: price.round(),
@@ -91,225 +93,227 @@ class _AddAssetPageState extends ConsumerState<AddAssetPage> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-      appBar: AppBar(
-        title: const Text('添加资产'),
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-          children: [
-            // Family/personal scope selector
-            FamilyScopeSelector(
-              onChanged: (fid) => _scopeFamilyId = fid,
-            ),
-            // Asset name
-            Semantics(
-              label: '资产名称',
-              child: TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: '资产名称',
-                  hintText: '例如：MacBook Pro 2024',
-                  prefixIcon: Icon(Icons.label_outline_rounded),
+        appBar: AppBar(title: const Text('添加资产')),
+        body: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            children: [
+              // Family/personal scope selector
+              FamilyScopeSelector(onChanged: (fid) => _scopeFamilyId = fid),
+              // Asset name
+              Semantics(
+                label: '资产名称',
+                child: TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: '资产名称',
+                    hintText: '例如：MacBook Pro 2024',
+                    prefixIcon: Icon(Icons.label_outline_rounded),
+                  ),
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? '请输入资产名称' : null,
+                  textInputAction: TextInputAction.next,
                 ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? '请输入资产名称' : null,
-                textInputAction: TextInputAction.next,
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // Type selector
-            Text(
-              '资产类型',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
+              // Type selector
+              Text(
+                '资产类型',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 80,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: _assetTypes.map((t) {
-                  final (type, icon, label) = t;
-                  final isSelected = _selectedType == type;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Semantics(
-                      label: '$label${isSelected ? "，已选中" : ""}',
-                      button: true,
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedType = type),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: 72,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? (isDark
-                                    ? context.semanticColors.asset.withValues(alpha: 0.2)
-                                    : context.semanticColors.asset.withValues(alpha: 0.1))
-                                : (isDark
-                                    ? NeutralColorsDark.neutral2
-                                    : NeutralColorsLight.neutral2),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 80,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: _assetTypes.map((t) {
+                    final (type, icon, label) = t;
+                    final isSelected = _selectedType == type;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Semantics(
+                        label: '$label${isSelected ? "，已选中" : ""}',
+                        button: true,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedType = type),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 72,
+                            decoration: BoxDecoration(
                               color: isSelected
-                                  ? colors.asset
-                                  : Colors.transparent,
-                              width: 2,
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(icon,
-                                  style: const TextStyle(fontSize: 24)),
-                              const SizedBox(height: 4),
-                              Text(
-                                label,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
-                                  color: isSelected
-                                      ? colors.asset
-                                      : theme.colorScheme.onSurface
-                                          .withValues(alpha: 0.6),
-                                ),
+                                  ? (isDark
+                                        ? context.semanticColors.asset
+                                              .withValues(alpha: 0.2)
+                                        : context.semanticColors.asset
+                                              .withValues(alpha: 0.1))
+                                  : (isDark
+                                        ? NeutralColorsDark.neutral2
+                                        : NeutralColorsLight.neutral2),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isSelected
+                                    ? colors.asset
+                                    : Colors.transparent,
+                                width: 2,
                               ),
-                            ],
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  icon,
+                                  style: const TextStyle(fontSize: 24),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  label,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                    color: isSelected
+                                        ? colors.asset
+                                        : theme.colorScheme.onSurface
+                                              .withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Purchase price
+              Semantics(
+                label: '购入价格',
+                child: TextFormField(
+                  controller: _priceController,
+                  decoration: const InputDecoration(
+                    labelText: '购入价格（元）',
+                    hintText: '0.00',
+                    prefixIcon: Icon(Icons.payments_outlined),
+                    prefixText: '¥ ',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\d+\.?\d{0,2}'),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Purchase price
-            Semantics(
-              label: '购入价格',
-              child: TextFormField(
-                controller: _priceController,
-                decoration: const InputDecoration(
-                  labelText: '购入价格（元）',
-                  hintText: '0.00',
-                  prefixIcon: Icon(Icons.payments_outlined),
-                  prefixText: '¥ ',
+                  ],
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return '请输入购入价格';
+                    final val = double.tryParse(v);
+                    if (val == null || val <= 0) return '请输入有效金额';
+                    return null;
+                  },
+                  textInputAction: TextInputAction.next,
                 ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                ],
-                validator: (v) {
-                  if (v == null || v.isEmpty) return '请输入购入价格';
-                  final val = double.tryParse(v);
-                  if (val == null || val <= 0) return '请输入有效金额';
-                  return null;
-                },
-                textInputAction: TextInputAction.next,
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // Purchase date
-            Semantics(
-              label:
-                  '购入日期 ${DateFormat('yyyy年M月d日').format(_purchaseDate)}',
-              button: true,
-              child: ListTile(
-                leading: const Icon(Icons.calendar_month_rounded),
-                title: const Text('购入日期'),
-                trailing: Text(
-                  DateFormat('yyyy-MM-dd').format(_purchaseDate),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+              // Purchase date
+              Semantics(
+                label: '购入日期 ${DateFormat('yyyy年M月d日').format(_purchaseDate)}',
+                button: true,
+                child: ListTile(
+                  leading: const Icon(Icons.calendar_month_rounded),
+                  title: const Text('购入日期'),
+                  trailing: Text(
+                    DateFormat('yyyy-MM-dd').format(_purchaseDate),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                    ),
                   ),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _purchaseDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() => _purchaseDate = picked);
+                    }
+                  },
                 ),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: _purchaseDate,
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime.now(),
-                  );
-                  if (picked != null) {
-                    setState(() => _purchaseDate = picked);
-                  }
-                },
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // Description
-            Semantics(
-              label: '描述（选填）',
-              child: TextFormField(
-                controller: _descController,
-                decoration: const InputDecoration(
-                  labelText: '描述（选填）',
-                  hintText: '型号、颜色、配置等备注',
-                  prefixIcon: Icon(Icons.notes_rounded),
+              // Description
+              Semantics(
+                label: '描述（选填）',
+                child: TextFormField(
+                  controller: _descController,
+                  decoration: const InputDecoration(
+                    labelText: '描述（选填）',
+                    hintText: '型号、颜色、配置等备注',
+                    prefixIcon: Icon(Icons.notes_rounded),
+                  ),
+                  maxLines: 2,
+                  textInputAction: TextInputAction.done,
                 ),
-                maxLines: 2,
-                textInputAction: TextInputAction.done,
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // Depreciation section
-            _DepreciationSection(
-              isExpanded: _showDepreciationSettings,
-              method: _depreciationMethod,
-              usefulLifeYears: _usefulLifeYears,
-              salvageRate: _salvageRate,
-              yearPresets: _yearPresets,
-              isDark: isDark,
-              theme: theme,
-              onToggle: () => setState(
-                  () => _showDepreciationSettings = !_showDepreciationSettings),
-              onMethodChanged: (m) =>
-                  setState(() => _depreciationMethod = m),
-              onYearsChanged: (y) =>
-                  setState(() => _usefulLifeYears = y),
-              onSalvageRateChanged: (r) =>
-                  setState(() => _salvageRate = r),
-              onPresetApplied: _applyPreset,
-            ),
-            const SizedBox(height: 32),
-
-            // Submit button
-            FilledButton.icon(
-              onPressed: assetState.isLoading ? null : _submit,
-              icon: assetState.isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.check_rounded),
-              label: const Text('添加资产'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(double.infinity, 52),
+              // Depreciation section
+              _DepreciationSection(
+                isExpanded: _showDepreciationSettings,
+                method: _depreciationMethod,
+                usefulLifeYears: _usefulLifeYears,
+                salvageRate: _salvageRate,
+                yearPresets: _yearPresets,
+                isDark: isDark,
+                theme: theme,
+                onToggle: () => setState(
+                  () => _showDepreciationSettings = !_showDepreciationSettings,
+                ),
+                onMethodChanged: (m) => setState(() => _depreciationMethod = m),
+                onYearsChanged: (y) => setState(() => _usefulLifeYears = y),
+                onSalvageRateChanged: (r) => setState(() => _salvageRate = r),
+                onPresetApplied: _applyPreset,
               ),
-            ),
-          ],
+              const SizedBox(height: 32),
+
+              // Submit button
+              FilledButton.icon(
+                onPressed: assetState.isLoading ? null : _submit,
+                icon: assetState.isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.check_rounded),
+                label: const Text('添加资产'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 52),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }
@@ -347,7 +351,7 @@ class _DepreciationSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     return Card(
       child: Column(
         children: [
@@ -362,10 +366,7 @@ class _DepreciationSection extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.trending_down_rounded,
-                      color: colors.asset,
-                    ),
+                    Icon(Icons.trending_down_rounded, color: colors.asset),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -382,8 +383,9 @@ class _DepreciationSection extends StatelessWidget {
                                 ? '不折旧'
                                 : '${depreciationMethodLabel(method)} · $usefulLifeYears年 · 残值${(salvageRate * 100).toStringAsFixed(0)}%',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.5),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
+                              ),
                             ),
                           ),
                         ],
@@ -394,8 +396,9 @@ class _DepreciationSection extends StatelessWidget {
                       duration: const Duration(milliseconds: 200),
                       child: Icon(
                         Icons.expand_more_rounded,
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.4),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
                       ),
                     ),
                   ],
@@ -441,18 +444,15 @@ class _DepreciationSection extends StatelessWidget {
                       segments: const [
                         ButtonSegment(
                           value: 'none',
-                          label: Text('不折旧',
-                              style: TextStyle(fontSize: 12)),
+                          label: Text('不折旧', style: TextStyle(fontSize: 12)),
                         ),
                         ButtonSegment(
                           value: 'straight_line',
-                          label: Text('直线法',
-                              style: TextStyle(fontSize: 12)),
+                          label: Text('直线法', style: TextStyle(fontSize: 12)),
                         ),
                         ButtonSegment(
                           value: 'double_declining',
-                          label: Text('双倍余额',
-                              style: TextStyle(fontSize: 12)),
+                          label: Text('双倍余额', style: TextStyle(fontSize: 12)),
                         ),
                       ],
                       selected: {method},
@@ -475,8 +475,7 @@ class _DepreciationSection extends StatelessWidget {
                           '$usefulLifeYears 年',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
-                            color:
-                                colors.asset,
+                            color: colors.asset,
                           ),
                         ),
                       ],
@@ -497,8 +496,10 @@ class _DepreciationSection extends StatelessWidget {
                         return Semantics(
                           label: '$y年${isSelected ? "，已选中" : ""}',
                           child: ChoiceChip(
-                            label: Text('$y年',
-                                style: const TextStyle(fontSize: 12)),
+                            label: Text(
+                              '$y年',
+                              style: const TextStyle(fontSize: 12),
+                            ),
                             selected: isSelected,
                             onSelected: (_) => onYearsChanged(y),
                           ),
@@ -520,8 +521,7 @@ class _DepreciationSection extends StatelessWidget {
                           '${(salvageRate * 100).toStringAsFixed(0)}%',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
-                            color:
-                                colors.asset,
+                            color: colors.asset,
                           ),
                         ),
                       ],

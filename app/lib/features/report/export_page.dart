@@ -44,7 +44,9 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       ...txnState.expenseCategories,
       ...txnState.incomeCategories,
     ];
-    final parentCats = allCats.where((c) => c.parentId == null || c.parentId!.isEmpty).toList();
+    final parentCats = allCats
+        .where((c) => c.parentId == null || c.parentId!.isEmpty)
+        .toList();
     final childrenMap = <String, List<Category>>{};
     for (final c in allCats) {
       if (c.parentId != null && c.parentId!.isNotEmpty) {
@@ -53,17 +55,17 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('数据导出'),
-        centerTitle: false,
-      ),
+      appBar: AppBar(title: const Text('数据导出'), centerTitle: false),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // Date range
-          Text('时间范围', style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          )),
+          Text(
+            '时间范围',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 8),
           InkWell(
             onTap: _pickDateRange,
@@ -71,7 +73,9 @@ class _ExportPageState extends ConsumerState<ExportPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
+                color: isDark
+                    ? NeutralColorsDark.neutral2
+                    : NeutralColorsLight.neutral0,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
@@ -79,9 +83,13 @@ class _ExportPageState extends ConsumerState<ExportPage> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.calendar_today_rounded,
-                      size: 18,
-                      color: isDark ? ColorTokens.primaryLight : ColorTokens.primary),
+                  Icon(
+                    Icons.calendar_today_rounded,
+                    size: 18,
+                    color: isDark
+                        ? ColorTokens.primaryLight
+                        : ColorTokens.primary,
+                  ),
                   const SizedBox(width: 10),
                   Text(
                     _dateRange != null
@@ -90,8 +98,10 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                     style: theme.textTheme.bodyMedium,
                   ),
                   const Spacer(),
-                  Icon(Icons.arrow_drop_down_rounded,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+                  Icon(
+                    Icons.arrow_drop_down_rounded,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                  ),
                 ],
               ),
             ),
@@ -101,9 +111,12 @@ class _ExportPageState extends ConsumerState<ExportPage> {
           // Category filter — hierarchical
           Row(
             children: [
-              Text('分类筛选', style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              )),
+              Text(
+                '分类筛选',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const Spacer(),
               TextButton(
                 onPressed: () => setState(() => _selectedCategoryIds = {}),
@@ -121,18 +134,36 @@ class _ExportPageState extends ConsumerState<ExportPage> {
               child: Text(
                 '已选 ${_selectedCategoryIds.length} 个分类',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
+                  color: isDark
+                      ? ColorTokens.primaryLight
+                      : ColorTokens.primary,
                 ),
               ),
             ),
 
           // Expense categories
-          if (txnState.expenseCategories.any((c) => c.parentId == null || c.parentId!.isEmpty))
-            _buildCategorySection('支出分类', parentCats.where((c) => c.type == 'expense').toList(), childrenMap, theme, isDark),
+          if (txnState.expenseCategories.any(
+            (c) => c.parentId == null || c.parentId!.isEmpty,
+          ))
+            _buildCategorySection(
+              '支出分类',
+              parentCats.where((c) => c.type == 'expense').toList(),
+              childrenMap,
+              theme,
+              isDark,
+            ),
           const SizedBox(height: 8),
           // Income categories
-          if (txnState.incomeCategories.any((c) => c.parentId == null || c.parentId!.isEmpty))
-            _buildCategorySection('收入分类', parentCats.where((c) => c.type == 'income').toList(), childrenMap, theme, isDark),
+          if (txnState.incomeCategories.any(
+            (c) => c.parentId == null || c.parentId!.isEmpty,
+          ))
+            _buildCategorySection(
+              '收入分类',
+              parentCats.where((c) => c.type == 'income').toList(),
+              childrenMap,
+              theme,
+              isDark,
+            ),
 
           const SizedBox(height: 32),
 
@@ -174,16 +205,23 @@ class _ExportPageState extends ConsumerState<ExportPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: theme.textTheme.labelMedium?.copyWith(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-          fontWeight: FontWeight.w600,
-        )),
+        Text(
+          title,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 4),
         ...parents.map((parent) {
           final children = childrenMap[parent.id] ?? [];
           final allIds = [parent.id, ...children.map((c) => c.id)];
-          final allSelected = allIds.every((id) => _selectedCategoryIds.contains(id));
-          final someSelected = allIds.any((id) => _selectedCategoryIds.contains(id));
+          final allSelected = allIds.every(
+            (id) => _selectedCategoryIds.contains(id),
+          );
+          final someSelected = allIds.any(
+            (id) => _selectedCategoryIds.contains(id),
+          );
           final isExpanded = children.isNotEmpty;
 
           if (!isExpanded) {
@@ -191,7 +229,10 @@ class _ExportPageState extends ConsumerState<ExportPage> {
             return CheckboxListTile(
               dense: true,
               visualDensity: VisualDensity.compact,
-              title: Text('${parent.name}', style: const TextStyle(fontSize: 14)),
+              title: Text(
+                '${parent.name}',
+                style: const TextStyle(fontSize: 14),
+              ),
               value: _selectedCategoryIds.contains(parent.id),
               onChanged: (v) {
                 setState(() {
@@ -222,19 +263,26 @@ class _ExportPageState extends ConsumerState<ExportPage> {
                 });
               },
             ),
-            title: Text('${parent.name}',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-            trailing: Text('${children.length} 个子分类',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                  fontSize: 11,
-                )),
+            title: Text(
+              '${parent.name}',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+            trailing: Text(
+              '${children.length} 个子分类',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                fontSize: 11,
+              ),
+            ),
             children: children.map((child) {
               return CheckboxListTile(
                 dense: true,
                 visualDensity: VisualDensity.compact,
                 contentPadding: const EdgeInsets.only(left: 56),
-                title: Text('${child.name}', style: const TextStyle(fontSize: 13)),
+                title: Text(
+                  '${child.name}',
+                  style: const TextStyle(fontSize: 13),
+                ),
                 value: _selectedCategoryIds.contains(child.id),
                 onChanged: (v) {
                   setState(() {
@@ -262,15 +310,18 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       final userId = ref.read(currentUserIdProvider);
       if (userId == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('未登录')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('未登录')));
         }
         return;
       }
 
-      final allTxns = await db.getRecentTransactions(userId, 100000,
-          familyId: ref.read(currentFamilyIdProvider));
+      final allTxns = await db.getRecentTransactions(
+        userId,
+        100000,
+        familyId: ref.read(currentFamilyIdProvider),
+      );
       final categories = await db.getAllCategories();
       final catMap = {for (final c in categories) c.id: c};
       final familyId = ref.read(currentFamilyIdProvider);
@@ -290,7 +341,8 @@ class _ExportPageState extends ConsumerState<ExportPage> {
             t.txnDate.isAfter(endDate.add(const Duration(days: 1)))) {
           return false;
         }
-        if (_selectedCategoryIds.isNotEmpty && !_selectedCategoryIds.contains(t.categoryId)) {
+        if (_selectedCategoryIds.isNotEmpty &&
+            !_selectedCategoryIds.contains(t.categoryId)) {
           return false;
         }
         return true;
@@ -315,7 +367,8 @@ class _ExportPageState extends ConsumerState<ExportPage> {
           catName = '';
         }
 
-        final datetime = '${t.txnDate.year}-'
+        final datetime =
+            '${t.txnDate.year}-'
             '${t.txnDate.month.toString().padLeft(2, '0')}-'
             '${t.txnDate.day.toString().padLeft(2, '0')} '
             '${t.txnDate.hour.toString().padLeft(2, '0')}:'
@@ -326,7 +379,9 @@ class _ExportPageState extends ConsumerState<ExportPage> {
         final accName = accMap[t.accountId]?.name ?? '未知';
         final note = _escapeCsv(t.note);
 
-        buffer.writeln('$datetime,$typeLabel,${_escapeCsv(parentCatName)},${_escapeCsv(catName)},$yuan,${_escapeCsv(accName)},$note');
+        buffer.writeln(
+          '$datetime,$typeLabel,${_escapeCsv(parentCatName)},${_escapeCsv(catName)},$yuan,${_escapeCsv(accName)},$note',
+        );
       }
 
       final csvBytes = utf8.encode(buffer.toString());
@@ -351,9 +406,9 @@ class _ExportPageState extends ConsumerState<ExportPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导出失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('导出失败: $e')));
       }
     } finally {
       if (mounted) setState(() => _isExporting = false);

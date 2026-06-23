@@ -6,8 +6,9 @@ import 'app_providers.dart';
 const _kThemeModeKey = 'app_theme_mode';
 
 /// 0 = system, 1 = light, 2 = dark
-final themeModeProvider =
-    StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
+final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((
+  ref,
+) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return ThemeModeNotifier(prefs);
 });
@@ -16,7 +17,7 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   final SharedPreferences _prefs;
 
   ThemeModeNotifier(this._prefs)
-      : super(_fromIndex(_prefs.getInt(_kThemeModeKey) ?? 0));
+    : super(_fromIndex(_prefs.getInt(_kThemeModeKey) ?? 0));
 
   static ThemeMode _fromIndex(int index) {
     switch (index) {

@@ -77,9 +77,12 @@ void main() async {
         ..principal = Int64(10000000)
         ..annualRate = 3.85
         ..totalMonths = 360
-        ..repaymentMethod = pb_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_INSTALLMENT
+        ..repaymentMethod =
+            pb_enum.RepaymentMethod.REPAYMENT_METHOD_EQUAL_INSTALLMENT
         ..paymentDay = 15
-        ..startDate = ts_pb.Timestamp(seconds: Int64(now.millisecondsSinceEpoch ~/ 1000))
+        ..startDate = ts_pb.Timestamp(
+          seconds: Int64(now.millisecondsSinceEpoch ~/ 1000),
+        )
         ..familyId = familyId,
       options: authOpts,
     );
@@ -109,7 +112,6 @@ void main() async {
     for (final loan in listResp2.loans) {
       print('  - ${loan.name} | familyId="${loan.familyId}"');
     }
-
   } catch (e, st) {
     print('FATAL ERROR: $e');
     print('Stack: $st');

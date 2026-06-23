@@ -15,48 +15,52 @@ void main() {
 
   group('AnimatedAmountDisplay', () {
     testWidgets('shows zero by default', (tester) async {
-      await tester.pumpWidget(wrapInApp(
-        const AnimatedAmountDisplay(expression: '0'),
-      ));
+      await tester.pumpWidget(
+        wrapInApp(const AnimatedAmountDisplay(expression: '0')),
+      );
       expect(find.text('0'), findsOneWidget);
       expect(find.text('¥'), findsOneWidget);
     });
 
-    testWidgets('shows expression with operator and computed result', (tester) async {
-      await tester.pumpWidget(wrapInApp(
-        const AnimatedAmountDisplay(expression: '100+50'),
-      ));
+    testWidgets('shows expression with operator and computed result', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInApp(const AnimatedAmountDisplay(expression: '100+50')),
+      );
       expect(find.text('100+50'), findsOneWidget);
       expect(find.text('= ¥150'), findsOneWidget);
     });
 
     testWidgets('shows note when provided', (tester) async {
-      await tester.pumpWidget(wrapInApp(
-        const AnimatedAmountDisplay(expression: '88', note: '午餐'),
-      ));
+      await tester.pumpWidget(
+        wrapInApp(const AnimatedAmountDisplay(expression: '88', note: '午餐')),
+      );
       expect(find.text('午餐'), findsOneWidget);
     });
 
     testWidgets('shows placeholder when no note', (tester) async {
-      await tester.pumpWidget(wrapInApp(
-        const AnimatedAmountDisplay(expression: '0'),
-      ));
+      await tester.pumpWidget(
+        wrapInApp(const AnimatedAmountDisplay(expression: '0')),
+      );
       expect(find.text('添加备注...'), findsOneWidget);
     });
   });
 
   group('QuickNumberPad', () {
     testWidgets('renders all digit keys', (tester) async {
-      await tester.pumpWidget(wrapInApp(
-        QuickNumberPad(
-          onDigit: (_) {},
-          onDelete: () {},
-          onClear: () {},
-          onConfirm: () {},
-          onDateTap: () {},
-          onOperator: (_) {},
+      await tester.pumpWidget(
+        wrapInApp(
+          QuickNumberPad(
+            onDigit: (_) {},
+            onDelete: () {},
+            onClear: () {},
+            onConfirm: () {},
+            onDateTap: () {},
+            onOperator: (_) {},
+          ),
         ),
-      ));
+      );
       for (var i = 0; i <= 9; i++) {
         expect(find.text('$i'), findsOneWidget);
       }
@@ -68,49 +72,57 @@ void main() {
 
     testWidgets('calls onDigit when digit tapped', (tester) async {
       String? tapped;
-      await tester.pumpWidget(wrapInApp(
-        QuickNumberPad(
-          onDigit: (d) => tapped = d,
-          onDelete: () {},
-          onClear: () {},
-          onConfirm: () {},
-          onDateTap: () {},
-          onOperator: (_) {},
+      await tester.pumpWidget(
+        wrapInApp(
+          QuickNumberPad(
+            onDigit: (d) => tapped = d,
+            onDelete: () {},
+            onClear: () {},
+            onConfirm: () {},
+            onDateTap: () {},
+            onOperator: (_) {},
+          ),
         ),
-      ));
+      );
       await tester.tap(find.text('5'));
       expect(tapped, '5');
     });
 
     testWidgets('calls onOperator when + tapped', (tester) async {
       String? op;
-      await tester.pumpWidget(wrapInApp(
-        QuickNumberPad(
-          onDigit: (_) {},
-          onDelete: () {},
-          onClear: () {},
-          onConfirm: () {},
-          onDateTap: () {},
-          onOperator: (o) => op = o,
+      await tester.pumpWidget(
+        wrapInApp(
+          QuickNumberPad(
+            onDigit: (_) {},
+            onDelete: () {},
+            onClear: () {},
+            onConfirm: () {},
+            onDateTap: () {},
+            onOperator: (o) => op = o,
+          ),
         ),
-      ));
+      );
       await tester.tap(find.text('+'));
       expect(op, '+');
     });
 
-    testWidgets('confirm button disabled when confirmEnabled=false', (tester) async {
+    testWidgets('confirm button disabled when confirmEnabled=false', (
+      tester,
+    ) async {
       bool called = false;
-      await tester.pumpWidget(wrapInApp(
-        QuickNumberPad(
-          onDigit: (_) {},
-          onDelete: () {},
-          onClear: () {},
-          onConfirm: () => called = true,
-          onDateTap: () {},
-          onOperator: (_) {},
-          confirmEnabled: false,
+      await tester.pumpWidget(
+        wrapInApp(
+          QuickNumberPad(
+            onDigit: (_) {},
+            onDelete: () {},
+            onClear: () {},
+            onConfirm: () => called = true,
+            onDateTap: () {},
+            onOperator: (_) {},
+            confirmEnabled: false,
+          ),
         ),
-      ));
+      );
       await tester.tap(find.text('完成'));
       expect(called, false);
     });
@@ -118,24 +130,23 @@ void main() {
 
   group('TransactionTypeSelector', () {
     testWidgets('renders two types', (tester) async {
-      await tester.pumpWidget(wrapInApp(
-        TransactionTypeSelector(
-          selectedIndex: 0,
-          onChanged: (_) {},
-        ),
-      ));
+      await tester.pumpWidget(
+        wrapInApp(TransactionTypeSelector(selectedIndex: 0, onChanged: (_) {})),
+      );
       expect(find.text('支出'), findsOneWidget);
       expect(find.text('收入'), findsOneWidget);
     });
 
     testWidgets('calls onChanged when tapped', (tester) async {
       int? selected;
-      await tester.pumpWidget(wrapInApp(
-        TransactionTypeSelector(
-          selectedIndex: 0,
-          onChanged: (i) => selected = i,
+      await tester.pumpWidget(
+        wrapInApp(
+          TransactionTypeSelector(
+            selectedIndex: 0,
+            onChanged: (i) => selected = i,
+          ),
         ),
-      ));
+      );
       await tester.tap(find.text('收入'));
       expect(selected, 1);
     });
@@ -143,12 +154,9 @@ void main() {
 
   group('AccountPill', () {
     testWidgets('shows account name', (tester) async {
-      await tester.pumpWidget(wrapInApp(
-        AccountPill(
-          accountName: '招商银行',
-          onTap: () {},
-        ),
-      ));
+      await tester.pumpWidget(
+        wrapInApp(AccountPill(accountName: '招商银行', onTap: () {})),
+      );
       expect(find.text('招商银行'), findsOneWidget);
     });
   });
@@ -156,26 +164,26 @@ void main() {
   group('ScaleKeyButton', () {
     testWidgets('calls onTap when pressed', (tester) async {
       var tapped = false;
-      await tester.pumpWidget(wrapInApp(
-        ScaleKeyButton(
-          bg: Colors.grey,
-          onTap: () => tapped = true,
-          child: const Text('X'),
+      await tester.pumpWidget(
+        wrapInApp(
+          ScaleKeyButton(
+            bg: Colors.grey,
+            onTap: () => tapped = true,
+            child: const Text('X'),
+          ),
         ),
-      ));
+      );
       await tester.tap(find.text('X'));
       await tester.pumpAndSettle();
       expect(tapped, isTrue);
     });
 
     testWidgets('does not crash on rapid tap + dispose', (tester) async {
-      await tester.pumpWidget(wrapInApp(
-        ScaleKeyButton(
-          bg: Colors.grey,
-          onTap: () {},
-          child: const Text('Y'),
+      await tester.pumpWidget(
+        wrapInApp(
+          ScaleKeyButton(bg: Colors.grey, onTap: () {}, child: const Text('Y')),
         ),
-      ));
+      );
       // Rapid taps
       await tester.tap(find.text('Y'));
       await tester.tap(find.text('Y'));

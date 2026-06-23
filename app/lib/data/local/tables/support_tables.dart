@@ -56,7 +56,8 @@ class NotificationSettingsTable extends Table {
   BoolColumn get budgetWarning => boolean().withDefault(const Constant(true))();
   BoolColumn get dailySummary => boolean().withDefault(const Constant(false))();
   BoolColumn get loanReminder => boolean().withDefault(const Constant(true))();
-  IntColumn get reminderDaysBefore => integer().withDefault(const Constant(3))();
+  IntColumn get reminderDaysBefore =>
+      integer().withDefault(const Constant(3))();
 
   @override
   Set<Column> get primaryKey => {userId};
@@ -102,14 +103,17 @@ class SyncDeadLetters extends Table {
   TextColumn get opId => text()();
   TextColumn get entityType => text()();
   TextColumn get entityId => text()();
+
   /// Original proto opType (e.g. 'OPERATION_TYPE_CREATE').
   TextColumn get opType => text()();
+
   /// Original operation timestamp in milliseconds since epoch.
   IntColumn get timestampMs => integer().withDefault(const Constant(0))();
   TextColumn get error => text()();
   TextColumn get payload => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   IntColumn get retryCount => integer().withDefault(const Constant(0))();
+
   /// Next allowed retry time (NOT "last retry time"). Null = immediately eligible.
   DateTimeColumn get nextRetryAfter => dateTime().nullable()();
 

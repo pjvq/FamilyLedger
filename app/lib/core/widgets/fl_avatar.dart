@@ -91,8 +91,9 @@ class FlAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
     final isLight = brightness == Brightness.light;
-    final fallbackBg =
-        isLight ? NeutralColorsLight.neutral5 : NeutralColorsDark.neutral5;
+    final fallbackBg = isLight
+        ? NeutralColorsLight.neutral5
+        : NeutralColorsDark.neutral5;
 
     Widget avatar;
 
@@ -118,7 +119,8 @@ class FlAvatar extends StatelessWidget {
       );
     }
 
-    if (!showBorder) return SizedBox.square(dimension: _diameter, child: avatar);
+    if (!showBorder)
+      return SizedBox.square(dimension: _diameter, child: avatar);
 
     return Container(
       width: _diameter + 4,

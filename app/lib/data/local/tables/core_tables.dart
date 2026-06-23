@@ -17,8 +17,11 @@ class Accounts extends Table {
   TextColumn get userId => text().references(Users, #id)();
   TextColumn get familyId => text().withDefault(const Constant(''))();
   TextColumn get name => text().withLength(min: 1, max: 50)();
-  TextColumn get accountType => text().withDefault(const Constant('other'))(); // cash, bank_card, alipay, wechat, credit_card, investment, other
-  TextColumn get icon => text().withDefault(const Constant('💳'))(); // emoji icon
+  TextColumn get accountType => text().withDefault(
+    const Constant('other'),
+  )(); // cash, bank_card, alipay, wechat, credit_card, investment, other
+  TextColumn get icon =>
+      text().withDefault(const Constant('💳'))(); // emoji icon
   IntColumn get balance => integer().withDefault(const Constant(0))();
   TextColumn get currency => text().withDefault(const Constant('CNY'))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
@@ -62,7 +65,9 @@ class Transactions extends Table {
   DateTimeColumn get txnDate => dateTime()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
-  TextColumn get syncStatus => text().withDefault(const Constant('pending'))(); // pending, synced, failed
+  TextColumn get syncStatus => text().withDefault(
+    const Constant('pending'),
+  )(); // pending, synced, failed
   TextColumn get mergeLogId => text().nullable()(); // 合并日志 ID，用于撤销合并
   DateTimeColumn get deletedAt => dateTime().nullable()();
 

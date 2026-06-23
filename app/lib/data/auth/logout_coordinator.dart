@@ -26,9 +26,9 @@ class LogoutCoordinator {
     required TokenStorage tokenStorage,
     required SharedPreferences prefs,
     required AppDatabase db,
-  })  : _tokenStorage = tokenStorage,
-        _prefs = prefs,
-        _db = db;
+  }) : _tokenStorage = tokenStorage,
+       _prefs = prefs,
+       _db = db;
 
   /// Execute full logout. Returns list of step names that failed (empty = clean).
   Future<List<String>> execute() async {
@@ -38,7 +38,10 @@ class LogoutCoordinator {
     if (!await _safeStep('clearTokens', () => _tokenStorage.clearTokens())) {
       // Single retry after brief delay — Keychain can transiently fail
       await Future<void>.delayed(const Duration(milliseconds: 200));
-      if (!await _safeStep('clearTokens_retry', () => _tokenStorage.clearTokens())) {
+      if (!await _safeStep(
+        'clearTokens_retry',
+        () => _tokenStorage.clearTokens(),
+      )) {
         failures.add('clearTokens');
       }
     }

@@ -32,7 +32,8 @@ sealed class SyncEvent {
 
   /// Dead-letter count changed (ops that failed during pull).
   /// UI can show a warning badge when count > 0.
-  const factory SyncEvent.deadLetterCountUpdated(int count) = DeadLetterCountUpdated;
+  const factory SyncEvent.deadLetterCountUpdated(int count) =
+      DeadLetterCountUpdated;
 }
 
 class SyncStarted extends SyncEvent {

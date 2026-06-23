@@ -50,7 +50,6 @@ class AmountStyle {
 /// TextStyle 扩展: 快速添加 tabularFigures
 extension TabularFiguresExtension on TextStyle {
   /// 返回启用了 tabularFigures 的新 TextStyle
-  TextStyle get withTabularFigures => copyWith(
-        fontFeatures: const [FontFeature.tabularFigures()],
-      );
+  TextStyle get withTabularFigures =>
+      copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
 }

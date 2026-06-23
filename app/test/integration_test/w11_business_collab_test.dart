@@ -30,17 +30,14 @@ import 'package:familyledger/generated/proto/sync.pb.dart' as sync_pb;
 import 'package:familyledger/generated/proto/sync.pbgrpc.dart' as sync_grpc;
 import 'package:familyledger/generated/proto/sync.pbenum.dart' as sync_enum;
 import 'package:familyledger/generated/proto/family.pb.dart' as family_pb;
-import 'package:familyledger/generated/proto/family.pbgrpc.dart'
-    as family_grpc;
+import 'package:familyledger/generated/proto/family.pbgrpc.dart' as family_grpc;
 import 'package:familyledger/generated/proto/dashboard.pb.dart' as dash_pb;
 import 'package:familyledger/generated/proto/dashboard.pbgrpc.dart'
     as dash_grpc;
 import 'package:familyledger/generated/proto/export.pb.dart' as export_pb;
-import 'package:familyledger/generated/proto/export.pbgrpc.dart'
-    as export_grpc;
+import 'package:familyledger/generated/proto/export.pbgrpc.dart' as export_grpc;
 import 'package:familyledger/generated/proto/account.pb.dart' as acct_pb;
-import 'package:familyledger/generated/proto/account.pbgrpc.dart'
-    as acct_grpc;
+import 'package:familyledger/generated/proto/account.pbgrpc.dart' as acct_grpc;
 import 'package:familyledger/generated/proto/google/protobuf/timestamp.pb.dart'
     as ts_pb;
 
@@ -71,9 +68,7 @@ void main() {
     channel = ClientChannel(
       config.grpcHost,
       port: config.grpcPort,
-      options: const ChannelOptions(
-        credentials: ChannelCredentials.insecure(),
-      ),
+      options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
     );
     authClient = auth_grpc.AuthServiceClient(channel);
     txnClient = txn_grpc.TransactionServiceClient(channel);
@@ -97,9 +92,11 @@ void main() {
     late String categoryId;
 
     test('TXN-001: Register user + get default account', () async {
-      final resp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w11_txn_$ts@test.com'
-        ..password = 'W11_Txn_Test123!');
+      final resp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w11_txn_$ts@test.com'
+          ..password = 'W11_Txn_Test123!',
+      );
       userToken = resp.accessToken;
 
       final opts = CallOptions(
@@ -123,8 +120,11 @@ void main() {
           ..type = txn_enum.TransactionType.TRANSACTION_TYPE_EXPENSE,
         options: opts,
       );
-      expect(catResp.categories, isNotEmpty,
-          reason: 'Should have preset categories');
+      expect(
+        catResp.categories,
+        isNotEmpty,
+        reason: 'Should have preset categories',
+      );
       categoryId = catResp.categories.first.id;
     });
 
@@ -137,7 +137,8 @@ void main() {
         txn_pb.CreateTransactionRequest()
           ..accountId = accountId
           ..categoryId = categoryId
-          ..amount = Int64(5000) // 50.00 CNY
+          ..amount =
+              Int64(5000) // 50.00 CNY
           ..currency = 'CNY'
           ..amountCny = Int64(5000)
           ..exchangeRate = 1.0
@@ -162,12 +163,18 @@ void main() {
         options: opts,
       );
       // The current month point should show expense >= 5000
-      expect(trendResp.points, isNotEmpty,
-          reason:
-              'Dashboard should return at least one month data point after creating a transaction');
+      expect(
+        trendResp.points,
+        isNotEmpty,
+        reason:
+            'Dashboard should return at least one month data point after creating a transaction',
+      );
       final currentMonth = trendResp.points.last;
-      expect(currentMonth.expense, greaterThanOrEqualTo(Int64(5000)),
-          reason: 'Dashboard should include the transaction we just created');
+      expect(
+        currentMonth.expense,
+        greaterThanOrEqualTo(Int64(5000)),
+        reason: 'Dashboard should include the transaction we just created',
+      );
     });
 
     test('TXN-004: Sync Push + Pull round-trip for account entity', () async {
@@ -179,18 +186,20 @@ void main() {
       // Push a new account via sync (simpler than transaction, fewer FKs)
       await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = entityId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': entityId,
-              'name': 'Synced Account',
-              'type': 'cash',
-              'balance': 0,
-              'currency': 'CNY',
-            })
-            ..clientId = 'device-sync-${_uuid()}'),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'account'
+              ..entityId = entityId
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = jsonEncode({
+                'id': entityId,
+                'name': 'Synced Account',
+                'type': 'cash',
+                'balance': 0,
+                'currency': 'CNY',
+              })
+              ..clientId = 'device-sync-${_uuid()}',
+          ),
         options: opts,
       );
 
@@ -203,8 +212,11 @@ void main() {
       );
 
       final found = pullResp.operations.any((op) => op.entityId == entityId);
-      expect(found, isTrue,
-          reason: 'Should be able to pull back the pushed account');
+      expect(
+        found,
+        isTrue,
+        reason: 'Should be able to pull back the pushed account',
+      );
     });
   });
 
@@ -218,15 +230,19 @@ void main() {
 
     test('FAM-001: Owner creates family + member joins', () async {
       // Register owner
-      final ownerResp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w11_owner_$ts@test.com'
-        ..password = 'W11_Owner_Test123!');
+      final ownerResp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w11_owner_$ts@test.com'
+          ..password = 'W11_Owner_Test123!',
+      );
       ownerToken = ownerResp.accessToken;
 
       // Register member
-      final memberResp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w11_member_$ts@test.com'
-        ..password = 'W11_Member_Test123!');
+      final memberResp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w11_member_$ts@test.com'
+          ..password = 'W11_Member_Test123!',
+      );
       memberToken = memberResp.accessToken;
 
       final ownerOpts = CallOptions(
@@ -258,125 +274,145 @@ void main() {
       );
     });
 
-    test('FAM-002: Member creates transaction → Owner can see via family Pull',
-        () async {
-      final memberOpts = CallOptions(
-        metadata: {'authorization': 'Bearer $memberToken'},
-      );
-      final ownerOpts = CallOptions(
-        metadata: {'authorization': 'Bearer $ownerToken'},
-      );
+    test(
+      'FAM-002: Member creates transaction → Owner can see via family Pull',
+      () async {
+        final memberOpts = CallOptions(
+          metadata: {'authorization': 'Bearer $memberToken'},
+        );
+        final ownerOpts = CallOptions(
+          metadata: {'authorization': 'Bearer $ownerToken'},
+        );
 
-      // Owner creates a family-scoped account (only owner/admin can manage accounts)
-      final acctResp = await acctClient.createAccount(
-        acct_pb.CreateAccountRequest()
-          ..name = 'Family Shared Wallet'
-          ..type = acct_pb.AccountType.ACCOUNT_TYPE_CASH
-          ..currency = 'CNY'
-          ..initialBalance = Int64(1000000)
-          ..familyId = familyId,
-        options: ownerOpts,
-      );
-      final familyAccountId = acctResp.account.id;
+        // Owner creates a family-scoped account (only owner/admin can manage accounts)
+        final acctResp = await acctClient.createAccount(
+          acct_pb.CreateAccountRequest()
+            ..name = 'Family Shared Wallet'
+            ..type = acct_pb.AccountType.ACCOUNT_TYPE_CASH
+            ..currency = 'CNY'
+            ..initialBalance = Int64(1000000)
+            ..familyId = familyId,
+          options: ownerOpts,
+        );
+        final familyAccountId = acctResp.account.id;
 
-      // Get a valid category for the member
-      final catResp = await txnClient.getCategories(
-        txn_pb.GetCategoriesRequest()
-          ..type = txn_enum.TransactionType.TRANSACTION_TYPE_EXPENSE,
-        options: memberOpts,
-      );
-      final catId = catResp.categories.first.id;
+        // Get a valid category for the member
+        final catResp = await txnClient.getCategories(
+          txn_pb.GetCategoriesRequest()
+            ..type = txn_enum.TransactionType.TRANSACTION_TYPE_EXPENSE,
+          options: memberOpts,
+        );
+        final catId = catResp.categories.first.id;
 
-      // Member pushes a transaction via sync (so it lands in sync_operations)
-      final txnId = _uuid();
-      final pushClientId = 'member-device-${_uuid()}';
-      await syncClient.pushOperations(
-        sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'transaction'
-            ..entityId = txnId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': txnId,
-              'account_id': familyAccountId,
-              'category_id': catId,
-              'amount': 8800,
-              'currency': 'CNY',
-              'amount_cny': 8800,
-              'exchange_rate': 1.0,
-              'type': 'expense',
-              'note': 'Member grocery shopping',
-            })
-            ..clientId = pushClientId),
-        options: memberOpts,
-      );
+        // Member pushes a transaction via sync (so it lands in sync_operations)
+        final txnId = _uuid();
+        final pushClientId = 'member-device-${_uuid()}';
+        await syncClient.pushOperations(
+          sync_pb.PushOperationsRequest()
+            ..operations.add(
+              sync_pb.SyncOperation()
+                ..entityType = 'transaction'
+                ..entityId = txnId
+                ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+                ..payload = jsonEncode({
+                  'id': txnId,
+                  'account_id': familyAccountId,
+                  'category_id': catId,
+                  'amount': 8800,
+                  'currency': 'CNY',
+                  'amount_cny': 8800,
+                  'exchange_rate': 1.0,
+                  'type': 'expense',
+                  'note': 'Member grocery shopping',
+                })
+                ..clientId = pushClientId,
+            ),
+          options: memberOpts,
+        );
 
-      // Owner pulls family data — should see member's transaction
-      final pullResp = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest()
-          ..since = ts_pb.Timestamp(seconds: Int64(0))
-          ..familyId = familyId
-          ..clientId = 'owner-device-${_uuid()}',
-        options: ownerOpts,
-      );
+        // Owner pulls family data — should see member's transaction
+        final pullResp = await syncClient.pullChanges(
+          sync_pb.PullChangesRequest()
+            ..since = ts_pb.Timestamp(seconds: Int64(0))
+            ..familyId = familyId
+            ..clientId = 'owner-device-${_uuid()}',
+          options: ownerOpts,
+        );
 
-      final memberOps = pullResp.operations.where(
-        (op) => op.entityId == txnId,
-      );
-      expect(memberOps, isNotEmpty,
+        final memberOps = pullResp.operations.where(
+          (op) => op.entityId == txnId,
+        );
+        expect(
+          memberOps,
+          isNotEmpty,
           reason:
-              'Owner should see member\'s family-scoped transaction via Pull');
-    });
+              'Owner should see member\'s family-scoped transaction via Pull',
+        );
+      },
+    );
 
-    test('FAM-003: Dashboard with familyId includes member transactions',
-        () async {
-      final ownerOpts = CallOptions(
-        metadata: {'authorization': 'Bearer $ownerToken'},
-      );
+    test(
+      'FAM-003: Dashboard with familyId includes member transactions',
+      () async {
+        final ownerOpts = CallOptions(
+          metadata: {'authorization': 'Bearer $ownerToken'},
+        );
 
-      // Use income/expense trend with familyId
-      final trendResp = await dashClient.getIncomeExpenseTrend(
-        dash_pb.TrendRequest()
-          ..familyId = familyId
-          ..period = 'month'
-          ..count = 1,
-        options: ownerOpts,
-      );
-      expect(trendResp.points, isNotEmpty,
+        // Use income/expense trend with familyId
+        final trendResp = await dashClient.getIncomeExpenseTrend(
+          dash_pb.TrendRequest()
+            ..familyId = familyId
+            ..period = 'month'
+            ..count = 1,
+          options: ownerOpts,
+        );
+        expect(
+          trendResp.points,
+          isNotEmpty,
           reason:
-              'Family dashboard should return trend data after member created a transaction');
-      final currentMonth = trendResp.points.last;
-      expect(currentMonth.expense, greaterThanOrEqualTo(Int64(8800)),
-          reason: 'Family dashboard should include member\'s 88.00 expense');
-    });
+              'Family dashboard should return trend data after member created a transaction',
+        );
+        final currentMonth = trendResp.points.last;
+        expect(
+          currentMonth.expense,
+          greaterThanOrEqualTo(Int64(8800)),
+          reason: 'Family dashboard should include member\'s 88.00 expense',
+        );
+      },
+    );
 
-    test('FAM-004: Export with familyId includes all members\' transactions',
-        () async {
-      final ownerOpts = CallOptions(
-        metadata: {'authorization': 'Bearer $ownerToken'},
-      );
+    test(
+      'FAM-004: Export with familyId includes all members\' transactions',
+      () async {
+        final ownerOpts = CallOptions(
+          metadata: {'authorization': 'Bearer $ownerToken'},
+        );
 
-      final exportResp = await exportClient.exportTransactions(
-        export_pb.ExportRequest()
-          ..familyId = familyId
-          ..format = 'csv',
-        options: ownerOpts,
-      );
+        final exportResp = await exportClient.exportTransactions(
+          export_pb.ExportRequest()
+            ..familyId = familyId
+            ..format = 'csv',
+          options: ownerOpts,
+        );
 
-      expect(exportResp.data, isNotEmpty,
-          reason: 'Export should return data');
+        expect(
+          exportResp.data,
+          isNotEmpty,
+          reason: 'Export should return data',
+        );
 
-      // CSV should contain the member's transaction note
-      final csvContent = utf8.decode(exportResp.data);
-      // Note: export might format differently; check for partial match
-      expect(
+        // CSV should contain the member's transaction note
+        final csvContent = utf8.decode(exportResp.data);
+        // Note: export might format differently; check for partial match
+        expect(
           csvContent.toLowerCase().contains('member grocery') ||
               csvContent.contains('8800') ||
               csvContent.contains('88.00'),
           isTrue,
-          reason:
-              'Family export CSV should contain member\'s transaction data');
-    });
+          reason: 'Family export CSV should contain member\'s transaction data',
+        );
+      },
+    );
   });
 
   // ─────────────────────────────────────────────────────────────────────
@@ -391,16 +427,19 @@ void main() {
 
     test('PERM-001: Setup family with restricted member', () async {
       // Register admin
-      final adminResp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w11_admin_$ts@test.com'
-        ..password = 'W11_Admin_Test123!');
+      final adminResp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w11_admin_$ts@test.com'
+          ..password = 'W11_Admin_Test123!',
+      );
       adminToken = adminResp.accessToken;
 
       // Register restricted member
-      final restrictedResp =
-          await authClient.register(auth_pb.RegisterRequest()
-            ..email = 'w11_restricted_$ts@test.com'
-            ..password = 'W11_Restricted_Test123!');
+      final restrictedResp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w11_restricted_$ts@test.com'
+          ..password = 'W11_Restricted_Test123!',
+      );
       restrictedToken = restrictedResp.accessToken;
       // We need the user ID for permission setting
       // Get it from listing family members after join
@@ -435,7 +474,8 @@ void main() {
         options: adminOpts,
       );
       final restrictedMember = membersResp.members.firstWhere(
-        (m) => m.userId != membersResp.members.first.userId ||
+        (m) =>
+            m.userId != membersResp.members.first.userId ||
             membersResp.members.length == 1,
         orElse: () => membersResp.members.last,
       );
@@ -463,8 +503,7 @@ void main() {
       restrictedAccountId = acctResp.accounts.first.id;
     });
 
-    test('PERM-002: Restricted member cannot create family account',
-        () async {
+    test('PERM-002: Restricted member cannot create family account', () async {
       final restrictedOpts = CallOptions(
         metadata: {'authorization': 'Bearer $restrictedToken'},
       );
@@ -479,92 +518,108 @@ void main() {
             ..familyId = permFamilyId,
           options: restrictedOpts,
         );
-        fail('Should have thrown GrpcError for restricted member creating family account');
+        fail(
+          'Should have thrown GrpcError for restricted member creating family account',
+        );
       } on GrpcError catch (e) {
-        expect(e.code, equals(StatusCode.permissionDenied),
-            reason:
-                'Restricted member should get PERMISSION_DENIED when creating family account');
+        expect(
+          e.code,
+          equals(StatusCode.permissionDenied),
+          reason:
+              'Restricted member should get PERMISSION_DENIED when creating family account',
+        );
       }
     });
 
-    test('PERM-002b: Restricted member cannot push family-scoped sync operations',
-        () async {
-      final restrictedOpts = CallOptions(
-        metadata: {'authorization': 'Bearer $restrictedToken'},
-      );
+    test(
+      'PERM-002b: Restricted member cannot push family-scoped sync operations',
+      () async {
+        final restrictedOpts = CallOptions(
+          metadata: {'authorization': 'Bearer $restrictedToken'},
+        );
 
-      final entityId = _uuid();
-      try {
-        await syncClient.pushOperations(
+        final entityId = _uuid();
+        try {
+          await syncClient.pushOperations(
+            sync_pb.PushOperationsRequest()
+              ..operations.add(
+                sync_pb.SyncOperation()
+                  ..entityType = 'account'
+                  ..entityId = entityId
+                  ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+                  ..payload = jsonEncode({
+                    'id': entityId,
+                    'name': 'Restricted Push',
+                    'family_id': permFamilyId,
+                  })
+                  ..clientId = _uuid(),
+              ),
+            options: restrictedOpts,
+          );
+          // Sync push may not enforce permissions (eventual consistency design).
+          // If it succeeds, that's a known limitation — not a test failure.
+        } on GrpcError catch (e) {
+          expect(
+            e.code,
+            equals(StatusCode.permissionDenied),
+            reason:
+                'If sync enforces permissions, it should return PERMISSION_DENIED',
+          );
+        }
+      },
+    );
+
+    test(
+      'PERM-003: Admin grants create permission → member can create',
+      () async {
+        final adminOpts = CallOptions(
+          metadata: {'authorization': 'Bearer $adminToken'},
+        );
+        final restrictedOpts = CallOptions(
+          metadata: {'authorization': 'Bearer $restrictedToken'},
+        );
+
+        // Grant create permission
+        await familyClient.setMemberPermissions(
+          family_pb.SetMemberPermissionsRequest()
+            ..familyId = permFamilyId
+            ..userId = restrictedUserId
+            ..permissions = (family_pb.MemberPermissions()
+              ..canView = true
+              ..canCreate = true
+              ..canEdit = false
+              ..canDelete = false
+              ..canManageAccounts = false),
+          options: adminOpts,
+        );
+
+        // Now member should be able to push a family transaction
+        final entityId = _uuid();
+        final pushResp = await syncClient.pushOperations(
           sync_pb.PushOperationsRequest()
-            ..operations.add(sync_pb.SyncOperation()
-              ..entityType = 'account'
-              ..entityId = entityId
-              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-              ..payload = jsonEncode({
-                'id': entityId,
-                'name': 'Restricted Push',
-                'family_id': permFamilyId,
-              })
-              ..clientId = _uuid()),
+            ..operations.add(
+              sync_pb.SyncOperation()
+                ..entityType = 'transaction'
+                ..entityId = entityId
+                ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+                ..payload = jsonEncode({
+                  'id': entityId,
+                  'account_id': restrictedAccountId,
+                  'amount': 2000,
+                  'currency': 'CNY',
+                  'type': 'expense',
+                  'note': 'After permission granted',
+                  'family_id': permFamilyId,
+                })
+                ..clientId = _uuid(),
+            ),
           options: restrictedOpts,
         );
-        // Sync push may not enforce permissions (eventual consistency design).
-        // If it succeeds, that's a known limitation — not a test failure.
-      } on GrpcError catch (e) {
-        expect(e.code, equals(StatusCode.permissionDenied),
-            reason:
-                'If sync enforces permissions, it should return PERMISSION_DENIED');
-      }
-    });
 
-    test('PERM-003: Admin grants create permission → member can create',
-        () async {
-      final adminOpts = CallOptions(
-        metadata: {'authorization': 'Bearer $adminToken'},
-      );
-      final restrictedOpts = CallOptions(
-        metadata: {'authorization': 'Bearer $restrictedToken'},
-      );
-
-      // Grant create permission
-      await familyClient.setMemberPermissions(
-        family_pb.SetMemberPermissionsRequest()
-          ..familyId = permFamilyId
-          ..userId = restrictedUserId
-          ..permissions = (family_pb.MemberPermissions()
-            ..canView = true
-            ..canCreate = true
-            ..canEdit = false
-            ..canDelete = false
-            ..canManageAccounts = false),
-        options: adminOpts,
-      );
-
-      // Now member should be able to push a family transaction
-      final entityId = _uuid();
-      final pushResp = await syncClient.pushOperations(
-        sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'transaction'
-            ..entityId = entityId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': entityId,
-              'account_id': restrictedAccountId,
-              'amount': 2000,
-              'currency': 'CNY',
-              'type': 'expense',
-              'note': 'After permission granted',
-              'family_id': permFamilyId,
-            })
-            ..clientId = _uuid()),
-        options: restrictedOpts,
-      );
-
-      // Should succeed (no exception thrown)
-      expect(pushResp, isNotNull);
-    });
+        // Should succeed (no exception thrown)
+        expect(pushResp, isNotNull);
+      },
+    );
   });
 
   // ─────────────────────────────────────────────────────────────────────
@@ -575,9 +630,11 @@ void main() {
     late String auditFamilyId;
 
     test('AUDIT-001: Setup family for audit tests', () async {
-      final resp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w11_audit_$ts@test.com'
-        ..password = 'W11_Audit_Test123!');
+      final resp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w11_audit_$ts@test.com'
+          ..password = 'W11_Audit_Test123!',
+      );
       ownerToken = resp.accessToken;
 
       final opts = CallOptions(
@@ -609,8 +666,11 @@ void main() {
       );
 
       // Should have at least 1 entry (family creation + invite generation)
-      expect(auditResp.entries, isNotEmpty,
-          reason: 'Audit log should record family operations');
+      expect(
+        auditResp.entries,
+        isNotEmpty,
+        reason: 'Audit log should record family operations',
+      );
     });
 
     test('AUDIT-003: Audit log records correct action types', () async {
@@ -624,10 +684,12 @@ void main() {
       );
 
       // Check that we can see different action types
-      final actionTypes =
-          auditResp.entries.map((e) => e.action).toSet();
-      expect(actionTypes, isNotEmpty,
-          reason: 'Should have distinct action types in audit log');
+      final actionTypes = auditResp.entries.map((e) => e.action).toSet();
+      expect(
+        actionTypes,
+        isNotEmpty,
+        reason: 'Should have distinct action types in audit log',
+      );
     });
   });
 
@@ -640,14 +702,18 @@ void main() {
     late String visFamilyId;
 
     test('VIS-001: Setup two-user family', () async {
-      final aResp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w11_vis_a_$ts@test.com'
-        ..password = 'W11_Vis_A_Test123!');
+      final aResp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w11_vis_a_$ts@test.com'
+          ..password = 'W11_Vis_A_Test123!',
+      );
       userAToken = aResp.accessToken;
 
-      final bResp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w11_vis_b_$ts@test.com'
-        ..password = 'W11_Vis_B_Test123!');
+      final bResp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w11_vis_b_$ts@test.com'
+          ..password = 'W11_Vis_B_Test123!',
+      );
       userBToken = bResp.accessToken;
 
       final aOpts = CallOptions(
@@ -673,91 +739,104 @@ void main() {
       );
     });
 
-    test('VIS-002: A pushes family op → B pulls with familyId → sees A\'s data',
-        () async {
-      final aOpts = CallOptions(
-        metadata: {'authorization': 'Bearer $userAToken'},
-      );
-      final bOpts = CallOptions(
-        metadata: {'authorization': 'Bearer $userBToken'},
-      );
+    test(
+      'VIS-002: A pushes family op → B pulls with familyId → sees A\'s data',
+      () async {
+        final aOpts = CallOptions(
+          metadata: {'authorization': 'Bearer $userAToken'},
+        );
+        final bOpts = CallOptions(
+          metadata: {'authorization': 'Bearer $userBToken'},
+        );
 
-      // A creates a family-scoped account (so PullChanges query can find it)
-      final acctResp = await acctClient.createAccount(
-        acct_pb.CreateAccountRequest()
-          ..name = 'A Family Dinner Account'
-          ..type = acct_pb.AccountType.ACCOUNT_TYPE_CASH
-          ..currency = 'CNY'
-          ..initialBalance = Int64(1000000)
-          ..familyId = visFamilyId,
-        options: aOpts,
-      );
-      final familyAcctId = acctResp.account.id;
+        // A creates a family-scoped account (so PullChanges query can find it)
+        final acctResp = await acctClient.createAccount(
+          acct_pb.CreateAccountRequest()
+            ..name = 'A Family Dinner Account'
+            ..type = acct_pb.AccountType.ACCOUNT_TYPE_CASH
+            ..currency = 'CNY'
+            ..initialBalance = Int64(1000000)
+            ..familyId = visFamilyId,
+          options: aOpts,
+        );
+        final familyAcctId = acctResp.account.id;
 
-      // Get a category for A
-      final catResp = await txnClient.getCategories(
-        txn_pb.GetCategoriesRequest()
-          ..type = txn_enum.TransactionType.TRANSACTION_TYPE_EXPENSE,
-        options: aOpts,
-      );
-      final catId = catResp.categories.first.id;
+        // Get a category for A
+        final catResp = await txnClient.getCategories(
+          txn_pb.GetCategoriesRequest()
+            ..type = txn_enum.TransactionType.TRANSACTION_TYPE_EXPENSE,
+          options: aOpts,
+        );
+        final catId = catResp.categories.first.id;
 
-      // A pushes a transaction via sync (so it exists in sync_operations)
-      final txnId = _uuid();
-      await syncClient.pushOperations(
-        sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'transaction'
-            ..entityId = txnId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': txnId,
-              'account_id': familyAcctId,
-              'category_id': catId,
-              'amount': 12000,
-              'currency': 'CNY',
-              'amount_cny': 12000,
-              'exchange_rate': 1.0,
-              'type': 'expense',
-              'note': 'A paid for family dinner',
-            })
-            ..clientId = 'a-device-${_uuid()}'),
-        options: aOpts,
-      );
+        // A pushes a transaction via sync (so it exists in sync_operations)
+        final txnId = _uuid();
+        await syncClient.pushOperations(
+          sync_pb.PushOperationsRequest()
+            ..operations.add(
+              sync_pb.SyncOperation()
+                ..entityType = 'transaction'
+                ..entityId = txnId
+                ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+                ..payload = jsonEncode({
+                  'id': txnId,
+                  'account_id': familyAcctId,
+                  'category_id': catId,
+                  'amount': 12000,
+                  'currency': 'CNY',
+                  'amount_cny': 12000,
+                  'exchange_rate': 1.0,
+                  'type': 'expense',
+                  'note': 'A paid for family dinner',
+                })
+                ..clientId = 'a-device-${_uuid()}',
+            ),
+          options: aOpts,
+        );
 
-      // B pulls with familyId — should see A's transaction
-      final pullB = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest()
-          ..since = ts_pb.Timestamp(seconds: Int64(0))
-          ..familyId = visFamilyId
-          ..clientId = 'b-device-${_uuid()}',
-        options: bOpts,
-      );
+        // B pulls with familyId — should see A's transaction
+        final pullB = await syncClient.pullChanges(
+          sync_pb.PullChangesRequest()
+            ..since = ts_pb.Timestamp(seconds: Int64(0))
+            ..familyId = visFamilyId
+            ..clientId = 'b-device-${_uuid()}',
+          options: bOpts,
+        );
 
-      final found = pullB.operations.any((op) => op.entityId == txnId);
-      expect(found, isTrue,
-          reason: 'B should see A\'s family transaction via family Pull');
-    });
+        final found = pullB.operations.any((op) => op.entityId == txnId);
+        expect(
+          found,
+          isTrue,
+          reason: 'B should see A\'s family transaction via family Pull',
+        );
+      },
+    );
 
-    test('VIS-003: B pulls without familyId → does NOT see A\'s data',
-        () async {
-      final bOpts = CallOptions(
-        metadata: {'authorization': 'Bearer $userBToken'},
-      );
+    test(
+      'VIS-003: B pulls without familyId → does NOT see A\'s data',
+      () async {
+        final bOpts = CallOptions(
+          metadata: {'authorization': 'Bearer $userBToken'},
+        );
 
-      // B pulls personal (no familyId) — should NOT see A's ops
-      final pullPersonal = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest()
-          ..since = ts_pb.Timestamp(seconds: Int64(0)),
-        options: bOpts,
-      );
+        // B pulls personal (no familyId) — should NOT see A's ops
+        final pullPersonal = await syncClient.pullChanges(
+          sync_pb.PullChangesRequest()
+            ..since = ts_pb.Timestamp(seconds: Int64(0)),
+          options: bOpts,
+        );
 
-      // B's personal pull should only contain B's own operations
-      final aFamilyOps = pullPersonal.operations
-          .where((op) => op.payload.contains('A paid for family dinner'));
-      expect(aFamilyOps, isEmpty,
+        // B's personal pull should only contain B's own operations
+        final aFamilyOps = pullPersonal.operations.where(
+          (op) => op.payload.contains('A paid for family dinner'),
+        );
+        expect(
+          aFamilyOps,
+          isEmpty,
           reason:
-              'B\'s personal Pull should NOT include A\'s family transactions');
-    });
+              'B\'s personal Pull should NOT include A\'s family transactions',
+        );
+      },
+    );
   });
 }

@@ -19,7 +19,9 @@ import 'widgets/view_mode_bar.dart';
 /// Net amount for a list of transactions (income positive, expense negative).
 extension TransactionListX on Iterable<Transaction> {
   int get netAmount => fold<int>(
-      0, (sum, t) => sum + (t.type == 'income' ? t.amount : -t.amount));
+    0,
+    (sum, t) => sum + (t.type == 'income' ? t.amount : -t.amount),
+  );
 }
 
 /// 流水页 — Tab 级全量交易列表。
@@ -67,7 +69,8 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
 
       // 无搜索时：耗尽当前内存数据则从 DB 加载下一页。
       final txnState = ref.read(transactionProvider);
-      if (txnState.hasMore && flowState.displayCount >= txnState.transactions.length) {
+      if (txnState.hasMore &&
+          flowState.displayCount >= txnState.transactions.length) {
         ref.read(transactionProvider.notifier).loadMore();
       }
     }
@@ -85,8 +88,9 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     final searchTruncated = ref.watch(flowSearchTruncatedProvider);
 
     final reduceMotion = MediaQuery.of(context).disableAnimations;
-    final switchDuration =
-        reduceMotion ? Duration.zero : const Duration(milliseconds: 220);
+    final switchDuration = reduceMotion
+        ? Duration.zero
+        : const Duration(milliseconds: 220);
 
     return Scaffold(
       appBar: AppBar(
@@ -98,10 +102,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
           // 会导致切换瞬间跳动。
           layoutBuilder: (currentChild, previousChildren) => Stack(
             alignment: Alignment.centerLeft,
-            children: [
-              ...previousChildren,
-              ?currentChild,
-            ],
+            children: [...previousChildren, ?currentChild],
           ),
           // 标题/搜索框切换：水平方向轻微滑动 + 淡入，模拟搜索栏展开。
           transitionBuilder: (child, animation) {
@@ -269,7 +270,7 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
     // 搜索结果（displayCount < 总数）；非搜索才看主列表 hasMore。
     final hasMore = flowState.searchQuery.isNotEmpty
         ? flowState.displayCount <
-            ref.watch(flowFilteredTransactionsProvider).length
+              ref.watch(flowFilteredTransactionsProvider).length
         : txnState.hasMore;
 
     return ListView.builder(
@@ -299,7 +300,11 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                   transaction: txn,
                   category: categoryMap[txn.categoryId],
                   account: accountMap[txn.accountId],
-                  creatorName: creatorDisplayName(ref, txn.userId, fallback: (_) => null),
+                  creatorName: creatorDisplayName(
+                    ref,
+                    txn.userId,
+                    fallback: (_) => null,
+                  ),
                   onTap: () => _openDetail(txn, categoryMap[txn.categoryId]),
                 ),
               ),
@@ -350,7 +355,11 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                   transaction: txn,
                   category: categoryMap[txn.categoryId],
                   account: accountMap[txn.accountId],
-                  creatorName: creatorDisplayName(ref, txn.userId, fallback: (_) => null),
+                  creatorName: creatorDisplayName(
+                    ref,
+                    txn.userId,
+                    fallback: (_) => null,
+                  ),
                   onTap: () => _openDetail(txn, categoryMap[txn.categoryId]),
                 ),
               ),
@@ -408,7 +417,11 @@ class _TransactionFlowPageState extends ConsumerState<TransactionFlowPage> {
                   transaction: txn,
                   category: categoryMap[txn.categoryId],
                   account: accountMap[txn.accountId],
-                  creatorName: creatorDisplayName(ref, txn.userId, fallback: (_) => null),
+                  creatorName: creatorDisplayName(
+                    ref,
+                    txn.userId,
+                    fallback: (_) => null,
+                  ),
                   onTap: () => _openDetail(txn, categoryMap[txn.categoryId]),
                 ),
               ),
@@ -462,8 +475,11 @@ class _SearchTruncatedBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline,
-              size: 16, color: theme.colorScheme.onSecondaryContainer),
+          Icon(
+            Icons.info_outline,
+            size: 16,
+            color: theme.colorScheme.onSecondaryContainer,
+          ),
           const SizedBox(width: SpacingTokens.sm),
           Expanded(
             child: Text(

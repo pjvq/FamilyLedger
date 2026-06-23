@@ -15,12 +15,7 @@ class FlBadge extends StatelessWidget {
   ///
   /// If [count] is null or 0, shows a dot indicator.
   /// If [count] > 0, shows the number (capped at 99+).
-  const FlBadge({
-    super.key,
-    required this.child,
-    this.count,
-    this.show = true,
-  });
+  const FlBadge({super.key, required this.child, this.count, this.show = true});
 
   /// The widget to show the badge on (typically an Icon).
   final Widget child;
@@ -36,8 +31,9 @@ class FlBadge extends StatelessWidget {
     if (!show) return child;
 
     final isDot = count == null || count == 0;
-    final displayText =
-        count != null && count! > 99 ? '99+' : count?.toString();
+    final displayText = count != null && count! > 99
+        ? '99+'
+        : count?.toString();
     final badgeColor = context.semanticColors.error;
 
     return Stack(
@@ -94,12 +90,7 @@ class FlBadge extends StatelessWidget {
 /// ```
 class FlTag extends StatelessWidget {
   /// Creates an [FlTag].
-  const FlTag({
-    super.key,
-    required this.label,
-    this.color,
-    this.textColor,
-  });
+  const FlTag({super.key, required this.label, this.color, this.textColor});
 
   /// Tag text.
   final String label;
@@ -126,9 +117,9 @@ class FlTag extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TypographyTokens.caption(color: fg).copyWith(
-          fontWeight: FontWeight.w500,
-        ),
+        style: TypographyTokens.caption(
+          color: fg,
+        ).copyWith(fontWeight: FontWeight.w500),
       ),
     );
   }

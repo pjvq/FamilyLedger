@@ -84,9 +84,7 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
       body: CustomScrollView(
         slivers: [
           // Account info card
-          SliverToBoxAdapter(
-            child: _AccountInfoCard(account: account),
-          ),
+          SliverToBoxAdapter(child: _AccountInfoCard(account: account)),
           // Recent transactions header
           SliverToBoxAdapter(
             child: Padding(
@@ -98,9 +96,9 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
               ),
               child: Text(
                 '最近交易',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -119,19 +117,17 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
                       Icon(
                         Icons.receipt_long_rounded,
                         size: 48,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.3),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: SpacingTokens.sm),
                       Text(
                         '暂无交易记录',
                         style: TypographyTokens.bodySm(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.5),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                       ),
                     ],
@@ -141,17 +137,14 @@ class _AccountDetailPageState extends ConsumerState<AccountDetailPage> {
             )
           else
             SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final txn = _transactions[index];
-                  final category = categoryMap[txn.categoryId];
-                  return _TransactionListItem(
-                    transaction: txn,
-                    category: category,
-                  );
-                },
-                childCount: _transactions.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final txn = _transactions[index];
+                final category = categoryMap[txn.categoryId];
+                return _TransactionListItem(
+                  transaction: txn,
+                  category: category,
+                );
+              }, childCount: _transactions.length),
             ),
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
@@ -180,8 +173,9 @@ class _TransactionListItem extends StatelessWidget {
         : context.semanticColors.expense;
 
     final categoryLabel = category?.name ?? '未分类';
-    final categoryInitial =
-        categoryLabel.isNotEmpty ? categoryLabel.characters.first : '?';
+    final categoryInitial = categoryLabel.isNotEmpty
+        ? categoryLabel.characters.first
+        : '?';
 
     return ListTile(
       leading: CircleAvatar(
@@ -189,15 +183,9 @@ class _TransactionListItem extends StatelessWidget {
         backgroundColor: isDark
             ? NeutralColorsDark.neutral2
             : NeutralColorsLight.neutral2,
-        child: Text(
-          categoryInitial,
-          style: const TextStyle(fontSize: 16),
-        ),
+        child: Text(categoryInitial, style: const TextStyle(fontSize: 16)),
       ),
-      title: Text(
-        categoryLabel,
-        style: TypographyTokens.bodyMd(),
-      ),
+      title: Text(categoryLabel, style: TypographyTokens.bodyMd()),
       subtitle: transaction.note.isNotEmpty
           ? Text(
               transaction.note,
@@ -241,7 +229,9 @@ class _AccountInfoCard extends StatelessWidget {
       margin: const EdgeInsets.all(SpacingTokens.base),
       padding: const EdgeInsets.all(SpacingTokens.lg),
       decoration: BoxDecoration(
-        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral1,
+        color: isDark
+            ? NeutralColorsDark.neutral2
+            : NeutralColorsLight.neutral1,
         borderRadius: BorderRadius.circular(RadiusTokens.lg),
         border: Border.all(
           color: isDark
@@ -336,6 +326,4 @@ const _accountTypeLabels = <String, String>{
 };
 
 /// 获取账户类型的中文标签。
-String accountTypeDisplayName(String type) =>
-    _accountTypeLabels[type] ?? '其他';
-
+String accountTypeDisplayName(String type) => _accountTypeLabels[type] ?? '其他';

@@ -38,8 +38,9 @@ class _ReportCategoryTabState extends State<ReportCategoryTab> {
     final isDark = theme.brightness == Brightness.dark;
 
     final typeFilter = _typeTab == 0 ? 'expense' : 'income';
-    final typeTxns =
-        widget.transactions.where((t) => t.type == typeFilter).toList();
+    final typeTxns = widget.transactions
+        .where((t) => t.type == typeFilter)
+        .toList();
 
     int totalAmount = 0;
     for (final t in typeTxns) {
@@ -90,11 +91,13 @@ class _ReportCategoryTabState extends State<ReportCategoryTab> {
         Expanded(
           child: sortedParentIds.isEmpty
               ? Center(
-                  child: Text('暂无数据',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.4),
-                      )))
+                  child: Text(
+                    '暂无数据',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
+                  ),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                   itemCount: sortedParentIds.length,
@@ -141,7 +144,8 @@ class _ReportCategoryTabState extends State<ReportCategoryTab> {
       subAmounts = <String, int>{};
       for (final t in typeTxns) {
         if (t.categoryId == parentId) {
-          subAmounts[t.categoryId] = (subAmounts[t.categoryId] ?? 0) + t.amountCny;
+          subAmounts[t.categoryId] =
+              (subAmounts[t.categoryId] ?? 0) + t.amountCny;
         } else {
           final c = widget.categoryMap[t.categoryId];
           if (c?.parentId == parentId) {
@@ -162,8 +166,9 @@ class _ReportCategoryTabState extends State<ReportCategoryTab> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              color:
-                  isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
+              color: isDark
+                  ? NeutralColorsDark.neutral2
+                  : NeutralColorsLight.neutral0,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
@@ -171,13 +176,17 @@ class _ReportCategoryTabState extends State<ReportCategoryTab> {
                 Row(
                   children: [
                     CategoryIconWidget(
-                        iconKey: cat?.iconKey, size: 22, showBackground: false),
+                      iconKey: cat?.iconKey,
+                      size: 22,
+                      showBackground: false,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         name,
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w500),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                     Text(
@@ -194,8 +203,9 @@ class _ReportCategoryTabState extends State<ReportCategoryTab> {
                         '${(pct * 100).toStringAsFixed(1)}%',
                         textAlign: TextAlign.right,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
@@ -206,8 +216,7 @@ class _ReportCategoryTabState extends State<ReportCategoryTab> {
                           ? Icons.expand_less_rounded
                           : Icons.expand_more_rounded,
                       size: 18,
-                      color:
-                          theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                     ),
                   ],
                 ),
@@ -218,8 +227,9 @@ class _ReportCategoryTabState extends State<ReportCategoryTab> {
                     value: pct,
                     minHeight: 5,
                     color: color,
-                    backgroundColor:
-                        theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                    backgroundColor: theme.colorScheme.onSurface.withValues(
+                      alpha: 0.06,
+                    ),
                   ),
                 ),
               ],
@@ -245,9 +255,10 @@ class _ReportCategoryTabState extends State<ReportCategoryTab> {
                     child: Row(
                       children: [
                         CategoryIconWidget(
-                            iconKey: subCat?.iconKey,
-                            size: 16,
-                            showBackground: false),
+                          iconKey: subCat?.iconKey,
+                          size: 16,
+                          showBackground: false,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -268,8 +279,9 @@ class _ReportCategoryTabState extends State<ReportCategoryTab> {
                             '${(subPct * 100).toStringAsFixed(0)}%',
                             textAlign: TextAlign.right,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.4),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.4,
+                              ),
                               fontSize: 11,
                             ),
                           ),

@@ -26,11 +26,16 @@ DateTimeRange presetRange(DatePreset p) {
   switch (p) {
     case DatePreset.today:
       return DateTimeRange(
-          start: DateTime(now.year, now.month, now.day), end: today);
+        start: DateTime(now.year, now.month, now.day),
+        end: today,
+      );
     case DatePreset.thisWeek:
       // 周一为一周起点（DateTime.weekday: Mon=1 .. Sun=7）
-      final weekStart = DateTime(now.year, now.month, now.day)
-          .subtract(Duration(days: now.weekday - 1));
+      final weekStart = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(Duration(days: now.weekday - 1));
       return DateTimeRange(start: weekStart, end: today);
     case DatePreset.thisMonth:
       return DateTimeRange(start: DateTime(now.year, now.month, 1), end: today);
@@ -40,10 +45,14 @@ DateTimeRange presetRange(DatePreset p) {
       return DateTimeRange(start: start, end: end);
     case DatePreset.last30:
       return DateTimeRange(
-          start: today.subtract(const Duration(days: 29)), end: today);
+        start: today.subtract(const Duration(days: 29)),
+        end: today,
+      );
     case DatePreset.last90:
       return DateTimeRange(
-          start: today.subtract(const Duration(days: 89)), end: today);
+        start: today.subtract(const Duration(days: 89)),
+        end: today,
+      );
     case DatePreset.thisQuarter:
       final qStart = DateTime(now.year, ((now.month - 1) ~/ 3) * 3 + 1, 1);
       return DateTimeRange(start: qStart, end: today);
@@ -114,7 +123,7 @@ class MiniSegment extends StatelessWidget {
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 2,
-                        )
+                        ),
                       ]
                     : null,
               ),

@@ -29,24 +29,28 @@ void main() {
 
   group('NetWorthHeroCard', () {
     testWidgets('renders net worth amount', (tester) async {
-      await tester.pumpWidget(wrapInApp(
-        const NetWorthHeroCard(),
-        overrides: [
-          dashboardProvider.overrideWith((_) => FakeDashboardNotifier(
-            const DashboardState(
-              netWorth: NetWorthData(
-                total: 50000000, // ¥500,000
-                cashAndBank: 20000000,
-                investmentValue: 25000000,
-                fixedAssetValue: 15000000,
-                loanBalance: 10000000,
-                changeFromLastMonth: 500000,
-                changePercent: 1.0,
+      await tester.pumpWidget(
+        wrapInApp(
+          const NetWorthHeroCard(),
+          overrides: [
+            dashboardProvider.overrideWith(
+              (_) => FakeDashboardNotifier(
+                const DashboardState(
+                  netWorth: NetWorthData(
+                    total: 50000000, // ¥500,000
+                    cashAndBank: 20000000,
+                    investmentValue: 25000000,
+                    fixedAssetValue: 15000000,
+                    loanBalance: 10000000,
+                    changeFromLastMonth: 500000,
+                    changePercent: 1.0,
+                  ),
+                ),
               ),
             ),
-          )),
-        ],
-      ));
+          ],
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.textContaining('净资产'), findsOneWidget);
@@ -56,18 +60,27 @@ void main() {
 
   group('MonthlySummaryCard', () {
     testWidgets('renders income and expense', (tester) async {
-      await tester.pumpWidget(wrapInApp(
-        const MonthlySummaryCard(),
-        overrides: [
-          dashboardProvider.overrideWith((_) => FakeDashboardNotifier(
-            const DashboardState(
-              incomeExpenseTrend: [
-                TrendPointData(label: '2026-05', income: 2500000, expense: 1200000, net: 1300000),
-              ],
+      await tester.pumpWidget(
+        wrapInApp(
+          const MonthlySummaryCard(),
+          overrides: [
+            dashboardProvider.overrideWith(
+              (_) => FakeDashboardNotifier(
+                const DashboardState(
+                  incomeExpenseTrend: [
+                    TrendPointData(
+                      label: '2026-05',
+                      income: 2500000,
+                      expense: 1200000,
+                      net: 1300000,
+                    ),
+                  ],
+                ),
+              ),
             ),
-          )),
-        ],
-      ));
+          ],
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('本月收支'), findsOneWidget);
@@ -93,22 +106,28 @@ void main() {
       expect(find.text('预算进度'), findsNothing);
     });
 
-    testWidgets('shows budget amount and progress when budget exists', (tester) async {
-      await tester.pumpWidget(wrapInApp(
-        const BudgetProgressCard(),
-        overrides: [
-          budgetProvider.overrideWith((_) => FakeBudgetNotifier(
-            BudgetState(
-              execution: const BudgetExecutionData(
-                totalBudget: 1000000,
-                totalSpent: 750000,
-                executionRate: 0.75,
-                categoryExecutions: [],
+    testWidgets('shows budget amount and progress when budget exists', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapInApp(
+          const BudgetProgressCard(),
+          overrides: [
+            budgetProvider.overrideWith(
+              (_) => FakeBudgetNotifier(
+                BudgetState(
+                  execution: const BudgetExecutionData(
+                    totalBudget: 1000000,
+                    totalSpent: 750000,
+                    executionRate: 0.75,
+                    categoryExecutions: [],
+                  ),
+                ),
               ),
             ),
-          )),
-        ],
-      ));
+          ],
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('月预算'), findsOneWidget);

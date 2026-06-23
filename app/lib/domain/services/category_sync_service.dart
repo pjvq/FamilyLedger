@@ -41,21 +41,22 @@ class CategorySyncService {
   }
 
   /// DFS flatten: parent is added before children, guaranteeing FK order.
-  void _flattenTree(
-      pb.Category c, String? parentId, List<CategoryEntity> out) {
+  void _flattenTree(pb.Category c, String? parentId, List<CategoryEntity> out) {
     final type = c.type == pbe.TransactionType.TRANSACTION_TYPE_INCOME
         ? 'income'
         : 'expense';
 
-    out.add(CategoryEntity(
-      id: c.id,
-      name: c.name,
-      type: type,
-      parentId: parentId ?? (c.parentId.isNotEmpty ? c.parentId : null),
-      iconKey: c.iconKey.isNotEmpty ? c.iconKey : '',
-      sortOrder: c.sortOrder,
-      isPreset: c.isPreset,
-    ));
+    out.add(
+      CategoryEntity(
+        id: c.id,
+        name: c.name,
+        type: type,
+        parentId: parentId ?? (c.parentId.isNotEmpty ? c.parentId : null),
+        iconKey: c.iconKey.isNotEmpty ? c.iconKey : '',
+        sortOrder: c.sortOrder,
+        isPreset: c.isPreset,
+      ),
+    );
 
     for (final child in c.children) {
       _flattenTree(child, c.id, out);

@@ -8,8 +8,10 @@ import 'package:meta/meta.dart';
 /// - [isAvailable]: 是否可用
 /// - [distance]: 两个词的距离 (0=相同, 2=无关)
 /// - [batchDistances]: 批量计算
-typedef SemanticDistanceFn = Future<double?> Function(String word1, String word2);
-typedef SemanticBatchFn = Future<Map<String, double>?> Function(List<String> words);
+typedef SemanticDistanceFn =
+    Future<double?> Function(String word1, String word2);
+typedef SemanticBatchFn =
+    Future<Map<String, double>?> Function(List<String> words);
 typedef SemanticAvailableFn = Future<bool> Function();
 
 /// 语义相似度评分器(纯 domain 层,不依赖 Flutter)
@@ -33,9 +35,9 @@ class SemanticScorer {
     required SemanticAvailableFn checkAvailable,
     required SemanticDistanceFn getDistance,
     required SemanticBatchFn getBatchDistances,
-  })  : _checkAvailable = checkAvailable,
-        _getDistance = getDistance,
-        _getBatchDistances = getBatchDistances;
+  }) : _checkAvailable = checkAvailable,
+       _getDistance = getDistance,
+       _getBatchDistances = getBatchDistances;
 
   /// 检查是否可用(带 5 分钟过期缓存)
   Future<bool> get isAvailable async {

@@ -28,40 +28,53 @@ class ParseCSVRequest extends $pb.GeneratedMessage {
     return $result;
   }
   ParseCSVRequest._() : super();
-  factory ParseCSVRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ParseCSVRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ParseCSVRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ParseCSVRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ParseCSVRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.import.v1'), createEmptyInstance: create)
-    ..a<$core.List<$core.int>>(1, _omitFieldNames ? '' : 'csvData', $pb.PbFieldType.OY)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ParseCSVRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.import.v1'),
+      createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(
+        1, _omitFieldNames ? '' : 'csvData', $pb.PbFieldType.OY)
     ..aOS(2, _omitFieldNames ? '' : 'encoding')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   ParseCSVRequest clone() => ParseCSVRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ParseCSVRequest copyWith(void Function(ParseCSVRequest) updates) => super.copyWith((message) => updates(message as ParseCSVRequest)) as ParseCSVRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ParseCSVRequest copyWith(void Function(ParseCSVRequest) updates) =>
+      super.copyWith((message) => updates(message as ParseCSVRequest))
+          as ParseCSVRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ParseCSVRequest create() => ParseCSVRequest._();
   ParseCSVRequest createEmptyInstance() => create();
-  static $pb.PbList<ParseCSVRequest> createRepeated() => $pb.PbList<ParseCSVRequest>();
+  static $pb.PbList<ParseCSVRequest> createRepeated() =>
+      $pb.PbList<ParseCSVRequest>();
   @$core.pragma('dart2js:noInline')
-  static ParseCSVRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ParseCSVRequest>(create);
+  static ParseCSVRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ParseCSVRequest>(create);
   static ParseCSVRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.List<$core.int> get csvData => $_getN(0);
   @$pb.TagNumber(1)
-  set csvData($core.List<$core.int> v) { $_setBytes(0, v); }
+  set csvData($core.List<$core.int> v) {
+    $_setBytes(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasCsvData() => $_has(0);
   @$pb.TagNumber(1)
@@ -70,7 +83,10 @@ class ParseCSVRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get encoding => $_getSZ(1);
   @$pb.TagNumber(2)
-  set encoding($core.String v) { $_setString(1, v); }
+  set encoding($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasEncoding() => $_has(1);
   @$pb.TagNumber(2)
@@ -100,36 +116,46 @@ class ParseCSVResponse extends $pb.GeneratedMessage {
     return $result;
   }
   ParseCSVResponse._() : super();
-  factory ParseCSVResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ParseCSVResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ParseCSVResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ParseCSVResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ParseCSVResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.import.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ParseCSVResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.import.v1'),
+      createEmptyInstance: create)
     ..pPS(1, _omitFieldNames ? '' : 'headers')
-    ..pc<CSVRow>(2, _omitFieldNames ? '' : 'previewRows', $pb.PbFieldType.PM, subBuilder: CSVRow.create)
+    ..pc<CSVRow>(2, _omitFieldNames ? '' : 'previewRows', $pb.PbFieldType.PM,
+        subBuilder: CSVRow.create)
     ..a<$core.int>(3, _omitFieldNames ? '' : 'totalRows', $pb.PbFieldType.O3)
     ..aOS(4, _omitFieldNames ? '' : 'sessionId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   ParseCSVResponse clone() => ParseCSVResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ParseCSVResponse copyWith(void Function(ParseCSVResponse) updates) => super.copyWith((message) => updates(message as ParseCSVResponse)) as ParseCSVResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ParseCSVResponse copyWith(void Function(ParseCSVResponse) updates) =>
+      super.copyWith((message) => updates(message as ParseCSVResponse))
+          as ParseCSVResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ParseCSVResponse create() => ParseCSVResponse._();
   ParseCSVResponse createEmptyInstance() => create();
-  static $pb.PbList<ParseCSVResponse> createRepeated() => $pb.PbList<ParseCSVResponse>();
+  static $pb.PbList<ParseCSVResponse> createRepeated() =>
+      $pb.PbList<ParseCSVResponse>();
   @$core.pragma('dart2js:noInline')
-  static ParseCSVResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ParseCSVResponse>(create);
+  static ParseCSVResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ParseCSVResponse>(create);
   static ParseCSVResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -141,7 +167,10 @@ class ParseCSVResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.int get totalRows => $_getIZ(2);
   @$pb.TagNumber(3)
-  set totalRows($core.int v) { $_setSignedInt32(2, v); }
+  set totalRows($core.int v) {
+    $_setSignedInt32(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasTotalRows() => $_has(2);
   @$pb.TagNumber(3)
@@ -150,7 +179,10 @@ class ParseCSVResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.String get sessionId => $_getSZ(3);
   @$pb.TagNumber(4)
-  set sessionId($core.String v) { $_setString(3, v); }
+  set sessionId($core.String v) {
+    $_setString(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasSessionId() => $_has(3);
   @$pb.TagNumber(4)
@@ -168,24 +200,30 @@ class CSVRow extends $pb.GeneratedMessage {
     return $result;
   }
   CSVRow._() : super();
-  factory CSVRow.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory CSVRow.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory CSVRow.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory CSVRow.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CSVRow', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.import.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CSVRow',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.import.v1'),
+      createEmptyInstance: create)
     ..pPS(1, _omitFieldNames ? '' : 'values')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   CSVRow clone() => CSVRow()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  CSVRow copyWith(void Function(CSVRow) updates) => super.copyWith((message) => updates(message as CSVRow)) as CSVRow;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  CSVRow copyWith(void Function(CSVRow) updates) =>
+      super.copyWith((message) => updates(message as CSVRow)) as CSVRow;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -194,7 +232,8 @@ class CSVRow extends $pb.GeneratedMessage {
   CSVRow createEmptyInstance() => create();
   static $pb.PbList<CSVRow> createRepeated() => $pb.PbList<CSVRow>();
   @$core.pragma('dart2js:noInline')
-  static CSVRow getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CSVRow>(create);
+  static CSVRow getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CSVRow>(create);
   static CSVRow? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -216,40 +255,52 @@ class FieldMapping extends $pb.GeneratedMessage {
     return $result;
   }
   FieldMapping._() : super();
-  factory FieldMapping.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory FieldMapping.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory FieldMapping.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory FieldMapping.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FieldMapping', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.import.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'FieldMapping',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.import.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'csvColumn')
     ..aOS(2, _omitFieldNames ? '' : 'targetField')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   FieldMapping clone() => FieldMapping()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  FieldMapping copyWith(void Function(FieldMapping) updates) => super.copyWith((message) => updates(message as FieldMapping)) as FieldMapping;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  FieldMapping copyWith(void Function(FieldMapping) updates) =>
+      super.copyWith((message) => updates(message as FieldMapping))
+          as FieldMapping;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static FieldMapping create() => FieldMapping._();
   FieldMapping createEmptyInstance() => create();
-  static $pb.PbList<FieldMapping> createRepeated() => $pb.PbList<FieldMapping>();
+  static $pb.PbList<FieldMapping> createRepeated() =>
+      $pb.PbList<FieldMapping>();
   @$core.pragma('dart2js:noInline')
-  static FieldMapping getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FieldMapping>(create);
+  static FieldMapping getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<FieldMapping>(create);
   static FieldMapping? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get csvColumn => $_getSZ(0);
   @$pb.TagNumber(1)
-  set csvColumn($core.String v) { $_setString(0, v); }
+  set csvColumn($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasCsvColumn() => $_has(0);
   @$pb.TagNumber(1)
@@ -258,7 +309,10 @@ class FieldMapping extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get targetField => $_getSZ(1);
   @$pb.TagNumber(2)
-  set targetField($core.String v) { $_setString(1, v); }
+  set targetField($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasTargetField() => $_has(1);
   @$pb.TagNumber(2)
@@ -288,42 +342,56 @@ class ConfirmImportRequest extends $pb.GeneratedMessage {
     return $result;
   }
   ConfirmImportRequest._() : super();
-  factory ConfirmImportRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ConfirmImportRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ConfirmImportRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ConfirmImportRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ConfirmImportRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.import.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ConfirmImportRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.import.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'sessionId')
-    ..pc<FieldMapping>(2, _omitFieldNames ? '' : 'mappings', $pb.PbFieldType.PM, subBuilder: FieldMapping.create)
+    ..pc<FieldMapping>(2, _omitFieldNames ? '' : 'mappings', $pb.PbFieldType.PM,
+        subBuilder: FieldMapping.create)
     ..aOS(3, _omitFieldNames ? '' : 'defaultAccountId')
     ..aOS(4, _omitFieldNames ? '' : 'userId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ConfirmImportRequest clone() => ConfirmImportRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ConfirmImportRequest copyWith(void Function(ConfirmImportRequest) updates) => super.copyWith((message) => updates(message as ConfirmImportRequest)) as ConfirmImportRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ConfirmImportRequest clone() =>
+      ConfirmImportRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ConfirmImportRequest copyWith(void Function(ConfirmImportRequest) updates) =>
+      super.copyWith((message) => updates(message as ConfirmImportRequest))
+          as ConfirmImportRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ConfirmImportRequest create() => ConfirmImportRequest._();
   ConfirmImportRequest createEmptyInstance() => create();
-  static $pb.PbList<ConfirmImportRequest> createRepeated() => $pb.PbList<ConfirmImportRequest>();
+  static $pb.PbList<ConfirmImportRequest> createRepeated() =>
+      $pb.PbList<ConfirmImportRequest>();
   @$core.pragma('dart2js:noInline')
-  static ConfirmImportRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ConfirmImportRequest>(create);
+  static ConfirmImportRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ConfirmImportRequest>(create);
   static ConfirmImportRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get sessionId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set sessionId($core.String v) { $_setString(0, v); }
+  set sessionId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasSessionId() => $_has(0);
   @$pb.TagNumber(1)
@@ -335,7 +403,10 @@ class ConfirmImportRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get defaultAccountId => $_getSZ(2);
   @$pb.TagNumber(3)
-  set defaultAccountId($core.String v) { $_setString(2, v); }
+  set defaultAccountId($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasDefaultAccountId() => $_has(2);
   @$pb.TagNumber(3)
@@ -344,7 +415,10 @@ class ConfirmImportRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.String get userId => $_getSZ(3);
   @$pb.TagNumber(4)
-  set userId($core.String v) { $_setString(3, v); }
+  set userId($core.String v) {
+    $_setString(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasUserId() => $_has(3);
   @$pb.TagNumber(4)
@@ -370,41 +444,56 @@ class ConfirmImportResponse extends $pb.GeneratedMessage {
     return $result;
   }
   ConfirmImportResponse._() : super();
-  factory ConfirmImportResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ConfirmImportResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ConfirmImportResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ConfirmImportResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ConfirmImportResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.import.v1'), createEmptyInstance: create)
-    ..a<$core.int>(1, _omitFieldNames ? '' : 'importedCount', $pb.PbFieldType.O3)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ConfirmImportResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.import.v1'),
+      createEmptyInstance: create)
+    ..a<$core.int>(
+        1, _omitFieldNames ? '' : 'importedCount', $pb.PbFieldType.O3)
     ..a<$core.int>(2, _omitFieldNames ? '' : 'skippedCount', $pb.PbFieldType.O3)
     ..pPS(3, _omitFieldNames ? '' : 'errors')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ConfirmImportResponse clone() => ConfirmImportResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ConfirmImportResponse copyWith(void Function(ConfirmImportResponse) updates) => super.copyWith((message) => updates(message as ConfirmImportResponse)) as ConfirmImportResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ConfirmImportResponse clone() =>
+      ConfirmImportResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ConfirmImportResponse copyWith(
+          void Function(ConfirmImportResponse) updates) =>
+      super.copyWith((message) => updates(message as ConfirmImportResponse))
+          as ConfirmImportResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ConfirmImportResponse create() => ConfirmImportResponse._();
   ConfirmImportResponse createEmptyInstance() => create();
-  static $pb.PbList<ConfirmImportResponse> createRepeated() => $pb.PbList<ConfirmImportResponse>();
+  static $pb.PbList<ConfirmImportResponse> createRepeated() =>
+      $pb.PbList<ConfirmImportResponse>();
   @$core.pragma('dart2js:noInline')
-  static ConfirmImportResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ConfirmImportResponse>(create);
+  static ConfirmImportResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ConfirmImportResponse>(create);
   static ConfirmImportResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.int get importedCount => $_getIZ(0);
   @$pb.TagNumber(1)
-  set importedCount($core.int v) { $_setSignedInt32(0, v); }
+  set importedCount($core.int v) {
+    $_setSignedInt32(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasImportedCount() => $_has(0);
   @$pb.TagNumber(1)
@@ -413,7 +502,10 @@ class ConfirmImportResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.int get skippedCount => $_getIZ(1);
   @$pb.TagNumber(2)
-  set skippedCount($core.int v) { $_setSignedInt32(1, v); }
+  set skippedCount($core.int v) {
+    $_setSignedInt32(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasSkippedCount() => $_has(1);
   @$pb.TagNumber(2)
@@ -423,6 +515,6 @@ class ConfirmImportResponse extends $pb.GeneratedMessage {
   $core.List<$core.String> get errors => $_getList(2);
 }
 
-
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
-const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');
+const _omitMessageNames =
+    $core.bool.fromEnvironment('protobuf.omit_message_names');

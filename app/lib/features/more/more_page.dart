@@ -24,10 +24,7 @@ class MorePage extends ConsumerWidget {
     return Semantics(
       label: '更多页面',
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('更多'),
-          centerTitle: false,
-        ),
+        appBar: AppBar(title: const Text('更多'), centerTitle: false),
         body: ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
@@ -53,8 +50,7 @@ class MorePage extends ConsumerWidget {
               icon: Icons.trending_up_rounded,
               title: '投资管理',
               subtitle: '跟踪投资持仓、实时行情',
-              onTap: () =>
-                  context.push(AppRouter.investments),
+              onTap: () => context.push(AppRouter.investments),
             ),
             _MoreTile(
               icon: Icons.real_estate_agent_rounded,
@@ -81,8 +77,7 @@ class MorePage extends ConsumerWidget {
               icon: Icons.file_upload_rounded,
               title: '账单导入',
               subtitle: '支持支付宝、微信、通用 CSV/XLSX',
-              onTap: () =>
-                  context.push(AppRouter.csvImport),
+              onTap: () => context.push(AppRouter.csvImport),
             ),
 
             // ── 家庭 ──
@@ -93,8 +88,7 @@ class MorePage extends ConsumerWidget {
                 memberCount: familyState.members.length,
                 theme: theme,
                 isDark: isDark,
-                onTap: () =>
-                    context.push(AppRouter.familyMembers),
+                onTap: () => context.push(AppRouter.familyMembers),
               ),
               _MoreTile(
                 icon: Icons.link_rounded,
@@ -130,8 +124,7 @@ class MorePage extends ConsumerWidget {
               icon: Icons.category_rounded,
               title: '分类管理',
               subtitle: '管理收支分类和子分类',
-              onTap: () =>
-                  context.push(AppRouter.categoryManage),
+              onTap: () => context.push(AppRouter.categoryManage),
             ),
             _MoreTile(
               icon: Icons.notifications_outlined,
@@ -249,9 +242,9 @@ class MorePage extends ConsumerWidget {
                 child: SelectableText(
                   code,
                   style: Theme.of(ctx).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 3,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 3,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -259,11 +252,10 @@ class MorePage extends ConsumerWidget {
               Text(
                 '有效期 7 天',
                 style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(ctx)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.5),
-                    ),
+                  color: Theme.of(
+                    ctx,
+                  ).colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
               ),
             ],
           ),
@@ -271,9 +263,9 @@ class MorePage extends ConsumerWidget {
             TextButton(
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: code));
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('已复制到剪贴板')),
-                );
+                ScaffoldMessenger.of(
+                  ctx,
+                ).showSnackBar(const SnackBar(content: Text('已复制到剪贴板')));
               },
               child: const Text('复制'),
             ),
@@ -393,8 +385,7 @@ class _UserInfoCard extends StatelessWidget {
                   Text(
                     email,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color:
-                          theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                   if (familyName != null) ...[
@@ -451,8 +442,14 @@ class _FamilyInfoCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isDark
-                        ? [DarkCardGradients.primaryStart, DarkCardGradients.primaryEnd]
-                        : [ColorTokens.primary, GradientTokens.primaryGradientAlt],
+                        ? [
+                            DarkCardGradients.primaryStart,
+                            DarkCardGradients.primaryEnd,
+                          ]
+                        : [
+                            ColorTokens.primary,
+                            GradientTokens.primaryGradientAlt,
+                          ],
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -475,8 +472,9 @@ class _FamilyInfoCard extends StatelessWidget {
                     Text(
                       '$memberCount 位成员 · 查看详情',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.5),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                     ),
                   ],
@@ -534,8 +532,9 @@ class _MoreTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color =
-        isDestructive ? context.semanticColors.expense : theme.colorScheme.onSurface;
+    final color = isDestructive
+        ? context.semanticColors.expense
+        : theme.colorScheme.onSurface;
 
     return Semantics(
       label: '$title${subtitle != null ? "，$subtitle" : ""}',
@@ -543,22 +542,27 @@ class _MoreTile extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
         child: ListTile(
           leading: Icon(icon, color: color.withValues(alpha: 0.7)),
-          title: Text(title,
-              style: TextStyle(color: color, fontWeight: FontWeight.w500)),
+          title: Text(
+            title,
+            style: TextStyle(color: color, fontWeight: FontWeight.w500),
+          ),
           subtitle: subtitle != null
-              ? Text(subtitle!,
+              ? Text(
+                  subtitle!,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color:
-                        theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                  ))
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                  ),
+                )
               : null,
           trailing: isDestructive
               ? null
-              : Icon(Icons.chevron_right_rounded,
-                  color:
-                      theme.colorScheme.onSurface.withValues(alpha: 0.2)),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              : Icon(
+                  Icons.chevron_right_rounded,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           onTap: onTap,
         ),
       ),
@@ -586,10 +590,14 @@ class _ThemeModeTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
       child: ListTile(
-        leading: Icon(icon,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
-        title: const Text('外观模式',
-            style: TextStyle(fontWeight: FontWeight.w500)),
+        leading: Icon(
+          icon,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+        ),
+        title: const Text(
+          '外观模式',
+          style: TextStyle(fontWeight: FontWeight.w500),
+        ),
         subtitle: Text(
           label,
           style: theme.textTheme.bodySmall?.copyWith(
@@ -599,14 +607,17 @@ class _ThemeModeTile extends StatelessWidget {
         trailing: SegmentedButton<ThemeMode>(
           segments: const [
             ButtonSegment(
-                value: ThemeMode.system,
-                icon: Icon(Icons.brightness_auto_rounded, size: 18)),
+              value: ThemeMode.system,
+              icon: Icon(Icons.brightness_auto_rounded, size: 18),
+            ),
             ButtonSegment(
-                value: ThemeMode.light,
-                icon: Icon(Icons.light_mode_rounded, size: 18)),
+              value: ThemeMode.light,
+              icon: Icon(Icons.light_mode_rounded, size: 18),
+            ),
             ButtonSegment(
-                value: ThemeMode.dark,
-                icon: Icon(Icons.dark_mode_rounded, size: 18)),
+              value: ThemeMode.dark,
+              icon: Icon(Icons.dark_mode_rounded, size: 18),
+            ),
           ],
           selected: {themeMode},
           onSelectionChanged: (s) {
@@ -619,12 +630,10 @@ class _ThemeModeTile extends StatelessWidget {
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
 }
 
 // ────────── Sync status (compact indicator) ──────────
-

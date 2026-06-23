@@ -29,12 +29,12 @@ class _TestLoanNotifier extends FakeLoanNotifier {
   int getMonthlyPayment(db.Loan loan) => 469000;
 
   @override
-  DateTime? getNextPaymentDate(db.Loan loan) =>
-      DateTime(2025, 5, 15);
+  DateTime? getNextPaymentDate(db.Loan loan) => DateTime(2025, 5, 15);
 
   @override
   Future<List<LoanScheduleDisplayItem>> getScheduleForLoan(
-      String loanId) async {
+    String loanId,
+  ) async {
     return [];
   }
 }
@@ -168,8 +168,7 @@ Widget _wrap(
     routes: routes,
     extra: [
       // Override loanProvider with our enhanced fake
-      loanProvider
-          .overrideWith((_) => _TestLoanNotifier(loan)),
+      loanProvider.overrideWith((_) => _TestLoanNotifier(loan)),
     ],
   );
 }
@@ -181,18 +180,22 @@ void main() {
   group('RateChangeDialog', () {
     testWidgets('renders form elements', (tester) async {
       final loan = _makeLoan();
-      await tester.pumpWidget(_wrap(
-        Builder(builder: (context) {
-          return ElevatedButton(
-            onPressed: () => showDialog(
-              context: context,
-              builder: (_) => const RateChangeDialog(loanId: 'loan-1'),
-            ),
-            child: const Text('open'),
-          );
-        }),
-        loan: LoanState(currentLoan: loan),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (_) => const RateChangeDialog(loanId: 'loan-1'),
+                ),
+                child: const Text('open'),
+              );
+            },
+          ),
+          loan: LoanState(currentLoan: loan),
+        ),
+      );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
@@ -205,18 +208,22 @@ void main() {
 
     testWidgets('pre-fills current rate', (tester) async {
       final loan = _makeLoan(annualRate: 4.20);
-      await tester.pumpWidget(_wrap(
-        Builder(builder: (context) {
-          return ElevatedButton(
-            onPressed: () => showDialog(
-              context: context,
-              builder: (_) => const RateChangeDialog(loanId: 'loan-1'),
-            ),
-            child: const Text('open'),
-          );
-        }),
-        loan: LoanState(currentLoan: loan),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (_) => const RateChangeDialog(loanId: 'loan-1'),
+                ),
+                child: const Text('open'),
+              );
+            },
+          ),
+          loan: LoanState(currentLoan: loan),
+        ),
+      );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
@@ -226,18 +233,22 @@ void main() {
 
     testWidgets('cancel dismisses dialog', (tester) async {
       final loan = _makeLoan();
-      await tester.pumpWidget(_wrap(
-        Builder(builder: (context) {
-          return ElevatedButton(
-            onPressed: () => showDialog(
-              context: context,
-              builder: (_) => const RateChangeDialog(loanId: 'loan-1'),
-            ),
-            child: const Text('open'),
-          );
-        }),
-        loan: LoanState(currentLoan: loan),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (_) => const RateChangeDialog(loanId: 'loan-1'),
+                ),
+                child: const Text('open'),
+              );
+            },
+          ),
+          loan: LoanState(currentLoan: loan),
+        ),
+      );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
@@ -252,10 +263,9 @@ void main() {
 
   group('LoansPage', () {
     testWidgets('shows empty state when no loans', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const LoansPage(),
-        loan: const LoanState(),
-      ));
+      await tester.pumpWidget(
+        _wrap(const LoansPage(), loan: const LoanState()),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('贷款管理'), findsOneWidget);
@@ -265,20 +275,18 @@ void main() {
     });
 
     testWidgets('shows loading indicator', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const LoansPage(),
-        loan: const LoanState(isLoading: true),
-      ));
+      await tester.pumpWidget(
+        _wrap(const LoansPage(), loan: const LoanState(isLoading: true)),
+      );
       await tester.pump();
 
       expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('shows FAB for adding loan', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const LoansPage(),
-        loan: const LoanState(),
-      ));
+      await tester.pumpWidget(
+        _wrap(const LoansPage(), loan: const LoanState()),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('添加贷款'), findsOneWidget);
@@ -287,10 +295,9 @@ void main() {
 
     testWidgets('renders standalone loan cards', (tester) async {
       final loan = _makeLoan();
-      await tester.pumpWidget(_wrap(
-        const LoansPage(),
-        loan: LoanState(loans: [loan]),
-      ));
+      await tester.pumpWidget(
+        _wrap(const LoansPage(), loan: LoanState(loans: [loan])),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('测试房贷'), findsOneWidget);
@@ -299,10 +306,9 @@ void main() {
 
     testWidgets('renders loan group cards', (tester) async {
       final group = _makeGroupDisplay();
-      await tester.pumpWidget(_wrap(
-        const LoansPage(),
-        loan: LoanState(loanGroups: [group]),
-      ));
+      await tester.pumpWidget(
+        _wrap(const LoansPage(), loan: LoanState(loanGroups: [group])),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('测试组合贷'), findsOneWidget);
@@ -352,10 +358,12 @@ void main() {
   group('PrepaymentPage', () {
     testWidgets('renders with mock loan', (tester) async {
       final loan = _makeLoan();
-      await tester.pumpWidget(_wrap(
-        const PrepaymentPage(loanId: 'loan-1'),
-        loan: LoanState(currentLoan: loan),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          const PrepaymentPage(loanId: 'loan-1'),
+          loan: LoanState(currentLoan: loan),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('提前还款'), findsOneWidget);
@@ -368,10 +376,12 @@ void main() {
 
     testWidgets('shows remaining principal hint', (tester) async {
       final loan = _makeLoan(remainingPrincipal: 80000000);
-      await tester.pumpWidget(_wrap(
-        const PrepaymentPage(loanId: 'loan-1'),
-        loan: LoanState(currentLoan: loan),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          const PrepaymentPage(loanId: 'loan-1'),
+          loan: LoanState(currentLoan: loan),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.textContaining('剩余本金'), findsOneWidget);
@@ -379,10 +389,12 @@ void main() {
 
     testWidgets('simulate button disabled when no amount', (tester) async {
       final loan = _makeLoan();
-      await tester.pumpWidget(_wrap(
-        const PrepaymentPage(loanId: 'loan-1'),
-        loan: LoanState(currentLoan: loan),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          const PrepaymentPage(loanId: 'loan-1'),
+          loan: LoanState(currentLoan: loan),
+        ),
+      );
       await tester.pumpAndSettle();
 
       final button = tester.widget<FilledButton>(
@@ -396,9 +408,7 @@ void main() {
 
   group('AddLoanPage', () {
     testWidgets('renders basic form elements', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const AddLoanPage(),
-      ));
+      await tester.pumpWidget(_wrap(const AddLoanPage()));
       await tester.pumpAndSettle();
 
       expect(find.text('添加贷款'), findsOneWidget);
@@ -408,9 +418,7 @@ void main() {
     });
 
     testWidgets('shows three category chips', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const AddLoanPage(),
-      ));
+      await tester.pumpWidget(_wrap(const AddLoanPage()));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('商业贷款'), findsOneWidget);
@@ -419,9 +427,7 @@ void main() {
     });
 
     testWidgets('shows loan type selector emojis', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const AddLoanPage(),
-      ));
+      await tester.pumpWidget(_wrap(const AddLoanPage()));
       await tester.pumpAndSettle();
 
       expect(find.text('🏠'), findsAtLeast(1));
@@ -430,20 +436,20 @@ void main() {
     });
 
     testWidgets('shows commercial form by default', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const AddLoanPage(),
-      ));
+      await tester.pumpWidget(_wrap(const AddLoanPage()));
       await tester.pumpAndSettle();
 
       // Scroll down to reveal the form section below the fold
       await tester.scrollUntilVisible(
-        find.text('💰 商业贷款信息'), 200,
+        find.text('💰 商业贷款信息'),
+        200,
         scrollable: find.byType(Scrollable).first,
       );
       expect(find.text('💰 商业贷款信息'), findsOneWidget);
 
       await tester.scrollUntilVisible(
-        find.text('利率类型'), 200,
+        find.text('利率类型'),
+        200,
         scrollable: find.byType(Scrollable).first,
       );
       expect(find.text('利率类型'), findsOneWidget);
@@ -452,32 +458,30 @@ void main() {
     });
 
     testWidgets('switching to provident shows provident form', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const AddLoanPage(),
-      ));
+      await tester.pumpWidget(_wrap(const AddLoanPage()));
       await tester.pumpAndSettle();
 
       await tester.tap(find.textContaining('公积金贷款'));
       await tester.pumpAndSettle();
 
       await tester.scrollUntilVisible(
-        find.text('🏠 公积金贷款信息'), 200,
+        find.text('🏠 公积金贷款信息'),
+        200,
         scrollable: find.byType(Scrollable).first,
       );
       expect(find.text('🏠 公积金贷款信息'), findsOneWidget);
     });
 
     testWidgets('switching to combined shows stepper', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const AddLoanPage(),
-      ));
+      await tester.pumpWidget(_wrap(const AddLoanPage()));
       await tester.pumpAndSettle();
 
       await tester.tap(find.textContaining('组合贷款'));
       await tester.pumpAndSettle();
 
       await tester.scrollUntilVisible(
-        find.byType(Stepper), 200,
+        find.byType(Stepper),
+        200,
         scrollable: find.byType(Scrollable).first,
       );
       expect(find.byType(Stepper), findsOneWidget);
@@ -486,11 +490,10 @@ void main() {
       expect(find.text('商贷部分'), findsOneWidget);
     });
 
-    testWidgets('create button shows correct text for combined',
-        (tester) async {
-      await tester.pumpWidget(_wrap(
-        const AddLoanPage(),
-      ));
+    testWidgets('create button shows correct text for combined', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_wrap(const AddLoanPage()));
       await tester.pumpAndSettle();
 
       await tester.tap(find.textContaining('组合贷款'));
@@ -508,10 +511,12 @@ void main() {
 
   group('LoanDetailPage', () {
     testWidgets('shows loading state', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const LoanDetailPage(loanId: 'loan-1'),
-        loan: const LoanState(isLoading: true),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          const LoanDetailPage(loanId: 'loan-1'),
+          loan: const LoanState(isLoading: true),
+        ),
+      );
       await tester.pump();
 
       expect(find.text('贷款详情'), findsOneWidget);
@@ -519,10 +524,12 @@ void main() {
     });
 
     testWidgets('shows error when loan is null', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const LoanDetailPage(loanId: 'loan-1'),
-        loan: const LoanState(error: '贷款不存在'),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          const LoanDetailPage(loanId: 'loan-1'),
+          loan: const LoanState(error: '贷款不存在'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('贷款不存在'), findsOneWidget);
@@ -531,10 +538,12 @@ void main() {
     testWidgets('renders loan data when loaded', (tester) async {
       final loan = _makeLoan();
       final schedule = _makeSchedule();
-      await tester.pumpWidget(_wrap(
-        const LoanDetailPage(loanId: 'loan-1'),
-        loan: LoanState(currentLoan: loan, schedule: schedule),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          const LoanDetailPage(loanId: 'loan-1'),
+          loan: LoanState(currentLoan: loan, schedule: schedule),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('测试房贷'), findsOneWidget);
@@ -549,10 +558,12 @@ void main() {
     testWidgets('displays rate info', (tester) async {
       final loan = _makeLoan(annualRate: 3.85);
       final schedule = _makeSchedule();
-      await tester.pumpWidget(_wrap(
-        const LoanDetailPage(loanId: 'loan-1'),
-        loan: LoanState(currentLoan: loan, schedule: schedule),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          const LoanDetailPage(loanId: 'loan-1'),
+          loan: LoanState(currentLoan: loan, schedule: schedule),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('3.85%'), findsOneWidget);
@@ -562,10 +573,12 @@ void main() {
     testWidgets('displays repayment method equal_principal', (tester) async {
       final loan = _makeLoan(repaymentMethod: 'equal_principal');
       final schedule = _makeSchedule();
-      await tester.pumpWidget(_wrap(
-        const LoanDetailPage(loanId: 'loan-1'),
-        loan: LoanState(currentLoan: loan, schedule: schedule),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          const LoanDetailPage(loanId: 'loan-1'),
+          loan: LoanState(currentLoan: loan, schedule: schedule),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('等额本金'), findsOneWidget);
@@ -579,22 +592,28 @@ void main() {
     // to avoid "A Timer is still pending" assertion.
 
     testWidgets('shows loading state', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const LoanGroupDetailPage(groupId: 'group-1'),
-        loan: const LoanState(isLoading: true),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          const LoanGroupDetailPage(groupId: 'group-1'),
+          loan: const LoanState(isLoading: true),
+        ),
+      );
       await tester.pump(); // first frame
-      await tester.pump(const Duration(milliseconds: 300)); // past _loadSchedules delay
+      await tester.pump(
+        const Duration(milliseconds: 300),
+      ); // past _loadSchedules delay
 
       expect(find.text('贷款详情'), findsOneWidget);
       expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('shows error when group is null', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const LoanGroupDetailPage(groupId: 'group-1'),
-        loan: const LoanState(error: '贷款组不存在'),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          const LoanGroupDetailPage(groupId: 'group-1'),
+          loan: const LoanState(error: '贷款组不存在'),
+        ),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
@@ -603,10 +622,12 @@ void main() {
 
     testWidgets('renders group data with tabs', (tester) async {
       final group = _makeGroupDisplay();
-      await tester.pumpWidget(_wrap(
-        const LoanGroupDetailPage(groupId: 'group-1'),
-        loan: LoanState(currentGroup: group),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          const LoanGroupDetailPage(groupId: 'group-1'),
+          loan: LoanState(currentGroup: group),
+        ),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
@@ -622,10 +643,12 @@ void main() {
 
     testWidgets('shows action buttons', (tester) async {
       final group = _makeGroupDisplay();
-      await tester.pumpWidget(_wrap(
-        const LoanGroupDetailPage(groupId: 'group-1'),
-        loan: LoanState(currentGroup: group),
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          const LoanGroupDetailPage(groupId: 'group-1'),
+          loan: LoanState(currentGroup: group),
+        ),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 

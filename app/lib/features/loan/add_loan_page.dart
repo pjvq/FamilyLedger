@@ -109,154 +109,180 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-      appBar: AppBar(title: const Text('添加贷款')),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                // ── 贷款大类选择 ──
-                _SectionTitle(title: '贷款类别', theme: theme),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _categoryChip(LoanCategory.commercial, '商业贷款', '🏦', theme),
-                    const SizedBox(width: 8),
-                    _categoryChip(LoanCategory.provident, '公积金贷款', '🏠', theme),
-                    const SizedBox(width: 8),
-                    _categoryChip(LoanCategory.combined, '组合贷款', '🏘️', theme),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-                // ── 归属选择（个人/家庭）──
-                FamilyScopeSelector(
-                  onChanged: (fid) => _scopeFamilyId = fid,
-                ),
-                // ── 贷款名称 ──
-                _SectionTitle(title: '贷款名称', theme: theme),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    hintText: _category == LoanCategory.combined
-                        ? '例如：XX小区房贷'
-                        : '例如：XX银行房贷',
-                    prefixIcon: const Icon(Icons.label_outline_rounded),
+        appBar: AppBar(title: const Text('添加贷款')),
+        body: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // ── 贷款大类选择 ──
+                  _SectionTitle(title: '贷款类别', theme: theme),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _categoryChip(
+                        LoanCategory.commercial,
+                        '商业贷款',
+                        '🏦',
+                        theme,
+                      ),
+                      const SizedBox(width: 8),
+                      _categoryChip(
+                        LoanCategory.provident,
+                        '公积金贷款',
+                        '🏠',
+                        theme,
+                      ),
+                      const SizedBox(width: 8),
+                      _categoryChip(
+                        LoanCategory.combined,
+                        '组合贷款',
+                        '🏘️',
+                        theme,
+                      ),
+                    ],
                   ),
-                  textInputAction: TextInputAction.next,
-                ),
 
-                const SizedBox(height: 20),
-                // ── 贷款类型 ──
-                _SectionTitle(title: '贷款类型', theme: theme),
-                const SizedBox(height: 8),
-                _buildLoanTypeSelector(theme),
-
-                const SizedBox(height: 20),
-                // ── 还款日 ──
-                _buildPaymentDayAndDate(theme),
-
-                const SizedBox(height: 20),
-                // ── 关联还款账户 ──
-                _SectionTitle(title: '关联还款账户（可选）', theme: theme),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String?>(
-                  initialValue: _accountId,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.account_balance_wallet_outlined),
-                    hintText: '不关联',
+                  const SizedBox(height: 20),
+                  // ── 归属选择（个人/家庭）──
+                  FamilyScopeSelector(onChanged: (fid) => _scopeFamilyId = fid),
+                  // ── 贷款名称 ──
+                  _SectionTitle(title: '贷款名称', theme: theme),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      hintText: _category == LoanCategory.combined
+                          ? '例如：XX小区房贷'
+                          : '例如：XX银行房贷',
+                      prefixIcon: const Icon(Icons.label_outline_rounded),
+                    ),
+                    textInputAction: TextInputAction.next,
                   ),
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text('不关联')),
-                    ...accountState.accounts.map((acc) => DropdownMenuItem(
+
+                  const SizedBox(height: 20),
+                  // ── 贷款类型 ──
+                  _SectionTitle(title: '贷款类型', theme: theme),
+                  const SizedBox(height: 8),
+                  _buildLoanTypeSelector(theme),
+
+                  const SizedBox(height: 20),
+                  // ── 还款日 ──
+                  _buildPaymentDayAndDate(theme),
+
+                  const SizedBox(height: 20),
+                  // ── 关联还款账户 ──
+                  _SectionTitle(title: '关联还款账户（可选）', theme: theme),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String?>(
+                    initialValue: _accountId,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.account_balance_wallet_outlined),
+                      hintText: '不关联',
+                    ),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('不关联')),
+                      ...accountState.accounts.map(
+                        (acc) => DropdownMenuItem(
                           value: acc.id,
                           child: Text('${acc.icon} ${acc.name}'),
-                        )),
-                  ],
-                  onChanged: (v) => setState(() => _accountId = v),
-                ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _accountId = v),
+                  ),
 
-                const SizedBox(height: 24),
-                const Divider(),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
 
-                // ── Category specific form ──
-                if (_category == LoanCategory.commercial)
-                  _buildCommercialForm(theme),
-                if (_category == LoanCategory.provident)
-                  _buildProvidentForm(theme),
-                if (_category == LoanCategory.combined)
-                  _buildCombinedForm(theme),
+                  // ── Category specific form ──
+                  if (_category == LoanCategory.commercial)
+                    _buildCommercialForm(theme),
+                  if (_category == LoanCategory.provident)
+                    _buildProvidentForm(theme),
+                  if (_category == LoanCategory.combined)
+                    _buildCombinedForm(theme),
 
-                const SizedBox(height: 32),
-                // 创建按钮
-                FilledButton(
-                  onPressed: _isSubmitting ? null : _submit,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+                  const SizedBox(height: 32),
+                  // 创建按钮
+                  FilledButton(
+                    onPressed: _isSubmitting ? null : _submit,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            _category == LoanCategory.combined
+                                ? '创建组合贷款'
+                                : '创建贷款',
                           ),
-                        )
-                      : Text(_category == LoanCategory.combined
-                          ? '创建组合贷款'
-                          : '创建贷款'),
-                ),
-                const SizedBox(height: 40),
-              ],
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
-          ),
-          // Number pads
-          if (_showComNumberPad)
-            _buildNumberPad(
-              text: _comAmountText,
-              onUpdate: (t) => setState(() => _comAmountText = t),
-              onDone: () => setState(() => _showComNumberPad = false),
-            ),
-          if (_showPvdNumberPad)
-            _buildNumberPad(
-              text: _pvdAmountText,
-              onUpdate: (t) => setState(() => _pvdAmountText = t),
-              onDone: () => setState(() => _showPvdNumberPad = false),
-            ),
-          if (_showCombNumberPad)
-            _buildNumberPad(
-              text: _combActiveField == 'total'
-                  ? _combTotalAmountText
-                  : _combPvdAmountText,
-              onUpdate: (t) {
-                setState(() {
-                  if (_combActiveField == 'total') {
-                    _combTotalAmountText = t;
-                  } else {
-                    _combPvdAmountText = t;
-                  }
-                });
-              },
-              onDone: () => setState(() => _showCombNumberPad = false),
-            ),
-        ],
+            // Number pads
+            if (_showComNumberPad)
+              _buildNumberPad(
+                text: _comAmountText,
+                onUpdate: (t) => setState(() => _comAmountText = t),
+                onDone: () => setState(() => _showComNumberPad = false),
+              ),
+            if (_showPvdNumberPad)
+              _buildNumberPad(
+                text: _pvdAmountText,
+                onUpdate: (t) => setState(() => _pvdAmountText = t),
+                onDone: () => setState(() => _showPvdNumberPad = false),
+              ),
+            if (_showCombNumberPad)
+              _buildNumberPad(
+                text: _combActiveField == 'total'
+                    ? _combTotalAmountText
+                    : _combPvdAmountText,
+                onUpdate: (t) {
+                  setState(() {
+                    if (_combActiveField == 'total') {
+                      _combTotalAmountText = t;
+                    } else {
+                      _combPvdAmountText = t;
+                    }
+                  });
+                },
+                onDone: () => setState(() => _showCombNumberPad = false),
+              ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
   // ── Category Chip ──
   Widget _categoryChip(
-      LoanCategory cat, String label, String emoji, ThemeData theme) {
+    LoanCategory cat,
+    String label,
+    String emoji,
+    ThemeData theme,
+  ) {
     final selected = _category == cat;
     return Expanded(
       child: Semantics(
         label: '$label类别',
         selected: selected,
         child: ChoiceChip(
-          label: Text('$emoji $label', style: TextStyle(fontSize: 12,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
+          label: Text(
+            '$emoji $label',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
           selected: selected,
           onSelected: (_) => setState(() {
             _category = cat;
@@ -296,8 +322,8 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
                   color: selected
                       ? typeInfo.color.withValues(alpha: 0.12)
                       : (isDark
-                          ? NeutralColorsDark.neutral2
-                          : NeutralColorsLight.neutral2),
+                            ? NeutralColorsDark.neutral2
+                            : NeutralColorsLight.neutral2),
                   borderRadius: BorderRadius.circular(14),
                   border: selected
                       ? Border.all(color: typeInfo.color, width: 2)
@@ -312,10 +338,14 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
                       label,
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight: selected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
                         color: selected
                             ? typeInfo.color
-                            : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            : theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
                       ),
                     ),
                   ],
@@ -396,9 +426,12 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('💰 商业贷款信息',
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold)),
+        Text(
+          '💰 商业贷款信息',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 16),
         _buildAmountField(
           theme: theme,
@@ -431,10 +464,12 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
           method: _comRepaymentMethod,
           onChanged: (v) => setState(() {
             _comRepaymentMethod = v;
-            if (v != 'interest_only' && v != 'bullet') _comCalcMethod = 'monthly';
+            if (v != 'interest_only' && v != 'bullet')
+              _comCalcMethod = 'monthly';
           }),
         ),
-        if (_comRepaymentMethod == 'interest_only' || _comRepaymentMethod == 'bullet') ...[
+        if (_comRepaymentMethod == 'interest_only' ||
+            _comRepaymentMethod == 'bullet') ...[
           const SizedBox(height: 16),
           _buildCalcMethodSelector(
             theme: theme,
@@ -451,9 +486,12 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('🏠 公积金贷款信息',
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold)),
+        Text(
+          '🏠 公积金贷款信息',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 16),
         _buildAmountField(
           theme: theme,
@@ -478,10 +516,13 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
                   suffixText: '%',
                   prefixIcon: Icon(Icons.percent_rounded),
                 ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d{0,2}\.?\d{0,3}')),
+                  FilteringTextInputFormatter.allow(
+                    RegExp(r'^\d{0,2}\.?\d{0,3}'),
+                  ),
                 ],
               ),
             ),
@@ -509,10 +550,12 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
           method: _pvdRepaymentMethod,
           onChanged: (v) => setState(() {
             _pvdRepaymentMethod = v;
-            if (v != 'interest_only' && v != 'bullet') _pvdCalcMethod = 'monthly';
+            if (v != 'interest_only' && v != 'bullet')
+              _pvdCalcMethod = 'monthly';
           }),
         ),
-        if (_pvdRepaymentMethod == 'interest_only' || _pvdRepaymentMethod == 'bullet') ...[
+        if (_pvdRepaymentMethod == 'interest_only' ||
+            _pvdRepaymentMethod == 'bullet') ...[
           const SizedBox(height: 16),
           _buildCalcMethodSelector(
             theme: theme,
@@ -628,25 +671,25 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
                         suffixText: '%',
                         prefixIcon: Icon(Icons.percent_rounded),
                       ),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d{0,2}\.?\d{0,3}')),
+                          RegExp(r'^\d{0,2}\.?\d{0,3}'),
+                        ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 8),
                   ActionChip(
                     label: const Text('首套'),
-                    onPressed: () =>
-                        _combPvdRateController.text = '2.85',
+                    onPressed: () => _combPvdRateController.text = '2.85',
                   ),
                   const SizedBox(width: 4),
                   ActionChip(
                     label: const Text('二套'),
-                    onPressed: () =>
-                        _combPvdRateController.text = '3.325',
+                    onPressed: () => _combPvdRateController.text = '3.325',
                   ),
                 ],
               ),
@@ -662,10 +705,12 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
                 method: _combPvdRepaymentMethod,
                 onChanged: (v) => setState(() {
                   _combPvdRepaymentMethod = v;
-                  if (v != 'interest_only' && v != 'bullet') _combPvdCalcMethod = 'monthly';
+                  if (v != 'interest_only' && v != 'bullet')
+                    _combPvdCalcMethod = 'monthly';
                 }),
               ),
-              if (_combPvdRepaymentMethod == 'interest_only' || _combPvdRepaymentMethod == 'bullet') ...[
+              if (_combPvdRepaymentMethod == 'interest_only' ||
+                  _combPvdRepaymentMethod == 'bullet') ...[
                 const SizedBox(height: 16),
                 _buildCalcMethodSelector(
                   theme: theme,
@@ -679,9 +724,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
         // Step 3: 商贷部分
         Step(
           title: const Text('商贷部分'),
-          subtitle: comAmount > 0
-              ? Text('商贷 ¥$comAmountStr')
-              : null,
+          subtitle: comAmount > 0 ? Text('商贷 ¥$comAmountStr') : null,
           isActive: _currentStep >= 2,
           state: StepState.indexed,
           content: Column(
@@ -716,8 +759,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
               _buildRateTypeAndInput(
                 theme: theme,
                 rateType: _combComRateType,
-                onRateTypeChanged: (v) =>
-                    setState(() => _combComRateType = v),
+                onRateTypeChanged: (v) => setState(() => _combComRateType = v),
                 fixedRateController: _combComRateController,
                 lprBaseController: _combComLprBaseController,
                 lprSpreadController: _combComLprSpreadController,
@@ -734,10 +776,12 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
                 method: _combComRepaymentMethod,
                 onChanged: (v) => setState(() {
                   _combComRepaymentMethod = v;
-                  if (v != 'interest_only' && v != 'bullet') _combComCalcMethod = 'monthly';
+                  if (v != 'interest_only' && v != 'bullet')
+                    _combComCalcMethod = 'monthly';
                 }),
               ),
-              if (_combComRepaymentMethod == 'interest_only' || _combComRepaymentMethod == 'bullet') ...[
+              if (_combComRepaymentMethod == 'interest_only' ||
+                  _combComRepaymentMethod == 'bullet') ...[
                 const SizedBox(height: 16),
                 _buildCalcMethodSelector(
                   theme: theme,
@@ -781,7 +825,9 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
+                    color: isDark
+                        ? ColorTokens.primaryLight
+                        : ColorTokens.primary,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -845,8 +891,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
               prefixIcon: Icon(Icons.percent_rounded),
               labelText: '年利率',
             ),
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'^\d{0,2}\.?\d{0,3}')),
             ],
@@ -862,11 +907,13 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
                     hintText: '3.45',
                     suffixText: '%',
                   ),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d{0,2}\.?\d{0,3}')),
+                      RegExp(r'^\d{0,2}\.?\d{0,3}'),
+                    ),
                   ],
                 ),
               ),
@@ -881,12 +928,14 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
                     hintText: '-20',
                     suffixText: 'BP',
                   ),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(
-                          decimal: true, signed: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
+                  ),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(
-                        RegExp(r'^-?\d{0,4}\.?\d{0,2}')),
+                      RegExp(r'^-?\d{0,4}\.?\d{0,2}'),
+                    ),
                   ],
                 ),
               ),
@@ -1106,7 +1155,9 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
     );
     if (rate <= 0) throw Exception('请输入有效利率');
 
-    await ref.read(loanProvider.notifier).createLoan(
+    await ref
+        .read(loanProvider.notifier)
+        .createLoan(
           name: name,
           loanType: _loanType,
           principal: (amount * 100).round(),
@@ -1136,7 +1187,9 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
     final rate = double.tryParse(_pvdRateController.text.trim()) ?? 0;
     if (rate <= 0) throw Exception('请输入有效利率');
 
-    await ref.read(loanProvider.notifier).createLoan(
+    await ref
+        .read(loanProvider.notifier)
+        .createLoan(
           name: name,
           loanType: _loanType,
           principal: (amount * 100).round(),
@@ -1167,8 +1220,7 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
     final comAmount = totalAmount - pvdAmount;
 
     // Provident rate
-    final pvdRate =
-        double.tryParse(_combPvdRateController.text.trim()) ?? 0;
+    final pvdRate = double.tryParse(_combPvdRateController.text.trim()) ?? 0;
     if (pvdRate <= 0) throw Exception('请输入有效的公积金利率');
 
     // Commercial rate
@@ -1180,49 +1232,49 @@ class _AddLoanPageState extends ConsumerState<AddLoanPage> {
     );
     if (comRate <= 0) throw Exception('请输入有效的商贷利率');
 
-    await ref.read(loanProvider.notifier).createLoanGroup(
-      name: name,
-      groupType: 'combined',
-      loanType: _loanType,
-      paymentDay: _paymentDay,
-      startDate: _startDate,
-      accountId: _accountId,
-      familyId: _scopeFamilyId,
-      subLoans: [
-        SubLoanInput(
-          name: '$name-公积金',
-          subType: 'provident',
-          principal: (pvdAmount * 100).round(),
-          annualRate: pvdRate,
-          totalMonths: _combPvdTotalMonths,
-          repaymentMethod: _combPvdRepaymentMethod,
-          rateType: 'fixed',
-          interestCalcMethod: _combPvdCalcMethod,
-        ),
-        SubLoanInput(
-          name: '$name-商贷',
-          subType: 'commercial',
-          principal: (comAmount * 100).round(),
-          annualRate: comRate,
-          totalMonths: _combComTotalMonths,
-          repaymentMethod: _combComRepaymentMethod,
-          rateType: _combComRateType,
-          lprBase: _combComRateType == 'lpr_floating'
-              ? _parseLprBase(_combComLprBaseController)
-              : 0.0,
-          lprSpread: _combComRateType == 'lpr_floating'
-              ? _parseLprSpread(_combComLprSpreadController)
-              : 0.0,
-          interestCalcMethod: _combComCalcMethod,
-        ),
-      ],
-    );
+    await ref
+        .read(loanProvider.notifier)
+        .createLoanGroup(
+          name: name,
+          groupType: 'combined',
+          loanType: _loanType,
+          paymentDay: _paymentDay,
+          startDate: _startDate,
+          accountId: _accountId,
+          familyId: _scopeFamilyId,
+          subLoans: [
+            SubLoanInput(
+              name: '$name-公积金',
+              subType: 'provident',
+              principal: (pvdAmount * 100).round(),
+              annualRate: pvdRate,
+              totalMonths: _combPvdTotalMonths,
+              repaymentMethod: _combPvdRepaymentMethod,
+              rateType: 'fixed',
+              interestCalcMethod: _combPvdCalcMethod,
+            ),
+            SubLoanInput(
+              name: '$name-商贷',
+              subType: 'commercial',
+              principal: (comAmount * 100).round(),
+              annualRate: comRate,
+              totalMonths: _combComTotalMonths,
+              repaymentMethod: _combComRepaymentMethod,
+              rateType: _combComRateType,
+              lprBase: _combComRateType == 'lpr_floating'
+                  ? _parseLprBase(_combComLprBaseController)
+                  : 0.0,
+              lprSpread: _combComRateType == 'lpr_floating'
+                  ? _parseLprSpread(_combComLprSpreadController)
+                  : 0.0,
+              interestCalcMethod: _combComCalcMethod,
+            ),
+          ],
+        );
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 }
 

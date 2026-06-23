@@ -37,19 +37,18 @@ db.Investment _inv({
   String marketType = 'a_share',
   double quantity = 100,
   int costBasis = 18000000,
-}) =>
-    db.Investment(
-      id: id,
-      userId: 'u1',
-      familyId: '',
-      symbol: symbol,
-      name: name,
-      marketType: marketType,
-      quantity: quantity,
-      costBasis: costBasis,
-      createdAt: DateTime(2024, 1, 1),
-      updatedAt: DateTime(2024, 6, 1),
-    );
+}) => db.Investment(
+  id: id,
+  userId: 'u1',
+  familyId: '',
+  symbol: symbol,
+  name: name,
+  marketType: marketType,
+  quantity: quantity,
+  costBasis: costBasis,
+  createdAt: DateTime(2024, 1, 1),
+  updatedAt: DateTime(2024, 6, 1),
+);
 
 db.InvestmentTrade _trade({
   String id = 'trade-1',
@@ -59,18 +58,17 @@ db.InvestmentTrade _trade({
   int price = 180000,
   int totalAmount = 18000000,
   int fee = 500,
-}) =>
-    db.InvestmentTrade(
-      id: id,
-      investmentId: investmentId,
-      tradeType: tradeType,
-      quantity: quantity,
-      price: price,
-      totalAmount: totalAmount,
-      fee: fee,
-      tradeDate: DateTime(2024, 1, 15),
-      createdAt: DateTime(2024, 1, 15),
-    );
+}) => db.InvestmentTrade(
+  id: id,
+  investmentId: investmentId,
+  tradeType: tradeType,
+  quantity: quantity,
+  price: price,
+  totalAmount: totalAmount,
+  fee: fee,
+  tradeDate: DateTime(2024, 1, 15),
+  createdAt: DateTime(2024, 1, 15),
+);
 
 QuoteDisplay _quote({
   String symbol = '600519',
@@ -79,24 +77,21 @@ QuoteDisplay _quote({
   int currentPrice = 190000,
   int changeAmount = 2000,
   double changePercent = 1.06,
-}) =>
-    QuoteDisplay(
-      symbol: symbol,
-      name: name,
-      marketType: marketType,
-      currentPrice: currentPrice,
-      changeAmount: changeAmount,
-      changePercent: changePercent,
-      updatedAt: DateTime(2024, 6, 1),
-    );
+}) => QuoteDisplay(
+  symbol: symbol,
+  name: name,
+  marketType: marketType,
+  currentPrice: currentPrice,
+  changeAmount: changeAmount,
+  changePercent: changePercent,
+  updatedAt: DateTime(2024, 6, 1),
+);
 
 List<PricePoint> _sparkline({int count = 10}) => List.generate(
-      count,
-      (i) => PricePoint(
-        timestamp: DateTime(2024, 5, 20 + i),
-        price: 185000 + i * 500,
-      ),
-    );
+  count,
+  (i) =>
+      PricePoint(timestamp: DateTime(2024, 5, 20 + i), price: 185000 + i * 500),
+);
 
 HoldingDisplayItem _holding({
   String investmentId = 'inv-1',
@@ -106,16 +101,15 @@ HoldingDisplayItem _holding({
   int currentValue = 19000000,
   double weight = 0.6,
   double returnRate = 0.056,
-}) =>
-    HoldingDisplayItem(
-      investmentId: investmentId,
-      symbol: symbol,
-      name: name,
-      quantity: quantity,
-      currentValue: currentValue,
-      weight: weight,
-      returnRate: returnRate,
-    );
+}) => HoldingDisplayItem(
+  investmentId: investmentId,
+  symbol: symbol,
+  name: name,
+  quantity: quantity,
+  currentValue: currentValue,
+  weight: weight,
+  returnRate: returnRate,
+);
 
 AssetDisplayItem _asset({
   String id = 'asset-1',
@@ -128,33 +122,31 @@ AssetDisplayItem _asset({
   int usefulLifeYears = 30,
   double salvageRate = 0.05,
   double depreciationProgress = 0.0,
-}) =>
-    AssetDisplayItem(
-      id: id,
-      name: name,
-      assetType: assetType,
-      purchasePrice: purchasePrice,
-      currentValue: currentValue,
-      purchaseDate: DateTime(2020, 6, 1),
-      description: description,
-      depreciationMethod: depreciationMethod,
-      usefulLifeYears: usefulLifeYears,
-      salvageRate: salvageRate,
-      depreciationProgress: depreciationProgress,
-    );
+}) => AssetDisplayItem(
+  id: id,
+  name: name,
+  assetType: assetType,
+  purchasePrice: purchasePrice,
+  currentValue: currentValue,
+  purchaseDate: DateTime(2020, 6, 1),
+  description: description,
+  depreciationMethod: depreciationMethod,
+  usefulLifeYears: usefulLifeYears,
+  salvageRate: salvageRate,
+  depreciationProgress: depreciationProgress,
+);
 
 ValuationRecord _valuation({
   String id = 'val-1',
   int value = 480000000,
   String source = 'manual',
   DateTime? date,
-}) =>
-    ValuationRecord(
-      id: id,
-      value: value,
-      source: source,
-      valuationDate: date ?? DateTime(2024, 3, 1),
-    );
+}) => ValuationRecord(
+  id: id,
+  value: value,
+  source: source,
+  valuationDate: date ?? DateTime(2024, 3, 1),
+);
 
 // ═══════════════════════════════════════════════════════════════
 // main
@@ -165,28 +157,32 @@ void main() {
   // 1. InvestmentsPage
   // ─────────────────────────────────────────────────────────────
   group('InvestmentsPage', () {
-    testWidgets('loading state shows SkeletonList',
-        (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentsPage(),
-        investment: const InvestmentState(isLoading: true),
-      ));
+    testWidgets('loading state shows SkeletonList', (tester) async {
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentsPage(),
+          investment: const InvestmentState(isLoading: true),
+        ),
+      );
       await tester.pump();
       expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('empty state shows hint text', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentsPage(),
-        investment: const InvestmentState(),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentsPage(),
+          investment: const InvestmentState(),
+        ),
+      );
       await tester.pump();
       expect(find.text('还没有投资持仓'), findsOneWidget);
       expect(find.text('点击下方按钮添加第一个投资'), findsOneWidget);
     });
 
-    testWidgets('renders portfolio summary card with total value',
-        (tester) async {
+    testWidgets('renders portfolio summary card with total value', (
+      tester,
+    ) async {
       final p = PortfolioSummary(
         totalValue: 19000000,
         totalCost: 18000000,
@@ -194,35 +190,33 @@ void main() {
         totalReturn: 0.0556,
         holdings: [_holding()],
       );
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentsPage(),
-        investment: InvestmentState(
-          investments: [_inv()],
-          portfolio: p,
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentsPage(),
+          investment: InvestmentState(investments: [_inv()], portfolio: p),
+          marketData: MarketDataState(quotes: {'600519:a_share': _quote()}),
         ),
-        marketData: MarketDataState(
-          quotes: {'600519:a_share': _quote()},
-        ),
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.text('总市值'), findsOneWidget);
     });
 
-    testWidgets('renders investment list item with quote data',
-        (tester) async {
+    testWidgets('renders investment list item with quote data', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentsPage(),
-        investment: InvestmentState(
-          investments: [i],
-          portfolio: PortfolioSummary(
-            totalValue: 19000000,
-            holdings: [_holding()],
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentsPage(),
+          investment: InvestmentState(
+            investments: [i],
+            portfolio: PortfolioSummary(
+              totalValue: 19000000,
+              holdings: [_holding()],
+            ),
           ),
+          marketData: MarketDataState(quotes: {key: _quote()}),
         ),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('贵州茅台'), findsOneWidget);
@@ -231,38 +225,42 @@ void main() {
       expect(find.text('+1.06%'), findsOneWidget);
     });
 
-    testWidgets('sparkline renders CustomPaint when data present',
-        (tester) async {
+    testWidgets('sparkline renders CustomPaint when data present', (
+      tester,
+    ) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentsPage(),
-        investment: InvestmentState(
-          investments: [i],
-          portfolio: PortfolioSummary(holdings: [_holding()]),
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentsPage(),
+          investment: InvestmentState(
+            investments: [i],
+            portfolio: PortfolioSummary(holdings: [_holding()]),
+          ),
+          marketData: MarketDataState(
+            quotes: {key: _quote()},
+            sparklineCache: {key: _sparkline()},
+          ),
         ),
-        marketData: MarketDataState(
-          quotes: {key: _quote()},
-          sparklineCache: {key: _sparkline()},
-        ),
-      ));
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(CustomPaint), findsWidgets);
     });
 
-    testWidgets('sparkline placeholder when no sparkline data',
-        (tester) async {
+    testWidgets('sparkline placeholder when no sparkline data', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentsPage(),
-        investment: InvestmentState(
-          investments: [i],
-          portfolio: PortfolioSummary(holdings: [_holding()]),
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentsPage(),
+          investment: InvestmentState(
+            investments: [i],
+            portfolio: PortfolioSummary(holdings: [_holding()]),
+          ),
+          marketData: MarketDataState(quotes: {key: _quote()}),
         ),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       // Still renders CustomPaint (with empty prices list → painter draws nothing)
@@ -279,31 +277,37 @@ void main() {
       );
       final k1 = MarketDataState.quoteKey(i1.symbol, i1.marketType);
       final k2 = MarketDataState.quoteKey(i2.symbol, i2.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentsPage(),
-        investment: InvestmentState(
-          investments: [i1, i2],
-          portfolio: PortfolioSummary(holdings: [
-            _holding(),
-            _holding(
-              investmentId: 'inv-2',
-              symbol: 'AAPL',
-              name: '苹果公司',
-              weight: 0.4,
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentsPage(),
+          investment: InvestmentState(
+            investments: [i1, i2],
+            portfolio: PortfolioSummary(
+              holdings: [
+                _holding(),
+                _holding(
+                  investmentId: 'inv-2',
+                  symbol: 'AAPL',
+                  name: '苹果公司',
+                  weight: 0.4,
+                ),
+              ],
             ),
-          ]),
-        ),
-        marketData: MarketDataState(quotes: {
-          k1: _quote(),
-          k2: _quote(
-            symbol: 'AAPL',
-            name: '苹果公司',
-            marketType: 'us_stock',
-            changePercent: -0.5,
-            changeAmount: -100,
           ),
-        }),
-      ));
+          marketData: MarketDataState(
+            quotes: {
+              k1: _quote(),
+              k2: _quote(
+                symbol: 'AAPL',
+                name: '苹果公司',
+                marketType: 'us_stock',
+                changePercent: -0.5,
+                changeAmount: -100,
+              ),
+            },
+          ),
+        ),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('贵州茅台'), findsOneWidget);
@@ -316,43 +320,44 @@ void main() {
       expect(find.text('添加投资'), findsOneWidget);
     });
 
-    testWidgets('profit percentage displayed for positive return',
-        (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentsPage(),
-        investment: InvestmentState(
-          investments: [_inv()],
-          portfolio: PortfolioSummary(
-            totalValue: 20000000,
-            totalCost: 18000000,
-            totalProfit: 2000000,
-            totalReturn: 0.1111,
-            holdings: [_holding()],
+    testWidgets('profit percentage displayed for positive return', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentsPage(),
+          investment: InvestmentState(
+            investments: [_inv()],
+            portfolio: PortfolioSummary(
+              totalValue: 20000000,
+              totalCost: 18000000,
+              totalProfit: 2000000,
+              totalReturn: 0.1111,
+              holdings: [_holding()],
+            ),
           ),
+          marketData: MarketDataState(quotes: {'600519:a_share': _quote()}),
         ),
-        marketData: MarketDataState(
-          quotes: {'600519:a_share': _quote()},
-        ),
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.textContaining('+11.11%'), findsOneWidget);
     });
 
     testWidgets('dark theme renders without errors', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentsPage(),
-        theme: ThemeData.dark(useMaterial3: true),
-        investment: InvestmentState(
-          investments: [_inv()],
-          portfolio: PortfolioSummary(
-            totalValue: 19000000,
-            holdings: [_holding()],
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentsPage(),
+          theme: ThemeData.dark(useMaterial3: true),
+          investment: InvestmentState(
+            investments: [_inv()],
+            portfolio: PortfolioSummary(
+              totalValue: 19000000,
+              holdings: [_holding()],
+            ),
           ),
+          marketData: MarketDataState(quotes: {'600519:a_share': _quote()}),
         ),
-        marketData: MarketDataState(
-          quotes: {'600519:a_share': _quote()},
-        ),
-      ));
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('贵州茅台'), findsOneWidget);
@@ -364,51 +369,60 @@ void main() {
   // ─────────────────────────────────────────────────────────────
   group('PortfolioChart', () {
     testWidgets('empty holdings shows placeholder', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const PortfolioChart(),
-        investment: const InvestmentState(
-          portfolio: PortfolioSummary(holdings: []),
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const PortfolioChart(),
+          investment: const InvestmentState(
+            portfolio: PortfolioSummary(holdings: []),
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('暂无持仓数据'), findsOneWidget);
     });
 
     testWidgets('single holding shows pie + legend', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const PortfolioChart(),
-        investment: InvestmentState(
-          portfolio: PortfolioSummary(holdings: [_holding(weight: 1.0)]),
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const PortfolioChart(),
+          investment: InvestmentState(
+            portfolio: PortfolioSummary(holdings: [_holding(weight: 1.0)]),
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('持仓分布'), findsOneWidget);
       expect(find.text('600519'), findsOneWidget);
       expect(find.text('100.0%'), findsOneWidget);
     });
 
-    testWidgets('diversified holdings show multiple legend entries',
-        (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const PortfolioChart(),
-        investment: InvestmentState(
-          portfolio: PortfolioSummary(holdings: [
-            _holding(symbol: '600519', weight: 0.6),
-            _holding(
-              investmentId: 'inv-2',
-              symbol: 'AAPL',
-              name: '苹果',
-              weight: 0.25,
+    testWidgets('diversified holdings show multiple legend entries', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const PortfolioChart(),
+          investment: InvestmentState(
+            portfolio: PortfolioSummary(
+              holdings: [
+                _holding(symbol: '600519', weight: 0.6),
+                _holding(
+                  investmentId: 'inv-2',
+                  symbol: 'AAPL',
+                  name: '苹果',
+                  weight: 0.25,
+                ),
+                _holding(
+                  investmentId: 'inv-3',
+                  symbol: 'BTC',
+                  name: '比特币',
+                  weight: 0.15,
+                ),
+              ],
             ),
-            _holding(
-              investmentId: 'inv-3',
-              symbol: 'BTC',
-              name: '比特币',
-              weight: 0.15,
-            ),
-          ]),
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('600519'), findsOneWidget);
       expect(find.text('AAPL'), findsOneWidget);
@@ -416,13 +430,15 @@ void main() {
     });
 
     testWidgets('dark theme renders', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const PortfolioChart(),
-        theme: ThemeData.dark(useMaterial3: true),
-        investment: InvestmentState(
-          portfolio: PortfolioSummary(holdings: [_holding(weight: 1.0)]),
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const PortfolioChart(),
+          theme: ThemeData.dark(useMaterial3: true),
+          investment: InvestmentState(
+            portfolio: PortfolioSummary(holdings: [_holding(weight: 1.0)]),
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('持仓分布'), findsOneWidget);
     });
@@ -454,35 +470,41 @@ void main() {
     });
 
     testWidgets('shows search results dropdown', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AddInvestmentPage(),
-        marketData: const MarketDataState(searchResults: [
-          SymbolSearchResult(
-            symbol: '600519',
-            name: '贵州茅台',
-            marketType: 'a_share',
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AddInvestmentPage(),
+          marketData: const MarketDataState(
+            searchResults: [
+              SymbolSearchResult(
+                symbol: '600519',
+                name: '贵州茅台',
+                marketType: 'a_share',
+              ),
+            ],
           ),
-        ]),
-      ));
+        ),
+      );
       await tester.pump();
       expect(find.text('贵州茅台'), findsOneWidget);
       expect(find.textContaining('600519'), findsOneWidget);
     });
 
     testWidgets('tapping search result reveals buy form', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AddInvestmentPage(),
-        marketData: MarketDataState(
-          searchResults: const [
-            SymbolSearchResult(
-              symbol: '600519',
-              name: '贵州茅台',
-              marketType: 'a_share',
-            ),
-          ],
-          quotes: {'600519:a_share': _quote()},
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AddInvestmentPage(),
+          marketData: MarketDataState(
+            searchResults: const [
+              SymbolSearchResult(
+                symbol: '600519',
+                name: '贵州茅台',
+                marketType: 'a_share',
+              ),
+            ],
+            quotes: {'600519:a_share': _quote()},
+          ),
         ),
-      ));
+      );
       await tester.pump();
       await tester.tap(find.text('贵州茅台'));
       await tester.pumpAndSettle();
@@ -491,10 +513,12 @@ void main() {
     });
 
     testWidgets('dark theme renders', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AddInvestmentPage(),
-        theme: ThemeData.dark(useMaterial3: true),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AddInvestmentPage(),
+          theme: ThemeData.dark(useMaterial3: true),
+        ),
+      );
       await tester.pump();
       expect(find.text('添加投资'), findsOneWidget);
     });
@@ -505,9 +529,9 @@ void main() {
   // ─────────────────────────────────────────────────────────────
   group('InvestmentDetailPage', () {
     testWidgets('shows "投资不存在" when not found', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentDetailPage(investmentId: 'nope'),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(const InvestmentDetailPage(investmentId: 'nope')),
+      );
       await tester.pump();
       expect(find.text('投资不存在'), findsOneWidget);
     });
@@ -515,11 +539,13 @@ void main() {
     testWidgets('renders header price & change', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentDetailPage(investmentId: 'inv-1'),
-        investment: InvestmentState(investments: [i]),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentDetailPage(investmentId: 'inv-1'),
+          investment: InvestmentState(investments: [i]),
+          marketData: MarketDataState(quotes: {key: _quote()}),
+        ),
+      );
       await tester.pump();
       expect(find.text('¥1900.00'), findsOneWidget);
       expect(find.text('+1.06%'), findsOneWidget);
@@ -529,11 +555,13 @@ void main() {
     testWidgets('shows empty chart text when no history', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentDetailPage(investmentId: 'inv-1'),
-        investment: InvestmentState(investments: [i]),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentDetailPage(investmentId: 'inv-1'),
+          investment: InvestmentState(investments: [i]),
+          marketData: MarketDataState(quotes: {key: _quote()}),
+        ),
+      );
       await tester.pump();
       expect(find.text('暂无走势数据'), findsOneWidget);
     });
@@ -541,14 +569,16 @@ void main() {
     testWidgets('hides empty text when history present', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentDetailPage(investmentId: 'inv-1'),
-        investment: InvestmentState(investments: [i]),
-        marketData: MarketDataState(
-          quotes: {key: _quote()},
-          priceHistory: _sparkline(count: 20),
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentDetailPage(investmentId: 'inv-1'),
+          investment: InvestmentState(investments: [i]),
+          marketData: MarketDataState(
+            quotes: {key: _quote()},
+            priceHistory: _sparkline(count: 20),
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('暂无走势数据'), findsNothing);
     });
@@ -556,11 +586,13 @@ void main() {
     testWidgets('time range buttons present', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentDetailPage(investmentId: 'inv-1'),
-        investment: InvestmentState(investments: [i]),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentDetailPage(investmentId: 'inv-1'),
+          investment: InvestmentState(investments: [i]),
+          marketData: MarketDataState(quotes: {key: _quote()}),
+        ),
+      );
       await tester.pump();
       for (final label in ['1W', '1M', '3M', '6M', '1Y', '全部']) {
         expect(find.text(label), findsOneWidget);
@@ -570,11 +602,13 @@ void main() {
     testWidgets('return mode labels present', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentDetailPage(investmentId: 'inv-1'),
-        investment: InvestmentState(investments: [i]),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentDetailPage(investmentId: 'inv-1'),
+          investment: InvestmentState(investments: [i]),
+          marketData: MarketDataState(quotes: {key: _quote()}),
+        ),
+      );
       await tester.pump();
       expect(find.text('总收益率'), findsOneWidget);
       expect(find.text('年化收益率'), findsOneWidget);
@@ -584,11 +618,13 @@ void main() {
     testWidgets('empty trades shows placeholder', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentDetailPage(investmentId: 'inv-1'),
-        investment: InvestmentState(investments: [i]),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentDetailPage(investmentId: 'inv-1'),
+          investment: InvestmentState(investments: [i]),
+          marketData: MarketDataState(quotes: {key: _quote()}),
+        ),
+      );
       await tester.pump();
       expect(find.text('暂无交易记录'), findsOneWidget);
     });
@@ -596,14 +632,16 @@ void main() {
     testWidgets('trade records render', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentDetailPage(investmentId: 'inv-1'),
-        investment: InvestmentState(
-          investments: [i],
-          currentTrades: [_trade()],
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentDetailPage(investmentId: 'inv-1'),
+          investment: InvestmentState(
+            investments: [i],
+            currentTrades: [_trade()],
+          ),
+          marketData: MarketDataState(quotes: {key: _quote()}),
         ),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      );
       await tester.pump();
       expect(find.text('买入'), findsWidgets);
     });
@@ -611,17 +649,21 @@ void main() {
     testWidgets('loss displayed with negative change', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentDetailPage(investmentId: 'inv-1'),
-        investment: InvestmentState(investments: [i]),
-        marketData: MarketDataState(quotes: {
-          key: _quote(
-            currentPrice: 170000,
-            changeAmount: -1000,
-            changePercent: -0.59,
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentDetailPage(investmentId: 'inv-1'),
+          investment: InvestmentState(investments: [i]),
+          marketData: MarketDataState(
+            quotes: {
+              key: _quote(
+                currentPrice: 170000,
+                changeAmount: -1000,
+                changePercent: -0.59,
+              ),
+            },
           ),
-        }),
-      ));
+        ),
+      );
       await tester.pump();
       expect(find.text('-0.59%'), findsOneWidget);
     });
@@ -629,12 +671,14 @@ void main() {
     testWidgets('dark theme renders', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const InvestmentDetailPage(investmentId: 'inv-1'),
-        theme: ThemeData.dark(useMaterial3: true),
-        investment: InvestmentState(investments: [i]),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const InvestmentDetailPage(investmentId: 'inv-1'),
+          theme: ThemeData.dark(useMaterial3: true),
+          investment: InvestmentState(investments: [i]),
+          marketData: MarketDataState(quotes: {key: _quote()}),
+        ),
+      );
       await tester.pump();
       expect(find.text('持仓信息'), findsOneWidget);
     });
@@ -647,11 +691,13 @@ void main() {
     testWidgets('renders buy/sell toggle and form fields', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const TradePage(investmentId: 'inv-1'),
-        investment: InvestmentState(investments: [i]),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const TradePage(investmentId: 'inv-1'),
+          investment: InvestmentState(investments: [i]),
+          marketData: MarketDataState(quotes: {key: _quote()}),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('买入'), findsWidgets);
       expect(find.text('卖出'), findsWidgets);
@@ -664,11 +710,13 @@ void main() {
     testWidgets('shows current holding quantity', (tester) async {
       final i = _inv(quantity: 200);
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const TradePage(investmentId: 'inv-1'),
-        investment: InvestmentState(investments: [i]),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const TradePage(investmentId: 'inv-1'),
+          investment: InvestmentState(investments: [i]),
+          marketData: MarketDataState(quotes: {key: _quote()}),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('当前持仓'), findsOneWidget);
       expect(find.text('200 股'), findsOneWidget);
@@ -677,11 +725,13 @@ void main() {
     testWidgets('switching to sell updates button text', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const TradePage(investmentId: 'inv-1'),
-        investment: InvestmentState(investments: [i]),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const TradePage(investmentId: 'inv-1'),
+          investment: InvestmentState(investments: [i]),
+          marketData: MarketDataState(quotes: {key: _quote()}),
+        ),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('卖出').first);
       await tester.pump();
@@ -691,11 +741,13 @@ void main() {
     testWidgets('validation snackbar on empty submit', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const TradePage(investmentId: 'inv-1'),
-        investment: InvestmentState(investments: [i]),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const TradePage(investmentId: 'inv-1'),
+          investment: InvestmentState(investments: [i]),
+          marketData: MarketDataState(quotes: {key: _quote()}),
+        ),
+      );
       await tester.pumpAndSettle();
       // Clear the pre-filled price first
       final priceField = find.byType(TextField).at(1);
@@ -713,11 +765,13 @@ void main() {
     testWidgets('total row updates on input', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const TradePage(investmentId: 'inv-1'),
-        investment: InvestmentState(investments: [i]),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const TradePage(investmentId: 'inv-1'),
+          investment: InvestmentState(investments: [i]),
+          marketData: MarketDataState(quotes: {key: _quote()}),
+        ),
+      );
       await tester.pumpAndSettle();
       final fields = find.byType(TextField);
       await tester.enterText(fields.at(0), '10'); // quantity
@@ -731,12 +785,14 @@ void main() {
     testWidgets('dark theme renders', (tester) async {
       final i = _inv();
       final key = MarketDataState.quoteKey(i.symbol, i.marketType);
-      await tester.pumpWidget(wrapWithProviders(
-        const TradePage(investmentId: 'inv-1'),
-        theme: ThemeData.dark(useMaterial3: true),
-        investment: InvestmentState(investments: [i]),
-        marketData: MarketDataState(quotes: {key: _quote()}),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const TradePage(investmentId: 'inv-1'),
+          theme: ThemeData.dark(useMaterial3: true),
+          investment: InvestmentState(investments: [i]),
+          marketData: MarketDataState(quotes: {key: _quote()}),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('买入'), findsWidgets);
     });
@@ -747,10 +803,12 @@ void main() {
   // ─────────────────────────────────────────────────────────────
   group('AssetsPage', () {
     testWidgets('loading state', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetsPage(),
-        asset: const AssetState(isLoading: true),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetsPage(),
+          asset: const AssetState(isLoading: true),
+        ),
+      );
       await tester.pump();
       expect(find.byType(SkeletonList), findsOneWidget);
     });
@@ -762,13 +820,12 @@ void main() {
     });
 
     testWidgets('summary card shows total net value', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetsPage(),
-        asset: AssetState(
-          assets: [_asset()],
-          totalNetValue: 480000000,
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetsPage(),
+          asset: AssetState(assets: [_asset()], totalNetValue: 480000000),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('资产总净值'), findsOneWidget);
       // Summary + card both show the value
@@ -776,34 +833,39 @@ void main() {
     });
 
     testWidgets('real_estate card renders type label', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetsPage(),
-        asset: AssetState(assets: [_asset()], totalNetValue: 480000000),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetsPage(),
+          asset: AssetState(assets: [_asset()], totalNetValue: 480000000),
+        ),
+      );
       await tester.pump();
       expect(find.text('北京朝阳区公寓'), findsOneWidget);
       expect(find.text('房产'), findsOneWidget);
     });
 
-    testWidgets('vehicle card with straight-line depreciation bar',
-        (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetsPage(),
-        asset: AssetState(
-          assets: [
-            _asset(
-              id: 'v',
-              name: '特斯拉Model Y',
-              assetType: 'vehicle',
-              purchasePrice: 2600000,
-              currentValue: 1800000,
-              depreciationMethod: 'straight_line',
-              depreciationProgress: 0.31,
-            ),
-          ],
-          totalNetValue: 1800000,
+    testWidgets('vehicle card with straight-line depreciation bar', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetsPage(),
+          asset: AssetState(
+            assets: [
+              _asset(
+                id: 'v',
+                name: '特斯拉Model Y',
+                assetType: 'vehicle',
+                purchasePrice: 2600000,
+                currentValue: 1800000,
+                depreciationMethod: 'straight_line',
+                depreciationProgress: 0.31,
+              ),
+            ],
+            totalNetValue: 1800000,
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('特斯拉Model Y'), findsOneWidget);
       expect(find.text('车辆'), findsOneWidget);
@@ -813,30 +875,34 @@ void main() {
     });
 
     testWidgets('double declining label shown', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetsPage(),
-        asset: AssetState(
-          assets: [
-            _asset(
-              depreciationMethod: 'double_declining',
-              depreciationProgress: 0.2,
-            ),
-          ],
-          totalNetValue: 480000000,
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetsPage(),
+          asset: AssetState(
+            assets: [
+              _asset(
+                depreciationMethod: 'double_declining',
+                depreciationProgress: 0.2,
+              ),
+            ],
+            totalNetValue: 480000000,
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('双倍余额递减法'), findsOneWidget);
     });
 
     testWidgets('no depreciation bar when method is none', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetsPage(),
-        asset: AssetState(
-          assets: [_asset(depreciationMethod: 'none')],
-          totalNetValue: 480000000,
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetsPage(),
+          asset: AssetState(
+            assets: [_asset(depreciationMethod: 'none')],
+            totalNetValue: 480000000,
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('已折旧'), findsNothing);
     });
@@ -848,41 +914,45 @@ void main() {
     });
 
     testWidgets('multiple assets render', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetsPage(),
-        asset: AssetState(
-          assets: [
-            _asset(),
-            _asset(
-              id: 'a2',
-              name: 'MacBook Pro',
-              assetType: 'electronics',
-              purchasePrice: 2400000,
-              currentValue: 1500000,
-            ),
-          ],
-          totalNetValue: 481500000,
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetsPage(),
+          asset: AssetState(
+            assets: [
+              _asset(),
+              _asset(
+                id: 'a2',
+                name: 'MacBook Pro',
+                assetType: 'electronics',
+                purchasePrice: 2400000,
+                currentValue: 1500000,
+              ),
+            ],
+            totalNetValue: 481500000,
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('北京朝阳区公寓'), findsOneWidget);
       expect(find.text('MacBook Pro'), findsOneWidget);
     });
 
     testWidgets('dark theme renders', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetsPage(),
-        theme: ThemeData.dark(useMaterial3: true),
-        asset: AssetState(
-          assets: [
-            _asset(
-              depreciationMethod: 'straight_line',
-              depreciationProgress: 0.5,
-            ),
-          ],
-          totalNetValue: 480000000,
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetsPage(),
+          theme: ThemeData.dark(useMaterial3: true),
+          asset: AssetState(
+            assets: [
+              _asset(
+                depreciationMethod: 'straight_line',
+                depreciationProgress: 0.5,
+              ),
+            ],
+            totalNetValue: 480000000,
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('北京朝阳区公寓'), findsOneWidget);
     });
@@ -955,10 +1025,12 @@ void main() {
     });
 
     testWidgets('dark theme renders', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AddAssetPage(),
-        theme: ThemeData.dark(useMaterial3: true),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AddAssetPage(),
+          theme: ThemeData.dark(useMaterial3: true),
+        ),
+      );
       await tester.pump();
       expect(find.text('添加资产'), findsWidgets);
     });
@@ -969,86 +1041,98 @@ void main() {
   // ─────────────────────────────────────────────────────────────
   group('AssetDetailPage', () {
     testWidgets('loading spinner when no data', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetDetailPage(assetId: 'asset-1'),
-        asset: const AssetState(isLoading: true),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetDetailPage(assetId: 'asset-1'),
+          asset: const AssetState(isLoading: true),
+        ),
+      );
       await tester.pump();
       expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('shows "资产不存在" when null', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetDetailPage(assetId: 'asset-1'),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(const AssetDetailPage(assetId: 'asset-1')),
+      );
       await tester.pump();
       expect(find.text('资产不存在'), findsOneWidget);
     });
 
     testWidgets('renders asset header', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetDetailPage(assetId: 'asset-1'),
-        asset: AssetState(currentAsset: _asset()),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetDetailPage(assetId: 'asset-1'),
+          asset: AssetState(currentAsset: _asset()),
+        ),
+      );
       await tester.pump();
       expect(find.text('北京朝阳区公寓'), findsWidgets);
       expect(find.text('房产'), findsOneWidget);
       expect(find.text('当前净值'), findsOneWidget);
     });
 
-    testWidgets('depreciation progress in header when active',
-        (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetDetailPage(assetId: 'asset-1'),
-        asset: AssetState(
-          currentAsset: _asset(
-            depreciationMethod: 'straight_line',
-            depreciationProgress: 0.25,
+    testWidgets('depreciation progress in header when active', (tester) async {
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetDetailPage(assetId: 'asset-1'),
+          asset: AssetState(
+            currentAsset: _asset(
+              depreciationMethod: 'straight_line',
+              depreciationProgress: 0.25,
+            ),
           ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.textContaining('已折旧 25.0%'), findsOneWidget);
     });
 
     testWidgets('chart placeholder when < 2 valuations', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetDetailPage(assetId: 'asset-1'),
-        asset: AssetState(
-          currentAsset: _asset(),
-          valuations: [_valuation()],
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetDetailPage(assetId: 'asset-1'),
+          asset: AssetState(currentAsset: _asset(), valuations: [_valuation()]),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('需要2条以上估值记录才能显示趋势图'), findsOneWidget);
     });
 
     testWidgets('chart renders with ≥ 2 valuations', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetDetailPage(assetId: 'asset-1'),
-        asset: AssetState(
-          currentAsset: _asset(),
-          valuations: [
-            _valuation(id: 'v1', date: DateTime(2023, 1, 1)),
-            _valuation(id: 'v2', value: 490000000, date: DateTime(2024, 1, 1)),
-          ],
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetDetailPage(assetId: 'asset-1'),
+          asset: AssetState(
+            currentAsset: _asset(),
+            valuations: [
+              _valuation(id: 'v1', date: DateTime(2023, 1, 1)),
+              _valuation(
+                id: 'v2',
+                value: 490000000,
+                date: DateTime(2024, 1, 1),
+              ),
+            ],
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('需要2条以上估值记录才能显示趋势图'), findsNothing);
     });
 
     testWidgets('asset info card shows correct fields', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetDetailPage(assetId: 'asset-1'),
-        asset: AssetState(
-          currentAsset: _asset(
-            depreciationMethod: 'straight_line',
-            usefulLifeYears: 30,
-            salvageRate: 0.05,
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetDetailPage(assetId: 'asset-1'),
+          asset: AssetState(
+            currentAsset: _asset(
+              depreciationMethod: 'straight_line',
+              usefulLifeYears: 30,
+              salvageRate: 0.05,
+            ),
           ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('资产信息'), findsOneWidget);
       expect(find.text('购入价格'), findsOneWidget);
@@ -1062,55 +1146,59 @@ void main() {
     });
 
     testWidgets('empty valuations shows placeholder', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetDetailPage(assetId: 'asset-1'),
-        asset: AssetState(currentAsset: _asset()),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetDetailPage(assetId: 'asset-1'),
+          asset: AssetState(currentAsset: _asset()),
+        ),
+      );
       await tester.pump();
       expect(find.text('暂无估值记录'), findsOneWidget);
     });
 
     testWidgets('valuation records render source labels', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetDetailPage(assetId: 'asset-1'),
-        asset: AssetState(
-          currentAsset: _asset(),
-          valuations: [
-            _valuation(id: 'v1', source: 'manual'),
-            _valuation(
-              id: 'v2',
-              source: 'depreciation',
-              value: 470000000,
-            ),
-          ],
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetDetailPage(assetId: 'asset-1'),
+          asset: AssetState(
+            currentAsset: _asset(),
+            valuations: [
+              _valuation(id: 'v1', source: 'manual'),
+              _valuation(id: 'v2', source: 'depreciation', value: 470000000),
+            ],
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('手动估值'), findsOneWidget);
       expect(find.text('折旧计算'), findsOneWidget);
     });
 
     testWidgets('action buttons present', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetDetailPage(assetId: 'asset-1'),
-        asset: AssetState(currentAsset: _asset()),
-      ));
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetDetailPage(assetId: 'asset-1'),
+          asset: AssetState(currentAsset: _asset()),
+        ),
+      );
       await tester.pump();
       expect(find.text('更新估值'), findsOneWidget);
       expect(find.text('折旧规则'), findsOneWidget);
     });
 
     testWidgets('dark theme renders', (tester) async {
-      await tester.pumpWidget(wrapWithProviders(
-        const AssetDetailPage(assetId: 'asset-1'),
-        theme: ThemeData.dark(useMaterial3: true),
-        asset: AssetState(
-          currentAsset: _asset(
-            depreciationMethod: 'double_declining',
-            depreciationProgress: 0.4,
+      await tester.pumpWidget(
+        wrapWithProviders(
+          const AssetDetailPage(assetId: 'asset-1'),
+          theme: ThemeData.dark(useMaterial3: true),
+          asset: AssetState(
+            currentAsset: _asset(
+              depreciationMethod: 'double_declining',
+              depreciationProgress: 0.4,
+            ),
           ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('北京朝阳区公寓'), findsWidgets);
     });
@@ -1166,9 +1254,9 @@ void main() {
 
     testWidgets('valid value calls onSubmit with cents', (tester) async {
       int? submitted;
-      await tester.pumpWidget(buildDialog(
-        onSubmit: (v) async => submitted = v,
-      ));
+      await tester.pumpWidget(
+        buildDialog(onSubmit: (v) async => submitted = v),
+      );
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), '5000.50');
@@ -1179,9 +1267,9 @@ void main() {
 
     testWidgets('empty input does NOT call onSubmit', (tester) async {
       bool called = false;
-      await tester.pumpWidget(buildDialog(
-        onSubmit: (_) async => called = true,
-      ));
+      await tester.pumpWidget(
+        buildDialog(onSubmit: (_) async => called = true),
+      );
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('确认'));
@@ -1191,9 +1279,9 @@ void main() {
 
     testWidgets('zero value does NOT call onSubmit', (tester) async {
       bool called = false;
-      await tester.pumpWidget(buildDialog(
-        onSubmit: (_) async => called = true,
-      ));
+      await tester.pumpWidget(
+        buildDialog(onSubmit: (_) async => called = true),
+      );
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), '0');
@@ -1204,9 +1292,9 @@ void main() {
 
     testWidgets('negative input rejected by formatter', (tester) async {
       bool called = false;
-      await tester.pumpWidget(buildDialog(
-        onSubmit: (_) async => called = true,
-      ));
+      await tester.pumpWidget(
+        buildDialog(onSubmit: (_) async => called = true),
+      );
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), '-10');
@@ -1217,9 +1305,7 @@ void main() {
 
     testWidgets('shows loading spinner during submission', (tester) async {
       final blocker = Completer<void>();
-      await tester.pumpWidget(buildDialog(
-        onSubmit: (_) => blocker.future,
-      ));
+      await tester.pumpWidget(buildDialog(onSubmit: (_) => blocker.future));
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), '100');

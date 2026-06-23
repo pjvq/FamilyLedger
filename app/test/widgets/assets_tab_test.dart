@@ -45,45 +45,48 @@ void main() {
     });
 
     testWidgets('shows net worth hero card', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        dashboard: const DashboardState(
-          netWorth: NetWorthData(
-            total: 50000000,
-            cashAndBank: 30000000,
-            investmentValue: 25000000,
-            fixedAssetValue: 10000000,
-            loanBalance: -15000000,
-            changeFromLastMonth: 2000000,
-            changePercent: 0.04,
+      await tester.pumpWidget(
+        buildTestApp(
+          dashboard: const DashboardState(
+            netWorth: NetWorthData(
+              total: 50000000,
+              cashAndBank: 30000000,
+              investmentValue: 25000000,
+              fixedAssetValue: 10000000,
+              loanBalance: -15000000,
+              changeFromLastMonth: 2000000,
+              changePercent: 0.04,
+            ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('净资产'), findsOneWidget);
     });
 
-    testWidgets('shows accounts section when accounts exist',
-        (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        account: AccountState(
-          accounts: [
-            Account(
-              id: 'acc-1',
-              name: '工商银行',
-              icon: '🏦',
-              balance: 1000000,
-              accountType: 'debit',
-              currency: 'CNY',
-              userId: 'u1',
-              familyId: '',
-              isActive: true,
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
-            ),
-          ],
+    testWidgets('shows accounts section when accounts exist', (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          account: AccountState(
+            accounts: [
+              Account(
+                id: 'acc-1',
+                name: '工商银行',
+                icon: '🏦',
+                balance: 1000000,
+                accountType: 'debit',
+                currency: 'CNY',
+                userId: 'u1',
+                familyId: '',
+                isActive: true,
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              ),
+            ],
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('现金与存款'), findsOneWidget);
@@ -100,14 +103,13 @@ void main() {
     // ── Boundary tests (review #11) ──
 
     testWidgets('NaN changePercent does not crash', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        dashboard: const DashboardState(
-          netWorth: NetWorthData(
-            total: 100000,
-            changePercent: double.nan,
+      await tester.pumpWidget(
+        buildTestApp(
+          dashboard: const DashboardState(
+            netWorth: NetWorthData(total: 100000, changePercent: double.nan),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Should not display "NaN%"
@@ -116,29 +118,33 @@ void main() {
     });
 
     testWidgets('Infinity changePercent does not crash', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        dashboard: const DashboardState(
-          netWorth: NetWorthData(
-            total: 100000,
-            changePercent: double.infinity,
+      await tester.pumpWidget(
+        buildTestApp(
+          dashboard: const DashboardState(
+            netWorth: NetWorthData(
+              total: 100000,
+              changePercent: double.infinity,
+            ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Infinity'), findsNothing);
     });
 
     testWidgets('negative net worth renders correctly', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        dashboard: const DashboardState(
-          netWorth: NetWorthData(
-            total: -500000,
-            loanBalance: -800000,
-            cashAndBank: 300000,
+      await tester.pumpWidget(
+        buildTestApp(
+          dashboard: const DashboardState(
+            netWorth: NetWorthData(
+              total: -500000,
+              loanBalance: -800000,
+              cashAndBank: 300000,
+            ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('净资产'), findsOneWidget);
@@ -162,9 +168,9 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(buildTestApp(
-        account: AccountState(accounts: manyAccounts),
-      ));
+      await tester.pumpWidget(
+        buildTestApp(account: AccountState(accounts: manyAccounts)),
+      );
       await tester.pumpAndSettle();
 
       // Scroll down to find the "show more" button
@@ -246,12 +252,14 @@ void main() {
     }
 
     testWidgets('负债总额包含组合贷剩余本金（回归）', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        loan: LoanState(
-          loans: [makeStandaloneLoan()], // 10.80万
-          loanGroups: [makeGroupDisplay()], // 335.40万
+      await tester.pumpWidget(
+        buildTestApp(
+          loan: LoanState(
+            loans: [makeStandaloneLoan()], // 10.80万
+            loanGroups: [makeGroupDisplay()], // 335.40万
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('负债'), findsOneWidget);
@@ -262,12 +270,14 @@ void main() {
     });
 
     testWidgets('只有组合贷时负债区仍显示且总额正确', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        loan: LoanState(
-          loans: const [], // 无独立贷款
-          loanGroups: [makeGroupDisplay()], // 335.40万
+      await tester.pumpWidget(
+        buildTestApp(
+          loan: LoanState(
+            loans: const [], // 无独立贷款
+            loanGroups: [makeGroupDisplay()], // 335.40万
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // section 显示条件改为 loans 或 loanGroups 任一非空。
@@ -282,16 +292,18 @@ void main() {
     });
 
     testWidgets('超过 3 笔贷款（含组合贷）显示查看全部 N 笔', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        loan: LoanState(
-          loans: [
-            makeStandaloneLoan(id: 'l1'),
-            makeStandaloneLoan(id: 'l2'),
-            makeStandaloneLoan(id: 'l3'),
-          ],
-          loanGroups: [makeGroupDisplay()],
+      await tester.pumpWidget(
+        buildTestApp(
+          loan: LoanState(
+            loans: [
+              makeStandaloneLoan(id: 'l1'),
+              makeStandaloneLoan(id: 'l2'),
+              makeStandaloneLoan(id: 'l3'),
+            ],
+            loanGroups: [makeGroupDisplay()],
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // 3 独立 + 1 组合 = 4 笔 > 3，应显示查看全部。
@@ -304,19 +316,22 @@ void main() {
       expect(find.text('查看全部 4 笔贷款'), findsOneWidget);
     });
 
-    testWidgets('bar not shown when both assets and liabilities are 0',
-        (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        dashboard: const DashboardState(
-          netWorth: NetWorthData(
-            total: 0,
-            cashAndBank: 0,
-            investmentValue: 0,
-            fixedAssetValue: 0,
-            loanBalance: 0,
+    testWidgets('bar not shown when both assets and liabilities are 0', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          dashboard: const DashboardState(
+            netWorth: NetWorthData(
+              total: 0,
+              cashAndBank: 0,
+              investmentValue: 0,
+              fixedAssetValue: 0,
+              loanBalance: 0,
+            ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Legend text should not appear when bar is hidden

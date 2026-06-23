@@ -37,10 +37,24 @@ const SyncOperation$json = {
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {'1': 'entity_type', '3': 2, '4': 1, '5': 9, '10': 'entityType'},
     {'1': 'entity_id', '3': 3, '4': 1, '5': 9, '10': 'entityId'},
-    {'1': 'op_type', '3': 4, '4': 1, '5': 14, '6': '.familyledger.sync.v1.OperationType', '10': 'opType'},
+    {
+      '1': 'op_type',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.sync.v1.OperationType',
+      '10': 'opType'
+    },
     {'1': 'payload', '3': 5, '4': 1, '5': 9, '10': 'payload'},
     {'1': 'client_id', '3': 6, '4': 1, '5': 9, '10': 'clientId'},
-    {'1': 'timestamp', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'timestamp'},
+    {
+      '1': 'timestamp',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'timestamp'
+    },
   ],
 };
 
@@ -56,7 +70,14 @@ final $typed_data.Uint8List syncOperationDescriptor = $convert.base64Decode(
 const PushOperationsRequest$json = {
   '1': 'PushOperationsRequest',
   '2': [
-    {'1': 'operations', '3': 1, '4': 3, '5': 11, '6': '.familyledger.sync.v1.SyncOperation', '10': 'operations'},
+    {
+      '1': 'operations',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.sync.v1.SyncOperation',
+      '10': 'operations'
+    },
   ],
 };
 
@@ -75,15 +96,23 @@ const PushOperationsResponse$json = {
 };
 
 /// Descriptor for `PushOperationsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List pushOperationsResponseDescriptor = $convert.base64Decode(
-    'ChZQdXNoT3BlcmF0aW9uc1Jlc3BvbnNlEiUKDmFjY2VwdGVkX2NvdW50GAEgASgFUg1hY2NlcH'
-    'RlZENvdW50Eh0KCmZhaWxlZF9pZHMYAiADKAlSCWZhaWxlZElkcw==');
+final $typed_data.Uint8List pushOperationsResponseDescriptor =
+    $convert.base64Decode(
+        'ChZQdXNoT3BlcmF0aW9uc1Jlc3BvbnNlEiUKDmFjY2VwdGVkX2NvdW50GAEgASgFUg1hY2NlcH'
+        'RlZENvdW50Eh0KCmZhaWxlZF9pZHMYAiADKAlSCWZhaWxlZElkcw==');
 
 @$core.Deprecated('Use pullChangesRequestDescriptor instead')
 const PullChangesRequest$json = {
   '1': 'PullChangesRequest',
   '2': [
-    {'1': 'since', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'since'},
+    {
+      '1': 'since',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'since'
+    },
     {'1': 'client_id', '3': 2, '4': 1, '5': 9, '10': 'clientId'},
   ],
 };
@@ -97,8 +126,22 @@ final $typed_data.Uint8List pullChangesRequestDescriptor = $convert.base64Decode
 const PullChangesResponse$json = {
   '1': 'PullChangesResponse',
   '2': [
-    {'1': 'operations', '3': 1, '4': 3, '5': 11, '6': '.familyledger.sync.v1.SyncOperation', '10': 'operations'},
-    {'1': 'server_time', '3': 2, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'serverTime'},
+    {
+      '1': 'operations',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.sync.v1.SyncOperation',
+      '10': 'operations'
+    },
+    {
+      '1': 'server_time',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'serverTime'
+    },
   ],
 };
 
@@ -107,4 +150,3 @@ final $typed_data.Uint8List pullChangesResponseDescriptor = $convert.base64Decod
     'ChNQdWxsQ2hhbmdlc1Jlc3BvbnNlEkMKCm9wZXJhdGlvbnMYASADKAsyIy5mYW1pbHlsZWRnZX'
     'Iuc3luYy52MS5TeW5jT3BlcmF0aW9uUgpvcGVyYXRpb25zEjsKC3NlcnZlcl90aW1lGAIgASgL'
     'MhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcFIKc2VydmVyVGltZQ==');
-

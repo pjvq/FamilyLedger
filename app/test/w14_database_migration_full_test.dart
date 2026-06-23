@@ -39,8 +39,11 @@ void main() {
 
       // Since v13+, categories are seeded after auth (not on fresh DB)
       final cats = await db.select(db.categories).get();
-      expect(cats, isEmpty,
-          reason: 'Categories are now seeded after auth, not on onCreate');
+      expect(
+        cats,
+        isEmpty,
+        reason: 'Categories are now seeded after auth, not on onCreate',
+      );
 
       await db.close();
     });
@@ -56,37 +59,43 @@ void main() {
 
       // Insert a user
       await db.customStatement(
-          "INSERT INTO users (id, email, created_at) "
-          "VALUES ('mig_user', 'migration@test.com', "
-          "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
+        "INSERT INTO users (id, email, created_at) "
+        "VALUES ('mig_user', 'migration@test.com', "
+        "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+      );
 
       // Insert an account
-      await db.insertAccount(AccountsCompanion.insert(
-        id: 'mig_acc',
-        userId: 'mig_user',
-        name: 'Migration Test Account',
-        balance: const Value(100000),
-        familyId: const Value(''),
-        accountType: const Value('bank_card'),
-      ));
+      await db.insertAccount(
+        AccountsCompanion.insert(
+          id: 'mig_acc',
+          userId: 'mig_user',
+          name: 'Migration Test Account',
+          balance: const Value(100000),
+          familyId: const Value(''),
+          accountType: const Value('bank_card'),
+        ),
+      );
 
       // Insert a test category since categories are no longer auto-seeded
       await db.customStatement(
-          "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
-          "VALUES ('mig_cat', 'Food', 'expense', '🍔', 1, 1)");
+        "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
+        "VALUES ('mig_cat', 'Food', 'expense', '🍔', 1, 1)",
+      );
 
       // Insert a transaction
-      await db.insertTransaction(TransactionsCompanion.insert(
-        id: 'mig_tx',
-        userId: 'mig_user',
-        accountId: 'mig_acc',
-        categoryId: 'mig_cat',
-        amount: 5000,
-        amountCny: 5000,
-        type: 'expense',
-        note: const Value('migration test'),
-        txnDate: DateTime.now(),
-      ));
+      await db.insertTransaction(
+        TransactionsCompanion.insert(
+          id: 'mig_tx',
+          userId: 'mig_user',
+          accountId: 'mig_acc',
+          categoryId: 'mig_cat',
+          amount: 5000,
+          amountCny: 5000,
+          type: 'expense',
+          note: const Value('migration test'),
+          txnDate: DateTime.now(),
+        ),
+      );
 
       // Verify data
       final accounts = await db.getActiveAccounts('mig_user');
@@ -102,15 +111,19 @@ void main() {
 
       // Insert some test categories manually
       await db.customStatement(
-          "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
-          "VALUES ('preset_food', 'Food', 'expense', '🍔', 1, 1)");
+        "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
+        "VALUES ('preset_food', 'Food', 'expense', '🍔', 1, 1)",
+      );
       await db.customStatement(
-          "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
-          "VALUES ('dup_food', 'Food', 'expense', '🍔', 999, 0)");
+        "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
+        "VALUES ('dup_food', 'Food', 'expense', '🍔', 999, 0)",
+      );
 
       // Verify both exist before any dedup
       final before = await db.select(db.categories).get();
-      final foodBefore = before.where((c) => c.name == 'Food' && c.type == 'expense').toList();
+      final foodBefore = before
+          .where((c) => c.name == 'Food' && c.type == 'expense')
+          .toList();
       expect(foodBefore.length, 2);
 
       // Note: _deduplicateCategories runs in beforeOpen during v14→v15 migration
@@ -128,15 +141,17 @@ void main() {
       expect(await db.select(db.loanGroups).get(), isEmpty);
 
       // syncQueue (added in v8)
-      await db.insertSyncOp(SyncQueueCompanion.insert(
-        id: 'v8_test_op',
-        entityType: 'transaction',
-        entityId: 'v8_txn',
-        opType: 'create',
-        payload: '{}',
-        clientId: 'test',
-        timestamp: DateTime.now(),
-      ));
+      await db.insertSyncOp(
+        SyncQueueCompanion.insert(
+          id: 'v8_test_op',
+          entityType: 'transaction',
+          entityId: 'v8_txn',
+          opType: 'create',
+          payload: '{}',
+          clientId: 'test',
+          timestamp: DateTime.now(),
+        ),
+      );
       final ops = await db.getPendingSyncOps(10);
       expect(ops.length, 1);
       expect(ops.first.id, 'v8_test_op');
@@ -148,37 +163,44 @@ void main() {
       final db = AppDatabase.forTesting(NativeDatabase.memory());
 
       await db.customStatement(
-          "INSERT INTO users (id, email, created_at) "
-          "VALUES ('v9_user', 'v9@test.com', "
-          "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
-      await db.insertAccount(AccountsCompanion.insert(
-        id: 'v9_acc',
-        userId: 'v9_user',
-        name: 'v9 Account',
-        familyId: const Value(''),
-        accountType: const Value('cash'),
-      ));
+        "INSERT INTO users (id, email, created_at) "
+        "VALUES ('v9_user', 'v9@test.com', "
+        "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+      );
+      await db.insertAccount(
+        AccountsCompanion.insert(
+          id: 'v9_acc',
+          userId: 'v9_user',
+          name: 'v9 Account',
+          familyId: const Value(''),
+          accountType: const Value('cash'),
+        ),
+      );
 
       // Insert a test category
       await db.customStatement(
-          "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
-          "VALUES ('v9_cat', 'Transport', 'expense', '🚌', 2, 1)");
+        "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
+        "VALUES ('v9_cat', 'Transport', 'expense', '🚌', 2, 1)",
+      );
 
-      await db.insertTransaction(TransactionsCompanion.insert(
-        id: 'v9_tx',
-        userId: 'v9_user',
-        accountId: 'v9_acc',
-        categoryId: 'v9_cat',
-        amount: 1000,
-        amountCny: 1000,
-        type: 'expense',
-        txnDate: DateTime.now(),
-        deletedAt: Value(DateTime.now()), // v9 soft-delete column
-      ));
+      await db.insertTransaction(
+        TransactionsCompanion.insert(
+          id: 'v9_tx',
+          userId: 'v9_user',
+          accountId: 'v9_acc',
+          categoryId: 'v9_cat',
+          amount: 1000,
+          amountCny: 1000,
+          type: 'expense',
+          txnDate: DateTime.now(),
+          deletedAt: Value(DateTime.now()), // v9 soft-delete column
+        ),
+      );
 
       // Verify deletedAt is stored
-      final rows = await db.customSelect(
-          "SELECT deleted_at FROM transactions WHERE id='v9_tx'").get();
+      final rows = await db
+          .customSelect("SELECT deleted_at FROM transactions WHERE id='v9_tx'")
+          .get();
       expect(rows.first.data['deleted_at'], isNotNull);
 
       await db.close();
@@ -189,11 +211,13 @@ void main() {
 
       // Insert parent and subcategory to verify schema supports subcategories
       await db.customStatement(
-          "INSERT INTO categories (id, name, type, sort_order, is_preset, icon_key) "
-          "VALUES ('parent_cat', 'Food', 'expense', 1, 1, 'food')");
+        "INSERT INTO categories (id, name, type, sort_order, is_preset, icon_key) "
+        "VALUES ('parent_cat', 'Food', 'expense', 1, 1, 'food')",
+      );
       await db.customStatement(
-          "INSERT INTO categories (id, name, type, sort_order, is_preset, parent_id, icon_key) "
-          "VALUES ('sub_cat', 'Dining', 'expense', 2, 1, 'parent_cat', 'dining')");
+        "INSERT INTO categories (id, name, type, sort_order, is_preset, parent_id, icon_key) "
+        "VALUES ('sub_cat', 'Dining', 'expense', 2, 1, 'parent_cat', 'dining')",
+      );
 
       final cats = await db.select(db.categories).get();
       final subcats = cats.where((c) => c.parentId != null).toList();
@@ -208,17 +232,20 @@ void main() {
       await db.close();
     });
 
-    test('v12 familyId columns: loans, investments, fixedAssets have familyId', () async {
-      final db = AppDatabase.forTesting(NativeDatabase.memory());
+    test(
+      'v12 familyId columns: loans, investments, fixedAssets have familyId',
+      () async {
+        final db = AppDatabase.forTesting(NativeDatabase.memory());
 
-      // Verify the familyId column exists on loans by inserting with it
-      await db.customStatement(
+        // Verify the familyId column exists on loans by inserting with it
+        await db.customStatement(
           "INSERT INTO users (id, email, created_at) "
           "VALUES ('v12_user', 'v12@test.com', "
-          "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
+          "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+        );
 
-      // Loans should accept familyId
-      await db.customStatement(
+        // Loans should accept familyId
+        await db.customStatement(
           "INSERT INTO loans (id, user_id, name, loan_type, principal, remaining_principal, "
           "annual_rate, total_months, paid_months, repayment_method, payment_day, "
           "start_date, family_id, created_at, updated_at) "
@@ -226,21 +253,25 @@ void main() {
           "4.9, 360, 0, 'equal_installment', 15, "
           "${DateTime.now().millisecondsSinceEpoch ~/ 1000}, "
           "'fam_v12', ${DateTime.now().millisecondsSinceEpoch ~/ 1000}, "
-          "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
+          "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+        );
 
-      final row = await db.customSelect(
-          "SELECT family_id FROM loans WHERE id='v12_loan'").get();
-      expect(row.first.data['family_id'], 'fam_v12');
+        final row = await db
+            .customSelect("SELECT family_id FROM loans WHERE id='v12_loan'")
+            .get();
+        expect(row.first.data['family_id'], 'fam_v12');
 
-      await db.close();
-    });
+        await db.close();
+      },
+    );
 
     test('exchangeRates table works (v7+)', () async {
       final db = AppDatabase.forTesting(NativeDatabase.memory());
 
       await db.customStatement(
-          "INSERT INTO exchange_rates (currency_pair, rate, updated_at) "
-          "VALUES ('USD/CNY', 7.25, ${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
+        "INSERT INTO exchange_rates (currency_pair, rate, updated_at) "
+        "VALUES ('USD/CNY', 7.25, ${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+      );
 
       final rates = await db.select(db.exchangeRates).get();
       expect(rates.length, 1);

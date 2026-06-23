@@ -58,200 +58,210 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Semantics(
-      label: '登录页面',
-      child: Scaffold(
-        body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Logo（与 app 图标一致：微信绿底 + 白「账」字）
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF07C160),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      '账',
-                      style: TextStyle(
-                        fontSize: 44,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        height: 1.0,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    '家庭账本',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '家庭资产管理',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-                  // Email
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      hintText: '邮箱',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return '请输入邮箱';
-                      if (!v.contains('@')) return '邮箱格式不正确';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Password
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      hintText: '密码',
-                      prefixIcon: Icon(Icons.lock_outline),
-                    ),
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return '请输入密码';
-                      if (v.length < 6) return '密码至少 6 位';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 32),
-                  // Login button
-                  Semantics(
-                    button: true,
-                    label: '登录',
-                    child: ElevatedButton(
-                      onPressed: authState.status == AuthStatus.loading
-                          ? null
-                          : _handleLogin,
-                      child: authState.status == AuthStatus.loading
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Theme.of(context)
-                                    .elevatedButtonTheme
-                                    .style
-                                    ?.foregroundColor
-                                    ?.resolve({}) ?? Colors.white,
-                              ),
-                            )
-                          : const Text('登录'),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Register link
-                  Semantics(
-                    button: true,
-                    label: '没有账号？去注册',
-                    child: TextButton(
-                      onPressed: () {
-                        context.push(AppRouter.register);
-                      },
-                      child: Text(
-                        '没有账号？注册',
-                        style: TextStyle(color: theme.colorScheme.primary),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  // OAuth divider
-                  Row(
+        label: '登录页面',
+        child: Scaffold(
+          body: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: Divider(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                      // Logo（与 app 图标一致：微信绿底 + 白「账」字）
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF07C160),
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          '其他登录方式',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.4),
+                        alignment: Alignment.center,
+                        child: const Text(
+                          '账',
+                          style: TextStyle(
+                            fontSize: 44,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            height: 1.0,
                           ),
                         ),
                       ),
-                      Expanded(
-                        child: Divider(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                      const SizedBox(height: 24),
+                      Text(
+                        '家庭账本',
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  // OAuth buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // WeChat login
+                      const SizedBox(height: 8),
+                      Text(
+                        '家庭资产管理',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      // Email
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          hintText: '邮箱',
+                          prefixIcon: Icon(Icons.email_outlined),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return '请输入邮箱';
+                          if (!v.contains('@')) return '邮箱格式不正确';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      // Password
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          hintText: '密码',
+                          prefixIcon: Icon(Icons.lock_outline),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return '请输入密码';
+                          if (v.length < 6) return '密码至少 6 位';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 32),
+                      // Login button
                       Semantics(
                         button: true,
-                        label: '微信登录',
-                        child: _OAuthButton(
-                          icon: Icons.chat_rounded,
-                          label: '微信',
-                          color: BrandColors.wechat,
-                          onTap: () => _handleOAuthLogin('wechat'),
+                        label: '登录',
+                        child: ElevatedButton(
+                          onPressed: authState.status == AuthStatus.loading
+                              ? null
+                              : _handleLogin,
+                          child: authState.status == AuthStatus.loading
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color:
+                                        Theme.of(context)
+                                            .elevatedButtonTheme
+                                            .style
+                                            ?.foregroundColor
+                                            ?.resolve({}) ??
+                                        Colors.white,
+                                  ),
+                                )
+                              : const Text('登录'),
                         ),
                       ),
-                      const SizedBox(width: 32),
-                      // Apple login
+                      const SizedBox(height: 16),
+                      // Register link
                       Semantics(
                         button: true,
-                        label: 'Apple登录',
-                        child: _OAuthButton(
-                          icon: Icons.apple_rounded,
-                          label: 'Apple',
-                          color: theme.brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black,
-                          onTap: () => _handleOAuthLogin('apple'),
+                        label: '没有账号？去注册',
+                        child: TextButton(
+                          onPressed: () {
+                            context.push(AppRouter.register);
+                          },
+                          child: Text(
+                            '没有账号？注册',
+                            style: TextStyle(color: theme.colorScheme.primary),
+                          ),
                         ),
                       ),
+                      const SizedBox(height: 32),
+                      // OAuth divider
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Divider(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.2,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              '其他登录方式',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.4,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Divider(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      // OAuth buttons
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // WeChat login
+                          Semantics(
+                            button: true,
+                            label: '微信登录',
+                            child: _OAuthButton(
+                              icon: Icons.chat_rounded,
+                              label: '微信',
+                              color: BrandColors.wechat,
+                              onTap: () => _handleOAuthLogin('wechat'),
+                            ),
+                          ),
+                          const SizedBox(width: 32),
+                          // Apple login
+                          Semantics(
+                            button: true,
+                            label: 'Apple登录',
+                            child: _OAuthButton(
+                              icon: Icons.apple_rounded,
+                              label: 'Apple',
+                              color: theme.brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
+                              onTap: () => _handleOAuthLogin('apple'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
                     ],
                   ),
-                  const SizedBox(height: 32),
-                ],
+                ),
               ),
             ),
           ),
         ),
-        ),
       ),
-    ),
     );
   }
 
   void _handleLogin() {
     if (!_formKey.currentState!.validate()) return;
-    ref.read(authProvider.notifier).login(
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
+    ref
+        .read(authProvider.notifier)
+        .login(_emailController.text.trim(), _passwordController.text);
   }
 
   void _handleOAuthLogin(String provider) {
-    ref.read(authProvider.notifier).oauthLogin(
+    ref
+        .read(authProvider.notifier)
+        .oauthLogin(
           provider: provider,
           code: 'test', // Mock: use test code
         );
@@ -290,11 +300,10 @@ class _OAuthButton extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.6),
-                ),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
           ),
         ],
       ),

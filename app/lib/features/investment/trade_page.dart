@@ -34,11 +34,16 @@ class _TradePageState extends ConsumerState<TradePage> {
         .firstOrNull;
     if (inv == null) return;
 
-    ref.read(marketDataProvider.notifier).getQuote(inv.symbol, inv.marketType).then((quote) {
-      if (quote != null && mounted) {
-        _priceController.text = (quote.currentPrice / 100).toStringAsFixed(2);
-      }
-    });
+    ref
+        .read(marketDataProvider.notifier)
+        .getQuote(inv.symbol, inv.marketType)
+        .then((quote) {
+          if (quote != null && mounted) {
+            _priceController.text = (quote.currentPrice / 100).toStringAsFixed(
+              2,
+            );
+          }
+        });
   }
 
   @override
@@ -55,9 +60,9 @@ class _TradePageState extends ConsumerState<TradePage> {
     final feeYuan = double.tryParse(_feeController.text) ?? 0;
 
     if (quantity <= 0 || priceYuan <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入有效的数量和价格')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请输入有效的数量和价格')));
       return;
     }
 
@@ -69,14 +74,16 @@ class _TradePageState extends ConsumerState<TradePage> {
           .where((i) => i.id == widget.investmentId)
           .firstOrNull;
       if (inv != null && quantity > inv.quantity) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('卖出数量不能超过持仓 (${inv.quantity})')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('卖出数量不能超过持仓 (${inv.quantity})')));
         return;
       }
     }
 
-    await ref.read(investmentProvider.notifier).recordTrade(
+    await ref
+        .read(investmentProvider.notifier)
+        .recordTrade(
           investmentId: widget.investmentId,
           tradeType: _isBuy ? 'buy' : 'sell',
           quantity: quantity,
@@ -100,9 +107,7 @@ class _TradePageState extends ConsumerState<TradePage> {
         .firstOrNull;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(investment?.name ?? '交易'),
-      ),
+      appBar: AppBar(title: Text(investment?.name ?? '交易')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -145,7 +150,9 @@ class _TradePageState extends ConsumerState<TradePage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral1,
+                  color: isDark
+                      ? NeutralColorsDark.neutral2
+                      : NeutralColorsLight.neutral1,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -154,8 +161,9 @@ class _TradePageState extends ConsumerState<TradePage> {
                     Text(
                       '当前持仓',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.6),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.6,
+                        ),
                       ),
                     ),
                     Text(
@@ -175,8 +183,9 @@ class _TradePageState extends ConsumerState<TradePage> {
               label: '输入${_isBuy ? "买入" : "卖出"}数量',
               child: TextField(
                 controller: _quantityController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: InputDecoration(
                   labelText: '数量',
                   border: OutlineInputBorder(
@@ -194,8 +203,9 @@ class _TradePageState extends ConsumerState<TradePage> {
               label: '输入成交价',
               child: TextField(
                 controller: _priceController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: InputDecoration(
                   labelText: '成交价',
                   border: OutlineInputBorder(
@@ -213,8 +223,9 @@ class _TradePageState extends ConsumerState<TradePage> {
               label: '输入手续费',
               child: TextField(
                 controller: _feeController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: InputDecoration(
                   labelText: '手续费',
                   border: OutlineInputBorder(
@@ -270,9 +281,7 @@ class _TradePageState extends ConsumerState<TradePage> {
                 onPressed: _submit,
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: _isBuy
-                      ? colors.expense
-                      : colors.income,
+                  backgroundColor: _isBuy ? colors.expense : colors.income,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -320,7 +329,9 @@ class _TotalRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral1,
+        color: isDark
+            ? NeutralColorsDark.neutral2
+            : NeutralColorsLight.neutral1,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -328,11 +339,12 @@ class _TotalRow extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('金额',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color:
-                        theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                  )),
+              Text(
+                '金额',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
               Text(
                 '¥${subtotal.toStringAsFixed(2)}',
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -345,11 +357,12 @@ class _TotalRow extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('手续费',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color:
-                        theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                  )),
+              Text(
+                '手续费',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
               Text(
                 '¥${fee.toStringAsFixed(2)}',
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -362,10 +375,12 @@ class _TotalRow extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('总计',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  )),
+              Text(
+                '总计',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               Text(
                 '¥${total.toStringAsFixed(2)}',
                 style: theme.textTheme.titleMedium?.copyWith(

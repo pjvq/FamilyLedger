@@ -58,10 +58,7 @@ class _TransactionSuccessOverlayState extends State<TransactionSuccessOverlay>
     _scaleAnimation = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.2), weight: 60),
       TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.0), weight: 40),
-    ]).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    ));
+    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -125,7 +122,8 @@ class _TransactionSuccessOverlayState extends State<TransactionSuccessOverlay>
                           width: 56,
                           height: 56,
                           decoration: BoxDecoration(
-                            color: Theme.of(context).brightness == Brightness.dark
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
                                 ? SemanticColorsDark.income
                                 : SemanticColorsLight.income,
                             shape: BoxShape.circle,
@@ -143,9 +141,7 @@ class _TransactionSuccessOverlayState extends State<TransactionSuccessOverlay>
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Theme.of(context).colorScheme.onSurface,
-                            fontFeatures: const [
-                              FontFeature.tabularFigures()
-                            ],
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -153,10 +149,9 @@ class _TransactionSuccessOverlayState extends State<TransactionSuccessOverlay>
                           '记录成功',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.5),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.5),
                           ),
                         ),
                       ],

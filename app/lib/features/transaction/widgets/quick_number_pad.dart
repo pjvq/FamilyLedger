@@ -39,8 +39,12 @@ class QuickNumberPad extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final keyBg = isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral1;
-    final funcBg = isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral2;
+    final keyBg = isDark
+        ? NeutralColorsDark.neutral2
+        : NeutralColorsLight.neutral1;
+    final funcBg = isDark
+        ? NeutralColorsDark.neutral3
+        : NeutralColorsLight.neutral2;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -50,10 +54,14 @@ class QuickNumberPad extends StatelessWidget {
         MediaQuery.of(context).padding.bottom + SpacingTokens.sm,
       ),
       decoration: BoxDecoration(
-        color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral0,
+        color: isDark
+            ? NeutralColorsDark.neutral1
+            : NeutralColorsLight.neutral0,
         border: Border(
           top: BorderSide(
-            color: isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral3,
+            color: isDark
+                ? NeutralColorsDark.neutral3
+                : NeutralColorsLight.neutral3,
             width: 0.5,
           ),
         ),
@@ -65,7 +73,12 @@ class QuickNumberPad extends StatelessWidget {
             _buildDigitKey('7', keyBg),
             _buildDigitKey('8', keyBg),
             _buildDigitKey('9', keyBg),
-            _buildFuncKey(bg: funcBg, icon: Icons.calendar_today_rounded, onTap: onDateTap, semanticLabel: '日期'),
+            _buildFuncKey(
+              bg: funcBg,
+              icon: Icons.calendar_today_rounded,
+              onTap: onDateTap,
+              semanticLabel: '日期',
+            ),
           ]),
           const SizedBox(height: 6),
           _buildRow([
@@ -95,10 +108,11 @@ class QuickNumberPad extends StatelessWidget {
 
   Widget _buildRow(List<Widget> keys) {
     return Row(
-      children: keys
-          .expand((k) => [Expanded(child: k), const SizedBox(width: 6)])
-          .toList()
-        ..removeLast(),
+      children:
+          keys
+              .expand((k) => [Expanded(child: k), const SizedBox(width: 6)])
+              .toList()
+            ..removeLast(),
     );
   }
 
@@ -184,4 +198,3 @@ class QuickNumberPad extends StatelessWidget {
     );
   }
 }
-

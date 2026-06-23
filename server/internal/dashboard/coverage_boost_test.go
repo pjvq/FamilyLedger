@@ -935,7 +935,7 @@ func TestGetBudgetSummary_SubcategorySpent(t *testing.T) {
 	mock.ExpectQuery("SELECT t.category_id").
 		WithArgs(testUserID, pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnRows(pgxmock.NewRows([]string{"category_id", "parent_id", "spent"}).
-			AddRow("cat-food", (*string)(nil), int64(30000)).         // direct spend on parent
+			AddRow("cat-food", (*string)(nil), int64(30000)). // direct spend on parent
 			AddRow("cat-food-fast", &parentID, int64(20000))) // subcategory spend
 
 	resp, err := svc.GetBudgetSummary(authedCtx(), &pb.BudgetSummaryRequest{

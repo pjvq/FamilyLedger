@@ -48,23 +48,22 @@ class TransactionModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? syncStatus,
-  }) =>
-      TransactionModel(
-        id: id ?? this.id,
-        userId: userId ?? this.userId,
-        accountId: accountId ?? this.accountId,
-        categoryId: categoryId ?? this.categoryId,
-        amount: amount ?? this.amount,
-        currency: currency ?? this.currency,
-        amountCny: amountCny ?? this.amountCny,
-        exchangeRate: exchangeRate ?? this.exchangeRate,
-        type: type ?? this.type,
-        note: note ?? this.note,
-        txnDate: txnDate ?? this.txnDate,
-        createdAt: createdAt ?? this.createdAt,
-        updatedAt: updatedAt ?? this.updatedAt,
-        syncStatus: syncStatus ?? this.syncStatus,
-      );
+  }) => TransactionModel(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    accountId: accountId ?? this.accountId,
+    categoryId: categoryId ?? this.categoryId,
+    amount: amount ?? this.amount,
+    currency: currency ?? this.currency,
+    amountCny: amountCny ?? this.amountCny,
+    exchangeRate: exchangeRate ?? this.exchangeRate,
+    type: type ?? this.type,
+    note: note ?? this.note,
+    txnDate: txnDate ?? this.txnDate,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncStatus: syncStatus ?? this.syncStatus,
+  );
 
   /// 格式化金额展示（元）
   String get formattedAmount {

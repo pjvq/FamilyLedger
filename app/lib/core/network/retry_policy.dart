@@ -49,8 +49,11 @@ class RetryPolicy {
       StatusCode.aborted,
     },
     this.perAttemptTimeout,
-  })  : assert(maxAttempts >= 1, 'maxAttempts must be >= 1'),
-        assert(jitterFactor >= 0.0 && jitterFactor <= 1.0, 'jitterFactor must be in [0, 1]');
+  }) : assert(maxAttempts >= 1, 'maxAttempts must be >= 1'),
+       assert(
+         jitterFactor >= 0.0 && jitterFactor <= 1.0,
+         'jitterFactor must be in [0, 1]',
+       );
 
   /// No retry — fail fast on first error. Use for non-idempotent mutations
   /// where retry could cause duplicate side effects.
@@ -74,11 +77,13 @@ class RetryPolicy {
     final exponential = baseDelay * (1 << (attempt - 1).clamp(0, _maxExponent));
     final capped = exponential > maxDelay ? maxDelay : exponential;
     // Add jitter: random uniform [0, jitterFactor * capped]
-    final jitterMs = (_random.nextDouble() * jitterFactor * capped.inMilliseconds).round();
+    final jitterMs =
+        (_random.nextDouble() * jitterFactor * capped.inMilliseconds).round();
     return capped + Duration(milliseconds: jitterMs);
   }
 
-  bool isRetryable(GrpcError error) => retryableStatusCodes.contains(error.code);
+  bool isRetryable(GrpcError error) =>
+      retryableStatusCodes.contains(error.code);
 
   // Non-cryptographic PRNG is sufficient for jitter — this is a scheduling
   // optimization (decorrelating retry bursts), not a security mechanism.

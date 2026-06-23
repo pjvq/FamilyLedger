@@ -32,7 +32,14 @@ const ParseCSVResponse$json = {
   '1': 'ParseCSVResponse',
   '2': [
     {'1': 'headers', '3': 1, '4': 3, '5': 9, '10': 'headers'},
-    {'1': 'preview_rows', '3': 2, '4': 3, '5': 11, '6': '.familyledger.import.v1.CSVRow', '10': 'previewRows'},
+    {
+      '1': 'preview_rows',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.import.v1.CSVRow',
+      '10': 'previewRows'
+    },
     {'1': 'total_rows', '3': 3, '4': 1, '5': 5, '10': 'totalRows'},
     {'1': 'session_id', '3': 4, '4': 1, '5': 9, '10': 'sessionId'},
   ],
@@ -54,8 +61,8 @@ const CSVRow$json = {
 };
 
 /// Descriptor for `CSVRow`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List cSVRowDescriptor = $convert.base64Decode(
-    'CgZDU1ZSb3cSFgoGdmFsdWVzGAEgAygJUgZ2YWx1ZXM=');
+final $typed_data.Uint8List cSVRowDescriptor =
+    $convert.base64Decode('CgZDU1ZSb3cSFgoGdmFsdWVzGAEgAygJUgZ2YWx1ZXM=');
 
 @$core.Deprecated('Use fieldMappingDescriptor instead')
 const FieldMapping$json = {
@@ -76,8 +83,21 @@ const ConfirmImportRequest$json = {
   '1': 'ConfirmImportRequest',
   '2': [
     {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
-    {'1': 'mappings', '3': 2, '4': 3, '5': 11, '6': '.familyledger.import.v1.FieldMapping', '10': 'mappings'},
-    {'1': 'default_account_id', '3': 3, '4': 1, '5': 9, '10': 'defaultAccountId'},
+    {
+      '1': 'mappings',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.import.v1.FieldMapping',
+      '10': 'mappings'
+    },
+    {
+      '1': 'default_account_id',
+      '3': 3,
+      '4': 1,
+      '5': 9,
+      '10': 'defaultAccountId'
+    },
     {'1': 'user_id', '3': 4, '4': 1, '5': 9, '10': 'userId'},
   ],
 };
@@ -104,4 +124,3 @@ final $typed_data.Uint8List confirmImportResponseDescriptor = $convert.base64Dec
     'ChVDb25maXJtSW1wb3J0UmVzcG9uc2USJQoOaW1wb3J0ZWRfY291bnQYASABKAVSDWltcG9ydG'
     'VkQ291bnQSIwoNc2tpcHBlZF9jb3VudBgCIAEoBVIMc2tpcHBlZENvdW50EhYKBmVycm9ycxgD'
     'IAMoCVIGZXJyb3Jz');
-

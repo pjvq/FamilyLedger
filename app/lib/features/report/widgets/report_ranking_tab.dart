@@ -52,8 +52,9 @@ class _ReportRankingTabState extends State<ReportRankingTab> {
             children: [
               Text(
                 'Top ${top.length}',
-                style: theme.textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w600),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const Spacer(),
               MiniSegment(
@@ -69,11 +70,13 @@ class _ReportRankingTabState extends State<ReportRankingTab> {
         Expanded(
           child: top.isEmpty
               ? Center(
-                  child: Text('暂无数据',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.4),
-                      )))
+                  child: Text(
+                    '暂无数据',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
+                  ),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                   itemCount: top.length,
@@ -82,14 +85,15 @@ class _ReportRankingTabState extends State<ReportRankingTab> {
                     final cat = widget.categoryMap[t.categoryId];
                     final parentCat =
                         cat?.parentId != null && cat!.parentId!.isNotEmpty
-                            ? widget.categoryMap[cat.parentId!]
-                            : null;
+                        ? widget.categoryMap[cat.parentId!]
+                        : null;
                     final catName = parentCat != null
                         ? '${parentCat.name} · ${cat?.name ?? ""}'
                         : (cat?.name ?? '未知');
 
-                    final amountColor =
-                        _typeTab == 0 ? colors.expense : colors.income;
+                    final amountColor = _typeTab == 0
+                        ? colors.expense
+                        : colors.income;
 
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -105,17 +109,17 @@ class _ReportRankingTabState extends State<ReportRankingTab> {
                                 fontWeight: FontWeight.w600,
                                 color: index < 3
                                     ? (isDark
-                                        ? ColorTokens.primaryLight
-                                        : ColorTokens.primary)
-                                    : theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.5),
+                                          ? ColorTokens.primaryLight
+                                          : ColorTokens.primary)
+                                    : theme.colorScheme.onSurface.withValues(
+                                        alpha: 0.5,
+                                      ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 8),
                           // Icon
-                          CategoryIconWidget(
-                              iconKey: cat?.iconKey, size: 32),
+                          CategoryIconWidget(iconKey: cat?.iconKey, size: 32),
                           const SizedBox(width: 10),
                           // Info
                           Expanded(
@@ -125,7 +129,8 @@ class _ReportRankingTabState extends State<ReportRankingTab> {
                                 Text(
                                   catName,
                                   style: theme.textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w500),
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -137,10 +142,11 @@ class _ReportRankingTabState extends State<ReportRankingTab> {
                                           t.note,
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
-                                            color: theme
-                                                .colorScheme.onSurface
-                                                .withValues(alpha: 0.4),
-                                          ),
+                                                color: theme
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(alpha: 0.4),
+                                              ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -151,10 +157,11 @@ class _ReportRankingTabState extends State<ReportRankingTab> {
                                           _fmtDate(t.txnDate),
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
-                                            color: theme
-                                                .colorScheme.onSurface
-                                                .withValues(alpha: 0.4),
-                                          ),
+                                                color: theme
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(alpha: 0.4),
+                                              ),
                                         ),
                                       ),
                                   ],
@@ -169,7 +176,7 @@ class _ReportRankingTabState extends State<ReportRankingTab> {
                               fontWeight: FontWeight.w600,
                               color: amountColor,
                               fontFeatures: const [
-                                FontFeature.tabularFigures()
+                                FontFeature.tabularFigures(),
                               ],
                             ),
                           ),
@@ -183,6 +190,5 @@ class _ReportRankingTabState extends State<ReportRankingTab> {
     );
   }
 
-  String _fmtDate(DateTime d) =>
-      '${d.month}/${d.day}';
+  String _fmtDate(DateTime d) => '${d.month}/${d.day}';
 }

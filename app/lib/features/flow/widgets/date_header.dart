@@ -9,21 +9,17 @@ class DateHeader extends StatelessWidget {
   final DateTime date;
   final int dayTotal;
 
-  const DateHeader({
-    super.key,
-    required this.date,
-    required this.dayTotal,
-  });
+  const DateHeader({super.key, required this.date, required this.dayTotal});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();
-    final isToday = date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day;
+    final isToday =
+        date.year == now.year && date.month == now.month && date.day == now.day;
     final yesterday = now.subtract(const Duration(days: 1));
-    final isYesterday = date.year == yesterday.year &&
+    final isYesterday =
+        date.year == yesterday.year &&
         date.month == yesterday.month &&
         date.day == yesterday.day;
 

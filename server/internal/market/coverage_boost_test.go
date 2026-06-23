@@ -412,9 +412,9 @@ func TestBoost_Service_BatchGetQuotes_SkipsInvalid(t *testing.T) {
 
 	resp, err := svc.BatchGetQuotes(context.Background(), &pb.BatchGetQuotesRequest{
 		Requests: []*pb.GetQuoteRequest{
-			{Symbol: "", MarketType: pb.MarketType_MARKET_TYPE_US_STOCK},         // skip: empty symbol
-			{Symbol: "GOOG", MarketType: pb.MarketType_MARKET_TYPE_UNSPECIFIED},  // skip: unspecified
-			{Symbol: "GOOG", MarketType: pb.MarketType_MARKET_TYPE_US_STOCK},     // valid
+			{Symbol: "", MarketType: pb.MarketType_MARKET_TYPE_US_STOCK},        // skip: empty symbol
+			{Symbol: "GOOG", MarketType: pb.MarketType_MARKET_TYPE_UNSPECIFIED}, // skip: unspecified
+			{Symbol: "GOOG", MarketType: pb.MarketType_MARKET_TYPE_US_STOCK},    // valid
 		},
 	})
 	require.NoError(t, err)
@@ -645,7 +645,7 @@ func TestBoost_IsTradingHours_AShare_ExactOpen(t *testing.T) {
 func TestBoost_IsTradingHours_AShare_ExactClose(t *testing.T) {
 	cst := mustLoadLocation("Asia/Shanghai")
 	now := time.Date(2026, 4, 22, 15, 0, 0, 0, cst) // Exactly at close
-	assert.False(t, IsTradingHours(now, "a_share"))   // end is exclusive
+	assert.False(t, IsTradingHours(now, "a_share")) // end is exclusive
 }
 
 // ── RefreshQuotes ───────────────────────────────────────────────────────────

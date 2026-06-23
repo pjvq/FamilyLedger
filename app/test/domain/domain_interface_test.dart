@@ -81,17 +81,20 @@ void main() {
       expect(found!.amountCny, 2000);
     });
 
-    test('softDelete sets deletedAt, getById returns null for soft-deleted', () async {
-      await repo.insert(makeTxn());
-      await repo.softDelete('txn-1');
+    test(
+      'softDelete sets deletedAt, getById returns null for soft-deleted',
+      () async {
+        await repo.insert(makeTxn());
+        await repo.softDelete('txn-1');
 
-      final found = await repo.getById('txn-1');
-      expect(found, isNull);
+        final found = await repo.getById('txn-1');
+        expect(found, isNull);
 
-      // But still in raw store
-      expect(repo.store.length, 1);
-      expect(repo.store.first.deletedAt, isNotNull);
-    });
+        // But still in raw store
+        expect(repo.store.length, 1);
+        expect(repo.store.first.deletedAt, isNotNull);
+      },
+    );
 
     test('hardDelete removes permanently', () async {
       await repo.insert(makeTxn());
@@ -113,8 +116,12 @@ void main() {
 
     test('getRecent returns user transactions sorted by date desc', () async {
       final now = DateTime.now();
-      await repo.insert(makeTxn(id: 'a', txnDate: now.subtract(const Duration(days: 2))));
-      await repo.insert(makeTxn(id: 'b', txnDate: now.subtract(const Duration(days: 1))));
+      await repo.insert(
+        makeTxn(id: 'a', txnDate: now.subtract(const Duration(days: 2))),
+      );
+      await repo.insert(
+        makeTxn(id: 'b', txnDate: now.subtract(const Duration(days: 1))),
+      );
       await repo.insert(makeTxn(id: 'c', txnDate: now));
 
       final recent = await repo.getRecent('user-1', 10);
@@ -123,10 +130,12 @@ void main() {
 
     test('getRecent respects limit', () async {
       for (int i = 0; i < 20; i++) {
-        await repo.insert(makeTxn(
-          id: 'txn-$i',
-          txnDate: DateTime.now().subtract(Duration(hours: i)),
-        ));
+        await repo.insert(
+          makeTxn(
+            id: 'txn-$i',
+            txnDate: DateTime.now().subtract(Duration(hours: i)),
+          ),
+        );
       }
 
       final page = await repo.getRecent('user-1', 5);
@@ -210,10 +219,18 @@ void main() {
       final today = DateTime.now();
       final yesterday = today.subtract(const Duration(days: 1));
 
-      await repo.insert(makeTxn(id: 'a', amountCny: 1000, type: 'expense', txnDate: today));
-      await repo.insert(makeTxn(id: 'b', amountCny: 2000, type: 'expense', txnDate: today));
-      await repo.insert(makeTxn(id: 'c', amountCny: 500, type: 'income', txnDate: today));
-      await repo.insert(makeTxn(id: 'd', amountCny: 3000, type: 'expense', txnDate: yesterday));
+      await repo.insert(
+        makeTxn(id: 'a', amountCny: 1000, type: 'expense', txnDate: today),
+      );
+      await repo.insert(
+        makeTxn(id: 'b', amountCny: 2000, type: 'expense', txnDate: today),
+      );
+      await repo.insert(
+        makeTxn(id: 'c', amountCny: 500, type: 'income', txnDate: today),
+      );
+      await repo.insert(
+        makeTxn(id: 'd', amountCny: 3000, type: 'expense', txnDate: yesterday),
+      );
 
       final todayExp = await repo.getTodayExpense('user-1');
       expect(todayExp, 3000); // 1000 + 2000, ignores income and yesterday
@@ -225,18 +242,30 @@ void main() {
       // Use subtract to avoid month=0 edge case in January
       final lastMonth = thisMonth.subtract(const Duration(days: 35));
 
-      await repo.insert(makeTxn(id: 'a', amountCny: 1000, type: 'expense', txnDate: thisMonth));
-      await repo.insert(makeTxn(id: 'b', amountCny: 2000, type: 'expense', txnDate: thisMonth));
-      await repo.insert(makeTxn(id: 'c', amountCny: 9000, type: 'expense', txnDate: lastMonth));
+      await repo.insert(
+        makeTxn(id: 'a', amountCny: 1000, type: 'expense', txnDate: thisMonth),
+      );
+      await repo.insert(
+        makeTxn(id: 'b', amountCny: 2000, type: 'expense', txnDate: thisMonth),
+      );
+      await repo.insert(
+        makeTxn(id: 'c', amountCny: 9000, type: 'expense', txnDate: lastMonth),
+      );
 
       final monthExp = await repo.getMonthExpense('user-1');
       expect(monthExp, 3000);
     });
 
     test('getTotalBalance computes income minus expense', () async {
-      await repo.insert(makeTxn(id: 'income-1', amountCny: 10000, type: 'income'));
-      await repo.insert(makeTxn(id: 'expense-1', amountCny: 3000, type: 'expense'));
-      await repo.insert(makeTxn(id: 'expense-2', amountCny: 2000, type: 'expense'));
+      await repo.insert(
+        makeTxn(id: 'income-1', amountCny: 10000, type: 'income'),
+      );
+      await repo.insert(
+        makeTxn(id: 'expense-1', amountCny: 3000, type: 'expense'),
+      );
+      await repo.insert(
+        makeTxn(id: 'expense-2', amountCny: 2000, type: 'expense'),
+      );
 
       final balance = await repo.getTotalBalance('user-1');
       expect(balance, 5000); // 10000 - 3000 - 2000
@@ -411,9 +440,15 @@ void main() {
     });
 
     test('getByType filters correctly', () async {
-      await repo.upsert(const CategoryEntity(id: 'e1', name: '餐饮', type: 'expense'));
-      await repo.upsert(const CategoryEntity(id: 'e2', name: '交通', type: 'expense'));
-      await repo.upsert(const CategoryEntity(id: 'i1', name: '工资', type: 'income'));
+      await repo.upsert(
+        const CategoryEntity(id: 'e1', name: '餐饮', type: 'expense'),
+      );
+      await repo.upsert(
+        const CategoryEntity(id: 'e2', name: '交通', type: 'expense'),
+      );
+      await repo.upsert(
+        const CategoryEntity(id: 'i1', name: '工资', type: 'income'),
+      );
 
       final expenses = await repo.getByType('expense');
       expect(expenses.length, 2);
@@ -423,15 +458,21 @@ void main() {
     });
 
     test('getAll returns everything', () async {
-      await repo.upsert(const CategoryEntity(id: 'a', name: 'A', type: 'expense'));
-      await repo.upsert(const CategoryEntity(id: 'b', name: 'B', type: 'income'));
+      await repo.upsert(
+        const CategoryEntity(id: 'a', name: 'A', type: 'expense'),
+      );
+      await repo.upsert(
+        const CategoryEntity(id: 'b', name: 'B', type: 'income'),
+      );
 
       final all = await repo.getAll();
       expect(all.length, 2);
     });
 
     test('batchUpsert handles multiple with overwrites', () async {
-      await repo.upsert(const CategoryEntity(id: 'c1', name: 'Old', type: 'expense'));
+      await repo.upsert(
+        const CategoryEntity(id: 'c1', name: 'Old', type: 'expense'),
+      );
 
       await repo.batchUpsert(const [
         CategoryEntity(id: 'c1', name: 'New', type: 'expense'),
@@ -512,8 +553,20 @@ void main() {
     test('compute isolates per user (no cross-contamination)', () async {
       final now = DateTime.now();
       txnRepo.seed([
-        makeTxn(id: 'u1', userId: 'user-1', amountCny: 5000, type: 'expense', txnDate: now),
-        makeTxn(id: 'u2', userId: 'user-2', amountCny: 99000, type: 'expense', txnDate: now),
+        makeTxn(
+          id: 'u1',
+          userId: 'user-1',
+          amountCny: 5000,
+          type: 'expense',
+          txnDate: now,
+        ),
+        makeTxn(
+          id: 'u2',
+          userId: 'user-2',
+          amountCny: 99000,
+          type: 'expense',
+          txnDate: now,
+        ),
       ]);
 
       final r1 = await calculator.compute('user-1');
@@ -523,24 +576,42 @@ void main() {
       expect(r2.totalBalance, -99000);
     });
 
-    test('compute executes three queries in parallel (timing sanity)', () async {
-      txnRepo.seed([
-        makeTxn(id: 'x', userId: 'u', amountCny: 1, type: 'expense'),
-      ]);
+    test(
+      'compute executes three queries in parallel (timing sanity)',
+      () async {
+        txnRepo.seed([
+          makeTxn(id: 'x', userId: 'u', amountCny: 1, type: 'expense'),
+        ]);
 
-      // Should not throw or hang.
-      final result = await calculator.compute('u').timeout(
-        const Duration(seconds: 1),
-        onTimeout: () => throw TimeoutException('Deadlock detected'),
-      );
-      expect(result.totalBalance, -1);
-    });
+        // Should not throw or hang.
+        final result = await calculator
+            .compute('u')
+            .timeout(
+              const Duration(seconds: 1),
+              onTimeout: () => throw TimeoutException('Deadlock detected'),
+            );
+        expect(result.totalBalance, -1);
+      },
+    );
 
     test('compute excludes soft-deleted from all summaries', () async {
       final now = DateTime.now();
       txnRepo.seed([
-        makeTxn(id: 'alive', userId: 'u', amountCny: 1000, type: 'expense', txnDate: now),
-        makeTxn(id: 'dead', userId: 'u', amountCny: 9999, type: 'expense', txnDate: now, deletedAt: now),
+        makeTxn(
+          id: 'alive',
+          userId: 'u',
+          amountCny: 1000,
+          type: 'expense',
+          txnDate: now,
+        ),
+        makeTxn(
+          id: 'dead',
+          userId: 'u',
+          amountCny: 9999,
+          type: 'expense',
+          txnDate: now,
+          deletedAt: now,
+        ),
       ]);
 
       final result = await calculator.compute('u');
@@ -568,13 +639,16 @@ void main() {
       repo.dispose();
     });
 
-    test('insert followed by markSynced transitions status correctly', () async {
-      await repo.insert(makeTxn(id: 'q1', userId: 'u', amountCny: 100));
-      expect(repo.store.first.syncStatus, 'pending');
+    test(
+      'insert followed by markSynced transitions status correctly',
+      () async {
+        await repo.insert(makeTxn(id: 'q1', userId: 'u', amountCny: 100));
+        expect(repo.store.first.syncStatus, 'pending');
 
-      await repo.markSynced(['q1']);
-      expect(repo.store.first.syncStatus, 'synced');
-    });
+        await repo.markSynced(['q1']);
+        expect(repo.store.first.syncStatus, 'synced');
+      },
+    );
 
     test('markFailed then markSynced recovers to synced', () async {
       await repo.insert(makeTxn(id: 'q2', userId: 'u', amountCny: 100));
@@ -585,20 +659,23 @@ void main() {
       expect(repo.store.first.syncStatus, 'synced');
     });
 
-    test('sync status transitions: pending → synced, pending → failed → synced', () async {
-      await repo.insert(makeTxn(id: 's1', userId: 'u', amountCny: 1));
+    test(
+      'sync status transitions: pending → synced, pending → failed → synced',
+      () async {
+        await repo.insert(makeTxn(id: 's1', userId: 'u', amountCny: 1));
 
-      // pending → synced
-      await repo.markSynced(['s1']);
-      expect(repo.store.first.syncStatus, 'synced');
+        // pending → synced
+        await repo.markSynced(['s1']);
+        expect(repo.store.first.syncStatus, 'synced');
 
-      // synced → failed (re-sync attempt failed)
-      await repo.markFailed(['s1']);
-      expect(repo.store.first.syncStatus, 'failed');
+        // synced → failed (re-sync attempt failed)
+        await repo.markFailed(['s1']);
+        expect(repo.store.first.syncStatus, 'failed');
 
-      // failed → synced (retry succeeded)
-      await repo.markSynced(['s1']);
-      expect(repo.store.first.syncStatus, 'synced');
-    });
+        // failed → synced (retry succeeded)
+        await repo.markSynced(['s1']);
+        expect(repo.store.first.syncStatus, 'synced');
+      },
+    );
   });
 }

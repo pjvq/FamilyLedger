@@ -57,67 +57,72 @@ class FakeResponseFuture<T> implements ResponseFuture<T> {
 /// All gRPC calls fail, forcing DashboardNotifier to use local DB only.
 class FailingDashboardClient implements DashboardServiceClient {
   @override
-  ResponseFuture<pb.NetWorth> getNetWorth(pb.GetNetWorthRequest request,
-      {CallOptions? options}) {
-    return FakeResponseFuture.error(
-        GrpcError.unavailable('test: no server'));
+  ResponseFuture<pb.NetWorth> getNetWorth(
+    pb.GetNetWorthRequest request, {
+    CallOptions? options,
+  }) {
+    return FakeResponseFuture.error(GrpcError.unavailable('test: no server'));
   }
 
   @override
   ResponseFuture<pb.TrendResponse> getIncomeExpenseTrend(
-      pb.TrendRequest request,
-      {CallOptions? options}) {
-    return FakeResponseFuture.error(
-        GrpcError.unavailable('test: no server'));
+    pb.TrendRequest request, {
+    CallOptions? options,
+  }) {
+    return FakeResponseFuture.error(GrpcError.unavailable('test: no server'));
   }
 
   @override
   ResponseFuture<pb.CategoryBreakdownResponse> getCategoryBreakdown(
-      pb.CategoryBreakdownRequest request,
-      {CallOptions? options}) {
-    return FakeResponseFuture.error(
-        GrpcError.unavailable('test: no server'));
+    pb.CategoryBreakdownRequest request, {
+    CallOptions? options,
+  }) {
+    return FakeResponseFuture.error(GrpcError.unavailable('test: no server'));
   }
 
   @override
   ResponseFuture<pb.BudgetSummaryResponse> getBudgetSummary(
-      pb.BudgetSummaryRequest request,
-      {CallOptions? options}) {
-    return FakeResponseFuture.error(
-        GrpcError.unavailable('test: no server'));
+    pb.BudgetSummaryRequest request, {
+    CallOptions? options,
+  }) {
+    return FakeResponseFuture.error(GrpcError.unavailable('test: no server'));
   }
 
   @override
-  ResponseFuture<pb.TrendResponse> getNetWorthTrend(pb.TrendRequest request,
-      {CallOptions? options}) {
-    return FakeResponseFuture.error(
-        GrpcError.unavailable('test: no server'));
+  ResponseFuture<pb.TrendResponse> getNetWorthTrend(
+    pb.TrendRequest request, {
+    CallOptions? options,
+  }) {
+    return FakeResponseFuture.error(GrpcError.unavailable('test: no server'));
   }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-      '${invocation.memberName} not implemented in fake');
+    '${invocation.memberName} not implemented in fake',
+  );
 }
 
 class FailingMarketDataClient implements MarketDataServiceClient {
   @override
-  ResponseFuture<inv_pb.MarketQuote> getQuote(inv_pb.GetQuoteRequest request,
-      {CallOptions? options}) {
-    return FakeResponseFuture.error(
-        GrpcError.unavailable('test: no server'));
+  ResponseFuture<inv_pb.MarketQuote> getQuote(
+    inv_pb.GetQuoteRequest request, {
+    CallOptions? options,
+  }) {
+    return FakeResponseFuture.error(GrpcError.unavailable('test: no server'));
   }
 
   @override
   ResponseFuture<inv_pb.BatchGetQuotesResponse> batchGetQuotes(
-      inv_pb.BatchGetQuotesRequest request,
-      {CallOptions? options}) {
-    return FakeResponseFuture.error(
-        GrpcError.unavailable('test: no server'));
+    inv_pb.BatchGetQuotesRequest request, {
+    CallOptions? options,
+  }) {
+    return FakeResponseFuture.error(GrpcError.unavailable('test: no server'));
   }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-      '${invocation.memberName} not implemented in fake');
+    '${invocation.memberName} not implemented in fake',
+  );
 }
 
 // ─── Helpers ──
@@ -127,29 +132,34 @@ Future<AppDatabase> _setupDb() async {
 
   // Insert user
   await db.customStatement(
-      "INSERT OR IGNORE INTO users (id, email, created_at) "
-      "VALUES ('user1', 'test@test.com', "
-      "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
+    "INSERT OR IGNORE INTO users (id, email, created_at) "
+    "VALUES ('user1', 'test@test.com', "
+    "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+  );
 
   return db;
 }
 
-Future<void> _insertAccount(AppDatabase db, {
+Future<void> _insertAccount(
+  AppDatabase db, {
   required String id,
   required int balance,
   String familyId = '',
 }) async {
-  await db.insertAccount(AccountsCompanion.insert(
-    id: id,
-    userId: 'user1',
-    name: 'Account $id',
-    familyId: Value(familyId),
-    accountType: const Value('bank_card'),
-    balance: Value(balance),
-  ));
+  await db.insertAccount(
+    AccountsCompanion.insert(
+      id: id,
+      userId: 'user1',
+      name: 'Account $id',
+      familyId: Value(familyId),
+      accountType: const Value('bank_card'),
+      balance: Value(balance),
+    ),
+  );
 }
 
-Future<void> _insertCategory(AppDatabase db, {
+Future<void> _insertCategory(
+  AppDatabase db, {
   required String id,
   required String name,
   required String type,
@@ -163,7 +173,8 @@ Future<void> _insertCategory(AppDatabase db, {
   );
 }
 
-Future<void> _insertTransaction(AppDatabase db, {
+Future<void> _insertTransaction(
+  AppDatabase db, {
   required String id,
   required String accountId,
   required String categoryId,
@@ -171,16 +182,18 @@ Future<void> _insertTransaction(AppDatabase db, {
   required String type,
   required DateTime txnDate,
 }) async {
-  await db.insertTransaction(TransactionsCompanion.insert(
-    id: id,
-    userId: 'user1',
-    accountId: accountId,
-    categoryId: categoryId,
-    amount: amountCny,
-    amountCny: amountCny,
-    type: type,
-    txnDate: txnDate,
-  ));
+  await db.insertTransaction(
+    TransactionsCompanion.insert(
+      id: id,
+      userId: 'user1',
+      accountId: accountId,
+      categoryId: categoryId,
+      amount: amountCny,
+      amountCny: amountCny,
+      type: type,
+      txnDate: txnDate,
+    ),
+  );
 }
 
 // ─── Tests ──
@@ -197,26 +210,39 @@ void main() {
       await db.close();
     });
 
-    test('net worth = sum of account balances (no investments/loans)', () async {
-      await _insertAccount(db, id: 'acc1', balance: 10000000); // 10万
-      await _insertAccount(db, id: 'acc2', balance: 5000000);  // 5万
+    test(
+      'net worth = sum of account balances (no investments/loans)',
+      () async {
+        await _insertAccount(db, id: 'acc1', balance: 10000000); // 10万
+        await _insertAccount(db, id: 'acc2', balance: 5000000); // 5万
 
-      final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', null);
-      await notifier.loadAll();
-      // Allow async ops to complete
-      await Future.delayed(const Duration(milliseconds: 300));
+        final notifier = DashboardNotifier(
+          db,
+          FailingDashboardClient(),
+          FailingMarketDataClient(),
+          'user1',
+          null,
+        );
+        await notifier.loadAll();
+        // Allow async ops to complete
+        await Future.delayed(const Duration(milliseconds: 300));
 
-      final state = notifier.state;
-      expect(state.netWorth.cashAndBank, 15000000);
-      expect(state.netWorth.total, 15000000);
+        final state = notifier.state;
+        expect(state.netWorth.cashAndBank, 15000000);
+        expect(state.netWorth.total, 15000000);
 
-      notifier.dispose();
-    });
+        notifier.dispose();
+      },
+    );
 
     test('empty data does not crash', () async {
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', null);
+        db,
+        FailingDashboardClient(),
+        FailingMarketDataClient(),
+        'user1',
+        null,
+      );
       await notifier.loadAll();
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -233,10 +259,20 @@ void main() {
       // Personal account
       await _insertAccount(db, id: 'acc_personal', balance: 10000000);
       // Family account
-      await _insertAccount(db, id: 'acc_family', balance: 20000000, familyId: 'fam1');
+      await _insertAccount(
+        db,
+        id: 'acc_family',
+        balance: 20000000,
+        familyId: 'fam1',
+      );
 
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', 'fam1');
+        db,
+        FailingDashboardClient(),
+        FailingMarketDataClient(),
+        'user1',
+        'fam1',
+      );
       await notifier.loadAll();
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -248,10 +284,20 @@ void main() {
 
     test('personal mode excludes family accounts', () async {
       await _insertAccount(db, id: 'acc_personal', balance: 10000000);
-      await _insertAccount(db, id: 'acc_family', balance: 20000000, familyId: 'fam1');
+      await _insertAccount(
+        db,
+        id: 'acc_family',
+        balance: 20000000,
+        familyId: 'fam1',
+      );
 
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', null);
+        db,
+        FailingDashboardClient(),
+        FailingMarketDataClient(),
+        'user1',
+        null,
+      );
       await notifier.loadAll();
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -281,7 +327,8 @@ void main() {
       final now = DateTime.now();
       final thisMonth = DateTime(now.year, now.month, 10);
 
-      await _insertTransaction(db,
+      await _insertTransaction(
+        db,
         id: 'tx1',
         accountId: 'acc1',
         categoryId: 'cat_food',
@@ -289,7 +336,8 @@ void main() {
         type: 'expense',
         txnDate: thisMonth,
       );
-      await _insertTransaction(db,
+      await _insertTransaction(
+        db,
         id: 'tx2',
         accountId: 'acc1',
         categoryId: 'cat_salary',
@@ -299,7 +347,12 @@ void main() {
       );
 
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', null);
+        db,
+        FailingDashboardClient(),
+        FailingMarketDataClient(),
+        'user1',
+        null,
+      );
       await notifier.loadAll();
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -319,7 +372,12 @@ void main() {
       await _insertAccount(db, id: 'acc1', balance: 0);
 
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', null);
+        db,
+        FailingDashboardClient(),
+        FailingMarketDataClient(),
+        'user1',
+        null,
+      );
       await notifier.loadAll();
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -349,12 +407,18 @@ void main() {
     test('groups expenses by category for current month', () async {
       await _insertAccount(db, id: 'acc1', balance: 0);
       await _insertCategory(db, id: 'cat_food', name: '食物', type: 'expense');
-      await _insertCategory(db, id: 'cat_transport', name: '交通', type: 'expense');
+      await _insertCategory(
+        db,
+        id: 'cat_transport',
+        name: '交通',
+        type: 'expense',
+      );
 
       final now = DateTime.now();
       final thisMonth = DateTime(now.year, now.month, 5);
 
-      await _insertTransaction(db,
+      await _insertTransaction(
+        db,
         id: 'tx1',
         accountId: 'acc1',
         categoryId: 'cat_food',
@@ -362,7 +426,8 @@ void main() {
         type: 'expense',
         txnDate: thisMonth,
       );
-      await _insertTransaction(db,
+      await _insertTransaction(
+        db,
         id: 'tx2',
         accountId: 'acc1',
         categoryId: 'cat_food',
@@ -370,7 +435,8 @@ void main() {
         type: 'expense',
         txnDate: thisMonth,
       );
-      await _insertTransaction(db,
+      await _insertTransaction(
+        db,
         id: 'tx3',
         accountId: 'acc1',
         categoryId: 'cat_transport',
@@ -380,7 +446,12 @@ void main() {
       );
 
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', null);
+        db,
+        FailingDashboardClient(),
+        FailingMarketDataClient(),
+        'user1',
+        null,
+      );
       await notifier.loadAll();
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -391,12 +462,16 @@ void main() {
       expect(notifier.state.categoryBreakdownTotal, 18000);
 
       // Find food category — amount should be 15000
-      final foodItem = breakdown.where((b) => b.categoryId == 'cat_food').firstOrNull;
+      final foodItem = breakdown
+          .where((b) => b.categoryId == 'cat_food')
+          .firstOrNull;
       expect(foodItem, isNotNull);
       expect(foodItem!.amount, 15000);
 
       // Find transport — amount should be 3000
-      final transportItem = breakdown.where((b) => b.categoryId == 'cat_transport').firstOrNull;
+      final transportItem = breakdown
+          .where((b) => b.categoryId == 'cat_transport')
+          .firstOrNull;
       expect(transportItem, isNotNull);
       expect(transportItem!.amount, 3000);
 
@@ -407,7 +482,12 @@ void main() {
       await _insertAccount(db, id: 'acc1', balance: 0);
 
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), FailingMarketDataClient(), 'user1', null);
+        db,
+        FailingDashboardClient(),
+        FailingMarketDataClient(),
+        'user1',
+        null,
+      );
       await notifier.loadAll();
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -431,7 +511,12 @@ void main() {
 
     test('null userId does not crash and stays in initial state', () async {
       final notifier = DashboardNotifier(
-          db, FailingDashboardClient(), FailingMarketDataClient(), null, null);
+        db,
+        FailingDashboardClient(),
+        FailingMarketDataClient(),
+        null,
+        null,
+      );
       await Future.delayed(const Duration(milliseconds: 300));
 
       expect(notifier.state.isLoading, false);

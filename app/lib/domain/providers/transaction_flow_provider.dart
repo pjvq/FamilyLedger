@@ -103,8 +103,8 @@ class TransactionFlowNotifier extends StateNotifier<TransactionFlowState> {
 
 final transactionFlowProvider =
     StateNotifierProvider<TransactionFlowNotifier, TransactionFlowState>(
-  (ref) => TransactionFlowNotifier(),
-);
+      (ref) => TransactionFlowNotifier(),
+    );
 
 /// Category map built from transaction state.
 final flowCategoryMapProvider = Provider<Map<String, Category>>((ref) {
@@ -143,8 +143,9 @@ final flowAccountMapProvider = Provider<Map<String, Account>>((ref) {
 ///
 /// 修复：右上角搜索原本只对已加载进内存的分页数据做过滤，未加载
 /// 的记录搜不到。现在改为查 DB 全量。query 为空时返回空结果。
-final flowSearchResultsProvider =
-    FutureProvider<TransactionSearchResult>((ref) async {
+final flowSearchResultsProvider = FutureProvider<TransactionSearchResult>((
+  ref,
+) async {
   final query = ref.watch(transactionFlowProvider).searchQuery;
   if (query.isEmpty) {
     return const TransactionSearchResult(items: [], truncated: false);

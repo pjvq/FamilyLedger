@@ -68,18 +68,16 @@ class _InvestmentsPageState extends ConsumerState<InvestmentsPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('投资'),
-        centerTitle: false,
-      ),
+      appBar: AppBar(title: const Text('投资'), centerTitle: false),
       body: invState.isLoading && invState.investments.isEmpty
           ? const SkeletonList(count: 5, itemHeight: 80)
           : invState.error != null && invState.investments.isEmpty
-              ? ErrorState(
-                  message: invState.error!,
-                  onRetry: () => ref.read(investmentProvider.notifier).listInvestments(),
-                )
-              : CustomRefreshIndicator(
+          ? ErrorState(
+              message: invState.error!,
+              onRetry: () =>
+                  ref.read(investmentProvider.notifier).listInvestments(),
+            )
+          : CustomRefreshIndicator(
               onRefresh: () async {
                 await ref.read(syncEngineProvider).forcePull();
                 await ref.read(investmentProvider.notifier).listInvestments();
@@ -103,36 +101,35 @@ class _InvestmentsPageState extends ConsumerState<InvestmentsPage> {
                     )
                   else
                     SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final inv = invState.investments[index];
-                          final key = MarketDataState.quoteKey(
-                              inv.symbol, inv.marketType);
-                          final quote = marketState.quotes[key];
-                          final sparklineData =
-                              marketState.sparklineCache[key];
-                          return SlideInItem(
-                            index: index,
-                            child: _InvestmentListItem(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final inv = invState.investments[index];
+                        final key = MarketDataState.quoteKey(
+                          inv.symbol,
+                          inv.marketType,
+                        );
+                        final quote = marketState.quotes[key];
+                        final sparklineData = marketState.sparklineCache[key];
+                        return SlideInItem(
+                          index: index,
+                          child: _InvestmentListItem(
                             investment: inv,
                             quote: quote,
                             isDark: isDark,
                             theme: theme,
                             sparklineData: sparklineData,
-                            onTap: () => context.push(AppRouter.investmentDetail(inv.id)),
+                            onTap: () => context.push(
+                              AppRouter.investmentDetail(inv.id),
                             ),
-                          );
-                        },
-                        childCount: invState.investments.length,
-                      ),
+                          ),
+                        );
+                      }, childCount: invState.investments.length),
                     ),
                   const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
                 ],
               ),
             ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () =>
-            context.push(AppRouter.addInvestment),
+        onPressed: () => context.push(AppRouter.addInvestment),
         icon: const Icon(Icons.add_rounded),
         label: const Text('添加投资'),
       ),
@@ -167,7 +164,10 @@ class _PortfolioSummaryCard extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isDark
-                ? [DarkCardGradients.investmentStart, DarkCardGradients.investmentEnd]
+                ? [
+                    DarkCardGradients.investmentStart,
+                    DarkCardGradients.investmentEnd,
+                  ]
                 : [ColorTokens.primary, GradientTokens.primaryGradientSoft],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -217,8 +217,10 @@ class _PortfolioSummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
@@ -270,13 +272,11 @@ class _InvestmentListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     final price = quote?.currentPrice ?? 0;
     final changePercent = quote?.changePercent ?? 0.0;
     final isUp = changePercent >= 0;
-    final changeColor = isUp
-        ? colors.income
-        : colors.expense;
+    final changeColor = isUp ? colors.income : colors.expense;
     final value = price > 0
         ? (investment.quantity * price).round()
         : investment.costBasis;
@@ -317,7 +317,9 @@ class _InvestmentListItem extends StatelessWidget {
                           const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 4, vertical: 1),
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: isDark
                                   ? NeutralColorsDark.neutral3
@@ -328,8 +330,9 @@ class _InvestmentListItem extends StatelessWidget {
                               marketTypeLabel(investment.marketType),
                               style: TextStyle(
                                 fontSize: 10,
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.5),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
+                                ),
                               ),
                             ),
                           ),
@@ -339,8 +342,9 @@ class _InvestmentListItem extends StatelessWidget {
                       Text(
                         investment.symbol,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.4),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
@@ -348,8 +352,9 @@ class _InvestmentListItem extends StatelessWidget {
                       Text(
                         '持仓 ${_fmtQty(investment.quantity)} · ¥${_fmtYuan(value)}',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                       ),
                     ],
@@ -365,9 +370,8 @@ class _InvestmentListItem extends StatelessWidget {
                       height: 24,
                       child: CustomPaint(
                         painter: _MiniSparklinePainter(
-                          prices: sparklineData
-                                  ?.map((p) => p.price)
-                                  .toList() ??
+                          prices:
+                              sparklineData?.map((p) => p.price).toList() ??
                               const [],
                           color: changeColor,
                         ),
@@ -384,7 +388,9 @@ class _InvestmentListItem extends StatelessWidget {
                     const SizedBox(height: 2),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: changeColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(4),
@@ -459,8 +465,7 @@ class _MiniSparklinePainter extends CustomPainter {
 
     final path = Path();
     for (int i = 0; i < prices.length; i++) {
-      final normalised =
-          range == 0 ? 0.5 : (prices[i] - minP) / range;
+      final normalised = range == 0 ? 0.5 : (prices[i] - minP) / range;
       // y=0 is top, so invert
       final y = padY + drawH * (1 - normalised);
       if (i == 0) {

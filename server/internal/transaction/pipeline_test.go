@@ -12,9 +12,9 @@ import (
 
 // testStage is a controllable stage for testing pipeline behavior.
 type testStage struct {
-	name    string
-	err     error
-	called  bool
+	name   string
+	err    error
+	called bool
 }
 
 func (s *testStage) Name() string { return s.name }

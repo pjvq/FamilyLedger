@@ -37,10 +37,9 @@ class _BudgetExecutionCardState extends State<BudgetExecutionCard>
       vsync: this,
     );
     _ringAnimation = Tween<double>(begin: 0.0, end: widget.executionRate)
-        .animate(CurvedAnimation(
-      parent: _ringController,
-      curve: Curves.easeOutCubic,
-    ));
+        .animate(
+          CurvedAnimation(parent: _ringController, curve: Curves.easeOutCubic),
+        );
     _ringController.forward();
 
     _pulseController = AnimationController(
@@ -60,13 +59,16 @@ class _BudgetExecutionCardState extends State<BudgetExecutionCard>
   void didUpdateWidget(BudgetExecutionCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.executionRate != widget.executionRate) {
-      _ringAnimation = Tween<double>(
-        begin: _ringAnimation.value,
-        end: widget.executionRate,
-      ).animate(CurvedAnimation(
-        parent: _ringController,
-        curve: Curves.easeOutCubic,
-      ));
+      _ringAnimation =
+          Tween<double>(
+            begin: _ringAnimation.value,
+            end: widget.executionRate,
+          ).animate(
+            CurvedAnimation(
+              parent: _ringController,
+              curve: Curves.easeOutCubic,
+            ),
+          );
       _ringController
         ..reset()
         ..forward();
@@ -119,15 +121,15 @@ class _BudgetExecutionCardState extends State<BudgetExecutionCard>
           '预算 ${_formatAmount(widget.totalBudget)}',
       child: AnimatedBuilder(
         animation: _pulseAnimation,
-        builder: (context, child) => Transform.scale(
-          scale: _pulseAnimation.value,
-          child: child,
-        ),
+        builder: (context, child) =>
+            Transform.scale(scale: _pulseAnimation.value, child: child),
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
+            color: isDark
+                ? NeutralColorsDark.neutral2
+                : NeutralColorsLight.neutral0,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -160,7 +162,10 @@ class _BudgetExecutionCardState extends State<BudgetExecutionCard>
                           pctText,
                           style: theme.textTheme.headlineLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: budgetRateColor(context, widget.executionRate),
+                            color: budgetRateColor(
+                              context,
+                              widget.executionRate,
+                            ),
                           ),
                         ),
                       ),

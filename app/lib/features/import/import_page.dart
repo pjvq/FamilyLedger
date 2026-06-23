@@ -137,7 +137,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       _catByName[c.name] = c; // last-write-wins fallback
     }
     // Default: "其他" expense category
-    _defaultCategory = _allCategories.where((c) => c.name == '其他' && c.type == 'expense').firstOrNull;
+    _defaultCategory = _allCategories
+        .where((c) => c.name == '其他' && c.type == 'expense')
+        .firstOrNull;
   }
 
   @override
@@ -166,18 +168,24 @@ class _ImportPageState extends ConsumerState<ImportPage> {
               children: [
                 if (_currentStep == 0)
                   FilledButton(
-                    onPressed: _pickedFile != null && !_isParsing ? details.onStepContinue : null,
+                    onPressed: _pickedFile != null && !_isParsing
+                        ? details.onStepContinue
+                        : null,
                     child: const Text('解析文件'),
                   ),
                 if (_currentStep == 1)
                   FilledButton(
-                    onPressed: _parsed.isNotEmpty ? details.onStepContinue : null,
+                    onPressed: _parsed.isNotEmpty
+                        ? details.onStepContinue
+                        : null,
                     child: Text('导入 ${_parsed.length} 条记录'),
                   ),
                 if (_currentStep == 2 && _hasDuplicateStep && !_importDone) ...[
                   FilledButton(
                     onPressed: details.onStepContinue,
-                    child: Text('确认导入 ${_nonDuplicates.length + _dupSelection.values.where((v) => v).length} 条'),
+                    child: Text(
+                      '确认导入 ${_nonDuplicates.length + _dupSelection.values.where((v) => v).length} 条',
+                    ),
                   ),
                 ],
                 if (_currentStep == 3 && _importDone)
@@ -260,10 +268,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('支持支付宝账单、微信账单、通用 CSV/XLSX 文件',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-            )),
+        Text(
+          '支持支付宝账单、微信账单、通用 CSV/XLSX 文件',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
+        ),
         const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: _pickFile,
@@ -283,13 +293,19 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_pickedFile!.name,
-                            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                        Text(_formatLabel(),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: _formatColor(),
-                              fontWeight: FontWeight.w500,
-                            )),
+                        Text(
+                          _pickedFile!.name,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          _formatLabel(),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: _formatColor(),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -314,7 +330,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         if (_parseError != null)
           Padding(
             padding: const EdgeInsets.only(top: 12),
-            child: Text(_parseError!, style: TextStyle(color: theme.colorScheme.error)),
+            child: Text(
+              _parseError!,
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
           ),
         // Import target selector (personal vs family)
         _buildImportTargetSelector(theme),
@@ -345,11 +364,20 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           const SizedBox(height: 8),
           SegmentedButton<bool>(
             segments: [
-              const ButtonSegment<bool>(value: false, label: Text('个人'), icon: Icon(Icons.person)),
-              ButtonSegment<bool>(value: true, label: Text(familyName), icon: const Icon(Icons.family_restroom)),
+              const ButtonSegment<bool>(
+                value: false,
+                label: Text('个人'),
+                icon: Icon(Icons.person),
+              ),
+              ButtonSegment<bool>(
+                value: true,
+                label: Text(familyName),
+                icon: const Icon(Icons.family_restroom),
+              ),
             ],
             selected: {_importToFamily},
-            onSelectionChanged: (v) => setState(() => _importToFamily = v.first),
+            onSelectionChanged: (v) =>
+                setState(() => _importToFamily = v.first),
           ),
         ],
       ),
@@ -395,33 +423,75 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             dataRowMinHeight: 32,
             dataRowMaxHeight: 40,
             columns: const [
-              DataColumn(label: Text('日期', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
-              DataColumn(label: Text('类型', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
-              DataColumn(label: Text('金额', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
-              DataColumn(label: Text('备注', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
+              DataColumn(
+                label: Text(
+                  '日期',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  '类型',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  '金额',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+              DataColumn(
+                label: Text(
+                  '备注',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
             ],
             rows: previewList.map((t) {
               final dateStr = '${t.date.month}/${t.date.day}';
-              return DataRow(cells: [
-                DataCell(Text(dateStr, style: const TextStyle(fontSize: 12))),
-                DataCell(Text(t.type == 'income' ? '收入' : '支出',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: t.type == 'income' ? context.semanticColors.income : context.semanticColors.expense,
-                    ))),
-                DataCell(Text('¥${t.amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12))),
-                DataCell(Text(t.note, style: const TextStyle(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)),
-              ]);
+              return DataRow(
+                cells: [
+                  DataCell(Text(dateStr, style: const TextStyle(fontSize: 12))),
+                  DataCell(
+                    Text(
+                      t.type == 'income' ? '收入' : '支出',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: t.type == 'income'
+                            ? context.semanticColors.income
+                            : context.semanticColors.expense,
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      '¥${t.amount.toStringAsFixed(2)}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      t.note,
+                      style: const TextStyle(fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              );
             }).toList(),
           ),
         ),
         if (_parsed.length > 20)
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Text('... 还有 ${_parsed.length - 20} 条',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                )),
+            child: Text(
+              '... 还有 ${_parsed.length - 20} 条',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
           ),
         // Skipped rows details
         if (_skippedDetails.isNotEmpty) ...[
@@ -449,14 +519,19 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                           child: Text(
                             'L${s.lineNumber}',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.3,
+                              ),
                               fontFamily: 'monospace',
                               fontSize: 10,
                             ),
                           ),
                         ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.orange.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
@@ -474,7 +549,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                         child: Text(
                           s.content,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.4,
+                            ),
                             fontSize: 10,
                           ),
                           maxLines: 1,
@@ -488,10 +565,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
             ),
           ),
           if (_skippedDetails.length > 50)
-            Text('... 还有 ${_skippedDetails.length - 50} 行',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                )),
+            Text(
+              '... 还有 ${_skippedDetails.length - 50} 行',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
         ],
       ],
     );
@@ -543,12 +622,19 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(
-          _importErrors.isEmpty ? Icons.check_circle_rounded : Icons.warning_rounded,
+          _importErrors.isEmpty
+              ? Icons.check_circle_rounded
+              : Icons.warning_rounded,
           size: 48,
           color: _importErrors.isEmpty ? Colors.green : Colors.orange,
         ),
         const SizedBox(height: 12),
-        Text('导入完成', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          '导入完成',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 8),
         _resultRow('成功导入', '$_importedCount 条', Colors.green),
         _resultRow('重复跳过', '$_duplicateCount 条', Colors.orange),
@@ -556,9 +642,23 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           _resultRow('已同步服务器', '$_syncedToServerCount 条', Colors.blue),
         if (_importErrors.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text('错误:', style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
-          ..._importErrors.take(5).map((e) => Text('• $e',
-              style: TextStyle(fontSize: 12, color: theme.colorScheme.error))),
+          Text(
+            '错误:',
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          ..._importErrors
+              .take(5)
+              .map(
+                (e) => Text(
+                  '• $e',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ),
         ],
       ],
     );
@@ -567,11 +667,20 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   Widget _resultRow(String label, String value, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Row(children: [
-        Text(label, style: const TextStyle(fontSize: 14)),
-        const SizedBox(width: 8),
-        Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: color)),
-      ]),
+      child: Row(
+        children: [
+          Text(label, style: const TextStyle(fontSize: 14)),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -585,15 +694,22 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     );
     if (result != null && result.files.isNotEmpty) {
       final file = result.files.first;
-      var bytes = file.bytes ?? (file.path != null ? File(file.path!).readAsBytesSync() : null);
+      var bytes =
+          file.bytes ??
+          (file.path != null ? File(file.path!).readAsBytesSync() : null);
       if (bytes == null) return;
 
       // Convert xlsx to CSV bytes before format detection
-      if (bytes.length > 4 && bytes[0] == 0x50 && bytes[1] == 0x4B &&
-          bytes[2] == 0x03 && bytes[3] == 0x04) {
+      if (bytes.length > 4 &&
+          bytes[0] == 0x50 &&
+          bytes[1] == 0x4B &&
+          bytes[2] == 0x03 &&
+          bytes[3] == 0x04) {
         final csvBytes = _xlsxToCsvBytes(bytes);
         if (csvBytes == null) {
-          setState(() { _parseError = 'xlsx 解析失败'; });
+          setState(() {
+            _parseError = 'xlsx 解析失败';
+          });
           return;
         }
         bytes = csvBytes;
@@ -611,7 +727,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   }
 
   ImportFormat _detectFormat(Uint8List bytes) {
-
     // Try strict UTF-8 first
     String content;
     bool isValidUtf8 = false;
@@ -623,10 +738,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     }
 
     // Check first few lines
-    final firstChunk = content.length > 500 ? content.substring(0, 500) : content;
+    final firstChunk = content.length > 500
+        ? content.substring(0, 500)
+        : content;
 
     // Alipay exports have specific header patterns in first lines
-    if (firstChunk.contains('支付宝交易记录') || firstChunk.contains('支付宝(中国)') || firstChunk.contains('支付宝账单')) {
+    if (firstChunk.contains('支付宝交易记录') ||
+        firstChunk.contains('支付宝(中国)') ||
+        firstChunk.contains('支付宝账单')) {
       return ImportFormat.alipay;
     }
     if (firstChunk.contains('微信支付账单') || firstChunk.contains('微信支付账单明细')) {
@@ -699,7 +818,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
   Future<void> _parseFile() async {
     if (_fileBytes == null) return;
-    setState(() { _isParsing = true; _parseError = null; });
+    setState(() {
+      _isParsing = true;
+      _parseError = null;
+    });
 
     try {
       switch (_detectedFormat) {
@@ -720,7 +842,10 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       }
       setState(() => _isParsing = false);
     } catch (e) {
-      setState(() { _isParsing = false; _parseError = '解析失败: $e'; });
+      setState(() {
+        _isParsing = false;
+        _parseError = '解析失败: $e';
+      });
     }
   }
 
@@ -734,7 +859,11 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       content = utf8.decode(bytes, allowMalformed: true);
     }
 
-    final lines = content.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+    final lines = content
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
 
     // Find header line: must contain '交易' and '金额' and have multiple CSV columns
     int headerIdx = -1;
@@ -790,35 +919,55 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       }
 
       // Skip non income/expense
-      final typeStr = typeIdx != -1 && cols.length > typeIdx ? cols[typeIdx].trim() : '';
+      final typeStr = typeIdx != -1 && cols.length > typeIdx
+          ? cols[typeIdx].trim()
+          : '';
       if (typeStr != '支出' && typeStr != '收入') {
         _skippedRows++;
-        _skippedDetails.add(_SkippedRow(i + 1, rawLine, '非收支类型: ${typeStr.isEmpty ? "空" : typeStr}'));
+        _skippedDetails.add(
+          _SkippedRow(
+            i + 1,
+            rawLine,
+            '非收支类型: ${typeStr.isEmpty ? "空" : typeStr}',
+          ),
+        );
         continue;
       }
 
       final date = _parseDate(cols[dateIdx].trim());
-      final amount = double.tryParse(cols[amountIdx].trim().replaceAll('¥', '').replaceAll(',', ''));
-      final note = noteIdx != -1 && cols.length > noteIdx ? cols[noteIdx].trim() : '';
+      final amount = double.tryParse(
+        cols[amountIdx].trim().replaceAll('¥', '').replaceAll(',', ''),
+      );
+      final note = noteIdx != -1 && cols.length > noteIdx
+          ? cols[noteIdx].trim()
+          : '';
 
       if (date == null || amount == null || amount == 0) {
         _skippedRows++;
-        _skippedDetails.add(_SkippedRow(i + 1, rawLine,
-            date == null ? '日期解析失败' : '金额无效(${cols[amountIdx].trim()})'));
+        _skippedDetails.add(
+          _SkippedRow(
+            i + 1,
+            rawLine,
+            date == null ? '日期解析失败' : '金额无效(${cols[amountIdx].trim()})',
+          ),
+        );
         continue;
       }
 
-      final counterparty = counterpartyIdx != -1 && cols.length > counterpartyIdx
+      final counterparty =
+          counterpartyIdx != -1 && cols.length > counterpartyIdx
           ? cols[counterpartyIdx].trim()
           : null;
 
-      _parsed.add(_ParsedTransaction(
-        date: date,
-        type: typeStr == '收入' ? 'income' : 'expense',
-        amount: amount,
-        note: note,
-        counterparty: counterparty,
-      ));
+      _parsed.add(
+        _ParsedTransaction(
+          date: date,
+          type: typeStr == '收入' ? 'income' : 'expense',
+          amount: amount,
+          note: note,
+          counterparty: counterparty,
+        ),
+      );
     }
   }
 
@@ -827,7 +976,11 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     // Remove BOM
     if (content.startsWith('\uFEFF')) content = content.substring(1);
 
-    final lines = content.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+    final lines = content
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
 
     // Find header line
     int headerIdx = -1;
@@ -874,43 +1027,68 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       // Filter status
       if (statusIdx != -1 && cols.length > statusIdx) {
         final status = cols[statusIdx].trim();
-        if (status.isNotEmpty && !status.contains('成功') && !status.contains('已收钱') && !status.contains('已存入')) {
+        if (status.isNotEmpty &&
+            !status.contains('成功') &&
+            !status.contains('已收钱') &&
+            !status.contains('已存入')) {
           _skippedRows++;
           _skippedDetails.add(_SkippedRow(i + 1, rawLine, '交易状态: $status'));
           continue;
         }
       }
 
-      final typeStr = typeIdx != -1 && cols.length > typeIdx ? cols[typeIdx].trim() : '';
+      final typeStr = typeIdx != -1 && cols.length > typeIdx
+          ? cols[typeIdx].trim()
+          : '';
       if (typeStr != '支出' && typeStr != '收入') {
         _skippedRows++;
-        _skippedDetails.add(_SkippedRow(i + 1, rawLine, '非收支类型: ${typeStr.isEmpty ? "空" : typeStr}'));
+        _skippedDetails.add(
+          _SkippedRow(
+            i + 1,
+            rawLine,
+            '非收支类型: ${typeStr.isEmpty ? "空" : typeStr}',
+          ),
+        );
         continue;
       }
 
       final date = _parseDate(cols[dateIdx].trim());
-      final amountStr = cols[amountIdx].trim().replaceAll('¥', '').replaceAll(',', '').replaceAll('￥', '');
+      final amountStr = cols[amountIdx]
+          .trim()
+          .replaceAll('¥', '')
+          .replaceAll(',', '')
+          .replaceAll('￥', '');
       final amount = double.tryParse(amountStr);
-      final note = noteIdx != -1 && cols.length > noteIdx ? cols[noteIdx].trim() : '';
+      final note = noteIdx != -1 && cols.length > noteIdx
+          ? cols[noteIdx].trim()
+          : '';
 
       if (date == null || amount == null || amount == 0) {
         _skippedRows++;
-        _skippedDetails.add(_SkippedRow(i + 1, rawLine,
-            date == null ? '日期解析失败' : '金额无效($amountStr)'));
+        _skippedDetails.add(
+          _SkippedRow(
+            i + 1,
+            rawLine,
+            date == null ? '日期解析失败' : '金额无效($amountStr)',
+          ),
+        );
         continue;
       }
 
-      final counterparty = counterpartyIdx != -1 && cols.length > counterpartyIdx
+      final counterparty =
+          counterpartyIdx != -1 && cols.length > counterpartyIdx
           ? cols[counterpartyIdx].trim()
           : null;
 
-      _parsed.add(_ParsedTransaction(
-        date: date,
-        type: typeStr == '收入' ? 'income' : 'expense',
-        amount: amount,
-        note: note,
-        counterparty: counterparty,
-      ));
+      _parsed.add(
+        _ParsedTransaction(
+          date: date,
+          type: typeStr == '收入' ? 'income' : 'expense',
+          amount: amount,
+          note: note,
+          counterparty: counterparty,
+        ),
+      );
     }
   }
 
@@ -918,7 +1096,11 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
   void _parseBaishiAA(Uint8List bytes) {
     final content = utf8.decode(bytes, allowMalformed: true);
-    final lines = content.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+    final lines = content
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
 
     // Find header line containing "交易类型" and "账本名称"
     int headerIdx = -1;
@@ -963,10 +1145,18 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       }
 
       // Type
-      final typeStr = typeIdx != -1 && cols.length > typeIdx ? cols[typeIdx].trim() : '';
+      final typeStr = typeIdx != -1 && cols.length > typeIdx
+          ? cols[typeIdx].trim()
+          : '';
       if (typeStr != '支出' && typeStr != '收入') {
         _skippedRows++;
-        _skippedDetails.add(_SkippedRow(i + 1, rawLine, '非收支类型: ${typeStr.isEmpty ? "空" : typeStr}'));
+        _skippedDetails.add(
+          _SkippedRow(
+            i + 1,
+            rawLine,
+            '非收支类型: ${typeStr.isEmpty ? "空" : typeStr}',
+          ),
+        );
         continue;
       }
 
@@ -987,11 +1177,17 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       }
 
       // Category (类别 = parent category)
-      final rawCategory = catIdx != -1 && cols.length > catIdx ? cols[catIdx].trim() : null;
+      final rawCategory = catIdx != -1 && cols.length > catIdx
+          ? cols[catIdx].trim()
+          : null;
       // Tag (标签 = sub category)
-      final tag = tagIdx != -1 && cols.length > tagIdx ? cols[tagIdx].trim() : null;
+      final tag = tagIdx != -1 && cols.length > tagIdx
+          ? cols[tagIdx].trim()
+          : null;
       // Description
-      final desc = descIdx != -1 && cols.length > descIdx ? cols[descIdx].trim() : '';
+      final desc = descIdx != -1 && cols.length > descIdx
+          ? cols[descIdx].trim()
+          : '';
       // Counterparty
       final cp = counterpartyIdx != -1 && cols.length > counterpartyIdx
           ? cols[counterpartyIdx].trim()
@@ -1000,14 +1196,16 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       // Use tag as note if desc is empty; tag maps to sub-category in matching
       final note = desc.isNotEmpty ? desc : (tag ?? '');
 
-      _parsed.add(_ParsedTransaction(
-        date: date,
-        type: typeStr == '收入' ? 'income' : 'expense',
-        amount: amount.abs(),
-        note: note,
-        rawCategory: rawCategory,
-        counterparty: cp,
-      ));
+      _parsed.add(
+        _ParsedTransaction(
+          date: date,
+          type: typeStr == '收入' ? 'income' : 'expense',
+          amount: amount.abs(),
+          note: note,
+          rawCategory: rawCategory,
+          counterparty: cp,
+        ),
+      );
 
       // Store tag in a way that _matchCategories can use it:
       // rawCategory = parent cat name, we'll try to match tag as child.
@@ -1040,8 +1238,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         // First try: exact match on tag name + type
         final tagCat = _catByNameType['$tag|${t.type}'] ?? _catByName[tag];
         if (tagCat != null) {
-          if (parentName != null && parentName.isNotEmpty && tagCat.parentId != null) {
-            final parent = _allCategories.where((c) => c.id == tagCat.parentId).firstOrNull;
+          if (parentName != null &&
+              parentName.isNotEmpty &&
+              tagCat.parentId != null) {
+            final parent = _allCategories
+                .where((c) => c.id == tagCat.parentId)
+                .firstOrNull;
             if (parent != null && parent.name == parentName) {
               // Perfect match: tag name + parent name
               t.matchedCategoryId = tagCat.id;
@@ -1056,7 +1258,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
               // Same type but different parent — still don't reuse;
               // fall through to auto-create under the correct parent.
             }
-          } else if (tagCat.parentId == null && parentName != null && parentName.isNotEmpty) {
+          } else if (tagCat.parentId == null &&
+              parentName != null &&
+              parentName.isNotEmpty) {
             // tagCat is a top-level category but we need a child — fall through
           } else {
             // No parent constraint or tag has no parent — use as-is
@@ -1112,15 +1316,29 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     String content = utf8.decode(bytes, allowMalformed: true);
     if (content.startsWith('\uFEFF')) content = content.substring(1);
 
-    final lines = content.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
-    if (lines.isEmpty) { _parseError = '文件为空'; return; }
+    final lines = content
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+    if (lines.isEmpty) {
+      _parseError = '文件为空';
+      return;
+    }
 
     // Search for header line: must have ≥ 3 columns and contain date/amount-like keywords
     int headerIdx = -1;
     for (int i = 0; i < lines.length && i < 30; i++) {
       final cols = _splitCsvLine(lines[i]);
       if (cols.length < 3) continue;
-      final dateCol = _findCol(cols, ['日期', 'date', '交易日期', '交易时间', 'time', '日期时间']);
+      final dateCol = _findCol(cols, [
+        '日期',
+        'date',
+        '交易日期',
+        '交易时间',
+        'time',
+        '日期时间',
+      ]);
       final amountCol = _findCol(cols, ['金额', 'amount', '金额(元)', '金额(元)']);
       if (dateCol != -1 && amountCol != -1) {
         headerIdx = i;
@@ -1133,11 +1351,24 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     }
 
     final headers = _splitCsvLine(lines[headerIdx]);
-    final dateIdx = _findCol(headers, ['日期', 'date', '交易日期', '交易时间', 'time', '日期时间']);
+    final dateIdx = _findCol(headers, [
+      '日期',
+      'date',
+      '交易日期',
+      '交易时间',
+      'time',
+      '日期时间',
+    ]);
     final amountIdx = _findCol(headers, ['金额', 'amount', '金额(元)', '金额(元)']);
     final typeIdx = _findCol(headers, ['类型', 'type', '收/支', '收支', '交易类型']);
     final noteIdx = _findCol(headers, ['备注', 'note', '说明', '描述', '商品名称']);
-    final counterpartyIdx = _findCol(headers, ['交易对方', '商户', '对方', 'counterparty', 'merchant']);
+    final counterpartyIdx = _findCol(headers, [
+      '交易对方',
+      '商户',
+      '对方',
+      'counterparty',
+      'merchant',
+    ]);
     final catIdx = _findCol(headers, ['分类', 'category', '类别']);
 
     _parsed = [];
@@ -1154,11 +1385,18 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       }
 
       final date = _parseDate(cols[dateIdx].trim());
-      final amount = double.tryParse(cols[amountIdx].trim().replaceAll('¥', '').replaceAll(',', ''));
+      final amount = double.tryParse(
+        cols[amountIdx].trim().replaceAll('¥', '').replaceAll(',', ''),
+      );
       if (date == null || amount == null || amount == 0) {
         _skippedRows++;
-        _skippedDetails.add(_SkippedRow(i + 1, rawLine,
-            date == null ? '日期解析失败' : '金额无效(${cols[amountIdx].trim()})'));
+        _skippedDetails.add(
+          _SkippedRow(
+            i + 1,
+            rawLine,
+            date == null ? '日期解析失败' : '金额无效(${cols[amountIdx].trim()})',
+          ),
+        );
         continue;
       }
 
@@ -1170,20 +1408,27 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         type = 'expense';
       }
 
-      final note = noteIdx != -1 && cols.length > noteIdx ? cols[noteIdx].trim() : '';
-      final rawCat = catIdx != -1 && cols.length > catIdx ? cols[catIdx].trim() : null;
-      final counterparty = counterpartyIdx != -1 && cols.length > counterpartyIdx
+      final note = noteIdx != -1 && cols.length > noteIdx
+          ? cols[noteIdx].trim()
+          : '';
+      final rawCat = catIdx != -1 && cols.length > catIdx
+          ? cols[catIdx].trim()
+          : null;
+      final counterparty =
+          counterpartyIdx != -1 && cols.length > counterpartyIdx
           ? cols[counterpartyIdx].trim()
           : null;
 
-      _parsed.add(_ParsedTransaction(
-        date: date,
-        type: type,
-        amount: amount.abs(),
-        note: note,
-        counterparty: counterparty,
-        rawCategory: rawCat,
-      ));
+      _parsed.add(
+        _ParsedTransaction(
+          date: date,
+          type: type,
+          amount: amount.abs(),
+          note: note,
+          counterparty: counterparty,
+          rawCategory: rawCat,
+        ),
+      );
     }
   }
 
@@ -1203,18 +1448,24 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     required String type,
   }) async {
     // Check in-memory cache for a ROOT category with matching name+type
-    final cached = _allCategories.where(
-      (c) => c.name == name && c.type == type && (c.parentId == null || c.parentId!.isEmpty),
-    ).firstOrNull;
+    final cached = _allCategories
+        .where(
+          (c) =>
+              c.name == name &&
+              c.type == type &&
+              (c.parentId == null || c.parentId!.isEmpty),
+        )
+        .firstOrNull;
     if (cached != null) return cached;
 
     // Query DB for a top-level category (parentId IS NULL)
-    final dbExisting = await (database.select(database.categories)
-          ..where((c) => c.name.equals(name))
-          ..where((c) => c.type.equals(type))
-          ..where((c) => c.parentId.isNull())
-          ..limit(1))
-        .getSingleOrNull();
+    final dbExisting =
+        await (database.select(database.categories)
+              ..where((c) => c.name.equals(name))
+              ..where((c) => c.type.equals(type))
+              ..where((c) => c.parentId.isNull())
+              ..limit(1))
+            .getSingleOrNull();
     if (dbExisting != null) {
       _catByName[name] = dbExisting;
       _catByNameType['$name|${dbExisting.type}'] = dbExisting;
@@ -1266,17 +1517,19 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     // Also check DB directly (in case _allCategories was stale)
     // First try top-level, then any match (including subcategories) to avoid
     // creating a duplicate top-level category when a subcategory already exists.
-    var dbExisting = await (database.select(database.categories)
-          ..where((c) => c.name.equals(name))
-          ..where((c) => c.type.equals(type))
-          ..where((c) => c.parentId.isNull())
-          ..limit(1))
-        .getSingleOrNull();
-    dbExisting ??= await (database.select(database.categories)
-          ..where((c) => c.name.equals(name))
-          ..where((c) => c.type.equals(type))
-          ..limit(1))
-        .getSingleOrNull();
+    var dbExisting =
+        await (database.select(database.categories)
+              ..where((c) => c.name.equals(name))
+              ..where((c) => c.type.equals(type))
+              ..where((c) => c.parentId.isNull())
+              ..limit(1))
+            .getSingleOrNull();
+    dbExisting ??=
+        await (database.select(database.categories)
+              ..where((c) => c.name.equals(name))
+              ..where((c) => c.type.equals(type))
+              ..limit(1))
+            .getSingleOrNull();
     if (dbExisting != null) {
       _catByName[name] = dbExisting;
       _catByNameType['$name|${dbExisting.type}'] = dbExisting;
@@ -1319,8 +1572,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     required String parentId,
   }) async {
     // Check in-memory cache first
-    final existing = _allCategories.where((c) =>
-        c.name == name && c.parentId == parentId).firstOrNull;
+    final existing = _allCategories
+        .where((c) => c.name == name && c.parentId == parentId)
+        .firstOrNull;
     if (existing != null) {
       _catByName[name] = existing;
       _catByNameType['$name|$type'] = existing;
@@ -1328,11 +1582,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     }
 
     // Check DB directly
-    final dbExisting = await (database.select(database.categories)
-          ..where((c) => c.name.equals(name))
-          ..where((c) => c.parentId.equals(parentId))
-          ..limit(1))
-        .getSingleOrNull();
+    final dbExisting =
+        await (database.select(database.categories)
+              ..where((c) => c.name.equals(name))
+              ..where((c) => c.parentId.equals(parentId))
+              ..limit(1))
+            .getSingleOrNull();
     if (dbExisting != null) {
       _catByName[name] = dbExisting;
       _catByNameType['$name|${dbExisting.type}'] = dbExisting;
@@ -1431,8 +1686,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         if (dtParts.length >= 2) {
           final timeParts = dtParts[1].split(':');
           final h = timeParts.isNotEmpty ? int.tryParse(timeParts[0]) ?? 0 : 0;
-          final min = timeParts.length > 1 ? int.tryParse(timeParts[1]) ?? 0 : 0;
-          final sec = timeParts.length > 2 ? int.tryParse(timeParts[2]) ?? 0 : 0;
+          final min = timeParts.length > 1
+              ? int.tryParse(timeParts[1]) ?? 0
+              : 0;
+          final sec = timeParts.length > 2
+              ? int.tryParse(timeParts[2]) ?? 0
+              : 0;
           return DateTime(y, m, d, h, min, sec);
         }
         return DateTime(y, m, d);
@@ -1612,7 +1871,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
               Expanded(
                 child: Text(
                   '发现 $totalDup 条疑似重复记录(日期、金额、备注均相同)',
-                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
@@ -1646,9 +1907,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         ),
         const SizedBox(height: 8),
         // List with checkboxes
-        ...List.generate(_duplicates.length > 50 ? 50 : _duplicates.length, (i) {
+        ...List.generate(_duplicates.length > 50 ? 50 : _duplicates.length, (
+          i,
+        ) {
           final t = _duplicates[i];
-          final dateStr = '${t.date.month}/${t.date.day} ${t.date.hour.toString().padLeft(2, '0')}:${t.date.minute.toString().padLeft(2, '0')}';
+          final dateStr =
+              '${t.date.month}/${t.date.day} ${t.date.hour.toString().padLeft(2, '0')}:${t.date.minute.toString().padLeft(2, '0')}';
           return Card(
             margin: const EdgeInsets.symmetric(vertical: 2),
             child: CheckboxListTile(
@@ -1663,7 +1927,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                     t.type == 'income' ? '+' : '-',
                     style: TextStyle(
                       fontSize: 12,
-                      color: t.type == 'income' ? context.semanticColors.income : context.semanticColors.expense,
+                      color: t.type == 'income'
+                          ? context.semanticColors.income
+                          : context.semanticColors.expense,
                     ),
                   ),
                   Text(
@@ -1671,7 +1937,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: t.type == 'income' ? context.semanticColors.income : context.semanticColors.expense,
+                      color: t.type == 'income'
+                          ? context.semanticColors.income
+                          : context.semanticColors.expense,
                     ),
                   ),
                 ],
@@ -1682,17 +1950,21 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 11),
               ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           );
         }),
         if (_duplicates.length > 50)
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Text('... 还有 ${_duplicates.length - 50} 条',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                )),
+            child: Text(
+              '... 还有 ${_duplicates.length - 50} 条',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
           ),
       ],
     );
@@ -1711,7 +1983,11 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       final database = ref.read(databaseProvider);
       final userId = ref.read(currentUserIdProvider);
       if (userId == null) {
-        setState(() { _isImporting = false; _importDone = true; _importErrors = ['未登录']; });
+        setState(() {
+          _isImporting = false;
+          _importDone = true;
+          _importErrors = ['未登录'];
+        });
         return;
       }
 
@@ -1731,17 +2007,25 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           final familyAccounts = await database.getAccountsByFamily(familyId);
           debugPrint('Import: familyAccounts.length=${familyAccounts.length}');
           for (final a in familyAccounts) {
-            debugPrint('  account: id=${a.id}, name=${a.name}, familyId=${a.familyId}');
+            debugPrint(
+              '  account: id=${a.id}, name=${a.name}, familyId=${a.familyId}',
+            );
           }
-          defaultAccId = familyAccounts.isNotEmpty ? familyAccounts.first.id : null;
+          defaultAccId = familyAccounts.isNotEmpty
+              ? familyAccounts.first.id
+              : null;
         }
         if (defaultAccId == null) {
           // Try refreshing accounts from server first
           try {
             await ref.read(accountProvider.notifier).refresh();
             if (familyId != null && familyId.isNotEmpty) {
-              final refreshedAccounts = await database.getAccountsByFamily(familyId);
-              defaultAccId = refreshedAccounts.isNotEmpty ? refreshedAccounts.first.id : null;
+              final refreshedAccounts = await database.getAccountsByFamily(
+                familyId,
+              );
+              defaultAccId = refreshedAccounts.isNotEmpty
+                  ? refreshedAccounts.first.id
+                  : null;
             }
           } catch (_) {}
         }
@@ -1766,35 +2050,43 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                 );
                 if (resp.hasAccount() && resp.account.id.isNotEmpty) {
                   // Use server-assigned id
-                  await database.insertAccount(db.AccountsCompanion.insert(
-                    id: resp.account.id,
-                    userId: userId,
-                    name: '家庭共享账户',
-                    icon: Value('🏠'),
-                    balance: Value(0),
-                    familyId: Value(familyId),
-                    accountType: Value('cash'),
-                  ));
+                  await database.insertAccount(
+                    db.AccountsCompanion.insert(
+                      id: resp.account.id,
+                      userId: userId,
+                      name: '家庭共享账户',
+                      icon: Value('🏠'),
+                      balance: Value(0),
+                      familyId: Value(familyId),
+                      accountType: Value('cash'),
+                    ),
+                  );
                   defaultAccId = resp.account.id;
                   serverCreated = true;
-                  debugPrint('Import: created family account on server: ${resp.account.id}');
+                  debugPrint(
+                    'Import: created family account on server: ${resp.account.id}',
+                  );
                 }
               } catch (e) {
                 debugPrint('Import: gRPC createAccount failed: $e');
               }
               // Local-only fallback
               if (!serverCreated) {
-                await database.insertAccount(db.AccountsCompanion.insert(
-                  id: newAccId,
-                  userId: userId,
-                  name: '家庭共享账户',
-                  icon: Value('🏠'),
-                  balance: Value(0),
-                  familyId: Value(familyId),
-                  accountType: Value('cash'),
-                ));
+                await database.insertAccount(
+                  db.AccountsCompanion.insert(
+                    id: newAccId,
+                    userId: userId,
+                    name: '家庭共享账户',
+                    icon: Value('🏠'),
+                    balance: Value(0),
+                    familyId: Value(familyId),
+                    accountType: Value('cash'),
+                  ),
+                );
                 defaultAccId = newAccId;
-                debugPrint('Import: created family account locally only: $newAccId');
+                debugPrint(
+                  'Import: created family account locally only: $newAccId',
+                );
               }
             }
           } catch (e) {
@@ -1802,14 +2094,22 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           }
         }
         if (defaultAccId == null) {
-          setState(() { _isImporting = false; _importDone = true; _importErrors = ['创建家庭账户失败，请手动在账户页创建']; });
+          setState(() {
+            _isImporting = false;
+            _importDone = true;
+            _importErrors = ['创建家庭账户失败，请手动在账户页创建'];
+          });
           return;
         }
       } else {
         final accounts = await database.getActiveAccounts(userId);
         defaultAccId = accounts.isNotEmpty ? accounts.first.id : null;
         if (defaultAccId == null) {
-          setState(() { _isImporting = false; _importDone = true; _importErrors = ['没有可用账户']; });
+          setState(() {
+            _isImporting = false;
+            _importDone = true;
+            _importErrors = ['没有可用账户'];
+          });
           return;
         }
       }
@@ -1827,7 +2127,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       // Ensure all categories exist on server before creating transactions
       final failedCatIds = <String>{}; // Track failed category IDs globally
       {
-        final familyId = _importToFamily ? (ref.read(currentFamilyIdProvider) ?? '') : '';
+        final familyId = _importToFamily
+            ? (ref.read(currentFamilyIdProvider) ?? '')
+            : '';
         setState(() {
           _importPhase = '同步分类到服务器...';
           _importProgress = 0;
@@ -1874,7 +2176,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           for (int attempt = 0; attempt < maxRetries; attempt++) {
             try {
               if (attempt > 0) {
-                await Future.delayed(Duration(milliseconds: 500 * (1 << (attempt - 1))));
+                await Future.delayed(
+                  Duration(milliseconds: 500 * (1 << (attempt - 1))),
+                );
               }
               final catReq = pb_txn.CreateCategoryRequest()
                 ..name = cat.name
@@ -1886,11 +2190,15 @@ class _ImportPageState extends ConsumerState<ImportPage> {
               if (parentId != null && parentId.isNotEmpty) {
                 catReq.parentId = parentId;
               }
-              await txnClient.createCategory(catReq,
-                  options: CallOptions(timeout: const Duration(seconds: 15)));
+              await txnClient.createCategory(
+                catReq,
+                options: CallOptions(timeout: const Duration(seconds: 15)),
+              );
               return true;
             } catch (e) {
-              debugPrint('Import: ensure category ${cat.name} (${cat.id}) attempt ${attempt + 1} failed: $e');
+              debugPrint(
+                'Import: ensure category ${cat.name} (${cat.id}) attempt ${attempt + 1} failed: $e',
+              );
             }
           }
           return false;
@@ -1917,7 +2225,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
           // Skip if parent sync failed — mark child as failed too
           if (cat.parentId != null && failedParentIds.contains(cat.parentId!)) {
-            debugPrint('Import: skip child ${cat.name} — parent ${cat.parentId} failed');
+            debugPrint(
+              'Import: skip child ${cat.name} — parent ${cat.parentId} failed',
+            );
             failedCatIds.add(cat.id);
             catSynced++;
             setState(() => _importProgress = catSynced);
@@ -1933,7 +2243,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         }
 
         if (failedCatIds.isNotEmpty) {
-          print('[Import] ${failedCatIds.length} categories FAILED to sync: $failedCatIds');
+          print(
+            '[Import] ${failedCatIds.length} categories FAILED to sync: $failedCatIds',
+          );
         } else {
           print('[Import] All categories synced OK (total=$totalCats)');
         }
@@ -1962,19 +2274,21 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           final catId = t.matchedCategoryId ?? _defaultCategory?.id ?? '';
           final localId = uuid.v4();
 
-          await database.into(database.transactions).insert(
-            db.TransactionsCompanion.insert(
-              id: localId,
-              userId: userId,
-              accountId: defaultAccId,
-              categoryId: catId,
-              amount: amountCents,
-              amountCny: amountCents,
-              type: t.type,
-              txnDate: t.date,
-              note: Value(t.note),
-            ),
-          );
+          await database
+              .into(database.transactions)
+              .insert(
+                db.TransactionsCompanion.insert(
+                  id: localId,
+                  userId: userId,
+                  accountId: defaultAccId,
+                  categoryId: catId,
+                  amount: amountCents,
+                  amountCny: amountCents,
+                  type: t.type,
+                  txnDate: t.date,
+                  note: Value(t.note),
+                ),
+              );
 
           final delta = t.type == 'income' ? amountCents : -amountCents;
           await database.updateAccountBalance(defaultAccId, delta);
@@ -1987,18 +2301,20 @@ class _ImportPageState extends ConsumerState<ImportPage> {
               serverCatId = _defaultCategory?.id ?? catId;
             }
             localIds.add(localId);
-            batchReqs.add(pb_txn.CreateTransactionRequest()
-              ..accountId = defaultAccId
-              ..categoryId = serverCatId
-              ..amount = Int64(amountCents)
-              ..currency = 'CNY'
-              ..amountCny = Int64(amountCents)
-              ..exchangeRate = 1.0
-              ..type = t.type == 'income'
-                  ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
-                  : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE
-              ..note = t.note
-              ..txnDate = _toProtoTimestamp(t.date));
+            batchReqs.add(
+              pb_txn.CreateTransactionRequest()
+                ..accountId = defaultAccId
+                ..categoryId = serverCatId
+                ..amount = Int64(amountCents)
+                ..currency = 'CNY'
+                ..amountCny = Int64(amountCents)
+                ..exchangeRate = 1.0
+                ..type = t.type == 'income'
+                    ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
+                    : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE
+                ..note = t.note
+                ..txnDate = _toProtoTimestamp(t.date),
+            );
           }
         } catch (e) {
           errors.add('行 ${t.note}: $e');
@@ -2011,7 +2327,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
       // Phase 2: Batch push to server (both personal and family mode)
       if (batchReqs.isNotEmpty) {
-        print('[Import] Phase 2: pushing ${batchReqs.length} txns to server, accountId=$defaultAccId, toFamily=$_importToFamily');
+        print(
+          '[Import] Phase 2: pushing ${batchReqs.length} txns to server, accountId=$defaultAccId, toFamily=$_importToFamily',
+        );
         setState(() {
           _importPhase = '同步到服务器...';
           _importProgress = 0;
@@ -2031,33 +2349,49 @@ class _ImportPageState extends ConsumerState<ImportPage> {
                 ..accountId = defaultAccId,
               options: CallOptions(timeout: const Duration(seconds: 60)),
             );
-            for (int j = 0; j < batchResp.transactions.length && j < chunkLocalIds.length; j++) {
+            for (
+              int j = 0;
+              j < batchResp.transactions.length && j < chunkLocalIds.length;
+              j++
+            ) {
               final serverTxn = batchResp.transactions[j];
               final oldId = chunkLocalIds[j];
               if (serverTxn.id.isNotEmpty && serverTxn.id != oldId) {
                 try {
                   await database.hardDeleteTransaction(oldId);
-                  await database.into(database.transactions).insert(
-                    db.TransactionsCompanion.insert(
-                      id: serverTxn.id,
-                      userId: userId,
-                      accountId: defaultAccId,
-                      categoryId: chunk[j].categoryId,
-                      amount: chunk[j].amount.toInt(),
-                      amountCny: chunk[j].amountCny.toInt(),
-                      type: chunk[j].type == pb_enum.TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
-                      txnDate: DateTime.fromMillisecondsSinceEpoch(chunk[j].txnDate.seconds.toInt() * 1000),
-                      note: Value(chunk[j].note),
-                      syncStatus: Value('synced'),
-                    ),
-                  );
+                  await database
+                      .into(database.transactions)
+                      .insert(
+                        db.TransactionsCompanion.insert(
+                          id: serverTxn.id,
+                          userId: userId,
+                          accountId: defaultAccId,
+                          categoryId: chunk[j].categoryId,
+                          amount: chunk[j].amount.toInt(),
+                          amountCny: chunk[j].amountCny.toInt(),
+                          type:
+                              chunk[j].type ==
+                                  pb_enum
+                                      .TransactionType
+                                      .TRANSACTION_TYPE_INCOME
+                              ? 'income'
+                              : 'expense',
+                          txnDate: DateTime.fromMillisecondsSinceEpoch(
+                            chunk[j].txnDate.seconds.toInt() * 1000,
+                          ),
+                          note: Value(chunk[j].note),
+                          syncStatus: Value('synced'),
+                        ),
+                      );
                 } catch (_) {}
               } else {
                 // Server returned same ID or empty — mark existing as synced
                 await database.markTransactionsSynced([oldId]);
               }
             }
-            print('[Import] batch ${i ~/ batchSize + 1} pushed ${batchResp.createdCount} txns, errors=${batchResp.errors.length}');
+            print(
+              '[Import] batch ${i ~/ batchSize + 1} pushed ${batchResp.createdCount} txns, errors=${batchResp.errors.length}',
+            );
             syncedCount += chunk.length;
             if (batchResp.errors.isNotEmpty) {
               syncFailed += batchResp.errors.length;
@@ -2083,7 +2417,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         _importDone = true;
         _importedCount = imported;
         _syncedToServerCount = imported - syncFailed;
-        _duplicateCount = _duplicates.length - _dupSelection.values.where((v) => v).length;
+        _duplicateCount =
+            _duplicates.length - _dupSelection.values.where((v) => v).length;
         _importErrors = [
           ...errors,
           if (syncFailed > 0) '⚠️ $syncFailed 条未同步到服务端（已保存在本地）',
@@ -2118,31 +2453,71 @@ String _guessIconKey(String name, String type) {
 
   // 模糊匹配：分类名包含关键词
   const nameToKey = {
-    '餐': 'food', '饭': 'food', '吃': 'food', '外卖': 'food_takeout',
-    '早餐': 'food_breakfast', '午餐': 'food_lunch', '晚餐': 'food_dinner',
-    '零食': 'food_snack', '饮': 'food_drink', '咖啡': 'food_drink',
-    '交通': 'transport', '地铁': 'transport_metro', '打车': 'transport_taxi',
-    '加油': 'transport_fuel', '停车': 'transport_parking', '公交': 'transport_bus',
-    '购物': 'shopping', '数码': 'shopping_digital', '美妆': 'shopping_beauty',
-    '网购': 'shopping_online', '超市': 'shopping_daily',
-    '房租': 'housing_rent', '物业': 'housing_property', '水电': 'housing_utility',
-    '居住': 'housing', '房': 'housing',
-    '娱乐': 'entertainment', '电影': 'entertainment_movie', '游戏': 'entertainment_game',
-    '运动': 'entertainment_sport', '健身': 'entertainment_sport',
-    '医疗': 'medical', '看病': 'medical_clinic', '买药': 'medical_pharmacy',
-    '教育': 'education', '学费': 'education_tuition', '课程': 'education_course',
-    '话费': 'communication_phone', '通讯': 'communication', '宽带': 'communication_broadband',
+    '餐': 'food',
+    '饭': 'food',
+    '吃': 'food',
+    '外卖': 'food_takeout',
+    '早餐': 'food_breakfast',
+    '午餐': 'food_lunch',
+    '晚餐': 'food_dinner',
+    '零食': 'food_snack',
+    '饮': 'food_drink',
+    '咖啡': 'food_drink',
+    '交通': 'transport',
+    '地铁': 'transport_metro',
+    '打车': 'transport_taxi',
+    '加油': 'transport_fuel',
+    '停车': 'transport_parking',
+    '公交': 'transport_bus',
+    '购物': 'shopping',
+    '数码': 'shopping_digital',
+    '美妆': 'shopping_beauty',
+    '网购': 'shopping_online',
+    '超市': 'shopping_daily',
+    '房租': 'housing_rent',
+    '物业': 'housing_property',
+    '水电': 'housing_utility',
+    '居住': 'housing',
+    '房': 'housing',
+    '娱乐': 'entertainment',
+    '电影': 'entertainment_movie',
+    '游戏': 'entertainment_game',
+    '运动': 'entertainment_sport',
+    '健身': 'entertainment_sport',
+    '医疗': 'medical',
+    '看病': 'medical_clinic',
+    '买药': 'medical_pharmacy',
+    '教育': 'education',
+    '学费': 'education_tuition',
+    '课程': 'education_course',
+    '话费': 'communication_phone',
+    '通讯': 'communication',
+    '宽带': 'communication_broadband',
     '订阅': 'communication_subscription',
-    '红包': 'gift_red_packet', '人情': 'gift', '礼': 'gift', '份子': 'gift_wedding',
-    '服饰': 'clothing', '衣': 'clothing_clothes', '鞋': 'clothing_shoes',
-    '日用': 'daily', '护理': 'daily_personal',
-    '旅': 'travel', '出差': 'travel', '酒店': 'travel_hotel',
+    '红包': 'gift_red_packet',
+    '人情': 'gift',
+    '礼': 'gift',
+    '份子': 'gift_wedding',
+    '服饰': 'clothing',
+    '衣': 'clothing_clothes',
+    '鞋': 'clothing_shoes',
+    '日用': 'daily',
+    '护理': 'daily_personal',
+    '旅': 'travel',
+    '出差': 'travel',
+    '酒店': 'travel_hotel',
     '宠物': 'pet',
-    '工资': 'salary', '薪': 'salary',
-    '奖金': 'bonus', '年终': 'bonus_annual',
-    '投资': 'investment_income', '理财': 'investment_fund', '股': 'investment_stock',
-    '利息': 'investment_interest', '分红': 'investment_dividend',
-    '兼职': 'freelance', '副业': 'freelance',
+    '工资': 'salary',
+    '薪': 'salary',
+    '奖金': 'bonus',
+    '年终': 'bonus_annual',
+    '投资': 'investment_income',
+    '理财': 'investment_fund',
+    '股': 'investment_stock',
+    '利息': 'investment_interest',
+    '分红': 'investment_dividend',
+    '兼职': 'freelance',
+    '副业': 'freelance',
     '报销': 'reimbursement',
   };
 

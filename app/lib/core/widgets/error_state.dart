@@ -45,8 +45,11 @@ class ErrorState extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: (isDark ? SemanticColorsDark.error : SemanticColorsLight.error)
-                    .withValues(alpha: 0.1),
+                color:
+                    (isDark
+                            ? SemanticColorsDark.error
+                            : SemanticColorsLight.error)
+                        .withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -82,8 +85,10 @@ class ErrorState extends StatelessWidget {
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('重试'),
                 style: OutlinedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ],
@@ -124,8 +129,9 @@ class _CompactError extends StatelessWidget {
           Icon(
             Icons.error_outline_rounded,
             size: 24,
-            color:
-                isDark ? SemanticColorsDark.error : SemanticColorsLight.error,
+            color: isDark
+                ? SemanticColorsDark.error
+                : SemanticColorsLight.error,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -150,10 +156,7 @@ class _CompactError extends StatelessWidget {
             ),
           ),
           if (onRetry != null)
-            TextButton(
-              onPressed: onRetry,
-              child: const Text('重试'),
-            ),
+            TextButton(onPressed: onRetry, child: const Text('重试')),
         ],
       ),
     );

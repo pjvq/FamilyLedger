@@ -30,44 +30,45 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('固定资产'),
-      ),
+      appBar: AppBar(title: const Text('固定资产')),
       body: assetState.isLoading && assetState.assets.isEmpty
           ? const SkeletonList(count: 4, itemHeight: 80)
           : assetState.error != null && assetState.assets.isEmpty
-              ? ErrorState(
-                  message: assetState.error!,
-                  onRetry: () => ref.read(assetProvider.notifier).listAssets(),
-                )
-              : assetState.assets.isEmpty
-              ? _EmptyState(theme: theme)
-              : CustomRefreshIndicator(
-                  onRefresh: () async {
-                      await ref.read(syncEngineProvider).forcePull();
-                      await ref.read(assetProvider.notifier).listAssets();
-                  },
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                    children: [
-                      // Summary card
-                      _SummaryCard(
-                        totalNetValue: assetState.totalNetValue,
-                        count: assetState.assets.length,
-                        isDark: isDark,
-                        theme: theme,
-                      ),
-                      const SizedBox(height: 12),
-                      // Asset cards
-                      ...assetState.assets.map((asset) => _AssetCard(
-                            asset: asset,
-                            isDark: isDark,
-                            theme: theme,
-                            onTap: () => context.push(AppRouter.assetDetail(asset.id)),
-                          )),
-                    ],
+          ? ErrorState(
+              message: assetState.error!,
+              onRetry: () => ref.read(assetProvider.notifier).listAssets(),
+            )
+          : assetState.assets.isEmpty
+          ? _EmptyState(theme: theme)
+          : CustomRefreshIndicator(
+              onRefresh: () async {
+                await ref.read(syncEngineProvider).forcePull();
+                await ref.read(assetProvider.notifier).listAssets();
+              },
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                children: [
+                  // Summary card
+                  _SummaryCard(
+                    totalNetValue: assetState.totalNetValue,
+                    count: assetState.assets.length,
+                    isDark: isDark,
+                    theme: theme,
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  // Asset cards
+                  ...assetState.assets.map(
+                    (asset) => _AssetCard(
+                      asset: asset,
+                      isDark: isDark,
+                      theme: theme,
+                      onTap: () =>
+                          context.push(AppRouter.assetDetail(asset.id)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           await context.push(AppRouter.addAsset);
@@ -107,7 +108,10 @@ class _SummaryCard extends StatelessWidget {
           gradient: LinearGradient(
             colors: isDark
                 ? [DarkCardGradients.assetStart, DarkCardGradients.assetEnd]
-                : [context.semanticColors.asset, GradientTokens.assetGradientEnd],
+                : [
+                    context.semanticColors.asset,
+                    GradientTokens.assetGradientEnd,
+                  ],
           ),
           borderRadius: BorderRadius.circular(18),
         ),
@@ -171,7 +175,7 @@ class _AssetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     final icon = assetTypeIcon(asset.assetType);
     final typeLabel = assetTypeLabel(asset.assetType);
 
@@ -196,8 +200,12 @@ class _AssetCard extends StatelessWidget {
                       height: 44,
                       decoration: BoxDecoration(
                         color: isDark
-                            ? context.semanticColors.asset.withValues(alpha: 0.15)
-                            : context.semanticColors.asset.withValues(alpha: 0.1),
+                            ? context.semanticColors.asset.withValues(
+                                alpha: 0.15,
+                              )
+                            : context.semanticColors.asset.withValues(
+                                alpha: 0.1,
+                              ),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
@@ -220,7 +228,9 @@ class _AssetCard extends StatelessWidget {
                           const SizedBox(height: 2),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 1),
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: isDark
                                   ? NeutralColorsDark.neutral3
@@ -231,8 +241,9 @@ class _AssetCard extends StatelessWidget {
                               typeLabel,
                               style: TextStyle(
                                 fontSize: 11,
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.5),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
+                                ),
                               ),
                             ),
                           ),
@@ -254,8 +265,9 @@ class _AssetCard extends StatelessWidget {
                         Text(
                           '购入 ¥${_fmtYuan(asset.purchasePrice)}',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.4),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.4,
+                            ),
                             fontSize: 11,
                           ),
                         ),
@@ -279,15 +291,15 @@ class _AssetCard extends StatelessWidget {
                     Icon(
                       Icons.calendar_today_rounded,
                       size: 12,
-                      color: theme.colorScheme.onSurface
-                          .withValues(alpha: 0.3),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '${asset.purchaseDate.year}-${asset.purchaseDate.month.toString().padLeft(2, '0')}-${asset.purchaseDate.day.toString().padLeft(2, '0')}',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.35),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.35,
+                        ),
                         fontSize: 11,
                       ),
                     ),
@@ -296,15 +308,17 @@ class _AssetCard extends StatelessWidget {
                       Icon(
                         Icons.trending_down_rounded,
                         size: 12,
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.3),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.3,
+                        ),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         depreciationMethodLabel(asset.depreciationMethod),
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.35),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.35,
+                          ),
                           fontSize: 11,
                         ),
                       ),
@@ -343,7 +357,7 @@ class _DepreciationProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     final bgColor = isDark
         ? NeutralColorsDark.neutral3
         : colors.asset.withValues(alpha: 0.15);

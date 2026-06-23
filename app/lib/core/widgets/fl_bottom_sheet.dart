@@ -41,12 +41,15 @@ class FlBottomSheet extends StatelessWidget {
     final brightness = Theme.of(context).brightness;
     final isLight = brightness == Brightness.light;
 
-    final bgColor =
-        isLight ? NeutralColorsLight.neutral0 : NeutralColorsDark.neutral0;
-    final handleColor =
-        isLight ? NeutralColorsLight.neutral4 : NeutralColorsDark.neutral4;
-    final titleColor =
-        isLight ? NeutralColorsLight.neutral7 : NeutralColorsDark.neutral7;
+    final bgColor = isLight
+        ? NeutralColorsLight.neutral0
+        : NeutralColorsDark.neutral0;
+    final handleColor = isLight
+        ? NeutralColorsLight.neutral4
+        : NeutralColorsDark.neutral4;
+    final titleColor = isLight
+        ? NeutralColorsLight.neutral7
+        : NeutralColorsDark.neutral7;
 
     return Container(
       decoration: BoxDecoration(
@@ -79,8 +82,7 @@ class FlBottomSheet extends StatelessWidget {
                   Expanded(
                     child: Text(
                       title!,
-                      style:
-                          TypographyTokens.headlineMd(color: titleColor),
+                      style: TypographyTokens.headlineMd(color: titleColor),
                     ),
                   ),
                   if (trailing != null) trailing!,
@@ -91,7 +93,8 @@ class FlBottomSheet extends StatelessWidget {
             const SizedBox(height: SpacingTokens.md),
           Flexible(
             child: Padding(
-              padding: padding ??
+              padding:
+                  padding ??
                   const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
               child: child,
             ),

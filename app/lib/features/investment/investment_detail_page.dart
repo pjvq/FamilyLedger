@@ -83,7 +83,9 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
         start = now.subtract(const Duration(days: 365 * 5));
     }
 
-    ref.read(marketDataProvider.notifier).getPriceHistory(
+    ref
+        .read(marketDataProvider.notifier)
+        .getPriceHistory(
           inv.symbol,
           inv.marketType,
           startDate: start,
@@ -109,22 +111,23 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
       );
     }
 
-    final key =
-        MarketDataState.quoteKey(investment.symbol, investment.marketType);
+    final key = MarketDataState.quoteKey(
+      investment.symbol,
+      investment.marketType,
+    );
     final quote = marketState.quotes[key];
     final price = quote?.currentPrice ?? 0;
     final changePercent = quote?.changePercent ?? 0.0;
     final isUp = changePercent >= 0;
-    final changeColor = isUp
-        ? colors.income
-        : colors.expense;
+    final changeColor = isUp ? colors.income : colors.expense;
 
     final currentValue = price > 0
         ? (investment.quantity * price).round()
         : investment.costBasis;
     final profit = currentValue - investment.costBasis;
-    final returnRate =
-        investment.costBasis > 0 ? profit / investment.costBasis : 0.0;
+    final returnRate = investment.costBasis > 0
+        ? profit / investment.costBasis
+        : 0.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -172,7 +175,10 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline_rounded, color: context.semanticColors.expense),
+                    Icon(
+                      Icons.delete_outline_rounded,
+                      color: context.semanticColors.expense,
+                    ),
                     SizedBox(width: 8),
                     Text('删除'),
                   ],
@@ -197,14 +203,17 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                       Text(
                         investment.symbol,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 1),
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
                         decoration: BoxDecoration(
                           color: isDark
                               ? NeutralColorsDark.neutral3
@@ -215,8 +224,9 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                           marketTypeLabel(investment.marketType),
                           style: TextStyle(
                             fontSize: 10,
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
                       ),
@@ -254,7 +264,9 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                       const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: changeColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(4),
@@ -294,10 +306,12 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                 child: SegmentedButton<String>(
                   showSelectedIcon: false,
                   segments: _timeRanges
-                      .map((r) => ButtonSegment<String>(
-                            value: r,
-                            label: Text(r, style: const TextStyle(fontSize: 12)),
-                          ))
+                      .map(
+                        (r) => ButtonSegment<String>(
+                          value: r,
+                          label: Text(r, style: const TextStyle(fontSize: 12)),
+                        ),
+                      )
                       .toList(),
                   selected: {_timeRange},
                   onSelectionChanged: (selected) {
@@ -317,8 +331,7 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
               returnRate: returnRate,
               returnMode: _returnMode,
               returnLabels: _returnLabels,
-              onReturnModeChanged: (mode) =>
-                  setState(() => _returnMode = mode),
+              onReturnModeChanged: (mode) => setState(() => _returnMode = mode),
               isDark: isDark,
               theme: theme,
             ),
@@ -337,14 +350,21 @@ class _InvestmentDetailPageState extends ConsumerState<InvestmentDetailPage> {
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: () => context.push(AppRouter.investmentTrade(widget.investmentId)),
+                    onPressed: () => context.push(
+                      AppRouter.investmentTrade(widget.investmentId),
+                    ),
                     icon: const Icon(Icons.add_rounded, size: 18),
                     label: const Text('买入/卖出'),
                   ),
                 ],
               ),
             ),
-            _TradeList(trades: invState.currentTrades, theme: theme, isDark: isDark, marketType: investment.marketType),
+            _TradeList(
+              trades: invState.currentTrades,
+              theme: theme,
+              isDark: isDark,
+              marketType: investment.marketType,
+            ),
             const SizedBox(height: 80),
           ],
         ),
@@ -415,7 +435,9 @@ class _PriceChart extends StatelessWidget {
                       final idx = spot.spotIndex;
                       if (idx >= 0 && idx < priceHistory.length) {
                         final point = priceHistory[idx];
-                        final dateStr = DateFormat('MM/dd').format(point.timestamp);
+                        final dateStr = DateFormat(
+                          'MM/dd',
+                        ).format(point.timestamp);
                         return LineTooltipItem(
                           '¥${(point.price / 100).toStringAsFixed(2)}\n$dateStr',
                           TextStyle(
@@ -441,11 +463,11 @@ class _PriceChart extends StatelessWidget {
                         show: true,
                         getDotPainter: (spot, percent, bar, index) =>
                             FlDotCirclePainter(
-                          radius: 4,
-                          color: changeColor,
-                          strokeWidth: 2,
-                          strokeColor: isDark ? Colors.black : Colors.white,
-                        ),
+                              radius: 4,
+                              color: changeColor,
+                              strokeWidth: 2,
+                              strokeColor: isDark ? Colors.black : Colors.white,
+                            ),
                       ),
                     );
                   }).toList();
@@ -509,11 +531,9 @@ class _HoldingInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     final isPositive = profit >= 0;
-    final profitColor = isPositive
-        ? colors.income
-        : colors.expense;
+    final profitColor = isPositive ? colors.income : colors.expense;
 
     // Compute display return based on mode
     double displayReturn;
@@ -569,10 +589,12 @@ class _HoldingInfoCard extends StatelessWidget {
                     segments: returnLabels.asMap().entries.map((e) {
                       return ButtonSegment<int>(
                         value: e.key,
-                        label: Text(e.value,
-                            style: const TextStyle(fontSize: 11),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
+                        label: Text(
+                          e.value,
+                          style: const TextStyle(fontSize: 11),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       );
                     }).toList(),
                     selected: {returnMode},
@@ -596,8 +618,12 @@ class _HoldingInfoCard extends StatelessWidget {
     );
   }
 
-  Widget _infoRow(String label, String value, ThemeData theme,
-      {Color? valueColor}) {
+  Widget _infoRow(
+    String label,
+    String value,
+    ThemeData theme, {
+    Color? valueColor,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -653,7 +679,7 @@ class _TradeList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     if (trades.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(20),
@@ -676,9 +702,7 @@ class _TradeList extends StatelessWidget {
       itemBuilder: (context, index) {
         final trade = trades[index];
         final isBuy = trade.tradeType == 'buy';
-        final color = isBuy
-            ? colors.expense
-            : colors.income;
+        final color = isBuy ? colors.expense : colors.income;
 
         return Semantics(
           label:
@@ -686,8 +710,7 @@ class _TradeList extends StatelessWidget {
           child: Card(
             margin: const EdgeInsets.only(bottom: 4),
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
                   Container(
@@ -722,8 +745,9 @@ class _TradeList extends StatelessWidget {
                         Text(
                           '${_fmtQty(trade.quantity)}${marketType == "precious_metal" ? "克" : "股"} × ¥${(trade.price / 100).toStringAsFixed(2)}',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
                       ],
@@ -742,8 +766,9 @@ class _TradeList extends StatelessWidget {
                       Text(
                         DateFormat('yyyy-MM-dd').format(trade.tradeDate),
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.4),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
                           fontSize: 11,
                         ),
                       ),

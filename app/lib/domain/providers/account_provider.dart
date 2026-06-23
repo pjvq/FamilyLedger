@@ -29,8 +29,8 @@ class AccountTypeHelper {
     'cash': '💵',
     'bank_card': '🏦',
     'credit_card': '💳',
-    'alipay': '🔵',  // Alipay blue
-    'wechat_pay': '🟢',  // WeChat green
+    'alipay': '🔵', // Alipay blue
+    'wechat_pay': '🟢', // WeChat green
     'investment': '📈',
     'other': '💰',
   };
@@ -103,15 +103,13 @@ class AccountState {
     bool? isLoading,
     String? error,
     bool clearError = false,
-  }) =>
-      AccountState(
-        accounts: accounts ?? this.accounts,
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => AccountState(
+    accounts: accounts ?? this.accounts,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+  );
 
-  int get totalBalance =>
-      accounts.fold<int>(0, (sum, a) => sum + a.balance);
+  int get totalBalance => accounts.fold<int>(0, (sum, a) => sum + a.balance);
 }
 
 class AccountNotifier extends StateNotifier<AccountState> {
@@ -123,8 +121,13 @@ class AccountNotifier extends StateNotifier<AccountState> {
   final _uuid = const Uuid();
   static final _callOpts = CallOptions(timeout: const Duration(seconds: 5));
 
-  AccountNotifier(this._db, this._repo, this._userId, this._familyId, this._accountClient)
-      : super(const AccountState()) {
+  AccountNotifier(
+    this._db,
+    this._repo,
+    this._userId,
+    this._familyId,
+    this._accountClient,
+  ) : super(const AccountState()) {
     _load();
   }
 
@@ -141,20 +144,21 @@ class AccountNotifier extends StateNotifier<AccountState> {
       if (_accountClient != null) {
         try {
           final resp = await _accountClient.listAccounts(
-            pb_model.ListAccountsRequest()
-              ..familyId = _familyId ?? '',
+            pb_model.ListAccountsRequest()..familyId = _familyId ?? '',
             options: _callOpts,
           );
           for (final acc in resp.accounts) {
-            await _db.insertAccount(AccountsCompanion.insert(
-              id: acc.id,
-              userId: _userId,
-              name: acc.name,
-              icon: Value(acc.icon),
-              balance: Value(acc.balance.toInt()),
-              familyId: Value(acc.familyId),
-              accountType: Value(AccountTypeHelper.fromProto(acc.type)),
-            ));
+            await _db.insertAccount(
+              AccountsCompanion.insert(
+                id: acc.id,
+                userId: _userId,
+                name: acc.name,
+                icon: Value(acc.icon),
+                balance: Value(acc.balance.toInt()),
+                familyId: Value(acc.familyId),
+                accountType: Value(AccountTypeHelper.fromProto(acc.type)),
+              ),
+            );
           }
         } catch (_) {
           // Offline, use local data
@@ -208,34 +212,40 @@ class AccountNotifier extends StateNotifier<AccountState> {
               ..familyId = effectiveFamilyId,
           );
           final acc = resp.account;
-          await _db.insertAccount(AccountsCompanion.insert(
-            id: acc.id,
-            userId: _userId,
-            name: acc.name,
-            icon: Value(acc.icon),
-            balance: Value(acc.balance.toInt()),
-            familyId: Value(effectiveFamilyId),
-            accountType: Value(accountType),
-          ));
+          await _db.insertAccount(
+            AccountsCompanion.insert(
+              id: acc.id,
+              userId: _userId,
+              name: acc.name,
+              icon: Value(acc.icon),
+              balance: Value(acc.balance.toInt()),
+              familyId: Value(effectiveFamilyId),
+              accountType: Value(accountType),
+            ),
+          );
           await _load();
           return;
         } catch (e) {
-          dev.log('AccountNotifier: gRPC createAccount failed, fallback: $e',
-              name: 'account');
+          dev.log(
+            'AccountNotifier: gRPC createAccount failed, fallback: $e',
+            name: 'account',
+          );
         }
       }
 
       // Local fallback
       final id = _uuid.v4();
-      await _db.insertAccount(AccountsCompanion.insert(
-        id: id,
-        userId: _userId,
-        name: name,
-        icon: Value(effectiveIcon),
-        balance: Value(initialBalance),
-        familyId: Value(effectiveFamilyId),
-        accountType: Value(accountType),
-      ));
+      await _db.insertAccount(
+        AccountsCompanion.insert(
+          id: id,
+          userId: _userId,
+          name: name,
+          icon: Value(effectiveIcon),
+          balance: Value(initialBalance),
+          familyId: Value(effectiveFamilyId),
+          accountType: Value(accountType),
+        ),
+      );
       await _load();
     } catch (e) {
       state = state.copyWith(isLoading: false, error: '创建账户失败: $e');
@@ -258,8 +268,10 @@ class AccountNotifier extends StateNotifier<AccountState> {
           if (isActive != null) req.isActive = isActive;
           await _accountClient.updateAccount(req);
         } catch (e) {
-          dev.log('AccountNotifier: gRPC updateAccount failed: $e',
-              name: 'account');
+          dev.log(
+            'AccountNotifier: gRPC updateAccount failed: $e',
+            name: 'account',
+          );
         }
       }
 
@@ -285,8 +297,10 @@ class AccountNotifier extends StateNotifier<AccountState> {
             pb_model.DeleteAccountRequest()..accountId = accountId,
           );
         } catch (e) {
-          dev.log('AccountNotifier: gRPC deleteAccount failed: $e',
-              name: 'account');
+          dev.log(
+            'AccountNotifier: gRPC deleteAccount failed: $e',
+            name: 'account',
+          );
         }
       }
       await _repo.delete(accountId);
@@ -315,8 +329,7 @@ class AccountNotifier extends StateNotifier<AccountState> {
               ..note = note,
           );
         } catch (e) {
-          dev.log('AccountNotifier: gRPC transfer failed: $e',
-              name: 'account');
+          dev.log('AccountNotifier: gRPC transfer failed: $e', name: 'account');
         }
       }
 
@@ -325,14 +338,16 @@ class AccountNotifier extends StateNotifier<AccountState> {
       await _db.updateAccountBalance(toAccountId, amount);
 
       // Record transfer
-      await _db.insertTransfer(TransfersCompanion.insert(
-        id: _uuid.v4(),
-        userId: _userId,
-        fromAccountId: fromAccountId,
-        toAccountId: toAccountId,
-        amount: amount,
-        note: Value(note),
-      ));
+      await _db.insertTransfer(
+        TransfersCompanion.insert(
+          id: _uuid.v4(),
+          userId: _userId,
+          fromAccountId: fromAccountId,
+          toAccountId: toAccountId,
+          amount: amount,
+          note: Value(note),
+        ),
+      );
 
       await _load();
     } catch (e) {
@@ -341,8 +356,9 @@ class AccountNotifier extends StateNotifier<AccountState> {
   }
 }
 
-final accountProvider =
-    StateNotifierProvider<AccountNotifier, AccountState>((ref) {
+final accountProvider = StateNotifierProvider<AccountNotifier, AccountState>((
+  ref,
+) {
   final db = ref.watch(databaseProvider);
   final repo = ref.watch(accountRepositoryProvider);
   final userId = ref.watch(currentUserIdProvider);

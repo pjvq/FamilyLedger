@@ -97,7 +97,8 @@ class SequenceScorer {
   /// [categoryIds] 按时间倒序排列的分类 ID 列表（最新在前）
   /// 转移方向：from=较早交易分类 → to=紧随其后的交易分类
   static Map<String, Map<String, double>> buildMatrix(
-      List<String> categoryIds) {
+    List<String> categoryIds,
+  ) {
     if (categoryIds.length < 2) return {};
 
     // 统计相邻对 (从旧到新方向: i+1 → i，因为 list 是倒序)
@@ -169,10 +170,7 @@ class CategoryRecommendation {
   final String categoryId;
   final double score;
 
-  const CategoryRecommendation({
-    required this.categoryId,
-    required this.score,
-  });
+  const CategoryRecommendation({required this.categoryId, required this.score});
 }
 
 // ─── ScoreBooster ─────────────────────────────────────────────────────────────
@@ -246,12 +244,9 @@ class TimePrior {
   ];
 
   // 预编译正则 — 只编译一次
-  static final _mealPattern =
-      RegExp(r'早餐|午餐|晚餐|外卖|餐饮|美食|吃饭|火锅|烧烤|快餐');
-  static final _transportPattern =
-      RegExp(r'交通|通勤|地铁|公交|打车|加油');
-  static final _salaryPattern =
-      RegExp(r'工资|薪酬|奖金|收入');
+  static final _mealPattern = RegExp(r'早餐|午餐|晚餐|外卖|餐饮|美食|吃饭|火锅|烧烤|快餐');
+  static final _transportPattern = RegExp(r'交通|通勤|地铁|公交|打车|加油');
+  static final _salaryPattern = RegExp(r'工资|薪酬|奖金|收入');
 
   /// 默认基础分（未命中任何规则时）
   static const _defaultScore = 0.3;
@@ -303,8 +298,12 @@ class CategoryRecommender {
   }) {
     if (profiles.isEmpty) return [];
     assert(
-      (config.timeSlotWeight + config.recencyWeight + config.frequencyWeight +
-                  config.amountWeight + config.sequenceWeight + config.keywordWeight -
+      (config.timeSlotWeight +
+                  config.recencyWeight +
+                  config.frequencyWeight +
+                  config.amountWeight +
+                  config.sequenceWeight +
+                  config.keywordWeight -
                   1.0)
               .abs() <
           0.01,
@@ -355,8 +354,7 @@ class CategoryRecommender {
       double recencyScore = _recency.score(p, maxLast7d);
       double freqScore = _frequency.score(p, maxTotal);
       final amountScore = _amount.score(p, input.amountCents);
-      final seqScore =
-          sequenceScorer.score(input.lastCategoryId, p.categoryId);
+      final seqScore = sequenceScorer.score(input.lastCategoryId, p.categoryId);
       final kwScore = _keyword.score(p, input.noteText);
 
       // 冷启动增强：通过 booster 注入基础分
@@ -374,17 +372,17 @@ class CategoryRecommender {
         if (boostedTime != null) timeScore = boostedTime;
       }
 
-      final totalScore = wTime * timeScore +
+      final totalScore =
+          wTime * timeScore +
           wRecency * recencyScore +
           wFreq * freqScore +
           wAmount * amountScore +
           wSeq * seqScore +
           wKeyword * kwScore;
 
-      results.add(CategoryRecommendation(
-        categoryId: p.categoryId,
-        score: totalScore,
-      ));
+      results.add(
+        CategoryRecommendation(categoryId: p.categoryId, score: totalScore),
+      );
     }
 
     // Sort descending by score, filter out zero-score entries

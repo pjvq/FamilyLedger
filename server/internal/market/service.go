@@ -18,7 +18,7 @@ const quoteCacheTTL = 15 * time.Minute
 
 type Service struct {
 	pb.UnimplementedMarketDataServiceServer
-	pool db.Pool
+	pool    db.Pool
 	fetcher MarketDataFetcher
 }
 

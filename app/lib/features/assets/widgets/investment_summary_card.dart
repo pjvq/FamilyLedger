@@ -40,10 +40,9 @@ class InvestmentSummaryCard extends StatelessWidget {
                         Text(
                           '总市值',
                           style: TypographyTokens.caption(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.5),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.5),
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -58,10 +57,9 @@ class InvestmentSummaryCard extends StatelessWidget {
                         Text(
                           '${portfolio.holdings.length} 只持仓',
                           style: TypographyTokens.caption(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withValues(alpha: 0.4),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.4),
                           ),
                         ),
                       ],
@@ -73,10 +71,9 @@ class InvestmentSummaryCard extends StatelessWidget {
                       Text(
                         '累计收益',
                         style: TypographyTokens.caption(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.5),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -91,7 +88,9 @@ class InvestmentSummaryCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: profitColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),

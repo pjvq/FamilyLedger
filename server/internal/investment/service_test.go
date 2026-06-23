@@ -631,7 +631,7 @@ func TestCalculateXIRR_SimpleBuyAndSell(t *testing.T) {
 	// Buy 100 shares at $10 on day 0, sell at $11 on day 365 => 10% annual
 	base := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	cashFlows := []*pb.CashFlow{
-		{Date: timestamppb.New(base), Amount: -100000},                               // buy: $1000
+		{Date: timestamppb.New(base), Amount: -100000},                 // buy: $1000
 		{Date: timestamppb.New(base.AddDate(1, 0, 0)), Amount: 110000}, // sell: $1100
 	}
 

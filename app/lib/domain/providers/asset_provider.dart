@@ -173,15 +173,16 @@ class AssetState {
     String? error,
     bool clearError = false,
     bool clearCurrentAsset = false,
-  }) =>
-      AssetState(
-        assets: assets ?? this.assets,
-        currentAsset: clearCurrentAsset ? null : (currentAsset ?? this.currentAsset),
-        valuations: valuations ?? this.valuations,
-        totalNetValue: totalNetValue ?? this.totalNetValue,
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => AssetState(
+    assets: assets ?? this.assets,
+    currentAsset: clearCurrentAsset
+        ? null
+        : (currentAsset ?? this.currentAsset),
+    valuations: valuations ?? this.valuations,
+    totalNetValue: totalNetValue ?? this.totalNetValue,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 // ── Notifier ──
@@ -193,7 +194,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
   final String? _familyId;
 
   AssetNotifier(this._db, this._assetClient, this._userId, this._familyId)
-      : super(const AssetState()) {
+    : super(const AssetState()) {
     if (_userId != null) {
       listAssets();
     }
@@ -211,17 +212,19 @@ class AssetNotifier extends StateNotifier<AssetState> {
       }
       final resp = await _assetClient.listAssets(assetReq);
       for (final asset in resp.assets) {
-        await _db.upsertFixedAsset(db.FixedAssetsCompanion.insert(
-          id: asset.id,
-          userId: asset.userId,
-          familyId: Value(asset.familyId),
-          name: asset.name,
-          assetType: Value(_assetTypeToString(asset.assetType)),
-          purchasePrice: asset.purchasePrice.toInt(),
-          currentValue: asset.currentValue.toInt(),
-          purchaseDate: asset.purchaseDate.toDateTime(),
-          description: Value(asset.description),
-        ));
+        await _db.upsertFixedAsset(
+          db.FixedAssetsCompanion.insert(
+            id: asset.id,
+            userId: asset.userId,
+            familyId: Value(asset.familyId),
+            name: asset.name,
+            assetType: Value(_assetTypeToString(asset.assetType)),
+            purchasePrice: asset.purchasePrice.toInt(),
+            currentValue: asset.currentValue.toInt(),
+            purchaseDate: asset.purchaseDate.toDateTime(),
+            description: Value(asset.description),
+          ),
+        );
       }
     } catch (_) {
       // Offline fallback
@@ -255,19 +258,21 @@ class AssetNotifier extends StateNotifier<AssetState> {
 
         totalNet += currentVal;
 
-        displayItems.add(AssetDisplayItem(
-          id: asset.id,
-          name: asset.name,
-          assetType: asset.assetType,
-          purchasePrice: asset.purchasePrice,
-          currentValue: currentVal,
-          purchaseDate: asset.purchaseDate,
-          description: asset.description,
-          depreciationMethod: method,
-          usefulLifeYears: years,
-          salvageRate: salvageRate,
-          depreciationProgress: progress,
-        ));
+        displayItems.add(
+          AssetDisplayItem(
+            id: asset.id,
+            name: asset.name,
+            assetType: asset.assetType,
+            purchasePrice: asset.purchasePrice,
+            currentValue: currentVal,
+            purchaseDate: asset.purchaseDate,
+            description: asset.description,
+            depreciationMethod: method,
+            usefulLifeYears: years,
+            salvageRate: salvageRate,
+            depreciationProgress: progress,
+          ),
+        );
       }
 
       state = state.copyWith(
@@ -298,66 +303,78 @@ class AssetNotifier extends StateNotifier<AssetState> {
     String assetId = const Uuid().v4();
 
     try {
-      final resp = await _assetClient.createAsset(pb.CreateAssetRequest()
-        ..name = name
-        ..assetType = _stringToAssetType(assetType)
-        ..purchasePrice = Int64(purchasePrice)
-        ..purchaseDate = _toTimestamp(purchaseDate)
-        ..description = description ?? ''
-        ..familyId = familyId ?? '');
+      final resp = await _assetClient.createAsset(
+        pb.CreateAssetRequest()
+          ..name = name
+          ..assetType = _stringToAssetType(assetType)
+          ..purchasePrice = Int64(purchasePrice)
+          ..purchaseDate = _toTimestamp(purchaseDate)
+          ..description = description ?? ''
+          ..familyId = familyId ?? '',
+      );
       assetId = resp.id;
 
-      await _db.upsertFixedAsset(db.FixedAssetsCompanion.insert(
-        id: resp.id,
-        userId: resp.userId,
-        familyId: Value(familyId ?? ''),
-        name: resp.name,
-        assetType: Value(_assetTypeToString(resp.assetType)),
-        purchasePrice: resp.purchasePrice.toInt(),
-        currentValue: resp.currentValue.toInt(),
-        purchaseDate: resp.purchaseDate.toDateTime(),
-        description: Value(resp.description),
-      ));
+      await _db.upsertFixedAsset(
+        db.FixedAssetsCompanion.insert(
+          id: resp.id,
+          userId: resp.userId,
+          familyId: Value(familyId ?? ''),
+          name: resp.name,
+          assetType: Value(_assetTypeToString(resp.assetType)),
+          purchasePrice: resp.purchasePrice.toInt(),
+          currentValue: resp.currentValue.toInt(),
+          purchaseDate: resp.purchaseDate.toDateTime(),
+          description: Value(resp.description),
+        ),
+      );
     } catch (_) {
       // Offline: save locally
-      await _db.upsertFixedAsset(db.FixedAssetsCompanion.insert(
-        id: assetId,
-        userId: _userId,
-        familyId: Value(familyId ?? ''),
-        name: name,
-        assetType: Value(assetType),
-        purchasePrice: purchasePrice,
-        currentValue: purchasePrice,
-        purchaseDate: purchaseDate,
-        description: Value(description ?? ''),
-      ));
+      await _db.upsertFixedAsset(
+        db.FixedAssetsCompanion.insert(
+          id: assetId,
+          userId: _userId,
+          familyId: Value(familyId ?? ''),
+          name: name,
+          assetType: Value(assetType),
+          purchasePrice: purchasePrice,
+          currentValue: purchasePrice,
+          purchaseDate: purchaseDate,
+          description: Value(description ?? ''),
+        ),
+      );
     }
 
     // Save initial valuation record
-    await _db.insertAssetValuation(db.AssetValuationsCompanion.insert(
-      id: const Uuid().v4(),
-      assetId: assetId,
-      value: purchasePrice,
-      source: Value('manual'),
-      valuationDate: purchaseDate,
-    ));
+    await _db.insertAssetValuation(
+      db.AssetValuationsCompanion.insert(
+        id: const Uuid().v4(),
+        assetId: assetId,
+        value: purchasePrice,
+        source: Value('manual'),
+        valuationDate: purchaseDate,
+      ),
+    );
 
     // Save depreciation rule
     if (depreciationMethod != 'none') {
-      await _db.upsertDepreciationRule(db.DepreciationRulesCompanion.insert(
-        id: const Uuid().v4(),
-        assetId: assetId,
-        method: Value(depreciationMethod),
-        usefulLifeYears: Value(usefulLifeYears),
-        salvageRate: Value(salvageRate),
-      ));
+      await _db.upsertDepreciationRule(
+        db.DepreciationRulesCompanion.insert(
+          id: const Uuid().v4(),
+          assetId: assetId,
+          method: Value(depreciationMethod),
+          usefulLifeYears: Value(usefulLifeYears),
+          salvageRate: Value(salvageRate),
+        ),
+      );
 
       try {
-        await _assetClient.setDepreciationRule(pb.SetDepreciationRuleRequest()
-          ..assetId = assetId
-          ..method = _stringToDepreciationMethod(depreciationMethod)
-          ..usefulLifeYears = usefulLifeYears
-          ..salvageRate = salvageRate);
+        await _assetClient.setDepreciationRule(
+          pb.SetDepreciationRuleRequest()
+            ..assetId = assetId
+            ..method = _stringToDepreciationMethod(depreciationMethod)
+            ..usefulLifeYears = usefulLifeYears
+            ..salvageRate = salvageRate,
+        );
       } catch (_) {}
     }
 
@@ -370,7 +387,8 @@ class AssetNotifier extends StateNotifier<AssetState> {
 
     try {
       final resp = await _assetClient.listValuations(
-          pb.ListValuationsRequest()..assetId = id);
+        pb.ListValuationsRequest()..assetId = id,
+      );
       // Store remote valuations if needed
       for (final _ in resp.valuations) {
         // We don't batch-persist these for simplicity
@@ -417,12 +435,16 @@ class AssetNotifier extends StateNotifier<AssetState> {
     );
 
     final dbValuations = await _db.getAssetValuations(id);
-    final valuations = dbValuations.map((v) => ValuationRecord(
-      id: v.id,
-      value: v.value,
-      source: v.source,
-      valuationDate: v.valuationDate,
-    )).toList();
+    final valuations = dbValuations
+        .map(
+          (v) => ValuationRecord(
+            id: v.id,
+            value: v.value,
+            source: v.source,
+            valuationDate: v.valuationDate,
+          ),
+        )
+        .toList();
 
     state = state.copyWith(
       currentAsset: displayItem,
@@ -432,27 +454,39 @@ class AssetNotifier extends StateNotifier<AssetState> {
   }
 
   /// Update asset info
-  Future<void> updateAsset(String id, {String? name, String? description}) async {
+  Future<void> updateAsset(
+    String id, {
+    String? name,
+    String? description,
+  }) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _assetClient.updateAsset(pb.UpdateAssetRequest()
-        ..assetId = id
-        ..name = name ?? ''
-        ..description = description ?? '');
+      await _assetClient.updateAsset(
+        pb.UpdateAssetRequest()
+          ..assetId = id
+          ..name = name ?? ''
+          ..description = description ?? '',
+      );
     } catch (_) {}
 
     if (name != null) {
-      await _db.updateFixedAssetFields(id, db.FixedAssetsCompanion(
-        name: Value(name),
-        updatedAt: Value(DateTime.now()),
-      ));
+      await _db.updateFixedAssetFields(
+        id,
+        db.FixedAssetsCompanion(
+          name: Value(name),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
     }
     if (description != null) {
-      await _db.updateFixedAssetFields(id, db.FixedAssetsCompanion(
-        description: Value(description),
-        updatedAt: Value(DateTime.now()),
-      ));
+      await _db.updateFixedAssetFields(
+        id,
+        db.FixedAssetsCompanion(
+          description: Value(description),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
     }
 
     await listAssets();
@@ -464,8 +498,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _assetClient.deleteAsset(
-          pb.DeleteAssetRequest()..assetId = id);
+      await _assetClient.deleteAsset(pb.DeleteAssetRequest()..assetId = id);
     } catch (_) {}
 
     await _db.softDeleteFixedAsset(id);
@@ -477,25 +510,32 @@ class AssetNotifier extends StateNotifier<AssetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _assetClient.updateValuation(pb.UpdateValuationRequest()
-        ..assetId = assetId
-        ..value = Int64(value)
-        ..source = 'manual');
+      await _assetClient.updateValuation(
+        pb.UpdateValuationRequest()
+          ..assetId = assetId
+          ..value = Int64(value)
+          ..source = 'manual',
+      );
     } catch (_) {}
 
-    await _db.insertAssetValuation(db.AssetValuationsCompanion.insert(
-      id: const Uuid().v4(),
-      assetId: assetId,
-      value: value,
-      source: Value('manual'),
-      valuationDate: date,
-    ));
+    await _db.insertAssetValuation(
+      db.AssetValuationsCompanion.insert(
+        id: const Uuid().v4(),
+        assetId: assetId,
+        value: value,
+        source: Value('manual'),
+        valuationDate: date,
+      ),
+    );
 
     // Update asset current value
-    await _db.updateFixedAssetFields(assetId, db.FixedAssetsCompanion(
-      currentValue: Value(value),
-      updatedAt: Value(DateTime.now()),
-    ));
+    await _db.updateFixedAssetFields(
+      assetId,
+      db.FixedAssetsCompanion(
+        currentValue: Value(value),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
 
     await listAssets();
     await getAsset(assetId);
@@ -511,20 +551,24 @@ class AssetNotifier extends StateNotifier<AssetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _assetClient.setDepreciationRule(pb.SetDepreciationRuleRequest()
-        ..assetId = assetId
-        ..method = _stringToDepreciationMethod(method)
-        ..usefulLifeYears = usefulLifeYears
-        ..salvageRate = salvageRate);
+      await _assetClient.setDepreciationRule(
+        pb.SetDepreciationRuleRequest()
+          ..assetId = assetId
+          ..method = _stringToDepreciationMethod(method)
+          ..usefulLifeYears = usefulLifeYears
+          ..salvageRate = salvageRate,
+      );
     } catch (_) {}
 
-    await _db.upsertDepreciationRule(db.DepreciationRulesCompanion.insert(
-      id: const Uuid().v4(),
-      assetId: assetId,
-      method: Value(method),
-      usefulLifeYears: Value(usefulLifeYears),
-      salvageRate: Value(salvageRate),
-    ));
+    await _db.upsertDepreciationRule(
+      db.DepreciationRulesCompanion.insert(
+        id: const Uuid().v4(),
+        assetId: assetId,
+        method: Value(method),
+        usefulLifeYears: Value(usefulLifeYears),
+        salvageRate: Value(salvageRate),
+      ),
+    );
 
     await listAssets();
     await getAsset(assetId);
@@ -639,8 +683,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
 
 // ── Provider ──
 
-final assetProvider =
-    StateNotifierProvider<AssetNotifier, AssetState>((ref) {
+final assetProvider = StateNotifierProvider<AssetNotifier, AssetState>((ref) {
   final database = ref.watch(databaseProvider);
   final client = ref.watch(assetClientProvider);
   final userId = ref.watch(currentUserIdProvider);

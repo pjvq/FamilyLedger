@@ -23,7 +23,9 @@ class MonthlySummaryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final trend = ref.watch(dashboardProvider.select((s) => s.incomeExpenseTrend));
+    final trend = ref.watch(
+      dashboardProvider.select((s) => s.incomeExpenseTrend),
+    );
     final colors = context.semanticColors;
 
     // Hide when no data
@@ -37,74 +39,88 @@ class MonthlySummaryCard extends ConsumerWidget {
     return GestureDetector(
       onTap: () => context.push(AppRouter.report),
       child: OverviewCardContainer(
-      margin: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
-      child: Row(
-        children: [
-          // Donut chart
-          SizedBox(
-            width: _donutSize,
-            height: _donutSize,
-            child: income == 0 && expense == 0
-                ? Center(
-                    child: Icon(Icons.pie_chart_outline_rounded,
+        margin: const EdgeInsets.symmetric(horizontal: SpacingTokens.base),
+        child: Row(
+          children: [
+            // Donut chart
+            SizedBox(
+              width: _donutSize,
+              height: _donutSize,
+              child: income == 0 && expense == 0
+                  ? Center(
+                      child: Icon(
+                        Icons.pie_chart_outline_rounded,
                         size: IconSizeTokens.xl,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2)),
-                  )
-                : PieChart(
-                    PieChartData(
-                      sections: [
-                        PieChartSectionData(
-                          color: colors.income,
-                          value: income.toDouble(),
-                          title: '',
-                          radius: _donutRadius,
-                        ),
-                        PieChartSectionData(
-                          color: colors.expense,
-                          value: expense.toDouble(),
-                          title: '',
-                          radius: _donutRadius,
-                        ),
-                      ],
-                      centerSpaceRadius: _donutCenterSpace,
-                      sectionsSpace: _donutSectionSpace,
-                      startDegreeOffset: -90,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.2),
+                      ),
+                    )
+                  : PieChart(
+                      PieChartData(
+                        sections: [
+                          PieChartSectionData(
+                            color: colors.income,
+                            value: income.toDouble(),
+                            title: '',
+                            radius: _donutRadius,
+                          ),
+                          PieChartSectionData(
+                            color: colors.expense,
+                            value: expense.toDouble(),
+                            title: '',
+                            radius: _donutRadius,
+                          ),
+                        ],
+                        centerSpaceRadius: _donutCenterSpace,
+                        sectionsSpace: _donutSectionSpace,
+                        startDegreeOffset: -90,
+                      ),
+                    ),
+            ),
+            const SizedBox(width: SpacingTokens.base),
+            // Text info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '本月收支',
+                    style: TypographyTokens.bodySm(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
-          ),
-          const SizedBox(width: SpacingTokens.base),
-          // Text info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '本月收支',
-                  style: TypographyTokens.bodySm(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  const SizedBox(height: SpacingTokens.sm),
+                  Row(
+                    children: [
+                      _AmountDot(
+                        label: '收入',
+                        amount: income,
+                        color: colors.income,
+                      ),
+                      const SizedBox(width: SpacingTokens.md),
+                      _AmountDot(
+                        label: '支出',
+                        amount: expense,
+                        color: colors.expense,
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: SpacingTokens.sm),
-                Row(
-                  children: [
-                    _AmountDot(label: '收入', amount: income, color: colors.income),
-                    const SizedBox(width: SpacingTokens.md),
-                    _AmountDot(label: '支出', amount: expense, color: colors.expense),
-                  ],
-                ),
-                const SizedBox(height: SpacingTokens.xs),
-                Text(
-                  '结余 ¥${formatCentsDisplay(net)}',
-                  style: TypographyTokens.caption(
-                    color: net >= 0 ? colors.income : colors.expense,
-                  ).copyWith(fontWeight: FontWeight.w600),
-                ),
-              ],
+                  const SizedBox(height: SpacingTokens.xs),
+                  Text(
+                    '结余 ¥${formatCentsDisplay(net)}',
+                    style: TypographyTokens.caption(
+                      color: net >= 0 ? colors.income : colors.expense,
+                    ).copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 }
@@ -114,7 +130,11 @@ class _AmountDot extends StatelessWidget {
   final int amount;
   final Color color;
 
-  const _AmountDot({required this.label, required this.amount, required this.color});
+  const _AmountDot({
+    required this.label,
+    required this.amount,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {

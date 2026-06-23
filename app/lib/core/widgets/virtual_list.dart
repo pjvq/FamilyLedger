@@ -44,7 +44,10 @@ class VirtualList<T> extends StatelessWidget {
       listView = ListView.separated(
         controller: controller,
         padding: EdgeInsets.fromLTRB(
-          horizontalPadding, topPadding, horizontalPadding, bottomPadding,
+          horizontalPadding,
+          topPadding,
+          horizontalPadding,
+          bottomPadding,
         ),
         itemCount: items.length,
         physics: physics ?? const AlwaysScrollableScrollPhysics(),
@@ -56,7 +59,10 @@ class VirtualList<T> extends StatelessWidget {
       listView = ListView.builder(
         controller: controller,
         padding: EdgeInsets.fromLTRB(
-          horizontalPadding, topPadding, horizontalPadding, bottomPadding,
+          horizontalPadding,
+          topPadding,
+          horizontalPadding,
+          bottomPadding,
         ),
         itemCount: items.length,
         itemExtent: itemExtent,
@@ -67,10 +73,7 @@ class VirtualList<T> extends StatelessWidget {
     }
 
     if (onRefresh != null) {
-      return RefreshIndicator.adaptive(
-        onRefresh: onRefresh!,
-        child: listView,
-      );
+      return RefreshIndicator.adaptive(onRefresh: onRefresh!, child: listView);
     }
 
     return listView;

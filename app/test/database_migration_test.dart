@@ -56,8 +56,9 @@ void main() {
       final notifications = await db.select(db.notifications).get();
       expect(notifications, isEmpty);
 
-      final notificationSettings =
-          await db.select(db.notificationSettingsTable).get();
+      final notificationSettings = await db
+          .select(db.notificationSettingsTable)
+          .get();
       expect(notificationSettings, isEmpty);
 
       final loanGroups = await db.select(db.loanGroups).get();
@@ -97,12 +98,15 @@ void main() {
       expect(exchangeRates, isEmpty);
     });
 
-    test('preset categories are seeded after auth (not on fresh database)', () async {
-      final categories = await db.select(db.categories).get();
-      // Since v13+, categories are seeded after auth when userId is known,
-      // so a fresh database will have no categories.
-      expect(categories, isEmpty);
-    });
+    test(
+      'preset categories are seeded after auth (not on fresh database)',
+      () async {
+        final categories = await db.select(db.categories).get();
+        // Since v13+, categories are seeded after auth when userId is known,
+        // so a fresh database will have no categories.
+        expect(categories, isEmpty);
+      },
+    );
   });
 
   group('AppDatabase — basic CRUD operations', () {
@@ -118,9 +122,10 @@ void main() {
 
     test('insert and query user', () async {
       await db.customStatement(
-          "INSERT INTO users (id, email, created_at) "
-          "VALUES ('u1', 'test@example.com', "
-          "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
+        "INSERT INTO users (id, email, created_at) "
+        "VALUES ('u1', 'test@example.com', "
+        "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+      );
 
       final users = await db.select(db.users).get();
       expect(users.length, 1);
@@ -131,18 +136,21 @@ void main() {
     test('insert and query account', () async {
       // Need a user first (foreign key)
       await db.customStatement(
-          "INSERT INTO users (id, email, created_at) "
-          "VALUES ('u1', 'test@example.com', "
-          "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
+        "INSERT INTO users (id, email, created_at) "
+        "VALUES ('u1', 'test@example.com', "
+        "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+      );
 
-      await db.insertAccount(AccountsCompanion.insert(
-        id: 'acc1',
-        userId: 'u1',
-        name: 'My Bank',
-        balance: const Value(500000),
-        familyId: const Value(''),
-        accountType: const Value('bank_card'),
-      ));
+      await db.insertAccount(
+        AccountsCompanion.insert(
+          id: 'acc1',
+          userId: 'u1',
+          name: 'My Bank',
+          balance: const Value(500000),
+          familyId: const Value(''),
+          accountType: const Value('bank_card'),
+        ),
+      );
 
       final accounts = await db.getActiveAccounts('u1');
       expect(accounts.length, 1);
@@ -152,33 +160,39 @@ void main() {
 
     test('insert and query transaction', () async {
       await db.customStatement(
-          "INSERT INTO users (id, email, created_at) "
-          "VALUES ('u1', 'test@example.com', "
-          "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
+        "INSERT INTO users (id, email, created_at) "
+        "VALUES ('u1', 'test@example.com', "
+        "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+      );
 
-      await db.insertAccount(AccountsCompanion.insert(
-        id: 'acc1',
-        userId: 'u1',
-        name: 'My Bank',
-        familyId: const Value(''),
-        accountType: const Value('bank_card'),
-      ));
+      await db.insertAccount(
+        AccountsCompanion.insert(
+          id: 'acc1',
+          userId: 'u1',
+          name: 'My Bank',
+          familyId: const Value(''),
+          accountType: const Value('bank_card'),
+        ),
+      );
 
       // Insert a test category since categories are no longer seeded on fresh DB
       await db.customStatement(
-          "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
-          "VALUES ('cat1', 'Food', 'expense', '🍔', 1, 1)");
+        "INSERT INTO categories (id, name, type, icon_key, sort_order, is_preset) "
+        "VALUES ('cat1', 'Food', 'expense', '🍔', 1, 1)",
+      );
 
-      await db.insertTransaction(TransactionsCompanion.insert(
-        id: 'tx1',
-        userId: 'u1',
-        accountId: 'acc1',
-        categoryId: 'cat1',
-        amount: 5000,
-        amountCny: 5000,
-        type: 'expense',
-        txnDate: DateTime(2024, 6, 15),
-      ));
+      await db.insertTransaction(
+        TransactionsCompanion.insert(
+          id: 'tx1',
+          userId: 'u1',
+          accountId: 'acc1',
+          categoryId: 'cat1',
+          amount: 5000,
+          amountCny: 5000,
+          type: 'expense',
+          txnDate: DateTime(2024, 6, 15),
+        ),
+      );
 
       final txns = await db.getRecentTransactions('u1', 10);
       expect(txns.length, 1);
@@ -186,23 +200,23 @@ void main() {
     });
 
     test('insert and query family + members', () async {
-      await db.insertFamily(FamiliesCompanion.insert(
-        id: 'fam1',
-        name: '小Q家',
-        ownerId: 'u1',
-      ));
+      await db.insertFamily(
+        FamiliesCompanion.insert(id: 'fam1', name: '小Q家', ownerId: 'u1'),
+      );
 
-      await db.insertFamilyMember(FamilyMembersCompanion.insert(
-        id: 'fm1',
-        familyId: 'fam1',
-        userId: 'u1',
-        role: const Value('owner'),
-        canView: const Value(true),
-        canCreate: const Value(true),
-        canEdit: const Value(true),
-        canDelete: const Value(true),
-        canManageAccounts: const Value(true),
-      ));
+      await db.insertFamilyMember(
+        FamilyMembersCompanion.insert(
+          id: 'fm1',
+          familyId: 'fam1',
+          userId: 'u1',
+          role: const Value('owner'),
+          canView: const Value(true),
+          canCreate: const Value(true),
+          canEdit: const Value(true),
+          canDelete: const Value(true),
+          canManageAccounts: const Value(true),
+        ),
+      );
 
       final families = await db.getAllFamilies();
       expect(families.length, 1);
@@ -215,31 +229,36 @@ void main() {
 
     test('insert and query loan', () async {
       await db.customStatement(
-          "INSERT INTO users (id, email, created_at) "
-          "VALUES ('u1', 'test@example.com', "
-          "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
+        "INSERT INTO users (id, email, created_at) "
+        "VALUES ('u1', 'test@example.com', "
+        "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+      );
 
-      await db.insertAccount(AccountsCompanion.insert(
-        id: 'acc1',
-        userId: 'u1',
-        name: 'Account',
-        familyId: const Value(''),
-        accountType: const Value('bank_card'),
-      ));
+      await db.insertAccount(
+        AccountsCompanion.insert(
+          id: 'acc1',
+          userId: 'u1',
+          name: 'Account',
+          familyId: const Value(''),
+          accountType: const Value('bank_card'),
+        ),
+      );
 
-      await db.upsertLoan(LoansCompanion.insert(
-        id: 'loan1',
-        userId: 'u1',
-        name: '房贷',
-        principal: 50000000,
-        remainingPrincipal: 48000000,
-        annualRate: 4.1,
-        totalMonths: 360,
-        paymentDay: 15,
-        startDate: DateTime(2024, 1, 1),
-        loanType: const Value('mortgage'),
-        repaymentMethod: const Value('equal_installment'),
-      ));
+      await db.upsertLoan(
+        LoansCompanion.insert(
+          id: 'loan1',
+          userId: 'u1',
+          name: '房贷',
+          principal: 50000000,
+          remainingPrincipal: 48000000,
+          annualRate: 4.1,
+          totalMonths: 360,
+          paymentDay: 15,
+          startDate: DateTime(2024, 1, 1),
+          loanType: const Value('mortgage'),
+          repaymentMethod: const Value('equal_installment'),
+        ),
+      );
 
       final loans = await db.getLoans('u1');
       expect(loans.length, 1);
@@ -248,13 +267,17 @@ void main() {
     });
 
     test('insert and query budget', () async {
-      await db.into(db.budgets).insert(BudgetsCompanion.insert(
-        id: 'budget1',
-        userId: 'u1',
-        year: 2024,
-        month: 6,
-        totalAmount: 500000,
-      ));
+      await db
+          .into(db.budgets)
+          .insert(
+            BudgetsCompanion.insert(
+              id: 'budget1',
+              userId: 'u1',
+              year: 2024,
+              month: 6,
+              totalAmount: 500000,
+            ),
+          );
 
       final budget = await db.getBudgetByMonth('u1', 2024, 6);
       expect(budget, isNotNull);
@@ -268,9 +291,10 @@ void main() {
       final db2 = AppDatabase.forTesting(NativeDatabase.memory());
 
       await db1.customStatement(
-          "INSERT INTO users (id, email, created_at) "
-          "VALUES ('u1', 'alice@test.com', "
-          "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
+        "INSERT INTO users (id, email, created_at) "
+        "VALUES ('u1', 'alice@test.com', "
+        "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+      );
 
       final usersDb1 = await db1.select(db1.users).get();
       final usersDb2 = await db2.select(db2.users).get();

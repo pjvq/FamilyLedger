@@ -49,10 +49,16 @@ class CategoryIconWidget extends StatelessWidget {
       final emoji = emojiChar(key);
       final emojiText = FittedBox(
         fit: BoxFit.scaleDown,
-        child: Text(emoji,
-            style: TextStyle(fontSize: size, height: 1.15),
-            strutStyle: StrutStyle(fontSize: size, height: 1.15, forceStrutHeight: true),
-            textAlign: TextAlign.center),
+        child: Text(
+          emoji,
+          style: TextStyle(fontSize: size, height: 1.15),
+          strutStyle: StrutStyle(
+            fontSize: size,
+            height: 1.15,
+            forceStrutHeight: true,
+          ),
+          textAlign: TextAlign.center,
+        ),
       );
 
       if (showBackground) {
@@ -64,10 +70,18 @@ class CategoryIconWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular((size + 16) / 2),
           ),
           alignment: Alignment.center,
-          child: SizedBox(width: size, height: size, child: Center(child: emojiText)),
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Center(child: emojiText),
+          ),
         );
       }
-      return SizedBox(width: size, height: size, child: Center(child: emojiText));
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Center(child: emojiText),
+      );
     }
 
     // Material Icons rendering

@@ -74,19 +74,33 @@ NetWorthData _makeNetWorth({
     loanBalance: loanBalance,
     changeFromLastMonth: changeFromLastMonth,
     changePercent: changePercent,
-    composition: composition ??
+    composition:
+        composition ??
         [
           const AssetCompositionItem(
-              category: 'cash', label: '现金银行', value: 20000000, weight: 0.33),
+            category: 'cash',
+            label: '现金银行',
+            value: 20000000,
+            weight: 0.33,
+          ),
           const AssetCompositionItem(
-              category: 'investment', label: '投资', value: 15000000, weight: 0.25),
+            category: 'investment',
+            label: '投资',
+            value: 15000000,
+            weight: 0.25,
+          ),
           const AssetCompositionItem(
-              category: 'fixed_asset',
-              label: '固定资产',
-              value: 20000000,
-              weight: 0.33),
+            category: 'fixed_asset',
+            label: '固定资产',
+            value: 20000000,
+            weight: 0.33,
+          ),
           const AssetCompositionItem(
-              category: 'loan', label: '贷款', value: -5000000, weight: 0.08),
+            category: 'loan',
+            label: '贷款',
+            value: -5000000,
+            weight: 0.08,
+          ),
         ],
   );
 }
@@ -106,25 +120,29 @@ List<TrendPointData> _makeTrendPoints({int count = 6}) {
 List<CategoryBreakdownItem> _makeCategoryBreakdown() {
   return [
     CategoryBreakdownItem(
-        categoryId: CategoryUUID.generate('test-user', 'expense', '餐饮'),
-        categoryName: '餐饮',
-        amount: 300000,
-        weight: 0.3),
+      categoryId: CategoryUUID.generate('test-user', 'expense', '餐饮'),
+      categoryName: '餐饮',
+      amount: 300000,
+      weight: 0.3,
+    ),
     CategoryBreakdownItem(
-        categoryId: CategoryUUID.generate('test-user', 'expense', '交通'),
-        categoryName: '交通',
-        amount: 200000,
-        weight: 0.2),
+      categoryId: CategoryUUID.generate('test-user', 'expense', '交通'),
+      categoryName: '交通',
+      amount: 200000,
+      weight: 0.2,
+    ),
     CategoryBreakdownItem(
-        categoryId: CategoryUUID.generate('test-user', 'expense', '购物'),
-        categoryName: '购物',
-        amount: 150000,
-        weight: 0.15),
+      categoryId: CategoryUUID.generate('test-user', 'expense', '购物'),
+      categoryName: '购物',
+      amount: 150000,
+      weight: 0.15,
+    ),
     CategoryBreakdownItem(
-        categoryId: CategoryUUID.generate('test-user', 'expense', '居住'),
-        categoryName: '居住',
-        amount: 350000,
-        weight: 0.35),
+      categoryId: CategoryUUID.generate('test-user', 'expense', '居住'),
+      categoryName: '居住',
+      amount: 350000,
+      weight: 0.35,
+    ),
   ];
 }
 
@@ -185,15 +203,26 @@ TransactionState _makeTransactionState({
 }) {
   return TransactionState(
     transactions: const [],
-    expenseCategories: expenseCategories ??
-        [
-          _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '餐饮'), name: '餐饮'),
-          _makeCategory(id: CategoryUUID.generate('test-user', 'expense', '交通'), name: '交通'),
-        ],
-    incomeCategories: incomeCategories ??
+    expenseCategories:
+        expenseCategories ??
         [
           _makeCategory(
-              id: CategoryUUID.generate('test-user', 'income', '工资'), name: '工资', type: 'income'),
+            id: CategoryUUID.generate('test-user', 'expense', '餐饮'),
+            name: '餐饮',
+          ),
+          _makeCategory(
+            id: CategoryUUID.generate('test-user', 'expense', '交通'),
+            name: '交通',
+          ),
+        ],
+    incomeCategories:
+        incomeCategories ??
+        [
+          _makeCategory(
+            id: CategoryUUID.generate('test-user', 'income', '工资'),
+            name: '工资',
+            type: 'income',
+          ),
         ],
     isLoading: false,
   );
@@ -228,7 +257,11 @@ class _FakeDashboardNotifier extends StateNotifier<DashboardState>
 
 class _FakeDatabase extends Fake implements AppDatabase {
   @override
-  Future<List<Transaction>> getRecentTransactions(String userId, int limit, {String? familyId}) async => [];
+  Future<List<Transaction>> getRecentTransactions(
+    String userId,
+    int limit, {
+    String? familyId,
+  }) async => [];
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -238,66 +271,76 @@ class _FakeDatabase extends Fake implements AppDatabase {
 void main() {
   group('DashboardCard', () {
     testWidgets('renders title and icon', (tester) async {
-      await tester.pumpWidget(_wrap(
-        DashboardCard(
-          title: '测试卡片',
-          icon: Icons.star,
-          isExpanded: true,
-          onToggle: () {},
-          child: const Text('卡片内容'),
+      await tester.pumpWidget(
+        _wrap(
+          DashboardCard(
+            title: '测试卡片',
+            icon: Icons.star,
+            isExpanded: true,
+            onToggle: () {},
+            child: const Text('卡片内容'),
+          ),
         ),
-      ));
+      );
 
       expect(find.text('测试卡片'), findsOneWidget);
       expect(find.byIcon(Icons.star), findsOneWidget);
     });
 
     testWidgets('shows child content when expanded', (tester) async {
-      await tester.pumpWidget(_wrap(
-        DashboardCard(
-          title: '展开测试',
-          icon: Icons.star,
-          isExpanded: true,
-          onToggle: () {},
-          child: const Text('展开的内容'),
+      await tester.pumpWidget(
+        _wrap(
+          DashboardCard(
+            title: '展开测试',
+            icon: Icons.star,
+            isExpanded: true,
+            onToggle: () {},
+            child: const Text('展开的内容'),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('展开的内容'), findsOneWidget);
     });
 
-    testWidgets('hides child content when collapsed (via AnimatedCrossFade)',
-        (tester) async {
-      await tester.pumpWidget(_wrap(
-        DashboardCard(
-          title: '折叠测试',
-          icon: Icons.star,
-          isExpanded: false,
-          onToggle: () {},
-          child: const Text('隐藏的内容'),
+    testWidgets('hides child content when collapsed (via AnimatedCrossFade)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          DashboardCard(
+            title: '折叠测试',
+            icon: Icons.star,
+            isExpanded: false,
+            onToggle: () {},
+            child: const Text('隐藏的内容'),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // AnimatedCrossFade still has the widget in tree but second child is SizedBox.shrink
       expect(find.byType(AnimatedCrossFade), findsOneWidget);
-      final acf =
-          tester.widget<AnimatedCrossFade>(find.byType(AnimatedCrossFade));
+      final acf = tester.widget<AnimatedCrossFade>(
+        find.byType(AnimatedCrossFade),
+      );
       expect(acf.crossFadeState, CrossFadeState.showSecond);
     });
 
     testWidgets('calls onToggle when header is tapped', (tester) async {
       bool toggled = false;
-      await tester.pumpWidget(_wrap(
-        DashboardCard(
-          title: '点击测试',
-          icon: Icons.star,
-          isExpanded: true,
-          onToggle: () => toggled = true,
-          child: const Text('内容'),
+      await tester.pumpWidget(
+        _wrap(
+          DashboardCard(
+            title: '点击测试',
+            icon: Icons.star,
+            isExpanded: true,
+            onToggle: () => toggled = true,
+            child: const Text('内容'),
+          ),
         ),
-      ));
+      );
 
       // Tap on the card header (InkWell)
       await tester.tap(find.text('点击测试'));
@@ -305,129 +348,143 @@ void main() {
     });
 
     testWidgets('shows trailing widget when provided', (tester) async {
-      await tester.pumpWidget(_wrap(
-        DashboardCard(
-          title: '带尾部',
-          icon: Icons.star,
-          isExpanded: true,
-          onToggle: () {},
-          trailing: const Icon(Icons.drag_handle),
-          child: const Text('内容'),
+      await tester.pumpWidget(
+        _wrap(
+          DashboardCard(
+            title: '带尾部',
+            icon: Icons.star,
+            isExpanded: true,
+            onToggle: () {},
+            trailing: const Icon(Icons.drag_handle),
+            child: const Text('内容'),
+          ),
         ),
-      ));
+      );
 
       expect(find.byIcon(Icons.drag_handle), findsOneWidget);
     });
 
     testWidgets('has no trailing when not provided', (tester) async {
-      await tester.pumpWidget(_wrap(
-        DashboardCard(
-          title: '无尾部',
-          icon: Icons.star,
-          isExpanded: true,
-          onToggle: () {},
-          child: const Text('内容'),
+      await tester.pumpWidget(
+        _wrap(
+          DashboardCard(
+            title: '无尾部',
+            icon: Icons.star,
+            isExpanded: true,
+            onToggle: () {},
+            child: const Text('内容'),
+          ),
         ),
-      ));
+      );
 
       expect(find.byIcon(Icons.drag_handle), findsNothing);
     });
 
     testWidgets('shows expand/collapse arrow icon', (tester) async {
-      await tester.pumpWidget(_wrap(
-        DashboardCard(
-          title: '箭头测试',
-          icon: Icons.star,
-          isExpanded: true,
-          onToggle: () {},
-          child: const Text('内容'),
+      await tester.pumpWidget(
+        _wrap(
+          DashboardCard(
+            title: '箭头测试',
+            icon: Icons.star,
+            isExpanded: true,
+            onToggle: () {},
+            child: const Text('内容'),
+          ),
         ),
-      ));
+      );
 
-      expect(
-          find.byIcon(Icons.keyboard_arrow_down_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsOneWidget);
     });
 
-    testWidgets('arrow rotates when expanded (AnimatedRotation)', (tester) async {
-      await tester.pumpWidget(_wrap(
-        DashboardCard(
-          title: '旋转测试',
-          icon: Icons.star,
-          isExpanded: true,
-          onToggle: () {},
-          child: const Text('内容'),
+    testWidgets('arrow rotates when expanded (AnimatedRotation)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          DashboardCard(
+            title: '旋转测试',
+            icon: Icons.star,
+            isExpanded: true,
+            onToggle: () {},
+            child: const Text('内容'),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
-      final rotation =
-          tester.widget<AnimatedRotation>(find.byType(AnimatedRotation));
+      final rotation = tester.widget<AnimatedRotation>(
+        find.byType(AnimatedRotation),
+      );
       expect(rotation.turns, 0.5); // expanded = rotated 180°
     });
 
     testWidgets('arrow not rotated when collapsed', (tester) async {
-      await tester.pumpWidget(_wrap(
-        DashboardCard(
-          title: '旋转测试',
-          icon: Icons.star,
-          isExpanded: false,
-          onToggle: () {},
-          child: const Text('内容'),
+      await tester.pumpWidget(
+        _wrap(
+          DashboardCard(
+            title: '旋转测试',
+            icon: Icons.star,
+            isExpanded: false,
+            onToggle: () {},
+            child: const Text('内容'),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
-      final rotation =
-          tester.widget<AnimatedRotation>(find.byType(AnimatedRotation));
+      final rotation = tester.widget<AnimatedRotation>(
+        find.byType(AnimatedRotation),
+      );
       expect(rotation.turns, 0.0);
     });
 
-    testWidgets('accessibility label includes title and expand state',
-        (tester) async {
-      await tester.pumpWidget(_wrap(
-        DashboardCard(
-          title: '资产构成',
-          icon: Icons.donut_large_rounded,
-          isExpanded: true,
-          onToggle: () {},
-          child: const Text('内容'),
+    testWidgets('accessibility label includes title and expand state', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          DashboardCard(
+            title: '资产构成',
+            icon: Icons.donut_large_rounded,
+            isExpanded: true,
+            onToggle: () {},
+            child: const Text('内容'),
+          ),
         ),
-      ));
-
-      expect(
-        find.bySemanticsLabel('资产构成卡片，已展开'),
-        findsOneWidget,
       );
+
+      expect(find.bySemanticsLabel('资产构成卡片，已展开'), findsOneWidget);
     });
 
     testWidgets('accessibility label for collapsed state', (tester) async {
-      await tester.pumpWidget(_wrap(
-        DashboardCard(
-          title: '预算执行',
-          icon: Icons.track_changes_rounded,
-          isExpanded: false,
-          onToggle: () {},
-          child: const Text('内容'),
+      await tester.pumpWidget(
+        _wrap(
+          DashboardCard(
+            title: '预算执行',
+            icon: Icons.track_changes_rounded,
+            isExpanded: false,
+            onToggle: () {},
+            child: const Text('内容'),
+          ),
         ),
-      ));
-
-      expect(
-        find.bySemanticsLabel('预算执行卡片，已折叠'),
-        findsOneWidget,
       );
+
+      expect(find.bySemanticsLabel('预算执行卡片，已折叠'), findsOneWidget);
     });
 
     testWidgets('renders in dark theme', (tester) async {
-      await tester.pumpWidget(_wrap(
-        DashboardCard(
-          title: '暗色测试',
-          icon: Icons.star,
-          isExpanded: true,
-          onToggle: () {},
-          child: const Text('暗色内容'),
+      await tester.pumpWidget(
+        _wrap(
+          DashboardCard(
+            title: '暗色测试',
+            icon: Icons.star,
+            isExpanded: true,
+            onToggle: () {},
+            child: const Text('暗色内容'),
+          ),
+          theme: ThemeData.dark(useMaterial3: true),
         ),
-        theme: ThemeData.dark(useMaterial3: true),
-      ));
+      );
 
       expect(find.text('暗色测试'), findsOneWidget);
       expect(find.text('暗色内容'), findsOneWidget);
@@ -438,38 +495,39 @@ void main() {
     });
 
     testWidgets('Card uses CardLight color in light theme', (tester) async {
-      await tester.pumpWidget(_wrap(
-        DashboardCard(
-          title: '颜色测试',
-          icon: Icons.star,
-          isExpanded: true,
-          onToggle: () {},
-          child: const Text('内容'),
+      await tester.pumpWidget(
+        _wrap(
+          DashboardCard(
+            title: '颜色测试',
+            icon: Icons.star,
+            isExpanded: true,
+            onToggle: () {},
+            child: const Text('内容'),
+          ),
+          theme: ThemeData.light(useMaterial3: true),
         ),
-        theme: ThemeData.light(useMaterial3: true),
-      ));
+      );
 
       final card = tester.widget<Card>(find.byType(Card));
       expect(card.color, NeutralColorsLight.neutral0);
     });
 
     testWidgets('Card uses rounded corners with radius 16', (tester) async {
-      await tester.pumpWidget(_wrap(
-        DashboardCard(
-          title: '圆角测试',
-          icon: Icons.star,
-          isExpanded: true,
-          onToggle: () {},
-          child: const Text('内容'),
+      await tester.pumpWidget(
+        _wrap(
+          DashboardCard(
+            title: '圆角测试',
+            icon: Icons.star,
+            isExpanded: true,
+            onToggle: () {},
+            child: const Text('内容'),
+          ),
         ),
-      ));
+      );
 
       final card = tester.widget<Card>(find.byType(Card));
       final shape = card.shape as RoundedRectangleBorder;
-      expect(
-        shape.borderRadius,
-        BorderRadius.circular(16),
-      );
+      expect(shape.borderRadius, BorderRadius.circular(16));
     });
   });
 
@@ -499,13 +557,15 @@ void main() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
       });
-      await tester.pumpWidget(_wrapWithProviders(
-        const Scaffold(body: DashboardPage()),
-        overrides: _dashboardOverrides(
-          state: state ?? _makeFullDashboardState(),
-          prefs: prefs,
+      await tester.pumpWidget(
+        _wrapWithProviders(
+          const Scaffold(body: DashboardPage()),
+          overrides: _dashboardOverrides(
+            state: state ?? _makeFullDashboardState(),
+            prefs: prefs,
+          ),
         ),
-      ));
+      );
       // pump a few frames instead of pumpAndSettle to avoid
       // infinite animation timeouts (CircularProgressIndicator, charts)
       await tester.pump();
@@ -513,8 +573,9 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
     }
 
-    testWidgets('shows loading indicator when isLoading with no data',
-        (tester) async {
+    testWidgets('shows loading indicator when isLoading with no data', (
+      tester,
+    ) async {
       await pumpDashboard(tester, state: const DashboardState(isLoading: true));
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
@@ -530,7 +591,11 @@ void main() {
 
       // Scroll down to reveal more cards
       final listFinder = find.byType(Scrollable).first;
-      await tester.scrollUntilVisible(find.text('收支趋势'), 300, scrollable: listFinder);
+      await tester.scrollUntilVisible(
+        find.text('收支趋势'),
+        300,
+        scrollable: listFinder,
+      );
       expect(find.text('收支趋势'), findsOneWidget);
 
       // Verify ReorderableListView is used (all 7 sections are in the builder)
@@ -544,55 +609,72 @@ void main() {
     });
 
     testWidgets('net worth card displays formatted total', (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(
-            netWorth: _makeNetWorth(total: 50000000), // 50.00万
-          ));
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(
+          netWorth: _makeNetWorth(total: 50000000), // 50.00万
+        ),
+      );
 
       expect(find.textContaining('50.00万'), findsOneWidget);
     });
 
-    testWidgets('net worth card shows change from last month',
-        (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(
-            netWorth: _makeNetWorth(
-              changeFromLastMonth: 1000000,
-              changePercent: 2.0,
-            ),
-          ));
+    testWidgets('net worth card shows change from last month', (tester) async {
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(
+          netWorth: _makeNetWorth(
+            changeFromLastMonth: 1000000,
+            changePercent: 2.0,
+          ),
+        ),
+      );
 
       expect(find.textContaining('1.00万'), findsWidgets);
       expect(find.textContaining('+2.0%'), findsOneWidget);
       expect(find.text('较上月'), findsOneWidget);
     });
 
-    testWidgets('net worth card shows upward arrow for positive change',
-        (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(
-            netWorth: _makeNetWorth(changeFromLastMonth: 100000),
-          ));
+    testWidgets('net worth card shows upward arrow for positive change', (
+      tester,
+    ) async {
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(
+          netWorth: _makeNetWorth(changeFromLastMonth: 100000),
+        ),
+      );
 
       expect(find.byIcon(Icons.arrow_upward_rounded), findsOneWidget);
     });
 
-    testWidgets('net worth card shows downward arrow for negative change',
-        (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(
-            netWorth: _makeNetWorth(
-              changeFromLastMonth: -200000,
-              changePercent: -4.0,
-            ),
-          ));
+    testWidgets('net worth card shows downward arrow for negative change', (
+      tester,
+    ) async {
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(
+          netWorth: _makeNetWorth(
+            changeFromLastMonth: -200000,
+            changePercent: -4.0,
+          ),
+        ),
+      );
 
       expect(find.byIcon(Icons.arrow_downward_rounded), findsOneWidget);
     });
 
-    testWidgets('net worth card expand/collapse toggles detail rows',
-        (tester) async {
+    testWidgets('net worth card expand/collapse toggles detail rows', (
+      tester,
+    ) async {
       await pumpDashboard(tester);
 
       // Initially expanded: asset detail rows should be visible
       expect(find.text('💵'), findsOneWidget);
-      expect(find.text('📈'), findsWidgets); // may appear in investment card too
+      expect(
+        find.text('📈'),
+        findsWidgets,
+      ); // may appear in investment card too
       expect(find.text('🏠'), findsOneWidget);
       expect(find.text('🏦'), findsOneWidget);
 
@@ -604,8 +686,9 @@ void main() {
       // The detail section is hidden
     });
 
-    testWidgets('dashboard card expand/collapse toggles via onToggle',
-        (tester) async {
+    testWidgets('dashboard card expand/collapse toggles via onToggle', (
+      tester,
+    ) async {
       await pumpDashboard(tester);
 
       // Tap on "资产构成" header to collapse it
@@ -614,31 +697,25 @@ void main() {
 
       // After toggle, check that the card is now collapsed
       // by verifying the Semantics label
-      expect(
-        find.bySemanticsLabel('资产构成卡片，已折叠'),
-        findsOneWidget,
-      );
+      expect(find.bySemanticsLabel('资产构成卡片，已折叠'), findsOneWidget);
 
       // Tap again to expand
       await tester.tap(find.text('资产构成'));
       await tester.pumpAndSettle();
 
-      expect(
-        find.bySemanticsLabel('资产构成卡片，已展开'),
-        findsOneWidget,
-      );
+      expect(find.bySemanticsLabel('资产构成卡片，已展开'), findsOneWidget);
     });
 
-    testWidgets('asset pie chart section uses RepaintBoundary',
-        (tester) async {
+    testWidgets('asset pie chart section uses RepaintBoundary', (tester) async {
       await pumpDashboard(tester);
 
       // RepaintBoundary wraps the pie charts
       expect(find.byType(RepaintBoundary), findsWidgets);
     });
 
-    testWidgets('shows PieChart widgets for asset and category sections',
-        (tester) async {
+    testWidgets('shows PieChart widgets for asset and category sections', (
+      tester,
+    ) async {
       await pumpDashboard(tester);
 
       // Two pie charts: asset composition + category breakdown
@@ -653,7 +730,10 @@ void main() {
     });
 
     testWidgets('period toggle shows month/year segments', (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(trendPeriod: 'monthly'));
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(trendPeriod: 'monthly'),
+      );
 
       expect(find.text('月'), findsNWidgets(3));
       expect(find.text('年'), findsNWidgets(3));
@@ -666,67 +746,88 @@ void main() {
     });
 
     testWidgets('budget card shows execution rate', (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(
-            budgetSummary: _makeBudget(
-              totalBudget: 1000000,
-              totalSpent: 600000,
-              executionRate: 0.6,
-            ),
-          ));
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(
+          budgetSummary: _makeBudget(
+            totalBudget: 1000000,
+            totalSpent: 600000,
+            executionRate: 0.6,
+          ),
+        ),
+      );
 
       expect(find.text('60%'), findsOneWidget);
       expect(find.textContaining('已用'), findsOneWidget);
       expect(find.textContaining('预算'), findsWidgets); // title + detail
     });
 
-    testWidgets('budget card shows "本月暂未设置预算" when budget is 0',
-        (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(
-            budgetSummary: _makeBudget(
-              totalBudget: 0,
-              totalSpent: 0,
-              executionRate: 0.0,
-            ),
-          ));
+    testWidgets('budget card shows "本月暂未设置预算" when budget is 0', (
+      tester,
+    ) async {
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(
+          budgetSummary: _makeBudget(
+            totalBudget: 0,
+            totalSpent: 0,
+            executionRate: 0.0,
+          ),
+        ),
+      );
 
       expect(find.text('本月暂未设置预算'), findsOneWidget);
     });
 
-    testWidgets('shows "暂无资产数据" when composition is empty',
-        (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(
-            netWorth: _makeNetWorth(composition: []),
-          ));
+    testWidgets('shows "暂无资产数据" when composition is empty', (tester) async {
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(
+          netWorth: _makeNetWorth(composition: []),
+        ),
+      );
 
       expect(find.text('暂无资产数据'), findsOneWidget);
     });
 
-    testWidgets('shows "暂无趋势数据" when trend points are empty',
-        (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(incomeExpenseTrend: []));
+    testWidgets('shows "暂无趋势数据" when trend points are empty', (tester) async {
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(incomeExpenseTrend: []),
+      );
 
       expect(find.text('暂无趋势数据'), findsOneWidget);
     });
 
-    testWidgets('shows "当月暂无支出" when category breakdown is empty',
-        (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(categoryBreakdown: []));
+    testWidgets('shows "当月暂无支出" when category breakdown is empty', (
+      tester,
+    ) async {
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(categoryBreakdown: []),
+      );
 
       expect(find.text('当月暂无支出'), findsOneWidget);
     });
 
-    testWidgets('shows "暂无净资产趋势" when net worth trend is empty',
-        (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(netWorthTrend: []));
+    testWidgets('shows "暂无净资产趋势" when net worth trend is empty', (
+      tester,
+    ) async {
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(netWorthTrend: []),
+      );
 
       expect(find.text('暂无净资产趋势'), findsOneWidget);
     });
 
-    testWidgets('shows "暂无投资数据" when investmentValue is 0',
-        (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(
-            netWorth: _makeNetWorth(investmentValue: 0),
-          ));
+    testWidgets('shows "暂无投资数据" when investmentValue is 0', (tester) async {
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(
+          netWorth: _makeNetWorth(investmentValue: 0),
+        ),
+      );
       // Investment section may be below the fold; scroll to see it
       await tester.dragUntilVisible(
         find.text('暂无投资数据'),
@@ -737,9 +838,12 @@ void main() {
     });
 
     testWidgets('investment card shows portfolio value', (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(
-            netWorth: _makeNetWorth(investmentValue: 15000000),
-          ));
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(
+          netWorth: _makeNetWorth(investmentValue: 15000000),
+        ),
+      );
       // Scroll down to reveal investment card
       await tester.dragUntilVisible(
         find.text('投资组合市值'),
@@ -756,8 +860,7 @@ void main() {
       // the last one (investmentTrend) is off-screen.
       // TODO: scroll to bottom and verify all 7, or check the
       // ReorderableListView children count directly.
-      expect(
-          find.byIcon(Icons.drag_handle_rounded), findsAtLeast(6));
+      expect(find.byIcon(Icons.drag_handle_rounded), findsAtLeast(6));
     });
 
     testWidgets('has RefreshIndicator', (tester) async {
@@ -774,18 +877,18 @@ void main() {
     });
 
     testWidgets('net worth card has semantic label', (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(
-            netWorth: _makeNetWorth(
-              total: 50000000,
-              changeFromLastMonth: 1000000,
-            ),
-          ));
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(
+          netWorth: _makeNetWorth(
+            total: 50000000,
+            changeFromLastMonth: 1000000,
+          ),
+        ),
+      );
 
       // Semantic label contains 净资产
-      expect(
-        find.bySemanticsLabel(RegExp(r'净资产.*元.*较上月')),
-        findsOneWidget,
-      );
+      expect(find.bySemanticsLabel(RegExp(r'净资产.*元.*较上月')), findsOneWidget);
     });
 
     testWidgets('asset pie chart has semantic label', (tester) async {
@@ -806,8 +909,9 @@ void main() {
       expect(find.byType(LineChart), findsWidgets);
     });
 
-    testWidgets('asset composition legend shows category labels',
-        (tester) async {
+    testWidgets('asset composition legend shows category labels', (
+      tester,
+    ) async {
       await pumpDashboard(tester);
 
       expect(find.text('现金银行'), findsWidgets); // in pie legend + detail
@@ -816,8 +920,9 @@ void main() {
       expect(find.text('贷款'), findsWidgets);
     });
 
-    testWidgets('category breakdown legend shows category names',
-        (tester) async {
+    testWidgets('category breakdown legend shows category names', (
+      tester,
+    ) async {
       await pumpDashboard(tester);
 
       // Category labels with icons
@@ -828,9 +933,12 @@ void main() {
     });
 
     testWidgets('budget card shows LinearProgressIndicator', (tester) async {
-      await pumpDashboard(tester, state: _makeFullDashboardState(
-            budgetSummary: _makeBudget(executionRate: 0.7),
-          ));
+      await pumpDashboard(
+        tester,
+        state: _makeFullDashboardState(
+          budgetSummary: _makeBudget(executionRate: 0.7),
+        ),
+      );
 
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
     });
@@ -849,29 +957,27 @@ void main() {
     });
 
     List<Override> _reportOverrides() => [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          currentUserIdProvider.overrideWith((ref) => 'test_user'),
-          databaseProvider.overrideWithValue(_FakeDatabase()),
-          transactionProvider.overrideWith((ref) {
-            return _FakeTransactionNotifier(_makeTransactionState());
-          }),
-        ];
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      currentUserIdProvider.overrideWith((ref) => 'test_user'),
+      databaseProvider.overrideWithValue(_FakeDatabase()),
+      transactionProvider.overrideWith((ref) {
+        return _FakeTransactionNotifier(_makeTransactionState());
+      }),
+    ];
 
     testWidgets('renders AppBar with title "交易报表"', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ReportPage(),
-        overrides: _reportOverrides(),
-      ));
+      await tester.pumpWidget(
+        _wrapWithProviders(const ReportPage(), overrides: _reportOverrides()),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('交易报表'), findsOneWidget);
     });
 
     testWidgets('shows date preset chips', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ReportPage(),
-        overrides: _reportOverrides(),
-      ));
+      await tester.pumpWidget(
+        _wrapWithProviders(const ReportPage(), overrides: _reportOverrides()),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('本月'), findsOneWidget);
@@ -880,10 +986,9 @@ void main() {
     });
 
     testWidgets('shows 3-tab layout (概览/分类/排行)', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ReportPage(),
-        overrides: _reportOverrides(),
-      ));
+      await tester.pumpWidget(
+        _wrapWithProviders(const ReportPage(), overrides: _reportOverrides()),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('概览'), findsOneWidget);
@@ -892,22 +997,19 @@ void main() {
     });
 
     testWidgets('shows summary with 支出/收入/结余', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ReportPage(),
-        overrides: _reportOverrides(),
-      ));
+      await tester.pumpWidget(
+        _wrapWithProviders(const ReportPage(), overrides: _reportOverrides()),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('支出'), findsWidgets);
       expect(find.text('收入'), findsWidgets);
     });
 
-    testWidgets('shows summary card when no transactions',
-        (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ReportPage(),
-        overrides: _reportOverrides(),
-      ));
+    testWidgets('shows summary card when no transactions', (tester) async {
+      await tester.pumpWidget(
+        _wrapWithProviders(const ReportPage(), overrides: _reportOverrides()),
+      );
       await tester.pumpAndSettle();
 
       // Summary card still renders with zero values
@@ -915,10 +1017,9 @@ void main() {
     });
 
     testWidgets('shows 自定义 date preset chip', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const ReportPage(),
-        overrides: _reportOverrides(),
-      ));
+      await tester.pumpWidget(
+        _wrapWithProviders(const ReportPage(), overrides: _reportOverrides()),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('自定义'), findsOneWidget);
@@ -940,24 +1041,28 @@ void main() {
     });
 
     List<Override> _importOverrides() => [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-        ];
+      sharedPreferencesProvider.overrideWithValue(prefs),
+    ];
 
     testWidgets('renders AppBar with title "CSV 导入"', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const CsvImportPage(),
-        overrides: _importOverrides(),
-      ));
+      await tester.pumpWidget(
+        _wrapWithProviders(
+          const CsvImportPage(),
+          overrides: _importOverrides(),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('CSV 导入'), findsOneWidget);
     });
 
     testWidgets('shows Stepper with 4 steps', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const CsvImportPage(),
-        overrides: _importOverrides(),
-      ));
+      await tester.pumpWidget(
+        _wrapWithProviders(
+          const CsvImportPage(),
+          overrides: _importOverrides(),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(Stepper), findsOneWidget);
@@ -970,22 +1075,27 @@ void main() {
     });
 
     testWidgets('step 1: shows "选择 CSV 文件" button', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const CsvImportPage(),
-        overrides: _importOverrides(),
-      ));
+      await tester.pumpWidget(
+        _wrapWithProviders(
+          const CsvImportPage(),
+          overrides: _importOverrides(),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('选择 CSV 文件'), findsOneWidget);
       expect(find.byIcon(Icons.upload_file_rounded), findsOneWidget);
     });
 
-    testWidgets('step 1: "下一步" button is disabled when no file selected',
-        (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const CsvImportPage(),
-        overrides: _importOverrides(),
-      ));
+    testWidgets('step 1: "下一步" button is disabled when no file selected', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrapWithProviders(
+          const CsvImportPage(),
+          overrides: _importOverrides(),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Find the "下一步" button — it should be disabled
@@ -996,12 +1106,15 @@ void main() {
       expect(filledButton.onPressed, isNull);
     });
 
-    testWidgets('step 2: shows preview instructions when no data parsed',
-        (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const CsvImportPage(),
-        overrides: _importOverrides(),
-      ));
+    testWidgets('step 2: shows preview instructions when no data parsed', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrapWithProviders(
+          const CsvImportPage(),
+          overrides: _importOverrides(),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Step 2 content shows placeholder message
@@ -1009,12 +1122,13 @@ void main() {
       expect(find.text('请先选择并解析 CSV 文件'), findsOneWidget);
     });
 
-    testWidgets('step 4: shows "等待导入..." before import starts',
-        (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const CsvImportPage(),
-        overrides: _importOverrides(),
-      ));
+    testWidgets('step 4: shows "等待导入..." before import starts', (tester) async {
+      await tester.pumpWidget(
+        _wrapWithProviders(
+          const CsvImportPage(),
+          overrides: _importOverrides(),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Step 4 content is present but not active
@@ -1022,20 +1136,24 @@ void main() {
     });
 
     testWidgets('has upload file icon button', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const CsvImportPage(),
-        overrides: _importOverrides(),
-      ));
+      await tester.pumpWidget(
+        _wrapWithProviders(
+          const CsvImportPage(),
+          overrides: _importOverrides(),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(OutlinedButton), findsOneWidget);
     });
 
     testWidgets('starts at step 0', (tester) async {
-      await tester.pumpWidget(_wrapWithProviders(
-        const CsvImportPage(),
-        overrides: _importOverrides(),
-      ));
+      await tester.pumpWidget(
+        _wrapWithProviders(
+          const CsvImportPage(),
+          overrides: _importOverrides(),
+        ),
+      );
       await tester.pumpAndSettle();
 
       final stepper = tester.widget<Stepper>(find.byType(Stepper));
@@ -1055,17 +1173,26 @@ void main() {
     test('contains all expected sections', () {
       expect(DashboardSection.values, contains(DashboardSection.netWorth));
       expect(
-          DashboardSection.values, contains(DashboardSection.assetComposition));
-      expect(DashboardSection.values,
-          contains(DashboardSection.incomeExpenseTrend));
-      expect(DashboardSection.values,
-          contains(DashboardSection.categoryBreakdown));
+        DashboardSection.values,
+        contains(DashboardSection.assetComposition),
+      );
       expect(
-          DashboardSection.values, contains(DashboardSection.budgetExecution));
+        DashboardSection.values,
+        contains(DashboardSection.incomeExpenseTrend),
+      );
       expect(
-          DashboardSection.values, contains(DashboardSection.netWorthTrend));
+        DashboardSection.values,
+        contains(DashboardSection.categoryBreakdown),
+      );
       expect(
-          DashboardSection.values, contains(DashboardSection.investmentTrend));
+        DashboardSection.values,
+        contains(DashboardSection.budgetExecution),
+      );
+      expect(DashboardSection.values, contains(DashboardSection.netWorthTrend));
+      expect(
+        DashboardSection.values,
+        contains(DashboardSection.investmentTrend),
+      );
     });
   });
 
@@ -1113,7 +1240,6 @@ void main() {
       expect(nw.composition, isEmpty);
     });
   });
-
 }
 
 class _FakeTransactionNotifier extends StateNotifier<TransactionState>

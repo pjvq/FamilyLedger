@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/familyledger/server/internal/dashboard"
 	"github.com/familyledger/server/internal/export"
 	syncpkg "github.com/familyledger/server/internal/sync"
@@ -21,7 +23,6 @@ import (
 	pbDash "github.com/familyledger/server/proto/dashboard"
 	pbExport "github.com/familyledger/server/proto/export"
 	pb "github.com/familyledger/server/proto/sync"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -104,12 +105,12 @@ func TestBUG002_PullChanges_Family_Data(t *testing.T) {
 	ownerCtx := context.WithValue(ctx, middleware.UserIDKey, owner.String())
 	_, err := syncSvc.PushOperations(ownerCtx, &pb.PushOperationsRequest{
 		Operations: []*pb.SyncOperation{{
-			Id:              uuid.New().String(),
-			EntityType:      "transaction",
-			EntityId:        uuid.New().String(),
-			OpType: pb.OperationType_OPERATION_TYPE_CREATE,
-			Payload: `{"amount":5000,"type":"expense","account_id":"` + ownerAcct.String() + `","category_id":"` + catID.String() + `","family_id":"` + familyID.String() + `"}`,
-			Timestamp: timestamppb.Now(),
+			Id:         uuid.New().String(),
+			EntityType: "transaction",
+			EntityId:   uuid.New().String(),
+			OpType:     pb.OperationType_OPERATION_TYPE_CREATE,
+			Payload:    `{"amount":5000,"type":"expense","account_id":"` + ownerAcct.String() + `","category_id":"` + catID.String() + `","family_id":"` + familyID.String() + `"}`,
+			Timestamp:  timestamppb.Now(),
 		}},
 	})
 	require.NoError(t, err)
@@ -220,12 +221,12 @@ func TestBUG004_Transaction_Edit_Permission(t *testing.T) {
 	memberCtx := context.WithValue(ctx, middleware.UserIDKey, member.String())
 	_, err = syncSvc.PushOperations(memberCtx, &pb.PushOperationsRequest{
 		Operations: []*pb.SyncOperation{{
-			Id:              uuid.New().String(),
-			EntityType:      "transaction",
-			EntityId:        txnID.String(),
-			OpType: pb.OperationType_OPERATION_TYPE_UPDATE,
-			Payload: `{"note":"hacked by member"}`,
-			Timestamp: timestamppb.Now(),
+			Id:         uuid.New().String(),
+			EntityType: "transaction",
+			EntityId:   txnID.String(),
+			OpType:     pb.OperationType_OPERATION_TYPE_UPDATE,
+			Payload:    `{"note":"hacked by member"}`,
+			Timestamp:  timestamppb.Now(),
 		}},
 	})
 	// Push should either reject or the operation should fail
@@ -241,12 +242,12 @@ func TestBUG004_Transaction_Edit_Permission(t *testing.T) {
 	outsiderCtx := context.WithValue(ctx, middleware.UserIDKey, outsider.String())
 	_, err = syncSvc.PushOperations(outsiderCtx, &pb.PushOperationsRequest{
 		Operations: []*pb.SyncOperation{{
-			Id:              uuid.New().String(),
-			EntityType:      "transaction",
-			EntityId:        txnID.String(),
-			OpType: pb.OperationType_OPERATION_TYPE_UPDATE,
-			Payload: `{"note":"hacked by outsider"}`,
-			Timestamp: timestamppb.Now(),
+			Id:         uuid.New().String(),
+			EntityType: "transaction",
+			EntityId:   txnID.String(),
+			OpType:     pb.OperationType_OPERATION_TYPE_UPDATE,
+			Payload:    `{"note":"hacked by outsider"}`,
+			Timestamp:  timestamppb.Now(),
 		}},
 	})
 	if err == nil {
@@ -260,12 +261,12 @@ func TestBUG004_Transaction_Edit_Permission(t *testing.T) {
 	ownerCtx := context.WithValue(ctx, middleware.UserIDKey, owner.String())
 	_, err = syncSvc.PushOperations(ownerCtx, &pb.PushOperationsRequest{
 		Operations: []*pb.SyncOperation{{
-			Id:              uuid.New().String(),
-			EntityType:      "transaction",
-			EntityId:        txnID.String(),
-			OpType: pb.OperationType_OPERATION_TYPE_UPDATE,
-			Payload: `{"note":"updated by owner"}`,
-			Timestamp: timestamppb.Now(),
+			Id:         uuid.New().String(),
+			EntityType: "transaction",
+			EntityId:   txnID.String(),
+			OpType:     pb.OperationType_OPERATION_TYPE_UPDATE,
+			Payload:    `{"note":"updated by owner"}`,
+			Timestamp:  timestamppb.Now(),
 		}},
 	})
 	require.NoError(t, err)

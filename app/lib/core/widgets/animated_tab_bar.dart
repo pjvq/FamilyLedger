@@ -51,14 +51,15 @@ class AnimatedTabBar extends StatelessWidget {
                             duration: const Duration(milliseconds: 200),
                             style: (textStyle ?? theme.textTheme.bodyMedium!)
                                 .copyWith(
-                              fontWeight: isSelected
-                                  ? FontWeight.w700
-                                  : FontWeight.w400,
-                              color: isSelected
-                                  ? activeColor
-                                  : theme.colorScheme.onSurface
-                                      .withValues(alpha: 0.5),
-                            ),
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w400,
+                                  color: isSelected
+                                      ? activeColor
+                                      : theme.colorScheme.onSurface.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                ),
                             child: Text(tabs[index]),
                           ),
                         ),
@@ -74,8 +75,9 @@ class AnimatedTabBar extends StatelessWidget {
                 children: [
                   Positioned.fill(
                     child: Container(
-                      color: theme.colorScheme.onSurface
-                          .withValues(alpha: 0.06),
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.06,
+                      ),
                     ),
                   ),
                   AnimatedPositioned(
@@ -88,8 +90,9 @@ class AnimatedTabBar extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         color: activeColor,
-                        borderRadius:
-                            BorderRadius.circular(indicatorHeight / 2),
+                        borderRadius: BorderRadius.circular(
+                          indicatorHeight / 2,
+                        ),
                       ),
                     ),
                   ),

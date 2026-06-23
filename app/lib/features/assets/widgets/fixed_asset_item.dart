@@ -66,8 +66,9 @@ class FixedAssetItem extends StatelessWidget {
                         Text(
                           typeInfo.label,
                           style: TypographyTokens.caption(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
                       ],

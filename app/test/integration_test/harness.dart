@@ -36,23 +36,25 @@ class HarnessConfig {
     String? wsHost,
     int? wsPort,
     String? jwtSecret,
-  })  : // Use 127.0.0.1 instead of localhost to avoid macOS IPv6 (::1) resolution
-        // when Go server only binds IPv4. See BUG-007.
-        grpcHost = grpcHost ??
-            Platform.environment['GRPC_HOST'] ??
-            '127.0.0.1',
-        grpcPort = grpcPort ??
-            int.tryParse(Platform.environment['GRPC_PORT'] ?? '') ??
-            50051,
-        wsHost = wsHost ??
-            Platform.environment['WS_HOST'] ??
-            '127.0.0.1', // Same as grpcHost — avoid IPv6 resolution. See BUG-007.
-        wsPort = wsPort ??
-            int.tryParse(Platform.environment['WS_PORT'] ?? '') ??
-            8080,
-        jwtSecret = jwtSecret ??
-            Platform.environment['JWT_SECRET'] ??
-            'change-me-in-production-at-least-32-chars';
+  }) : // Use 127.0.0.1 instead of localhost to avoid macOS IPv6 (::1) resolution
+       // when Go server only binds IPv4. See BUG-007.
+       grpcHost = grpcHost ?? Platform.environment['GRPC_HOST'] ?? '127.0.0.1',
+       grpcPort =
+           grpcPort ??
+           int.tryParse(Platform.environment['GRPC_PORT'] ?? '') ??
+           50051,
+       wsHost =
+           wsHost ??
+           Platform.environment['WS_HOST'] ??
+           '127.0.0.1', // Same as grpcHost — avoid IPv6 resolution. See BUG-007.
+       wsPort =
+           wsPort ??
+           int.tryParse(Platform.environment['WS_PORT'] ?? '') ??
+           8080,
+       jwtSecret =
+           jwtSecret ??
+           Platform.environment['JWT_SECRET'] ??
+           'change-me-in-production-at-least-32-chars';
 }
 
 /// The main test harness — manages gRPC channel, auth tokens, and cleanup.
@@ -63,17 +65,14 @@ class E2EHarness {
   String? _accessToken;
   String? _refreshToken;
 
-  E2EHarness({HarnessConfig? config})
-      : config = config ?? HarnessConfig();
+  E2EHarness({HarnessConfig? config}) : config = config ?? HarnessConfig();
 
   /// Initialize the gRPC channel. Call in setUpAll.
   void setUp() {
     _channel = ClientChannel(
       config.grpcHost,
       port: config.grpcPort,
-      options: const ChannelOptions(
-        credentials: ChannelCredentials.insecure(),
-      ),
+      options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
     );
   }
 
@@ -90,9 +89,7 @@ class E2EHarness {
     if (_accessToken == null) {
       throw StateError('Not authenticated. Call register() or login() first.');
     }
-    return CallOptions(
-      metadata: {'authorization': 'Bearer $_accessToken'},
-    );
+    return CallOptions(metadata: {'authorization': 'Bearer $_accessToken'});
   }
 
   /// Store tokens after auth operations.

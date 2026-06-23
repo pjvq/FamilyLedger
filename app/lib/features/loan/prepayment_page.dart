@@ -44,9 +44,7 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
     final simulation = loanState.simulation;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('提前还款'),
-      ),
+      appBar: AppBar(title: const Text('提前还款')),
       body: Column(
         children: [
           Expanded(
@@ -57,10 +55,13 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
                 _SectionTitle(title: '提前还款金额（元）', theme: theme),
                 const SizedBox(height: 8),
                 Semantics(
-                  label: '提前还款金额输入框，当前${_amountText.isEmpty ? "未输入" : "$_amountText元"}',
+                  label:
+                      '提前还款金额输入框，当前${_amountText.isEmpty ? "未输入" : "$_amountText元"}',
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 16),
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
                     decoration: BoxDecoration(
                       color: isDark
                           ? NeutralColorsDark.neutral3
@@ -87,11 +88,12 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
                               fontFeatures: const [
-                                FontFeature.tabularFigures()
+                                FontFeature.tabularFigures(),
                               ],
                               color: _amountText.isEmpty
-                                  ? theme.colorScheme.onSurface
-                                      .withValues(alpha: 0.3)
+                                  ? theme.colorScheme.onSurface.withValues(
+                                      alpha: 0.3,
+                                    )
                                   : theme.colorScheme.onSurface,
                             ),
                           ),
@@ -105,8 +107,7 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
                   Text(
                     '剩余本金 ¥${_fmtCents(loan.remainingPrincipal)}',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface
-                          .withValues(alpha: 0.4),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                 ],
@@ -116,7 +117,8 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
                 _SectionTitle(title: '还款策略', theme: theme),
                 const SizedBox(height: 8),
                 Semantics(
-                  label: '还款策略选择，当前选择${_strategy == "reduce_months" ? "缩短期限" : "减少月供"}',
+                  label:
+                      '还款策略选择，当前选择${_strategy == "reduce_months" ? "缩短期限" : "减少月供"}',
                   child: SegmentedButton<String>(
                     segments: const [
                       ButtonSegment(
@@ -174,15 +176,18 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
                           strategy: _strategy,
                           showNewSchedule: _showNewSchedule,
                           onToggleSchedule: () => setState(
-                              () => _showNewSchedule = !_showNewSchedule),
+                            () => _showNewSchedule = !_showNewSchedule,
+                          ),
                         )
                       : const SizedBox.shrink(key: ValueKey('empty')),
                 ),
                 // Confirm execution button
-                if (simulation != null) ...[  
+                if (simulation != null) ...[
                   const SizedBox(height: 16),
                   FilledButton.icon(
-                    onPressed: loanState.isLoading ? null : () => _confirmExecute(context),
+                    onPressed: loanState.isLoading
+                        ? null
+                        : () => _confirmExecute(context),
                     icon: const Icon(Icons.check_circle_rounded),
                     label: const Text('确认提前还款'),
                     style: FilledButton.styleFrom(
@@ -214,8 +219,10 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
             onDelete: () {
               setState(() {
                 if (_amountText.isNotEmpty) {
-                  _amountText =
-                      _amountText.substring(0, _amountText.length - 1);
+                  _amountText = _amountText.substring(
+                    0,
+                    _amountText.length - 1,
+                  );
                 }
               });
             },
@@ -236,7 +243,9 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
       _showNewSchedule = false;
     });
 
-    ref.read(loanProvider.notifier).simulatePrepayment(
+    ref
+        .read(loanProvider.notifier)
+        .simulatePrepayment(
           loanId: widget.loanId,
           amount: (amount * 100).round(),
           strategy: _strategy,
@@ -270,7 +279,9 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
 
     if (confirmed != true || !mounted) return;
 
-    final success = await ref.read(loanProvider.notifier).executePrepayment(
+    final success = await ref
+        .read(loanProvider.notifier)
+        .executePrepayment(
           loanId: widget.loanId,
           amount: (amount * 100).round(),
           strategy: _strategy,
@@ -280,7 +291,10 @@ class _PrepaymentPageState extends ConsumerState<PrepaymentPage> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('提前还款成功'), behavior: SnackBarBehavior.fixed),
+        const SnackBar(
+          content: Text('提前还款成功'),
+          behavior: SnackBarBehavior.fixed,
+        ),
       );
       context.pop(); // 返回贷款详情页
     } else {
@@ -333,8 +347,7 @@ class _SimulationResults extends StatelessWidget {
             onTap: onToggleSchedule,
             borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  vertical: 8, horizontal: 4),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
               child: Row(
                 children: [
                   Icon(
@@ -394,9 +407,10 @@ class _ComparisonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     return Semantics(
-      label: '模拟结果：节省利息${_fmtCents(simulation.interestSaved)}元'
+      label:
+          '模拟结果：节省利息${_fmtCents(simulation.interestSaved)}元'
           '${strategy == "reduce_months" ? "，缩短${simulation.monthsReduced}个月" : "，新月供${_fmtCents(simulation.newMonthlyPayment)}元"}',
       child: Card(
         child: Padding(
@@ -408,8 +422,7 @@ class _ComparisonCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: colors.income
-                      .withValues(alpha: 0.1),
+                  color: colors.income.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Column(
@@ -449,7 +462,10 @@ class _ComparisonCard extends StatelessWidget {
                     child: _ComparisonBox(
                       title: '原方案',
                       items: [
-                        ('总利息', '¥${_fmtCents(simulation.totalInterestBefore)}'),
+                        (
+                          '总利息',
+                          '¥${_fmtCents(simulation.totalInterestBefore)}',
+                        ),
                       ],
                       isDark: isDark,
                       theme: theme,
@@ -465,7 +481,10 @@ class _ComparisonCard extends StatelessWidget {
                         if (strategy == 'reduce_months')
                           ('缩短', '${simulation.monthsReduced} 个月')
                         else
-                          ('新月供', '¥${_fmtCents(simulation.newMonthlyPayment)}'),
+                          (
+                            '新月供',
+                            '¥${_fmtCents(simulation.newMonthlyPayment)}',
+                          ),
                       ],
                       isDark: isDark,
                       theme: theme,
@@ -504,11 +523,11 @@ class _ComparisonBox extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark
             ? (isOriginal
-                ? NeutralColorsDark.neutral2
-                : ColorTokens.primaryLight.withValues(alpha: 0.08))
+                  ? NeutralColorsDark.neutral2
+                  : ColorTokens.primaryLight.withValues(alpha: 0.08))
             : (isOriginal
-                ? NeutralColorsLight.neutral2
-                : ColorTokens.primary.withValues(alpha: 0.06)),
+                  ? NeutralColorsLight.neutral2
+                  : ColorTokens.primary.withValues(alpha: 0.06)),
         borderRadius: BorderRadius.circular(12),
         border: isOriginal
             ? null
@@ -530,35 +549,35 @@ class _ComparisonBox extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          ...items.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.$1,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.4),
-                      ),
+          ...items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.$1,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
-                    Text(
-                      item.$2,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        decoration: isOriginal
-                            ? TextDecoration.lineThrough
-                            : null,
-                        color: isOriginal
-                            ? theme.colorScheme.onSurface
-                                .withValues(alpha: 0.4)
-                            : null,
-                      ),
+                  ),
+                  Text(
+                    item.$2,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      decoration: isOriginal
+                          ? TextDecoration.lineThrough
+                          : null,
+                      color: isOriginal
+                          ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
+                          : null,
                     ),
-                  ],
-                ),
-              )),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -583,7 +602,8 @@ class _NewScheduleList extends StatelessWidget {
     return Column(
       children: schedule.map((item) {
         return Semantics(
-          label: '第${item.monthNumber}期，${DateFormat("yyyy/MM").format(item.dueDate)}，'
+          label:
+              '第${item.monthNumber}期，${DateFormat("yyyy/MM").format(item.dueDate)}，'
               '月供${_fmtCents(item.payment)}元',
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -610,8 +630,7 @@ class _NewScheduleList extends StatelessWidget {
                   child: Text(
                     DateFormat('yyyy/MM').format(item.dueDate),
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurface
-                          .withValues(alpha: 0.4),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                 ),

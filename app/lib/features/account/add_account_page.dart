@@ -21,6 +21,7 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
   String _selectedType = 'cash';
   String _amountStr = '0';
   bool _isSaving = false;
+
   /// 0 = 设为, 1 = 增加, 2 = 减少
   int _balanceMode = 0;
 
@@ -52,146 +53,163 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditMode ? '编辑账户' : '添加账户'),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Account name input
-                  Text(
-                    '账户名称',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      hintText: '例如：招商银行储蓄卡',
-                      prefixIcon: Icon(Icons.edit_rounded),
-                    ),
-                    textInputAction: TextInputAction.done,
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Account type selector
-                  Text(
-                    '账户类型',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 90,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: AccountTypeHelper.allTypes.map((type) {
-                        final isSelected = type == _selectedType;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: _TypeChip(
-                            type: type,
-                            isSelected: isSelected,
-                            isDark: isDark,
-                            onTap: () => setState(() => _selectedType = type),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Balance section
-                  Text(
-                    _isEditMode ? '修改余额' : '初始余额',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (_isEditMode) ...[
-                    const SizedBox(height: 4),
+        appBar: AppBar(title: Text(_isEditMode ? '编辑账户' : '添加账户')),
+        body: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Account name input
                     Text(
-                      '当前余额：¥ ${_fmtCents(widget.existingAccount!.balance)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      '账户名称',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        hintText: '例如：招商银行储蓄卡',
+                        prefixIcon: Icon(Icons.edit_rounded),
+                      ),
+                      textInputAction: TextInputAction.done,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Account type selector
+                    Text(
+                      '账户类型',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    SegmentedButton<int>(
-                      segments: const [
-                        ButtonSegment(value: 0, label: Text('设为')),
-                        ButtonSegment(value: 1, label: Text('增加')),
-                        ButtonSegment(value: 2, label: Text('减少')),
-                      ],
-                      selected: {_balanceMode},
-                      onSelectionChanged: (s) => setState(() {
-                        _balanceMode = s.first;
-                        _amountStr = '0';
-                      }),
-                      style: SegmentedButton.styleFrom(
-                        textStyle: const TextStyle(fontSize: 13),
+                    SizedBox(
+                      height: 90,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: AccountTypeHelper.allTypes.map((type) {
+                          final isSelected = type == _selectedType;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: _TypeChip(
+                              type: type,
+                              isSelected: isSelected,
+                              isDark: isDark,
+                              onTap: () => setState(() => _selectedType = type),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Balance section
+                    Text(
+                      _isEditMode ? '修改余额' : '初始余额',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (_isEditMode) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        '当前余额：¥ ${_fmtCents(widget.existingAccount!.balance)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SegmentedButton<int>(
+                        segments: const [
+                          ButtonSegment(value: 0, label: Text('设为')),
+                          ButtonSegment(value: 1, label: Text('增加')),
+                          ButtonSegment(value: 2, label: Text('减少')),
+                        ],
+                        selected: {_balanceMode},
+                        onSelectionChanged: (s) => setState(() {
+                          _balanceMode = s.first;
+                          _amountStr = '0';
+                        }),
+                        style: SegmentedButton.styleFrom(
+                          textStyle: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 24,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? NeutralColorsDark.neutral2
+                            : NeutralColorsLight.neutral1,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (_isEditMode && _balanceMode == 1)
+                            Text(
+                              '+',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w300,
+                                color: context.semanticColors.income,
+                              ),
+                            ),
+                          if (_isEditMode && _balanceMode == 2)
+                            Text(
+                              '-',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w300,
+                                color: context.semanticColors.expense,
+                              ),
+                            ),
+                          Text(
+                            '¥',
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.4,
+                              ),
+                              fontWeight: FontWeight.w300,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _amountStr,
+                            style: theme.textTheme.headlineLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 36,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 24),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? NeutralColorsDark.neutral2
-                          : NeutralColorsLight.neutral1,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (_isEditMode && _balanceMode == 1)
-                          Text('+', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: context.semanticColors.income)),
-                        if (_isEditMode && _balanceMode == 2)
-                          Text('-', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w300, color: context.semanticColors.expense)),
-                        Text(
-                          '¥',
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.4),
-                            fontWeight: FontWeight.w300,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _amountStr,
-                          style: theme.textTheme.headlineLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 36,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-          // Number pad
-          NumberPad(
-            onKey: _onKey,
-            onDelete: _onDelete,
-            onConfirm: _onConfirm,
-            confirmEnabled: _nameController.text.trim().isNotEmpty,
-          ),
-        ],
+            // Number pad
+            NumberPad(
+              onKey: _onKey,
+              onDelete: _onDelete,
+              onConfirm: _onConfirm,
+              confirmEnabled: _nameController.text.trim().isNotEmpty,
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -223,9 +241,9 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
   Future<void> _onConfirm() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入账户名称')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请输入账户名称')));
       return;
     }
 
@@ -246,13 +264,17 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
           case 2: // 减少
             newBalance = widget.existingAccount!.balance - inputCents;
         }
-        await ref.read(accountProvider.notifier).updateAccount(
+        await ref
+            .read(accountProvider.notifier)
+            .updateAccount(
               accountId: widget.existingAccount!.id,
               name: name,
               balance: newBalance,
             );
       } else {
-        await ref.read(accountProvider.notifier).createAccount(
+        await ref
+            .read(accountProvider.notifier)
+            .createAccount(
               name: name,
               accountType: _selectedType,
               initialBalance: amount.round(),
@@ -267,6 +289,7 @@ class _AddAccountPageState extends ConsumerState<AddAccountPage> {
       if (mounted) setState(() => _isSaving = false);
     }
   }
+
   String _fmtCents(int cents) {
     final yuan = cents / 100;
     if (yuan == yuan.truncateToDouble()) return yuan.toInt().toString();
@@ -304,8 +327,8 @@ class _TypeChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: isSelected
                 ? (isDark
-                    ? ColorTokens.primaryLight.withValues(alpha: 0.2)
-                    : ColorTokens.primary.withValues(alpha: 0.1))
+                      ? ColorTokens.primaryLight.withValues(alpha: 0.2)
+                      : ColorTokens.primary.withValues(alpha: 0.1))
                 : (isDark ? NeutralColorsDark.neutral2 : Colors.white),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
@@ -333,10 +356,11 @@ class _TypeChip extends StatelessWidget {
                 name,
                 style: TextStyle(
                   fontSize: 11,
-                  fontWeight:
-                      isSelected ? FontWeight.w600 : FontWeight.w400,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   color: isSelected
-                      ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
+                      ? (isDark
+                            ? ColorTokens.primaryLight
+                            : ColorTokens.primary)
                       : null,
                 ),
               ),

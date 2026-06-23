@@ -59,13 +59,41 @@ const Asset$json = {
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {'1': 'user_id', '3': 2, '4': 1, '5': 9, '10': 'userId'},
     {'1': 'name', '3': 3, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'asset_type', '3': 4, '4': 1, '5': 14, '6': '.familyledger.asset.v1.AssetType', '10': 'assetType'},
+    {
+      '1': 'asset_type',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.asset.v1.AssetType',
+      '10': 'assetType'
+    },
     {'1': 'purchase_price', '3': 5, '4': 1, '5': 3, '10': 'purchasePrice'},
     {'1': 'current_value', '3': 6, '4': 1, '5': 3, '10': 'currentValue'},
-    {'1': 'purchase_date', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'purchaseDate'},
+    {
+      '1': 'purchase_date',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'purchaseDate'
+    },
     {'1': 'description', '3': 8, '4': 1, '5': 9, '10': 'description'},
-    {'1': 'created_at', '3': 9, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'updated_at', '3': 10, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+    {
+      '1': 'created_at',
+      '3': 9,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
+    {
+      '1': 'updated_at',
+      '3': 10,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'updatedAt'
+    },
     {'1': 'family_id', '3': 11, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
@@ -90,7 +118,14 @@ const AssetValuation$json = {
     {'1': 'asset_id', '3': 2, '4': 1, '5': 9, '10': 'assetId'},
     {'1': 'value', '3': 3, '4': 1, '5': 3, '10': 'value'},
     {'1': 'source', '3': 4, '4': 1, '5': 9, '10': 'source'},
-    {'1': 'valuation_date', '3': 5, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'valuationDate'},
+    {
+      '1': 'valuation_date',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'valuationDate'
+    },
   ],
 };
 
@@ -107,10 +142,24 @@ const DepreciationRule$json = {
   '2': [
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {'1': 'asset_id', '3': 2, '4': 1, '5': 9, '10': 'assetId'},
-    {'1': 'method', '3': 3, '4': 1, '5': 14, '6': '.familyledger.asset.v1.DepreciationMethod', '10': 'method'},
+    {
+      '1': 'method',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.asset.v1.DepreciationMethod',
+      '10': 'method'
+    },
     {'1': 'useful_life_years', '3': 4, '4': 1, '5': 5, '10': 'usefulLifeYears'},
     {'1': 'salvage_rate', '3': 5, '4': 1, '5': 1, '10': 'salvageRate'},
-    {'1': 'created_at', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
+    {
+      '1': 'created_at',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
   ],
 };
 
@@ -127,9 +176,23 @@ const CreateAssetRequest$json = {
   '1': 'CreateAssetRequest',
   '2': [
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'asset_type', '3': 2, '4': 1, '5': 14, '6': '.familyledger.asset.v1.AssetType', '10': 'assetType'},
+    {
+      '1': 'asset_type',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.asset.v1.AssetType',
+      '10': 'assetType'
+    },
     {'1': 'purchase_price', '3': 3, '4': 1, '5': 3, '10': 'purchasePrice'},
-    {'1': 'purchase_date', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'purchaseDate'},
+    {
+      '1': 'purchase_date',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'purchaseDate'
+    },
     {'1': 'description', '3': 5, '4': 1, '5': 9, '10': 'description'},
     {'1': 'family_id', '3': 6, '4': 1, '5': 9, '10': 'familyId'},
   ],
@@ -159,7 +222,14 @@ final $typed_data.Uint8List getAssetRequestDescriptor = $convert.base64Decode(
 const ListAssetsRequest$json = {
   '1': 'ListAssetsRequest',
   '2': [
-    {'1': 'asset_type', '3': 1, '4': 1, '5': 14, '6': '.familyledger.asset.v1.AssetType', '10': 'assetType'},
+    {
+      '1': 'asset_type',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.asset.v1.AssetType',
+      '10': 'assetType'
+    },
     {'1': 'family_id', '3': 2, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
@@ -174,7 +244,14 @@ final $typed_data.Uint8List listAssetsRequestDescriptor = $convert.base64Decode(
 const ListAssetsResponse$json = {
   '1': 'ListAssetsResponse',
   '2': [
-    {'1': 'assets', '3': 1, '4': 3, '5': 11, '6': '.familyledger.asset.v1.Asset', '10': 'assets'},
+    {
+      '1': 'assets',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.asset.v1.Asset',
+      '10': 'assets'
+    },
   ],
 };
 
@@ -207,8 +284,9 @@ const DeleteAssetRequest$json = {
 };
 
 /// Descriptor for `DeleteAssetRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteAssetRequestDescriptor = $convert.base64Decode(
-    'ChJEZWxldGVBc3NldFJlcXVlc3QSGQoIYXNzZXRfaWQYASABKAlSB2Fzc2V0SWQ=');
+final $typed_data.Uint8List deleteAssetRequestDescriptor =
+    $convert.base64Decode(
+        'ChJEZWxldGVBc3NldFJlcXVlc3QSGQoIYXNzZXRfaWQYASABKAlSB2Fzc2V0SWQ=');
 
 @$core.Deprecated('Use updateValuationRequestDescriptor instead')
 const UpdateValuationRequest$json = {
@@ -221,9 +299,10 @@ const UpdateValuationRequest$json = {
 };
 
 /// Descriptor for `UpdateValuationRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List updateValuationRequestDescriptor = $convert.base64Decode(
-    'ChZVcGRhdGVWYWx1YXRpb25SZXF1ZXN0EhkKCGFzc2V0X2lkGAEgASgJUgdhc3NldElkEhQKBX'
-    'ZhbHVlGAIgASgDUgV2YWx1ZRIWCgZzb3VyY2UYAyABKAlSBnNvdXJjZQ==');
+final $typed_data.Uint8List updateValuationRequestDescriptor =
+    $convert.base64Decode(
+        'ChZVcGRhdGVWYWx1YXRpb25SZXF1ZXN0EhkKCGFzc2V0X2lkGAEgASgJUgdhc3NldElkEhQKBX'
+        'ZhbHVlGAIgASgDUgV2YWx1ZRIWCgZzb3VyY2UYAyABKAlSBnNvdXJjZQ==');
 
 @$core.Deprecated('Use listValuationsRequestDescriptor instead')
 const ListValuationsRequest$json = {
@@ -234,28 +313,44 @@ const ListValuationsRequest$json = {
 };
 
 /// Descriptor for `ListValuationsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listValuationsRequestDescriptor = $convert.base64Decode(
-    'ChVMaXN0VmFsdWF0aW9uc1JlcXVlc3QSGQoIYXNzZXRfaWQYASABKAlSB2Fzc2V0SWQ=');
+final $typed_data.Uint8List listValuationsRequestDescriptor =
+    $convert.base64Decode(
+        'ChVMaXN0VmFsdWF0aW9uc1JlcXVlc3QSGQoIYXNzZXRfaWQYASABKAlSB2Fzc2V0SWQ=');
 
 @$core.Deprecated('Use listValuationsResponseDescriptor instead')
 const ListValuationsResponse$json = {
   '1': 'ListValuationsResponse',
   '2': [
-    {'1': 'valuations', '3': 1, '4': 3, '5': 11, '6': '.familyledger.asset.v1.AssetValuation', '10': 'valuations'},
+    {
+      '1': 'valuations',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.asset.v1.AssetValuation',
+      '10': 'valuations'
+    },
   ],
 };
 
 /// Descriptor for `ListValuationsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listValuationsResponseDescriptor = $convert.base64Decode(
-    'ChZMaXN0VmFsdWF0aW9uc1Jlc3BvbnNlEkUKCnZhbHVhdGlvbnMYASADKAsyJS5mYW1pbHlsZW'
-    'RnZXIuYXNzZXQudjEuQXNzZXRWYWx1YXRpb25SCnZhbHVhdGlvbnM=');
+final $typed_data.Uint8List listValuationsResponseDescriptor =
+    $convert.base64Decode(
+        'ChZMaXN0VmFsdWF0aW9uc1Jlc3BvbnNlEkUKCnZhbHVhdGlvbnMYASADKAsyJS5mYW1pbHlsZW'
+        'RnZXIuYXNzZXQudjEuQXNzZXRWYWx1YXRpb25SCnZhbHVhdGlvbnM=');
 
 @$core.Deprecated('Use setDepreciationRuleRequestDescriptor instead')
 const SetDepreciationRuleRequest$json = {
   '1': 'SetDepreciationRuleRequest',
   '2': [
     {'1': 'asset_id', '3': 1, '4': 1, '5': 9, '10': 'assetId'},
-    {'1': 'method', '3': 2, '4': 1, '5': 14, '6': '.familyledger.asset.v1.DepreciationMethod', '10': 'method'},
+    {
+      '1': 'method',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.asset.v1.DepreciationMethod',
+      '10': 'method'
+    },
     {'1': 'useful_life_years', '3': 3, '4': 1, '5': 5, '10': 'usefulLifeYears'},
     {'1': 'salvage_rate', '3': 4, '4': 1, '5': 1, '10': 'salvageRate'},
   ],
@@ -277,6 +372,6 @@ const RunDepreciationRequest$json = {
 };
 
 /// Descriptor for `RunDepreciationRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List runDepreciationRequestDescriptor = $convert.base64Decode(
-    'ChZSdW5EZXByZWNpYXRpb25SZXF1ZXN0EhkKCGFzc2V0X2lkGAEgASgJUgdhc3NldElk');
-
+final $typed_data.Uint8List runDepreciationRequestDescriptor =
+    $convert.base64Decode(
+        'ChZSdW5EZXByZWNpYXRpb25SZXF1ZXN0EhkKCGFzc2V0X2lkGAEgASgJUgdhc3NldElk');

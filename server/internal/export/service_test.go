@@ -56,7 +56,7 @@ func TestExportCSV_Success(t *testing.T) {
 	resp, err := svc.ExportTransactions(authedCtx(), &pb.ExportRequest{Format: "csv"})
 	require.NoError(t, err)
 	assert.Contains(t, string(resp.Data), "日期")
-	assert.Contains(t, string(resp.Data), "35.00")  // 3500 分 = 35.00 元
+	assert.Contains(t, string(resp.Data), "35.00") // 3500 分 = 35.00 元
 	assert.Contains(t, resp.Filename, ".csv")
 	assert.Contains(t, resp.ContentType, "csv")
 }

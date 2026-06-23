@@ -50,7 +50,8 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
         appBar: AppBar(title: const Text('贷款详情')),
         body: ErrorState(
           message: loanState.error ?? '贷款不存在',
-          onRetry: () => ref.read(loanProvider.notifier).getLoanDetail(widget.loanId),
+          onRetry: () =>
+              ref.read(loanProvider.notifier).getLoanDetail(widget.loanId),
         ),
       );
     }
@@ -59,8 +60,9 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
     final progress = loan.principal > 0
         ? (loan.principal - loan.remainingPrincipal) / loan.principal
         : 0.0;
-    final monthlyPayment =
-        ref.read(loanProvider.notifier).getMonthlyPayment(loan);
+    final monthlyPayment = ref
+        .read(loanProvider.notifier)
+        .getMonthlyPayment(loan);
     // 剩余利息 = 未还期数的利息总和
     final remainingInterest = loanState.schedule
         .where((item) => !item.isPaid)
@@ -73,13 +75,13 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
           PopupMenuButton<String>(
             onSelected: (v) => _onMenuAction(v, loan.id),
             itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'repayment_category',
-                child: Text('还款分类设置'),
-              ),
+              PopupMenuItem(value: 'repayment_category', child: Text('还款分类设置')),
               PopupMenuItem(
                 value: 'delete',
-                child: Text('删除贷款', style: TextStyle(color: context.semanticColors.expense)),
+                child: Text(
+                  '删除贷款',
+                  style: TextStyle(color: context.semanticColors.expense),
+                ),
               ),
             ],
           ),
@@ -110,9 +112,8 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                       icon: Icons.speed_rounded,
                       label: '提前还款',
                       semanticLabel: '提前还款',
-                      onTap: () => context.push(
-                        AppRouter.prepayment(widget.loanId),
-                      ),
+                      onTap: () =>
+                          context.push(AppRouter.prepayment(widget.loanId)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -164,33 +165,29 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
             )
           else
             SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final item = loanState.schedule[index];
-                  final isFirst = index == 0;
-                  final isLast = index == loanState.schedule.length - 1;
-                  final isCurrent =
-                      item.monthNumber == loan.paidMonths + 1;
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final item = loanState.schedule[index];
+                final isFirst = index == 0;
+                final isLast = index == loanState.schedule.length - 1;
+                final isCurrent = item.monthNumber == loan.paidMonths + 1;
 
-                  return _TimelineNode(
-                    item: item,
-                    isFirst: isFirst,
-                    isLast: isLast,
-                    isCurrent: isCurrent,
-                    isDark: isDark,
-                    theme: theme,
-                    onTap: item.isPaid
-                        ? null
-                        : () => _showPaymentBottomSheet(
-                              context,
-                              loan,
-                              item.monthNumber,
-                              loanState.schedule,
-                            ),
-                  );
-                },
-                childCount: loanState.schedule.length,
-              ),
+                return _TimelineNode(
+                  item: item,
+                  isFirst: isFirst,
+                  isLast: isLast,
+                  isCurrent: isCurrent,
+                  isDark: isDark,
+                  theme: theme,
+                  onTap: item.isPaid
+                      ? null
+                      : () => _showPaymentBottomSheet(
+                          context,
+                          loan,
+                          item.monthNumber,
+                          loanState.schedule,
+                        ),
+                );
+              }, childCount: loanState.schedule.length),
             ),
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
@@ -269,7 +266,9 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                         leading: CircleAvatar(
                           backgroundColor: isSelected
                               ? Theme.of(ctx).colorScheme.primary
-                              : Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                              : Theme.of(
+                                  ctx,
+                                ).colorScheme.surfaceContainerHighest,
                           child: Text(
                             cat.name.characters.first,
                             style: TextStyle(
@@ -279,7 +278,10 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                         ),
                         title: Text(cat.name),
                         trailing: isSelected
-                            ? Icon(Icons.check, color: Theme.of(ctx).colorScheme.primary)
+                            ? Icon(
+                                Icons.check,
+                                color: Theme.of(ctx).colorScheme.primary,
+                              )
                             : null,
                         onTap: () => Navigator.of(ctx).pop(cat.id),
                       );
@@ -294,20 +296,22 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
     );
 
     if (selected != null && mounted) {
-      await ref.read(loanProvider.notifier).updateLoanRepaymentCategory(
-            loanId,
-            selected,
-          );
+      await ref
+          .read(loanProvider.notifier)
+          .updateLoanRepaymentCategory(loanId, selected);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('还款分类已更新')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('还款分类已更新')));
       }
     }
   }
 
   void _showRateChangeDialog(
-      BuildContext context, WidgetRef ref, String loanId) {
+    BuildContext context,
+    WidgetRef ref,
+    String loanId,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => RateChangeDialog(loanId: loanId),
@@ -322,18 +326,18 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
     List<LoanScheduleDisplayItem> schedule,
   ) {
     if (monthNumber > loan.totalMonths) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('贷款已全部还清 🎉')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('贷款已全部还清 🎉')));
       return;
     }
 
     // Only allow recording the next unpaid month (sequential payment)
     final nextUnpaid = loan.paidMonths + 1;
     if (monthNumber != nextUnpaid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('请先还清第 $nextUnpaid 期')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('请先还清第 $nextUnpaid 期')));
       return;
     }
 
@@ -399,8 +403,9 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                         Text(
                           DateFormat('yyyy年MM月dd日').format(item.dueDate),
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -408,9 +413,7 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                           '¥${_fmtCents(item.payment)}',
                           style: theme.textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            fontFeatures: const [
-                              FontFeature.tabularFigures()
-                            ],
+                            fontFeatures: const [FontFeature.tabularFigures()],
                             color: isDark
                                 ? ColorTokens.primaryLight
                                 : ColorTokens.primary,
@@ -423,10 +426,11 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                             Text(
                               '本金 ¥${_fmtCents(item.principalPart)}',
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.5),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
+                                ),
                                 fontFeatures: const [
-                                  FontFeature.tabularFigures()
+                                  FontFeature.tabularFigures(),
                                 ],
                               ),
                             ),
@@ -434,10 +438,11 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                             Text(
                               '利息 ¥${_fmtCents(item.interestPart)}',
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.5),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
+                                ),
                                 fontFeatures: const [
-                                  FontFeature.tabularFigures()
+                                  FontFeature.tabularFigures(),
                                 ],
                               ),
                             ),
@@ -468,7 +473,9 @@ class _LoanDetailPageState extends ConsumerState<LoanDetailPage> {
                       child: FilledButton(
                         onPressed: () async {
                           Navigator.of(ctx).pop();
-                          await ref.read(loanProvider.notifier).recordPayment(
+                          await ref
+                              .read(loanProvider.notifier)
+                              .recordPayment(
                                 loanId: loan.id,
                                 monthNumber: monthNumber,
                               );
@@ -516,9 +523,10 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     return Semantics(
-      label: '${loan.name}，剩余本金${_fmtCents(loan.remainingPrincipal)}元，'
+      label:
+          '${loan.name}，剩余本金${_fmtCents(loan.remainingPrincipal)}元，'
           '已还${(progress * 100).toStringAsFixed(0)}%，'
           '月供${_fmtCents(monthlyPayment)}元',
       child: Container(
@@ -548,8 +556,10 @@ class _SummaryCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: typeInfo.color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -574,8 +584,7 @@ class _SummaryCard extends StatelessWidget {
                 Text(
                   ' 年利率',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color:
-                        theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
               ],
@@ -592,8 +601,9 @@ class _SummaryCard extends StatelessWidget {
                       Text(
                         '剩余本金',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -631,18 +641,19 @@ class _SummaryCard extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                               color: typeInfo.color,
                               fontFeatures: const [
-                                FontFeature.tabularFigures()
+                                FontFeature.tabularFigures(),
                               ],
                             ),
                           ),
                           Text(
                             '第 ${loan.paidMonths}/${loan.totalMonths} 期',
                             style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.5),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
+                              ),
                               fontSize: 10,
                               fontFeatures: const [
-                                FontFeature.tabularFigures()
+                                FontFeature.tabularFigures(),
                               ],
                             ),
                           ),
@@ -829,7 +840,9 @@ class _ActionButton extends StatelessWidget {
       label: semanticLabel,
       button: true,
       child: Material(
-        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
+        color: isDark
+            ? NeutralColorsDark.neutral2
+            : NeutralColorsLight.neutral2,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: onTap,
@@ -838,8 +851,13 @@ class _ActionButton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Column(
               children: [
-                Icon(icon, size: 22,
-                    color: isDark ? ColorTokens.primaryLight : ColorTokens.primary),
+                Icon(
+                  icon,
+                  size: 22,
+                  color: isDark
+                      ? ColorTokens.primaryLight
+                      : ColorTokens.primary,
+                ),
                 const SizedBox(height: 4),
                 Text(
                   label,
@@ -879,7 +897,7 @@ class _TimelineNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     final Color nodeColor;
     final double nodeSize;
 
@@ -890,12 +908,15 @@ class _TimelineNode extends StatelessWidget {
       nodeColor = isDark ? ColorTokens.primaryLight : ColorTokens.primary;
       nodeSize = 16;
     } else {
-      nodeColor = isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral3;
+      nodeColor = isDark
+          ? NeutralColorsDark.neutral3
+          : NeutralColorsLight.neutral3;
       nodeSize = 10;
     }
 
     return Semantics(
-      label: '第${item.monthNumber}期，'
+      label:
+          '第${item.monthNumber}期，'
           '${item.isPaid ? "已还" : (isCurrent ? "当前期" : "未还")}，'
           '还款${_fmtCents(item.payment)}元，'
           '本金${_fmtCents(item.principalPart)}元，利息${_fmtCents(item.interestPart)}元，'
@@ -936,16 +957,18 @@ class _TimelineNode extends StatelessWidget {
                     padding: EdgeInsets.all(isCurrent ? 14 : 10),
                     decoration: isCurrent
                         ? BoxDecoration(
-                            color: (isDark
-                                    ? ColorTokens.primaryLight
-                                    : ColorTokens.primary)
-                                .withValues(alpha: 0.08),
+                            color:
+                                (isDark
+                                        ? ColorTokens.primaryLight
+                                        : ColorTokens.primary)
+                                    .withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: (isDark
-                                      ? ColorTokens.primaryLight
-                                      : ColorTokens.primary)
-                                  .withValues(alpha: 0.3),
+                              color:
+                                  (isDark
+                                          ? ColorTokens.primaryLight
+                                          : ColorTokens.primary)
+                                      .withValues(alpha: 0.3),
                               width: 1,
                             ),
                           )
@@ -966,16 +989,18 @@ class _TimelineNode extends StatelessWidget {
                                       : FontWeight.w500,
                                   fontSize: isCurrent ? 13 : 12,
                                   color: item.isPaid
-                                      ? theme.colorScheme.onSurface
-                                          .withValues(alpha: 0.4)
+                                      ? theme.colorScheme.onSurface.withValues(
+                                          alpha: 0.4,
+                                        )
                                       : null,
                                 ),
                               ),
                               Text(
                                 DateFormat('yyyy/MM').format(item.dueDate),
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: theme.colorScheme.onSurface
-                                      .withValues(alpha: item.isPaid ? 0.3 : 0.4),
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: item.isPaid ? 0.3 : 0.4,
+                                  ),
                                 ),
                               ),
                             ],
@@ -991,12 +1016,13 @@ class _TimelineNode extends StatelessWidget {
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   fontFeatures: const [
-                                    FontFeature.tabularFigures()
+                                    FontFeature.tabularFigures(),
                                   ],
                                   fontSize: isCurrent ? 16 : 14,
                                   color: item.isPaid
-                                      ? theme.colorScheme.onSurface
-                                          .withValues(alpha: 0.4)
+                                      ? theme.colorScheme.onSurface.withValues(
+                                          alpha: 0.4,
+                                        )
                                       : null,
                                 ),
                               ),
@@ -1004,10 +1030,11 @@ class _TimelineNode extends StatelessWidget {
                               Text(
                                 '本金 ${_fmtCents(item.principalPart)}  利息 ${_fmtCents(item.interestPart)}',
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: theme.colorScheme.onSurface
-                                      .withValues(alpha: item.isPaid ? 0.25 : 0.4),
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: item.isPaid ? 0.25 : 0.4,
+                                  ),
                                   fontFeatures: const [
-                                    FontFeature.tabularFigures()
+                                    FontFeature.tabularFigures(),
                                   ],
                                 ),
                               ),
@@ -1019,7 +1046,7 @@ class _TimelineNode extends StatelessWidget {
                                     color: theme.colorScheme.onSurface
                                         .withValues(alpha: 0.4),
                                     fontFeatures: const [
-                                      FontFeature.tabularFigures()
+                                      FontFeature.tabularFigures(),
                                     ],
                                   ),
                                 ),
@@ -1030,15 +1057,19 @@ class _TimelineNode extends StatelessWidget {
                         // Status icon
                         const SizedBox(width: 8),
                         if (item.isPaid)
-                          Icon(Icons.check_circle_rounded,
-                              size: 20,
-                              color: colors.income)
+                          Icon(
+                            Icons.check_circle_rounded,
+                            size: 20,
+                            color: colors.income,
+                          )
                         else if (isCurrent)
-                          Icon(Icons.radio_button_checked_rounded,
-                              size: 20,
-                              color: isDark
-                                  ? ColorTokens.primaryLight
-                                  : ColorTokens.primary)
+                          Icon(
+                            Icons.radio_button_checked_rounded,
+                            size: 20,
+                            color: isDark
+                                ? ColorTokens.primaryLight
+                                : ColorTokens.primary,
+                          )
                         else
                           const SizedBox(width: 20),
                       ],
