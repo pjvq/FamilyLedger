@@ -24,11 +24,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/familyledger/server/pkg/logger"
 )
 
 // Config holds TLS configuration parameters.
@@ -90,14 +91,14 @@ func NewProvider(cfg Config) (*Provider, error) {
 			return nil, fmt.Errorf("load CA file: %w", err)
 		}
 		p.caPool = pool
-		log.Printf("tls: mTLS enabled with CA from %s (mode=%s)", cfg.CAFile, cfg.MTLSMode)
+		logger.Infof("tls: mTLS enabled with CA from %s (mode=%s)", cfg.CAFile, cfg.MTLSMode)
 	}
 
 	// Build and cache TLS config once — GetCertificate uses atomic.Pointer
 	// so the cached config remains valid across cert reloads.
 	p.tlsConfig = p.buildTLSConfig()
 
-	log.Printf("tls: certificate loaded from %s", cfg.CertFile)
+	logger.Infof("tls: certificate loaded from %s", cfg.CertFile)
 	return p, nil
 }
 
@@ -109,7 +110,7 @@ func (p *Provider) Reload() error {
 	if err := p.loadCert(); err != nil {
 		return fmt.Errorf("cert reload: %w", err)
 	}
-	log.Printf("tls: certificate reloaded from %s", p.config.CertFile)
+	logger.Infof("tls: certificate reloaded from %s", p.config.CertFile)
 	return nil
 }
 

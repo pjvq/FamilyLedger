@@ -2,9 +2,10 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
+
+	"github.com/familyledger/server/pkg/logger"
 )
 
 const (
@@ -22,18 +23,18 @@ func ValidateJWTSecret() string {
 
 	if secret == "" {
 		if isProduction {
-			log.Fatalf("FATAL: JWT_SECRET environment variable is required in production (APP_ENV=%s)", appEnv)
+			logger.Fatalf("JWT_SECRET environment variable is required in production (APP_ENV=%s)", appEnv)
 		}
-		log.Printf("WARN: JWT_SECRET not set, using default development secret. DO NOT use in production!")
+		logger.Warnf("JWT_SECRET not set, using default development secret. DO NOT use in production!")
 		return defaultDevSecret
 	}
 
 	if isProduction && len(secret) < minSecretLenForProd {
-		log.Fatalf("FATAL: JWT_SECRET must be at least %d characters in production (got %d)", minSecretLenForProd, len(secret))
+		logger.Fatalf("JWT_SECRET must be at least %d characters in production (got %d)", minSecretLenForProd, len(secret))
 	}
 
 	if !isProduction && len(secret) < minSecretLenForProd {
-		log.Printf("WARN: JWT_SECRET is shorter than %d characters. Consider using a stronger secret.", minSecretLenForProd)
+		logger.Warnf("JWT_SECRET is shorter than %d characters. Consider using a stronger secret.", minSecretLenForProd)
 	}
 
 	return secret

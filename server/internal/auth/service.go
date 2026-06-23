@@ -6,19 +6,19 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/familyledger/server/pkg/db"
-	"github.com/familyledger/server/pkg/middleware"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	pb "github.com/familyledger/server/proto/auth"
+	"github.com/familyledger/server/pkg/db"
 	"github.com/familyledger/server/pkg/jwt"
+	"github.com/familyledger/server/pkg/logger"
+	"github.com/familyledger/server/pkg/middleware"
+	pb "github.com/familyledger/server/proto/auth"
 )
 
 // bcryptCost is the work factor for password hashing.
@@ -119,7 +119,7 @@ func (s *Service) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.Re
 		return nil, status.Error(codes.Internal, "failed to generate tokens")
 	}
 
-	log.Printf("auth: user registered: %s (%s)", userID, req.Email)
+	logger.Infof("auth: user registered: %s (%s)", userID, req.Email)
 
 	return &pb.RegisterResponse{
 		UserId:       userID.String(),
@@ -156,9 +156,9 @@ func (s *Service) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginRes
 				"UPDATE users SET password_hash = $1 WHERE id = $2",
 				string(newHash), userID,
 			); err != nil {
-				log.Printf("auth: WARNING: failed to upgrade password hash for user %s: %v", userID, err)
+				logger.Warnf("auth: failed to upgrade password hash for user %s: %v", userID, err)
 			} else {
-				log.Printf("auth: upgraded password hash cost %d→%d for user %s", cost, bcryptCost, userID)
+				logger.Infof("auth: upgraded password hash cost %d→%d for user %s", cost, bcryptCost, userID)
 			}
 		}
 	}
@@ -168,7 +168,7 @@ func (s *Service) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginRes
 		return nil, status.Error(codes.Internal, "failed to generate tokens")
 	}
 
-	log.Printf("auth: user logged in: %s (%s)", userID, req.Email)
+	logger.Infof("auth: user logged in: %s (%s)", userID, req.Email)
 
 	return &pb.LoginResponse{
 		UserId:       userID.String(),
@@ -193,7 +193,7 @@ func (s *Service) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest)
 	var revoked bool
 	err = s.pool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM revoked_tokens WHERE token_hash = $1)", tokenHash).Scan(&revoked)
 	if err != nil {
-		log.Printf("auth: revoked_tokens check error: %v", err)
+		logger.Errorf("auth: revoked_tokens check error: %v", err)
 		// If table doesn't exist yet (pre-migration), allow through
 	} else if revoked {
 		return nil, status.Error(codes.Unauthenticated, "refresh token has been revoked")
@@ -217,7 +217,7 @@ func (s *Service) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest)
 			`INSERT INTO revoked_tokens (token_hash, user_id, expires_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
 			tokenHash, claims.UserID, claims.ExpiresAt.Time)
 		if err != nil {
-			log.Printf("auth: failed to revoke old refresh token: %v", err)
+			logger.Errorf("auth: failed to revoke old refresh token: %v", err)
 			// Non-fatal: new token is already issued, old token blacklist is best-effort
 		}
 	}
@@ -302,14 +302,14 @@ func (s *Service) OAuthLogin(ctx context.Context, req *pb.OAuthLoginRequest) (*p
 		}
 
 		isNewUser = true
-		log.Printf("auth: new oauth user created: %s (provider=%s)", userID, provider)
+		logger.Infof("auth: new oauth user created: %s (provider=%s)", userID, provider)
 	} else {
 		// Update display_name and avatar_url if changed
 		_, _ = s.pool.Exec(ctx,
 			`UPDATE users SET display_name = $1, avatar_url = $2, updated_at = NOW() WHERE id = $3`,
 			displayName, avatarURL, userID,
 		)
-		log.Printf("auth: oauth user logged in: %s (provider=%s)", userID, provider)
+		logger.Infof("auth: oauth user logged in: %s (provider=%s)", userID, provider)
 	}
 
 	tokenPair, err := s.jwtManager.GenerateTokenPair(userID.String())

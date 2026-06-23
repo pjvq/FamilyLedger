@@ -3,18 +3,18 @@ package budget
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/familyledger/server/pkg/db"
-	"github.com/familyledger/server/pkg/permission"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/logger"
 	"github.com/familyledger/server/pkg/middleware"
+	"github.com/familyledger/server/pkg/permission"
 	pb "github.com/familyledger/server/proto/budget"
 )
 
@@ -92,14 +92,14 @@ func (s *Service) CreateBudget(ctx context.Context, req *pb.CreateBudgetRequest)
 	}
 	err = tx.QueryRow(ctx, query, uid, familyID, req.Year, req.Month, req.TotalAmount).Scan(&budgetID, &createdAt)
 	if err != nil {
-		log.Printf("budget: create error: %v", err)
+		logger.Errorf("budget: create error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create budget")
 	}
 
 	// Clear existing category budgets (in case of upsert) and re-insert
 	_, err = tx.Exec(ctx, `DELETE FROM category_budgets WHERE budget_id = $1`, budgetID)
 	if err != nil {
-		log.Printf("budget: clear category budgets error: %v", err)
+		logger.Errorf("budget: clear category budgets error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to clear category budgets")
 	}
 
@@ -113,7 +113,7 @@ func (s *Service) CreateBudget(ctx context.Context, req *pb.CreateBudgetRequest)
 			budgetID, catID, cb.Amount,
 		)
 		if err != nil {
-			log.Printf("budget: create category budget error: %v", err)
+			logger.Errorf("budget: create category budget error: %v", err)
 			return nil, status.Error(codes.Internal, "failed to create category budget")
 		}
 	}
@@ -122,7 +122,7 @@ func (s *Service) CreateBudget(ctx context.Context, req *pb.CreateBudgetRequest)
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
 
-	log.Printf("budget: created budget %s for user %s (%d-%02d)", budgetID, userID, req.Year, req.Month)
+	logger.Infof("budget: created budget %s for user %s (%d-%02d)", budgetID, userID, req.Year, req.Month)
 
 	return &pb.CreateBudgetResponse{
 		Budget: &pb.Budget{
@@ -332,7 +332,7 @@ func (s *Service) UpdateBudget(ctx context.Context, req *pb.UpdateBudgetRequest)
 		return nil, err
 	}
 
-	log.Printf("budget: updated budget %s", budgetID)
+	logger.Infof("budget: updated budget %s", budgetID)
 	return &pb.UpdateBudgetResponse{Budget: budget}, nil
 }
 
@@ -375,7 +375,7 @@ func (s *Service) DeleteBudget(ctx context.Context, req *pb.DeleteBudgetRequest)
 		return nil, status.Error(codes.NotFound, "budget not found")
 	}
 
-	log.Printf("budget: deleted budget %s", budgetID)
+	logger.Infof("budget: deleted budget %s", budgetID)
 	return &pb.DeleteBudgetResponse{}, nil
 }
 

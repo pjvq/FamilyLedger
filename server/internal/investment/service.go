@@ -2,20 +2,20 @@ package investment
 
 import (
 	"context"
-	"log"
 	"math"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/familyledger/server/pkg/db"
-	"github.com/familyledger/server/pkg/permission"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/logger"
 	"github.com/familyledger/server/pkg/middleware"
+	"github.com/familyledger/server/pkg/permission"
 	pb "github.com/familyledger/server/proto/investment"
 )
 
@@ -73,11 +73,11 @@ func (s *Service) CreateInvestment(ctx context.Context, req *pb.CreateInvestment
 		if isDuplicateError(err) {
 			return nil, status.Errorf(codes.AlreadyExists, "investment %s/%s already exists", req.Symbol, mt)
 		}
-		log.Printf("investment: create error: %v", err)
+		logger.Errorf("investment: create error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create investment")
 	}
 
-	log.Printf("investment: created %s (%s/%s) for user %s", id, req.Symbol, mt, userID)
+	logger.Infof("investment: created %s (%s/%s) for user %s", id, req.Symbol, mt, userID)
 	return &pb.Investment{
 		Id:         id.String(),
 		UserId:     userID,
@@ -267,7 +267,7 @@ func (s *Service) DeleteInvestment(ctx context.Context, req *pb.DeleteInvestment
 	if tag.RowsAffected() == 0 {
 		return nil, status.Error(codes.NotFound, "investment not found")
 	}
-	log.Printf("investment: soft-deleted %s by user %s", req.InvestmentId, userID)
+	logger.Infof("investment: soft-deleted %s by user %s", req.InvestmentId, userID)
 	return &emptypb.Empty{}, nil
 }
 
@@ -380,7 +380,7 @@ func (s *Service) RecordTrade(ctx context.Context, req *pb.RecordTradeRequest) (
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
 
-	log.Printf("investment: trade %s %s qty=%.4f price=%d for %s", tradeType, req.InvestmentId, req.Quantity, req.Price, userID)
+	logger.Infof("investment: trade %s %s qty=%.4f price=%d for %s", tradeType, req.InvestmentId, req.Quantity, req.Price, userID)
 	return &pb.InvestmentTrade{
 		Id:           tradeID.String(),
 		InvestmentId: req.InvestmentId,

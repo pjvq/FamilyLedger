@@ -8,20 +8,20 @@ package testutil
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"testing"
 	"time"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/familyledger/server/pkg/logger"
 )
 
 // TestDB holds a shared PostgreSQL container + connection pool for integration tests.
@@ -102,7 +102,7 @@ func (db *TestDB) Teardown() {
 	}
 	if db.Container != nil {
 		if err := db.Container.Terminate(context.Background()); err != nil {
-			log.Printf("failed to terminate container: %v", err)
+			logger.Errorf("failed to terminate container: %v", err)
 		}
 	}
 }

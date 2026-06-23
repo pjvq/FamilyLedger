@@ -3,21 +3,21 @@ package loan
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"math"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/familyledger/server/pkg/db"
-	"github.com/familyledger/server/pkg/permission"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/logger"
 	"github.com/familyledger/server/pkg/middleware"
+	"github.com/familyledger/server/pkg/permission"
 	pb "github.com/familyledger/server/proto/loan"
 )
 
@@ -64,12 +64,12 @@ func (s *Service) CreateLoan(ctx context.Context, req *pb.CreateLoanRequest) (*p
 	if req.FamilyId != "" {
 		fid, err := uuid.Parse(req.FamilyId)
 		if err != nil {
-			log.Printf("loan: create: invalid family_id %q: %v", req.FamilyId, err)
+			logger.Warnf("loan: create: invalid family_id %q: %v", req.FamilyId, err)
 			return nil, status.Error(codes.InvalidArgument, "invalid family_id")
 		}
 		familyID = &fid
 		if err := permission.Check(ctx, s.pool, userID, req.FamilyId, permission.CanEdit); err != nil {
-			log.Printf("loan: create: permission denied for user %s on family %s: %v", userID, req.FamilyId, err)
+			logger.Warnf("loan: create: permission denied for user %s on family %s: %v", userID, req.FamilyId, err)
 			return nil, err
 		}
 	}
@@ -95,7 +95,7 @@ func (s *Service) CreateLoan(ctx context.Context, req *pb.CreateLoanRequest) (*p
 		startDate, accountID, familyID, calcMethod,
 	).Scan(&loanID, &createdAt, &updatedAt)
 	if err != nil {
-		log.Printf("loan: create error: %v", err)
+		logger.Errorf("loan: create error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create loan")
 	}
 
@@ -107,7 +107,7 @@ func (s *Service) CreateLoan(ctx context.Context, req *pb.CreateLoanRequest) (*p
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
 
-	log.Printf("loan: created %s (%s) for user %s, %d items, familyId=%q", loanID, req.Name, userID, len(schedule), req.FamilyId)
+	logger.Infof("loan: created %s (%s) for user %s, %d items, familyId=%q", loanID, req.Name, userID, len(schedule), req.FamilyId)
 	return buildLoanProto(loanID.String(), userID, req.Name, req.LoanType,
 		req.Principal, req.Principal, req.AnnualRate, req.TotalMonths, 0,
 		req.RepaymentMethod, req.PaymentDay, startDate, createdAt, updatedAt, req.AccountId, req.FamilyId), nil
@@ -185,7 +185,7 @@ func (s *Service) ListLoans(ctx context.Context, req *pb.ListLoansRequest) (*pb.
 		loans = []*pb.Loan{}
 	}
 	for _, l := range loans {
-		log.Printf("loan: ListLoans returning id=%s name=%s familyId=%s", l.Id, l.Name, l.FamilyId)
+		logger.Debugf("loan: ListLoans returning id=%s name=%s familyId=%s", l.Id, l.Name, l.FamilyId)
 	}
 	return &pb.ListLoansResponse{Loans: loans}, nil
 }
@@ -273,7 +273,7 @@ func (s *Service) DeleteLoan(ctx context.Context, req *pb.DeleteLoanRequest) (*e
 	if tag.RowsAffected() == 0 {
 		return nil, status.Error(codes.NotFound, "loan not found")
 	}
-	log.Printf("loan: soft-deleted %s by user %s", req.LoanId, userID)
+	logger.Infof("loan: soft-deleted %s by user %s", req.LoanId, userID)
 	return &emptypb.Empty{}, nil
 }
 
@@ -623,7 +623,7 @@ func (s *Service) RecordRateChange(ctx context.Context, req *pb.RecordRateChange
 	if err := tx.Commit(ctx); err != nil {
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
-	log.Printf("loan: rate change %s: %.4f%% -> %.4f%%", req.LoanId, oldRate, req.NewRate)
+	logger.Infof("loan: rate change %s: %.4f%% -> %.4f%%", req.LoanId, oldRate, req.NewRate)
 	return s.loadLoan(ctx, req.LoanId, userID)
 }
 
@@ -725,10 +725,10 @@ func (s *Service) RecordPayment(ctx context.Context, req *pb.RecordPaymentReques
 			item.Payment, loan.AccountId,
 		)
 		if err != nil {
-			log.Printf("loan: failed to deduct payment from account %s: %v", loan.AccountId, err)
+			logger.Errorf("loan: failed to deduct payment from account %s: %v", loan.AccountId, err)
 			return nil, status.Error(codes.Internal, "failed to deduct payment from account")
 		}
-		log.Printf("loan: deducted %d from account %s for loan %s month %d", item.Payment, loan.AccountId, req.LoanId, req.MonthNumber)
+		logger.Infof("loan: deducted %d from account %s for loan %s month %d", item.Payment, loan.AccountId, req.LoanId, req.MonthNumber)
 	}
 
 	// Create a transaction record for the loan payment
@@ -753,7 +753,7 @@ func (s *Service) RecordPayment(ctx context.Context, req *pb.RecordPaymentReques
 					`SELECT id FROM categories WHERE name = '房贷' LIMIT 1`,
 				).Scan(&categoryID)
 				if err != nil {
-					log.Printf("loan: no repayment category found, skipping transaction record")
+					logger.Warnf("loan: no repayment category found, skipping transaction record")
 					goto skipTransaction
 				}
 			}
@@ -761,7 +761,7 @@ func (s *Service) RecordPayment(ctx context.Context, req *pb.RecordPaymentReques
 
 		accountID := loan.AccountId
 		if accountID == "" {
-			log.Printf("loan: no account linked to loan, skipping transaction record")
+			logger.Warnf("loan: no account linked to loan, skipping transaction record")
 			goto skipTransaction
 		}
 
@@ -776,7 +776,7 @@ func (s *Service) RecordPayment(ctx context.Context, req *pb.RecordPaymentReques
 			userID, accountID, categoryID, item.Payment, note, now, familyIDVal,
 		)
 		if err != nil {
-			log.Printf("loan: failed to create transaction record: %v", err)
+			logger.Errorf("loan: failed to create transaction record: %v", err)
 			// Non-fatal: payment is still recorded, just no transaction entry
 		}
 	}
@@ -785,7 +785,7 @@ skipTransaction:
 	if err := tx.Commit(ctx); err != nil {
 		return nil, status.Error(codes.Internal, "failed to commit")
 	}
-	log.Printf("loan: payment recorded %s month %d", req.LoanId, req.MonthNumber)
+	logger.Infof("loan: payment recorded %s month %d", req.LoanId, req.MonthNumber)
 	return &item, nil
 }
 
@@ -919,7 +919,7 @@ func generateSchedule(principal int64, annualRate float64, totalMonths int, meth
 				}
 				days := daysInPeriod(periodStart, dueDate)
 				if days <= 0 {
-					log.Printf("loan: unexpected zero-day period at month %d, periodStart=%v dueDate=%v, using 30-day fallback", i+1, periodStart, dueDate)
+					logger.Warnf("loan: unexpected zero-day period at month %d, periodStart=%v dueDate=%v, using 30-day fallback", i+1, periodStart, dueDate)
 					days = 30 // fallback
 				}
 				interest = roundCent(P * dr * float64(days))
@@ -952,7 +952,7 @@ func generateSchedule(principal int64, annualRate float64, totalMonths int, meth
 				dueDate := advanceMonths(startDate, i, paymentDay)
 				days := daysInPeriod(prevDate, dueDate)
 				if days <= 0 {
-					log.Printf("loan: unexpected zero-day period at month %d, prevDate=%v dueDate=%v, using 30-day fallback", i, prevDate, dueDate)
+					logger.Warnf("loan: unexpected zero-day period at month %d, prevDate=%v dueDate=%v, using 30-day fallback", i, prevDate, dueDate)
 					days = 30
 				}
 				totalInterest += roundCent(P * dr * float64(days))
@@ -1596,7 +1596,7 @@ func (s *Service) CreateLoanGroup(ctx context.Context, req *pb.CreateLoanGroupRe
 		uid, req.Name, req.GroupType, totalPrincipal, req.PaymentDay, startDate, accountID, familyIDPtr,
 	).Scan(&groupID, &createdAt, &updatedAt)
 	if err != nil {
-		log.Printf("loan: create group error: %v", err)
+		logger.Errorf("loan: create group error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create loan group")
 	}
 
@@ -1652,7 +1652,7 @@ func (s *Service) CreateLoanGroup(ctx context.Context, req *pb.CreateLoanGroupRe
 			lprBasePtr, lprSpreadPtr, rateAdjustMonthPtr, familyIDPtr, slCalcMethod,
 		).Scan(&loanID, &lCreatedAt, &lUpdatedAt)
 		if err != nil {
-			log.Printf("loan: create sub-loan error: %v", err)
+			logger.Errorf("loan: create sub-loan error: %v", err)
 			return nil, status.Error(codes.Internal, "failed to create sub-loan")
 		}
 
@@ -1695,7 +1695,7 @@ func (s *Service) CreateLoanGroup(ctx context.Context, req *pb.CreateLoanGroupRe
 		acctStr = accountID.String()
 	}
 
-	log.Printf("loan: created group %s (%s) with %d sub-loans for user %s familyId=%q", groupID, req.Name, len(subLoanProtos), userID, req.FamilyId)
+	logger.Infof("loan: created group %s (%s) with %d sub-loans for user %s familyId=%q", groupID, req.Name, len(subLoanProtos), userID, req.FamilyId)
 	return &pb.LoanGroup{
 		Id:                 groupID.String(),
 		UserId:             userID,

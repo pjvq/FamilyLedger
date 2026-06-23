@@ -6,17 +6,17 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
-	"github.com/familyledger/server/pkg/db"
-	"github.com/familyledger/server/pkg/permission"
 	"github.com/jung-kurt/gofpdf"
 	"github.com/xuri/excelize/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/logger"
 	"github.com/familyledger/server/pkg/middleware"
+	"github.com/familyledger/server/pkg/permission"
 	pb "github.com/familyledger/server/proto/export"
 )
 
@@ -138,7 +138,7 @@ func (s *Service) queryTransactions(ctx context.Context, userID string, req *pb.
 
 	dbRows, err := s.pool.Query(ctx, query, args...)
 	if err != nil {
-		log.Printf("export: query error: %v", err)
+		logger.Errorf("export: query error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to query transactions")
 	}
 	defer dbRows.Close()
@@ -400,7 +400,7 @@ func (s *Service) FullBackup(ctx context.Context, req *pb.FullBackupRequest) (*p
 		fmt.Sprintf(`SELECT id, user_id, family_id, name, type, balance, currency, is_active, created_at, updated_at
 		 FROM accounts WHERE %s = $1 AND deleted_at IS NULL`, filterCol), filterVal)
 	if err != nil {
-		log.Printf("export: backup accounts error: %v", err)
+		logger.Errorf("export: backup accounts error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to backup accounts")
 	}
 
@@ -419,7 +419,7 @@ func (s *Service) FullBackup(ctx context.Context, req *pb.FullBackupRequest) (*p
 	}
 	backup.Transactions, err = s.queryTableRows(ctx, txnQuery, filterVal)
 	if err != nil {
-		log.Printf("export: backup transactions error: %v", err)
+		logger.Errorf("export: backup transactions error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to backup transactions")
 	}
 
@@ -428,7 +428,7 @@ func (s *Service) FullBackup(ctx context.Context, req *pb.FullBackupRequest) (*p
 		fmt.Sprintf(`SELECT id, user_id, family_id, year, month, total_amount, created_at, updated_at
 		 FROM budgets WHERE %s = $1`, filterCol), filterVal)
 	if err != nil {
-		log.Printf("export: backup budgets error: %v", err)
+		logger.Errorf("export: backup budgets error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to backup budgets")
 	}
 
@@ -438,7 +438,7 @@ func (s *Service) FullBackup(ctx context.Context, req *pb.FullBackupRequest) (*p
 					   repayment_method, remaining_principal, created_at, updated_at
 		 FROM loans WHERE %s = $1 AND deleted_at IS NULL`, filterCol), filterVal)
 	if err != nil {
-		log.Printf("export: backup loans error: %v", err)
+		logger.Errorf("export: backup loans error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to backup loans")
 	}
 
@@ -447,7 +447,7 @@ func (s *Service) FullBackup(ctx context.Context, req *pb.FullBackupRequest) (*p
 		fmt.Sprintf(`SELECT id, user_id, family_id, symbol, name, market_type, quantity, cost_basis, created_at, updated_at
 		 FROM investments WHERE %s = $1 AND deleted_at IS NULL`, filterCol), filterVal)
 	if err != nil {
-		log.Printf("export: backup investments error: %v", err)
+		logger.Errorf("export: backup investments error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to backup investments")
 	}
 
@@ -456,7 +456,7 @@ func (s *Service) FullBackup(ctx context.Context, req *pb.FullBackupRequest) (*p
 		fmt.Sprintf(`SELECT id, user_id, family_id, name, purchase_price, current_value, purchase_date, created_at, updated_at
 		 FROM fixed_assets WHERE %s = $1 AND deleted_at IS NULL`, filterCol), filterVal)
 	if err != nil {
-		log.Printf("export: backup fixed_assets error: %v", err)
+		logger.Errorf("export: backup fixed_assets error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to backup fixed assets")
 	}
 
@@ -464,7 +464,7 @@ func (s *Service) FullBackup(ctx context.Context, req *pb.FullBackupRequest) (*p
 	backup.Categories, err = s.queryTableRows(ctx,
 		`SELECT id, name, type, icon, icon_key, parent_id FROM categories WHERE user_id = $1 OR user_id IS NULL`, userID)
 	if err != nil {
-		log.Printf("export: backup categories error: %v", err)
+		logger.Errorf("export: backup categories error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to backup categories")
 	}
 
@@ -473,7 +473,7 @@ func (s *Service) FullBackup(ctx context.Context, req *pb.FullBackupRequest) (*p
 		fmt.Sprintf(`SELECT id, user_id, family_id, title, description, remind_at, repeat_rule, repeat_end_at, is_active, created_at, updated_at
 		 FROM custom_reminders WHERE %s = $1`, filterCol), filterVal)
 	if err != nil {
-		log.Printf("export: backup custom_reminders error: %v", err)
+		logger.Errorf("export: backup custom_reminders error: %v", err)
 		// Non-fatal: custom_reminders table might not exist in older deployments
 		backup.Reminders = []map[string]interface{}{}
 	}

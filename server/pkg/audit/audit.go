@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/google/uuid"
+
 	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/logger"
 )
 
 // LogAudit records an audit log entry for a family operation.
@@ -21,17 +22,17 @@ func LogAudit(ctx context.Context, pool db.Pool, familyID, userID, action, entit
 
 	famUID, err := uuid.Parse(familyID)
 	if err != nil {
-		log.Printf("audit: invalid family_id %q: %v", familyID, err)
+		logger.Warnf("audit: invalid family_id %q: %v", familyID, err)
 		return
 	}
 	userUID, err := uuid.Parse(userID)
 	if err != nil {
-		log.Printf("audit: invalid user_id %q: %v", userID, err)
+		logger.Warnf("audit: invalid user_id %q: %v", userID, err)
 		return
 	}
 	entityUID, err := uuid.Parse(entityID)
 	if err != nil {
-		log.Printf("audit: invalid entity_id %q: %v", entityID, err)
+		logger.Warnf("audit: invalid entity_id %q: %v", entityID, err)
 		return
 	}
 
@@ -39,7 +40,7 @@ func LogAudit(ctx context.Context, pool db.Pool, familyID, userID, action, entit
 	if changes != nil {
 		changesJSON, err = json.Marshal(changes)
 		if err != nil {
-			log.Printf("audit: marshal changes error: %v", err)
+			logger.Errorf("audit: marshal changes error: %v", err)
 			changesJSON = nil
 		}
 	}
@@ -50,7 +51,7 @@ func LogAudit(ctx context.Context, pool db.Pool, familyID, userID, action, entit
 		famUID, userUID, action, entityType, entityUID, changesJSON,
 	)
 	if err != nil {
-		log.Printf("audit: failed to insert audit log: %v", err)
+		logger.Errorf("audit: failed to insert audit log: %v", err)
 	}
 }
 

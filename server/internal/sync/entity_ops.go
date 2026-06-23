@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
-	"github.com/familyledger/server/pkg/dynupdate"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+
+	"github.com/familyledger/server/pkg/dynupdate"
+	"github.com/familyledger/server/pkg/logger"
 )
 
 // ── Loan sync operations ────────────────────────────────────────────────────
@@ -38,7 +39,7 @@ func (s *Service) applyLoanOp(ctx context.Context, tx pgx.Tx, userID uuid.UUID, 
 	case "delete":
 		return s.applyGenericSoftDelete(ctx, tx, userID, entityID, "loans")
 	default:
-		log.Printf("sync: unknown op_type %q for loan, skipping", opType)
+		logger.Warnf("sync: unknown op_type %q for loan, skipping", opType)
 		return nil
 	}
 }
@@ -146,7 +147,7 @@ func (s *Service) applyLoanGroupOp(ctx context.Context, tx pgx.Tx, userID uuid.U
 	case "delete":
 		return s.applyGenericSoftDelete(ctx, tx, userID, entityID, "loan_groups")
 	default:
-		log.Printf("sync: unknown op_type %q for loan_group, skipping", opType)
+		logger.Warnf("sync: unknown op_type %q for loan_group, skipping", opType)
 		return nil
 	}
 }
@@ -254,7 +255,7 @@ func (s *Service) applyInvestmentOp(ctx context.Context, tx pgx.Tx, userID uuid.
 	case "delete":
 		return s.applyGenericSoftDelete(ctx, tx, userID, entityID, "investments")
 	default:
-		log.Printf("sync: unknown op_type %q for investment, skipping", opType)
+		logger.Warnf("sync: unknown op_type %q for investment, skipping", opType)
 		return nil
 	}
 }
@@ -335,7 +336,7 @@ func (s *Service) applyFixedAssetOp(ctx context.Context, tx pgx.Tx, userID uuid.
 	case "delete":
 		return s.applyGenericSoftDelete(ctx, tx, userID, entityID, "fixed_assets")
 	default:
-		log.Printf("sync: unknown op_type %q for fixed_asset, skipping", opType)
+		logger.Warnf("sync: unknown op_type %q for fixed_asset, skipping", opType)
 		return nil
 	}
 }
@@ -422,7 +423,7 @@ func (s *Service) applyBudgetOp(ctx context.Context, tx pgx.Tx, userID uuid.UUID
 		}
 		return nil
 	default:
-		log.Printf("sync: unknown op_type %q for budget, skipping", opType)
+		logger.Warnf("sync: unknown op_type %q for budget, skipping", opType)
 		return nil
 	}
 }
@@ -517,7 +518,7 @@ func (s *Service) verifyOwnership(ctx context.Context, tx pgx.Tx, userID uuid.UU
 		if err == pgx.ErrNoRows {
 			return fmt.Errorf("entity not found")
 		}
-		log.Printf("sync: verifyOwnership query failed for %s %s: %v", table, entityID, err)
+		logger.Errorf("sync: verifyOwnership query failed for %s %s: %v", table, entityID, err)
 		return fmt.Errorf("failed to verify entity ownership")
 	}
 	if ownerID != userID {
@@ -537,11 +538,11 @@ func (s *Service) applyGenericSoftDelete(ctx context.Context, tx pgx.Tx, userID 
 	)
 	tag, err := tx.Exec(ctx, query, entityID, userID)
 	if err != nil {
-		log.Printf("sync: soft-delete failed for %s %s: %v", table, entityID, err)
+		logger.Errorf("sync: soft-delete failed for %s %s: %v", table, entityID, err)
 		return fmt.Errorf("failed to delete entity")
 	}
 	if tag.RowsAffected() == 0 {
-		log.Printf("sync: %s %s already deleted or not owned by user, skipping", table, entityID)
+		logger.Warnf("sync: %s %s already deleted or not owned by user, skipping", table, entityID)
 	}
 	return nil
 }

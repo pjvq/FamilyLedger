@@ -2,7 +2,6 @@ package ws
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	jwtpkg "github.com/familyledger/server/pkg/jwt"
+	"github.com/familyledger/server/pkg/logger"
 )
 
 const (
@@ -56,16 +56,16 @@ func init() {
 		// - Production: secure-by-default — reject browser origins, allow mobile (no Origin).
 		// - Development: allow all origins for convenience.
 		if isProduction {
-			log.Printf("ws: ALLOWED_ORIGINS not set in production - browser origins will be rejected, mobile (no Origin) allowed")
+			logger.Warnf("ws: ALLOWED_ORIGINS not set in production - browser origins will be rejected, mobile (no Origin) allowed")
 		} else {
 			allowAllOrigins = true
-			log.Printf("ws: ALLOWED_ORIGINS not set (non-production) - allowing all origins")
+			logger.Warnf("ws: ALLOWED_ORIGINS not set (non-production) - allowing all origins")
 		}
 		return
 	}
 	if raw == "*" {
 		allowAllOrigins = true
-		log.Printf("ws: ALLOWED_ORIGINS=* - explicitly allowing all origins")
+		logger.Infof("ws: ALLOWED_ORIGINS=* - explicitly allowing all origins")
 		return
 	}
 	allowedOrigins = make(map[string]struct{})
@@ -74,7 +74,7 @@ func init() {
 			allowedOrigins[trimmed] = struct{}{}
 		}
 	}
-	log.Printf("ws: allowed origins: %d entries", len(allowedOrigins))
+	logger.Infof("ws: allowed origins: %d entries", len(allowedOrigins))
 }
 
 var upgrader = websocket.Upgrader{
@@ -102,7 +102,7 @@ func checkOrigin(r *http.Request) bool {
 		return true
 	}
 
-	log.Printf("ws: rejected origin %q", origin)
+	logger.Warnf("ws: rejected origin %q", origin)
 	return false
 }
 
@@ -168,7 +168,7 @@ func NewHub(jwtManager *jwtpkg.Manager, configs ...HubConfig) *Hub {
 		cfg = configs[0]
 	}
 	if cfg.PingPeriod >= cfg.PongWait {
-		log.Fatalf("ws: PingPeriod (%v) must be < PongWait (%v)", cfg.PingPeriod, cfg.PongWait)
+		logger.Fatalf("ws: PingPeriod (%v) must be < PongWait (%v)", cfg.PingPeriod, cfg.PongWait)
 	}
 	if cfg.AuthTimeout == 0 {
 		cfg.AuthTimeout = defaultAuthTimeout
@@ -199,7 +199,7 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	if token != "" {
 		// Legacy query-string auth (deprecated)
-		log.Printf("ws: DEPRECATED: token passed via query string from %s — migrate to first-message auth", clientAddr)
+		logger.Warnf("ws: DEPRECATED: token passed via query string from %s — migrate to first-message auth", clientAddr)
 		claims, err := h.jwtManager.Verify(token)
 		if err != nil {
 			http.Error(w, "invalid token", http.StatusUnauthorized)
@@ -216,7 +216,7 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		newCount := h.pendingAuth.Add(1)
 		if newCount > int64(h.config.MaxPendingAuth) {
 			h.pendingAuth.Add(-1)
-			log.Printf("ws: max pending auth connections exceeded, rejecting %s", clientAddr)
+			logger.Warnf("ws: max pending auth connections exceeded, rejecting %s", clientAddr)
 			http.Error(w, "too many pending connections", http.StatusServiceUnavailable)
 			return
 		}
@@ -227,7 +227,7 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		h.pendingAuth.Add(-1) // release the slot we reserved
-		log.Printf("ws: upgrade error from %s: %v", clientAddr, err)
+		logger.Errorf("ws: upgrade error from %s: %v", clientAddr, err)
 		return
 	}
 
@@ -246,13 +246,13 @@ func (h *Hub) handleFirstMessageAuth(conn *websocket.Conn, clientAddr string) {
 	conn.SetReadDeadline(time.Now().Add(h.config.AuthTimeout))
 	_, msg, err := conn.ReadMessage()
 	if err != nil {
-		log.Printf("ws: auth timeout or read error from %s: %v", clientAddr, err)
+		logger.Warnf("ws: auth timeout or read error from %s: %v", clientAddr, err)
 		if wErr := conn.WriteControl(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(4002, "auth timeout"),
 			time.Now().Add(h.config.WriteWait),
 		); wErr != nil {
-			log.Printf("ws: failed to send close 4002 to %s: %v", clientAddr, wErr)
+			logger.Errorf("ws: failed to send close 4002 to %s: %v", clientAddr, wErr)
 		}
 		conn.Close()
 		return
@@ -260,13 +260,13 @@ func (h *Hub) handleFirstMessageAuth(conn *websocket.Conn, clientAddr string) {
 
 	var authMsg authMessage
 	if err := json.Unmarshal(msg, &authMsg); err != nil || authMsg.Type != "auth" || authMsg.Token == "" {
-		log.Printf("ws: invalid auth message from %s", clientAddr)
+		logger.Warnf("ws: invalid auth message from %s", clientAddr)
 		if wErr := conn.WriteControl(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(4003, "invalid auth message"),
 			time.Now().Add(h.config.WriteWait),
 		); wErr != nil {
-			log.Printf("ws: failed to send close 4003 to %s: %v", clientAddr, wErr)
+			logger.Errorf("ws: failed to send close 4003 to %s: %v", clientAddr, wErr)
 		}
 		conn.Close()
 		return
@@ -274,13 +274,13 @@ func (h *Hub) handleFirstMessageAuth(conn *websocket.Conn, clientAddr string) {
 
 	claims, err := h.jwtManager.Verify(authMsg.Token)
 	if err != nil {
-		log.Printf("ws: auth failed from %s: invalid token", clientAddr)
+		logger.Warnf("ws: auth failed from %s: invalid token", clientAddr)
 		if wErr := conn.WriteControl(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(4004, "invalid token"),
 			time.Now().Add(h.config.WriteWait),
 		); wErr != nil {
-			log.Printf("ws: failed to send close 4004 to %s: %v", clientAddr, wErr)
+			logger.Errorf("ws: failed to send close 4004 to %s: %v", clientAddr, wErr)
 		}
 		conn.Close()
 		return
@@ -304,7 +304,7 @@ func (h *Hub) handleFirstMessageAuth(conn *websocket.Conn, clientAddr string) {
 	// Send auth_ok AFTER register (so client won't miss broadcasts)
 	conn.SetWriteDeadline(time.Now().Add(h.config.WriteWait))
 	if err := conn.WriteMessage(websocket.TextMessage, authOKMsg); err != nil {
-		log.Printf("ws: failed to send auth_ok to %s: %v", clientAddr, err)
+		logger.Errorf("ws: failed to send auth_ok to %s: %v", clientAddr, err)
 		h.unregister(client)
 		return
 	}
@@ -320,7 +320,7 @@ func (h *Hub) handleFirstMessageAuth(conn *websocket.Conn, clientAddr string) {
 func (h *Hub) registerIfAllowed(w http.ResponseWriter, r *http.Request, userID, token, clientAddr string) bool {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("ws: upgrade error from %s: %v", clientAddr, err)
+		logger.Errorf("ws: upgrade error from %s: %v", clientAddr, err)
 		return false
 	}
 
@@ -352,13 +352,13 @@ func (h *Hub) registerAtomic(client *Client, clientAddr string) bool {
 		if len(h.clients[client.userID]) >= h.config.MaxConnsPerUser {
 			h.mu.Unlock()
 			// Network I/O outside lock to prevent Hub deadlock
-			log.Printf("ws: max connections (%d) exceeded for user %s from %s", h.config.MaxConnsPerUser, client.userID, clientAddr)
+			logger.Warnf("ws: max connections (%d) exceeded for user %s from %s", h.config.MaxConnsPerUser, client.userID, clientAddr)
 			if wErr := client.conn.WriteControl(
 				websocket.CloseMessage,
 				websocket.FormatCloseMessage(4005, "max connections exceeded"),
 				time.Now().Add(h.config.WriteWait),
 			); wErr != nil {
-				log.Printf("ws: failed to send close 4005 to %s: %v", clientAddr, wErr)
+				logger.Errorf("ws: failed to send close 4005 to %s: %v", clientAddr, wErr)
 			}
 			client.conn.Close()
 			return false
@@ -369,7 +369,7 @@ func (h *Hub) registerAtomic(client *Client, clientAddr string) bool {
 		h.clients[client.userID] = make(map[*Client]bool)
 	}
 	h.clients[client.userID][client] = true
-	log.Printf("ws: client connected for user %s from %s (total: %d)", client.userID, clientAddr, len(h.clients[client.userID]))
+	logger.Infof("ws: client connected for user %s from %s (total: %d)", client.userID, clientAddr, len(h.clients[client.userID]))
 	h.mu.Unlock()
 	return true
 }
@@ -382,7 +382,7 @@ func (h *Hub) register(client *Client) {
 		h.clients[client.userID] = make(map[*Client]bool)
 	}
 	h.clients[client.userID][client] = true
-	log.Printf("ws: client connected for user %s (total: %d)", client.userID, len(h.clients[client.userID]))
+	logger.Infof("ws: client connected for user %s (total: %d)", client.userID, len(h.clients[client.userID]))
 }
 
 func (h *Hub) unregister(client *Client) {
@@ -399,7 +399,7 @@ func (h *Hub) unregister(client *Client) {
 		close(client.done)
 		close(client.send)
 		client.conn.Close()
-		log.Printf("ws: client disconnected for user %s", client.userID)
+		logger.Infof("ws: client disconnected for user %s", client.userID)
 	})
 }
 
@@ -458,7 +458,7 @@ func (c *Client) writePump() {
 				return
 			}
 			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-				log.Printf("ws: write error: %v", err)
+				logger.Warnf("ws: write error: %v", err)
 				return
 			}
 		case <-ticker.C:
@@ -469,12 +469,12 @@ func (c *Client) writePump() {
 				"server_time": time.Now().UnixMilli(),
 			})
 			if err := c.conn.WriteMessage(websocket.TextMessage, hb); err != nil {
-				log.Printf("ws: heartbeat write error: %v", err)
+				logger.Warnf("ws: heartbeat write error: %v", err)
 				return
 			}
 			// Also send protocol-level ping for connection keepalive
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				log.Printf("ws: ping error: %v", err)
+				logger.Warnf("ws: ping error: %v", err)
 				return
 			}
 		}
@@ -500,7 +500,7 @@ func (c *Client) readPump(h *Hub) {
 		_, _, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("ws: read error: %v", err)
+				logger.Errorf("ws: read error: %v", err)
 			}
 			return
 		}
@@ -519,13 +519,13 @@ func (c *Client) tokenCheckLoop(h *Hub) {
 		case <-ticker.C:
 			_, err := h.jwtManager.Verify(c.token)
 			if err != nil {
-				log.Printf("ws: token expired for user %s, disconnecting", c.userID)
+				logger.Infof("ws: token expired for user %s, disconnecting", c.userID)
 				if wErr := c.conn.WriteControl(
 					websocket.CloseMessage,
 					websocket.FormatCloseMessage(4001, "token expired"),
 					time.Now().Add(c.hub.config.WriteWait),
 				); wErr != nil {
-					log.Printf("ws: failed to send close 4001: %v", wErr)
+					logger.Errorf("ws: failed to send close 4001: %v", wErr)
 				}
 				h.unregister(c)
 				c.conn.Close()

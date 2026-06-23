@@ -2,15 +2,15 @@ package market
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/familyledger/server/pkg/db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/logger"
 	pb "github.com/familyledger/server/proto/investment"
 )
 
@@ -62,7 +62,7 @@ func (s *Service) BatchGetQuotes(ctx context.Context, req *pb.BatchGetQuotesRequ
 		mt := marketTypeToString(r.MarketType)
 		q, err := s.getOrFetchQuote(ctx, r.Symbol, mt)
 		if err != nil {
-			log.Printf("market: batch quote error for %s/%s: %v", r.Symbol, mt, err)
+			logger.Errorf("market: batch quote error for %s/%s: %v", r.Symbol, mt, err)
 			continue
 		}
 		quotes = append(quotes, quoteToProto(q))
@@ -125,7 +125,7 @@ func (s *Service) SearchSymbol(ctx context.Context, req *pb.SearchSymbolRequest)
 	if len(results) == 0 {
 		external, err := s.fetcher.SearchSymbol(ctx, req.Query, mt)
 		if err != nil {
-			log.Printf("market: external search error: %v", err)
+			logger.Errorf("market: external search error: %v", err)
 		} else {
 			for _, si := range external {
 				results = append(results, &pb.SymbolInfo{
@@ -245,7 +245,7 @@ func (s *Service) getOrFetchQuote(ctx context.Context, symbol, marketType string
 		mq.ChangePercent, mq.Open, mq.High, mq.Low, mq.PrevClose, now,
 	)
 	if err != nil {
-		log.Printf("market: cache upsert error: %v", err)
+		logger.Errorf("market: cache upsert error: %v", err)
 	}
 
 	return &cachedQuote{
@@ -346,11 +346,11 @@ func (s *Service) RefreshQuotes(ctx context.Context, marketTypes []string) error
 		return nil
 	}
 
-	log.Printf("market: refreshing %d quotes", len(symbols))
+	logger.Debugf("market: refreshing %d quotes", len(symbols))
 	for _, sk := range symbols {
 		mq, err := s.fetcher.FetchQuote(ctx, sk.symbol, sk.marketType)
 		if err != nil {
-			log.Printf("market: refresh error %s/%s: %v", sk.symbol, sk.marketType, err)
+			logger.Errorf("market: refresh error %s/%s: %v", sk.symbol, sk.marketType, err)
 			continue
 		}
 
@@ -369,7 +369,7 @@ func (s *Service) RefreshQuotes(ctx context.Context, marketTypes []string) error
 			mq.ChangePercent, mq.Open, mq.High, mq.Low, mq.PrevClose, now,
 		)
 		if err != nil {
-			log.Printf("market: cache upsert error %s/%s: %v", sk.symbol, sk.marketType, err)
+			logger.Errorf("market: cache upsert error %s/%s: %v", sk.symbol, sk.marketType, err)
 		}
 
 		// Also insert into price_history for today
@@ -380,7 +380,7 @@ func (s *Service) RefreshQuotes(ctx context.Context, marketTypes []string) error
 			sk.symbol, sk.marketType, now.Format("2006-01-02"), mq.CurrentPrice,
 		)
 		if err != nil {
-			log.Printf("market: price_history upsert error: %v", err)
+			logger.Errorf("market: price_history upsert error: %v", err)
 		}
 	}
 

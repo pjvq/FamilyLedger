@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"log"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -11,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/familyledger/server/pkg/jwt"
+	"github.com/familyledger/server/pkg/logger"
 )
 
 type contextKey string
@@ -38,7 +38,7 @@ func UnaryAuthInterceptor(jwtManager *jwt.Manager) grpc.UnaryServerInterceptor {
 
 		userID, err := extractAndValidateToken(ctx, jwtManager)
 		if err != nil {
-			log.Printf("auth: rejected %s: %v", info.FullMethod, err)
+			logger.Warnf("auth: rejected %s: %v", info.FullMethod, err)
 			return nil, err
 		}
 

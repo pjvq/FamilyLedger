@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -38,7 +37,6 @@ import (
 	"github.com/familyledger/server/pkg/middleware"
 	"github.com/familyledger/server/pkg/tlsconf"
 	"github.com/familyledger/server/pkg/ws"
-
 	acctpb "github.com/familyledger/server/proto/account"
 	assetpb "github.com/familyledger/server/proto/asset"
 	authpb "github.com/familyledger/server/proto/auth"
@@ -65,13 +63,13 @@ func main() {
 	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
 	if dbUser == "" || dbPassword == "" {
-		log.Fatal("FATAL: DB_USER and DB_PASSWORD environment variables are required")
+		logger.Fatal("DB_USER and DB_PASSWORD environment variables are required")
 	}
 	dbPort := 5432
 	if p := os.Getenv("DB_PORT"); p != "" {
 		v, err := strconv.Atoi(p)
 		if err != nil || v < 1 || v > 65535 {
-			log.Fatalf("FATAL: invalid DB_PORT %q (must be 1-65535)", p)
+			logger.Fatalf("invalid DB_PORT %q (must be 1-65535)", p)
 		}
 		dbPort = v
 	}
@@ -93,10 +91,10 @@ func main() {
 	// Database
 	pool, err := db.NewPool(ctx, dbCfg)
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		logger.Fatalf("failed to connect to database: %v", err)
 	}
 	defer pool.Close()
-	log.Println("connected to database")
+	logger.Infof("connected to database")
 
 	// JWT Manager
 	jwtManager := jwtpkg.NewManager(jwtSecret)
@@ -106,14 +104,14 @@ func main() {
 	if v := os.Getenv("WS_TOKEN_CHECK_INTERVAL"); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
 			hubCfg.TokenCheckInterval = d
-			log.Printf("ws: token check interval set to %v", d)
+			logger.Infof("ws: token check interval set to %v", d)
 		}
 	}
 	if v := os.Getenv("WS_PONG_WAIT"); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
 			hubCfg.PongWait = d
 			hubCfg.PingPeriod = d / 2 // ping must be < pong wait
-			log.Printf("ws: pong wait set to %v, ping period %v", d, d/2)
+			logger.Infof("ws: pong wait set to %v, ping period %v", d, d/2)
 		}
 	}
 	hub := ws.NewHub(jwtManager, hubCfg)
@@ -146,15 +144,15 @@ func main() {
 	var tlsProvider *tlsconf.Provider
 	tlsCfg, tlsErr := tlsconf.LoadFromEnv()
 	if tlsErr != nil {
-		log.Fatalf("invalid TLS configuration: %v", tlsErr)
+		logger.Fatalf("invalid TLS configuration: %v", tlsErr)
 	}
 	if tlsCfg != nil {
 		var err error
 		tlsProvider, err = tlsconf.NewProvider(*tlsCfg)
 		if err != nil {
-			log.Fatalf("failed to initialize TLS: %v", err)
+			logger.Fatalf("failed to initialize TLS: %v", err)
 		}
-		log.Println("TLS: enabled for gRPC and WebSocket")
+		logger.Infof("TLS: enabled for gRPC and WebSocket")
 
 		// Reload certificates on SIGHUP (zero-downtime rotation).
 		// The goroutine exits when ctx is canceled during graceful shutdown.
@@ -166,9 +164,9 @@ func main() {
 				select {
 				case <-sighup:
 					if err := tlsProvider.Reload(); err != nil {
-						log.Printf("TLS: cert reload failed: %v", err)
+						logger.Errorf("TLS: cert reload failed: %v", err)
 					} else {
-						log.Println("TLS: certificates reloaded successfully")
+						logger.Infof("TLS: certificates reloaded successfully")
 					}
 				case <-ctx.Done():
 					return
@@ -176,7 +174,7 @@ func main() {
 			}
 		}()
 	} else {
-		log.Println("TLS: DISABLED (set TLS_CERT_FILE/TLS_KEY_FILE for production)")
+		logger.Warnf("TLS: DISABLED (set TLS_CERT_FILE/TLS_KEY_FILE for production)")
 	}
 
 	// gRPC Server
@@ -214,19 +212,28 @@ func main() {
 	// Only enable gRPC reflection in dev/staging (default off for security)
 	if os.Getenv("ENABLE_GRPC_REFLECTION") == "true" {
 		reflection.Register(grpcServer)
-		log.Println("gRPC reflection enabled (ENABLE_GRPC_REFLECTION=true)")
+		logger.Infof("gRPC reflection enabled (ENABLE_GRPC_REFLECTION=true)")
 	}
+
+	// serverErr carries a fatal error from a server goroutine back to main so
+	// it can shut down gracefully (running defers) instead of os.Exit-ing from
+	// the goroutine and skipping pool.Close / context cancel / WS close.
+	// Buffered for the two long-lived server goroutines (gRPC + WebSocket) so
+	// neither blocks if main has already begun shutting down for the other.
+	const serverGoroutines = 2 // gRPC + WebSocket
+	serverErr := make(chan error, serverGoroutines)
 
 	// Start gRPC
 	grpcLis, err := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%s", grpcPort))
 	if err != nil {
-		log.Fatalf("failed to listen on port %s: %v", grpcPort, err)
+		logger.Fatalf("failed to listen on port %s: %v", grpcPort, err)
 	}
 
 	go func() {
-		log.Printf("gRPC server listening on :%s", grpcPort)
+		logger.Infof("gRPC server listening on :%s", grpcPort)
 		if err := grpcServer.Serve(grpcLis); err != nil {
-			log.Fatalf("gRPC server error: %v", err)
+			logger.Errorf("gRPC server error: %v", err)
+			serverErr <- err
 		}
 	}()
 
@@ -254,16 +261,18 @@ func main() {
 	go func() {
 		if tlsProvider != nil {
 			wsServer.TLSConfig = tlsProvider.TLSConfig()
-			log.Printf("WebSocket server listening on :%s (TLS)", wsPort)
+			logger.Infof("WebSocket server listening on :%s (TLS)", wsPort)
 			// Empty cert/key paths: TLS is handled by TLSConfig.GetCertificate
 			// which serves the hot-reloadable certificate via atomic.Pointer.
 			if err := wsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
-				log.Fatalf("WebSocket server error: %v", err)
+				logger.Errorf("WebSocket server error: %v", err)
+				serverErr <- err
 			}
 		} else {
-			log.Printf("WebSocket server listening on :%s (plaintext)", wsPort)
+			logger.Infof("WebSocket server listening on :%s (plaintext)", wsPort)
 			if err := wsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				log.Fatalf("WebSocket server error: %v", err)
+				logger.Errorf("WebSocket server error: %v", err)
+				serverErr <- err
 			}
 		}
 	}()
@@ -275,12 +284,15 @@ func main() {
 	go runExchangeRateRefreshTask(ctx, exchangeService)
 	go runImportSessionCleanupTask(ctx, importService)
 
-	// Graceful shutdown
+	// Graceful shutdown: triggered by an OS signal or a fatal server error.
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	log.Println("shutting down...")
+	select {
+	case <-quit:
+		logger.Infof("shutting down...")
+	case err := <-serverErr:
+		logger.Errorf("fatal server error, shutting down: %v", err)
+	}
 	cancel() // signal scheduled tasks to stop
 
 	// Graceful stop with timeout
@@ -291,25 +303,36 @@ func main() {
 	}()
 	select {
 	case <-stopped:
-		log.Println("gRPC server stopped gracefully")
+		logger.Infof("gRPC server stopped gracefully")
 	case <-time.After(10 * time.Second):
-		log.Println("gRPC graceful stop timed out, forcing...")
+		logger.Warnf("gRPC graceful stop timed out, forcing...")
 		grpcServer.Stop()
 	}
 
 	wsServer.Shutdown(context.Background())
-	log.Println("server stopped")
+	logger.Infof("server stopped")
+}
+
+// stoppedDuringChecks logs and reports context cancellation so a scheduler
+// loop can bail out between sequential steps without repeating the
+// check-log-return boilerplate.
+func stoppedDuringChecks(ctx context.Context, scheduler string) bool {
+	if ctx.Err() != nil {
+		logger.Infof("%s: shutdown mid-cycle, aborting remaining work", scheduler)
+		return true
+	}
+	return false
 }
 
 // runScheduledTasks runs periodic tasks. Currently checks budgets daily at 21:00 CST.
 func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 	cst, err := time.LoadLocation("Asia/Shanghai")
 	if err != nil {
-		log.Printf("scheduler: failed to load CST timezone, falling back to UTC+8: %v", err)
+		logger.Warnf("scheduler: failed to load CST timezone, falling back to UTC+8: %v", err)
 		cst = time.FixedZone("CST", 8*60*60)
 	}
 
-	log.Println("scheduler: started, budget+loan check scheduled daily at 21:00 CST")
+	logger.Infof("scheduler: started, budget+loan check scheduled daily at 21:00 CST")
 
 	for {
 		now := time.Now().In(cst)
@@ -319,50 +342,47 @@ func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 			next = next.Add(24 * time.Hour)
 		}
 		waitDuration := time.Until(next)
-		log.Printf("scheduler: next budget check at %s (in %s)", next.Format(time.RFC3339), waitDuration.Round(time.Minute))
+		logger.Infof("scheduler: next budget check at %s (in %s)", next.Format(time.RFC3339), waitDuration.Round(time.Minute))
 
 		select {
 		case <-ctx.Done():
-			log.Println("scheduler: stopped")
+			logger.Infof("scheduler: stopped")
 			return
 		case <-time.After(waitDuration):
-			log.Println("scheduler: running budget check...")
+			logger.Infof("scheduler: running budget check...")
 			checkCtx, checkCancel := context.WithTimeout(ctx, 5*time.Minute)
 			if err := notifyService.CheckBudgets(checkCtx); err != nil {
-				log.Printf("scheduler: budget check error: %v", err)
+				logger.Errorf("scheduler: budget check error: %v", err)
 			}
 			checkCancel()
 
-			if ctx.Err() != nil {
-				log.Println("scheduler: shutdown during checks, aborting remaining")
+			if stoppedDuringChecks(ctx, "scheduler") {
 				return
 			}
 
-			log.Println("scheduler: running loan reminder check...")
+			logger.Infof("scheduler: running loan reminder check...")
 			loanCtx, loanCancel := context.WithTimeout(ctx, 5*time.Minute)
 			if err := notifyService.CheckLoanReminders(loanCtx); err != nil {
-				log.Printf("scheduler: loan reminder check error: %v", err)
+				logger.Errorf("scheduler: loan reminder check error: %v", err)
 			}
 			loanCancel()
 
-			if ctx.Err() != nil {
-				log.Println("scheduler: shutdown during checks, aborting remaining")
+			if stoppedDuringChecks(ctx, "scheduler") {
 				return
 			}
 
-			log.Println("scheduler: running custom reminder check...")
+			logger.Infof("scheduler: running custom reminder check...")
 			reminderCtx, reminderCancel := context.WithTimeout(ctx, 5*time.Minute)
 			if err := notifyService.CheckCustomReminders(reminderCtx); err != nil {
-				log.Printf("scheduler: custom reminder check error: %v", err)
+				logger.Errorf("scheduler: custom reminder check error: %v", err)
 			}
 			reminderCancel()
 
-			if ctx.Err() != nil {
-				log.Println("scheduler: shutdown during checks, aborting remaining")
+			if stoppedDuringChecks(ctx, "scheduler") {
 				return
 			}
 
-			log.Println("scheduler: all checks complete")
+			logger.Infof("scheduler: all checks complete")
 		}
 	}
 }
@@ -372,7 +392,7 @@ func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 // - Trading hours: every 15 min
 // - Off-hours: every 4 hours (stocks), crypto always 15 min
 func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
-	log.Println("market-scheduler: started")
+	logger.Infof("market-scheduler: started")
 
 	for {
 		now := time.Now()
@@ -383,7 +403,7 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 
 		select {
 		case <-ctx.Done():
-			log.Println("market-scheduler: stopped")
+			logger.Infof("market-scheduler: stopped")
 			return
 		case <-time.After(interval):
 			now = time.Now()
@@ -391,11 +411,10 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 
 			// Always refresh crypto (24/7)
 			if err := marketService.RefreshQuotes(refreshCtx, []string{"crypto"}); err != nil {
-				log.Printf("market-scheduler: crypto refresh error: %v", err)
+				logger.Errorf("market-scheduler: crypto refresh error: %v", err)
 			}
 
-			if ctx.Err() != nil {
-				log.Println("market-scheduler: shutdown during refresh, aborting remaining")
+			if stoppedDuringChecks(ctx, "market-scheduler") {
 				cancel()
 				return
 			}
@@ -403,12 +422,11 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 			// Refresh A-share/fund only during CN trading hours
 			if market.IsTradingHours(now, "a_share") {
 				if err := marketService.RefreshQuotes(refreshCtx, []string{"a_share", "fund"}); err != nil {
-					log.Printf("market-scheduler: a_share/fund refresh error: %v", err)
+					logger.Errorf("market-scheduler: a_share/fund refresh error: %v", err)
 				}
 			}
 
-			if ctx.Err() != nil {
-				log.Println("market-scheduler: shutdown during refresh, aborting remaining")
+			if stoppedDuringChecks(ctx, "market-scheduler") {
 				cancel()
 				return
 			}
@@ -416,12 +434,11 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 			// Refresh HK stocks only during HK trading hours
 			if market.IsTradingHours(now, "hk_stock") {
 				if err := marketService.RefreshQuotes(refreshCtx, []string{"hk_stock"}); err != nil {
-					log.Printf("market-scheduler: hk_stock refresh error: %v", err)
+					logger.Errorf("market-scheduler: hk_stock refresh error: %v", err)
 				}
 			}
 
-			if ctx.Err() != nil {
-				log.Println("market-scheduler: shutdown during refresh, aborting remaining")
+			if stoppedDuringChecks(ctx, "market-scheduler") {
 				cancel()
 				return
 			}
@@ -429,7 +446,7 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 			// Refresh US stocks only during US trading hours
 			if market.IsTradingHours(now, "us_stock") {
 				if err := marketService.RefreshQuotes(refreshCtx, []string{"us_stock"}); err != nil {
-					log.Printf("market-scheduler: us_stock refresh error: %v", err)
+					logger.Errorf("market-scheduler: us_stock refresh error: %v", err)
 				}
 			}
 
@@ -442,11 +459,11 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 func runDepreciationTask(ctx context.Context, assetService *asset.Service) {
 	cst, err := time.LoadLocation("Asia/Shanghai")
 	if err != nil {
-		log.Printf("depreciation-scheduler: failed to load CST timezone, falling back to UTC+8: %v", err)
+		logger.Warnf("depreciation-scheduler: failed to load CST timezone, falling back to UTC+8: %v", err)
 		cst = time.FixedZone("CST", 8*60*60)
 	}
 
-	log.Println("depreciation-scheduler: started, monthly depreciation on 1st at 00:05 CST")
+	logger.Infof("depreciation-scheduler: started, monthly depreciation on 1st at 00:05 CST")
 
 	for {
 		now := time.Now().In(cst)
@@ -459,20 +476,20 @@ func runDepreciationTask(ctx context.Context, assetService *asset.Service) {
 		}
 
 		waitDuration := time.Until(next)
-		log.Printf("depreciation-scheduler: next run at %s (in %s)", next.Format(time.RFC3339), waitDuration.Round(time.Minute))
+		logger.Infof("depreciation-scheduler: next run at %s (in %s)", next.Format(time.RFC3339), waitDuration.Round(time.Minute))
 
 		select {
 		case <-ctx.Done():
-			log.Println("depreciation-scheduler: stopped")
+			logger.Infof("depreciation-scheduler: stopped")
 			return
 		case <-time.After(waitDuration):
-			log.Println("depreciation-scheduler: running monthly depreciation...")
+			logger.Infof("depreciation-scheduler: running monthly depreciation...")
 			depCtx, depCancel := context.WithTimeout(ctx, 10*time.Minute)
 			if err := assetService.RunMonthlyDepreciationAll(depCtx); err != nil {
-				log.Printf("depreciation-scheduler: error: %v", err)
+				logger.Errorf("depreciation-scheduler: error: %v", err)
 			}
 			depCancel()
-			log.Println("depreciation-scheduler: complete")
+			logger.Infof("depreciation-scheduler: complete")
 		}
 	}
 }
@@ -488,7 +505,7 @@ func getEnvInt(key string, fallback int) int {
 	if value, ok := os.LookupEnv(key); ok {
 		n, err := strconv.Atoi(value)
 		if err != nil {
-			log.Printf("WARNING: env %s=%q is not a valid integer, using default %d", key, value, fallback)
+			logger.Warnf("env %s=%q is not a valid integer, using default %d", key, value, fallback)
 			return fallback
 		}
 		return n
@@ -500,11 +517,11 @@ func getEnvInt(key string, fallback int) int {
 func getEnvInt32(key string, fallback int32) int32 {
 	n := getEnvInt(key, int(fallback))
 	if n <= 0 {
-		log.Printf("WARNING: env %s=%d is not positive, using default %d", key, n, fallback)
+		logger.Warnf("env %s=%d is not positive, using default %d", key, n, fallback)
 		return fallback
 	}
 	if n > int(^int32(0)>>1) { // math.MaxInt32 without importing math
-		log.Printf("WARNING: env %s=%d exceeds int32 max, using default %d", key, n, fallback)
+		logger.Warnf("env %s=%d exceeds int32 max, using default %d", key, n, fallback)
 		return fallback
 	}
 	return int32(n)
@@ -512,24 +529,24 @@ func getEnvInt32(key string, fallback int32) int32 {
 
 // runExchangeRateRefreshTask refreshes exchange rates every hour.
 func runExchangeRateRefreshTask(ctx context.Context, exchangeService *market.ExchangeService) {
-	log.Println("exchange-scheduler: started, refresh every hour")
+	logger.Infof("exchange-scheduler: started, refresh every hour")
 
 	// Initial refresh on startup
 	refreshCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	if err := exchangeService.RefreshExchangeRates(refreshCtx); err != nil {
-		log.Printf("exchange-scheduler: initial refresh error: %v", err)
+		logger.Errorf("exchange-scheduler: initial refresh error: %v", err)
 	}
 	cancel()
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("exchange-scheduler: stopped")
+			logger.Infof("exchange-scheduler: stopped")
 			return
 		case <-time.After(1 * time.Hour):
 			refreshCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 			if err := exchangeService.RefreshExchangeRates(refreshCtx); err != nil {
-				log.Printf("exchange-scheduler: refresh error: %v", err)
+				logger.Errorf("exchange-scheduler: refresh error: %v", err)
 			}
 			cancel()
 		}
@@ -538,17 +555,17 @@ func runExchangeRateRefreshTask(ctx context.Context, exchangeService *market.Exc
 
 // runImportSessionCleanupTask cleans up expired import sessions every hour.
 func runImportSessionCleanupTask(ctx context.Context, importService *importcsv.Service) {
-	log.Println("import-cleanup-scheduler: started, cleanup every hour")
+	logger.Infof("import-cleanup-scheduler: started, cleanup every hour")
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("import-cleanup-scheduler: stopped")
+			logger.Infof("import-cleanup-scheduler: stopped")
 			return
 		case <-time.After(1 * time.Hour):
 			cleanCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 			if err := importService.CleanupExpiredSessions(cleanCtx); err != nil {
-				log.Printf("import-cleanup-scheduler: error: %v", err)
+				logger.Errorf("import-cleanup-scheduler: error: %v", err)
 			}
 			cancel()
 		}

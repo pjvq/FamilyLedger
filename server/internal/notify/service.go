@@ -4,17 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/familyledger/server/pkg/db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/logger"
 	"github.com/familyledger/server/pkg/middleware"
 	pb "github.com/familyledger/server/proto/notify"
 )
@@ -60,11 +60,11 @@ func (s *Service) RegisterDevice(ctx context.Context, req *pb.RegisterDeviceRequ
 		uid, req.DeviceToken, req.Platform, req.DeviceName,
 	).Scan(&deviceID)
 	if err != nil {
-		log.Printf("notify: register device error: %v", err)
+		logger.Errorf("notify: register device error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to register device")
 	}
 
-	log.Printf("notify: registered device %s for user %s", deviceID, userID)
+	logger.Infof("notify: registered device %s for user %s", deviceID, userID)
 	return &pb.RegisterDeviceResponse{DeviceId: deviceID.String()}, nil
 }
 
@@ -90,7 +90,7 @@ func (s *Service) UnregisterDevice(ctx context.Context, req *pb.UnregisterDevice
 		return nil, status.Error(codes.NotFound, "device not found")
 	}
 
-	log.Printf("notify: unregistered device %s", deviceID)
+	logger.Infof("notify: unregistered device %s", deviceID)
 	return &pb.UnregisterDeviceResponse{}, nil
 }
 
@@ -149,7 +149,7 @@ func (s *Service) UpdateNotificationSettings(ctx context.Context, req *pb.Update
 		req.Settings.ReminderDaysBefore,
 	)
 	if err != nil {
-		log.Printf("notify: update settings error: %v", err)
+		logger.Errorf("notify: update settings error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update notification settings")
 	}
 
@@ -299,7 +299,7 @@ func (s *Service) CheckBudgets(ctx context.Context) error {
 	startOfMonth := time.Date(int(year), time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	endOfMonth := startOfMonth.AddDate(0, 1, 0)
 
-	log.Printf("notify: checking budgets for %d-%02d", year, month)
+	logger.Infof("notify: checking budgets for %d-%02d", year, month)
 
 	// Get all budgets for current month
 	rows, err := s.pool.Query(ctx,
@@ -349,7 +349,7 @@ func (s *Service) CheckBudgets(ctx context.Context) error {
 				b.FamilyID, startOfMonth, endOfMonth,
 			).Scan(&totalSpent)
 			if err != nil {
-				log.Printf("notify: failed to compute spent for family budget %s: %v", b.ID, err)
+				logger.Errorf("notify: failed to compute spent for family budget %s: %v", b.ID, err)
 				continue
 			}
 		} else {
@@ -362,7 +362,7 @@ func (s *Service) CheckBudgets(ctx context.Context) error {
 				b.UserID, startOfMonth, endOfMonth,
 			).Scan(&totalSpent)
 			if err != nil {
-				log.Printf("notify: failed to compute spent for budget %s: %v", b.ID, err)
+				logger.Errorf("notify: failed to compute spent for budget %s: %v", b.ID, err)
 				continue
 			}
 		}
@@ -376,7 +376,7 @@ func (s *Service) CheckBudgets(ctx context.Context) error {
 		// Determine recipients: for family budgets, notify all family members with budget_alert enabled
 		recipients, err := s.getBudgetNotificationRecipients(ctx, b.UserID, b.FamilyID)
 		if err != nil {
-			log.Printf("notify: failed to get recipients for budget %s: %v", b.ID, err)
+			logger.Errorf("notify: failed to get recipients for budget %s: %v", b.ID, err)
 			continue
 		}
 
@@ -391,9 +391,9 @@ func (s *Service) CheckBudgets(ctx context.Context) error {
 					map[string]interface{}{"budget_id": b.ID.String(), "execution_rate": rate},
 				)
 				if err != nil {
-					log.Printf("notify: failed to create budget_exceeded notification: %v", err)
+					logger.Errorf("notify: failed to create budget_exceeded notification: %v", err)
 				} else {
-					log.Printf("notify: budget_exceeded notification created for user %s budget %s (%.0f%%)", recipientID, b.ID, rate*100)
+					logger.Infof("notify: budget_exceeded notification created for user %s budget %s (%.0f%%)", recipientID, b.ID, rate*100)
 				}
 			}
 		} else if rate >= 0.8 {
@@ -407,15 +407,15 @@ func (s *Service) CheckBudgets(ctx context.Context) error {
 					map[string]interface{}{"budget_id": b.ID.String(), "execution_rate": rate},
 				)
 				if err != nil {
-					log.Printf("notify: failed to create budget_warning notification: %v", err)
+					logger.Errorf("notify: failed to create budget_warning notification: %v", err)
 				} else {
-					log.Printf("notify: budget_warning notification created for user %s budget %s (%.0f%%)", recipientID, b.ID, rate*100)
+					logger.Infof("notify: budget_warning notification created for user %s budget %s (%.0f%%)", recipientID, b.ID, rate*100)
 				}
 			}
 		}
 	}
 
-	log.Printf("notify: budget check complete, processed %d budgets", len(budgets))
+	logger.Infof("notify: budget check complete, processed %d budgets", len(budgets))
 	return nil
 }
 
@@ -496,7 +496,7 @@ func (s *Service) hasNotification(ctx context.Context, userID, budgetID, nType s
 		userID, nType, budgetID, startOfMonth, endOfMonth,
 	).Scan(&exists)
 	if err != nil {
-		log.Printf("notify: hasNotification check error: %v", err)
+		logger.Errorf("notify: hasNotification check error: %v", err)
 		return false // Fail open: allow duplicate rather than miss notification
 	}
 	return exists
@@ -519,7 +519,7 @@ func (s *Service) hasCreditCardNotification(ctx context.Context, userID, account
 		userID, nType, accountID, startOfDay, endOfDay,
 	).Scan(&exists)
 	if err != nil {
-		log.Printf("notify: hasCreditCardNotification check error: %v", err)
+		logger.Errorf("notify: hasCreditCardNotification check error: %v", err)
 		return false
 	}
 	return exists
@@ -534,7 +534,7 @@ func (s *Service) CheckCreditCardReminders(ctx context.Context) error {
 	// Last day of current month (for billing days that exceed the month's length)
 	lastDayOfMonth := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, time.UTC).Day()
 
-	log.Printf("notify: checking credit card reminders for day %d (last day=%d)", today, lastDayOfMonth)
+	logger.Infof("notify: checking credit card reminders for day %d (last day=%d)", today, lastDayOfMonth)
 
 	// Query all credit card accounts with billing_day or payment_due_day set
 	rows, err := s.pool.Query(ctx,
@@ -564,7 +564,7 @@ func (s *Service) CheckCreditCardReminders(ctx context.Context) error {
 		var familyID *uuid.UUID
 		var billingDay, paymentDueDay *int
 		if err := rows.Scan(&a.ID, &uid, &familyID, &a.Name, &billingDay, &paymentDueDay); err != nil {
-			log.Printf("notify: scan credit card account error: %v", err)
+			logger.Errorf("notify: scan credit card account error: %v", err)
 			continue
 		}
 		a.UserID = uid.String()
@@ -594,7 +594,7 @@ func (s *Service) CheckCreditCardReminders(ctx context.Context) error {
 					map[string]interface{}{"account_id": a.ID.String(), "billing_day": *a.BillingDay},
 				)
 				if err != nil {
-					log.Printf("notify: failed to create billing_day_reminder: %v", err)
+					logger.Errorf("notify: failed to create billing_day_reminder: %v", err)
 				} else {
 					created++
 				}
@@ -635,7 +635,7 @@ func (s *Service) CheckCreditCardReminders(ctx context.Context) error {
 						map[string]interface{}{"account_id": a.ID.String(), "payment_due_day": dueDay, "days_until_due": daysUntilDue},
 					)
 					if err != nil {
-						log.Printf("notify: failed to create payment_due_reminder: %v", err)
+						logger.Errorf("notify: failed to create payment_due_reminder: %v", err)
 					} else {
 						created++
 					}
@@ -644,7 +644,7 @@ func (s *Service) CheckCreditCardReminders(ctx context.Context) error {
 		}
 	}
 
-	log.Printf("notify: credit card reminder check complete, created %d reminders", created)
+	logger.Infof("notify: credit card reminder check complete, created %d reminders", created)
 	return nil
 }
 
@@ -700,7 +700,7 @@ func (s *Service) hasLoanNotification(ctx context.Context, userID, loanID, dueDa
 		userID, loanID, dueDateStr,
 	).Scan(&exists)
 	if err != nil {
-		log.Printf("notify: hasLoanNotification check error: %v", err)
+		logger.Errorf("notify: hasLoanNotification check error: %v", err)
 		return false
 	}
 	return exists
@@ -709,7 +709,7 @@ func (s *Service) hasLoanNotification(ctx context.Context, userID, loanID, dueDa
 // CheckLoanReminders checks all upcoming loan payments and creates reminder
 // notifications for users who have loan_reminder enabled.
 func (s *Service) CheckLoanReminders(ctx context.Context) error {
-	log.Println("notify: checking loan reminders...")
+	logger.Infof("notify: checking loan reminders...")
 
 	// Get all users' notification settings where loan_reminder is enabled
 	rows, err := s.pool.Query(ctx,
@@ -814,13 +814,13 @@ func (s *Service) CheckLoanReminders(ctx context.Context) error {
 			},
 		)
 		if err != nil {
-			log.Printf("notify: failed to create loan_reminder: %v", err)
+			logger.Errorf("notify: failed to create loan_reminder: %v", err)
 		} else {
 			created++
 		}
 	}
 
-	log.Printf("notify: loan reminder check complete, created %d reminders", created)
+	logger.Infof("notify: loan reminder check complete, created %d reminders", created)
 	return nil
 }
 
@@ -875,7 +875,7 @@ func (s *Service) CreateReminder(ctx context.Context, req *pb.CreateReminderRequ
 		userID, familyID, req.Title, req.Description, req.RemindAt.AsTime(), repeatRule, repeatEndAt,
 	).Scan(&id, &createdAt, &updatedAt)
 	if err != nil {
-		log.Printf("notify: create reminder error: %v", err)
+		logger.Errorf("notify: create reminder error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create reminder")
 	}
 
@@ -897,7 +897,7 @@ func (s *Service) CreateReminder(ctx context.Context, req *pb.CreateReminderRequ
 		reminder.RepeatEndAt = req.RepeatEndAt
 	}
 
-	log.Printf("notify: created reminder %s for user %s", id, userID)
+	logger.Infof("notify: created reminder %s for user %s", id, userID)
 	return reminder, nil
 }
 
@@ -997,7 +997,7 @@ func (s *Service) UpdateReminder(ctx context.Context, req *pb.UpdateReminderRequ
 		req.Title, req.Description, req.RemindAt.AsTime(), repeatRule, repeatEndAt, req.IsActive, req.ReminderId,
 	)
 	if err != nil {
-		log.Printf("notify: update reminder error: %v", err)
+		logger.Errorf("notify: update reminder error: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update reminder")
 	}
 
@@ -1030,7 +1030,7 @@ func (s *Service) DeleteReminder(ctx context.Context, req *pb.DeleteReminderRequ
 		return nil, status.Error(codes.NotFound, "reminder not found")
 	}
 
-	log.Printf("notify: deleted reminder %s by user %s", req.ReminderId, userID)
+	logger.Infof("notify: deleted reminder %s by user %s", req.ReminderId, userID)
 	return &emptypb.Empty{}, nil
 }
 
@@ -1038,7 +1038,7 @@ func (s *Service) DeleteReminder(ctx context.Context, req *pb.DeleteReminderRequ
 func (s *Service) CheckCustomReminders(ctx context.Context) error {
 	now := time.Now()
 
-	log.Println("notify: checking custom reminders...")
+	logger.Infof("notify: checking custom reminders...")
 
 	rows, err := s.pool.Query(ctx,
 		`SELECT id, user_id, family_id, title, description, remind_at, repeat_rule, repeat_end_at
@@ -1069,7 +1069,7 @@ func (s *Service) CheckCustomReminders(ctx context.Context) error {
 		var familyID *uuid.UUID
 		var repeatEndAt *time.Time
 		if err := rows.Scan(&r.ID, &uid, &familyID, &r.Title, &r.Description, &r.RemindAt, &r.RepeatRule, &repeatEndAt); err != nil {
-			log.Printf("notify: scan custom reminder error: %v", err)
+			logger.Errorf("notify: scan custom reminder error: %v", err)
 			continue
 		}
 		r.UserID = uid.String()
@@ -1094,7 +1094,7 @@ func (s *Service) CheckCustomReminders(ctx context.Context) error {
 			map[string]interface{}{"reminder_id": r.ID.String()},
 		)
 		if err != nil {
-			log.Printf("notify: failed to create custom_reminder notification: %v", err)
+			logger.Errorf("notify: failed to create custom_reminder notification: %v", err)
 			continue
 		}
 		created++
@@ -1124,7 +1124,7 @@ func (s *Service) CheckCustomReminders(ctx context.Context) error {
 		}
 	}
 
-	log.Printf("notify: custom reminder check complete, triggered %d reminders", created)
+	logger.Infof("notify: custom reminder check complete, triggered %d reminders", created)
 	return nil
 }
 

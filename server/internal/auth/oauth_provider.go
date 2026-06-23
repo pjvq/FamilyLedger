@@ -3,11 +3,12 @@ package auth
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/familyledger/server/pkg/logger"
 )
 
 // OAuthUserInfo holds the user info returned from an OAuth provider.
@@ -127,24 +128,24 @@ func NewOAuthProviders() OAuthProviders {
 	providers := make(OAuthProviders)
 
 	if mode == "mock" {
-		log.Printf("auth: WARNING: OAuth mode=mock — using mock providers (NOT for production!)")
+		logger.Warnf("auth: OAuth mode=mock — using mock providers (NOT for production!)")
 		providers["wechat"] = NewMockProvider("wechat")
 		providers["apple"] = NewMockProvider("apple")
 		return providers
 	}
 
 	// Production mode
-	log.Printf("auth: OAuth mode=production — using real providers")
+	logger.Infof("auth: OAuth mode=production — using real providers")
 
 	wechat := NewWeChatProvider()
 	if wechat.AppID == "" || wechat.AppSecret == "" {
-		log.Printf("auth: WARNING: OAUTH_MODE=production but WECHAT_APP_ID/WECHAT_APP_SECRET not configured")
+		logger.Warnf("auth: OAUTH_MODE=production but WECHAT_APP_ID/WECHAT_APP_SECRET not configured")
 	}
 	providers["wechat"] = wechat
 
 	apple := NewAppleProvider()
 	if apple.ClientID == "" || apple.TeamID == "" {
-		log.Printf("auth: WARNING: OAUTH_MODE=production but APPLE_CLIENT_ID/APPLE_TEAM_ID not configured")
+		logger.Warnf("auth: OAUTH_MODE=production but APPLE_CLIENT_ID/APPLE_TEAM_ID not configured")
 	}
 	providers["apple"] = apple
 
