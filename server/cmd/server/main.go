@@ -218,6 +218,8 @@ func main() {
 	// serverErr carries a fatal error from a server goroutine back to main so
 	// it can shut down gracefully (running defers) instead of os.Exit-ing from
 	// the goroutine and skipping pool.Close / context cancel / WS close.
+	// Buffered for the two server goroutines (gRPC + WebSocket) so neither
+	// blocks if main has already begun shutting down for the other reason.
 	serverErr := make(chan error, 2)
 
 	// Start gRPC

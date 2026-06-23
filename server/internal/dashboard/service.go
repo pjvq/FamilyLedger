@@ -266,7 +266,7 @@ func (s *Service) investmentValuation(ctx context.Context, ff *familyFilter, asO
 		 WHERE `+whereClause+` AND i.deleted_at IS NULL`+quantityFilter,
 		arg, asOf,
 	).Scan(&totalCost, &totalValue); err != nil {
-		logger.Infof("investmentValuation: %v", err)
+		logger.Errorf("investmentValuation: %v", err)
 	}
 	return totalCost, totalValue
 }

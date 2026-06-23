@@ -980,7 +980,7 @@ func (s *Service) UploadTransactionImage(ctx context.Context, req *pb.UploadTran
 			logger.Warnf("upload: transaction %s not found, skipping association", req.TransactionId)
 		} else if ownerID != userID {
 			// 不是自己的交易，不允许关联
-			logger.Infof("upload: user %s tried to attach image to transaction owned by %s", userID, ownerID)
+			logger.Warnf("upload: user %s tried to attach image to transaction owned by %s", userID, ownerID)
 		} else {
 			_, err := s.pool.Exec(ctx,
 				`UPDATE transactions

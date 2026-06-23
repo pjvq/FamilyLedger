@@ -85,7 +85,7 @@ func (r *RealFetcher) FetchQuote(ctx context.Context, symbol string, marketType 
 	case "precious_metal":
 		quote, err = r.fetchPreciousMetal(ctx, symbol)
 	default:
-		logger.Infof("market: unknown market type %q for symbol %s", marketType, symbol)
+		logger.Warnf("market: unknown market type %q for symbol %s", marketType, symbol)
 		return nil, fmt.Errorf("unsupported market type: %s", marketType)
 	}
 
@@ -110,7 +110,7 @@ func (r *RealFetcher) SearchSymbol(ctx context.Context, query string, marketType
 	case "precious_metal":
 		results, err = r.searchPreciousMetal(ctx, query)
 	default:
-		logger.Infof("market: unknown market type %q for search", marketType)
+		logger.Warnf("market: unknown market type %q for search", marketType)
 		return nil, fmt.Errorf("unsupported market type for search: %s", marketType)
 	}
 

@@ -78,21 +78,26 @@ func replaceLevel(groups []string, a slog.Attr) slog.Attr {
 	return a
 }
 
+// callerSkipFrames is the number of stack frames between runtime.Callers and
+// the original caller of an exported helper, along the path
+// Callers → logfDepth → logf/logfCtx → Debugf/Infof/... → caller.
+// If that call chain changes, update this constant or source lines will be wrong.
+const callerSkipFrames = 4
+
 // logf emits a formatted message at the given level with source attribution
 // pointing at the original caller.
 func logf(level slog.Level, format string, args ...any) {
-	logfDepth(context.Background(), level, 4, format, args...)
+	logfDepth(context.Background(), level, callerSkipFrames, format, args...)
 }
 
 // logfCtx is like logf but carries a context, so future tracing integrations
 // (OpenTelemetry/Datadog) can correlate logs with the active span.
 func logfCtx(ctx context.Context, level slog.Level, format string, args ...any) {
-	logfDepth(ctx, level, 4, format, args...)
+	logfDepth(ctx, level, callerSkipFrames, format, args...)
 }
 
 // logfDepth is the shared implementation. skip is the number of stack frames
-// between runtime.Callers and the original caller (Callers + logfDepth + logf
-// wrapper + exported helper = 4).
+// between runtime.Callers and the original caller (see callerSkipFrames).
 func logfDepth(ctx context.Context, level slog.Level, skip int, format string, args ...any) {
 	l := slog.Default()
 	if !l.Enabled(ctx, level) {
@@ -158,6 +163,12 @@ func Fatal(msg string) {
 }
 
 // slogWriter bridges leftover standard-library log output to slog at Warn.
+//
+// TODO: records emitted through this bridge carry slogWriter.Write as their
+// source location rather than the real caller — the std log package doesn't
+// expose the caller PC. This is acceptable because all first-party logging has
+// moved to the leveled helpers above; the bridge only catches stray/3rd-party
+// log.Print calls, which should be rare. Migrate those if they appear.
 type slogWriter struct {
 	logger *slog.Logger
 }

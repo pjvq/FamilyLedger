@@ -562,7 +562,11 @@ func (s *Service) RunMonthlyDepreciationAll(ctx context.Context) error {
 		count++
 	}
 
-	logger.Errorf("asset: monthly depreciation complete — %d processed, %d errors", count, errors)
+	if errors > 0 {
+		logger.Warnf("asset: monthly depreciation complete — %d processed, %d errors", count, errors)
+	} else {
+		logger.Infof("asset: monthly depreciation complete — %d processed, %d errors", count, errors)
+	}
 	return nil
 }
 

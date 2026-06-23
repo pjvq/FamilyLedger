@@ -38,7 +38,7 @@ func UnaryAuthInterceptor(jwtManager *jwt.Manager) grpc.UnaryServerInterceptor {
 
 		userID, err := extractAndValidateToken(ctx, jwtManager)
 		if err != nil {
-			logger.Infof("auth: rejected %s: %v", info.FullMethod, err)
+			logger.Warnf("auth: rejected %s: %v", info.FullMethod, err)
 			return nil, err
 		}
 

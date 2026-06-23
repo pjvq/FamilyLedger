@@ -320,8 +320,13 @@ func (s *Service) ConfirmImport(ctx context.Context, req *pb.ConfirmImportReques
 	// Clean up session
 	_, _ = s.pool.Exec(ctx, `DELETE FROM import_sessions WHERE id = $1`, sessionID)
 
-	logger.Errorf("import: session %s done — imported=%d skipped=%d errors=%d",
-		sessionID, importedCount, skippedCount, len(errors))
+	if len(errors) > 0 {
+		logger.Warnf("import: session %s done — imported=%d skipped=%d errors=%d",
+			sessionID, importedCount, skippedCount, len(errors))
+	} else {
+		logger.Infof("import: session %s done — imported=%d skipped=%d errors=%d",
+			sessionID, importedCount, skippedCount, len(errors))
+	}
 
 	return &pb.ConfirmImportResponse{
 		ImportedCount: importedCount,
