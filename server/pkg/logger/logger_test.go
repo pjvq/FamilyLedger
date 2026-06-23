@@ -2,9 +2,10 @@ package logger
 
 import (
 	"bytes"
-	"context"
+	"fmt"
 	"log"
 	"log/slog"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -93,17 +94,14 @@ func TestLevelFiltering(t *testing.T) {
 	assert.Equal(t, 1, strings.Count(out, "\n"))
 }
 
-func TestCtxHelpers_EmitCorrectLevels(t *testing.T) {
+func TestSourceAttribution_ExactLine(t *testing.T) {
 	buf := withCapture(t)
-	InfoCtx(context.Background(), "ctx-info %d", 1)
-	WarnCtx(context.Background(), "ctx-warn %d", 2)
+	_, _, line, _ := runtime.Caller(0)
+	Infof("pin source line") // must be the line immediately below runtime.Caller
 	out := buf.String()
-	assert.Contains(t, out, "level=INFO")
-	assert.Contains(t, out, "ctx-info 1")
-	assert.Contains(t, out, "level=WARN")
-	assert.Contains(t, out, "ctx-warn 2")
-	// Source attribution must survive the ctx path too.
-	assert.Contains(t, out, "logger_test.go")
+	// Asserting the exact line (not just the filename) catches a stale
+	// callerSkipFrames if someone inserts another wrapper frame.
+	assert.Contains(t, out, fmt.Sprintf("logger_test.go:%d", line+1))
 }
 
 func TestFatal_LogsFatalLevelAndExits(t *testing.T) {

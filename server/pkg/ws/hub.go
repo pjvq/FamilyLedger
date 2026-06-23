@@ -11,8 +11,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/familyledger/server/pkg/logger"
 	jwtpkg "github.com/familyledger/server/pkg/jwt"
+	"github.com/familyledger/server/pkg/logger"
 )
 
 const (
@@ -458,7 +458,7 @@ func (c *Client) writePump() {
 				return
 			}
 			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
-				logger.Errorf("ws: write error: %v", err)
+				logger.Warnf("ws: write error: %v", err)
 				return
 			}
 		case <-ticker.C:
@@ -469,12 +469,12 @@ func (c *Client) writePump() {
 				"server_time": time.Now().UnixMilli(),
 			})
 			if err := c.conn.WriteMessage(websocket.TextMessage, hb); err != nil {
-				logger.Errorf("ws: heartbeat write error: %v", err)
+				logger.Warnf("ws: heartbeat write error: %v", err)
 				return
 			}
 			// Also send protocol-level ping for connection keepalive
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				logger.Errorf("ws: ping error: %v", err)
+				logger.Warnf("ws: ping error: %v", err)
 				return
 			}
 		}

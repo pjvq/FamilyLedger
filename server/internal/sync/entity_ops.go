@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/familyledger/server/pkg/dynupdate"
-	"github.com/familyledger/server/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+
+	"github.com/familyledger/server/pkg/dynupdate"
+	"github.com/familyledger/server/pkg/logger"
 )
 
 // ── Loan sync operations ────────────────────────────────────────────────────

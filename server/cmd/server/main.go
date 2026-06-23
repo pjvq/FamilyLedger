@@ -218,9 +218,10 @@ func main() {
 	// serverErr carries a fatal error from a server goroutine back to main so
 	// it can shut down gracefully (running defers) instead of os.Exit-ing from
 	// the goroutine and skipping pool.Close / context cancel / WS close.
-	// Buffered for the two server goroutines (gRPC + WebSocket) so neither
-	// blocks if main has already begun shutting down for the other reason.
-	serverErr := make(chan error, 2)
+	// Buffered for the two long-lived server goroutines (gRPC + WebSocket) so
+	// neither blocks if main has already begun shutting down for the other.
+	const serverGoroutines = 2 // gRPC + WebSocket
+	serverErr := make(chan error, serverGoroutines)
 
 	// Start gRPC
 	grpcLis, err := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%s", grpcPort))
@@ -312,6 +313,17 @@ func main() {
 	logger.Infof("server stopped")
 }
 
+// stoppedDuringChecks logs and reports context cancellation so a scheduler
+// loop can bail out between sequential steps without repeating the
+// check-log-return boilerplate.
+func stoppedDuringChecks(ctx context.Context, scheduler string) bool {
+	if ctx.Err() != nil {
+		logger.Infof("%s: shutdown mid-cycle, aborting remaining work", scheduler)
+		return true
+	}
+	return false
+}
+
 // runScheduledTasks runs periodic tasks. Currently checks budgets daily at 21:00 CST.
 func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 	cst, err := time.LoadLocation("Asia/Shanghai")
@@ -344,8 +356,7 @@ func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 			}
 			checkCancel()
 
-			if ctx.Err() != nil {
-				logger.Infof("scheduler: shutdown during checks, aborting remaining")
+			if stoppedDuringChecks(ctx, "scheduler") {
 				return
 			}
 
@@ -356,8 +367,7 @@ func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 			}
 			loanCancel()
 
-			if ctx.Err() != nil {
-				logger.Infof("scheduler: shutdown during checks, aborting remaining")
+			if stoppedDuringChecks(ctx, "scheduler") {
 				return
 			}
 
@@ -368,8 +378,7 @@ func runScheduledTasks(ctx context.Context, notifyService *notify.Service) {
 			}
 			reminderCancel()
 
-			if ctx.Err() != nil {
-				logger.Infof("scheduler: shutdown during checks, aborting remaining")
+			if stoppedDuringChecks(ctx, "scheduler") {
 				return
 			}
 
@@ -405,8 +414,7 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 				logger.Errorf("market-scheduler: crypto refresh error: %v", err)
 			}
 
-			if ctx.Err() != nil {
-				logger.Infof("market-scheduler: shutdown during refresh, aborting remaining")
+			if stoppedDuringChecks(ctx, "market-scheduler") {
 				cancel()
 				return
 			}
@@ -418,8 +426,7 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 				}
 			}
 
-			if ctx.Err() != nil {
-				logger.Infof("market-scheduler: shutdown during refresh, aborting remaining")
+			if stoppedDuringChecks(ctx, "market-scheduler") {
 				cancel()
 				return
 			}
@@ -431,8 +438,7 @@ func runMarketRefreshTasks(ctx context.Context, marketService *market.Service) {
 				}
 			}
 
-			if ctx.Err() != nil {
-				logger.Infof("market-scheduler: shutdown during refresh, aborting remaining")
+			if stoppedDuringChecks(ctx, "market-scheduler") {
 				cancel()
 				return
 			}

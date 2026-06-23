@@ -6,8 +6,9 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/familyledger/server/pkg/logger"
+
 	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/logger"
 )
 
 // LogAudit records an audit log entry for a family operation.

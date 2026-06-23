@@ -7,12 +7,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/familyledger/server/pkg/logger"
-	"github.com/familyledger/server/pkg/db"
 	"github.com/jackc/pgx/v5"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/logger"
 	"github.com/familyledger/server/pkg/middleware"
 	pb "github.com/familyledger/server/proto/dashboard"
 )

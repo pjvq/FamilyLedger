@@ -25,19 +25,27 @@ import (
 // level >= LevelFatal).
 const LevelFatal = slog.Level(12)
 
-// exitFunc is the process-exit hook used by Fatal/Fatalf. It is a variable so
-// tests can exercise the Fatal paths without actually terminating the process.
+// exitFunc is the process-exit hook used by Fatal/Fatalf.
+//
+// TEST ONLY override: it is a package-level var solely so tests can swap in a
+// no-op to exercise the Fatal paths without terminating the test binary.
+// Reassigning it is not goroutine-safe — production code must never do so, and
+// Fatal/Fatalf are only ever called from the main goroutine during startup.
 var exitFunc = os.Exit
 
-// init configures a sensible structured default at package load, reading
-// APP_ENV directly from the environment. Because this package only depends on
-// the standard library, its init runs before the init of any package that
-// imports it — so logging from a dependent package's init() (e.g. pkg/ws)
-// already goes through the structured handler with source attribution, rather
-// than slog's bare built-in default. main may still call Setup() explicitly;
-// it is idempotent.
+// init configures a sensible structured default at package load, mirroring
+// main's APP_ENV handling (empty env falls back to "development"). Because this
+// package only depends on the standard library, its init runs before the init
+// of any package that imports it — so logging from a dependent package's
+// init() (e.g. pkg/ws) already goes through the structured handler with source
+// attribution, rather than slog's bare built-in default. main still calls
+// Setup() explicitly; it is idempotent and semantically identical to this.
 func init() {
-	Setup(os.Getenv("APP_ENV"))
+	appEnv := os.Getenv("APP_ENV")
+	if appEnv == "" {
+		appEnv = "development"
+	}
+	Setup(appEnv)
 }
 
 // Setup initializes the global structured logger.
@@ -80,7 +88,7 @@ func replaceLevel(groups []string, a slog.Attr) slog.Attr {
 
 // callerSkipFrames is the number of stack frames between runtime.Callers and
 // the original caller of an exported helper, along the path
-// Callers → logfDepth → logf/logfCtx → Debugf/Infof/... → caller.
+// Callers → logfDepth → logf → Debugf/Infof/... → caller.
 // If that call chain changes, update this constant or source lines will be wrong.
 const callerSkipFrames = 4
 
@@ -88,12 +96,6 @@ const callerSkipFrames = 4
 // pointing at the original caller.
 func logf(level slog.Level, format string, args ...any) {
 	logfDepth(context.Background(), level, callerSkipFrames, format, args...)
-}
-
-// logfCtx is like logf but carries a context, so future tracing integrations
-// (OpenTelemetry/Datadog) can correlate logs with the active span.
-func logfCtx(ctx context.Context, level slog.Level, format string, args ...any) {
-	logfDepth(ctx, level, callerSkipFrames, format, args...)
 }
 
 // logfDepth is the shared implementation. skip is the number of stack frames
@@ -129,24 +131,6 @@ func Warnf(format string, args ...any) { logf(slog.LevelWarn, format, args...) }
 // lose data or abort an operation.
 func Errorf(format string, args ...any) { logf(slog.LevelError, format, args...) }
 
-// DebugCtx/InfoCtx/WarnCtx/ErrorCtx are context-carrying variants of the
-// helpers above, for call sites that have a request context to propagate.
-func DebugCtx(ctx context.Context, format string, args ...any) {
-	logfCtx(ctx, slog.LevelDebug, format, args...)
-}
-
-func InfoCtx(ctx context.Context, format string, args ...any) {
-	logfCtx(ctx, slog.LevelInfo, format, args...)
-}
-
-func WarnCtx(ctx context.Context, format string, args ...any) {
-	logfCtx(ctx, slog.LevelWarn, format, args...)
-}
-
-func ErrorCtx(ctx context.Context, format string, args ...any) {
-	logfCtx(ctx, slog.LevelError, format, args...)
-}
-
 // Fatalf logs at the custom Fatal level and then exits the process with
 // status 1. Use only for unrecoverable startup failures — never from a
 // goroutine, where it would skip deferred cleanup and graceful shutdown.
@@ -164,11 +148,12 @@ func Fatal(msg string) {
 
 // slogWriter bridges leftover standard-library log output to slog at Warn.
 //
-// TODO: records emitted through this bridge carry slogWriter.Write as their
-// source location rather than the real caller — the std log package doesn't
-// expose the caller PC. This is acceptable because all first-party logging has
-// moved to the leveled helpers above; the bridge only catches stray/3rd-party
-// log.Print calls, which should be rare. Migrate those if they appear.
+// Known, accepted limitation: records emitted through this bridge carry
+// slogWriter.Write as their source location rather than the real caller,
+// because the std log package doesn't expose the caller PC. This is fine
+// because all first-party logging uses the leveled helpers above; the bridge
+// only exists to catch stray third-party log.Print output, which is rare and
+// for which a less-precise source is acceptable.
 type slogWriter struct {
 	logger *slog.Logger
 }

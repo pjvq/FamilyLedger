@@ -7,14 +7,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/familyledger/server/pkg/logger"
-	"github.com/familyledger/server/pkg/db"
-	"github.com/familyledger/server/pkg/permission"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/familyledger/server/pkg/db"
+	"github.com/familyledger/server/pkg/logger"
 	"github.com/familyledger/server/pkg/middleware"
+	"github.com/familyledger/server/pkg/permission"
 	pb "github.com/familyledger/server/proto/account"
 )
 
