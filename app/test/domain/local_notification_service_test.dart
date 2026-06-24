@@ -85,4 +85,24 @@ void main() {
       expect(await svc.pendingIds(), isEmpty);
     });
   });
+
+  group('FlutterLocalNotificationService', () {
+    test('constructs and conforms to LocalNotificationService', () {
+      // init()/show() need platform channels, but the constructor must not
+      // throw — guards against regressions in field/plugin wiring.
+      expect(
+        FlutterLocalNotificationService(),
+        isA<LocalNotificationService>(),
+      );
+    });
+  });
+
+  group('NotificationIdRange', () {
+    test('feature bands are distinct and 100k-spaced', () {
+      expect(NotificationIdRange.budget, 100000);
+      expect(NotificationIdRange.loan, 200000);
+      expect(NotificationIdRange.billing, 300000);
+      expect(NotificationIdRange.custom, 400000);
+    });
+  });
 }

@@ -14,7 +14,8 @@ import 'package:timezone/timezone.dart' as tz;
 /// - [showNow] — fire immediately (e.g. "budget exceeded" detected on launch).
 /// - [scheduleAt] — fire at an absolute local wall-clock time. On iOS this maps
 ///   to a `UNCalendarNotificationTrigger`, so it survives without Background App
-///   Refresh; on Android it uses an exact alarm.
+///   Refresh; on Android it uses an inexact alarm (sufficient for date-level
+///   reminders, and avoids the restricted exact-alarm permissions).
 abstract class LocalNotificationService {
   /// Initialize the plugin and the timezone database. Call once before use.
   Future<void> init();
@@ -47,6 +48,18 @@ abstract class LocalNotificationService {
   Future<List<int>> pendingIds();
 }
 
+/// Notification ID space, partitioned by feature domain so the localized
+/// budget / loan / billing / custom reminders (P1-E/F/H) never collide.
+///
+/// Each domain owns a 100k-wide band; callers map their entity to an offset
+/// within the band (e.g. `budgetBase + budgetRowHash % 100000`).
+abstract final class NotificationIdRange {
+  static const budget = 100000; // 100000–199999
+  static const loan = 200000; // 200000–299999
+  static const billing = 300000; // 300000–399999
+  static const custom = 400000; // 400000–499999
+}
+
 /// Default [LocalNotificationService] backed by `flutter_local_notifications`.
 class FlutterLocalNotificationService implements LocalNotificationService {
   FlutterLocalNotificationService({FlutterLocalNotificationsPlugin? plugin})
@@ -55,19 +68,24 @@ class FlutterLocalNotificationService implements LocalNotificationService {
   final FlutterLocalNotificationsPlugin _plugin;
   bool _initialized = false;
 
-  /// Single Android channel for all app reminders.
+  // Single channel shared by all app reminders. Kept as constants so the
+  // channel definition and per-notification details can't drift apart.
+  static const _channelId = 'familyledger_reminders';
+  static const _channelName = '提醒';
+  static const _channelDescription = '预算、贷款、账单与自定义提醒';
+
   static const _androidChannel = AndroidNotificationChannel(
-    'familyledger_reminders',
-    '提醒',
-    description: '预算、贷款、账单与自定义提醒',
+    _channelId,
+    _channelName,
+    description: _channelDescription,
     importance: Importance.high,
   );
 
   NotificationDetails get _details => const NotificationDetails(
     android: AndroidNotificationDetails(
-      'familyledger_reminders',
-      '提醒',
-      channelDescription: '预算、贷款、账单与自定义提醒',
+      _channelId,
+      _channelName,
+      channelDescription: _channelDescription,
       importance: Importance.high,
       priority: Priority.high,
     ),
