@@ -12,7 +12,9 @@ import 'core/router/router.dart';
 import 'core/theme/app_theme.dart';
 import 'data/local/secure_token_storage.dart';
 import 'domain/providers/app_providers.dart';
+import 'domain/providers/notification_service_provider.dart';
 import 'domain/providers/theme_provider.dart';
+import 'domain/services/notifications/local_notification_service.dart';
 import 'sync/sync_engine.dart';
 import 'data/remote/grpc_clients.dart';
 
@@ -60,6 +62,20 @@ void main() async {
       // Load TLS certificate for gRPC
       await loadTlsCertificate();
 
+      // Initialize on-device notifications (budget/loan/reminder alerts).
+      // Failure here must never block app start.
+      final notificationService = FlutterLocalNotificationService();
+      try {
+        await notificationService.init();
+      } catch (e, st) {
+        dev.log(
+          'LocalNotificationService init failed: $e',
+          name: 'notifications',
+          error: e,
+          stackTrace: st,
+        );
+      }
+
       // Restore persisted family mode
       final savedFamilyId = prefs.getString(AppConstants.familyIdKey);
 
@@ -68,6 +84,9 @@ void main() async {
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
             secureTokenStorageProvider.overrideWithValue(tokenStorage),
+            localNotificationServiceProvider.overrideWithValue(
+              notificationService,
+            ),
             if (savedFamilyId != null)
               currentFamilyIdProvider.overrideWith((ref) => savedFamilyId),
           ],
