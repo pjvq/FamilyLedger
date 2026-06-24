@@ -33,10 +33,12 @@ class FakeTransactionClient implements pbgrpc.TransactionServiceClient {
     final pageIndex = callCount;
     callCount++;
 
-    final transactions =
-        pageIndex < pages.length ? pages[pageIndex] : <pb.Transaction>[];
-    final nextPageToken =
-        (pageIndex + 1 < pages.length) ? 'page_${pageIndex + 1}' : '';
+    final transactions = pageIndex < pages.length
+        ? pages[pageIndex]
+        : <pb.Transaction>[];
+    final nextPageToken = (pageIndex + 1 < pages.length)
+        ? 'page_${pageIndex + 1}'
+        : '';
 
     final response = pb.ListTransactionsResponse(
       transactions: transactions,
@@ -48,7 +50,8 @@ class FakeTransactionClient implements pbgrpc.TransactionServiceClient {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-      '${invocation.memberName} not implemented in fake');
+    '${invocation.memberName} not implemented in fake',
+  );
 }
 
 /// A fake that always throws (simulating offline).
@@ -58,13 +61,13 @@ class OfflineTransactionClient implements pbgrpc.TransactionServiceClient {
     pbgrpc.ListTransactionsRequest request, {
     CallOptions? options,
   }) {
-    return _FakeResponseFuture.error(
-        GrpcError.unavailable('No connection'));
+    return _FakeResponseFuture.error(GrpcError.unavailable('No connection'));
   }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-      '${invocation.memberName} not implemented in fake');
+    '${invocation.memberName} not implemented in fake',
+  );
 }
 
 class _FakeResponseFuture<T> implements ResponseFuture<T> {
@@ -130,16 +133,19 @@ Future<AppDatabase> _setupDb() async {
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   // Insert required user for FK constraints
   await db.customStatement(
-      "INSERT OR IGNORE INTO users (id, email, created_at) "
-      "VALUES ('user1', 'test@test.com', ${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
+    "INSERT OR IGNORE INTO users (id, email, created_at) "
+    "VALUES ('user1', 'test@test.com', ${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+  );
   // Insert account using Drift's insertAccount (handles datetime properly)
-  await db.insertAccount(AccountsCompanion.insert(
-    id: 'acc1',
-    userId: 'user1',
-    name: 'Test Account',
-    familyId: const Value('fam1'),
-    accountType: const Value('bank_card'),
-  ));
+  await db.insertAccount(
+    AccountsCompanion.insert(
+      id: 'acc1',
+      userId: 'user1',
+      name: 'Test Account',
+      familyId: const Value('fam1'),
+      accountType: const Value('bank_card'),
+    ),
+  );
   return db;
 }
 
@@ -232,7 +238,7 @@ void main() {
 
       // Now load from server with same ID but different amount
       final client = FakeTransactionClient([
-        [_makeProtoTxn('txn_dup', amount: 2000)]
+        [_makeProtoTxn('txn_dup', amount: 2000)],
       ]);
 
       final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
@@ -260,7 +266,9 @@ void main() {
     });
 
     test('skips server sync when familyId is null', () async {
-      final client = FakeTransactionClient([[_makeProtoTxn('txn_x')]]);
+      final client = FakeTransactionClient([
+        [_makeProtoTxn('txn_x')],
+      ]);
 
       final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
       await Future.delayed(const Duration(milliseconds: 300));

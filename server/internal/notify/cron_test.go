@@ -422,11 +422,11 @@ func TestNextOccurrence_CrossYear(t *testing.T) {
 		rule     string
 		expected time.Time
 	}{
-		{"daily", time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC)},         // cross year
-		{"weekly", time.Date(2025, 1, 7, 10, 0, 0, 0, time.UTC)},        // cross year
-		{"monthly", time.Date(2025, 1, 31, 10, 0, 0, 0, time.UTC)},      // cross year
-		{"yearly", time.Date(2025, 12, 31, 10, 0, 0, 0, time.UTC)},      // next year
-		{"none", time.Date(2024, 12, 31, 10, 0, 0, 0, time.UTC)},        // no change
+		{"daily", time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC)},    // cross year
+		{"weekly", time.Date(2025, 1, 7, 10, 0, 0, 0, time.UTC)},   // cross year
+		{"monthly", time.Date(2025, 1, 31, 10, 0, 0, 0, time.UTC)}, // cross year
+		{"yearly", time.Date(2025, 12, 31, 10, 0, 0, 0, time.UTC)}, // next year
+		{"none", time.Date(2024, 12, 31, 10, 0, 0, 0, time.UTC)},   // no change
 	}
 
 	for _, tc := range tests {

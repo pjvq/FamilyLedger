@@ -42,7 +42,10 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
       final familyId = ref.read(currentFamilyIdProvider);
       final db = ref.read(databaseProvider);
       final data = await db.getMonthlyExpensesForYear(
-        userId, DateTime.now().year, familyId: familyId);
+        userId,
+        DateTime.now().year,
+        familyId: familyId,
+      );
       if (mounted) setState(() => _yearlyMonthlySpent = data);
     } catch (e) {
       // Graceful fallback — yearly view will use zeroes
@@ -78,12 +81,16 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
       ),
       floatingActionButton: ref.watch(canEditProvider)
           ? FloatingActionButton.extended(
-              onPressed: () => _showSetBudgetSheet(context,
-                  isAnnual: _viewTabController.index == 1),
+              onPressed: () => _showSetBudgetSheet(
+                context,
+                isAnnual: _viewTabController.index == 1,
+              ),
               icon: const Icon(Icons.edit_rounded),
-              label: Text(_viewTabController.index == 1
-                  ? (budgetState.annualBudget != null ? '编辑年预算' : '设置年预算')
-                  : (budgetState.currentBudget != null ? '编辑预算' : '设置预算')),
+              label: Text(
+                _viewTabController.index == 1
+                    ? (budgetState.annualBudget != null ? '编辑年预算' : '设置年预算')
+                    : (budgetState.currentBudget != null ? '编辑预算' : '设置预算'),
+              ),
             )
           : null,
       body: TabBarView(
@@ -100,8 +107,13 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
 
   /// Build category execution tiles grouped by parent category.
   ///
-    Widget _buildMonthlyTab(BudgetState budgetState, TransactionState txnState,
-      ThemeData theme, bool isDark, DateTime now) {
+  Widget _buildMonthlyTab(
+    BudgetState budgetState,
+    TransactionState txnState,
+    ThemeData theme,
+    bool isDark,
+    DateTime now,
+  ) {
     if (budgetState.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -150,8 +162,13 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
     );
   }
 
-  Widget _buildYearlyTab(BudgetState budgetState, TransactionState txnState,
-      ThemeData theme, bool isDark, DateTime now) {
+  Widget _buildYearlyTab(
+    BudgetState budgetState,
+    TransactionState txnState,
+    ThemeData theme,
+    bool isDark,
+    DateTime now,
+  ) {
     if (budgetState.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -164,16 +181,25 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.calendar_today_rounded,
-                size: 48, color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+            Icon(
+              Icons.calendar_today_rounded,
+              size: 48,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
             const SizedBox(height: 16),
-            Text('尚未设置年预算',
-                style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+            Text(
+              '尚未设置年预算',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
             const SizedBox(height: 8),
-            Text('点击右下角按钮设置${now.year}年预算',
-                style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4))),
+            Text(
+              '点击右下角按钮设置${now.year}年预算',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
           ],
         ),
       );
@@ -204,8 +230,9 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
             children: [
               Text(
                 '${now.year}年预算概览',
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w600),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 16),
               // Progress
@@ -214,13 +241,14 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
                 child: LinearProgressIndicator(
                   value: rate.clamp(0.0, 1.0),
                   minHeight: 10,
-                  backgroundColor: theme.colorScheme.onSurface
-                      .withValues(alpha: 0.06),
+                  backgroundColor: theme.colorScheme.onSurface.withValues(
+                    alpha: 0.06,
+                  ),
                   color: rate >= 1.0
                       ? colors.error
                       : rate >= 0.8
-                          ? colors.warning
-                          : colors.income,
+                      ? colors.warning
+                      : colors.income,
                 ),
               ),
               const SizedBox(height: 12),
@@ -229,23 +257,24 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _yearStat('年预算', yearlyBudget, theme),
-                  _yearStat('已支出', yearlySpent, theme,
-                      color: colors.expense),
+                  _yearStat('已支出', yearlySpent, theme, color: colors.expense),
                   _yearStat(
-                      '剩余', remaining, theme,
-                      color:
-                          remaining >= 0 ? colors.income : colors.error),
+                    '剩余',
+                    remaining,
+                    theme,
+                    color: remaining >= 0 ? colors.income : colors.error,
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
               // Status
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: (rate > expectedRate
-                          ? colors.warning
-                          : colors.income)
+                  color: (rate > expectedRate ? colors.warning : colors.income)
                       .withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -283,8 +312,9 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
         // Monthly breakdown
         Text(
           '各月支出',
-          style: theme.textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.w600),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 12),
         ..._buildMonthlyBreakdown(budgetState, txnState, theme, isDark, now),
@@ -308,8 +338,13 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
     );
   }
 
-  List<Widget> _buildMonthlyBreakdown(BudgetState budgetState, TransactionState txnState,
-      ThemeData theme, bool isDark, DateTime now) {
+  List<Widget> _buildMonthlyBreakdown(
+    BudgetState budgetState,
+    TransactionState txnState,
+    ThemeData theme,
+    bool isDark,
+    DateTime now,
+  ) {
     // Use pre-fetched full-year data from DB (not paginated txnState)
     final monthlySpent = _yearlyMonthlySpent ?? List.filled(12, 0);
 
@@ -345,8 +380,9 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
                   width: 40,
                   child: Text(
                     '${i + 1}月',
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w500),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
                 Expanded(
@@ -355,13 +391,14 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
                     child: LinearProgressIndicator(
                       value: rate.clamp(0.0, 1.0),
                       minHeight: 6,
-                      backgroundColor: theme.colorScheme.onSurface
-                          .withValues(alpha: 0.06),
+                      backgroundColor: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.06,
+                      ),
                       color: rate >= 1.0
                           ? colors.error
                           : rate >= 0.8
-                              ? colors.warning
-                              : colors.income,
+                          ? colors.warning
+                          : colors.income,
                     ),
                   ),
                 ),
@@ -407,8 +444,7 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
 
     // Separate into parent execs and child execs
     final parentOrder = <String>[]; // ordered unique parent ids
-    final parentExecs =
-        <String, CategoryExecutionData>{}; // parentId → exec
+    final parentExecs = <String, CategoryExecutionData>{}; // parentId → exec
     final childExecs =
         <String, List<CategoryExecutionData>>{}; // parentId → children
 
@@ -440,24 +476,22 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
       // Parent spent already includes all children (aggregated in provider)
       final parentSpent = parentExec?.spentAmount ?? 0;
       final parentBudget = parentExec?.budgetAmount ?? 0;
-      final parentRate =
-          parentBudget > 0 ? parentSpent / parentBudget : 0.0;
+      final parentRate = parentBudget > 0 ? parentSpent / parentBudget : 0.0;
 
       // Parent category name (from DB, guaranteed not empty)
-      final parentName =
-          parentCat?.name ?? parentExec?.categoryName ?? '未知';
+      final parentName = parentCat?.name ?? parentExec?.categoryName ?? '未知';
 
       // Parent tile (always visible, tappable to expand)
       widgets.add(
         GestureDetector(
           onTap: hasChildren
               ? () => setState(() {
-                    if (isExpanded) {
-                      _expandedParents.remove(pid);
-                    } else {
-                      _expandedParents.add(pid);
-                    }
-                  })
+                  if (isExpanded) {
+                    _expandedParents.remove(pid);
+                  } else {
+                    _expandedParents.add(pid);
+                  }
+                })
               : null,
           child: _CategoryBudgetTile(
             categoryName: parentName,
@@ -484,16 +518,18 @@ class _BudgetPageState extends ConsumerState<BudgetPage>
       // Child tiles (only when expanded)
       if (isExpanded) {
         for (final ce in children) {
-          widgets.add(_CategoryBudgetTile(
-            categoryName: ce.categoryName,
-            iconKey: _getCategoryIconKey(ce.categoryId, txnState),
-            budgetAmount: ce.budgetAmount,
-            spentAmount: ce.spentAmount,
-            executionRate: ce.executionRate,
-            isDark: isDark,
-            theme: theme,
-            isParent: false,
-          ));
+          widgets.add(
+            _CategoryBudgetTile(
+              categoryName: ce.categoryName,
+              iconKey: _getCategoryIconKey(ce.categoryId, txnState),
+              budgetAmount: ce.budgetAmount,
+              spentAmount: ce.spentAmount,
+              executionRate: ce.executionRate,
+              isDark: isDark,
+              theme: theme,
+              isParent: false,
+            ),
+          );
         }
       }
     }
@@ -543,16 +579,14 @@ class _EmptyBudgetState extends StatelessWidget {
           Text(
             '还没有设置预算',
             style: theme.textTheme.titleMedium?.copyWith(
-              color:
-                  theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             '设置每月预算，掌控支出',
             style: theme.textTheme.bodySmall?.copyWith(
-              color:
-                  theme.colorScheme.onSurface.withValues(alpha: 0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
           ),
           const SizedBox(height: 24),
@@ -610,11 +644,11 @@ class _CategoryBudgetTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = budgetRateColor(context, executionRate);
-    final pct =
-        '${(executionRate * 100).clamp(0, 999).toStringAsFixed(0)}%';
+    final pct = '${(executionRate * 100).clamp(0, 999).toStringAsFixed(0)}%';
 
     return Semantics(
-      label: '$categoryName，已用 ${_formatAmount(spentAmount)}，'
+      label:
+          '$categoryName，已用 ${_formatAmount(spentAmount)}，'
           '预算 ${_formatAmount(budgetAmount)}，执行率 $pct',
       child: Container(
         margin: EdgeInsets.only(
@@ -625,12 +659,13 @@ class _CategoryBudgetTile extends StatelessWidget {
         ),
         padding: EdgeInsets.all(isParent ? 16 : 12),
         decoration: BoxDecoration(
-          color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
+          color: isDark
+              ? NeutralColorsDark.neutral2
+              : NeutralColorsLight.neutral0,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: Colors.black
-                  .withValues(alpha: isDark ? 0.2 : 0.04),
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -642,17 +677,16 @@ class _CategoryBudgetTile extends StatelessWidget {
             Row(
               children: [
                 CategoryIconWidget(
-                    iconKey: iconKey,
-                    size: isParent ? 22 : 18,
-                    showBackground: true),
+                  iconKey: iconKey,
+                  size: isParent ? 22 : 18,
+                  showBackground: true,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     categoryName,
                     style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: isParent
-                          ? FontWeight.w600
-                          : FontWeight.w400,
+                      fontWeight: isParent ? FontWeight.w600 : FontWeight.w400,
                       fontSize: isParent ? null : 14,
                     ),
                   ),
@@ -665,10 +699,7 @@ class _CategoryBudgetTile extends StatelessWidget {
                         : NeutralColorsLight.neutral5,
                   ),
                 ),
-                if (trailing != null) ...[
-                  const SizedBox(width: 4),
-                  trailing!,
-                ],
+                if (trailing != null) ...[const SizedBox(width: 4), trailing!],
               ],
             ),
             const SizedBox(height: 10),

@@ -57,14 +57,41 @@ const Investment$json = {
     {'1': 'user_id', '3': 2, '4': 1, '5': 9, '10': 'userId'},
     {'1': 'symbol', '3': 3, '4': 1, '5': 9, '10': 'symbol'},
     {'1': 'name', '3': 4, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'market_type', '3': 5, '4': 1, '5': 14, '6': '.familyledger.investment.v1.MarketType', '10': 'marketType'},
+    {
+      '1': 'market_type',
+      '3': 5,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.investment.v1.MarketType',
+      '10': 'marketType'
+    },
     {'1': 'quantity', '3': 6, '4': 1, '5': 1, '10': 'quantity'},
     {'1': 'cost_basis', '3': 7, '4': 1, '5': 3, '10': 'costBasis'},
     {'1': 'current_value', '3': 8, '4': 1, '5': 3, '10': 'currentValue'},
     {'1': 'total_return', '3': 9, '4': 1, '5': 1, '10': 'totalReturn'},
-    {'1': 'annualized_return', '3': 10, '4': 1, '5': 1, '10': 'annualizedReturn'},
-    {'1': 'created_at', '3': 11, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'updated_at', '3': 12, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+    {
+      '1': 'annualized_return',
+      '3': 10,
+      '4': 1,
+      '5': 1,
+      '10': 'annualizedReturn'
+    },
+    {
+      '1': 'created_at',
+      '3': 11,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
+    {
+      '1': 'updated_at',
+      '3': 12,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'updatedAt'
+    },
     {'1': 'family_id', '3': 13, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
@@ -87,12 +114,26 @@ const InvestmentTrade$json = {
   '2': [
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {'1': 'investment_id', '3': 2, '4': 1, '5': 9, '10': 'investmentId'},
-    {'1': 'trade_type', '3': 3, '4': 1, '5': 14, '6': '.familyledger.investment.v1.TradeType', '10': 'tradeType'},
+    {
+      '1': 'trade_type',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.investment.v1.TradeType',
+      '10': 'tradeType'
+    },
     {'1': 'quantity', '3': 4, '4': 1, '5': 1, '10': 'quantity'},
     {'1': 'price', '3': 5, '4': 1, '5': 3, '10': 'price'},
     {'1': 'total_amount', '3': 6, '4': 1, '5': 3, '10': 'totalAmount'},
     {'1': 'fee', '3': 7, '4': 1, '5': 3, '10': 'fee'},
-    {'1': 'trade_date', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'tradeDate'},
+    {
+      '1': 'trade_date',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'tradeDate'
+    },
   ],
 };
 
@@ -111,7 +152,14 @@ const MarketQuote$json = {
   '2': [
     {'1': 'symbol', '3': 1, '4': 1, '5': 9, '10': 'symbol'},
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'market_type', '3': 3, '4': 1, '5': 14, '6': '.familyledger.investment.v1.MarketType', '10': 'marketType'},
+    {
+      '1': 'market_type',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.investment.v1.MarketType',
+      '10': 'marketType'
+    },
     {'1': 'current_price', '3': 4, '4': 1, '5': 3, '10': 'currentPrice'},
     {'1': 'change', '3': 5, '4': 1, '5': 3, '10': 'change'},
     {'1': 'change_percent', '3': 6, '4': 1, '5': 1, '10': 'changePercent'},
@@ -119,7 +167,14 @@ const MarketQuote$json = {
     {'1': 'high', '3': 8, '4': 1, '5': 3, '10': 'high'},
     {'1': 'low', '3': 9, '4': 1, '5': 3, '10': 'low'},
     {'1': 'prev_close', '3': 10, '4': 1, '5': 3, '10': 'prevClose'},
-    {'1': 'updated_at', '3': 11, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+    {
+      '1': 'updated_at',
+      '3': 11,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'updatedAt'
+    },
   ],
 };
 
@@ -141,7 +196,14 @@ const PortfolioSummary$json = {
     {'1': 'total_cost', '3': 2, '4': 1, '5': 3, '10': 'totalCost'},
     {'1': 'total_profit', '3': 3, '4': 1, '5': 3, '10': 'totalProfit'},
     {'1': 'total_return', '3': 4, '4': 1, '5': 1, '10': 'totalReturn'},
-    {'1': 'holdings', '3': 5, '4': 3, '5': 11, '6': '.familyledger.investment.v1.HoldingItem', '10': 'holdings'},
+    {
+      '1': 'holdings',
+      '3': 5,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.investment.v1.HoldingItem',
+      '10': 'holdings'
+    },
   ],
 };
 
@@ -177,7 +239,14 @@ final $typed_data.Uint8List holdingItemDescriptor = $convert.base64Decode(
 const PricePoint$json = {
   '1': 'PricePoint',
   '2': [
-    {'1': 'timestamp', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'timestamp'},
+    {
+      '1': 'timestamp',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'timestamp'
+    },
     {'1': 'price', '3': 2, '4': 1, '5': 3, '10': 'price'},
   ],
 };
@@ -193,7 +262,14 @@ const SymbolInfo$json = {
   '2': [
     {'1': 'symbol', '3': 1, '4': 1, '5': 9, '10': 'symbol'},
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'market_type', '3': 3, '4': 1, '5': 14, '6': '.familyledger.investment.v1.MarketType', '10': 'marketType'},
+    {
+      '1': 'market_type',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.investment.v1.MarketType',
+      '10': 'marketType'
+    },
   ],
 };
 
@@ -209,7 +285,14 @@ const CreateInvestmentRequest$json = {
   '2': [
     {'1': 'symbol', '3': 1, '4': 1, '5': 9, '10': 'symbol'},
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'market_type', '3': 3, '4': 1, '5': 14, '6': '.familyledger.investment.v1.MarketType', '10': 'marketType'},
+    {
+      '1': 'market_type',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.investment.v1.MarketType',
+      '10': 'marketType'
+    },
     {'1': 'family_id', '3': 4, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
@@ -238,7 +321,14 @@ final $typed_data.Uint8List getInvestmentRequestDescriptor = $convert.base64Deco
 const ListInvestmentsRequest$json = {
   '1': 'ListInvestmentsRequest',
   '2': [
-    {'1': 'market_type', '3': 1, '4': 1, '5': 14, '6': '.familyledger.investment.v1.MarketType', '10': 'marketType'},
+    {
+      '1': 'market_type',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.investment.v1.MarketType',
+      '10': 'marketType'
+    },
     {'1': 'family_id', '3': 2, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
@@ -253,14 +343,22 @@ final $typed_data.Uint8List listInvestmentsRequestDescriptor = $convert.base64De
 const ListInvestmentsResponse$json = {
   '1': 'ListInvestmentsResponse',
   '2': [
-    {'1': 'investments', '3': 1, '4': 3, '5': 11, '6': '.familyledger.investment.v1.Investment', '10': 'investments'},
+    {
+      '1': 'investments',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.investment.v1.Investment',
+      '10': 'investments'
+    },
   ],
 };
 
 /// Descriptor for `ListInvestmentsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listInvestmentsResponseDescriptor = $convert.base64Decode(
-    'ChdMaXN0SW52ZXN0bWVudHNSZXNwb25zZRJICgtpbnZlc3RtZW50cxgBIAMoCzImLmZhbWlseW'
-    'xlZGdlci5pbnZlc3RtZW50LnYxLkludmVzdG1lbnRSC2ludmVzdG1lbnRz');
+final $typed_data.Uint8List listInvestmentsResponseDescriptor =
+    $convert.base64Decode(
+        'ChdMaXN0SW52ZXN0bWVudHNSZXNwb25zZRJICgtpbnZlc3RtZW50cxgBIAMoCzImLmZhbWlseW'
+        'xlZGdlci5pbnZlc3RtZW50LnYxLkludmVzdG1lbnRSC2ludmVzdG1lbnRz');
 
 @$core.Deprecated('Use updateInvestmentRequestDescriptor instead')
 const UpdateInvestmentRequest$json = {
@@ -272,9 +370,10 @@ const UpdateInvestmentRequest$json = {
 };
 
 /// Descriptor for `UpdateInvestmentRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List updateInvestmentRequestDescriptor = $convert.base64Decode(
-    'ChdVcGRhdGVJbnZlc3RtZW50UmVxdWVzdBIjCg1pbnZlc3RtZW50X2lkGAEgASgJUgxpbnZlc3'
-    'RtZW50SWQSEgoEbmFtZRgCIAEoCVIEbmFtZQ==');
+final $typed_data.Uint8List updateInvestmentRequestDescriptor =
+    $convert.base64Decode(
+        'ChdVcGRhdGVJbnZlc3RtZW50UmVxdWVzdBIjCg1pbnZlc3RtZW50X2lkGAEgASgJUgxpbnZlc3'
+        'RtZW50SWQSEgoEbmFtZRgCIAEoCVIEbmFtZQ==');
 
 @$core.Deprecated('Use deleteInvestmentRequestDescriptor instead')
 const DeleteInvestmentRequest$json = {
@@ -285,20 +384,35 @@ const DeleteInvestmentRequest$json = {
 };
 
 /// Descriptor for `DeleteInvestmentRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteInvestmentRequestDescriptor = $convert.base64Decode(
-    'ChdEZWxldGVJbnZlc3RtZW50UmVxdWVzdBIjCg1pbnZlc3RtZW50X2lkGAEgASgJUgxpbnZlc3'
-    'RtZW50SWQ=');
+final $typed_data.Uint8List deleteInvestmentRequestDescriptor =
+    $convert.base64Decode(
+        'ChdEZWxldGVJbnZlc3RtZW50UmVxdWVzdBIjCg1pbnZlc3RtZW50X2lkGAEgASgJUgxpbnZlc3'
+        'RtZW50SWQ=');
 
 @$core.Deprecated('Use recordTradeRequestDescriptor instead')
 const RecordTradeRequest$json = {
   '1': 'RecordTradeRequest',
   '2': [
     {'1': 'investment_id', '3': 1, '4': 1, '5': 9, '10': 'investmentId'},
-    {'1': 'trade_type', '3': 2, '4': 1, '5': 14, '6': '.familyledger.investment.v1.TradeType', '10': 'tradeType'},
+    {
+      '1': 'trade_type',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.investment.v1.TradeType',
+      '10': 'tradeType'
+    },
     {'1': 'quantity', '3': 3, '4': 1, '5': 1, '10': 'quantity'},
     {'1': 'price', '3': 4, '4': 1, '5': 3, '10': 'price'},
     {'1': 'fee', '3': 5, '4': 1, '5': 3, '10': 'fee'},
-    {'1': 'trade_date', '3': 6, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'tradeDate'},
+    {
+      '1': 'trade_date',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'tradeDate'
+    },
   ],
 };
 
@@ -327,7 +441,14 @@ final $typed_data.Uint8List listTradesRequestDescriptor = $convert.base64Decode(
 const ListTradesResponse$json = {
   '1': 'ListTradesResponse',
   '2': [
-    {'1': 'trades', '3': 1, '4': 3, '5': 11, '6': '.familyledger.investment.v1.InvestmentTrade', '10': 'trades'},
+    {
+      '1': 'trades',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.investment.v1.InvestmentTrade',
+      '10': 'trades'
+    },
   ],
 };
 
@@ -345,16 +466,24 @@ const GetPortfolioSummaryRequest$json = {
 };
 
 /// Descriptor for `GetPortfolioSummaryRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getPortfolioSummaryRequestDescriptor = $convert.base64Decode(
-    'ChpHZXRQb3J0Zm9saW9TdW1tYXJ5UmVxdWVzdBIbCglmYW1pbHlfaWQYASABKAlSCGZhbWlseU'
-    'lk');
+final $typed_data.Uint8List getPortfolioSummaryRequestDescriptor =
+    $convert.base64Decode(
+        'ChpHZXRQb3J0Zm9saW9TdW1tYXJ5UmVxdWVzdBIbCglmYW1pbHlfaWQYASABKAlSCGZhbWlseU'
+        'lk');
 
 @$core.Deprecated('Use getQuoteRequestDescriptor instead')
 const GetQuoteRequest$json = {
   '1': 'GetQuoteRequest',
   '2': [
     {'1': 'symbol', '3': 1, '4': 1, '5': 9, '10': 'symbol'},
-    {'1': 'market_type', '3': 2, '4': 1, '5': 14, '6': '.familyledger.investment.v1.MarketType', '10': 'marketType'},
+    {
+      '1': 'market_type',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.investment.v1.MarketType',
+      '10': 'marketType'
+    },
   ],
 };
 
@@ -368,7 +497,14 @@ final $typed_data.Uint8List getQuoteRequestDescriptor = $convert.base64Decode(
 const BatchGetQuotesRequest$json = {
   '1': 'BatchGetQuotesRequest',
   '2': [
-    {'1': 'requests', '3': 1, '4': 3, '5': 11, '6': '.familyledger.investment.v1.GetQuoteRequest', '10': 'requests'},
+    {
+      '1': 'requests',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.investment.v1.GetQuoteRequest',
+      '10': 'requests'
+    },
   ],
 };
 
@@ -381,21 +517,36 @@ final $typed_data.Uint8List batchGetQuotesRequestDescriptor = $convert.base64Dec
 const BatchGetQuotesResponse$json = {
   '1': 'BatchGetQuotesResponse',
   '2': [
-    {'1': 'quotes', '3': 1, '4': 3, '5': 11, '6': '.familyledger.investment.v1.MarketQuote', '10': 'quotes'},
+    {
+      '1': 'quotes',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.investment.v1.MarketQuote',
+      '10': 'quotes'
+    },
   ],
 };
 
 /// Descriptor for `BatchGetQuotesResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List batchGetQuotesResponseDescriptor = $convert.base64Decode(
-    'ChZCYXRjaEdldFF1b3Rlc1Jlc3BvbnNlEj8KBnF1b3RlcxgBIAMoCzInLmZhbWlseWxlZGdlci'
-    '5pbnZlc3RtZW50LnYxLk1hcmtldFF1b3RlUgZxdW90ZXM=');
+final $typed_data.Uint8List batchGetQuotesResponseDescriptor =
+    $convert.base64Decode(
+        'ChZCYXRjaEdldFF1b3Rlc1Jlc3BvbnNlEj8KBnF1b3RlcxgBIAMoCzInLmZhbWlseWxlZGdlci'
+        '5pbnZlc3RtZW50LnYxLk1hcmtldFF1b3RlUgZxdW90ZXM=');
 
 @$core.Deprecated('Use searchSymbolRequestDescriptor instead')
 const SearchSymbolRequest$json = {
   '1': 'SearchSymbolRequest',
   '2': [
     {'1': 'query', '3': 1, '4': 1, '5': 9, '10': 'query'},
-    {'1': 'market_type', '3': 2, '4': 1, '5': 14, '6': '.familyledger.investment.v1.MarketType', '10': 'marketType'},
+    {
+      '1': 'market_type',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.investment.v1.MarketType',
+      '10': 'marketType'
+    },
   ],
 };
 
@@ -409,7 +560,14 @@ final $typed_data.Uint8List searchSymbolRequestDescriptor = $convert.base64Decod
 const SearchSymbolResponse$json = {
   '1': 'SearchSymbolResponse',
   '2': [
-    {'1': 'symbols', '3': 1, '4': 3, '5': 11, '6': '.familyledger.investment.v1.SymbolInfo', '10': 'symbols'},
+    {
+      '1': 'symbols',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.investment.v1.SymbolInfo',
+      '10': 'symbols'
+    },
   ],
 };
 
@@ -423,9 +581,30 @@ const GetPriceHistoryRequest$json = {
   '1': 'GetPriceHistoryRequest',
   '2': [
     {'1': 'symbol', '3': 1, '4': 1, '5': 9, '10': 'symbol'},
-    {'1': 'market_type', '3': 2, '4': 1, '5': 14, '6': '.familyledger.investment.v1.MarketType', '10': 'marketType'},
-    {'1': 'start_date', '3': 3, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'startDate'},
-    {'1': 'end_date', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'endDate'},
+    {
+      '1': 'market_type',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.investment.v1.MarketType',
+      '10': 'marketType'
+    },
+    {
+      '1': 'start_date',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'startDate'
+    },
+    {
+      '1': 'end_date',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'endDate'
+    },
   ],
 };
 
@@ -442,8 +621,22 @@ const PriceHistoryResponse$json = {
   '1': 'PriceHistoryResponse',
   '2': [
     {'1': 'symbol', '3': 1, '4': 1, '5': 9, '10': 'symbol'},
-    {'1': 'market_type', '3': 2, '4': 1, '5': 14, '6': '.familyledger.investment.v1.MarketType', '10': 'marketType'},
-    {'1': 'points', '3': 3, '4': 3, '5': 11, '6': '.familyledger.investment.v1.PricePoint', '10': 'points'},
+    {
+      '1': 'market_type',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.investment.v1.MarketType',
+      '10': 'marketType'
+    },
+    {
+      '1': 'points',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.investment.v1.PricePoint',
+      '10': 'points'
+    },
   ],
 };
 
@@ -472,7 +665,14 @@ final $typed_data.Uint8List getIRRRequestDescriptor = $convert.base64Decode(
 const CashFlow$json = {
   '1': 'CashFlow',
   '2': [
-    {'1': 'date', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'date'},
+    {
+      '1': 'date',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'date'
+    },
     {'1': 'amount', '3': 2, '4': 1, '5': 3, '10': 'amount'},
   ],
 };
@@ -487,7 +687,14 @@ const IRRResponse$json = {
   '1': 'IRRResponse',
   '2': [
     {'1': 'annualized_irr', '3': 1, '4': 1, '5': 1, '10': 'annualizedIrr'},
-    {'1': 'cash_flows', '3': 2, '4': 3, '5': 11, '6': '.familyledger.investment.v1.CashFlow', '10': 'cashFlows'},
+    {
+      '1': 'cash_flows',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.investment.v1.CashFlow',
+      '10': 'cashFlows'
+    },
   ],
 };
 
@@ -496,4 +703,3 @@ final $typed_data.Uint8List iRRResponseDescriptor = $convert.base64Decode(
     'CgtJUlJSZXNwb25zZRIlCg5hbm51YWxpemVkX2lychgBIAEoAVINYW5udWFsaXplZElychJDCg'
     'pjYXNoX2Zsb3dzGAIgAygLMiQuZmFtaWx5bGVkZ2VyLmludmVzdG1lbnQudjEuQ2FzaEZsb3dS'
     'CWNhc2hGbG93cw==');
-

@@ -580,8 +580,8 @@ func (s *Service) computeExecution(ctx context.Context, budgetID uuid.UUID, budg
 
 		// Build parent→children map for aggregation
 		childrenOf := make(map[string][]string) // parentId → []childId
-		catParent := make(map[string]string)     // catId → parentId (if any)
-		catNames := make(map[string]string)      // catId → name
+		catParent := make(map[string]string)    // catId → parentId (if any)
+		catNames := make(map[string]string)     // catId → name
 		catRows, err := s.pool.Query(ctx,
 			`SELECT id, name, COALESCE(parent_id::text, '') FROM categories WHERE deleted_at IS NULL`)
 		if err == nil {

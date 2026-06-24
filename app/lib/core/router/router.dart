@@ -44,14 +44,17 @@ import '../../features/settings/category_manage_page.dart';
 /// instance on auth state changes. Instead, [refreshListenable] triggers
 /// redirect re-evaluation without destroying navigation state.
 final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
-    // Kept alive for the entire app lifecycle. Disposed when ProviderContainer is destroyed.
+  // Kept alive for the entire app lifecycle. Disposed when ProviderContainer is destroyed.
   ref.keepAlive();
 
   // Navigation keys scoped to provider lifecycle (safe for hot reload + tests)
   final rootNavigatorKey = GlobalKey<NavigatorState>();
-  final overviewNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'overview');
-  final transactionsNavigatorKey =
-      GlobalKey<NavigatorState>(debugLabel: 'transactions');
+  final overviewNavigatorKey = GlobalKey<NavigatorState>(
+    debugLabel: 'overview',
+  );
+  final transactionsNavigatorKey = GlobalKey<NavigatorState>(
+    debugLabel: 'transactions',
+  );
   final assetsNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'assets');
   final mineNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'mine');
 
@@ -81,7 +84,8 @@ final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
     ),
     redirect: (context, state) {
       final isLoggedIn = ref.read(isLoggedInProvider);
-      final loggingIn = state.matchedLocation == '/login' ||
+      final loggingIn =
+          state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
 
       if (!isLoggedIn && !loggingIn) return '/login';
@@ -90,14 +94,8 @@ final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
     },
     routes: [
       // ── Auth routes (no shell) ──
-      GoRoute(
-        path: '/login',
-        builder: (_, __) => const LoginPage(),
-      ),
-      GoRoute(
-        path: '/register',
-        builder: (_, __) => const RegisterPage(),
-      ),
+      GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
+      GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
 
       // ── Main shell with bottom nav ──
       StatefulShellRoute.indexedStack(
@@ -139,10 +137,7 @@ final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
           StatefulShellBranch(
             navigatorKey: mineNavigatorKey,
             routes: [
-              GoRoute(
-                path: '/mine',
-                builder: (_, __) => const MorePage(),
-              ),
+              GoRoute(path: '/mine', builder: (_, __) => const MorePage()),
             ],
           ),
         ],
@@ -157,9 +152,7 @@ final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
         builder: (context, state) {
           final args = state.extra;
           if (args is! TransactionDetailArgs) {
-            return const Scaffold(
-              body: Center(child: Text('交易详情不可用')),
-            );
+            return const Scaffold(body: Center(child: Text('交易详情不可用')));
           }
           return TransactionDetailPage(args: args);
         },
@@ -179,9 +172,8 @@ final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
           if (id == null || id.isEmpty) return '/assets';
           return null;
         },
-        builder: (context, state) => AccountDetailPage(
-          accountId: state.pathParameters['accountId']!,
-        ),
+        builder: (context, state) =>
+            AccountDetailPage(accountId: state.pathParameters['accountId']!),
       ),
 
       // Loans
@@ -198,23 +190,20 @@ final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
         path: '/assets/loans/:loanId',
-        builder: (context, state) => LoanDetailPage(
-          loanId: state.pathParameters['loanId'] ?? '',
-        ),
+        builder: (context, state) =>
+            LoanDetailPage(loanId: state.pathParameters['loanId'] ?? ''),
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
         path: '/assets/loans/:loanId/prepayment',
-        builder: (context, state) => PrepaymentPage(
-          loanId: state.pathParameters['loanId'] ?? '',
-        ),
+        builder: (context, state) =>
+            PrepaymentPage(loanId: state.pathParameters['loanId'] ?? ''),
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
         path: '/assets/loans/group/:groupId',
-        builder: (context, state) => LoanGroupDetailPage(
-          groupId: state.pathParameters['groupId'] ?? '',
-        ),
+        builder: (context, state) =>
+            LoanGroupDetailPage(groupId: state.pathParameters['groupId'] ?? ''),
       ),
 
       // Investments
@@ -238,9 +227,8 @@ final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
         path: '/assets/investments/:investmentId/trade',
-        builder: (context, state) => TradePage(
-          investmentId: state.pathParameters['investmentId'] ?? '',
-        ),
+        builder: (context, state) =>
+            TradePage(investmentId: state.pathParameters['investmentId'] ?? ''),
       ),
 
       // Fixed assets
@@ -257,9 +245,8 @@ final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
         path: '/assets/fixed/:assetId',
-        builder: (context, state) => AssetDetailPage(
-          assetId: state.pathParameters['assetId'] ?? '',
-        ),
+        builder: (context, state) =>
+            AssetDetailPage(assetId: state.pathParameters['assetId'] ?? ''),
       ),
 
       // Mine sub-pages
@@ -338,10 +325,7 @@ CustomTransitionPage<void> _slideUpPage(Widget child) {
       position: Tween(
         begin: const Offset(0, 1),
         end: Offset.zero,
-      ).animate(CurvedAnimation(
-        parent: animation,
-        curve: Curves.easeOutCubic,
-      )),
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
       child: page,
     ),
     transitionDuration: const Duration(milliseconds: 350),

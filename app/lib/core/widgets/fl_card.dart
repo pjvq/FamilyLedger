@@ -77,10 +77,10 @@ class FlCard extends StatelessWidget {
     final brightness = Theme.of(context).brightness;
     final isLight = brightness == Brightness.light;
 
-    final bgColor = color ??
+    final bgColor =
+        color ??
         (isLight ? NeutralColorsLight.neutral0 : NeutralColorsDark.neutral0);
-    final radius =
-        borderRadius ?? BorderRadius.circular(RadiusTokens.lg);
+    final radius = borderRadius ?? BorderRadius.circular(RadiusTokens.lg);
 
     final container = Container(
       decoration: BoxDecoration(

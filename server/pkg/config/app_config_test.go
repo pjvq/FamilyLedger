@@ -73,9 +73,9 @@ func TestLoadAppConfigFromValues_EmptyDBHost(t *testing.T) {
 
 func TestLoadAppConfigFromValues_InvalidDBPort(t *testing.T) {
 	tests := []struct {
-		name    string
-		port    string
-		errMsg  string
+		name   string
+		port   string
+		errMsg string
 	}{
 		{"non-numeric", "abc", "valid integer"},
 		{"negative", "-1", "between 1 and 65535"},
@@ -102,9 +102,9 @@ func TestLoadAppConfigFromValues_InvalidDBPort(t *testing.T) {
 
 func TestLoadAppConfigFromValues_InvalidGRPCPort(t *testing.T) {
 	tests := []struct {
-		name    string
-		port    string
-		errMsg  string
+		name   string
+		port   string
+		errMsg string
 	}{
 		{"non-numeric", "not-a-port", "valid integer"},
 		{"negative", "-5", "between 1 and 65535"},
@@ -130,9 +130,9 @@ func TestLoadAppConfigFromValues_InvalidGRPCPort(t *testing.T) {
 
 func TestLoadAppConfigFromValues_InvalidWSPort(t *testing.T) {
 	tests := []struct {
-		name    string
-		port    string
-		errMsg  string
+		name   string
+		port   string
+		errMsg string
 	}{
 		{"non-numeric", "xyz", "valid integer"},
 		{"negative", "-100", "between 1 and 65535"},

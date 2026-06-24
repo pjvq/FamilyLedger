@@ -9,37 +9,39 @@ import 'tables.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [
-  Users,
-  Accounts,
-  Categories,
-  Transactions,
-  Families,
-  FamilyMembers,
-  Transfers,
-  Budgets,
-  CategoryBudgetsTable,
-  Notifications,
-  NotificationSettingsTable,
-  LoanGroups,
-  Loans,
-  LoanSchedules,
-  LoanRateChanges,
-  Investments,
-  InvestmentTrades,
-  MarketQuotes,
-  FixedAssets,
-  AssetValuations,
-  DepreciationRules,
-  SyncQueue,
-  SyncMetadata,
-  ExchangeRates,
-  SyncDeadLetters,
-  CategoryUsageSlots,
-  CategoryUsageSummary,
-  CategoryMergeLog,
-  CategoryMergeDismissals,
-])
+@DriftDatabase(
+  tables: [
+    Users,
+    Accounts,
+    Categories,
+    Transactions,
+    Families,
+    FamilyMembers,
+    Transfers,
+    Budgets,
+    CategoryBudgetsTable,
+    Notifications,
+    NotificationSettingsTable,
+    LoanGroups,
+    Loans,
+    LoanSchedules,
+    LoanRateChanges,
+    Investments,
+    InvestmentTrades,
+    MarketQuotes,
+    FixedAssets,
+    AssetValuations,
+    DepreciationRules,
+    SyncQueue,
+    SyncMetadata,
+    ExchangeRates,
+    SyncDeadLetters,
+    CategoryUsageSlots,
+    CategoryUsageSummary,
+    CategoryMergeLog,
+    CategoryMergeDismissals,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -50,175 +52,175 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          await m.createAll();
-          // Categories are seeded after auth when userId is known
-          // via seedCategoriesForOwner()
-        },
-        onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            // v1 → v2: add new tables & columns
-            await m.createTable(families);
-            await m.createTable(familyMembers);
-            await m.createTable(transfers);
-            await m.addColumn(accounts, accounts.familyId);
-            await m.addColumn(accounts, accounts.accountType);
-            await m.addColumn(accounts, accounts.isActive);
-          }
-          if (from < 3) {
-            // v2 → v3: budget + notification tables
-            await m.createTable(budgets);
-            await m.createTable(categoryBudgetsTable);
-            await m.createTable(notifications);
-            await m.createTable(notificationSettingsTable);
-          }
-          if (from < 4) {
-            // v3 → v4: loan tables
-            await m.createTable(loans);
-            await m.createTable(loanSchedules);
-            await m.createTable(loanRateChanges);
-          }
-          if (from < 5) {
-            // v4 → v5: investment + market tables
-            await m.createTable(investments);
-            await m.createTable(investmentTrades);
-            await m.createTable(marketQuotes);
-          }
-          if (from < 6) {
-            // v5 → v6: fixed asset tables
-            await m.createTable(fixedAssets);
-            await m.createTable(assetValuations);
-            await m.createTable(depreciationRules);
-          }
-          if (from < 7) {
-            // v6 → v7: transaction tags/images + exchange rates
-            await m.addColumn(transactions, transactions.tags);
-            await m.addColumn(transactions, transactions.imageUrls);
-            await m.createTable(exchangeRates);
-          }
-          if (from < 8) {
-            // v7 → v8: loan groups table + loans new columns + sync queue
-            await m.createTable(loanGroups);
-            await m.addColumn(loans, loans.groupId);
-            await m.addColumn(loans, loans.subType);
-            await m.addColumn(loans, loans.rateType);
-            await m.addColumn(loans, loans.lprBase);
-            await m.addColumn(loans, loans.lprSpread);
-            await m.addColumn(loans, loans.rateAdjustMonth);
-            await m.createTable(syncQueue);
-          }
-          if (from < 9) {
-            // v8 → v9: add deletedAt to transactions for soft-delete
-            await m.addColumn(transactions, transactions.deletedAt);
-          }
-          if (from < 10) {
-            // v9 → v10: migrate category IDs from cat_xxx strings to UUID v5
-            await _migrateCategoryUUIDs();
-          }
-          if (from < 11) {
-            // v10 → v11: add subcategory support to categories
-            await m.addColumn(categories, categories.parentId);
-            await m.addColumn(categories, categories.userId);
-            await m.addColumn(categories, categories.iconKey);
-            await m.addColumn(categories, categories.deletedAt);
-            // Subcategories will be re-seeded after next login
-            // await _seedSubcategories(ownerID);
-          }
-          if (from < 12) {
-            // v11 → v12: add familyId to loans, investments, fixed_assets, loan_groups
-            await m.addColumn(loans, loans.familyId);
-            await m.addColumn(investments, investments.familyId);
-            await m.addColumn(fixedAssets, fixedAssets.familyId);
-            await m.addColumn(loanGroups, loanGroups.familyId);
-          }
-          if (from < 13) {
-            // v12 → v13: fix subcategory UUID formula
-            // Old: UUIDv5(type, "parentName/childName")
-            // New: UUIDv5(type, "parentUUID:childName") — matches server
-            await _migrateSubcategoryUUIDs();
-          }
-          if (from < 14) {
-            // v13 → v14: add repayment_category_id to loans
-            await m.addColumn(loans, loans.repaymentCategoryId);
-          }
-          if (from < 15) {
-            // v14 → v15: one-time category dedup + icon backfill (moved from beforeOpen).
-            // Safe on fresh installs (empty tables → no-op).
-            await _deduplicateCategories();
-            await _backfillParentIconKeys();
-          }
-          if (from < 16) {
-            // v15 → v16: add syncStatus column to transactions
-            await m.addColumn(transactions, transactions.syncStatus);
-          }
-          if (from < 17) {
-            // v16 → v17: drop legacy 'synced' bool column (replaced by syncStatus text)
-            // Guarded: column may already be absent from a previous interrupted migration.
-            await _safeDropColumn('transactions', 'synced');
-          }
-          if (from < 18) {
-            // v17 → v18: add retry columns to sync_queue
-            await m.addColumn(syncQueue, syncQueue.retryCount);
-            await m.addColumn(syncQueue, syncQueue.nextRetryAt);
-          }
-          if (from < 19) {
-            // v18 → v19: remove legacy icon column from categories
-            // Guarded: column may already be absent from a previous interrupted migration.
-            await _safeDropColumn('categories', 'icon');
-            // Backfill empty iconKey based on category name
-            await _backfillEmptyIconKeys();
-          }
-          if (from < 20) {
-            // v19 → v20: sync_metadata table for atomic checkpoint storage
-            await m.createTable(syncMetadata);
-          }
-          if (from < 21) {
-            // v20 → v21: dead-letter table for malformed pull ops
-            await m.createTable(syncDeadLetters);
-          }
-          if (from < 22) {
-            // v21 → v22: add op_type + timestamp_ms columns, rename lastRetryAt → nextRetryAfter
-            if (from >= 21) {
-              // Table exists from v21 — add new columns + rename
-              await m.addColumn(syncDeadLetters, syncDeadLetters.opType);
-              await m.addColumn(syncDeadLetters, syncDeadLetters.timestampMs);
-              await customStatement(
-                'ALTER TABLE sync_dead_letter RENAME COLUMN last_retry_at TO next_retry_after',
-              );
-            }
-            // If from < 21, table was just created above with the new schema
-          }
-          if (from < 23) {
-            // v22 → v23: smart category system tables + transactions.merge_log_id
-            await m.createTable(categoryUsageSlots);
-            await m.createTable(categoryUsageSummary);
-            await m.createTable(categoryMergeLog);
-            await m.createTable(categoryMergeDismissals);
-            await _safeAddColumn(
-              m, transactions, transactions.mergeLogId,
-            );
-          }
-          if (from < 24) {
-            // v23 → v24: category_merge_log.reparented_child_ids
-            await _safeAddColumn(
-              m, categoryMergeLog, categoryMergeLog.reparentedChildIds,
-            );
-          }
-        },
-        beforeOpen: (details) async {
-          // Backfill empty iconKey for categories that have none
-          await _backfillEmptyIconKeys();
-
-          // Fix sync ops that used non-unique clientId ('client_{userId}').
-          // These ops were incorrectly marked as uploaded due to server-side
-          // ON CONFLICT (client_id) treating different ops as duplicates.
-          // Reset them so SyncEngine retries with unique clientIds.
+    onCreate: (m) async {
+      await m.createAll();
+      // Categories are seeded after auth when userId is known
+      // via seedCategoriesForOwner()
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        // v1 → v2: add new tables & columns
+        await m.createTable(families);
+        await m.createTable(familyMembers);
+        await m.createTable(transfers);
+        await m.addColumn(accounts, accounts.familyId);
+        await m.addColumn(accounts, accounts.accountType);
+        await m.addColumn(accounts, accounts.isActive);
+      }
+      if (from < 3) {
+        // v2 → v3: budget + notification tables
+        await m.createTable(budgets);
+        await m.createTable(categoryBudgetsTable);
+        await m.createTable(notifications);
+        await m.createTable(notificationSettingsTable);
+      }
+      if (from < 4) {
+        // v3 → v4: loan tables
+        await m.createTable(loans);
+        await m.createTable(loanSchedules);
+        await m.createTable(loanRateChanges);
+      }
+      if (from < 5) {
+        // v4 → v5: investment + market tables
+        await m.createTable(investments);
+        await m.createTable(investmentTrades);
+        await m.createTable(marketQuotes);
+      }
+      if (from < 6) {
+        // v5 → v6: fixed asset tables
+        await m.createTable(fixedAssets);
+        await m.createTable(assetValuations);
+        await m.createTable(depreciationRules);
+      }
+      if (from < 7) {
+        // v6 → v7: transaction tags/images + exchange rates
+        await m.addColumn(transactions, transactions.tags);
+        await m.addColumn(transactions, transactions.imageUrls);
+        await m.createTable(exchangeRates);
+      }
+      if (from < 8) {
+        // v7 → v8: loan groups table + loans new columns + sync queue
+        await m.createTable(loanGroups);
+        await m.addColumn(loans, loans.groupId);
+        await m.addColumn(loans, loans.subType);
+        await m.addColumn(loans, loans.rateType);
+        await m.addColumn(loans, loans.lprBase);
+        await m.addColumn(loans, loans.lprSpread);
+        await m.addColumn(loans, loans.rateAdjustMonth);
+        await m.createTable(syncQueue);
+      }
+      if (from < 9) {
+        // v8 → v9: add deletedAt to transactions for soft-delete
+        await m.addColumn(transactions, transactions.deletedAt);
+      }
+      if (from < 10) {
+        // v9 → v10: migrate category IDs from cat_xxx strings to UUID v5
+        await _migrateCategoryUUIDs();
+      }
+      if (from < 11) {
+        // v10 → v11: add subcategory support to categories
+        await m.addColumn(categories, categories.parentId);
+        await m.addColumn(categories, categories.userId);
+        await m.addColumn(categories, categories.iconKey);
+        await m.addColumn(categories, categories.deletedAt);
+        // Subcategories will be re-seeded after next login
+        // await _seedSubcategories(ownerID);
+      }
+      if (from < 12) {
+        // v11 → v12: add familyId to loans, investments, fixed_assets, loan_groups
+        await m.addColumn(loans, loans.familyId);
+        await m.addColumn(investments, investments.familyId);
+        await m.addColumn(fixedAssets, fixedAssets.familyId);
+        await m.addColumn(loanGroups, loanGroups.familyId);
+      }
+      if (from < 13) {
+        // v12 → v13: fix subcategory UUID formula
+        // Old: UUIDv5(type, "parentName/childName")
+        // New: UUIDv5(type, "parentUUID:childName") — matches server
+        await _migrateSubcategoryUUIDs();
+      }
+      if (from < 14) {
+        // v13 → v14: add repayment_category_id to loans
+        await m.addColumn(loans, loans.repaymentCategoryId);
+      }
+      if (from < 15) {
+        // v14 → v15: one-time category dedup + icon backfill (moved from beforeOpen).
+        // Safe on fresh installs (empty tables → no-op).
+        await _deduplicateCategories();
+        await _backfillParentIconKeys();
+      }
+      if (from < 16) {
+        // v15 → v16: add syncStatus column to transactions
+        await m.addColumn(transactions, transactions.syncStatus);
+      }
+      if (from < 17) {
+        // v16 → v17: drop legacy 'synced' bool column (replaced by syncStatus text)
+        // Guarded: column may already be absent from a previous interrupted migration.
+        await _safeDropColumn('transactions', 'synced');
+      }
+      if (from < 18) {
+        // v17 → v18: add retry columns to sync_queue
+        await m.addColumn(syncQueue, syncQueue.retryCount);
+        await m.addColumn(syncQueue, syncQueue.nextRetryAt);
+      }
+      if (from < 19) {
+        // v18 → v19: remove legacy icon column from categories
+        // Guarded: column may already be absent from a previous interrupted migration.
+        await _safeDropColumn('categories', 'icon');
+        // Backfill empty iconKey based on category name
+        await _backfillEmptyIconKeys();
+      }
+      if (from < 20) {
+        // v19 → v20: sync_metadata table for atomic checkpoint storage
+        await m.createTable(syncMetadata);
+      }
+      if (from < 21) {
+        // v20 → v21: dead-letter table for malformed pull ops
+        await m.createTable(syncDeadLetters);
+      }
+      if (from < 22) {
+        // v21 → v22: add op_type + timestamp_ms columns, rename lastRetryAt → nextRetryAfter
+        if (from >= 21) {
+          // Table exists from v21 — add new columns + rename
+          await m.addColumn(syncDeadLetters, syncDeadLetters.opType);
+          await m.addColumn(syncDeadLetters, syncDeadLetters.timestampMs);
           await customStatement(
-            "UPDATE sync_queue SET uploaded = 0, client_id = id "
-            "WHERE uploaded = 1 AND client_id LIKE 'client_%'",
+            'ALTER TABLE sync_dead_letter RENAME COLUMN last_retry_at TO next_retry_after',
           );
-        },
+        }
+        // If from < 21, table was just created above with the new schema
+      }
+      if (from < 23) {
+        // v22 → v23: smart category system tables + transactions.merge_log_id
+        await m.createTable(categoryUsageSlots);
+        await m.createTable(categoryUsageSummary);
+        await m.createTable(categoryMergeLog);
+        await m.createTable(categoryMergeDismissals);
+        await _safeAddColumn(m, transactions, transactions.mergeLogId);
+      }
+      if (from < 24) {
+        // v23 → v24: category_merge_log.reparented_child_ids
+        await _safeAddColumn(
+          m,
+          categoryMergeLog,
+          categoryMergeLog.reparentedChildIds,
+        );
+      }
+    },
+    beforeOpen: (details) async {
+      // Backfill empty iconKey for categories that have none
+      await _backfillEmptyIconKeys();
+
+      // Fix sync ops that used non-unique clientId ('client_{userId}').
+      // These ops were incorrectly marked as uploaded due to server-side
+      // ON CONFLICT (client_id) treating different ops as duplicates.
+      // Reset them so SyncEngine retries with unique clientIds.
+      await customStatement(
+        "UPDATE sync_queue SET uploaded = 0, client_id = id "
+        "WHERE uploaded = 1 AND client_id LIKE 'client_%'",
       );
+    },
+  );
 
   /// Allowlisted table/column pairs that may be safely dropped.
   /// Prevents accidental SQL injection if method signature is ever misused.
@@ -276,9 +278,9 @@ class AppDatabase extends _$AppDatabase {
   /// Keeps the one with isPreset=true, or earliest createdAt.
   /// Reassigns transactions from removed duplicates to the keeper.
   Future<void> _deduplicateCategories() async {
-    final allCats = await (select(categories)
-          ..where((c) => c.deletedAt.isNull()))
-        .get();
+    final allCats = await (select(
+      categories,
+    )..where((c) => c.deletedAt.isNull())).get();
 
     // Phase 1: Merge orphan top-level categories into existing subcategories.
     // e.g. import created "衣服" (parentId=null, iconKey='') but seed already
@@ -290,7 +292,9 @@ class AppDatabase extends _$AppDatabase {
     }
     for (final group in byNameType.values) {
       if (group.length < 2) continue;
-      final orphans = group.where((c) => c.parentId == null && !c.isPreset).toList();
+      final orphans = group
+          .where((c) => c.parentId == null && !c.isPreset)
+          .toList();
       final subs = group.where((c) => c.parentId != null).toList();
       if (orphans.isEmpty || subs.isEmpty) continue;
       // Prefer preset subcategory as keeper
@@ -301,7 +305,8 @@ class AppDatabase extends _$AppDatabase {
       });
       final keeper = subs.first;
       for (final orphan in orphans) {
-        await (update(transactions)..where((t) => t.categoryId.equals(orphan.id)))
+        await (update(transactions)
+              ..where((t) => t.categoryId.equals(orphan.id)))
             .write(TransactionsCompanion(categoryId: Value(keeper.id)));
         await (update(categories)..where((c) => c.parentId.equals(orphan.id)))
             .write(CategoriesCompanion(parentId: Value(keeper.id)));
@@ -311,9 +316,9 @@ class AppDatabase extends _$AppDatabase {
 
     // Phase 2: Standard dedup — same (name, type, parentId)
     // Re-fetch after Phase 1 mutations
-    final remaining = await (select(categories)
-          ..where((c) => c.deletedAt.isNull()))
-        .get();
+    final remaining = await (select(
+      categories,
+    )..where((c) => c.deletedAt.isNull())).get();
     final groups = <String, List<Category>>{};
     for (final c in remaining) {
       final key = '${c.name}|${c.type}|${c.parentId ?? ""}';
@@ -346,14 +351,15 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> _backfillParentIconKeys() async {
-    final parents = await (select(categories)
-          ..where((c) => c.parentId.isNull() & c.iconKey.equals('')))
-        .get();
+    final parents = await (select(
+      categories,
+    )..where((c) => c.parentId.isNull() & c.iconKey.equals(''))).get();
     for (final cat in parents) {
       final key = parentCategoryIconMap[cat.name];
       if (key != null) {
-        await (update(categories)..where((c) => c.id.equals(cat.id)))
-            .write(CategoriesCompanion(iconKey: Value(key)));
+        await (update(categories)..where((c) => c.id.equals(cat.id))).write(
+          CategoriesCompanion(iconKey: Value(key)),
+        );
       }
     }
   }
@@ -361,9 +367,9 @@ class AppDatabase extends _$AppDatabase {
   /// Backfill empty iconKey for all categories (user-created or imported).
   /// Uses name-based matching with fuzzy keyword fallback.
   Future<void> _backfillEmptyIconKeys() async {
-    final emptyCats = await (select(categories)
-          ..where((c) => c.iconKey.equals('') | c.iconKey.isNull()))
-        .get();
+    final emptyCats = await (select(
+      categories,
+    )..where((c) => c.iconKey.equals('') | c.iconKey.isNull())).get();
     if (emptyCats.isEmpty) return;
 
     for (final cat in emptyCats) {
@@ -378,8 +384,9 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       key ??= (cat.type == 'income') ? 'salary' : 'other';
-      await (update(categories)..where((c) => c.id.equals(cat.id)))
-          .write(CategoriesCompanion(iconKey: Value(key)));
+      await (update(categories)..where((c) => c.id.equals(cat.id))).write(
+        CategoriesCompanion(iconKey: Value(key)),
+      );
     }
   }
 
@@ -387,7 +394,6 @@ class AppDatabase extends _$AppDatabase {
   /// [ownerID] is userId (personal) or familyId (family mode).
   Future<void> seedCategoriesForOwner(String ownerID) =>
       CategorySeeder(this).seedForOwner(ownerID);
-
 
   Future<void> _migrateCategoryUUIDs() async {
     // Legacy migration — no longer needed since data is cleared.
@@ -411,14 +417,19 @@ class AppDatabase extends _$AppDatabase {
   Future<Account?> getDefaultAccount(String userId, {String? familyId}) {
     if (familyId != null && familyId.isNotEmpty) {
       return (select(accounts)
-            ..where((a) => a.familyId.equals(familyId) & a.isActive.equals(true))
+            ..where(
+              (a) => a.familyId.equals(familyId) & a.isActive.equals(true),
+            )
             ..limit(1))
           .getSingleOrNull();
     }
     return (select(accounts)
-          ..where((a) => a.userId.equals(userId) &
-              (a.familyId.equals('') | a.familyId.isNull()) &
-              a.isActive.equals(true))
+          ..where(
+            (a) =>
+                a.userId.equals(userId) &
+                (a.familyId.equals('') | a.familyId.isNull()) &
+                a.isActive.equals(true),
+          )
           ..limit(1))
         .getSingleOrNull();
   }
@@ -427,8 +438,9 @@ class AppDatabase extends _$AppDatabase {
       into(accounts).insert(entry, mode: InsertMode.insertOrReplace);
 
   Future<void> updateAccountBalance(String accountId, int delta) async {
-    final acc = await (select(accounts)..where((a) => a.id.equals(accountId)))
-        .getSingle();
+    final acc = await (select(
+      accounts,
+    )..where((a) => a.id.equals(accountId))).getSingle();
     await (update(accounts)..where((a) => a.id.equals(accountId))).write(
       AccountsCompanion(balance: Value(acc.balance + delta)),
     );
@@ -440,28 +452,33 @@ class AppDatabase extends _$AppDatabase {
             ..where((c) {
               final typeFilter = c.type.equals(type);
               if (userId != null && userId.isNotEmpty) {
-                return typeFilter & (c.userId.equals(userId) | c.userId.isNull());
+                return typeFilter &
+                    (c.userId.equals(userId) | c.userId.isNull());
               }
               return typeFilter;
             })
             ..orderBy([(c) => OrderingTerm.asc(c.sortOrder)]))
           .get();
 
-  Future<List<Category>> getAllCategories() =>
-      (select(categories)..orderBy([(c) => OrderingTerm.asc(c.sortOrder)]))
-          .get();
+  Future<List<Category>> getAllCategories() => (select(
+    categories,
+  )..orderBy([(c) => OrderingTerm.asc(c.sortOrder)])).get();
 
   // Transactions
   Future<List<Transaction>> getRecentTransactions(
-      String userId, int limit, {String? familyId}) async {
+    String userId,
+    int limit, {
+    String? familyId,
+  }) async {
     if (familyId != null && familyId.isNotEmpty) {
       // Family mode: get family account IDs, then filter all transactions
       final familyAccounts = await getAccountsByFamily(familyId);
       final familyAccountIds = familyAccounts.map((a) => a.id).toSet();
-      final rows = await (select(transactions)
-            ..where((t) => t.deletedAt.isNull())
-            ..orderBy([(t) => OrderingTerm.desc(t.txnDate)]))
-          .get();
+      final rows =
+          await (select(transactions)
+                ..where((t) => t.deletedAt.isNull())
+                ..orderBy([(t) => OrderingTerm.desc(t.txnDate)]))
+              .get();
       return rows
           .where((t) => familyAccountIds.contains(t.accountId))
           .take(limit)
@@ -469,11 +486,12 @@ class AppDatabase extends _$AppDatabase {
     }
     // Personal mode: exclude family accounts
     final familyAccountIds = await _getFamilyAccountIds(userId);
-    final rows = await (select(transactions)
-          ..where((t) => t.userId.equals(userId) & t.deletedAt.isNull())
-          ..orderBy([(t) => OrderingTerm.desc(t.txnDate)])
-          ..limit(limit * 2))
-        .get();
+    final rows =
+        await (select(transactions)
+              ..where((t) => t.userId.equals(userId) & t.deletedAt.isNull())
+              ..orderBy([(t) => OrderingTerm.desc(t.txnDate)])
+              ..limit(limit * 2))
+            .get();
     return rows
         .where((t) => !familyAccountIds.contains(t.accountId))
         .take(limit)
@@ -481,12 +499,14 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<Set<String>> _getFamilyAccountIds(String userId) async {
-    final rows = await (select(accounts)
-          ..where((a) =>
-              a.userId.equals(userId) &
-              a.familyId.isNotNull() &
-              a.familyId.equals('').not()))
-        .get();
+    final rows =
+        await (select(accounts)..where(
+              (a) =>
+                  a.userId.equals(userId) &
+                  a.familyId.isNotNull() &
+                  a.familyId.equals('').not(),
+            ))
+            .get();
     return rows.map((a) => a.id).toSet();
   }
 
@@ -524,8 +544,9 @@ class AppDatabase extends _$AppDatabase {
 
   /// 软删除交易记录
   Future<int> softDeleteTransaction(String id) async {
-    return (update(transactions)..where((t) => t.id.equals(id)))
-        .write(TransactionsCompanion(deletedAt: Value(DateTime.now())));
+    return (update(transactions)..where((t) => t.id.equals(id))).write(
+      TransactionsCompanion(deletedAt: Value(DateTime.now())),
+    );
   }
 
   /// 硬删除（仅供远程同步清理用）
@@ -603,19 +624,16 @@ class AppDatabase extends _$AppDatabase {
     final key = '_sync_family_$familyId';
     final ms = time.millisecondsSinceEpoch.toDouble();
     await into(exchangeRates).insertOnConflictUpdate(
-      ExchangeRatesCompanion.insert(
-        currencyPair: key,
-        rate: ms,
-      ),
+      ExchangeRatesCompanion.insert(currencyPair: key, rate: ms),
     );
   }
 
   /// Clear sync time (forces full re-sync on next load)
   Future<void> clearFamilySyncTime(String familyId) async {
     final key = '_sync_family_$familyId';
-    await (delete(exchangeRates)
-          ..where((e) => e.currencyPair.equals(key)))
-        .go();
+    await (delete(
+      exchangeRates,
+    )..where((e) => e.currencyPair.equals(key))).go();
   }
 
   /// 根据 ID 查找单条交易
@@ -636,9 +654,10 @@ class AppDatabase extends _$AppDatabase {
 
   /// 更新交易的指定字段
   Future<void> updateTransactionFields(
-      String id, TransactionsCompanion entry) async {
-    await (update(transactions)..where((t) => t.id.equals(id)))
-        .write(entry);
+    String id,
+    TransactionsCompanion entry,
+  ) async {
+    await (update(transactions)..where((t) => t.id.equals(id))).write(entry);
   }
 
   /// Build transaction query SQL + variables based on mode.
@@ -650,7 +669,8 @@ class AppDatabase extends _$AppDatabase {
   }) {
     if (familyId != null && familyId.isNotEmpty) {
       return (
-        sql: 'SELECT t.* FROM transactions t '
+        sql:
+            'SELECT t.* FROM transactions t '
             'JOIN accounts a ON a.id = t.account_id '
             'WHERE t.deleted_at IS NULL AND a.family_id = ? '
             'ORDER BY t.txn_date DESC LIMIT ? OFFSET ?',
@@ -662,7 +682,8 @@ class AppDatabase extends _$AppDatabase {
       );
     }
     return (
-      sql: 'SELECT t.* FROM transactions t '
+      sql:
+          'SELECT t.* FROM transactions t '
           'JOIN accounts a ON a.id = t.account_id '
           'WHERE t.user_id = ? AND t.deleted_at IS NULL AND (a.family_id IS NULL OR a.family_id = \'\') '
           'ORDER BY t.txn_date DESC LIMIT ? OFFSET ?',
@@ -681,10 +702,19 @@ class AppDatabase extends _$AppDatabase {
     int limit = 200,
     int offset = 0,
   }) {
-    final (:sql, :vars) = _buildTransactionQuery(userId, familyId: familyId, limit: limit, offset: offset);
-    return customSelect(sql, variables: vars, readsFrom: {transactions, accounts})
-        .watch()
-        .map((rows) => rows.map((row) => transactions.map(row.data)).toList());
+    final (:sql, :vars) = _buildTransactionQuery(
+      userId,
+      familyId: familyId,
+      limit: limit,
+      offset: offset,
+    );
+    return customSelect(
+      sql,
+      variables: vars,
+      readsFrom: {transactions, accounts},
+    ).watch().map(
+      (rows) => rows.map((row) => transactions.map(row.data)).toList(),
+    );
   }
 
   /// Get a page of transactions (non-reactive, for load-more).
@@ -694,8 +724,17 @@ class AppDatabase extends _$AppDatabase {
     required int limit,
     required int offset,
   }) async {
-    final (:sql, :vars) = _buildTransactionQuery(userId, familyId: familyId, limit: limit, offset: offset);
-    final rows = await customSelect(sql, variables: vars, readsFrom: {transactions, accounts}).get();
+    final (:sql, :vars) = _buildTransactionQuery(
+      userId,
+      familyId: familyId,
+      limit: limit,
+      offset: offset,
+    );
+    final rows = await customSelect(
+      sql,
+      variables: vars,
+      readsFrom: {transactions, accounts},
+    ).get();
     return rows.map((row) => transactions.map(row.data)).toList();
   }
 
@@ -737,7 +776,8 @@ class AppDatabase extends _$AppDatabase {
 
     // 多查 1 条用于探测是否超过展示上限（truncated）。
     final probeLimit = limit + 1;
-    final sql = 'SELECT t.* FROM transactions t '
+    final sql =
+        'SELECT t.* FROM transactions t '
         'JOIN accounts a ON a.id = t.account_id '
         'LEFT JOIN categories c ON c.id = t.category_id '
         'WHERE t.deleted_at IS NULL AND $scopeClause '
@@ -754,10 +794,11 @@ class AppDatabase extends _$AppDatabase {
       Variable.withString(like),
       Variable.withInt(probeLimit),
     ];
-    final rows = await customSelect(sql,
-            variables: vars,
-            readsFrom: {transactions, accounts, categories})
-        .get();
+    final rows = await customSelect(
+      sql,
+      variables: vars,
+      readsFrom: {transactions, accounts, categories},
+    ).get();
     final all = rows.map((row) => transactions.map(row.data)).toList();
     final truncated = all.length > limit;
     return TransactionSearchResult(
@@ -769,10 +810,12 @@ class AppDatabase extends _$AppDatabase {
   // Sync queue
   Future<List<SyncQueueData>> getPendingSyncOps(int limit) =>
       (select(syncQueue)
-            ..where((s) =>
-                s.uploaded.equals(false) &
-                (s.nextRetryAt.isNull() |
-                    s.nextRetryAt.isSmallerOrEqualValue(DateTime.now())))
+            ..where(
+              (s) =>
+                  s.uploaded.equals(false) &
+                  (s.nextRetryAt.isNull() |
+                      s.nextRetryAt.isSmallerOrEqualValue(DateTime.now())),
+            )
             ..orderBy([(s) => OrderingTerm.asc(s.timestamp)])
             ..limit(limit))
           .get();
@@ -781,8 +824,9 @@ class AppDatabase extends _$AppDatabase {
       into(syncQueue).insert(entry);
 
   Future<void> markSyncOpsUploaded(List<String> ids) async {
-    await (update(syncQueue)..where((s) => s.id.isIn(ids)))
-        .write(const SyncQueueCompanion(uploaded: Value(true)));
+    await (update(syncQueue)..where((s) => s.id.isIn(ids))).write(
+      const SyncQueueCompanion(uploaded: Value(true)),
+    );
   }
 
   /// Increment retry count and set next retry time with exponential backoff.
@@ -790,7 +834,9 @@ class AppDatabase extends _$AppDatabase {
   Future<void> incrementSyncOpRetry(List<String> ids) async {
     if (ids.isEmpty) return;
     for (final id in ids) {
-      final op = await (select(syncQueue)..where((s) => s.id.equals(id))).getSingleOrNull();
+      final op = await (select(
+        syncQueue,
+      )..where((s) => s.id.equals(id))).getSingleOrNull();
       if (op == null) continue;
       final newCount = op.retryCount + 1;
       // Exponential backoff: 10s, 20s, 40s, 80s, 160s, 320s, 640s, 1280s, 1800s cap
@@ -806,34 +852,43 @@ class AppDatabase extends _$AppDatabase {
 
   /// Get count of ops that have exceeded max retries (dead ops).
   Future<int> getDeadSyncOpsCount() async {
-    final result = await (select(syncQueue)
-          ..where((s) => s.uploaded.equals(false) & s.retryCount.isBiggerOrEqualValue(10)))
-        .get();
+    final result =
+        await (select(syncQueue)..where(
+              (s) =>
+                  s.uploaded.equals(false) &
+                  s.retryCount.isBiggerOrEqualValue(10),
+            ))
+            .get();
     return result.length;
   }
 
   /// Reset retry state for dead ops so they can be retried.
   Future<void> resetDeadSyncOps() async {
-    await (update(syncQueue)
-          ..where((s) => s.uploaded.equals(false) & s.retryCount.isBiggerOrEqualValue(10)))
-        .write(const SyncQueueCompanion(
-          retryCount: Value(0),
-          nextRetryAt: Value(null),
-        ));
+    await (update(syncQueue)..where(
+          (s) =>
+              s.uploaded.equals(false) & s.retryCount.isBiggerOrEqualValue(10),
+        ))
+        .write(
+          const SyncQueueCompanion(
+            retryCount: Value(0),
+            nextRetryAt: Value(null),
+          ),
+        );
   }
 
   /// Mark transactions as synced (called after successful push).
   Future<void> markTransactionsSynced(List<String> entityIds) async {
     if (entityIds.isEmpty) return;
-    await (update(transactions)..where((t) => t.id.isIn(entityIds)))
-        .write(const TransactionsCompanion(
-          syncStatus: Value('synced'),
-        ));
+    await (update(transactions)..where((t) => t.id.isIn(entityIds))).write(
+      const TransactionsCompanion(syncStatus: Value('synced')),
+    );
   }
 
   // Sync metadata (atomic checkpoint in same DB as ops)
   Future<int?> getSyncMetaInt(String key) async {
-    final row = await (select(syncMetadata)..where((s) => s.key.equals(key))).getSingleOrNull();
+    final row = await (select(
+      syncMetadata,
+    )..where((s) => s.key.equals(key))).getSingleOrNull();
     return row?.value;
   }
 
@@ -883,10 +938,12 @@ class AppDatabase extends _$AppDatabase {
     int limit = 50,
   }) async {
     return (select(syncDeadLetters)
-          ..where((d) =>
-              d.retryCount.isSmallerThanValue(maxRetries) &
-              (d.nextRetryAfter.isNull() |
-                  d.nextRetryAfter.isSmallerOrEqualValue(DateTime.now())))
+          ..where(
+            (d) =>
+                d.retryCount.isSmallerThanValue(maxRetries) &
+                (d.nextRetryAfter.isNull() |
+                    d.nextRetryAfter.isSmallerOrEqualValue(DateTime.now())),
+          )
           ..orderBy([(d) => OrderingTerm.asc(d.createdAt)])
           ..limit(limit))
         .get();
@@ -908,9 +965,9 @@ class AppDatabase extends _$AppDatabase {
   /// Increment retry count and set nextRetryAfter atomically.
   /// Exponential backoff: 1h, 4h, 16h, 64h, 256h (1 << (retryIndex * 2)).
   Future<void> incrementDeadLetterRetry(String opId) async {
-    final op = await (select(syncDeadLetters)
-          ..where((d) => d.opId.equals(opId)))
-        .getSingleOrNull();
+    final op = await (select(
+      syncDeadLetters,
+    )..where((d) => d.opId.equals(opId))).getSingleOrNull();
     if (op == null) return;
     final newCount = op.retryCount + 1;
     // retryIndex = newCount - 1, clamped to avoid shift overflow
@@ -927,26 +984,25 @@ class AppDatabase extends _$AppDatabase {
   /// Purge dead-letter ops older than [days] days.
   Future<int> purgeOldDeadLetterOps({int days = 30}) async {
     final cutoff = DateTime.now().subtract(Duration(days: days));
-    return (delete(syncDeadLetters)
-          ..where((d) => d.createdAt.isSmallerOrEqualValue(cutoff)))
-        .go();
+    return (delete(
+      syncDeadLetters,
+    )..where((d) => d.createdAt.isSmallerOrEqualValue(cutoff))).go();
   }
 
   /// Mark transactions as failed (called after push retries exhausted).
   Future<void> markTransactionsFailed(List<String> entityIds) async {
     if (entityIds.isEmpty) return;
-    await (update(transactions)..where((t) => t.id.isIn(entityIds)))
-        .write(const TransactionsCompanion(
-          syncStatus: Value('failed'),
-        ));
+    await (update(transactions)..where((t) => t.id.isIn(entityIds))).write(
+      const TransactionsCompanion(syncStatus: Value('failed')),
+    );
   }
 
   // Balance summary
   /// 总余额 = 所有收入 - 所有支出（从交易记录直接聚合，不依赖 account.balance）
   Future<int> getTotalBalance(String userId) async {
-    final allTxns = await (select(transactions)
-          ..where((t) => t.userId.equals(userId) & t.deletedAt.isNull()))
-        .get();
+    final allTxns = await (select(
+      transactions,
+    )..where((t) => t.userId.equals(userId) & t.deletedAt.isNull())).get();
     return allTxns.fold<int>(0, (sum, t) {
       return sum + (t.type == 'income' ? t.amountCny : -t.amountCny);
     });
@@ -955,31 +1011,39 @@ class AppDatabase extends _$AppDatabase {
   Future<int> getTodayExpense(String userId) async {
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
-    final rows = await (select(transactions)
-          ..where((t) =>
-              t.userId.equals(userId) &
-              t.type.equals('expense') &
-              t.txnDate.isBiggerOrEqualValue(startOfDay) &
-              t.deletedAt.isNull()))
-        .get();
+    final rows =
+        await (select(transactions)..where(
+              (t) =>
+                  t.userId.equals(userId) &
+                  t.type.equals('expense') &
+                  t.txnDate.isBiggerOrEqualValue(startOfDay) &
+                  t.deletedAt.isNull(),
+            ))
+            .get();
     return rows.fold<int>(0, (sum, t) => sum + t.amountCny);
   }
 
   Future<int> getMonthExpense(String userId) async {
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
-    final rows = await (select(transactions)
-          ..where((t) =>
-              t.userId.equals(userId) &
-              t.type.equals('expense') &
-              t.txnDate.isBiggerOrEqualValue(startOfMonth) &
-              t.deletedAt.isNull()))
-        .get();
+    final rows =
+        await (select(transactions)..where(
+              (t) =>
+                  t.userId.equals(userId) &
+                  t.type.equals('expense') &
+                  t.txnDate.isBiggerOrEqualValue(startOfMonth) &
+                  t.deletedAt.isNull(),
+            ))
+            .get();
     return rows.fold<int>(0, (sum, t) => sum + t.amountCny);
   }
 
   /// Returns monthly expense totals for [year] as a 12-element list (Jan=index 0).
-  Future<List<int>> getMonthlyExpensesForYear(String userId, int year, {String? familyId}) async {
+  Future<List<int>> getMonthlyExpensesForYear(
+    String userId,
+    int year, {
+    String? familyId,
+  }) async {
     final yearStart = DateTime(year, 1, 1);
     final yearEnd = DateTime(year + 1, 1, 1);
 
@@ -987,23 +1051,29 @@ class AppDatabase extends _$AppDatabase {
     if (familyId != null && familyId.isNotEmpty) {
       final familyAccounts = await getAccountsByFamily(familyId);
       final familyAccountIds = familyAccounts.map((a) => a.id).toSet();
-      final allRows = await (select(transactions)
-            ..where((t) =>
-                t.type.equals('expense') &
-                t.txnDate.isBiggerOrEqualValue(yearStart) &
-                t.txnDate.isSmallerThanValue(yearEnd) &
-                t.deletedAt.isNull()))
-          .get();
-      rows = allRows.where((t) => familyAccountIds.contains(t.accountId)).toList();
+      final allRows =
+          await (select(transactions)..where(
+                (t) =>
+                    t.type.equals('expense') &
+                    t.txnDate.isBiggerOrEqualValue(yearStart) &
+                    t.txnDate.isSmallerThanValue(yearEnd) &
+                    t.deletedAt.isNull(),
+              ))
+              .get();
+      rows = allRows
+          .where((t) => familyAccountIds.contains(t.accountId))
+          .toList();
     } else {
-      rows = await (select(transactions)
-            ..where((t) =>
-                t.userId.equals(userId) &
-                t.type.equals('expense') &
-                t.txnDate.isBiggerOrEqualValue(yearStart) &
-                t.txnDate.isSmallerThanValue(yearEnd) &
-                t.deletedAt.isNull()))
-          .get();
+      rows =
+          await (select(transactions)..where(
+                (t) =>
+                    t.userId.equals(userId) &
+                    t.type.equals('expense') &
+                    t.txnDate.isBiggerOrEqualValue(yearStart) &
+                    t.txnDate.isSmallerThanValue(yearEnd) &
+                    t.deletedAt.isNull(),
+              ))
+              .get();
     }
 
     final monthly = List.filled(12, 0);
@@ -1016,8 +1086,7 @@ class AppDatabase extends _$AppDatabase {
 
   // ---- Family CRUD ----
 
-  Future<List<Family>> getAllFamilies() =>
-      select(families).get();
+  Future<List<Family>> getAllFamilies() => select(families).get();
 
   Future<Family?> getFamilyById(String id) =>
       (select(families)..where((f) => f.id.equals(id))).getSingleOrNull();
@@ -1037,14 +1106,19 @@ class AppDatabase extends _$AppDatabase {
       (select(familyMembers)..where((m) => m.familyId.equals(familyId))).get();
 
   Future<FamilyMember?> getFamilyMember(String familyId, String userId) =>
-      (select(familyMembers)
-            ..where((m) => m.familyId.equals(familyId) & m.userId.equals(userId)))
+      (select(familyMembers)..where(
+            (m) => m.familyId.equals(familyId) & m.userId.equals(userId),
+          ))
           .getSingleOrNull();
 
   Future<int> insertFamilyMember(FamilyMembersCompanion entry) =>
       into(familyMembers).insert(entry, mode: InsertMode.insertOrReplace);
 
-  Future<void> updateFamilyMemberRole(String familyId, String userId, String role) async {
+  Future<void> updateFamilyMemberRole(
+    String familyId,
+    String userId,
+    String role,
+  ) async {
     await (update(familyMembers)
           ..where((m) => m.familyId.equals(familyId) & m.userId.equals(userId)))
         .write(FamilyMembersCompanion(role: Value(role)));
@@ -1061,35 +1135,47 @@ class AppDatabase extends _$AppDatabase {
   }) async {
     await (update(familyMembers)
           ..where((m) => m.familyId.equals(familyId) & m.userId.equals(userId)))
-        .write(FamilyMembersCompanion(
-      canView: Value(canView),
-      canCreate: Value(canCreate),
-      canEdit: Value(canEdit),
-      canDelete: Value(canDelete),
-      canManageAccounts: Value(canManageAccounts),
-    ));
+        .write(
+          FamilyMembersCompanion(
+            canView: Value(canView),
+            canCreate: Value(canCreate),
+            canEdit: Value(canEdit),
+            canDelete: Value(canDelete),
+            canManageAccounts: Value(canManageAccounts),
+          ),
+        );
   }
 
-  Future<int> deleteFamilyMember(String familyId, String userId) =>
-      (delete(familyMembers)
-            ..where((m) => m.familyId.equals(familyId) & m.userId.equals(userId)))
-          .go();
+  Future<int> deleteFamilyMember(String familyId, String userId) => (delete(
+    familyMembers,
+  )..where((m) => m.familyId.equals(familyId) & m.userId.equals(userId))).go();
 
   Future<int> deleteAllFamilyMembers(String familyId) =>
       (delete(familyMembers)..where((m) => m.familyId.equals(familyId))).go();
 
   // ---- Account extended CRUD ----
 
-  Future<List<Account>> getAccountsByFamily(String familyId) =>
-      (select(accounts)..where((a) => a.familyId.equals(familyId) & a.isActive.equals(true))).get();
+  Future<List<Account>> getAccountsByFamily(String familyId) => (select(
+    accounts,
+  )..where((a) => a.familyId.equals(familyId) & a.isActive.equals(true))).get();
 
   Future<List<Account>> getActiveAccounts(String userId) =>
-      (select(accounts)..where((a) => a.userId.equals(userId) & a.isActive.equals(true) & (a.familyId.equals('') | a.familyId.isNull()))).get();
+      (select(accounts)..where(
+            (a) =>
+                a.userId.equals(userId) &
+                a.isActive.equals(true) &
+                (a.familyId.equals('') | a.familyId.isNull()),
+          ))
+          .get();
 
-  Future<Account?> getAccountById(String accountId) =>
-      (select(accounts)..where((a) => a.id.equals(accountId))).getSingleOrNull();
+  Future<Account?> getAccountById(String accountId) => (select(
+    accounts,
+  )..where((a) => a.id.equals(accountId))).getSingleOrNull();
 
-  Future<void> updateAccountFields(String accountId, AccountsCompanion entry) async {
+  Future<void> updateAccountFields(
+    String accountId,
+    AccountsCompanion entry,
+  ) async {
     await (update(accounts)..where((a) => a.id.equals(accountId))).write(entry);
   }
 
@@ -1120,16 +1206,18 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
     } else {
-      await into(accounts).insert(AccountsCompanion.insert(
-        id: id,
-        userId: userId,
-        name: name,
-        accountType: Value(accountType),
-        icon: Value(icon),
-        balance: Value(balance),
-        currency: Value(currency),
-        isActive: Value(isActive),
-      ));
+      await into(accounts).insert(
+        AccountsCompanion.insert(
+          id: id,
+          userId: userId,
+          name: name,
+          accountType: Value(accountType),
+          icon: Value(icon),
+          balance: Value(balance),
+          currency: Value(currency),
+          isActive: Value(isActive),
+        ),
+      );
     }
   }
 
@@ -1144,7 +1232,9 @@ class AppDatabase extends _$AppDatabase {
     String? userId,
     String iconKey = '',
   }) async {
-    final existing = await (select(categories)..where((c) => c.id.equals(id))).getSingleOrNull();
+    final existing = await (select(
+      categories,
+    )..where((c) => c.id.equals(id))).getSingleOrNull();
     if (existing != null) {
       await (update(categories)..where((c) => c.id.equals(id))).write(
         CategoriesCompanion(
@@ -1157,30 +1247,34 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
     } else {
-      await into(categories).insert(CategoriesCompanion.insert(
-        id: id,
-        name: name,
-        iconKey: Value(iconKey),
-        type: type,
-        isPreset: Value(isPreset),
-        sortOrder: Value(sortOrder),
-        parentId: Value(parentId),
-        userId: Value(userId),
-      ));
+      await into(categories).insert(
+        CategoriesCompanion.insert(
+          id: id,
+          name: name,
+          iconKey: Value(iconKey),
+          type: type,
+          isPreset: Value(isPreset),
+          sortOrder: Value(sortOrder),
+          parentId: Value(parentId),
+          userId: Value(userId),
+        ),
+      );
     }
   }
 
   Future<int> softDeleteAccount(String accountId) async {
-    await (update(accounts)..where((a) => a.id.equals(accountId)))
-        .write(const AccountsCompanion(isActive: Value(false)));
+    await (update(accounts)..where((a) => a.id.equals(accountId))).write(
+      const AccountsCompanion(isActive: Value(false)),
+    );
     return 1;
   }
 
   Future<void> softDeleteCategory(String categoryId) async {
     final now = DateTime.now();
     // Soft delete the category and its children
-    await (update(categories)..where((c) => c.id.equals(categoryId)))
-        .write(CategoriesCompanion(deletedAt: Value(now)));
+    await (update(categories)..where((c) => c.id.equals(categoryId))).write(
+      CategoriesCompanion(deletedAt: Value(now)),
+    );
     await (update(categories)..where((c) => c.parentId.equals(categoryId)))
         .write(CategoriesCompanion(deletedAt: Value(now)));
   }
@@ -1202,29 +1296,42 @@ class AppDatabase extends _$AppDatabase {
   Future<int> insertBudget(BudgetsCompanion entry) =>
       into(budgets).insert(entry, mode: InsertMode.insertOrReplace);
 
-  Future<Budget?> getBudgetByMonth(String userId, int year, int month,
-      {String familyId = ''}) async {
-    final results = await (select(budgets)
-          ..where((b) =>
-              b.userId.equals(userId) &
-              b.year.equals(year) &
-              b.month.equals(month) &
-              b.familyId.equals(familyId))
-          ..orderBy([(b) => OrderingTerm.desc(b.updatedAt)])
-          ..limit(1))
-        .get();
+  Future<Budget?> getBudgetByMonth(
+    String userId,
+    int year,
+    int month, {
+    String familyId = '',
+  }) async {
+    final results =
+        await (select(budgets)
+              ..where(
+                (b) =>
+                    b.userId.equals(userId) &
+                    b.year.equals(year) &
+                    b.month.equals(month) &
+                    b.familyId.equals(familyId),
+              )
+              ..orderBy([(b) => OrderingTerm.desc(b.updatedAt)])
+              ..limit(1))
+            .get();
     return results.firstOrNull;
   }
 
   Future<Budget?> getBudgetById(String id) =>
       (select(budgets)..where((b) => b.id.equals(id))).getSingleOrNull();
 
-  Future<List<Budget>> getBudgetsByYear(String userId, int year,
-      {String familyId = ''}) =>
+  Future<List<Budget>> getBudgetsByYear(
+    String userId,
+    int year, {
+    String familyId = '',
+  }) =>
       (select(budgets)
-            ..where((b) => b.userId.equals(userId) &
-                b.year.equals(year) &
-                b.familyId.equals(familyId))
+            ..where(
+              (b) =>
+                  b.userId.equals(userId) &
+                  b.year.equals(year) &
+                  b.familyId.equals(familyId),
+            )
             ..orderBy([(b) => OrderingTerm.asc(b.month)]))
           .get();
 
@@ -1237,15 +1344,21 @@ class AppDatabase extends _$AppDatabase {
   /// Remove duplicate budgets for same user+year+month+familyId, keeping only
   /// the one with the given [keepId]. Call before insert to avoid duplicates.
   Future<void> deleteBudgetDuplicates(
-      String userId, int year, int month, String familyId,
-      {String? keepId}) async {
-    final dupes = await (select(budgets)
-          ..where((b) =>
-              b.userId.equals(userId) &
-              b.year.equals(year) &
-              b.month.equals(month) &
-              b.familyId.equals(familyId)))
-        .get();
+    String userId,
+    int year,
+    int month,
+    String familyId, {
+    String? keepId,
+  }) async {
+    final dupes =
+        await (select(budgets)..where(
+              (b) =>
+                  b.userId.equals(userId) &
+                  b.year.equals(year) &
+                  b.month.equals(month) &
+                  b.familyId.equals(familyId),
+            ))
+            .get();
     for (final d in dupes) {
       if (d.id != keepId) {
         await deleteBudget(d.id);
@@ -1268,21 +1381,27 @@ class AppDatabase extends _$AppDatabase {
       into(categoryBudgetsTable).insert(entry);
 
   Future<List<CategoryBudgetsTableData>> getCategoryBudgets(String budgetId) =>
-      (select(categoryBudgetsTable)
-            ..where((cb) => cb.budgetId.equals(budgetId)))
-          .get();
+      (select(
+        categoryBudgetsTable,
+      )..where((cb) => cb.budgetId.equals(budgetId))).get();
 
-  Future<int> deleteCategoryBudgets(String budgetId) =>
-      (delete(categoryBudgetsTable)
-            ..where((cb) => cb.budgetId.equals(budgetId)))
-          .go();
+  Future<int> deleteCategoryBudgets(String budgetId) => (delete(
+    categoryBudgetsTable,
+  )..where((cb) => cb.budgetId.equals(budgetId))).go();
 
   /// Get expense sum per category for a given month
   Future<Map<String, int>> getMonthCategoryExpenses(
-      String userId, int year, int month, {String? familyId}) async {
+    String userId,
+    int year,
+    int month, {
+    String? familyId,
+  }) async {
     final startOfMonth = DateTime(year, month, 1);
-    final endOfMonth =
-        DateTime(year, month + 1, 1).subtract(const Duration(milliseconds: 1));
+    final endOfMonth = DateTime(
+      year,
+      month + 1,
+      1,
+    ).subtract(const Duration(milliseconds: 1));
 
     // Use raw SQL to JOIN accounts for family filtering
     final isFamilyMode = familyId != null && familyId.isNotEmpty;
@@ -1308,17 +1427,22 @@ class AppDatabase extends _$AppDatabase {
     ).get();
     final map = <String, int>{};
     for (final row in rows) {
-      map[row.data['category_id'] as String] =
-          (row.data['total'] as int?) ?? 0;
+      map[row.data['category_id'] as String] = (row.data['total'] as int?) ?? 0;
     }
     return map;
   }
 
   Future<Map<String, int>> getYearCategoryExpenses(
-      String userId, int year, {String? familyId}) async {
+    String userId,
+    int year, {
+    String? familyId,
+  }) async {
     final startOfYear = DateTime(year, 1, 1);
-    final endOfYear =
-        DateTime(year + 1, 1, 1).subtract(const Duration(milliseconds: 1));
+    final endOfYear = DateTime(
+      year + 1,
+      1,
+      1,
+    ).subtract(const Duration(milliseconds: 1));
 
     final isFamilyMode = familyId != null && familyId.isNotEmpty;
     final familyFilter = isFamilyMode
@@ -1343,8 +1467,7 @@ class AppDatabase extends _$AppDatabase {
     ).get();
     final map = <String, int>{};
     for (final row in rows) {
-      map[row.data['category_id'] as String] =
-          (row.data['total'] as int?) ?? 0;
+      map[row.data['category_id'] as String] = (row.data['total'] as int?) ?? 0;
     }
     return map;
   }
@@ -1355,7 +1478,10 @@ class AppDatabase extends _$AppDatabase {
       into(notifications).insert(entry);
 
   Future<List<Notification>> getNotifications(
-      String userId, int limit, int offset) =>
+    String userId,
+    int limit,
+    int offset,
+  ) =>
       (select(notifications)
             ..where((n) => n.userId.equals(userId))
             ..orderBy([(n) => OrderingTerm.desc(n.createdAt)])
@@ -1363,34 +1489,34 @@ class AppDatabase extends _$AppDatabase {
           .get();
 
   Future<int> getUnreadNotificationCount(String userId) async {
-    final rows = await (select(notifications)
-          ..where(
-              (n) => n.userId.equals(userId) & n.isRead.equals(false)))
-        .get();
+    final rows = await (select(
+      notifications,
+    )..where((n) => n.userId.equals(userId) & n.isRead.equals(false))).get();
     return rows.length;
   }
 
   Future<void> markNotificationsAsRead(List<String> ids) async {
-    await (update(notifications)..where((n) => n.id.isIn(ids)))
-        .write(const NotificationsCompanion(isRead: Value(true)));
+    await (update(notifications)..where((n) => n.id.isIn(ids))).write(
+      const NotificationsCompanion(isRead: Value(true)),
+    );
   }
 
   // Notification Settings
   Future<NotificationSettingsTableData?> getNotificationSettings(
-          String userId) =>
-      (select(notificationSettingsTable)
-            ..where((s) => s.userId.equals(userId)))
-          .getSingleOrNull();
+    String userId,
+  ) => (select(
+    notificationSettingsTable,
+  )..where((s) => s.userId.equals(userId))).getSingleOrNull();
 
   Future<void> upsertNotificationSettings(
-      NotificationSettingsTableCompanion entry) async {
+    NotificationSettingsTableCompanion entry,
+  ) async {
     await into(notificationSettingsTable).insertOnConflictUpdate(entry);
   }
 
   // ---- Loan CRUD ----
 
-  Future<int> insertLoan(LoansCompanion entry) =>
-      into(loans).insert(entry);
+  Future<int> insertLoan(LoansCompanion entry) => into(loans).insert(entry);
 
   Future<void> upsertLoan(LoansCompanion entry) async {
     await into(loans).insertOnConflictUpdate(entry);
@@ -1404,10 +1530,14 @@ class AppDatabase extends _$AppDatabase {
           .get();
     }
     return (select(loans)
-            ..where((l) => l.userId.equals(userId) & l.deletedAt.isNull() &
-                (l.familyId.equals('') | l.familyId.isNull()))
-            ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
-          .get();
+          ..where(
+            (l) =>
+                l.userId.equals(userId) &
+                l.deletedAt.isNull() &
+                (l.familyId.equals('') | l.familyId.isNull()),
+          )
+          ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
+        .get();
   }
 
   /// Get standalone loans (not in any group)
@@ -1415,22 +1545,26 @@ class AppDatabase extends _$AppDatabase {
     if (familyId != null && familyId.isNotEmpty) {
       // 家庭模式：显示该家庭的所有贷款
       return (select(loans)
-            ..where((l) =>
-                l.familyId.equals(familyId) &
-                l.deletedAt.isNull() &
-                (l.groupId.equals('') | l.groupId.isNull()))
+            ..where(
+              (l) =>
+                  l.familyId.equals(familyId) &
+                  l.deletedAt.isNull() &
+                  (l.groupId.equals('') | l.groupId.isNull()),
+            )
             ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
           .get();
     }
     // 个人模式：显示自己的贷款（排除关联到家庭的）
     return (select(loans)
-            ..where((l) =>
+          ..where(
+            (l) =>
                 l.userId.equals(userId) &
                 l.deletedAt.isNull() &
                 (l.groupId.equals('') | l.groupId.isNull()) &
-                (l.familyId.equals('') | l.familyId.isNull()))
-            ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
-          .get();
+                (l.familyId.equals('') | l.familyId.isNull()),
+          )
+          ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
+        .get();
   }
 
   /// Get loans belonging to a specific group
@@ -1509,16 +1643,23 @@ class AppDatabase extends _$AppDatabase {
           .get();
     }
     return (select(loanGroups)
-            ..where((g) => g.userId.equals(userId) & g.deletedAt.isNull() &
-                (g.familyId.equals('') | g.familyId.isNull()))
-            ..orderBy([(g) => OrderingTerm.desc(g.createdAt)]))
-          .get();
+          ..where(
+            (g) =>
+                g.userId.equals(userId) &
+                g.deletedAt.isNull() &
+                (g.familyId.equals('') | g.familyId.isNull()),
+          )
+          ..orderBy([(g) => OrderingTerm.desc(g.createdAt)]))
+        .get();
   }
 
   Future<LoanGroup?> getLoanGroupById(String id) =>
       (select(loanGroups)..where((g) => g.id.equals(id))).getSingleOrNull();
 
-  Future<void> updateLoanGroupFields(String groupId, LoanGroupsCompanion entry) async {
+  Future<void> updateLoanGroupFields(
+    String groupId,
+    LoanGroupsCompanion entry,
+  ) async {
     await (update(loanGroups)..where((g) => g.id.equals(groupId))).write(entry);
   }
 
@@ -1549,16 +1690,23 @@ class AppDatabase extends _$AppDatabase {
     }
     // 个人模式：只显示个人投资（排除家庭投资）
     return (select(investments)
-            ..where((i) => i.userId.equals(userId) & i.deletedAt.isNull() &
-                (i.familyId.equals('') | i.familyId.isNull()))
-            ..orderBy([(i) => OrderingTerm.desc(i.createdAt)]))
-          .get();
+          ..where(
+            (i) =>
+                i.userId.equals(userId) &
+                i.deletedAt.isNull() &
+                (i.familyId.equals('') | i.familyId.isNull()),
+          )
+          ..orderBy([(i) => OrderingTerm.desc(i.createdAt)]))
+        .get();
   }
 
   Future<Investment?> getInvestmentById(String id) =>
       (select(investments)..where((i) => i.id.equals(id))).getSingleOrNull();
 
-  Future<void> updateInvestmentFields(String id, InvestmentsCompanion entry) async {
+  Future<void> updateInvestmentFields(
+    String id,
+    InvestmentsCompanion entry,
+  ) async {
     await (update(investments)..where((i) => i.id.equals(id))).write(entry);
   }
 
@@ -1591,12 +1739,12 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<MarketQuote?> getMarketQuote(String symbol, String marketType) =>
-      (select(marketQuotes)
-            ..where((q) => q.symbol.equals(symbol) & q.marketType.equals(marketType)))
+      (select(marketQuotes)..where(
+            (q) => q.symbol.equals(symbol) & q.marketType.equals(marketType),
+          ))
           .getSingleOrNull();
 
-  Future<List<MarketQuote>> getAllMarketQuotes() =>
-      select(marketQuotes).get();
+  Future<List<MarketQuote>> getAllMarketQuotes() => select(marketQuotes).get();
 
   // ---- Fixed Asset CRUD ----
 
@@ -1614,16 +1762,23 @@ class AppDatabase extends _$AppDatabase {
     }
     // 个人模式：只显示个人资产（排除家庭资产）
     return (select(fixedAssets)
-            ..where((a) => a.userId.equals(userId) & a.deletedAt.isNull() &
-                (a.familyId.equals('') | a.familyId.isNull()))
-            ..orderBy([(a) => OrderingTerm.desc(a.createdAt)]))
-          .get();
+          ..where(
+            (a) =>
+                a.userId.equals(userId) &
+                a.deletedAt.isNull() &
+                (a.familyId.equals('') | a.familyId.isNull()),
+          )
+          ..orderBy([(a) => OrderingTerm.desc(a.createdAt)]))
+        .get();
   }
 
   Future<FixedAsset?> getFixedAssetById(String id) =>
       (select(fixedAssets)..where((a) => a.id.equals(id))).getSingleOrNull();
 
-  Future<void> updateFixedAssetFields(String id, FixedAssetsCompanion entry) async {
+  Future<void> updateFixedAssetFields(
+    String id,
+    FixedAssetsCompanion entry,
+  ) async {
     await (update(fixedAssets)..where((a) => a.id.equals(id))).write(entry);
   }
 
@@ -1683,8 +1838,5 @@ class TransactionSearchResult {
   final List<Transaction> items;
   final bool truncated;
 
-  const TransactionSearchResult({
-    required this.items,
-    required this.truncated,
-  });
+  const TransactionSearchResult({required this.items, required this.truncated});
 }

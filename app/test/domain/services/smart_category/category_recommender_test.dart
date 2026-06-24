@@ -23,8 +23,7 @@ void main() {
       );
       // maxHourProb = smoothed at noon = (5+10+5)/(20) * normalizedProb
       final hourProb = profile.hourProbability;
-      final smoothed =
-          (hourProb[11] + hourProb[12] + hourProb[13]) / 3;
+      final smoothed = (hourProb[11] + hourProb[12] + hourProb[13]) / 3;
       final score = scorer.score(profile, 12, smoothed);
       expect(score, closeTo(1.0, 0.001));
     });
@@ -37,8 +36,7 @@ void main() {
         hourDistribution: hourDist,
       );
       final hourProb = profile.hourProbability;
-      final maxSmoothed =
-          (hourProb[11] + hourProb[12] + hourProb[13]) / 3;
+      final maxSmoothed = (hourProb[11] + hourProb[12] + hourProb[13]) / 3;
       // Score at 3 AM — should be very low
       final score = scorer.score(profile, 3, maxSmoothed);
       expect(score, lessThan(0.1));
@@ -114,12 +112,16 @@ void main() {
 
   group('SequenceScorer', () {
     test('returns 0 when lastCategoryId is null', () {
-      final scorer = SequenceScorer({'a': {'b': 0.5}});
+      final scorer = SequenceScorer({
+        'a': {'b': 0.5},
+      });
       expect(scorer.score(null, 'b'), 0);
     });
 
     test('returns 0 when no transitions from lastCategory', () {
-      final scorer = SequenceScorer({'a': {'b': 0.5}});
+      final scorer = SequenceScorer({
+        'a': {'b': 0.5},
+      });
       expect(scorer.score('c', 'b'), 0);
     });
 
@@ -435,38 +437,42 @@ void main() {
       expect(booster.boostTimeSlot(newProfile, 12), 0.9);
     });
 
-    test('new category gets timeSlot boost even when old categories have data', () {
-      // 场景：用户已有一个「购物」分类有大量历史，新建了「午餐」分类
-      final shoppingHours = List<int>.filled(24, 1); // 各时段均匀
-      shoppingHours[14] = 20; // 下午峰值
+    test(
+      'new category gets timeSlot boost even when old categories have data',
+      () {
+        // 场景：用户已有一个「购物」分类有大量历史，新建了「午餐」分类
+        final shoppingHours = List<int>.filled(24, 1); // 各时段均匀
+        shoppingHours[14] = 20; // 下午峰值
 
-      final shopping = CategoryUsageProfile(
-        categoryId: 'shopping',
-        totalCount: 100,
-        last7dCount: 10,
-        hourDistribution: shoppingHours,
-      );
-      final newLunch = CategoryUsageProfile(categoryId: 'lunch'); // totalCount=0
+        final shopping = CategoryUsageProfile(
+          categoryId: 'shopping',
+          totalCount: 100,
+          last7dCount: 10,
+          hourDistribution: shoppingHours,
+        );
+        final newLunch = CategoryUsageProfile(
+          categoryId: 'lunch',
+        ); // totalCount=0
 
-      final recommender = CategoryRecommender();
-      final booster = ColdStartBooster(
-        categoryNames: {'shopping': '购物', 'lunch': '午餐'},
-      );
+        final recommender = CategoryRecommender();
+        final booster = ColdStartBooster(
+          categoryNames: {'shopping': '购物', 'lunch': '午餐'},
+        );
 
-      final results = recommender.recommend(
-        profiles: [shopping, newLunch],
-        sequenceScorer: const SequenceScorer({}),
-        input: CategoryRecommendInput(
-          typeIndex: 0,
-          now: DateTime(2026, 1, 1, 12, 0), // 正午
-        ),
-        booster: booster,
-      );
+        final results = recommender.recommend(
+          profiles: [shopping, newLunch],
+          sequenceScorer: const SequenceScorer({}),
+          input: CategoryRecommendInput(
+            typeIndex: 0,
+            now: DateTime(2026, 1, 1, 12, 0), // 正午
+          ),
+          booster: booster,
+        );
 
-      // 新建的「午餐」应该有得分（不是 0）
-      final lunchResult = results.firstWhere((r) => r.categoryId == 'lunch');
-      expect(lunchResult.score, greaterThan(0.1),
-          reason: '新分类应在合适时段获得显著得分');
-    });
+        // 新建的「午餐」应该有得分（不是 0）
+        final lunchResult = results.firstWhere((r) => r.categoryId == 'lunch');
+        expect(lunchResult.score, greaterThan(0.1), reason: '新分类应在合适时段获得显著得分');
+      },
+    );
   });
 }

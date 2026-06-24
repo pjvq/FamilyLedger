@@ -16,7 +16,11 @@ class SyncStatusIndicator extends ConsumerWidget {
     final familyId = ref.watch(currentFamilyIdProvider);
     final isFamilyMode = familyId != null && familyId.isNotEmpty;
 
-    final (icon, label, color, showDot) = _resolveDisplay(syncState, isDark, theme);
+    final (icon, label, color, showDot) = _resolveDisplay(
+      syncState,
+      isDark,
+      theme,
+    );
 
     return Tooltip(
       message: _tooltipMessage(syncState, isFamilyMode),
@@ -67,35 +71,35 @@ class SyncStatusIndicator extends ConsumerWidget {
   ) {
     return switch (state.status) {
       SyncStatus.syncing => (
-          Icons.sync_rounded,
-          '同步中',
-          theme.colorScheme.primary,
-          true,
-        ),
+        Icons.sync_rounded,
+        '同步中',
+        theme.colorScheme.primary,
+        true,
+      ),
       SyncStatus.pending => (
-          Icons.cloud_upload_outlined,
-          '${state.pendingCount} 待上传',
-          Colors.orange,
-          true,
-        ),
+        Icons.cloud_upload_outlined,
+        '${state.pendingCount} 待上传',
+        Colors.orange,
+        true,
+      ),
       SyncStatus.failed => (
-          Icons.error_outline_rounded,
-          '${state.failedCount} 条失败',
-          Colors.red,
-          true,
-        ),
+        Icons.error_outline_rounded,
+        '${state.failedCount} 条失败',
+        Colors.red,
+        true,
+      ),
       SyncStatus.offline => (
-          Icons.cloud_off_rounded,
-          '离线',
-          isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-          true,
-        ),
+        Icons.cloud_off_rounded,
+        '离线',
+        isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+        true,
+      ),
       SyncStatus.synced => (
-          Icons.check_circle_outline_rounded,
-          _syncedLabel(state),
-          Colors.green,
-          true,
-        ),
+        Icons.check_circle_outline_rounded,
+        _syncedLabel(state),
+        Colors.green,
+        true,
+      ),
     };
   }
 
@@ -159,10 +163,7 @@ class _ConnectionDot extends StatelessWidget {
     return Container(
       width: 6,
       height: 6,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }

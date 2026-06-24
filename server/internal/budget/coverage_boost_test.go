@@ -429,7 +429,7 @@ func TestCB_UpdateBudget_CategoryDeleteError(t *testing.T) {
 		WillReturnError(errors.New("delete fail"))
 	mock.ExpectRollback()
 	_, err := svc.UpdateBudget(authedCtx(), &pb.UpdateBudgetRequest{
-		BudgetId: bid.String(),
+		BudgetId:        bid.String(),
 		CategoryBudgets: []*pb.CategoryBudget{{CategoryId: catID.String(), Amount: 500}},
 	})
 	assert.Equal(t, codes.Internal, status.Code(err))
@@ -448,7 +448,7 @@ func TestCB_UpdateBudget_CategoryInvalidID(t *testing.T) {
 		WithArgs(bid).
 		WillReturnResult(pgxmock.NewResult("DELETE", 0))
 	_, err := svc.UpdateBudget(authedCtx(), &pb.UpdateBudgetRequest{
-		BudgetId: bid.String(),
+		BudgetId:        bid.String(),
 		CategoryBudgets: []*pb.CategoryBudget{{CategoryId: "not-uuid", Amount: 500}},
 	})
 	assert.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -472,7 +472,7 @@ func TestCB_UpdateBudget_CategoryInsertError(t *testing.T) {
 		WillReturnError(errors.New("insert fail"))
 	mock.ExpectRollback()
 	_, err := svc.UpdateBudget(authedCtx(), &pb.UpdateBudgetRequest{
-		BudgetId: bid.String(),
+		BudgetId:        bid.String(),
 		CategoryBudgets: []*pb.CategoryBudget{{CategoryId: catID.String(), Amount: 500}},
 	})
 	assert.Equal(t, codes.Internal, status.Code(err))

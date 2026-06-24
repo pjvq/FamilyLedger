@@ -91,7 +91,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Future<void> _saveOrder() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(
-        _orderKey, _cardOrder.map((s) => s.name).toList());
+      _orderKey,
+      _cardOrder.map((s) => s.name).toList(),
+    );
   }
 
   @override
@@ -178,8 +180,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           onToggle: () => _toggle(section),
           trailing: ReorderableDragStartListener(
             index: index,
-            child: Icon(Icons.drag_handle_rounded, size: 20,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+            child: Icon(
+              Icons.drag_handle_rounded,
+              size: 20,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
           ),
           child: RepaintBoundary(
             child: _AssetPieChart(
@@ -201,14 +206,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             children: [
               _PeriodToggle(
                 period: dashState.trendPeriod,
-                onChanged: (p) =>
-                    ref.read(dashboardProvider.notifier).loadTrend(p, _kTrendMonthlyCount),
+                onChanged: (p) => ref
+                    .read(dashboardProvider.notifier)
+                    .loadTrend(p, _kTrendMonthlyCount),
               ),
               const SizedBox(width: 4),
               ReorderableDragStartListener(
                 index: index,
-                child: Icon(Icons.drag_handle_rounded, size: 20,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+                child: Icon(
+                  Icons.drag_handle_rounded,
+                  size: 20,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                ),
               ),
             ],
           ),
@@ -239,8 +248,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               const SizedBox(width: 4),
               ReorderableDragStartListener(
                 index: index,
-                child: Icon(Icons.drag_handle_rounded, size: 20,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+                child: Icon(
+                  Icons.drag_handle_rounded,
+                  size: 20,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                ),
               ),
             ],
           ),
@@ -262,8 +274,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           onToggle: () => _toggle(section),
           trailing: ReorderableDragStartListener(
             index: index,
-            child: Icon(Icons.drag_handle_rounded, size: 20,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+            child: Icon(
+              Icons.drag_handle_rounded,
+              size: 20,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
           ),
           child: RepaintBoundary(
             child: _BudgetMiniCard(
@@ -291,8 +306,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               const SizedBox(width: 4),
               ReorderableDragStartListener(
                 index: index,
-                child: Icon(Icons.drag_handle_rounded, size: 20,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+                child: Icon(
+                  Icons.drag_handle_rounded,
+                  size: 20,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                ),
               ),
             ],
           ),
@@ -313,8 +331,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           onToggle: () => _toggle(section),
           trailing: ReorderableDragStartListener(
             index: index,
-            child: Icon(Icons.drag_handle_rounded, size: 20,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+            child: Icon(
+              Icons.drag_handle_rounded,
+              size: 20,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
           ),
           child: RepaintBoundary(
             child: _InvestmentTrendPlaceholder(
@@ -358,14 +379,13 @@ class _NetWorthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     final isUp = data.changeFromLastMonth >= 0;
-    final changeColor = isUp
-        ? colors.income
-        : colors.expense;
+    final changeColor = isUp ? colors.income : colors.expense;
 
     return Semantics(
-      label: '净资产 ${_fmtYuan(data.total)}元，'
+      label:
+          '净资产 ${_fmtYuan(data.total)}元，'
           '较上月${isUp ? "增长" : "减少"}${_fmtYuan(data.changeFromLastMonth.abs())}元',
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -374,14 +394,21 @@ class _NetWorthCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
-                ? [DarkCardGradients.dashboardStart, DarkCardGradients.dashboardEnd]
-                : [GradientTokens.primaryGradientStart, GradientTokens.primaryGradientDeep],
+                ? [
+                    DarkCardGradients.dashboardStart,
+                    DarkCardGradients.dashboardEnd,
+                  ]
+                : [
+                    GradientTokens.primaryGradientStart,
+                    GradientTokens.primaryGradientDeep,
+                  ],
           ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: (isDark ? Colors.black : ColorTokens.primary)
-                  .withValues(alpha: isDark ? 0.3 : 0.25),
+              color: (isDark ? Colors.black : ColorTokens.primary).withValues(
+                alpha: isDark ? 0.3 : 0.25,
+              ),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -410,9 +437,11 @@ class _NetWorthCard extends StatelessWidget {
                         const Spacer(),
                         ReorderableDragStartListener(
                           index: index,
-                          child: Icon(Icons.drag_handle_rounded,
-                              size: 20,
-                              color: Colors.white.withValues(alpha: 0.4)),
+                          child: Icon(
+                            Icons.drag_handle_rounded,
+                            size: 20,
+                            color: Colors.white.withValues(alpha: 0.4),
+                          ),
                         ),
                       ],
                     ),
@@ -446,7 +475,7 @@ class _NetWorthCard extends StatelessWidget {
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               fontFeatures: const [
-                                FontFeature.tabularFigures()
+                                FontFeature.tabularFigures(),
                               ],
                             ),
                           ),
@@ -494,18 +523,26 @@ class _NetWorthCard extends StatelessWidget {
                     Divider(color: Colors.white.withValues(alpha: 0.1)),
                     const SizedBox(height: 8),
                     _AssetDetailRow(
-                        label: '现金银行', value: data.cashAndBank, icon: '💵'),
+                      label: '现金银行',
+                      value: data.cashAndBank,
+                      icon: '💵',
+                    ),
                     _AssetDetailRow(
-                        label: '投资', value: data.investmentValue, icon: '📈'),
+                      label: '投资',
+                      value: data.investmentValue,
+                      icon: '📈',
+                    ),
                     _AssetDetailRow(
-                        label: '固定资产',
-                        value: data.fixedAssetValue,
-                        icon: '🏠'),
+                      label: '固定资产',
+                      value: data.fixedAssetValue,
+                      icon: '🏠',
+                    ),
                     _AssetDetailRow(
-                        label: '贷款',
-                        value: data.loanBalance,
-                        icon: '🏦',
-                        isNegative: true),
+                      label: '贷款',
+                      value: data.loanBalance,
+                      icon: '🏦',
+                      isNegative: true,
+                    ),
                   ],
                 ),
               ),
@@ -603,8 +640,7 @@ class _AssetPieChartState extends State<_AssetPieChart> {
     final composition = widget.composition;
     final theme = widget.theme;
 
-    if (composition.isEmpty ||
-        composition.every((c) => c.value == 0)) {
+    if (composition.isEmpty || composition.every((c) => c.value == 0)) {
       return SizedBox(
         height: 120,
         child: Center(
@@ -636,8 +672,10 @@ class _AssetPieChartState extends State<_AssetPieChart> {
                         setState(() => _touchedIndex = null);
                         return;
                       }
-                      setState(() => _touchedIndex =
-                          response.touchedSection!.touchedSectionIndex);
+                      setState(
+                        () => _touchedIndex =
+                            response.touchedSection!.touchedSectionIndex,
+                      );
                     },
                   ),
                   sections: composition.asMap().entries.map((e) {
@@ -690,8 +728,9 @@ class _AssetPieChartState extends State<_AssetPieChart> {
                           child: Text(
                             c.label,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              fontWeight:
-                                  isTouched ? FontWeight.w700 : FontWeight.w400,
+                              fontWeight: isTouched
+                                  ? FontWeight.w700
+                                  : FontWeight.w400,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -702,7 +741,7 @@ class _AssetPieChartState extends State<_AssetPieChart> {
                             style: theme.textTheme.bodySmall?.copyWith(
                               fontWeight: FontWeight.w600,
                               fontFeatures: const [
-                                FontFeature.tabularFigures()
+                                FontFeature.tabularFigures(),
                               ],
                             ),
                           ),
@@ -748,9 +787,9 @@ class _PeriodToggle extends StatelessWidget {
         visualDensity: VisualDensity.compact,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         padding: WidgetStateProperty.all(
-            const EdgeInsets.symmetric(horizontal: 8)),
-        textStyle:
-            WidgetStateProperty.all(const TextStyle(fontSize: 11)),
+          const EdgeInsets.symmetric(horizontal: 8),
+        ),
+        textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 11)),
       ),
     );
   }
@@ -769,7 +808,7 @@ class _IncomeExpenseChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     if (points.isEmpty) {
       return SizedBox(
         height: 180,
@@ -816,8 +855,9 @@ class _IncomeExpenseChart extends StatelessWidget {
                       _shortAmount(value.toInt()),
                       style: TextStyle(
                         fontSize: 10,
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.4),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
                       ),
                     );
                   },
@@ -845,17 +885,20 @@ class _IncomeExpenseChart extends StatelessWidget {
                       short,
                       style: TextStyle(
                         fontSize: 10,
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.5),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                     );
                   },
                 ),
               ),
-              topTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
             ),
             borderData: FlBorderData(show: false),
             minY: 0,
@@ -868,7 +911,9 @@ class _IncomeExpenseChart extends StatelessWidget {
                     return LineTooltipItem(
                       '${isIncome ? "收入" : "支出"}: ¥${_fmtYuan(spot.y.toInt())}',
                       TextStyle(
-                        color: isIncome ? context.semanticColors.income : context.semanticColors.expense,
+                        color: isIncome
+                            ? context.semanticColors.income
+                            : context.semanticColors.expense,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -883,8 +928,10 @@ class _IncomeExpenseChart extends StatelessWidget {
                 spots: points
                     .asMap()
                     .entries
-                    .map((e) => FlSpot(
-                        e.key.toDouble(), e.value.income.toDouble()))
+                    .map(
+                      (e) =>
+                          FlSpot(e.key.toDouble(), e.value.income.toDouble()),
+                    )
                     .toList(),
                 isCurved: true,
                 curveSmoothness: 0.25,
@@ -894,15 +941,14 @@ class _IncomeExpenseChart extends StatelessWidget {
                   show: true,
                   getDotPainter: (spot, percent, barData, index) =>
                       FlDotCirclePainter(
-                    radius: 3,
-                    color: colors.income,
-                    strokeWidth: 0,
-                  ),
+                        radius: 3,
+                        color: colors.income,
+                        strokeWidth: 0,
+                      ),
                 ),
                 belowBarData: BarAreaData(
                   show: true,
-                  color: colors.income
-                      .withValues(alpha: 0.08),
+                  color: colors.income.withValues(alpha: 0.08),
                 ),
               ),
               // Expense line
@@ -910,8 +956,10 @@ class _IncomeExpenseChart extends StatelessWidget {
                 spots: points
                     .asMap()
                     .entries
-                    .map((e) => FlSpot(
-                        e.key.toDouble(), e.value.expense.toDouble()))
+                    .map(
+                      (e) =>
+                          FlSpot(e.key.toDouble(), e.value.expense.toDouble()),
+                    )
                     .toList(),
                 isCurved: true,
                 curveSmoothness: 0.25,
@@ -921,15 +969,14 @@ class _IncomeExpenseChart extends StatelessWidget {
                   show: true,
                   getDotPainter: (spot, percent, barData, index) =>
                       FlDotCirclePainter(
-                    radius: 3,
-                    color: colors.expense,
-                    strokeWidth: 0,
-                  ),
+                        radius: 3,
+                        color: colors.expense,
+                        strokeWidth: 0,
+                      ),
                 ),
                 belowBarData: BarAreaData(
                   show: true,
-                  color: colors.expense
-                      .withValues(alpha: 0.08),
+                  color: colors.expense.withValues(alpha: 0.08),
                 ),
               ),
             ],
@@ -963,7 +1010,7 @@ class _CategoryPieChart extends StatefulWidget {
 
 class _CategoryPieChartState extends State<_CategoryPieChart> {
   int? _touchedIndex;
-  int? _expandedIndex;  // legend item with children expanded
+  int? _expandedIndex; // legend item with children expanded
 
   @override
   Widget build(BuildContext context) {
@@ -1002,8 +1049,10 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
                         setState(() => _touchedIndex = null);
                         return;
                       }
-                      setState(() => _touchedIndex =
-                          response.touchedSection!.touchedSectionIndex);
+                      setState(
+                        () => _touchedIndex =
+                            response.touchedSection!.touchedSectionIndex,
+                      );
                     },
                   ),
                   sections: items.asMap().entries.map((e) {
@@ -1011,7 +1060,8 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
                     final item = e.value;
                     final isTouched = _touchedIndex == i;
                     return PieChartSectionData(
-                      color: ChartColors.palette[i % ChartColors.palette.length],
+                      color:
+                          ChartColors.palette[i % ChartColors.palette.length],
                       value: item.amount.toDouble(),
                       title: isTouched
                           ? '${item.categoryName}\n${(item.weight * 100).toStringAsFixed(1)}%'
@@ -1046,8 +1096,8 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
                       GestureDetector(
                         onTap: hasChildren
                             ? () => setState(() {
-                                  _expandedIndex = isExpanded ? null : i;
-                                })
+                                _expandedIndex = isExpanded ? null : i;
+                              })
                             : null,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 3),
@@ -1057,8 +1107,8 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
                                 width: 10,
                                 height: 10,
                                 decoration: BoxDecoration(
-                                  color: ChartColors.palette[
-                                      i % ChartColors.palette.length],
+                                  color: ChartColors
+                                      .palette[i % ChartColors.palette.length],
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -1081,26 +1131,33 @@ class _CategoryPieChartState extends State<_CategoryPieChart> {
                                       ? Icons.expand_less
                                       : Icons.expand_more,
                                   size: 14,
-                                  color: theme.colorScheme.onSurface
-                                      .withValues(alpha: 0.4),
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.4,
+                                  ),
                                 ),
                             ],
                           ),
                         ),
                       ),
                       if (isExpanded)
-                        ...item.children.map((child) => Padding(
-                              padding: const EdgeInsets.only(
-                                  left: 22, top: 1, bottom: 1),
-                              child: Text(
-                                '${child.categoryName}  ¥${(child.amount / 100).toStringAsFixed(0)}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontSize: 10,
-                                  color: theme.colorScheme.onSurface
-                                      .withValues(alpha: 0.5),
+                        ...item.children.map(
+                          (child) => Padding(
+                            padding: const EdgeInsets.only(
+                              left: 22,
+                              top: 1,
+                              bottom: 1,
+                            ),
+                            child: Text(
+                              '${child.categoryName}  ¥${(child.amount / 100).toStringAsFixed(0)}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 10,
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
                                 ),
                               ),
-                            )),
+                            ),
+                          ),
+                        ),
                     ];
                   }).toList(),
                 ),
@@ -1156,7 +1213,8 @@ class _BudgetMiniCard extends StatelessWidget {
     }
 
     return Semantics(
-      label: '预算执行率 $pct%，已用 ${_fmtYuan(data.totalSpent)}，预算 ${_fmtYuan(data.totalBudget)}',
+      label:
+          '预算执行率 $pct%，已用 ${_fmtYuan(data.totalSpent)}，预算 ${_fmtYuan(data.totalBudget)}',
       child: Row(
         children: [
           // Ring
@@ -1197,8 +1255,7 @@ class _BudgetMiniCard extends StatelessWidget {
                 Text(
                   '预算 ¥${_fmtYuan(data.totalBudget)}',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color:
-                        theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1206,8 +1263,9 @@ class _BudgetMiniCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: rate.clamp(0.0, 1.0),
-                    backgroundColor:
-                        theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                    backgroundColor: theme.colorScheme.onSurface.withValues(
+                      alpha: 0.06,
+                    ),
                     color: rateColor,
                     minHeight: 6,
                   ),
@@ -1302,127 +1360,142 @@ class _NetWorthTrendChart extends StatelessWidget {
     final yInterval = (yRange > 0 ? yRange / 4 : 100).toDouble();
 
     return Semantics(
-      label: '净资产趋势折线图，最近${points.length}个${points.isNotEmpty && points.first.label.length <= 4 ? "年" : "月"}',
+      label:
+          '净资产趋势折线图，最近${points.length}个${points.isNotEmpty && points.first.label.length <= 4 ? "年" : "月"}',
       child: SizedBox(
         height: 180,
         child: Padding(
           padding: const EdgeInsets.only(right: 8),
           child: LineChart(
-          LineChartData(
-            gridData: FlGridData(
-              show: true,
-              drawVerticalLine: false,
-              horizontalInterval: yInterval,
-              getDrawingHorizontalLine: (value) => FlLine(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-                strokeWidth: 1,
-              ),
-            ),
-            titlesData: FlTitlesData(
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 48, // TODO: revisit for i18n / large negative values
-                  interval: yInterval,
-                  getTitlesWidget: (value, meta) {
-                    // Skip min/max edge labels to avoid clipping
-                    if (value <= minV - padding + yInterval * 0.1 ||
-                        value >= maxV + padding - yInterval * 0.1) {
-                      return const SizedBox.shrink();
-                    }
-                    return Text(
-                      _shortAmount(value.toInt()),
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.4),
-                      ),
-                    );
-                  },
+            LineChartData(
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                horizontalInterval: yInterval,
+                getDrawingHorizontalLine: (value) => FlLine(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                  strokeWidth: 1,
                 ),
               ),
-              topTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles:
-                  const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  interval: (points.length / 4).ceilToDouble().clamp(1, 6),
-                  getTitlesWidget: (value, meta) {
-                    final i = value.toInt();
-                    if (i < 0 || i >= points.length) {
-                      return const SizedBox.shrink();
-                    }
-                    final label = points[i].label;
-                    String short;
-                    if (label.length >= 7) {
-                      final monthNum = int.tryParse(label.substring(5)) ?? 0;
-                      short = '$monthNum月';
-                    } else {
-                      short = label;
-                    }
-                    return Text(
-                      short,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.4),
-                      ),
-                    );
-                  },
+              titlesData: FlTitlesData(
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize:
+                        48, // TODO: revisit for i18n / large negative values
+                    interval: yInterval,
+                    getTitlesWidget: (value, meta) {
+                      // Skip min/max edge labels to avoid clipping
+                      if (value <= minV - padding + yInterval * 0.1 ||
+                          value >= maxV + padding - yInterval * 0.1) {
+                        return const SizedBox.shrink();
+                      }
+                      return Text(
+                        _shortAmount(value.toInt()),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ),
-            borderData: FlBorderData(show: false),
-            minY: minV - padding,
-            maxY: maxV + padding,
-            lineTouchData: LineTouchData(
-              touchTooltipData: LineTouchTooltipData(
-                getTooltipItems: (spots) {
-                  return spots.map((spot) {
-                    return LineTooltipItem(
-                      '¥${_fmtYuan(spot.y.toInt())}',
-                      TextStyle(
-                        color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    );
-                  }).toList();
-                },
-              ),
-            ),
-            lineBarsData: [
-              LineChartBarData(
-                spots: points
-                    .asMap()
-                    .entries
-                    .map((e) =>
-                        FlSpot(e.key.toDouble(), e.value.net.toDouble()))
-                    .toList(),
-                isCurved: true,
-                curveSmoothness: 0.25,
-                color: isDark ? ColorTokens.primaryLight : ColorTokens.primary,
-                barWidth: 2.5,
-                dotData: const FlDotData(show: false),
-                belowBarData: BarAreaData(
-                  show: true,
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
-                          .withValues(alpha: 0.15),
-                      (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
-                          .withValues(alpha: 0.0),
-                    ],
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: (points.length / 4).ceilToDouble().clamp(1, 6),
+                    getTitlesWidget: (value, meta) {
+                      final i = value.toInt();
+                      if (i < 0 || i >= points.length) {
+                        return const SizedBox.shrink();
+                      }
+                      final label = points[i].label;
+                      String short;
+                      if (label.length >= 7) {
+                        final monthNum = int.tryParse(label.substring(5)) ?? 0;
+                        short = '$monthNum月';
+                      } else {
+                        short = label;
+                      }
+                      return Text(
+                        short,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
-            ],
+              borderData: FlBorderData(show: false),
+              minY: minV - padding,
+              maxY: maxV + padding,
+              lineTouchData: LineTouchData(
+                touchTooltipData: LineTouchTooltipData(
+                  getTooltipItems: (spots) {
+                    return spots.map((spot) {
+                      return LineTooltipItem(
+                        '¥${_fmtYuan(spot.y.toInt())}',
+                        TextStyle(
+                          color: isDark
+                              ? ColorTokens.primaryLight
+                              : ColorTokens.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      );
+                    }).toList();
+                  },
+                ),
+              ),
+              lineBarsData: [
+                LineChartBarData(
+                  spots: points
+                      .asMap()
+                      .entries
+                      .map(
+                        (e) => FlSpot(e.key.toDouble(), e.value.net.toDouble()),
+                      )
+                      .toList(),
+                  isCurved: true,
+                  curveSmoothness: 0.25,
+                  color: isDark
+                      ? ColorTokens.primaryLight
+                      : ColorTokens.primary,
+                  barWidth: 2.5,
+                  dotData: const FlDotData(show: false),
+                  belowBarData: BarAreaData(
+                    show: true,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        (isDark
+                                ? ColorTokens.primaryLight
+                                : ColorTokens.primary)
+                            .withValues(alpha: 0.15),
+                        (isDark
+                                ? ColorTokens.primaryLight
+                                : ColorTokens.primary)
+                            .withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
         ),
       ),
     );
@@ -1446,7 +1519,7 @@ class _InvestmentTrendPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-      final colors = context.semanticColors;
+    final colors = context.semanticColors;
     if (netWorth.investmentValue == 0) {
       return SizedBox(
         height: 80,
@@ -1467,8 +1540,7 @@ class _InvestmentTrendPlaceholder extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: colors.income
-              .withValues(alpha: 0.06),
+          color: colors.income.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -1482,8 +1554,7 @@ class _InvestmentTrendPlaceholder extends StatelessWidget {
                   Text(
                     '投资组合市值',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface
-                          .withValues(alpha: 0.5),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                   const SizedBox(height: 2),

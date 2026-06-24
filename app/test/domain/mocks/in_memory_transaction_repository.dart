@@ -74,7 +74,10 @@ class InMemoryTransactionRepository implements ITransactionRepository {
   @override
   Stream<List<TransactionEntity>> watch(String userId, {String? familyId}) {
     return _watchController.stream.map(
-      (all) => [for (final t in all) if (t.userId == userId && t.deletedAt == null) t],
+      (all) => [
+        for (final t in all)
+          if (t.userId == userId && t.deletedAt == null) t,
+      ],
     );
   }
 
@@ -98,7 +101,10 @@ class InMemoryTransactionRepository implements ITransactionRepository {
     final idSet = ids.toSet();
     for (int i = 0; i < _store.length; i++) {
       if (idSet.contains(_store[i].id)) {
-        _store[i] = _store[i].copyWith(syncStatus: 'synced', updatedAt: DateTime.now());
+        _store[i] = _store[i].copyWith(
+          syncStatus: 'synced',
+          updatedAt: DateTime.now(),
+        );
       }
     }
     _notify();
@@ -109,7 +115,10 @@ class InMemoryTransactionRepository implements ITransactionRepository {
     final idSet = ids.toSet();
     for (int i = 0; i < _store.length; i++) {
       if (idSet.contains(_store[i].id)) {
-        _store[i] = _store[i].copyWith(syncStatus: 'failed', updatedAt: DateTime.now());
+        _store[i] = _store[i].copyWith(
+          syncStatus: 'failed',
+          updatedAt: DateTime.now(),
+        );
       }
     }
     _notify();

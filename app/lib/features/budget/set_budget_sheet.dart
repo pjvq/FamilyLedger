@@ -32,8 +32,8 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
           ? budgetState.annualBudget
           : budgetState.currentBudget;
       if (existingBudget != null) {
-        _totalController.text =
-            (existingBudget.totalAmount / 100).toStringAsFixed(0);
+        _totalController.text = (existingBudget.totalAmount / 100)
+            .toStringAsFixed(0);
         // For annual, we don't have currentCategoryBudgets cached differently yet
         if (!widget.isAnnual) {
           for (final cb in budgetState.currentCategoryBudgets) {
@@ -66,7 +66,10 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
 
   /// Build category budget rows grouped by parent (1st level) → children (2nd level).
   List<Widget> _buildGroupedCategories(
-      List<Category> allCats, ThemeData theme, bool isDark) {
+    List<Category> allCats,
+    ThemeData theme,
+    bool isDark,
+  ) {
     // Separate into parents (parentId == null) and children
     final parents = allCats.where((c) => c.parentId == null).toList();
     final childrenMap = <String, List<Category>>{};
@@ -89,21 +92,22 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                 borderRadius: BorderRadius.circular(10),
                 onTap: children.isNotEmpty
                     ? () => setState(() {
-                          if (isExpanded) {
-                            _expandedParents.remove(parent.id);
-                          } else {
-                            _expandedParents.add(parent.id);
-                          }
-                        })
+                        if (isExpanded) {
+                          _expandedParents.remove(parent.id);
+                        } else {
+                          _expandedParents.add(parent.id);
+                        }
+                      })
                     : null,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Row(
                     children: [
                       CategoryIconWidget(
-                          iconKey: parent.iconKey,
-                          size: 20,
-                          showBackground: true),
+                        iconKey: parent.iconKey,
+                        size: 20,
+                        showBackground: true,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         flex: 2,
@@ -131,7 +135,11 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                       Expanded(
                         flex: 3,
                         child: _buildBudgetInput(
-                            parent.id, parent.name, theme, isDark),
+                          parent.id,
+                          parent.name,
+                          theme,
+                          isDark,
+                        ),
                       ),
                     ],
                   ),
@@ -139,38 +147,42 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
               ),
               // Children rows (indented)
               if (isExpanded && children.isNotEmpty)
-                ...children.map((child) => Padding(
-                      padding:
-                          const EdgeInsets.only(left: 32, bottom: 2),
-                      child: Padding(
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          children: [
-                            CategoryIconWidget(
-                                iconKey: child.iconKey,
-                                size: 16,
-                                showBackground: true),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                child.name,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color:
-                                      theme.colorScheme.onSurfaceVariant,
-                                ),
+                ...children.map(
+                  (child) => Padding(
+                    padding: const EdgeInsets.only(left: 32, bottom: 2),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          CategoryIconWidget(
+                            iconKey: child.iconKey,
+                            size: 16,
+                            showBackground: true,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              child.name,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
-                            Expanded(
-                              flex: 3,
-                              child: _buildBudgetInput(
-                                  child.id, child.name, theme, isDark),
+                          ),
+                          Expanded(
+                            flex: 3,
+                            child: _buildBudgetInput(
+                              child.id,
+                              child.name,
+                              theme,
+                              isDark,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    )),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -180,26 +192,31 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
   }
 
   Widget _buildBudgetInput(
-      String catId, String catName, ThemeData theme, bool isDark) {
+    String catId,
+    String catName,
+    ThemeData theme,
+    bool isDark,
+  ) {
     final controller = _getController(catId);
     return Semantics(
       label: '$catName分类预算金额',
       child: TextField(
         controller: controller,
-        keyboardType:
-            const TextInputType.numberWithOptions(decimal: true),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textAlign: TextAlign.right,
         decoration: InputDecoration(
           prefixText: '¥ ',
           hintText: '0',
           isDense: true,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 10,
           ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
           filled: true,
-          fillColor: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
+          fillColor: isDark
+              ? NeutralColorsDark.neutral2
+              : NeutralColorsLight.neutral0,
         ),
       ),
     );
@@ -220,10 +237,12 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
       if (text.isNotEmpty) {
         final yuan = double.tryParse(text);
         if (yuan != null && yuan > 0) {
-          categoryBudgets.add(CategoryBudgetItem(
-            categoryId: entry.key,
-            amount: (yuan * 100).round(),
-          ));
+          categoryBudgets.add(
+            CategoryBudgetItem(
+              categoryId: entry.key,
+              amount: (yuan * 100).round(),
+            ),
+          );
         }
       }
     }
@@ -243,17 +262,17 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
 
       if (existingBudget != null) {
         await notifier.updateBudget(
-              id: existingBudget.id,
-              totalAmount: totalCents,
-              categoryBudgets: categoryBudgets,
-            );
+          id: existingBudget.id,
+          totalAmount: totalCents,
+          categoryBudgets: categoryBudgets,
+        );
       } else {
         await notifier.createBudget(
-              year: now.year,
-              month: widget.isAnnual ? 0 : now.month,
-              totalAmount: totalCents,
-              categoryBudgets: categoryBudgets,
-            );
+          year: now.year,
+          month: widget.isAnnual ? 0 : now.month,
+          totalAmount: totalCents,
+          categoryBudgets: categoryBudgets,
+        );
       }
 
       // Reload annual budget data if we just created/updated one
@@ -274,7 +293,9 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral1,
+        color: isDark
+            ? NeutralColorsDark.neutral1
+            : NeutralColorsLight.neutral1,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: DraggableScrollableSheet(
@@ -336,20 +357,21 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                         child: TextField(
                           controller: _totalController,
                           keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
+                            decimal: true,
+                          ),
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                           decoration: InputDecoration(
                             labelText: widget.isAnnual ? '年度总预算' : '每月总预算',
                             prefixText: '¥ ',
-                            prefixStyle:
-                                theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? ColorTokens.primaryLight
-                                  : ColorTokens.primary,
-                            ),
+                            prefixStyle: theme.textTheme.headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? ColorTokens.primaryLight
+                                      : ColorTokens.primary,
+                                ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),
@@ -369,8 +391,7 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                           title: const Text('分类预算'),
                           subtitle: const Text('为每个支出分类设置独立预算'),
                           value: _showCategories,
-                          onChanged: (v) =>
-                              setState(() => _showCategories = v),
+                          onChanged: (v) => setState(() => _showCategories = v),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
@@ -379,7 +400,10 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                       if (_showCategories) ...[
                         const SizedBox(height: 8),
                         ..._buildGroupedCategories(
-                            expenseCategories, theme, isDark),
+                          expenseCategories,
+                          theme,
+                          isDark,
+                        ),
                       ],
 
                       const SizedBox(height: 24),
@@ -388,8 +412,7 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                 ),
                 // Save button
                 Padding(
-                  padding:
-                      const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                   child: SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -407,8 +430,9 @@ class _SetBudgetSheetState extends ConsumerState<SetBudgetSheet> {
                           : const Text(
                               '保存',
                               style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                     ),
                   ),

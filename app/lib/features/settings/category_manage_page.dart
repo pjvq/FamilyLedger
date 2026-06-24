@@ -50,17 +50,25 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       final client = ref.read(transactionClientProvider);
       final options = CallOptions(timeout: const Duration(seconds: 5));
       final expResp = await client.getCategories(
-          GetCategoriesRequest(type: TransactionType.TRANSACTION_TYPE_EXPENSE),
-          options: options);
+        GetCategoriesRequest(type: TransactionType.TRANSACTION_TYPE_EXPENSE),
+        options: options,
+      );
       final incResp = await client.getCategories(
-          GetCategoriesRequest(type: TransactionType.TRANSACTION_TYPE_INCOME),
-          options: options);
+        GetCategoriesRequest(type: TransactionType.TRANSACTION_TYPE_INCOME),
+        options: options,
+      );
 
       // Merge locally-created categories (from import) that server doesn't know about
       final database = ref.read(databaseProvider);
       final userId = ref.read(currentUserIdProvider);
-      final localExp = await database.getCategoriesByType('expense', userId: userId);
-      final localInc = await database.getCategoriesByType('income', userId: userId);
+      final localExp = await database.getCategoriesByType(
+        'expense',
+        userId: userId,
+      );
+      final localInc = await database.getCategoriesByType(
+        'income',
+        userId: userId,
+      );
 
       // Collect all server category names (including children) to deduplicate
       final serverExpNames = _collectAllNames(expResp.categories);
@@ -68,9 +76,21 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
 
       // Build trees from local-only categories (not on server by name)
       final localOnlyExp = _buildProtoTree(
-          localExp.where((c) => c.parentId == null && !serverExpNames.contains(c.name)).toList(), localExp);
+        localExp
+            .where(
+              (c) => c.parentId == null && !serverExpNames.contains(c.name),
+            )
+            .toList(),
+        localExp,
+      );
       final localOnlyInc = _buildProtoTree(
-          localInc.where((c) => c.parentId == null && !serverIncNames.contains(c.name)).toList(), localInc);
+        localInc
+            .where(
+              (c) => c.parentId == null && !serverIncNames.contains(c.name),
+            )
+            .toList(),
+        localInc,
+      );
 
       setState(() {
         _expenseCategories = [...expResp.categories, ...localOnlyExp];
@@ -84,8 +104,14 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       try {
         final database = ref.read(databaseProvider);
         final userId = ref.read(currentUserIdProvider);
-        final localExp = await database.getCategoriesByType('expense', userId: userId);
-        final localInc = await database.getCategoriesByType('income', userId: userId);
+        final localExp = await database.getCategoriesByType(
+          'expense',
+          userId: userId,
+        );
+        final localInc = await database.getCategoriesByType(
+          'income',
+          userId: userId,
+        );
         setState(() {
           _expenseCategories = _buildProtoTree(localExp, localExp);
           _incomeCategories = _buildProtoTree(localInc, localInc);
@@ -109,13 +135,17 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         if (c.children.isNotEmpty) walk(c.children);
       }
     }
+
     walk(cats);
     return names;
   }
 
   /// Build proto Category tree from flat local DB categories.
   /// [candidates] are the categories to include; [allOfType] is the full list for parent lookup.
-  List<Category> _buildProtoTree(List<db.Category> candidates, List<db.Category> allOfType) {
+  List<Category> _buildProtoTree(
+    List<db.Category> candidates,
+    List<db.Category> allOfType,
+  ) {
     // Only include top-level categories from candidates (children will be nested)
     final roots = candidates.where((c) => c.parentId == null).toList();
     final childMap = <String, List<db.Category>>{};
@@ -161,19 +191,21 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
 
     try {
       final client = ref.read(transactionClientProvider);
-      await client.createCategory(CreateCategoryRequest(
-        name: result.name,
-        iconKey: result.iconKey,
-        type: _currentType,
-        parentId: parentId ?? '',
-      ));
+      await client.createCategory(
+        CreateCategoryRequest(
+          name: result.name,
+          iconKey: result.iconKey,
+          type: _currentType,
+          parentId: parentId ?? '',
+        ),
+      );
       await _loadCategories();
       ref.read(transactionProvider.notifier).reload();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('创建失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('创建失败: $e')));
       }
     }
   }
@@ -181,13 +213,15 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
   /// 创建前即时相似检测，返回 true = 继续创建，false = 用户取消
   Future<bool> _checkSimilarBeforeCreate(String newName) async {
     final db = ref.read(databaseProvider);
-    final categories = await (db.select(db.categories)
-          ..where((c) => c.deletedAt.isNull()))
-        .get();
+    final categories = await (db.select(
+      db.categories,
+    )..where((c) => c.deletedAt.isNull())).get();
 
     final typeStr = _tabController.index == 0 ? 'expense' : 'income';
     final hits = CategoryMergeDetector.instantCheckStatic(
-      newName, typeStr, categories,
+      newName,
+      typeStr,
+      categories,
     );
     if (hits.isEmpty) return true;
 
@@ -228,11 +262,13 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
 
     try {
       final client = ref.read(transactionClientProvider);
-      await client.updateCategory(UpdateCategoryRequest(
-        categoryId: cat.id,
-        name: result.name,
-        iconKey: result.iconKey,
-      ));
+      await client.updateCategory(
+        UpdateCategoryRequest(
+          categoryId: cat.id,
+          name: result.name,
+          iconKey: result.iconKey,
+        ),
+      );
     } catch (e) {
       // If server doesn't have this category (local-only from import),
       // fall back to updating local DB directly
@@ -242,14 +278,16 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
           id: cat.id,
           name: result.name,
           iconKey: result.iconKey,
-          type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
+          type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME
+              ? 'income'
+              : 'expense',
           parentId: cat.parentId.isEmpty ? null : cat.parentId,
         );
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('更新失败: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('更新失败: $e')));
         }
         return;
       }
@@ -267,7 +305,9 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         id: cat.id,
         name: cat.name,
         iconKey: cat.iconKey,
-        type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
+        type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME
+            ? 'income'
+            : 'expense',
         isPreset: cat.isPreset,
         sortOrder: cat.sortOrder,
         parentId: cat.parentId.isEmpty ? null : cat.parentId,
@@ -279,7 +319,9 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
           id: child.id,
           name: child.name,
           iconKey: child.iconKey,
-          type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense',
+          type: cat.type == TransactionType.TRANSACTION_TYPE_INCOME
+              ? 'income'
+              : 'expense',
           isPreset: child.isPreset,
           sortOrder: child.sortOrder,
           parentId: cat.id,
@@ -312,19 +354,19 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
 
     try {
       final client = ref.read(transactionClientProvider);
-      await client.deleteCategory(
-          DeleteCategoryRequest(categoryId: cat.id));
+      await client.deleteCategory(DeleteCategoryRequest(categoryId: cat.id));
       // Also soft-delete locally so it disappears from quick-add selector
       final database = ref.read(databaseProvider);
-      await (database.update(database.categories)..where((c) => c.id.equals(cat.id)))
+      await (database.update(database.categories)
+            ..where((c) => c.id.equals(cat.id)))
           .write(db.CategoriesCompanion(deletedAt: Value(DateTime.now())));
       await ref.read(transactionProvider.notifier).syncAndReloadCategories();
       await _loadCategories();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('删除失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('删除失败: $e')));
       }
     }
   }
@@ -342,9 +384,7 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
             tooltip: '分类整理',
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => const CategoryCleanupPage(),
-              ),
+              MaterialPageRoute(builder: (_) => const CategoryCleanupPage()),
             ),
           ),
           IconButton(
@@ -395,16 +435,25 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.category_outlined,
-                size: 64, color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
+            Icon(
+              Icons.category_outlined,
+              size: 64,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+            ),
             const SizedBox(height: 12),
-            Text('暂无分类',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4))),
+            Text(
+              '暂无分类',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
             const SizedBox(height: 4),
-            Text('点击右上角 + 添加',
-                style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3))),
+            Text(
+              '点击右上角 + 添加',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+              ),
+            ),
           ],
         ),
       );
@@ -452,41 +501,57 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                 color: color.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: CategoryIconWidget(iconKey: iconKey, size: 22, showBackground: false),
+              child: CategoryIconWidget(
+                iconKey: iconKey,
+                size: 22,
+                showBackground: false,
+              ),
             ),
             title: Row(
               children: [
-                Text(cat.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+                Text(
+                  cat.name,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
                 if (cat.isPreset) ...[
                   const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1,
+                    ),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text('预设',
-                        style: TextStyle(
-                            fontSize: 10,
-                            color: theme.colorScheme.primary.withValues(alpha: 0.6))),
+                    child: Text(
+                      '预设',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                      ),
+                    ),
                   ),
                 ],
               ],
             ),
             trailing: AnimatedRotation(
-                    turns: isExpanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(Icons.expand_more,
-                        color: theme.colorScheme.onSurface.withValues(
-                            alpha: hasChildren ? 0.4 : 0.2)),
-                  ),
+              turns: isExpanded ? 0.5 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: Icon(
+                Icons.expand_more,
+                color: theme.colorScheme.onSurface.withValues(
+                  alpha: hasChildren ? 0.4 : 0.2,
+                ),
+              ),
+            ),
             onTap: () => setState(() {
-                      if (isExpanded) {
-                        _expandedIds.remove(cat.id);
-                      } else {
-                        _expandedIds.add(cat.id);
-                      }
-                    }),
+              if (isExpanded) {
+                _expandedIds.remove(cat.id);
+              } else {
+                _expandedIds.add(cat.id);
+              }
+            }),
             onLongPress: cat.isPreset ? null : () => _editCategory(cat),
           ),
         ),
@@ -495,34 +560,42 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
           firstChild: const SizedBox.shrink(),
           secondChild: Column(
             children: [
-              ...cat.children.map((child) =>
-                  _buildSubcategoryTile(child, theme)),
+              ...cat.children.map(
+                (child) => _buildSubcategoryTile(child, theme),
+              ),
               // 添加子分类按钮
               Padding(
                 padding: const EdgeInsets.only(left: 56),
                 child: ListTile(
                   dense: true,
-                  leading: Icon(Icons.add_circle_outline,
-                      size: 20,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.6)),
-                  title: Text('添加子分类',
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: theme.colorScheme.primary.withValues(alpha: 0.6))),
+                  leading: Icon(
+                    Icons.add_circle_outline,
+                    size: 20,
+                    color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                  ),
+                  title: Text(
+                    '添加子分类',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                    ),
+                  ),
                   onTap: () => _addCategory(parentId: cat.id),
                 ),
               ),
             ],
           ),
-          crossFadeState:
-              isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          crossFadeState: isExpanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 250),
         ),
         if (!hasChildren || !isExpanded)
           Divider(
-              height: 1,
-              indent: 72,
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+            height: 1,
+            indent: 72,
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
       ],
     );
   }
@@ -535,8 +608,9 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
       padding: const EdgeInsets.only(left: 56),
       child: Dismissible(
         key: ValueKey('subcat_${cat.id}'),
-        direction:
-            cat.isPreset ? DismissDirection.none : DismissDirection.endToStart,
+        direction: cat.isPreset
+            ? DismissDirection.none
+            : DismissDirection.endToStart,
         background: Container(
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.only(right: 20),
@@ -557,7 +631,11 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
               color: color.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: CategoryIconWidget(iconKey: iconKey, size: 16, showBackground: false),
+            child: CategoryIconWidget(
+              iconKey: iconKey,
+              size: 16,
+              showBackground: false,
+            ),
           ),
           title: Row(
             children: [
@@ -565,16 +643,21 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
               if (cat.isPreset) ...[
                 const SizedBox(width: 4),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 0,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(3),
                   ),
-                  child: Text('预设',
-                      style: TextStyle(
-                          fontSize: 9,
-                          color: theme.colorScheme.primary.withValues(alpha: 0.5))),
+                  child: Text(
+                    '预设',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                    ),
+                  ),
                 ),
               ],
             ],
@@ -613,8 +696,9 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
             ),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -632,19 +716,25 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(initialName != null ? '编辑分类' : '新建分类',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  initialName != null ? '编辑分类' : '新建分类',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 // 图标选择
                 Row(
                   children: [
                     GestureDetector(
                       onTap: () {
-                        showIconPickerSheet(ctx,
-                            selectedKey: iconKey, onSelect: (key) {
-                          setLocalState(() => iconKey = key);
-                        });
+                        showIconPickerSheet(
+                          ctx,
+                          selectedKey: iconKey,
+                          onSelect: (key) {
+                            setLocalState(() => iconKey = key);
+                          },
+                        );
                       },
                       child: Container(
                         width: 56,
@@ -653,17 +743,23 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                           color: color.withValues(alpha: 0.12),
                           shape: BoxShape.circle,
                           border: Border.all(
-                              color: color.withValues(alpha: 0.3), width: 1.5),
+                            color: color.withValues(alpha: 0.3),
+                            width: 1.5,
+                          ),
                         ),
                         child: CategoryIconWidget(
-                            iconKey: iconKey,
-                            size: 28,
-                            showBackground: false),
+                          iconKey: iconKey,
+                          size: 28,
+                          showBackground: false,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Icon(Icons.edit, size: 14,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+                    Icon(
+                      Icons.edit,
+                      size: 14,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextField(
@@ -674,9 +770,12 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                           hintText: '输入分类名称',
                           counterText: '${nameController.text.length}/15',
                           border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12),
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
                         ),
                         onChanged: (v) {
                           setLocalState(() => name = v);
@@ -693,7 +792,11 @@ class _CategoryManagePageState extends ConsumerState<CategoryManagePage>
                     onPressed: name.trim().isEmpty
                         ? null
                         : () => Navigator.of(ctx).pop(
-                            _CategoryEditResult(name: name.trim(), iconKey: iconKey)),
+                            _CategoryEditResult(
+                              name: name.trim(),
+                              iconKey: iconKey,
+                            ),
+                          ),
                     child: Text(initialName != null ? '保存' : '添加'),
                   ),
                 ),

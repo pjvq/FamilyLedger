@@ -34,8 +34,11 @@ class _BudgetProgressCardState extends ConsumerState<BudgetProgressCard> {
         child: OverviewCardContainer(
           child: Row(
             children: [
-              Icon(Icons.track_changes_rounded,
-                  size: IconSizeTokens.xs, color: colors.warning),
+              Icon(
+                Icons.track_changes_rounded,
+                size: IconSizeTokens.xs,
+                color: colors.warning,
+              ),
               const SizedBox(width: SpacingTokens.xs),
               Text(
                 '设置月度预算',
@@ -44,12 +47,13 @@ class _BudgetProgressCardState extends ConsumerState<BudgetProgressCard> {
                 ),
               ),
               const Spacer(),
-              Icon(Icons.chevron_right_rounded,
-                  size: IconSizeTokens.sm,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.4)),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: IconSizeTokens.sm,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
             ],
           ),
         ),
@@ -129,8 +133,11 @@ class _MonthlyView extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.track_changes_rounded,
-                size: IconSizeTokens.xs, color: colors.warning),
+            Icon(
+              Icons.track_changes_rounded,
+              size: IconSizeTokens.xs,
+              color: colors.warning,
+            ),
             const SizedBox(width: SpacingTokens.xs),
             Text(
               '月预算',
@@ -154,10 +161,9 @@ class _MonthlyView extends StatelessWidget {
           borderRadius: BorderRadius.circular(RadiusTokens.sm / 2),
           child: LinearProgressIndicator(
             value: rate.clamp(0.0, 1.0),
-            backgroundColor: Theme.of(context)
-                .colorScheme
-                .onSurface
-                .withValues(alpha: 0.06),
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.06),
             color: _rateColor(rate, colors),
             minHeight: 6,
           ),
@@ -170,13 +176,17 @@ class _MonthlyView extends StatelessWidget {
             Text(
               '已花 ¥${_fmtYuan(spent)}',
               style: TypographyTokens.caption().copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             Text(
               '预算 ¥${_fmtYuan(budget)}',
               style: TypographyTokens.caption().copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -184,7 +194,6 @@ class _MonthlyView extends StatelessWidget {
       ],
     );
   }
-
 }
 
 /// Yearly budget view
@@ -212,8 +221,11 @@ class _YearlyView extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.calendar_today_rounded,
-                size: IconSizeTokens.xs, color: ColorTokens.primary),
+            Icon(
+              Icons.calendar_today_rounded,
+              size: IconSizeTokens.xs,
+              color: ColorTokens.primary,
+            ),
             const SizedBox(width: SpacingTokens.xs),
             Text(
               '${now.year}年预算',
@@ -242,10 +254,9 @@ class _YearlyView extends StatelessWidget {
                 children: [
                   LinearProgressIndicator(
                     value: rate.clamp(0.0, 1.0),
-                    backgroundColor: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.06),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.06),
                     color: _rateColor(rate, colors),
                     minHeight: 8,
                   ),
@@ -256,10 +267,9 @@ class _YearlyView extends StatelessWidget {
                     bottom: 0,
                     child: Container(
                       width: 2,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.3),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.3),
                     ),
                   ),
                 ],
@@ -279,10 +289,9 @@ class _YearlyView extends StatelessWidget {
             Text(
               '总 ¥${_fmtYuan(yearlyBudget)}',
               style: TypographyTokens.caption(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.5),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],
@@ -297,7 +306,6 @@ class _YearlyView extends StatelessWidget {
       ],
     );
   }
-
 }
 
 /// Page indicator dot

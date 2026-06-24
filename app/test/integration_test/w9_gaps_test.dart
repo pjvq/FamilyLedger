@@ -44,24 +44,34 @@ void main() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   group('W9 OAuth Mock E2E', () {
-    test('OA-001: OAuth login with mock provider → user created + tokens returned',
-        () async {
-      // Server is in mock mode — any code should work
-      final resp = await authClient.oAuthLogin(auth_pb.OAuthLoginRequest()
-        ..provider = 'wechat'
-        ..code = 'mock_auth_code_$ts');
+    test(
+      'OA-001: OAuth login with mock provider → user created + tokens returned',
+      () async {
+        // Server is in mock mode — any code should work
+        final resp = await authClient.oAuthLogin(
+          auth_pb.OAuthLoginRequest()
+            ..provider = 'wechat'
+            ..code = 'mock_auth_code_$ts',
+        );
 
-      expect(resp.accessToken, isNotEmpty,
-          reason: 'OAuth mock should return access token');
-      expect(resp.refreshToken, isNotEmpty);
-      expect(resp.userId, isNotEmpty,
-          reason: 'OAuth should create/find user and return userId');
+        expect(
+          resp.accessToken,
+          isNotEmpty,
+          reason: 'OAuth mock should return access token',
+        );
+        expect(resp.refreshToken, isNotEmpty);
+        expect(
+          resp.userId,
+          isNotEmpty,
+          reason: 'OAuth should create/find user and return userId',
+        );
 
-      harness.setTokens(
-        accessToken: resp.accessToken,
-        refreshToken: resp.refreshToken,
-      );
-    });
+        harness.setTokens(
+          accessToken: resp.accessToken,
+          refreshToken: resp.refreshToken,
+        );
+      },
+    );
 
     test('OA-002: OAuth-created user can call authenticated APIs', () async {
       final resp = await syncClient.pullChanges(
@@ -72,34 +82,44 @@ void main() {
       expect(resp, isNotNull);
     });
 
-    test('OA-003: OAuth with different provider (apple) → also works',
-        () async {
-      final resp = await authClient.oAuthLogin(auth_pb.OAuthLoginRequest()
-        ..provider = 'apple'
-        ..code = 'mock_apple_code_$ts');
+    test(
+      'OA-003: OAuth with different provider (apple) → also works',
+      () async {
+        final resp = await authClient.oAuthLogin(
+          auth_pb.OAuthLoginRequest()
+            ..provider = 'apple'
+            ..code = 'mock_apple_code_$ts',
+        );
 
-      expect(resp.accessToken, isNotEmpty);
-      expect(resp.userId, isNotEmpty);
-    });
+        expect(resp.accessToken, isNotEmpty);
+        expect(resp.userId, isNotEmpty);
+      },
+    );
 
     test('OA-004: OAuth with unsupported provider → error', () async {
       expect(
-        () => authClient.oAuthLogin(auth_pb.OAuthLoginRequest()
-          ..provider = 'google'
-          ..code = 'some_code'),
-        throwsA(isA<GrpcError>().having(
-          (e) => e.code,
-          'code',
-          StatusCode.invalidArgument,
-        )),
+        () => authClient.oAuthLogin(
+          auth_pb.OAuthLoginRequest()
+            ..provider = 'google'
+            ..code = 'some_code',
+        ),
+        throwsA(
+          isA<GrpcError>().having(
+            (e) => e.code,
+            'code',
+            StatusCode.invalidArgument,
+          ),
+        ),
       );
     });
 
     test('OA-005: OAuth with empty code → error', () async {
       expect(
-        () => authClient.oAuthLogin(auth_pb.OAuthLoginRequest()
-          ..provider = 'wechat'
-          ..code = ''),
+        () => authClient.oAuthLogin(
+          auth_pb.OAuthLoginRequest()
+            ..provider = 'wechat'
+            ..code = '',
+        ),
         throwsA(isA<GrpcError>()),
       );
     });
@@ -111,9 +131,11 @@ void main() {
 
   group('W9 Full CRUD per Entity Type', () {
     test('CRUD-000: Register user for CRUD tests', () async {
-      final resp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w9_crud_$ts@test.com'
-        ..password = 'CRUDTest123!');
+      final resp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w9_crud_$ts@test.com'
+          ..password = 'CRUDTest123!',
+      );
       harness.setTokens(
         accessToken: resp.accessToken,
         refreshToken: resp.refreshToken,
@@ -130,66 +152,89 @@ void main() {
     ];
 
     for (final entity in crudEntities) {
-      test('CRUD-${crudEntities.indexOf(entity) + 1}: $entity CREATE→UPDATE→DELETE full cycle',
-          () async {
-        final entityId = _uuid();
+      test(
+        'CRUD-${crudEntities.indexOf(entity) + 1}: $entity CREATE→UPDATE→DELETE full cycle',
+        () async {
+          final entityId = _uuid();
 
-        // CREATE
-        final createResp = await syncClient.pushOperations(
-          sync_pb.PushOperationsRequest()
-            ..operations.add(sync_pb.SyncOperation()
-              ..entityType = entity
-              ..entityId = entityId
-              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-              ..payload = jsonEncode(_createPayload(entity, entityId))
-              ..clientId = _uuid()),
-          options: harness.authOptions,
-        );
-        expect(createResp.acceptedCount, equals(1),
-            reason: '$entity CREATE should succeed');
+          // CREATE
+          final createResp = await syncClient.pushOperations(
+            sync_pb.PushOperationsRequest()
+              ..operations.add(
+                sync_pb.SyncOperation()
+                  ..entityType = entity
+                  ..entityId = entityId
+                  ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+                  ..payload = jsonEncode(_createPayload(entity, entityId))
+                  ..clientId = _uuid(),
+              ),
+            options: harness.authOptions,
+          );
+          expect(
+            createResp.acceptedCount,
+            equals(1),
+            reason: '$entity CREATE should succeed',
+          );
 
-        // UPDATE
-        final updateResp = await syncClient.pushOperations(
-          sync_pb.PushOperationsRequest()
-            ..operations.add(sync_pb.SyncOperation()
-              ..entityType = entity
-              ..entityId = entityId
-              ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
-              ..payload = jsonEncode(_updatePayload(entity, entityId))
-              ..clientId = _uuid()),
-          options: harness.authOptions,
-        );
-        expect(updateResp.acceptedCount, equals(1),
-            reason: '$entity UPDATE should succeed');
+          // UPDATE
+          final updateResp = await syncClient.pushOperations(
+            sync_pb.PushOperationsRequest()
+              ..operations.add(
+                sync_pb.SyncOperation()
+                  ..entityType = entity
+                  ..entityId = entityId
+                  ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
+                  ..payload = jsonEncode(_updatePayload(entity, entityId))
+                  ..clientId = _uuid(),
+              ),
+            options: harness.authOptions,
+          );
+          expect(
+            updateResp.acceptedCount,
+            equals(1),
+            reason: '$entity UPDATE should succeed',
+          );
 
-        // DELETE
-        final deleteResp = await syncClient.pushOperations(
-          sync_pb.PushOperationsRequest()
-            ..operations.add(sync_pb.SyncOperation()
-              ..entityType = entity
-              ..entityId = entityId
-              ..opType = sync_enum.OperationType.OPERATION_TYPE_DELETE
-              ..payload = '{}'
-              ..clientId = _uuid()),
-          options: harness.authOptions,
-        );
-        expect(deleteResp.acceptedCount, equals(1),
-            reason: '$entity DELETE should succeed');
+          // DELETE
+          final deleteResp = await syncClient.pushOperations(
+            sync_pb.PushOperationsRequest()
+              ..operations.add(
+                sync_pb.SyncOperation()
+                  ..entityType = entity
+                  ..entityId = entityId
+                  ..opType = sync_enum.OperationType.OPERATION_TYPE_DELETE
+                  ..payload = '{}'
+                  ..clientId = _uuid(),
+              ),
+            options: harness.authOptions,
+          );
+          expect(
+            deleteResp.acceptedCount,
+            equals(1),
+            reason: '$entity DELETE should succeed',
+          );
 
-        // Verify DELETE terminal: UPDATE should fail
-        final afterDeleteResp = await syncClient.pushOperations(
-          sync_pb.PushOperationsRequest()
-            ..operations.add(sync_pb.SyncOperation()
-              ..entityType = entity
-              ..entityId = entityId
-              ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
-              ..payload = jsonEncode(_updatePayload(entity, entityId))
-              ..clientId = _uuid()),
-          options: harness.authOptions,
-        );
-        expect(afterDeleteResp.acceptedCount, equals(0),
-            reason: '$entity UPDATE after DELETE should be rejected (terminal state)');
-      });
+          // Verify DELETE terminal: UPDATE should fail
+          final afterDeleteResp = await syncClient.pushOperations(
+            sync_pb.PushOperationsRequest()
+              ..operations.add(
+                sync_pb.SyncOperation()
+                  ..entityType = entity
+                  ..entityId = entityId
+                  ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
+                  ..payload = jsonEncode(_updatePayload(entity, entityId))
+                  ..clientId = _uuid(),
+              ),
+            options: harness.authOptions,
+          );
+          expect(
+            afterDeleteResp.acceptedCount,
+            equals(0),
+            reason:
+                '$entity UPDATE after DELETE should be rejected (terminal state)',
+          );
+        },
+      );
     }
 
     // Transaction needs account+category deps
@@ -232,23 +277,25 @@ void main() {
       // CREATE
       final createResp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'transaction'
-            ..entityId = txnId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': txnId,
-              'account_id': acctId,
-              'category_id': catId,
-              'amount': 3000,
-              'amount_cny': 3000,
-              'currency': 'CNY',
-              'exchange_rate': 1.0,
-              'type': 'expense',
-              'note': 'CRUD test txn',
-              'txn_date': DateTime.now().toIso8601String(),
-            })
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'transaction'
+              ..entityId = txnId
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = jsonEncode({
+                'id': txnId,
+                'account_id': acctId,
+                'category_id': catId,
+                'amount': 3000,
+                'amount_cny': 3000,
+                'currency': 'CNY',
+                'exchange_rate': 1.0,
+                'type': 'expense',
+                'note': 'CRUD test txn',
+                'txn_date': DateTime.now().toIso8601String(),
+              })
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
       expect(createResp.acceptedCount, equals(1));
@@ -256,16 +303,18 @@ void main() {
       // UPDATE
       final updateResp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'transaction'
-            ..entityId = txnId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
-            ..payload = jsonEncode({
-              'amount': 5000,
-              'amount_cny': 5000,
-              'note': 'Updated txn',
-            })
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'transaction'
+              ..entityId = txnId
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
+              ..payload = jsonEncode({
+                'amount': 5000,
+                'amount_cny': 5000,
+                'note': 'Updated txn',
+              })
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
       expect(updateResp.acceptedCount, equals(1));
@@ -273,12 +322,14 @@ void main() {
       // DELETE
       final deleteResp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'transaction'
-            ..entityId = txnId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_DELETE
-            ..payload = '{}'
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'transaction'
+              ..entityId = txnId
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_DELETE
+              ..payload = '{}'
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
       expect(deleteResp.acceptedCount, equals(1));
@@ -290,46 +341,49 @@ void main() {
 
       final createResp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'investment'
-            ..entityId = id
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': id,
-              'symbol': 'TSLA',
-              'name': 'Tesla Inc.',
-              'market_type': 'us_stock',
-              'quantity': 5.0,
-              'cost_basis': 80000,
-            })
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'investment'
+              ..entityId = id
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = jsonEncode({
+                'id': id,
+                'symbol': 'TSLA',
+                'name': 'Tesla Inc.',
+                'market_type': 'us_stock',
+                'quantity': 5.0,
+                'cost_basis': 80000,
+              })
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
       expect(createResp.acceptedCount, equals(1));
 
       final updateResp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'investment'
-            ..entityId = id
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
-            ..payload = jsonEncode({
-              'quantity': 10.0,
-              'cost_basis': 160000,
-            })
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'investment'
+              ..entityId = id
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
+              ..payload = jsonEncode({'quantity': 10.0, 'cost_basis': 160000})
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
       expect(updateResp.acceptedCount, equals(1));
 
       final deleteResp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'investment'
-            ..entityId = id
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_DELETE
-            ..payload = '{}'
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'investment'
+              ..entityId = id
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_DELETE
+              ..payload = '{}'
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
       expect(deleteResp.acceptedCount, equals(1));
@@ -341,43 +395,47 @@ void main() {
 
       final createResp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'budget'
-            ..entityId = id
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': id,
-              'year': 2026,
-              'month': 12,
-              'total_amount': 8000,
-            })
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'budget'
+              ..entityId = id
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = jsonEncode({
+                'id': id,
+                'year': 2026,
+                'month': 12,
+                'total_amount': 8000,
+              })
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
       expect(createResp.acceptedCount, equals(1));
 
       final updateResp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'budget'
-            ..entityId = id
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
-            ..payload = jsonEncode({
-              'total_amount': 10000,
-            })
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'budget'
+              ..entityId = id
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
+              ..payload = jsonEncode({'total_amount': 10000})
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
       expect(updateResp.acceptedCount, equals(1));
 
       final deleteResp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'budget'
-            ..entityId = id
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_DELETE
-            ..payload = '{}'
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'budget'
+              ..entityId = id
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_DELETE
+              ..payload = '{}'
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
       expect(deleteResp.acceptedCount, equals(1));
@@ -423,9 +481,11 @@ void main() {
 
     test('FI-002: Deadline exceeded with very short timeout', () async {
       // Register first
-      final resp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w9_fault_$ts@test.com'
-        ..password = 'FaultTest123!');
+      final resp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w9_fault_$ts@test.com'
+          ..password = 'FaultTest123!',
+      );
       harness.setTokens(
         accessToken: resp.accessToken,
         refreshToken: resp.refreshToken,
@@ -434,67 +494,81 @@ void main() {
       // Push with a very tight timeout (should still succeed locally, server is fast)
       final pushResp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'category'
-            ..entityId = _uuid()
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': _uuid(),
-              'name': 'Timeout Test',
-              'type': 'expense',
-              'icon': '⏱️',
-            })
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'category'
+              ..entityId = _uuid()
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = jsonEncode({
+                'id': _uuid(),
+                'name': 'Timeout Test',
+                'type': 'expense',
+                'icon': '⏱️',
+              })
+              ..clientId = _uuid(),
+          ),
         options: CallOptions(
           metadata: {'authorization': 'Bearer ${harness.accessToken}'},
           timeout: const Duration(seconds: 5),
         ),
       );
-      expect(pushResp.acceptedCount, equals(1),
-          reason: 'Fast local server should respond within timeout');
+      expect(
+        pushResp.acceptedCount,
+        equals(1),
+        reason: 'Fast local server should respond within timeout',
+      );
     });
 
-    test('FI-003: Offline queue simulation — ops queued locally then pushed on reconnect',
-        () async {
-      // Simulate offline: build ops without sending
-      final offlineOps = List.generate(3, (i) {
-        final id = _uuid();
-        return sync_pb.SyncOperation()
-          ..entityType = 'category'
-          ..entityId = id
-          ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-          ..payload = jsonEncode({
-            'id': id,
-            'name': 'Offline Op $i',
-            'type': 'expense',
-            'icon': '📴',
-          })
-          ..clientId = _uuid();
-      });
+    test(
+      'FI-003: Offline queue simulation — ops queued locally then pushed on reconnect',
+      () async {
+        // Simulate offline: build ops without sending
+        final offlineOps = List.generate(3, (i) {
+          final id = _uuid();
+          return sync_pb.SyncOperation()
+            ..entityType = 'category'
+            ..entityId = id
+            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+            ..payload = jsonEncode({
+              'id': id,
+              'name': 'Offline Op $i',
+              'type': 'expense',
+              'icon': '📴',
+            })
+            ..clientId = _uuid();
+        });
 
-      // "Reconnect" — push all queued ops at once
-      final resp = await syncClient.pushOperations(
-        sync_pb.PushOperationsRequest()..operations.addAll(offlineOps),
-        options: harness.authOptions,
-      );
+        // "Reconnect" — push all queued ops at once
+        final resp = await syncClient.pushOperations(
+          sync_pb.PushOperationsRequest()..operations.addAll(offlineOps),
+          options: harness.authOptions,
+        );
 
-      expect(resp.acceptedCount, equals(3),
-          reason: 'All queued offline ops should be accepted on reconnect');
-      expect(resp.failedIds, isEmpty);
+        expect(
+          resp.acceptedCount,
+          equals(3),
+          reason: 'All queued offline ops should be accepted on reconnect',
+        );
+        expect(resp.failedIds, isEmpty);
 
-      // Verify all are in Pull
-      final pull = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest()
-          ..since = ts_pb.Timestamp(seconds: Int64(0)),
-        options: harness.authOptions,
-      );
+        // Verify all are in Pull
+        final pull = await syncClient.pullChanges(
+          sync_pb.PullChangesRequest()
+            ..since = ts_pb.Timestamp(seconds: Int64(0)),
+          options: harness.authOptions,
+        );
 
-      for (final op in offlineOps) {
-        final found = pull.operations.any((p) => p.entityId == op.entityId);
-        expect(found, isTrue,
-            reason: 'Offline op ${op.entityId} should be in Pull after reconnect');
-      }
-    });
+        for (final op in offlineOps) {
+          final found = pull.operations.any((p) => p.entityId == op.entityId);
+          expect(
+            found,
+            isTrue,
+            reason:
+                'Offline op ${op.entityId} should be in Pull after reconnect',
+          );
+        }
+      },
+    );
   });
 }
 
@@ -510,15 +584,37 @@ String _uuid() {
 Map<String, dynamic> _createPayload(String entity, String id) {
   switch (entity) {
     case 'account':
-      return {'id': id, 'name': 'CRUD $entity', 'type': 'cash', 'balance': 10000, 'currency': 'CNY'};
+      return {
+        'id': id,
+        'name': 'CRUD $entity',
+        'type': 'cash',
+        'balance': 10000,
+        'currency': 'CNY',
+      };
     case 'category':
-      return {'id': id, 'name': 'CRUD $entity', 'type': 'expense', 'icon': '📁'};
+      return {
+        'id': id,
+        'name': 'CRUD $entity',
+        'type': 'expense',
+        'icon': '📁',
+      };
     case 'loan':
-      return {'id': id, 'name': 'CRUD Loan', 'total_amount': 500000, 'interest_rate': 3.8, 'term_months': 360};
+      return {
+        'id': id,
+        'name': 'CRUD Loan',
+        'total_amount': 500000,
+        'interest_rate': 3.8,
+        'term_months': 360,
+      };
     case 'loan_group':
       return {'id': id, 'name': 'CRUD Loan Group'};
     case 'fixed_asset':
-      return {'id': id, 'name': 'CRUD Asset', 'purchase_price': 100000, 'purchase_date': DateTime.now().toIso8601String()};
+      return {
+        'id': id,
+        'name': 'CRUD Asset',
+        'purchase_price': 100000,
+        'purchase_date': DateTime.now().toIso8601String(),
+      };
     default:
       return {'id': id};
   }

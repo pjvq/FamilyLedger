@@ -62,10 +62,7 @@ class PaginationTrackingClient implements pbgrpc.TransactionServiceClient {
   /// Optional delay to simulate network latency
   final Duration? latency;
 
-  PaginationTrackingClient({
-    this.pages = const [],
-    this.latency,
-  });
+  PaginationTrackingClient({this.pages = const [], this.latency});
 
   @override
   ResponseFuture<pb.ListTransactionsResponse> listTransactions(
@@ -77,29 +74,37 @@ class PaginationTrackingClient implements pbgrpc.TransactionServiceClient {
     final pageIndex = callCount;
     callCount++;
 
-    final transactions =
-        pageIndex < pages.length ? pages[pageIndex] : <pb.Transaction>[];
-    final nextPageToken =
-        (pageIndex + 1 < pages.length) ? 'page_${pageIndex + 1}' : '';
+    final transactions = pageIndex < pages.length
+        ? pages[pageIndex]
+        : <pb.Transaction>[];
+    final nextPageToken = (pageIndex + 1 < pages.length)
+        ? 'page_${pageIndex + 1}'
+        : '';
 
     if (latency != null) {
       return _DelayedResponseFuture(
-        Future.delayed(latency!, () => pb.ListTransactionsResponse(
-          transactions: transactions,
-          nextPageToken: nextPageToken,
-        )),
+        Future.delayed(
+          latency!,
+          () => pb.ListTransactionsResponse(
+            transactions: transactions,
+            nextPageToken: nextPageToken,
+          ),
+        ),
       );
     }
 
-    return FakeResponseFuture.value(pb.ListTransactionsResponse(
-      transactions: transactions,
-      nextPageToken: nextPageToken,
-    ));
+    return FakeResponseFuture.value(
+      pb.ListTransactionsResponse(
+        transactions: transactions,
+        nextPageToken: nextPageToken,
+      ),
+    );
   }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-      '${invocation.memberName} not implemented in fake');
+    '${invocation.memberName} not implemented in fake',
+  );
 }
 
 class _DelayedResponseFuture<T> implements ResponseFuture<T> {
@@ -133,19 +138,22 @@ class _DelayedResponseFuture<T> implements ResponseFuture<T> {
 // ─── Helper: generates N transactions ────────────────────────
 
 List<pb.Transaction> _generateTransactions(int count, {String prefix = 'txn'}) {
-  return List.generate(count, (i) => pb.Transaction(
-    id: '${prefix}_$i',
-    userId: 'user1',
-    accountId: 'acc_fam',
-    categoryId: 'cat1',
-    amount: Int64(1000 + i),
-    amountCny: Int64(1000 + i),
-    type: pbe.TransactionType.TRANSACTION_TYPE_EXPENSE,
-    note: 'item $i',
-    txnDate: proto_ts.Timestamp(
-      seconds: Int64(DateTime(2025, 1, 1).millisecondsSinceEpoch ~/ 1000),
+  return List.generate(
+    count,
+    (i) => pb.Transaction(
+      id: '${prefix}_$i',
+      userId: 'user1',
+      accountId: 'acc_fam',
+      categoryId: 'cat1',
+      amount: Int64(1000 + i),
+      amountCny: Int64(1000 + i),
+      type: pbe.TransactionType.TRANSACTION_TYPE_EXPENSE,
+      note: 'item $i',
+      txnDate: proto_ts.Timestamp(
+        seconds: Int64(DateTime(2025, 1, 1).millisecondsSinceEpoch ~/ 1000),
+      ),
     ),
-  ));
+  );
 }
 
 // ─── DB Setup ────────────────────────────────────────────────
@@ -153,19 +161,23 @@ List<pb.Transaction> _generateTransactions(int count, {String prefix = 'txn'}) {
 Future<AppDatabase> _setupDb() async {
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   await db.customStatement(
-      "INSERT OR IGNORE INTO users (id, email, created_at) "
-      "VALUES ('user1', 'test@test.com', "
-      "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
-  await db.insertAccount(AccountsCompanion.insert(
-    id: 'acc_fam',
-    userId: 'user1',
-    name: 'Family Account',
-    familyId: const Value('fam1'),
-    accountType: const Value('bank_card'),
-  ));
+    "INSERT OR IGNORE INTO users (id, email, created_at) "
+    "VALUES ('user1', 'test@test.com', "
+    "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+  );
+  await db.insertAccount(
+    AccountsCompanion.insert(
+      id: 'acc_fam',
+      userId: 'user1',
+      name: 'Family Account',
+      familyId: const Value('fam1'),
+      accountType: const Value('bank_card'),
+    ),
+  );
   await db.customStatement(
-      "INSERT OR IGNORE INTO categories (id, name, type, icon_key) "
-      "VALUES ('cat1', '餐饮', 'expense', 'restaurant')");
+    "INSERT OR IGNORE INTO categories (id, name, type, icon_key) "
+    "VALUES ('cat1', '餐饮', 'expense', 'restaurant')",
+  );
   return db;
 }
 
@@ -243,8 +255,10 @@ void main() {
     test('maxPages=200 保护（不会无限循环）', () async {
       // Create a client that always returns a non-empty nextPageToken
       // by providing 250 pages (exceeds _maxPages=200)
-      final manyPages = List.generate(250, (i) =>
-          _generateTransactions(1, prefix: 'page$i'));
+      final manyPages = List.generate(
+        250,
+        (i) => _generateTransactions(1, prefix: 'page$i'),
+      );
       final client = PaginationTrackingClient(pages: manyPages);
 
       final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
@@ -260,9 +274,7 @@ void main() {
 
     test('并发调用 reload 不会导致问题', () async {
       final client = PaginationTrackingClient(
-        pages: [
-          _generateTransactions(10, prefix: 'p0'),
-        ],
+        pages: [_generateTransactions(10, prefix: 'p0')],
       );
 
       final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
@@ -392,17 +404,15 @@ class _ErrorOnNthCallClient implements pbgrpc.TransactionServiceClient {
   }) {
     if (_callCount == errorOnCall) {
       _callCount++;
-      return FakeResponseFuture.error(
-          GrpcError.unavailable('Network error'));
+      return FakeResponseFuture.error(GrpcError.unavailable('Network error'));
     }
     _callCount++;
-    return FakeResponseFuture.value(pb.ListTransactionsResponse(
-      transactions: [],
-      nextPageToken: '',
-    ));
+    return FakeResponseFuture.value(
+      pb.ListTransactionsResponse(transactions: [], nextPageToken: ''),
+    );
   }
 
   @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-      '${invocation.memberName} not implemented');
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} not implemented');
 }

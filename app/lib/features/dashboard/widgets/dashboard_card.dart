@@ -34,7 +34,9 @@ class DashboardCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         elevation: isDark ? 0 : 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
+        color: isDark
+            ? NeutralColorsDark.neutral2
+            : NeutralColorsLight.neutral0,
         child: Column(
           children: [
             // Header (always visible, tappable)
@@ -45,12 +47,19 @@ class DashboardCard extends StatelessWidget {
                 bottom: Radius.circular(16),
               ),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Row(
                   children: [
-                    Icon(icon, size: 20,
-                        color: isDark ? ColorTokens.primaryLight : ColorTokens.primary),
+                    Icon(
+                      icon,
+                      size: 20,
+                      color: isDark
+                          ? ColorTokens.primaryLight
+                          : ColorTokens.primary,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -70,7 +79,9 @@ class DashboardCard extends StatelessWidget {
                       child: Icon(
                         Icons.keyboard_arrow_down_rounded,
                         size: 22,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
                       ),
                     ),
                   ],

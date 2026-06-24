@@ -21,24 +21,21 @@ class BehaviorOverlapScorer {
     if (a.totalCount == 0 || b.totalCount == 0) return 0.0;
 
     // 1-JSD for hour distributions
-    final hourSim = 1.0 - jensenShannonDivergence(
-      a.hourProbability,
-      b.hourProbability,
-    );
+    final hourSim =
+        1.0 - jensenShannonDivergence(a.hourProbability, b.hourProbability);
 
     // 1-JSD for amount bucket distributions
-    final amountSim = 1.0 - jensenShannonDivergence(
-      a.amountProbability,
-      b.amountProbability,
-    );
+    final amountSim =
+        1.0 - jensenShannonDivergence(a.amountProbability, b.amountProbability);
 
     // 1-JSD for weekday (统一使用 JSD 避免度量空间不一致 — MINOR #15)
-    final weekdaySim = 1.0 - jensenShannonDivergence(
-      a.weekdayProbability,
-      b.weekdayProbability,
-    );
+    final weekdaySim =
+        1.0 -
+        jensenShannonDivergence(a.weekdayProbability, b.weekdayProbability);
 
-    return _hourWeight * hourSim + _amountWeight * amountSim + _weekdayWeight * weekdaySim;
+    return _hourWeight * hourSim +
+        _amountWeight * amountSim +
+        _weekdayWeight * weekdaySim;
   }
 
   /// Jensen-Shannon Divergence (对称的 KL 散度变体)

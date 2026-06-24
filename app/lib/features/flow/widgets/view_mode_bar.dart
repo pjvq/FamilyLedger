@@ -10,7 +10,11 @@ class ViewModeBar extends StatelessWidget {
   final FlowViewMode current;
   final ValueChanged<FlowViewMode> onChanged;
 
-  const ViewModeBar({super.key, required this.current, required this.onChanged});
+  const ViewModeBar({
+    super.key,
+    required this.current,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -35,8 +39,8 @@ class ViewModeBar extends StatelessWidget {
                   color: isSelected
                       ? ColorTokens.primaryLight
                       : (isDark
-                          ? NeutralColorsDark.neutral2
-                          : NeutralColorsLight.neutral2),
+                            ? NeutralColorsDark.neutral2
+                            : NeutralColorsLight.neutral2),
                   borderRadius: _pillRadius,
                 ),
                 child: InkWell(
@@ -49,16 +53,18 @@ class ViewModeBar extends StatelessWidget {
                     ),
                     child: Text(
                       _modeLabel(mode),
-                      style: TypographyTokens.bodySm(
-                        color: isSelected
-                            ? ColorTokens.primary
-                            : (isDark
-                                ? NeutralColorsDark.neutral5
-                                : NeutralColorsLight.neutral5),
-                      ).copyWith(
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w400,
-                      ),
+                      style:
+                          TypographyTokens.bodySm(
+                            color: isSelected
+                                ? ColorTokens.primary
+                                : (isDark
+                                      ? NeutralColorsDark.neutral5
+                                      : NeutralColorsLight.neutral5),
+                          ).copyWith(
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
                     ),
                   ),
                 ),

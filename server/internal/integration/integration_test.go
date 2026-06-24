@@ -24,11 +24,12 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	syncpkg "github.com/familyledger/server/internal/sync"
 	"github.com/familyledger/server/pkg/middleware"
 	"github.com/familyledger/server/pkg/ws"
 	pb "github.com/familyledger/server/proto/sync"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // sharedDB is the single PostgreSQL container shared across all tests.

@@ -425,7 +425,7 @@ func TestW3_UpdateTransaction_AmountChangeRebalance(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func int64Ptr(v int64) *int64                    { return &v }
+func int64Ptr(v int64) *int64                             { return &v }
 func txnTypePtr(v pb.TransactionType) *pb.TransactionType { return &v }
 
 // ─── Concurrent balance safety: verify FOR UPDATE lock usage ────────────────

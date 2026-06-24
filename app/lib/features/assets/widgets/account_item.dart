@@ -46,8 +46,10 @@ class AccountItem extends StatelessWidget {
                       borderRadius: BorderRadius.circular(RadiusTokens.md),
                     ),
                     child: Center(
-                      child: Text(account.icon,
-                          style: const TextStyle(fontSize: 20)),
+                      child: Text(
+                        account.icon,
+                        style: const TextStyle(fontSize: 20),
+                      ),
                     ),
                   ),
                   const SizedBox(width: SpacingTokens.md),

@@ -70,17 +70,16 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 8),
-          Text(
-            '没有发现需要合并的相似分类',
-            style: TextStyle(color: Colors.grey[600]),
-          ),
+          Text('没有发现需要合并的相似分类', style: TextStyle(color: Colors.grey[600])),
         ],
       ),
     );
   }
 
   Widget _buildSuggestionCards(
-      List<MergeSuggestion> suggestions, List<Category> allCats) {
+    List<MergeSuggestion> suggestions,
+    List<Category> allCats,
+  ) {
     _currentIndex = max(0, min(_currentIndex, suggestions.length - 1));
     final suggestion = suggestions[_currentIndex];
 
@@ -141,8 +140,7 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
         final undoActions = ref.read(categoryMergeActionsProvider.notifier);
         messenger.showSnackBar(
           SnackBar(
-            content:
-                Text('已合并，${result.affectedTransactions} 笔交易已更新'),
+            content: Text('已合并，${result.affectedTransactions} 笔交易已更新'),
             action: SnackBarAction(
               label: '撤销',
               onPressed: () async {
@@ -152,9 +150,7 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
                     const SnackBar(content: Text('已撤销合并')),
                   );
                 } catch (e) {
-                  messenger.showSnackBar(
-                    SnackBar(content: Text('撤销失败: $e')),
-                  );
+                  messenger.showSnackBar(SnackBar(content: Text('撤销失败: $e')));
                 }
               },
             ),
@@ -164,9 +160,7 @@ class _CategoryCleanupPageState extends ConsumerState<CategoryCleanupPage> {
       }
     } catch (e) {
       if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(content: Text('合并失败: $e')),
-        );
+        messenger.showSnackBar(SnackBar(content: Text('合并失败: $e')));
       }
     }
   }
@@ -228,14 +222,12 @@ class _SuggestionCard extends StatelessWidget {
               children: [
                 const Icon(Icons.merge_type, size: 20),
                 const SizedBox(width: 8),
-                const Text('建议合并',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                const Spacer(),
-                TextButton(
-                  onPressed: onSkip,
-                  child: const Text('跳过'),
+                const Text(
+                  '建议合并',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
+                const Spacer(),
+                TextButton(onPressed: onSkip, child: const Text('跳过')),
               ],
             ),
             const Divider(),
@@ -278,8 +270,11 @@ class _SuggestionCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.lightbulb_outline,
-                      size: 16, color: Colors.amber[700]),
+                  Icon(
+                    Icons.lightbulb_outline,
+                    size: 16,
+                    color: Colors.amber[700],
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -296,8 +291,10 @@ class _SuggestionCard extends StatelessWidget {
             // 置信度
             Row(
               children: [
-                Text('置信度: ',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                Text(
+                  '置信度: ',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
                 _ConfidenceBadge(confidence: suggestion.confidence),
               ],
             ),
@@ -380,10 +377,7 @@ class _CategoryInfoTile extends StatelessWidget {
             ),
             child: Text(
               '$_parentName ›',
-              style: TextStyle(
-                fontSize: 10,
-                color: theme.colorScheme.primary,
-              ),
+              style: TextStyle(fontSize: 10, color: theme.colorScheme.primary),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -392,7 +386,9 @@ class _CategoryInfoTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
+              color: theme.colorScheme.secondaryContainer.withValues(
+                alpha: 0.5,
+              ),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
@@ -413,8 +409,11 @@ class _CategoryInfoTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.subdirectory_arrow_right,
-                    size: 12, color: Colors.grey[600]),
+                Icon(
+                  Icons.subdirectory_arrow_right,
+                  size: 12,
+                  color: Colors.grey[600],
+                ),
                 const SizedBox(width: 2),
                 Text(
                   '${_children.length} 个子分类',
@@ -430,10 +429,7 @@ class _CategoryInfoTile extends StatelessWidget {
         ],
 
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-        ),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
       ],
     );
   }
@@ -441,10 +437,8 @@ class _CategoryInfoTile extends StatelessWidget {
   void _showChildrenSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (_) => _ChildCategoriesSheet(
-        parentName: category.name,
-        children: _children,
-      ),
+      builder: (_) =>
+          _ChildCategoriesSheet(parentName: category.name, children: _children),
     );
   }
 }
@@ -506,8 +500,8 @@ class _ConfidenceBadge extends StatelessWidget {
     final color = confidence >= 0.8
         ? Colors.green
         : confidence >= 0.6
-            ? Colors.orange
-            : Colors.grey;
+        ? Colors.orange
+        : Colors.grey;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -517,8 +511,11 @@ class _ConfidenceBadge extends StatelessWidget {
       ),
       child: Text(
         '$percent%',
-        style:
-            TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          fontSize: 12,
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -539,13 +536,14 @@ class _MergeHistorySheet extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('可撤销的合并',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const Text(
+            '可撤销的合并',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 12),
           Flexible(
             child: logsAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Text('加载失败: $e'),
               data: (logs) {
                 if (logs.isEmpty) {
@@ -568,14 +566,14 @@ class _MergeHistorySheet extends ConsumerWidget {
                       ),
                       subtitle: Text(
                         '${log.affectedCount} 笔交易 · 剩余 $daysLeft 天可撤销',
-                        style: TextStyle(
-                            fontSize: 12, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                       trailing: TextButton(
                         onPressed: () async {
                           final messenger = ScaffoldMessenger.of(context);
                           final actions = ref.read(
-                              categoryMergeActionsProvider.notifier);
+                            categoryMergeActionsProvider.notifier,
+                          );
                           Navigator.pop(context);
                           try {
                             await actions.undo(log.id);

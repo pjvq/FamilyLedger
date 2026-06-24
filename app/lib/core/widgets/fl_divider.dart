@@ -53,23 +53,17 @@ class FlDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
     final isLight = brightness == Brightness.light;
-    final dividerColor = color ??
+    final dividerColor =
+        color ??
         (isLight ? NeutralColorsLight.neutral3 : NeutralColorsDark.neutral3);
 
     if (_isVertical) {
-      return Container(
-        width: thickness,
-        height: _height,
-        color: dividerColor,
-      );
+      return Container(width: thickness, height: _height, color: dividerColor);
     }
 
     return Padding(
       padding: EdgeInsets.only(left: indent, right: endIndent),
-      child: Container(
-        height: thickness,
-        color: dividerColor,
-      ),
+      child: Container(height: thickness, color: dividerColor),
     );
   }
 }

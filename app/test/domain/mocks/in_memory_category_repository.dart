@@ -54,10 +54,34 @@ class InMemoryCategoryRepository implements ICategoryRepository {
   Future<void> seedForOwner(String ownerID) async {
     // Seed minimal default categories for testing.
     final defaults = [
-      CategoryEntity(id: 'cat_food', name: '餐饮', type: 'expense', isPreset: true, sortOrder: 1),
-      CategoryEntity(id: 'cat_transport', name: '交通', type: 'expense', isPreset: true, sortOrder: 2),
-      CategoryEntity(id: 'cat_salary', name: '工资', type: 'income', isPreset: true, sortOrder: 1),
-      CategoryEntity(id: 'cat_bonus', name: '奖金', type: 'income', isPreset: true, sortOrder: 2),
+      CategoryEntity(
+        id: 'cat_food',
+        name: '餐饮',
+        type: 'expense',
+        isPreset: true,
+        sortOrder: 1,
+      ),
+      CategoryEntity(
+        id: 'cat_transport',
+        name: '交通',
+        type: 'expense',
+        isPreset: true,
+        sortOrder: 2,
+      ),
+      CategoryEntity(
+        id: 'cat_salary',
+        name: '工资',
+        type: 'income',
+        isPreset: true,
+        sortOrder: 1,
+      ),
+      CategoryEntity(
+        id: 'cat_bonus',
+        name: '奖金',
+        type: 'income',
+        isPreset: true,
+        sortOrder: 2,
+      ),
     ];
     for (final cat in defaults) {
       if (!_store.any((c) => c.id == cat.id)) {

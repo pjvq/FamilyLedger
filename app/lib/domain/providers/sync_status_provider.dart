@@ -5,11 +5,11 @@ import '../../sync/sync_event.dart';
 import '../providers/app_providers.dart';
 
 enum SyncStatus {
-  synced,   // 全部同步完成 + WS 正常
-  syncing,  // 正在 push 或 pull
-  pending,  // 有待同步（等待网络或下个周期）
-  failed,   // 有操作多次失败
-  offline,  // 无网络
+  synced, // 全部同步完成 + WS 正常
+  syncing, // 正在 push 或 pull
+  pending, // 有待同步（等待网络或下个周期）
+  failed, // 有操作多次失败
+  offline, // 无网络
 }
 
 class SyncState {
@@ -37,15 +37,16 @@ class SyncState {
     bool clearLastSyncTime = false,
     bool? wsConnected,
     bool? serverReachable,
-  }) =>
-      SyncState(
-        status: status ?? this.status,
-        pendingCount: pendingCount ?? this.pendingCount,
-        failedCount: failedCount ?? this.failedCount,
-        lastSyncTime: clearLastSyncTime ? null : (lastSyncTime ?? this.lastSyncTime),
-        wsConnected: wsConnected ?? this.wsConnected,
-        serverReachable: serverReachable ?? this.serverReachable,
-      );
+  }) => SyncState(
+    status: status ?? this.status,
+    pendingCount: pendingCount ?? this.pendingCount,
+    failedCount: failedCount ?? this.failedCount,
+    lastSyncTime: clearLastSyncTime
+        ? null
+        : (lastSyncTime ?? this.lastSyncTime),
+    wsConnected: wsConnected ?? this.wsConnected,
+    serverReachable: serverReachable ?? this.serverReachable,
+  );
 
   /// Pure state machine transition function.
   ///
@@ -89,7 +90,8 @@ class SyncState {
         );
       case ServerReachable():
         final s = state.copyWith(serverReachable: true);
-        if ((s.status == SyncStatus.pending || s.status == SyncStatus.syncing) &&
+        if ((s.status == SyncStatus.pending ||
+                s.status == SyncStatus.syncing) &&
             s.pendingCount == 0 &&
             s.failedCount == 0) {
           return s.copyWith(status: SyncStatus.synced);
@@ -104,7 +106,10 @@ class SyncState {
       case WsStateChanged(:final connected):
         return state.copyWith(wsConnected: connected);
       case PushFailed(:final failedCount):
-        return state.copyWith(status: SyncStatus.failed, failedCount: failedCount);
+        return state.copyWith(
+          status: SyncStatus.failed,
+          failedCount: failedCount,
+        );
       case PendingCountUpdated(:final count):
         final s = state.copyWith(pendingCount: count);
         // Don't interrupt active sync or offline state
@@ -159,8 +164,13 @@ class SyncState {
 
   @override
   int get hashCode => Object.hash(
-        status, pendingCount, failedCount, lastSyncTime, wsConnected, serverReachable,
-      );
+    status,
+    pendingCount,
+    failedCount,
+    lastSyncTime,
+    wsConnected,
+    serverReachable,
+  );
 
   @override
   String toString() =>
@@ -168,11 +178,12 @@ class SyncState {
       'ws: $wsConnected, reachable: $serverReachable, lastSync: $lastSyncTime)';
 }
 
-final syncStatusProvider =
-    StateNotifierProvider<SyncStatusNotifier, SyncState>((ref) {
-  final db = ref.watch(databaseProvider);
-  return SyncStatusNotifier(db);
-});
+final syncStatusProvider = StateNotifierProvider<SyncStatusNotifier, SyncState>(
+  (ref) {
+    final db = ref.watch(databaseProvider);
+    return SyncStatusNotifier(db);
+  },
+);
 
 class SyncStatusNotifier extends StateNotifier<SyncState> {
   final AppDatabase _db;
@@ -224,10 +235,10 @@ class SyncStatusNotifier extends StateNotifier<SyncState> {
   void markSyncStopped() => dispatch(const SyncEvent.syncStopped());
 
   void updateServerReachable(bool reachable) => dispatch(
-        reachable
-            ? const SyncEvent.serverReachable()
-            : const SyncEvent.serverUnreachable(),
-      );
+    reachable
+        ? const SyncEvent.serverReachable()
+        : const SyncEvent.serverUnreachable(),
+  );
 
   @override
   void dispose() {

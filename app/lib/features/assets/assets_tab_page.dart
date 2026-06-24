@@ -57,7 +57,8 @@ class _AssetsBody extends ConsumerWidget {
     // Only use dashboard loading for the initial full-screen skeleton.
     // Each section handles its own empty/loading state independently.
     final dashLoading = ref.watch(
-        dashboardProvider.select((s) => s.isLoading && s.netWorth.total == 0));
+      dashboardProvider.select((s) => s.isLoading && s.netWorth.total == 0),
+    );
 
     if (dashLoading) {
       return const SkeletonList(count: 6, itemHeight: 72);
@@ -79,76 +80,100 @@ class _AssetsBody extends ConsumerWidget {
       child: CustomScrollView(
         slivers: [
           // ── Net Worth Hero ──
-          Consumer(builder: (ctx, ref, _) {
-            final netWorth = ref.watch(
-                dashboardProvider.select((s) => s.netWorth));
-            return SliverToBoxAdapter(
-              child: NetWorthHero(netWorth: netWorth),
-            );
-          }),
+          Consumer(
+            builder: (ctx, ref, _) {
+              final netWorth = ref.watch(
+                dashboardProvider.select((s) => s.netWorth),
+              );
+              return SliverToBoxAdapter(
+                child: NetWorthHero(netWorth: netWorth),
+              );
+            },
+          ),
 
           // ── 现金与存款 ──
-          Consumer(builder: (ctx, ref, _) {
-            final accounts =
-                ref.watch(accountProvider.select((s) => s.accounts));
-            if (accounts.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
-            return _AccountsSection(accounts: accounts);
-          }),
+          Consumer(
+            builder: (ctx, ref, _) {
+              final accounts = ref.watch(
+                accountProvider.select((s) => s.accounts),
+              );
+              if (accounts.isEmpty)
+                return const SliverToBoxAdapter(child: SizedBox.shrink());
+              return _AccountsSection(accounts: accounts);
+            },
+          ),
 
           // ── 投资 ──
-          Consumer(builder: (ctx, ref, _) {
-            final portfolio =
-                ref.watch(investmentProvider.select((s) => s.portfolio));
-            final hasInvestments = ref.watch(
-                investmentProvider.select((s) => s.investments.isNotEmpty));
-            if (!hasInvestments) return const SliverToBoxAdapter(child: SizedBox.shrink());
-            return _InvestmentSection(portfolio: portfolio);
-          }),
+          Consumer(
+            builder: (ctx, ref, _) {
+              final portfolio = ref.watch(
+                investmentProvider.select((s) => s.portfolio),
+              );
+              final hasInvestments = ref.watch(
+                investmentProvider.select((s) => s.investments.isNotEmpty),
+              );
+              if (!hasInvestments)
+                return const SliverToBoxAdapter(child: SizedBox.shrink());
+              return _InvestmentSection(portfolio: portfolio);
+            },
+          ),
 
           // ── 负债 ──
-          Consumer(builder: (ctx, ref, _) {
-            final loans = ref.watch(loanProvider.select((s) => s.loans));
-            final loanGroups =
-                ref.watch(loanProvider.select((s) => s.loanGroups));
-            // 独立贷款和组合贷任一非空都要展示负债区。
-            if (loans.isEmpty && loanGroups.isEmpty) {
-              return const SliverToBoxAdapter(child: SizedBox.shrink());
-            }
-            return _LoanSection(loans: loans, loanGroups: loanGroups);
-          }),
+          Consumer(
+            builder: (ctx, ref, _) {
+              final loans = ref.watch(loanProvider.select((s) => s.loans));
+              final loanGroups = ref.watch(
+                loanProvider.select((s) => s.loanGroups),
+              );
+              // 独立贷款和组合贷任一非空都要展示负债区。
+              if (loans.isEmpty && loanGroups.isEmpty) {
+                return const SliverToBoxAdapter(child: SizedBox.shrink());
+              }
+              return _LoanSection(loans: loans, loanGroups: loanGroups);
+            },
+          ),
 
           // ── 实物资产 ──
-          Consumer(builder: (ctx, ref, _) {
-            final assets = ref.watch(assetProvider.select((s) => s.assets));
-            if (assets.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
-            return _FixedAssetSection(assets: assets);
-          }),
+          Consumer(
+            builder: (ctx, ref, _) {
+              final assets = ref.watch(assetProvider.select((s) => s.assets));
+              if (assets.isEmpty)
+                return const SliverToBoxAdapter(child: SizedBox.shrink());
+              return _FixedAssetSection(assets: assets);
+            },
+          ),
 
           // ── Empty state ──
-          Consumer(builder: (ctx, ref, _) {
-            final hasAccounts = ref.watch(
-                accountProvider.select((s) => s.accounts.isNotEmpty));
-            final hasInvestments = ref.watch(
-                investmentProvider.select((s) => s.investments.isNotEmpty));
-            final hasLoans = ref.watch(
-                loanProvider.select((s) => s.loans.isNotEmpty));
-            final hasAssets = ref.watch(
-                assetProvider.select((s) => s.assets.isNotEmpty));
+          Consumer(
+            builder: (ctx, ref, _) {
+              final hasAccounts = ref.watch(
+                accountProvider.select((s) => s.accounts.isNotEmpty),
+              );
+              final hasInvestments = ref.watch(
+                investmentProvider.select((s) => s.investments.isNotEmpty),
+              );
+              final hasLoans = ref.watch(
+                loanProvider.select((s) => s.loans.isNotEmpty),
+              );
+              final hasAssets = ref.watch(
+                assetProvider.select((s) => s.assets.isNotEmpty),
+              );
 
-            if (hasAccounts || hasInvestments || hasLoans || hasAssets) {
-              return const SliverToBoxAdapter(child: SizedBox.shrink());
-            }
-            return SliverFillRemaining(
-              hasScrollBody: false,
-              child: EmptyState(
-                icon: Icons.account_balance_wallet_rounded,
-                title: '暂无资产数据',
-                subtitle: '添加账户、投资或贷款开始管理资产',
-                actionLabel: '添加账户',
-                onAction: () => ctx.push(AppRouter.addAccount),
-              ),
-            );
-          }),
+              if (hasAccounts || hasInvestments || hasLoans || hasAssets) {
+                return const SliverToBoxAdapter(child: SizedBox.shrink());
+              }
+              return SliverFillRemaining(
+                hasScrollBody: false,
+                child: EmptyState(
+                  icon: Icons.account_balance_wallet_rounded,
+                  title: '暂无资产数据',
+                  subtitle: '添加账户、投资或贷款开始管理资产',
+                  actionLabel: '添加账户',
+                  onAction: () => ctx.push(AppRouter.addAccount),
+                ),
+              );
+            },
+          ),
 
           // Bottom padding for FAB
           const SliverPadding(padding: EdgeInsets.only(bottom: 96)),
@@ -169,31 +194,33 @@ class _AccountsSection extends StatelessWidget {
     final total = accounts.fold<int>(0, (s, a) => s + (a.balance as int));
     final displayCount = accounts.length.clamp(0, 5);
 
-    return SliverMainAxisGroup(slivers: [
-      SectionHeader(
-        title: '现金与存款',
-        icon: Icons.account_balance_wallet_rounded,
-        total: total,
-        color: context.semanticColors.income,
-        onTap: () => context.push(AppRouter.accounts),
-      ),
-      SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (ctx, i) => AccountItem(
-            account: accounts[i],
-            onTap: () => ctx.push(AppRouter.accountDetail(accounts[i].id)),
-          ),
-          childCount: displayCount,
+    return SliverMainAxisGroup(
+      slivers: [
+        SectionHeader(
+          title: '现金与存款',
+          icon: Icons.account_balance_wallet_rounded,
+          total: total,
+          color: context.semanticColors.income,
+          onTap: () => context.push(AppRouter.accounts),
         ),
-      ),
-      if (accounts.length > 5)
-        SliverToBoxAdapter(
-          child: ShowMoreButton(
-            label: '查看全部 ${accounts.length} 个账户',
-            onTap: () => context.push(AppRouter.accounts),
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (ctx, i) => AccountItem(
+              account: accounts[i],
+              onTap: () => ctx.push(AppRouter.accountDetail(accounts[i].id)),
+            ),
+            childCount: displayCount,
           ),
         ),
-    ]);
+        if (accounts.length > 5)
+          SliverToBoxAdapter(
+            child: ShowMoreButton(
+              label: '查看全部 ${accounts.length} 个账户',
+              onTap: () => context.push(AppRouter.accounts),
+            ),
+          ),
+      ],
+    );
   }
 }
 
@@ -203,21 +230,23 @@ class _InvestmentSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SliverMainAxisGroup(slivers: [
-      SectionHeader(
-        title: '投资',
-        icon: Icons.trending_up_rounded,
-        total: portfolio.totalValue,
-        color: context.semanticColors.asset,
-        onTap: () => context.push(AppRouter.investments),
-      ),
-      SliverToBoxAdapter(
-        child: InvestmentSummaryCard(
-          portfolio: portfolio,
+    return SliverMainAxisGroup(
+      slivers: [
+        SectionHeader(
+          title: '投资',
+          icon: Icons.trending_up_rounded,
+          total: portfolio.totalValue,
+          color: context.semanticColors.asset,
           onTap: () => context.push(AppRouter.investments),
         ),
-      ),
-    ]);
+        SliverToBoxAdapter(
+          child: InvestmentSummaryCard(
+            portfolio: portfolio,
+            onTap: () => context.push(AppRouter.investments),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -235,10 +264,14 @@ class _LoanSection extends StatelessWidget {
     //     剩余本金之和，独立于 standalone loans 维护，不能漏加）。
     // 两个集合不相交（getStandaloneLoans 已排除 groupId 非空的子贷款），
     // 直接相加不会重复计数。
-    final standaloneDebt =
-        loans.fold<int>(0, (s, l) => s + l.remainingPrincipal);
-    final groupDebt =
-        loanGroups.fold<int>(0, (s, g) => s + g.totalRemainingPrincipal);
+    final standaloneDebt = loans.fold<int>(
+      0,
+      (s, l) => s + l.remainingPrincipal,
+    );
+    final groupDebt = loanGroups.fold<int>(
+      0,
+      (s, g) => s + g.totalRemainingPrincipal,
+    );
     final totalDebt = standaloneDebt + groupDebt;
 
     // 列表展示：组合贷优先（通常是房贷大头），再独立贷款；统一取前 3 项，
@@ -248,43 +281,45 @@ class _LoanSection extends StatelessWidget {
     final loanRows = (maxRows - groupRows).clamp(0, loans.length);
     final totalCount = loans.length + loanGroups.length;
 
-    return SliverMainAxisGroup(slivers: [
-      SectionHeader(
-        title: '负债',
-        icon: Icons.credit_card_rounded,
-        total: -totalDebt,
-        color: context.semanticColors.liability,
-        onTap: () => context.push(AppRouter.loans),
-      ),
-      // 组合贷行（汇总展示，点击进组合贷详情）。
-      SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (ctx, i) => LoanGroupItem(
-            item: loanGroups[i],
-            onTap: () =>
-                ctx.push(AppRouter.loanGroupDetail(loanGroups[i].group.id)),
-          ),
-          childCount: groupRows,
+    return SliverMainAxisGroup(
+      slivers: [
+        SectionHeader(
+          title: '负债',
+          icon: Icons.credit_card_rounded,
+          total: -totalDebt,
+          color: context.semanticColors.liability,
+          onTap: () => context.push(AppRouter.loans),
         ),
-      ),
-      // 独立贷款行。
-      SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (ctx, i) => LoanItem(
-            loan: loans[i],
-            onTap: () => ctx.push(AppRouter.loanDetail(loans[i].id)),
-          ),
-          childCount: loanRows,
-        ),
-      ),
-      if (totalCount > maxRows)
-        SliverToBoxAdapter(
-          child: ShowMoreButton(
-            label: '查看全部 $totalCount 笔贷款',
-            onTap: () => context.push(AppRouter.loans),
+        // 组合贷行（汇总展示，点击进组合贷详情）。
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (ctx, i) => LoanGroupItem(
+              item: loanGroups[i],
+              onTap: () =>
+                  ctx.push(AppRouter.loanGroupDetail(loanGroups[i].group.id)),
+            ),
+            childCount: groupRows,
           ),
         ),
-    ]);
+        // 独立贷款行。
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (ctx, i) => LoanItem(
+              loan: loans[i],
+              onTap: () => ctx.push(AppRouter.loanDetail(loans[i].id)),
+            ),
+            childCount: loanRows,
+          ),
+        ),
+        if (totalCount > maxRows)
+          SliverToBoxAdapter(
+            child: ShowMoreButton(
+              label: '查看全部 $totalCount 笔贷款',
+              onTap: () => context.push(AppRouter.loans),
+            ),
+          ),
+      ],
+    );
   }
 }
 
@@ -297,30 +332,32 @@ class _FixedAssetSection extends StatelessWidget {
     final total = assets.fold<int>(0, (s, a) => s + (a.currentValue as int));
     final displayCount = assets.length.clamp(0, 3);
 
-    return SliverMainAxisGroup(slivers: [
-      SectionHeader(
-        title: '实物资产',
-        icon: Icons.home_work_rounded,
-        total: total,
-        color: ChartColors.slot7,
-        onTap: () => context.push(AppRouter.fixedAssets),
-      ),
-      SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (ctx, i) => FixedAssetItem(
-            asset: assets[i],
-            onTap: () => ctx.push(AppRouter.assetDetail(assets[i].id)),
-          ),
-          childCount: displayCount,
+    return SliverMainAxisGroup(
+      slivers: [
+        SectionHeader(
+          title: '实物资产',
+          icon: Icons.home_work_rounded,
+          total: total,
+          color: ChartColors.slot7,
+          onTap: () => context.push(AppRouter.fixedAssets),
         ),
-      ),
-      if (assets.length > 3)
-        SliverToBoxAdapter(
-          child: ShowMoreButton(
-            label: '查看全部 ${assets.length} 项资产',
-            onTap: () => context.push(AppRouter.fixedAssets),
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (ctx, i) => FixedAssetItem(
+              asset: assets[i],
+              onTap: () => ctx.push(AppRouter.assetDetail(assets[i].id)),
+            ),
+            childCount: displayCount,
           ),
         ),
-    ]);
+        if (assets.length > 3)
+          SliverToBoxAdapter(
+            child: ShowMoreButton(
+              label: '查看全部 ${assets.length} 项资产',
+              onTap: () => context.push(AppRouter.fixedAssets),
+            ),
+          ),
+      ],
+    );
   }
 }

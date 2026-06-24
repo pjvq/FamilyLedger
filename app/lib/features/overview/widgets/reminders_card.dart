@@ -24,14 +24,21 @@ class RemindersCard extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        SpacingTokens.base, 0, SpacingTokens.base, SpacingTokens.sm,
+        SpacingTokens.base,
+        0,
+        SpacingTokens.base,
+        SpacingTokens.sm,
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral1,
+          color: isDark
+              ? NeutralColorsDark.neutral2
+              : NeutralColorsLight.neutral1,
           borderRadius: BorderRadius.circular(RadiusTokens.lg),
           border: Border.all(
-            color: isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral3,
+            color: isDark
+                ? NeutralColorsDark.neutral3
+                : NeutralColorsLight.neutral3,
             width: 0.5,
           ),
         ),
@@ -41,12 +48,18 @@ class RemindersCard extends ConsumerWidget {
             // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                  SpacingTokens.base, SpacingTokens.md,
-                  SpacingTokens.base, SpacingTokens.xs),
+                SpacingTokens.base,
+                SpacingTokens.md,
+                SpacingTokens.base,
+                SpacingTokens.xs,
+              ),
               child: Row(
                 children: [
-                  Icon(Icons.notifications_active_rounded,
-                      size: 16, color: colors.warning),
+                  Icon(
+                    Icons.notifications_active_rounded,
+                    size: 16,
+                    color: colors.warning,
+                  ),
                   const SizedBox(width: SpacingTokens.xs),
                   Text(
                     '待办提醒',
@@ -122,10 +135,9 @@ class _ReminderItem extends StatelessWidget {
               Icon(
                 Icons.chevron_right_rounded,
                 size: 18,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.3),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.3),
               ),
             ],
           ),

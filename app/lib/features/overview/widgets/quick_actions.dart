@@ -39,8 +39,10 @@ class QuickActions extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        SpacingTokens.base, SpacingTokens.xs,
-        SpacingTokens.base, SpacingTokens.sm,
+        SpacingTokens.base,
+        SpacingTokens.xs,
+        SpacingTokens.base,
+        SpacingTokens.sm,
       ),
       child: Row(
         children: [
@@ -103,13 +105,10 @@ class _QuickActionButton extends StatelessWidget {
           onTap: () => withHaptic(onTap, haptic: HapticType.lightImpact),
           borderRadius: BorderRadius.circular(RadiusTokens.md),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-                vertical: SpacingTokens.md),
+            padding: const EdgeInsets.symmetric(vertical: SpacingTokens.md),
             child: Column(
               children: [
-                Icon(icon,
-                    size: IconSizeTokens.md,
-                    color: ColorTokens.primary),
+                Icon(icon, size: IconSizeTokens.md, color: ColorTokens.primary),
                 const SizedBox(height: SpacingTokens.xs),
                 Text(
                   label,

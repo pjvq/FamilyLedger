@@ -9,9 +9,9 @@ import '../../data/local/database.dart' as db;
 
 class LoanScheduleDisplayItem {
   final int monthNumber;
-  final int payment;         // 分
-  final int principalPart;   // 分
-  final int interestPart;    // 分
+  final int payment; // 分
+  final int principalPart; // 分
+  final int interestPart; // 分
   final int remainingPrincipal; // 分
   final DateTime dueDate;
   final bool isPaid;
@@ -32,12 +32,12 @@ class LoanScheduleDisplayItem {
 // ── Prepayment Simulation Result ──
 
 class PrepaymentSimulationResult {
-  final int prepaymentAmount;     // 分
-  final int totalInterestBefore;  // 分
-  final int totalInterestAfter;   // 分
-  final int interestSaved;        // 分
+  final int prepaymentAmount; // 分
+  final int totalInterestBefore; // 分
+  final int totalInterestAfter; // 分
+  final int interestSaved; // 分
   final int monthsReduced;
-  final int newMonthlyPayment;    // 分
+  final int newMonthlyPayment; // 分
   final List<LoanScheduleDisplayItem> newSchedule;
 
   const PrepaymentSimulationResult({
@@ -111,18 +111,16 @@ class LoanState {
     bool clearCurrentGroup = false,
     bool clearSimulation = false,
     bool clearError = false,
-  }) =>
-      LoanState(
-        loans: loans ?? this.loans,
-        loanGroups: loanGroups ?? this.loanGroups,
-        currentLoan:
-            clearCurrentLoan ? null : (currentLoan ?? this.currentLoan),
-        currentGroup:
-            clearCurrentGroup ? null : (currentGroup ?? this.currentGroup),
-        schedule: schedule ?? this.schedule,
-        simulation:
-            clearSimulation ? null : (simulation ?? this.simulation),
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => LoanState(
+    loans: loans ?? this.loans,
+    loanGroups: loanGroups ?? this.loanGroups,
+    currentLoan: clearCurrentLoan ? null : (currentLoan ?? this.currentLoan),
+    currentGroup: clearCurrentGroup
+        ? null
+        : (currentGroup ?? this.currentGroup),
+    schedule: schedule ?? this.schedule,
+    simulation: clearSimulation ? null : (simulation ?? this.simulation),
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+  );
 }

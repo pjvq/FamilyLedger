@@ -189,7 +189,7 @@ func TestBuildScheduleProto_RelativeNumbering(t *testing.T) {
 	assert.Equal(t, int32(2), relative[1].MonthNumber)
 
 	// Absolute (for Execute, e.g. paidMonths=12)
-	absolute := buildScheduleProto(calc, func(i int) int32 { return int32(12+1+i) })
+	absolute := buildScheduleProto(calc, func(i int) int32 { return int32(12 + 1 + i) })
 	require.Len(t, absolute, 2)
 	assert.Equal(t, int32(13), absolute[0].MonthNumber)
 	assert.Equal(t, int32(14), absolute[1].MonthNumber)

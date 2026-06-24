@@ -34,9 +34,7 @@ class _TransferPageState extends ConsumerState<TransferPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('转账'),
-      ),
+      appBar: AppBar(title: const Text('转账')),
       body: Column(
         children: [
           Expanded(
@@ -66,7 +64,9 @@ class _TransferPageState extends ConsumerState<TransferPage> {
                           height: 40,
                           decoration: BoxDecoration(
                             color: isDark
-                                ? ColorTokens.primaryLight.withValues(alpha: 0.15)
+                                ? ColorTokens.primaryLight.withValues(
+                                    alpha: 0.15,
+                                  )
                                 : ColorTokens.primary.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
@@ -86,8 +86,7 @@ class _TransferPageState extends ConsumerState<TransferPage> {
                           selectedId: _toAccountId,
                           excludeId: _fromAccountId,
                           isDark: isDark,
-                          onChanged: (id) =>
-                              setState(() => _toAccountId = id),
+                          onChanged: (id) => setState(() => _toAccountId = id),
                         ),
                       ),
                     ],
@@ -98,7 +97,9 @@ class _TransferPageState extends ConsumerState<TransferPage> {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 24),
+                      horizontal: 20,
+                      vertical: 24,
+                    ),
                     decoration: BoxDecoration(
                       color: isDark
                           ? NeutralColorsDark.neutral2
@@ -111,8 +112,9 @@ class _TransferPageState extends ConsumerState<TransferPage> {
                         Text(
                           '¥',
                           style: theme.textTheme.headlineMedium?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.4),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.4,
+                            ),
                             fontWeight: FontWeight.w300,
                           ),
                         ),
@@ -146,7 +148,8 @@ class _TransferPageState extends ConsumerState<TransferPage> {
             onKey: _onKey,
             onDelete: _onDelete,
             onConfirm: _onConfirm,
-            confirmEnabled: _fromAccountId != null &&
+            confirmEnabled:
+                _fromAccountId != null &&
                 _toAccountId != null &&
                 _amountStr != '0',
           ),
@@ -182,17 +185,17 @@ class _TransferPageState extends ConsumerState<TransferPage> {
 
   Future<void> _onConfirm() async {
     if (_fromAccountId == null || _toAccountId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请选择来源和目标账户')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请选择来源和目标账户')));
       return;
     }
 
     final amount = ((double.tryParse(_amountStr) ?? 0) * 100).round();
     if (amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入转账金额')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请输入转账金额')));
       return;
     }
 
@@ -200,7 +203,9 @@ class _TransferPageState extends ConsumerState<TransferPage> {
     setState(() => _isSaving = true);
 
     try {
-      await ref.read(accountProvider.notifier).transferBetween(
+      await ref
+          .read(accountProvider.notifier)
+          .transferBetween(
             fromAccountId: _fromAccountId!,
             toAccountId: _toAccountId!,
             amount: amount,
@@ -211,9 +216,9 @@ class _TransferPageState extends ConsumerState<TransferPage> {
       ref.read(dashboardProvider.notifier).loadAll();
       if (mounted) {
         context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('转账成功')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('转账成功')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -241,8 +246,7 @@ class _AccountSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final filteredAccounts =
-        accounts.where((a) => a.id != excludeId).toList();
+    final filteredAccounts = accounts.where((a) => a.id != excludeId).toList();
 
     return Semantics(
       label: '$label账户选择',
@@ -259,8 +263,9 @@ class _AccountSelector extends StatelessWidget {
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
-              color:
-                  isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
+              color: isDark
+                  ? NeutralColorsDark.neutral2
+                  : NeutralColorsLight.neutral2,
               borderRadius: BorderRadius.circular(12),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -277,10 +282,7 @@ class _AccountSelector extends StatelessWidget {
                         Text(a.icon, style: const TextStyle(fontSize: 18)),
                         const SizedBox(width: 8),
                         Flexible(
-                          child: Text(
-                            a.name,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          child: Text(a.name, overflow: TextOverflow.ellipsis),
                         ),
                       ],
                     ),

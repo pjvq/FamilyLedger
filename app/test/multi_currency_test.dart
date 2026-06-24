@@ -88,15 +88,18 @@ void main() {
         expect(result, 0); // 1000 * 0.0 = 0
       });
 
-      test('getRate from CNY to currency with zero rate → returns 1.0 fallback', () async {
-        await notifier.saveRates({'ZERO/CNY': 0.0});
+      test(
+        'getRate from CNY to currency with zero rate → returns 1.0 fallback',
+        () async {
+          await notifier.saveRates({'ZERO/CNY': 0.0});
 
-        // CNY → ZERO: 1/rate, but rate=0 → guard condition returns 1.0
-        final rate = notifier.getRate('CNY', 'ZERO');
-        // The code checks `if (toCny > 0)` before dividing
-        // When toCny = 0, it falls through to return 1.0
-        expect(rate, 1.0);
-      });
+          // CNY → ZERO: 1/rate, but rate=0 → guard condition returns 1.0
+          final rate = notifier.getRate('CNY', 'ZERO');
+          // The code checks `if (toCny > 0)` before dividing
+          // When toCny = 0, it falls through to return 1.0
+          expect(rate, 1.0);
+        },
+      );
 
       test('cross-rate with zero denominator → returns 1.0 fallback', () async {
         await notifier.saveRates({'AAA/CNY': 5.0, 'BBB/CNY': 0.0});

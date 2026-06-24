@@ -32,19 +32,18 @@ class CategoryCleanupPrompt extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     // Unified brand color — indigo accent for both variants
-    final bgColor = isDark
-        ? const Color(0xFF1A1A2E)
-        : const Color(0xFFF0F4FF);
+    final bgColor = isDark ? const Color(0xFF1A1A2E) : const Color(0xFFF0F4FF);
     final iconBgColor = isDark
         ? const Color(0xFF2D2D4E)
         : const Color(0xFFE0E8FF);
     const accentColor = Color(0xFF6366F1);
 
-    final effectiveOnTap = onTap ??
+    final effectiveOnTap =
+        onTap ??
         () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CategoryCleanupPage()),
-            );
+          context,
+          MaterialPageRoute(builder: (_) => const CategoryCleanupPage()),
+        );
 
     if (variant == CleanupPromptVariant.banner) {
       return Material(
@@ -62,16 +61,18 @@ class CategoryCleanupPrompt extends StatelessWidget {
                     '发现 $suggestionCount 个可合并的分类，点击整理',
                     style: TextStyle(
                       fontSize: 13,
-                      color: theme.colorScheme.onSurface
-                          .withValues(alpha: OpacityTokens.medium),
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: OpacityTokens.medium,
+                      ),
                     ),
                   ),
                 ),
                 Icon(
                   Icons.chevron_right,
                   size: 18,
-                  color: theme.colorScheme.onSurface
-                      .withValues(alpha: OpacityTokens.faint),
+                  color: theme.colorScheme.onSurface.withValues(
+                    alpha: OpacityTokens.faint,
+                  ),
                 ),
               ],
             ),
@@ -83,7 +84,10 @@ class CategoryCleanupPrompt extends StatelessWidget {
     // Card variant (overview page)
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        SpacingTokens.base, 0, SpacingTokens.base, SpacingTokens.sm,
+        SpacingTokens.base,
+        0,
+        SpacingTokens.base,
+        SpacingTokens.sm,
       ),
       child: Material(
         color: bgColor,
@@ -126,8 +130,9 @@ class CategoryCleanupPrompt extends StatelessWidget {
                         '发现 $suggestionCount 个可能重复的分类',
                         style: TextStyle(
                           fontSize: 12,
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: OpacityTokens.subtle),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: OpacityTokens.subtle,
+                          ),
                         ),
                       ),
                     ],
@@ -136,8 +141,9 @@ class CategoryCleanupPrompt extends StatelessWidget {
                 Icon(
                   Icons.chevron_right,
                   size: 20,
-                  color: theme.colorScheme.onSurface
-                      .withValues(alpha: OpacityTokens.faint),
+                  color: theme.colorScheme.onSurface.withValues(
+                    alpha: OpacityTokens.faint,
+                  ),
                 ),
               ],
             ),

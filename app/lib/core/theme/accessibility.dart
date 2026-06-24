@@ -43,11 +43,7 @@ class SemanticAmount extends StatelessWidget {
     return Semantics(
       label: _amountToSpeech(amount),
       excludeSemantics: true,
-      child: Text(
-        amount,
-        style: style,
-        textAlign: textAlign,
-      ),
+      child: Text(amount, style: style, textAlign: textAlign),
     );
   }
 
@@ -69,11 +65,7 @@ class SemanticPercent extends StatelessWidget {
   final String text;
   final TextStyle? style;
 
-  const SemanticPercent({
-    super.key,
-    required this.text,
-    this.style,
-  });
+  const SemanticPercent({super.key, required this.text, this.style});
 
   @override
   Widget build(BuildContext context) {
@@ -104,8 +96,11 @@ class ContrastChecker {
   }
 
   /// 检查是否满足 WCAG AA 标准
-  static bool meetsAA(Color foreground, Color background,
-      {bool isLargeText = false}) {
+  static bool meetsAA(
+    Color foreground,
+    Color background, {
+    bool isLargeText = false,
+  }) {
     final ratio = contrastRatio(foreground, background);
     return isLargeText ? ratio >= 3.0 : ratio >= 4.5;
   }
@@ -119,6 +114,8 @@ class ContrastChecker {
 
   /// sRGB → linear. Input 0.0–1.0.
   static double _linearize(double c) {
-    return c <= 0.04045 ? c / 12.92 : math.pow((c + 0.055) / 1.055, 2.4).toDouble();
+    return c <= 0.04045
+        ? c / 12.92
+        : math.pow((c + 0.055) / 1.055, 2.4).toDouble();
   }
 }

@@ -59,7 +59,9 @@ class QuickCategorySelector extends ConsumerWidget {
           '暂无分类',
           style: TextStyle(
             fontSize: 14,
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.4),
           ),
         ),
       );
@@ -98,9 +100,7 @@ class QuickCategorySelector extends ConsumerWidget {
 
     // Sort parents by recommendation score if available, fallback to sortOrder
     if (recommendations.isNotEmpty) {
-      final scoreMap = {
-        for (final r in recommendations) r.categoryId: r.score,
-      };
+      final scoreMap = {for (final r in recommendations) r.categoryId: r.score};
       parents.sort((a, b) {
         final sa = scoreMap[a.id] ?? -1.0;
         final sb = scoreMap[b.id] ?? -1.0;
@@ -169,7 +169,11 @@ class QuickCategorySelector extends ConsumerWidget {
   }
 
   void _showSubcategorySheet(
-      BuildContext context, WidgetRef ref, Category parent, List<Category> children) {
+    BuildContext context,
+    WidgetRef ref,
+    Category parent,
+    List<Category> children,
+  ) {
     HapticFeedback.selectionClick();
     showModalBottomSheet(
       context: context,
@@ -190,7 +194,11 @@ class QuickCategorySelector extends ConsumerWidget {
     );
   }
 
-  void _showQuickAddCategory(BuildContext context, WidgetRef ref, {String? parentId}) {
+  void _showQuickAddCategory(
+    BuildContext context,
+    WidgetRef ref, {
+    String? parentId,
+  }) {
     final type = typeIndex == 0 ? 'expense' : 'income';
     showModalBottomSheet(
       context: context,
@@ -200,7 +208,9 @@ class QuickCategorySelector extends ConsumerWidget {
         type: type,
         parentId: parentId,
         onCreated: (categoryId) async {
-          await ref.read(transactionProvider.notifier).syncAndReloadCategories();
+          await ref
+              .read(transactionProvider.notifier)
+              .syncAndReloadCategories();
           onSelected(categoryId);
         },
       ),
@@ -233,7 +243,10 @@ class _RecentCategoryRow extends StatelessWidget {
         children: [
           // Fixed "最近" label
           Padding(
-            padding: const EdgeInsets.only(left: SpacingTokens.md, right: SpacingTokens.sm),
+            padding: const EdgeInsets.only(
+              left: SpacingTokens.md,
+              right: SpacingTokens.sm,
+            ),
             child: Text(
               label,
               style: TextStyle(
@@ -249,7 +262,8 @@ class _RecentCategoryRow extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.only(right: SpacingTokens.md),
               itemCount: categories.length,
-              separatorBuilder: (_, __) => const SizedBox(width: SpacingTokens.sm),
+              separatorBuilder: (_, __) =>
+                  const SizedBox(width: SpacingTokens.sm),
               itemBuilder: (context, index) {
                 final cat = categories[index];
                 final isSelected = cat.id == selectedId;
@@ -291,7 +305,9 @@ class _MiniCategoryChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? ColorTokens.primary.withValues(alpha: 0.12)
-              : (isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral1),
+              : (isDark
+                    ? NeutralColorsDark.neutral2
+                    : NeutralColorsLight.neutral1),
           borderRadius: BorderRadius.circular(RadiusTokens.full),
           border: Border.all(
             color: isSelected ? ColorTokens.primary : Colors.transparent,
@@ -301,7 +317,11 @@ class _MiniCategoryChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CategoryIconWidget(iconKey: category.iconKey, size: 16, showBackground: false),
+            CategoryIconWidget(
+              iconKey: category.iconKey,
+              size: 16,
+              showBackground: false,
+            ),
             const SizedBox(width: 4),
             Text(
               category.name,
@@ -310,7 +330,9 @@ class _MiniCategoryChip extends StatelessWidget {
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 color: isSelected
                     ? ColorTokens.primary
-                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
+                    : Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.75),
               ),
             ),
           ],
@@ -326,7 +348,8 @@ class _CategoryGrid extends StatelessWidget {
   final Map<String, List<Category>> childrenMap;
   final String? selectedId;
   final ValueChanged<String> onSelected;
-  final void Function(Category parent, List<Category> children) onParentWithChildren;
+  final void Function(Category parent, List<Category> children)
+  onParentWithChildren;
   final VoidCallback? onAddCategory;
 
   const _CategoryGrid({
@@ -357,8 +380,8 @@ class _CategoryGrid extends StatelessWidget {
         }
         final cat = parents[index];
         final children = childrenMap[cat.id] ?? const [];
-        final isSelected = cat.id == selectedId ||
-            children.any((c) => c.id == selectedId);
+        final isSelected =
+            cat.id == selectedId || children.any((c) => c.id == selectedId);
 
         return _CategoryGridItem(
           category: cat,
@@ -463,7 +486,9 @@ class _CategoryGridItem extends StatelessWidget {
               shape: BoxShape.circle,
               color: isSelected
                   ? ColorTokens.primary.withValues(alpha: 0.12)
-                  : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  : theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.5,
+                    ),
               border: Border.all(
                 color: isSelected ? ColorTokens.primary : Colors.transparent,
                 width: 2,
@@ -545,7 +570,9 @@ class _SubcategorySheet extends StatelessWidget {
         maxHeight: MediaQuery.of(context).size.height * 0.5,
       ),
       decoration: BoxDecoration(
-        color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral0,
+        color: isDark
+            ? NeutralColorsDark.neutral1
+            : NeutralColorsLight.neutral0,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -575,12 +602,17 @@ class _SubcategorySheet extends StatelessWidget {
                 Row(
                   children: [
                     CategoryIconWidget(
-                        iconKey: parent.iconKey, size: 20, showBackground: false),
+                      iconKey: parent.iconKey,
+                      size: 20,
+                      showBackground: false,
+                    ),
                     const SizedBox(width: SpacingTokens.sm),
                     Text(
                       parent.name,
                       style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const Spacer(),
                     TextButton(
@@ -677,23 +709,25 @@ class _QuickAddCategorySheetState
     setState(() => _isSubmitting = true);
     try {
       final client = ref.read(transactionClientProvider);
-      final resp = await client.createCategory(pb.CreateCategoryRequest(
-        name: name,
-        iconKey: _iconKey,
-        type: widget.type == 'income'
-            ? pbe.TransactionType.TRANSACTION_TYPE_INCOME
-            : pbe.TransactionType.TRANSACTION_TYPE_EXPENSE,
-        parentId: widget.parentId ?? '',
-      ));
+      final resp = await client.createCategory(
+        pb.CreateCategoryRequest(
+          name: name,
+          iconKey: _iconKey,
+          type: widget.type == 'income'
+              ? pbe.TransactionType.TRANSACTION_TYPE_INCOME
+              : pbe.TransactionType.TRANSACTION_TYPE_EXPENSE,
+          parentId: widget.parentId ?? '',
+        ),
+      );
       if (mounted) {
         Navigator.of(context).pop();
         await widget.onCreated(resp.category.id);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('创建失败，请重试')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('创建失败，请重试')));
         setState(() => _isSubmitting = false);
       }
     }
@@ -707,7 +741,9 @@ class _QuickAddCategorySheetState
 
     return Container(
       padding: EdgeInsets.only(
-        left: 20, right: 20, top: 16,
+        left: 20,
+        right: 20,
+        top: 16,
         bottom: 16 + bottom + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
@@ -720,7 +756,8 @@ class _QuickAddCategorySheetState
         children: [
           Center(
             child: Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
@@ -730,26 +767,33 @@ class _QuickAddCategorySheetState
           const SizedBox(height: 16),
           Text(
             widget.parentId != null ? '新建子分类' : '新建分类',
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
               GestureDetector(
                 onTap: () {
-                  showIconPickerSheet(context,
-                      selectedKey: _iconKey,
-                      onSelect: (key) => setState(() => _iconKey = key));
+                  showIconPickerSheet(
+                    context,
+                    selectedKey: _iconKey,
+                    onSelect: (key) => setState(() => _iconKey = key),
+                  );
                 },
                 child: Container(
-                  width: 48, height: 48,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: color.withValues(alpha: 0.12),
                   ),
                   child: Center(
                     child: CategoryIconWidget(
-                      iconKey: _iconKey, size: 28, showBackground: false,
+                      iconKey: _iconKey,
+                      size: 28,
+                      showBackground: false,
                     ),
                   ),
                 ),
@@ -767,7 +811,8 @@ class _QuickAddCategorySheetState
                       borderRadius: BorderRadius.circular(12),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12,
+                      horizontal: 14,
+                      vertical: 12,
                     ),
                   ),
                 ),
@@ -777,7 +822,8 @@ class _QuickAddCategorySheetState
                 onPressed: _isSubmitting ? null : _submit,
                 child: _isSubmitting
                     ? const SizedBox(
-                        width: 16, height: 16,
+                        width: 16,
+                        height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Text('创建'),

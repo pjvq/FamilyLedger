@@ -57,24 +57,22 @@ class DashboardState {
     String? categoryBreakdownPeriod,
     String? netWorthTrendPeriod,
     bool clearError = false,
-  }) =>
-      DashboardState(
-        netWorth: netWorth ?? this.netWorth,
-        incomeExpenseTrend: incomeExpenseTrend ?? this.incomeExpenseTrend,
-        categoryBreakdown: categoryBreakdown ?? this.categoryBreakdown,
-        categoryBreakdownTotal:
-            categoryBreakdownTotal ?? this.categoryBreakdownTotal,
-        budgetSummary: budgetSummary ?? this.budgetSummary,
-        netWorthTrend: netWorthTrend ?? this.netWorthTrend,
-        investmentTrend: investmentTrend ?? this.investmentTrend,
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-        trendPeriod: trendPeriod ?? this.trendPeriod,
-        categoryBreakdownPeriod:
-            categoryBreakdownPeriod ?? this.categoryBreakdownPeriod,
-        netWorthTrendPeriod:
-            netWorthTrendPeriod ?? this.netWorthTrendPeriod,
-      );
+  }) => DashboardState(
+    netWorth: netWorth ?? this.netWorth,
+    incomeExpenseTrend: incomeExpenseTrend ?? this.incomeExpenseTrend,
+    categoryBreakdown: categoryBreakdown ?? this.categoryBreakdown,
+    categoryBreakdownTotal:
+        categoryBreakdownTotal ?? this.categoryBreakdownTotal,
+    budgetSummary: budgetSummary ?? this.budgetSummary,
+    netWorthTrend: netWorthTrend ?? this.netWorthTrend,
+    investmentTrend: investmentTrend ?? this.investmentTrend,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+    trendPeriod: trendPeriod ?? this.trendPeriod,
+    categoryBreakdownPeriod:
+        categoryBreakdownPeriod ?? this.categoryBreakdownPeriod,
+    netWorthTrendPeriod: netWorthTrendPeriod ?? this.netWorthTrendPeriod,
+  );
 }
 
 // ── Notifier ──
@@ -86,8 +84,13 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   final String? _userId;
   final String? _familyId;
 
-  DashboardNotifier(this._db, this._client, this._marketClient, this._userId, this._familyId)
-      : super(const DashboardState()) {
+  DashboardNotifier(
+    this._db,
+    this._client,
+    this._marketClient,
+    this._userId,
+    this._familyId,
+  ) : super(const DashboardState()) {
     if (_userId != null) {
       loadAll();
     }
@@ -95,8 +98,10 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
   /// Default count for monthly net worth trend.
   static const _kMonthlyCount = 12;
+
   /// Default count for yearly net worth trend.
   static const _kYearlyCount = 5;
+
   /// Default count for income/expense trend.
   static const _kTrendMonthlyCount = 6;
 
@@ -108,24 +113,28 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   /// Refresh market quotes for investments so local net worth calc has prices.
   Future<void> _refreshInvestmentQuotes(List<db.Investment> investments) async {
     try {
-      final requests = investments.map((inv) => inv_pb.GetQuoteRequest()
-        ..symbol = inv.symbol
-        ..marketType = _toProtoMarketType(inv.marketType));
+      final requests = investments.map(
+        (inv) => inv_pb.GetQuoteRequest()
+          ..symbol = inv.symbol
+          ..marketType = _toProtoMarketType(inv.marketType),
+      );
       final resp = await _marketClient.batchGetQuotes(
         inv_pb.BatchGetQuotesRequest()..requests.addAll(requests),
         options: _callOpts,
       );
       for (final q in resp.quotes) {
         final mt = _fromProtoMarketType(q.marketType);
-        await _db.upsertMarketQuote(db.MarketQuotesCompanion.insert(
-          symbol: q.symbol,
-          marketType: mt,
-          name: Value(q.name),
-          currentPrice: Value(q.currentPrice.toInt()),
-          changeAmount: Value(q.change.toInt()),
-          changePercent: Value(q.changePercent),
-          updatedAt: Value(DateTime.now()),
-        ));
+        await _db.upsertMarketQuote(
+          db.MarketQuotesCompanion.insert(
+            symbol: q.symbol,
+            marketType: mt,
+            name: Value(q.name),
+            currentPrice: Value(q.currentPrice.toInt()),
+            changeAmount: Value(q.change.toInt()),
+            changePercent: Value(q.changePercent),
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
       }
     } catch (e) {
       // Offline: local cache will be used as-is
@@ -165,21 +174,25 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     await Future.wait([
       _computeLocalNetWorth(),
       _computeLocalTrend('monthly', _kTrendMonthlyCount),
-      _computeLocalCategoryBreakdown(
-          DateTime.now().year, DateTime.now().month),
+      _computeLocalCategoryBreakdown(DateTime.now().year, DateTime.now().month),
       _computeLocalBudgetSummary(),
     ]);
     state = state.copyWith(isLoading: false);
 
     // Phase 2: background gRPC refresh (non-blocking)
-    unawaited(Future.wait([
-      _refreshNetWorthRemote(),
-      _refreshTrendRemote('monthly', _kTrendMonthlyCount),
-      _refreshCategoryBreakdownRemote(
-          DateTime.now().year, DateTime.now().month, 'expense'),
-      _refreshBudgetSummaryRemote(),
-      _refreshNetWorthTrendRemote(_kMonthlyCount, 'monthly'),
-    ]));
+    unawaited(
+      Future.wait([
+        _refreshNetWorthRemote(),
+        _refreshTrendRemote('monthly', _kTrendMonthlyCount),
+        _refreshCategoryBreakdownRemote(
+          DateTime.now().year,
+          DateTime.now().month,
+          'expense',
+        ),
+        _refreshBudgetSummaryRemote(),
+        _refreshNetWorthTrendRemote(_kMonthlyCount, 'monthly'),
+      ]),
+    );
   }
 
   /// Public refresh: local first, then remote.
@@ -202,7 +215,10 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       // This prevents stale values when user truly liquidates all positions.
       int investmentValue = resp.investmentValue.toInt();
       if (investmentValue == 0 && local.investmentValue != 0) {
-        final investments = await _db.getInvestments(_userId, familyId: _familyId);
+        final investments = await _db.getInvestments(
+          _userId,
+          familyId: _familyId,
+        );
         if (investments.isNotEmpty) {
           // Still have holdings → server likely missing market data
           investmentValue = local.investmentValue;
@@ -211,7 +227,8 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       final cashAndBank = resp.cashAndBank.toInt();
       final fixedAssetValue = resp.fixedAssetValue.toInt();
       final loanBalance = resp.loanBalance.toInt();
-      final total = cashAndBank + investmentValue + fixedAssetValue + loanBalance;
+      final total =
+          cashAndBank + investmentValue + fixedAssetValue + loanBalance;
 
       state = state.copyWith(
         netWorth: NetWorthData(
@@ -222,24 +239,24 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           loanBalance: loanBalance,
           changeFromLastMonth: resp.changeFromLastMonth.toInt(),
           changePercent: resp.changePercent,
-          composition: resp.composition
-              .map((c) {
-                if (c.category == 'investment' && c.value.toInt() == 0 && investmentValue != 0) {
-                  return AssetCompositionItem(
-                    category: c.category,
-                    label: c.label,
-                    value: investmentValue,
-                    weight: c.weight,
-                  );
-                }
-                return AssetCompositionItem(
-                  category: c.category,
-                  label: c.label,
-                  value: c.value.toInt(),
-                  weight: c.weight,
-                );
-              })
-              .toList(),
+          composition: resp.composition.map((c) {
+            if (c.category == 'investment' &&
+                c.value.toInt() == 0 &&
+                investmentValue != 0) {
+              return AssetCompositionItem(
+                category: c.category,
+                label: c.label,
+                value: investmentValue,
+                weight: c.weight,
+              );
+            }
+            return AssetCompositionItem(
+              category: c.category,
+              label: c.label,
+              value: c.value.toInt(),
+              weight: c.weight,
+            );
+          }).toList(),
         ),
       );
     } catch (_) {
@@ -258,8 +275,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     } else {
       accounts = await _db.getActiveAccounts(_userId);
     }
-    final cashAndBank =
-        accounts.fold<int>(0, (sum, a) => sum + a.balance);
+    final cashAndBank = accounts.fold<int>(0, (sum, a) => sum + a.balance);
 
     // Investment value — refresh quotes first so we have current prices
     final investments = await _db.getInvestments(_userId, familyId: _familyId);
@@ -271,26 +287,29 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       final quote = await _db.getMarketQuote(inv.symbol, inv.marketType);
       final price = quote?.currentPrice ?? 0;
       // Fallback: if no market price, use cost basis as estimated value
-      final value = price > 0
-          ? (inv.quantity * price).round()
-          : inv.costBasis;
+      final value = price > 0 ? (inv.quantity * price).round() : inv.costBasis;
       investmentValue += value;
     }
 
     // Fixed asset value
     final assets = await _db.getFixedAssets(_userId, familyId: _familyId);
-    final fixedAssetValue =
-        assets.fold<int>(0, (sum, a) => sum + a.currentValue);
+    final fixedAssetValue = assets.fold<int>(
+      0,
+      (sum, a) => sum + a.currentValue,
+    );
 
     // Loan balance (negative)
     final loans = await _db.getLoans(_userId, familyId: _familyId);
-    final loanBalance =
-        -loans.fold<int>(0, (sum, l) => sum + l.remainingPrincipal);
+    final loanBalance = -loans.fold<int>(
+      0,
+      (sum, l) => sum + l.remainingPrincipal,
+    );
 
     final total = cashAndBank + investmentValue + fixedAssetValue + loanBalance;
 
     // Build composition
-    final totalAbs = cashAndBank.abs() +
+    final totalAbs =
+        cashAndBank.abs() +
         investmentValue.abs() +
         fixedAssetValue.abs() +
         loanBalance.abs();
@@ -307,13 +326,29 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         changePercent: 0.0,
         composition: [
           AssetCompositionItem(
-              category: 'cash', label: '现金银行', value: cashAndBank, weight: w(cashAndBank)),
+            category: 'cash',
+            label: '现金银行',
+            value: cashAndBank,
+            weight: w(cashAndBank),
+          ),
           AssetCompositionItem(
-              category: 'investment', label: '投资', value: investmentValue, weight: w(investmentValue)),
+            category: 'investment',
+            label: '投资',
+            value: investmentValue,
+            weight: w(investmentValue),
+          ),
           AssetCompositionItem(
-              category: 'fixed_asset', label: '固定资产', value: fixedAssetValue, weight: w(fixedAssetValue)),
+            category: 'fixed_asset',
+            label: '固定资产',
+            value: fixedAssetValue,
+            weight: w(fixedAssetValue),
+          ),
           AssetCompositionItem(
-              category: 'loan', label: '贷款', value: loanBalance, weight: w(loanBalance)),
+            category: 'loan',
+            label: '贷款',
+            value: loanBalance,
+            weight: w(loanBalance),
+          ),
         ],
       ),
     );
@@ -341,12 +376,14 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       // Always use gRPC response (server properly filters by familyId)
       state = state.copyWith(
         incomeExpenseTrend: resp.points
-            .map((p) => TrendPointData(
-                  label: p.label,
-                  income: p.income.toInt(),
-                  expense: p.expense.toInt(),
-                  net: p.net.toInt(),
-                ))
+            .map(
+              (p) => TrendPointData(
+                label: p.label,
+                income: p.income.toInt(),
+                expense: p.expense.toInt(),
+                net: p.net.toInt(),
+              ),
+            )
             .toList(),
       );
     } catch (_) {}
@@ -357,8 +394,11 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
     final now = DateTime.now();
     final points = <TrendPointData>[];
-    final allTxns = await _db.getRecentTransactions(_userId, 10000,
-        familyId: _familyId);
+    final allTxns = await _db.getRecentTransactions(
+      _userId,
+      10000,
+      familyId: _familyId,
+    );
 
     for (int i = count - 1; i >= 0; i--) {
       DateTime start;
@@ -368,19 +408,26 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       if (period == 'yearly') {
         final year = now.year - i;
         start = DateTime(year, 1, 1);
-        end = DateTime(year + 1, 1, 1).subtract(const Duration(milliseconds: 1));
+        end = DateTime(
+          year + 1,
+          1,
+          1,
+        ).subtract(const Duration(milliseconds: 1));
         label = '$year';
       } else {
         final month = DateTime(now.year, now.month - i, 1);
         start = month;
-        end = DateTime(month.year, month.month + 1, 1)
-            .subtract(const Duration(milliseconds: 1));
-        label =
-            '${month.year}-${month.month.toString().padLeft(2, '0')}';
+        end = DateTime(
+          month.year,
+          month.month + 1,
+          1,
+        ).subtract(const Duration(milliseconds: 1));
+        label = '${month.year}-${month.month.toString().padLeft(2, '0')}';
       }
 
       final filtered = allTxns.where(
-          (t) => !t.txnDate.isBefore(start) && !t.txnDate.isAfter(end));
+        (t) => !t.txnDate.isBefore(start) && !t.txnDate.isAfter(end),
+      );
 
       int income = 0, expense = 0;
       for (final t in filtered) {
@@ -391,12 +438,14 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         }
       }
 
-      points.add(TrendPointData(
-        label: label,
-        income: income,
-        expense: expense,
-        net: income - expense,
-      ));
+      points.add(
+        TrendPointData(
+          label: label,
+          income: income,
+          expense: expense,
+          net: income - expense,
+        ),
+      );
     }
 
     state = state.copyWith(incomeExpenseTrend: points);
@@ -422,7 +471,10 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   }
 
   Future<void> _refreshCategoryBreakdownRemote(
-      int year, int month, String type) async {
+    int year,
+    int month,
+    String type,
+  ) async {
     if (_userId == null) return;
     try {
       final resp = await _client.getCategoryBreakdown(
@@ -437,22 +489,26 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       // Always use gRPC response (server properly filters by familyId)
       state = state.copyWith(
         categoryBreakdown: resp.items
-            .map((c) => CategoryBreakdownItem(
-                  categoryId: c.categoryId,
-                  categoryName: c.categoryName,
-                  iconKey: c.iconKey,
-                  amount: c.amount.toInt(),
-                  weight: c.weight,
-                  children: c.children
-                      .map((ch) => CategoryBreakdownItem(
-                            categoryId: ch.categoryId,
-                            categoryName: ch.categoryName,
-                            iconKey: ch.iconKey,
-                            amount: ch.amount.toInt(),
-                            weight: ch.weight,
-                          ))
-                      .toList(),
-                ))
+            .map(
+              (c) => CategoryBreakdownItem(
+                categoryId: c.categoryId,
+                categoryName: c.categoryName,
+                iconKey: c.iconKey,
+                amount: c.amount.toInt(),
+                weight: c.weight,
+                children: c.children
+                    .map(
+                      (ch) => CategoryBreakdownItem(
+                        categoryId: ch.categoryId,
+                        categoryName: ch.categoryName,
+                        iconKey: ch.iconKey,
+                        amount: ch.amount.toInt(),
+                        weight: ch.weight,
+                      ),
+                    )
+                    .toList(),
+              ),
+            )
             .toList(),
         categoryBreakdownTotal: resp.total.toInt(),
       );
@@ -461,15 +517,22 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
   Future<void> _computeLocalCategoryBreakdown(int year, int month) async {
     if (_userId == null) return;
-    final expenses = await _db.getMonthCategoryExpenses(_userId, year, month,
-        familyId: _familyId);
+    final expenses = await _db.getMonthCategoryExpenses(
+      _userId,
+      year,
+      month,
+      familyId: _familyId,
+    );
     await _aggregateCategoryBreakdown(expenses);
   }
 
   Future<void> _computeLocalCategoryBreakdownYear(int year) async {
     if (_userId == null) return;
-    final expenses = await _db.getYearCategoryExpenses(_userId, year,
-        familyId: _familyId);
+    final expenses = await _db.getYearCategoryExpenses(
+      _userId,
+      year,
+      familyId: _familyId,
+    );
     await _aggregateCategoryBreakdown(expenses);
   }
 
@@ -489,13 +552,15 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         // Subcategory: aggregate to parent
         parentAmounts[parentId] = (parentAmounts[parentId] ?? 0) + entry.value;
         childrenMap.putIfAbsent(parentId, () => []);
-        childrenMap[parentId]!.add(CategoryBreakdownItem(
-          categoryId: entry.key,
-          categoryName: cat?.name ?? '未知',
-          iconKey: cat?.iconKey ?? '',
-          amount: entry.value,
-          weight: 0, // computed later
-        ));
+        childrenMap[parentId]!.add(
+          CategoryBreakdownItem(
+            categoryId: entry.key,
+            categoryName: cat?.name ?? '未知',
+            iconKey: cat?.iconKey ?? '',
+            amount: entry.value,
+            weight: 0, // computed later
+          ),
+        );
       } else {
         // Top-level category
         topLevelDirect[entry.key] = entry.value;
@@ -517,25 +582,31 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       final children = childrenMap[id] ?? [];
       children.sort((a, b) => b.amount.compareTo(a.amount));
 
-      items.add(CategoryBreakdownItem(
-        categoryId: id,
-        categoryName: cat?.name ?? '未知',
-        iconKey: cat?.iconKey ?? '',
-        amount: totalAmt,
-        weight: 0, // computed below
-        children: children,
-      ));
+      items.add(
+        CategoryBreakdownItem(
+          categoryId: id,
+          categoryName: cat?.name ?? '未知',
+          iconKey: cat?.iconKey ?? '',
+          amount: totalAmt,
+          weight: 0, // computed below
+          children: children,
+        ),
+      );
     }
 
     // Compute weights
     for (final item in items) {
-      final updatedChildren = item.children.map((ch) => CategoryBreakdownItem(
-        categoryId: ch.categoryId,
-        categoryName: ch.categoryName,
-        iconKey: ch.iconKey,
-        amount: ch.amount,
-        weight: item.amount > 0 ? ch.amount / item.amount : 0.0,
-      )).toList();
+      final updatedChildren = item.children
+          .map(
+            (ch) => CategoryBreakdownItem(
+              categoryId: ch.categoryId,
+              categoryName: ch.categoryName,
+              iconKey: ch.iconKey,
+              amount: ch.amount,
+              weight: item.amount > 0 ? ch.amount / item.amount : 0.0,
+            ),
+          )
+          .toList();
       // Replace with weight-computed version
       items[items.indexOf(item)] = CategoryBreakdownItem(
         categoryId: item.categoryId,
@@ -586,15 +657,23 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   Future<void> _computeLocalBudgetSummary() async {
     if (_userId == null) return;
     final now = DateTime.now();
-    final budget = await _db.getBudgetByMonth(_userId, now.year, now.month,
-        familyId: _familyId ?? '');
+    final budget = await _db.getBudgetByMonth(
+      _userId,
+      now.year,
+      now.month,
+      familyId: _familyId ?? '',
+    );
     if (budget != null) {
-      final expenses =
-          await _db.getMonthCategoryExpenses(_userId, now.year, now.month,
-              familyId: _familyId);
+      final expenses = await _db.getMonthCategoryExpenses(
+        _userId,
+        now.year,
+        now.month,
+        familyId: _familyId,
+      );
       final totalSpent = expenses.values.fold<int>(0, (sum, v) => sum + v);
-      final rate =
-          budget.totalAmount > 0 ? totalSpent / budget.totalAmount : 0.0;
+      final rate = budget.totalAmount > 0
+          ? totalSpent / budget.totalAmount
+          : 0.0;
       state = state.copyWith(
         budgetSummary: BudgetSummaryData(
           totalBudget: budget.totalAmount,
@@ -608,11 +687,15 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   /// Public: load net worth trend with period toggle.
   Future<void> loadNetWorthTrend(String period, [int? count]) async {
     state = state.copyWith(netWorthTrendPeriod: period);
-    final effectiveCount = count ?? (period == 'yearly' ? _kYearlyCount : _kMonthlyCount);
+    final effectiveCount =
+        count ?? (period == 'yearly' ? _kYearlyCount : _kMonthlyCount);
     await _refreshNetWorthTrendRemote(effectiveCount, period);
   }
 
-  Future<void> _refreshNetWorthTrendRemote(int count, [String period = 'monthly']) async {
+  Future<void> _refreshNetWorthTrendRemote(
+    int count, [
+    String period = 'monthly',
+  ]) async {
     if (_userId == null) return;
     try {
       final resp = await _client.getNetWorthTrend(
@@ -626,12 +709,14 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       // Always use gRPC response (server properly filters by familyId)
       state = state.copyWith(
         netWorthTrend: resp.points
-            .map((p) => TrendPointData(
-                  label: p.label,
-                  income: p.income.toInt(),
-                  expense: p.expense.toInt(),
-                  net: p.net.toInt(),
-                ))
+            .map(
+              (p) => TrendPointData(
+                label: p.label,
+                income: p.income.toInt(),
+                expense: p.expense.toInt(),
+                net: p.net.toInt(),
+              ),
+            )
             .toList(),
       );
     } catch (_) {
@@ -647,12 +732,9 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           final month = DateTime(now.year, now.month - i, 1);
           label = '${month.year}-${month.month.toString().padLeft(2, '0')}';
         }
-        points.add(TrendPointData(
-          label: label,
-          income: 0,
-          expense: 0,
-          net: nw,
-        ));
+        points.add(
+          TrendPointData(label: label, income: 0, expense: 0, net: nw),
+        );
       }
       state = state.copyWith(netWorthTrend: points);
     }
@@ -663,10 +745,16 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
 final dashboardProvider =
     StateNotifierProvider<DashboardNotifier, DashboardState>((ref) {
-  final database = ref.watch(databaseProvider);
-  final client = ref.watch(dashboardClientProvider);
-  final marketClient = ref.watch(marketDataClientProvider);
-  final userId = ref.watch(currentUserIdProvider);
-  final familyId = ref.watch(currentFamilyIdProvider);
-  return DashboardNotifier(database, client, marketClient, userId, familyId);
-});
+      final database = ref.watch(databaseProvider);
+      final client = ref.watch(dashboardClientProvider);
+      final marketClient = ref.watch(marketDataClientProvider);
+      final userId = ref.watch(currentUserIdProvider);
+      final familyId = ref.watch(currentFamilyIdProvider);
+      return DashboardNotifier(
+        database,
+        client,
+        marketClient,
+        userId,
+        familyId,
+      );
+    });

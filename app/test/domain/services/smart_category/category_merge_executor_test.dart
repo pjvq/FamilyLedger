@@ -29,13 +29,17 @@ void main() {
     String? parentId,
     bool isPreset = false,
   }) async {
-    await db.into(db.categories).insert(CategoriesCompanion.insert(
-      id: id,
-      name: name,
-      type: type,
-      parentId: Value(parentId),
-      isPreset: Value(isPreset),
-    ));
+    await db
+        .into(db.categories)
+        .insert(
+          CategoriesCompanion.insert(
+            id: id,
+            name: name,
+            type: type,
+            parentId: Value(parentId),
+            isPreset: Value(isPreset),
+          ),
+        );
   }
 
   /// Helper: insert a transaction
@@ -65,16 +69,20 @@ void main() {
         Variable.withString('CNY'),
       ],
     );
-    await db.into(db.transactions).insert(TransactionsCompanion.insert(
-      id: id,
-      userId: userId,
-      accountId: accountId,
-      categoryId: categoryId,
-      amount: amount,
-      amountCny: amount,
-      type: 'expense',
-      txnDate: DateTime(2026, 5, 1),
-    ));
+    await db
+        .into(db.transactions)
+        .insert(
+          TransactionsCompanion.insert(
+            id: id,
+            userId: userId,
+            accountId: accountId,
+            categoryId: categoryId,
+            amount: amount,
+            amountCny: amount,
+            type: 'expense',
+            txnDate: DateTime(2026, 5, 1),
+          ),
+        );
   }
 
   group('CategoryMergeExecutor — executeMerge', () {
@@ -101,15 +109,15 @@ void main() {
       }
 
       // 验证源分类已软删除
-      final source = await (db.select(db.categories)
-            ..where((c) => c.id.equals('cat-takeaway')))
-          .getSingleOrNull();
+      final source = await (db.select(
+        db.categories,
+      )..where((c) => c.id.equals('cat-takeaway'))).getSingleOrNull();
       expect(source!.deletedAt, isNotNull);
 
       // 验证目标分类仍存在
-      final target = await (db.select(db.categories)
-            ..where((c) => c.id.equals('cat-food')))
-          .getSingleOrNull();
+      final target = await (db.select(
+        db.categories,
+      )..where((c) => c.id.equals('cat-food'))).getSingleOrNull();
       expect(target!.deletedAt, isNull);
     });
 
@@ -123,9 +131,9 @@ void main() {
         targetCategoryId: 'cat-b',
       );
 
-      final txn = await (db.select(db.transactions)
-            ..where((t) => t.id.equals('tx1')))
-          .getSingle();
+      final txn = await (db.select(
+        db.transactions,
+      )..where((t) => t.id.equals('tx1'))).getSingle();
       expect(txn.mergeLogId, result.mergeLogId);
     });
 
@@ -139,9 +147,9 @@ void main() {
         targetCategoryId: 'cat-food',
       );
 
-      final child = await (db.select(db.categories)
-            ..where((c) => c.id.equals('cat-child')))
-          .getSingle();
+      final child = await (db.select(
+        db.categories,
+      )..where((c) => c.id.equals('cat-child'))).getSingle();
       expect(child.parentId, 'cat-food');
     });
 
@@ -168,9 +176,9 @@ void main() {
         targetCategoryId: 'cat-b',
       );
 
-      final log = await (db.select(db.categoryMergeLog)
-            ..where((l) => l.id.equals(result.mergeLogId)))
-          .getSingle();
+      final log = await (db.select(
+        db.categoryMergeLog,
+      )..where((l) => l.id.equals(result.mergeLogId))).getSingle();
 
       expect(log.sourceCategoryId, 'cat-a');
       expect(log.targetCategoryId, 'cat-b');
@@ -197,21 +205,21 @@ void main() {
       await executor.undoMerge(result.mergeLogId);
 
       // 验证源分类恢复
-      final source = await (db.select(db.categories)
-            ..where((c) => c.id.equals('cat-a')))
-          .getSingle();
+      final source = await (db.select(
+        db.categories,
+      )..where((c) => c.id.equals('cat-a'))).getSingle();
       expect(source.deletedAt, isNull);
 
       // 验证 tx1 恢复为 cat-a, tx2 仍为 cat-b
-      final tx1 = await (db.select(db.transactions)
-            ..where((t) => t.id.equals('tx1')))
-          .getSingle();
+      final tx1 = await (db.select(
+        db.transactions,
+      )..where((t) => t.id.equals('tx1'))).getSingle();
       expect(tx1.categoryId, 'cat-a');
       expect(tx1.mergeLogId, isNull);
 
-      final tx2 = await (db.select(db.transactions)
-            ..where((t) => t.id.equals('tx2')))
-          .getSingle();
+      final tx2 = await (db.select(
+        db.transactions,
+      )..where((t) => t.id.equals('tx2'))).getSingle();
       expect(tx2.categoryId, 'cat-b');
     });
 
@@ -244,8 +252,7 @@ void main() {
       );
 
       // 模拟 target 被删除
-      await (db.update(db.categories)
-            ..where((c) => c.id.equals('cat-b')))
+      await (db.update(db.categories)..where((c) => c.id.equals('cat-b')))
           .write(CategoriesCompanion(deletedAt: Value(DateTime.now())));
 
       expect(

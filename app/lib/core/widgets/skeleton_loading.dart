@@ -139,8 +139,7 @@ class SkeletonList extends StatelessWidget {
         builder: (context, constraints) {
           // 动态计算可容纳的 item 数量，避免溢出
           const itemVerticalMargin = 4.0; // symmetric vertical padding per item
-          final itemTotalHeight =
-              itemHeight + itemVerticalMargin * 2;
+          final itemTotalHeight = itemHeight + itemVerticalMargin * 2;
           final maxItems = constraints.maxHeight.isFinite
               ? (constraints.maxHeight / itemTotalHeight).floor().clamp(
                   1,

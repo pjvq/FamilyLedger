@@ -80,14 +80,13 @@ class InvestmentState {
     bool? isLoading,
     String? error,
     bool clearError = false,
-  }) =>
-      InvestmentState(
-        investments: investments ?? this.investments,
-        portfolio: portfolio ?? this.portfolio,
-        currentTrades: currentTrades ?? this.currentTrades,
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => InvestmentState(
+    investments: investments ?? this.investments,
+    portfolio: portfolio ?? this.portfolio,
+    currentTrades: currentTrades ?? this.currentTrades,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 // ── Proto helpers ──
@@ -237,26 +236,30 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
       if (_familyId != null && _familyId.isNotEmpty) {
         invReq.familyId = _familyId;
       }
-      final resp =
-          await _investmentClient.listInvestments(invReq);
+      final resp = await _investmentClient.listInvestments(invReq);
       for (final inv in resp.investments) {
-        await _db.upsertInvestment(db.InvestmentsCompanion.insert(
-          id: inv.id,
-          userId: inv.userId,
-          familyId: Value(inv.familyId),
-          symbol: inv.symbol,
-          name: inv.name,
-          marketType: _marketTypeToString(inv.marketType),
-          quantity: Value(inv.quantity),
-          costBasis: Value(inv.costBasis.toInt()),
-        ));
+        await _db.upsertInvestment(
+          db.InvestmentsCompanion.insert(
+            id: inv.id,
+            userId: inv.userId,
+            familyId: Value(inv.familyId),
+            symbol: inv.symbol,
+            name: inv.name,
+            marketType: _marketTypeToString(inv.marketType),
+            quantity: Value(inv.quantity),
+            costBasis: Value(inv.costBasis.toInt()),
+          ),
+        );
       }
     } catch (_) {
       // Offline fallback
     }
 
     try {
-      final investments = await _db.getInvestments(_userId, familyId: _familyId);
+      final investments = await _db.getInvestments(
+        _userId,
+        familyId: _familyId,
+      );
       final portfolio = await _computePortfolio(investments);
       state = state.copyWith(
         investments: investments,
@@ -281,31 +284,36 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
     String invId = const Uuid().v4();
 
     try {
-      final resp =
-          await _investmentClient.createInvestment(pb.CreateInvestmentRequest()
-            ..symbol = symbol
-            ..name = name
-            ..marketType = _stringToMarketType(marketType)
-            ..familyId = familyId ?? '');
+      final resp = await _investmentClient.createInvestment(
+        pb.CreateInvestmentRequest()
+          ..symbol = symbol
+          ..name = name
+          ..marketType = _stringToMarketType(marketType)
+          ..familyId = familyId ?? '',
+      );
       invId = resp.id;
 
-      await _db.upsertInvestment(db.InvestmentsCompanion.insert(
-        id: resp.id,
-        userId: resp.userId,
-        familyId: Value(familyId ?? ''),
-        symbol: resp.symbol,
-        name: resp.name,
-        marketType: _marketTypeToString(resp.marketType),
-        quantity: Value(resp.quantity),
-        costBasis: Value(resp.costBasis.toInt()),
-      ));
+      await _db.upsertInvestment(
+        db.InvestmentsCompanion.insert(
+          id: resp.id,
+          userId: resp.userId,
+          familyId: Value(familyId ?? ''),
+          symbol: resp.symbol,
+          name: resp.name,
+          marketType: _marketTypeToString(resp.marketType),
+          quantity: Value(resp.quantity),
+          costBasis: Value(resp.costBasis.toInt()),
+        ),
+      );
     } catch (e) {
       // Business rejection (already-exists / invalid / permission / auth)
       // must NOT be queued — doing so creates an orphan create op that
       // resurrects as a ghost row on the next device pull. Surface it to UI.
       if (!_isOfflineError(e)) {
-        dev.log('createInvestment: rejected by server, not queuing: $e',
-            name: 'investment');
+        dev.log(
+          'createInvestment: rejected by server, not queuing: $e',
+          name: 'investment',
+        );
         state = state.copyWith(isLoading: false, error: e.toString());
         rethrow;
       }
@@ -313,14 +321,16 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
       // Without enqueue, the holding would only live in Drift and be lost on
       // logout (clearAllData) since it was never uploaded to the server.
       final fid = familyId ?? '';
-      await _db.upsertInvestment(db.InvestmentsCompanion.insert(
-        id: invId,
-        userId: _userId,
-        familyId: Value(fid),
-        symbol: symbol,
-        name: name,
-        marketType: marketType,
-      ));
+      await _db.upsertInvestment(
+        db.InvestmentsCompanion.insert(
+          id: invId,
+          userId: _userId,
+          familyId: Value(fid),
+          symbol: symbol,
+          name: name,
+          marketType: marketType,
+        ),
+      );
 
       // Payload MUST match server investmentPayload (entity_ops.go): only
       // symbol/name/market_type/quantity/cost_basis are decoded; id & family_id
@@ -331,16 +341,14 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
       // holding container), and a brand-new holding starts at 0 via the INSERT
       // default. Position size is established by the subsequent trade/update
       // op, never by a placeholder in the create payload.
-      dev.log('createInvestment: offline, queueing create: $e',
-          name: 'investment');
+      dev.log(
+        'createInvestment: offline, queueing create: $e',
+        name: 'investment',
+      );
       await _syncQueue.enqueueCreate(
         entityType: 'investment',
         entityId: invId,
-        payload: {
-          'symbol': symbol,
-          'name': name,
-          'market_type': marketType,
-        },
+        payload: {'symbol': symbol, 'name': name, 'market_type': marketType},
       );
     }
 
@@ -358,44 +366,52 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
-    final totalAmount = (quantity * price).round() + (tradeType == 'buy' ? fee : -fee);
+    final totalAmount =
+        (quantity * price).round() + (tradeType == 'buy' ? fee : -fee);
     String tradeId = const Uuid().v4();
     bool syncedToServer = false;
 
     try {
-      final resp =
-          await _investmentClient.recordTrade(pb.RecordTradeRequest()
-            ..investmentId = investmentId
-            ..tradeType = _stringToTradeType(tradeType)
-            ..quantity = quantity
-            ..price = Int64(price)
-            ..fee = Int64(fee)
-            ..tradeDate = _toTimestamp(tradeDate));
+      final resp = await _investmentClient.recordTrade(
+        pb.RecordTradeRequest()
+          ..investmentId = investmentId
+          ..tradeType = _stringToTradeType(tradeType)
+          ..quantity = quantity
+          ..price = Int64(price)
+          ..fee = Int64(fee)
+          ..tradeDate = _toTimestamp(tradeDate),
+      );
       tradeId = resp.id;
       syncedToServer = true;
     } catch (e) {
       // Business rejection must surface to UI and must NOT be queued.
       if (!_isOfflineError(e)) {
-        dev.log('recordTrade: rejected by server, not queuing: $e',
-            name: 'investment');
+        dev.log(
+          'recordTrade: rejected by server, not queuing: $e',
+          name: 'investment',
+        );
         state = state.copyWith(isLoading: false, error: e.toString());
         rethrow;
       }
       // Offline — recorded locally below, queued after local state is updated.
-      dev.log('recordTrade: gRPC failed, will queue investment update: $e',
-          name: 'investment');
+      dev.log(
+        'recordTrade: gRPC failed, will queue investment update: $e',
+        name: 'investment',
+      );
     }
 
-    await _db.insertInvestmentTrade(db.InvestmentTradesCompanion.insert(
-      id: tradeId,
-      investmentId: investmentId,
-      tradeType: tradeType,
-      quantity: quantity,
-      price: price,
-      totalAmount: totalAmount,
-      tradeDate: tradeDate,
-      fee: Value(fee),
-    ));
+    await _db.insertInvestmentTrade(
+      db.InvestmentTradesCompanion.insert(
+        id: tradeId,
+        investmentId: investmentId,
+        tradeType: tradeType,
+        quantity: quantity,
+        price: price,
+        totalAmount: totalAmount,
+        tradeDate: tradeDate,
+        fee: Value(fee),
+      ),
+    );
 
     // Update local investment quantity/costBasis
     final investment = await _db.getInvestmentById(investmentId);
@@ -460,24 +476,29 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
     // gone. The ListTrades RPC is the only way to recover them — so we must
     // persist the server response back into Drift, not discard it.
     try {
-      final resp = await _investmentClient
-          .listTrades(pb.ListTradesRequest()..investmentId = investmentId);
+      final resp = await _investmentClient.listTrades(
+        pb.ListTradesRequest()..investmentId = investmentId,
+      );
       for (final t in resp.trades) {
-        await _db.upsertInvestmentTrade(db.InvestmentTradesCompanion.insert(
-          id: t.id,
-          investmentId: t.investmentId,
-          tradeType: _tradeTypeToString(t.tradeType),
-          quantity: t.quantity,
-          price: t.price.toInt(),
-          totalAmount: t.totalAmount.toInt(),
-          tradeDate: _fromTimestamp(t.tradeDate),
-          fee: Value(t.fee.toInt()),
-        ));
+        await _db.upsertInvestmentTrade(
+          db.InvestmentTradesCompanion.insert(
+            id: t.id,
+            investmentId: t.investmentId,
+            tradeType: _tradeTypeToString(t.tradeType),
+            quantity: t.quantity,
+            price: t.price.toInt(),
+            totalAmount: t.totalAmount.toInt(),
+            tradeDate: _fromTimestamp(t.tradeDate),
+            fee: Value(t.fee.toInt()),
+          ),
+        );
       }
     } catch (e) {
       // Offline or RPC failure: fall back to whatever is in local Drift.
-      dev.log('loadTrades: ListTrades RPC failed, using local trades: $e',
-          name: 'investment');
+      dev.log(
+        'loadTrades: ListTrades RPC failed, using local trades: $e',
+        name: 'investment',
+      );
     }
 
     final trades = await _db.getInvestmentTrades(investmentId);
@@ -490,19 +511,24 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
 
     try {
       await _investmentClient.deleteInvestment(
-          pb.DeleteInvestmentRequest()..investmentId = investmentId);
+        pb.DeleteInvestmentRequest()..investmentId = investmentId,
+      );
     } catch (e) {
       // Business rejection (e.g. permission denied) must NOT be queued and must
       // not soft-delete locally — surface to UI instead.
       if (!_isOfflineError(e)) {
-        dev.log('deleteInvestment: rejected by server, not queuing: $e',
-            name: 'investment');
+        dev.log(
+          'deleteInvestment: rejected by server, not queuing: $e',
+          name: 'investment',
+        );
         state = state.copyWith(isLoading: false, error: e.toString());
         rethrow;
       }
       // Offline: soft-delete locally below + enqueue delete for later push.
-      dev.log('deleteInvestment: gRPC failed, queueing delete: $e',
-          name: 'investment');
+      dev.log(
+        'deleteInvestment: gRPC failed, queueing delete: $e',
+        name: 'investment',
+      );
       await _syncQueue.enqueueDelete(
         entityType: 'investment',
         entityId: investmentId,
@@ -515,7 +541,8 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
 
   /// Compute portfolio summary from local data
   Future<PortfolioSummary> _computePortfolio(
-      List<db.Investment> investments) async {
+    List<db.Investment> investments,
+  ) async {
     if (investments.isEmpty) return const PortfolioSummary();
 
     int totalValue = 0;
@@ -527,24 +554,24 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
       final quote = await _db.getMarketQuote(inv.symbol, inv.marketType);
       final price = quote?.currentPrice ?? 0;
       // Fallback: if no market price, use cost basis as estimated value
-      final value = price > 0
-          ? (inv.quantity * price).round()
-          : inv.costBasis;
+      final value = price > 0 ? (inv.quantity * price).round() : inv.costBasis;
 
       totalValue += value;
       totalCost += inv.costBasis;
 
-      holdings.add(HoldingDisplayItem(
-        investmentId: inv.id,
-        symbol: inv.symbol,
-        name: inv.name,
-        quantity: inv.quantity,
-        currentValue: value,
-        weight: 0, // computed below
-        returnRate: inv.costBasis > 0
-            ? (value - inv.costBasis) / inv.costBasis
-            : 0.0,
-      ));
+      holdings.add(
+        HoldingDisplayItem(
+          investmentId: inv.id,
+          symbol: inv.symbol,
+          name: inv.name,
+          quantity: inv.quantity,
+          currentValue: value,
+          weight: 0, // computed below
+          returnRate: inv.costBasis > 0
+              ? (value - inv.costBasis) / inv.costBasis
+              : 0.0,
+        ),
+      );
     }
 
     // Compute weights
@@ -573,13 +600,13 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
   }
 
   /// Compute annualized return
-  static double annualizedReturn(
-      {required int costBasis,
-      required int currentValue,
-      required DateTime firstTradeDate}) {
+  static double annualizedReturn({
+    required int costBasis,
+    required int currentValue,
+    required DateTime firstTradeDate,
+  }) {
     if (costBasis <= 0) return 0.0;
-    final years =
-        DateTime.now().difference(firstTradeDate).inDays / 365.25;
+    final years = DateTime.now().difference(firstTradeDate).inDays / 365.25;
     if (years <= 0) return 0.0;
     final totalReturn = (currentValue - costBasis) / costBasis;
     // (1 + R)^(1/years) - 1
@@ -591,28 +618,37 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
 
 final investmentProvider =
     StateNotifierProvider<InvestmentNotifier, InvestmentState>((ref) {
-  final database = ref.watch(databaseProvider);
-  final client = ref.watch(investmentClientProvider);
-  final syncQueue = ref.watch(offlineSyncQueueProvider);
-  final userId = ref.watch(currentUserIdProvider);
-  final familyId = ref.watch(currentFamilyIdProvider);
-  final notifier =
-      InvestmentNotifier(database, client, syncQueue, userId, familyId);
+      final database = ref.watch(databaseProvider);
+      final client = ref.watch(investmentClientProvider);
+      final syncQueue = ref.watch(offlineSyncQueueProvider);
+      final userId = ref.watch(currentUserIdProvider);
+      final familyId = ref.watch(currentFamilyIdProvider);
+      final notifier = InvestmentNotifier(
+        database,
+        client,
+        syncQueue,
+        userId,
+        familyId,
+      );
 
-  // Forward sync queue notifications to SyncEngine so a freshly enqueued
-  // investment op triggers an immediate push attempt (same pattern as
-  // transactionProvider).
-  StreamSubscription<void>? syncSub;
-  syncSub = syncQueue.onEnqueued.listen((_) {
-    try {
-      final engine = ref.read(syncEngineProvider);
-      unawaited(engine.syncNow().catchError(
-        (Object e, StackTrace st) =>
-            dev.log('SyncEngine.syncNow() failed: $e', name: 'investment'),
-      ));
-    } on StateError catch (_) {}
-  });
-  ref.onDispose(() => syncSub?.cancel());
+      // Forward sync queue notifications to SyncEngine so a freshly enqueued
+      // investment op triggers an immediate push attempt (same pattern as
+      // transactionProvider).
+      StreamSubscription<void>? syncSub;
+      syncSub = syncQueue.onEnqueued.listen((_) {
+        try {
+          final engine = ref.read(syncEngineProvider);
+          unawaited(
+            engine.syncNow().catchError(
+              (Object e, StackTrace st) => dev.log(
+                'SyncEngine.syncNow() failed: $e',
+                name: 'investment',
+              ),
+            ),
+          );
+        } on StateError catch (_) {}
+      });
+      ref.onDispose(() => syncSub?.cancel());
 
-  return notifier;
-});
+      return notifier;
+    });

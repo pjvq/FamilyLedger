@@ -14,16 +14,24 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 class AccountType extends $pb.ProtobufEnum {
-  static const AccountType ACCOUNT_TYPE_UNSPECIFIED = AccountType._(0, _omitEnumNames ? '' : 'ACCOUNT_TYPE_UNSPECIFIED');
-  static const AccountType ACCOUNT_TYPE_CASH = AccountType._(1, _omitEnumNames ? '' : 'ACCOUNT_TYPE_CASH');
-  static const AccountType ACCOUNT_TYPE_BANK_CARD = AccountType._(2, _omitEnumNames ? '' : 'ACCOUNT_TYPE_BANK_CARD');
-  static const AccountType ACCOUNT_TYPE_CREDIT_CARD = AccountType._(3, _omitEnumNames ? '' : 'ACCOUNT_TYPE_CREDIT_CARD');
-  static const AccountType ACCOUNT_TYPE_ALIPAY = AccountType._(4, _omitEnumNames ? '' : 'ACCOUNT_TYPE_ALIPAY');
-  static const AccountType ACCOUNT_TYPE_WECHAT_PAY = AccountType._(5, _omitEnumNames ? '' : 'ACCOUNT_TYPE_WECHAT_PAY');
-  static const AccountType ACCOUNT_TYPE_INVESTMENT = AccountType._(6, _omitEnumNames ? '' : 'ACCOUNT_TYPE_INVESTMENT');
-  static const AccountType ACCOUNT_TYPE_OTHER = AccountType._(7, _omitEnumNames ? '' : 'ACCOUNT_TYPE_OTHER');
+  static const AccountType ACCOUNT_TYPE_UNSPECIFIED =
+      AccountType._(0, _omitEnumNames ? '' : 'ACCOUNT_TYPE_UNSPECIFIED');
+  static const AccountType ACCOUNT_TYPE_CASH =
+      AccountType._(1, _omitEnumNames ? '' : 'ACCOUNT_TYPE_CASH');
+  static const AccountType ACCOUNT_TYPE_BANK_CARD =
+      AccountType._(2, _omitEnumNames ? '' : 'ACCOUNT_TYPE_BANK_CARD');
+  static const AccountType ACCOUNT_TYPE_CREDIT_CARD =
+      AccountType._(3, _omitEnumNames ? '' : 'ACCOUNT_TYPE_CREDIT_CARD');
+  static const AccountType ACCOUNT_TYPE_ALIPAY =
+      AccountType._(4, _omitEnumNames ? '' : 'ACCOUNT_TYPE_ALIPAY');
+  static const AccountType ACCOUNT_TYPE_WECHAT_PAY =
+      AccountType._(5, _omitEnumNames ? '' : 'ACCOUNT_TYPE_WECHAT_PAY');
+  static const AccountType ACCOUNT_TYPE_INVESTMENT =
+      AccountType._(6, _omitEnumNames ? '' : 'ACCOUNT_TYPE_INVESTMENT');
+  static const AccountType ACCOUNT_TYPE_OTHER =
+      AccountType._(7, _omitEnumNames ? '' : 'ACCOUNT_TYPE_OTHER');
 
-  static const $core.List<AccountType> values = <AccountType> [
+  static const $core.List<AccountType> values = <AccountType>[
     ACCOUNT_TYPE_UNSPECIFIED,
     ACCOUNT_TYPE_CASH,
     ACCOUNT_TYPE_BANK_CARD,
@@ -34,11 +42,11 @@ class AccountType extends $pb.ProtobufEnum {
     ACCOUNT_TYPE_OTHER,
   ];
 
-  static final $core.Map<$core.int, AccountType> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static final $core.Map<$core.int, AccountType> _byValue =
+      $pb.ProtobufEnum.initByValue(values);
   static AccountType? valueOf($core.int value) => _byValue[value];
 
   const AccountType._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

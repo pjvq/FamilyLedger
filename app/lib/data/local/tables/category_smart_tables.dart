@@ -10,7 +10,8 @@ class CategoryUsageSlots extends Table {
 
   TextColumn get categoryId => text().references(Categories, #id)();
   TextColumn get slotType => text()(); // 'hour' | 'weekday' | 'amount'
-  IntColumn get slotIndex => integer()(); // hour: 0-23, weekday: 0-6, amount: 0-5
+  IntColumn get slotIndex =>
+      integer()(); // hour: 0-23, weekday: 0-6, amount: 0-5
   IntColumn get count => integer().withDefault(const Constant(0))();
 
   @override
@@ -26,7 +27,8 @@ class CategoryUsageSummary extends Table {
   IntColumn get totalCount => integer().withDefault(const Constant(0))();
   IntColumn get last30dCount => integer().withDefault(const Constant(0))();
   IntColumn get last7dCount => integer().withDefault(const Constant(0))();
-  TextColumn get topKeywords => text().withDefault(const Constant('[]'))(); // JSON array
+  TextColumn get topKeywords =>
+      text().withDefault(const Constant('[]'))(); // JSON array
   DateTimeColumn get lastUsedAt => dateTime().nullable()();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -48,8 +50,11 @@ class CategoryMergeLog extends Table {
   TextColumn get sourceIconKey => text().withDefault(const Constant(''))();
   TextColumn get sourceParentId => text().nullable()();
   IntColumn get affectedCount => integer().withDefault(const Constant(0))();
+
   /// JSON array of child category IDs that were reparented during merge
-  TextColumn get reparentedChildIds => text().withDefault(const Constant('[]'))();
+  TextColumn get reparentedChildIds =>
+      text().withDefault(const Constant('[]'))();
+
   /// simple / crossParent / parentMerge / moveOnly
   TextColumn get mergeType => text().withDefault(const Constant('simple'))();
   DateTimeColumn get mergedAt => dateTime().withDefault(currentDateAndTime)();
@@ -66,9 +71,12 @@ class CategoryMergeDismissals extends Table {
   String get tableName => 'category_merge_dismissals';
 
   TextColumn get id => text()();
+
   /// 字典序排列的两个 categoryId，用 '|' 分隔
   TextColumn get pairKey => text().unique()();
-  DateTimeColumn get dismissedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get dismissedAt =>
+      dateTime().withDefault(currentDateAndTime)();
+
   /// dismissedAt + 30 days
   DateTimeColumn get expiresAt => dateTime()();
 

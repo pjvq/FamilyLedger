@@ -880,15 +880,15 @@ func (s *Service) CreateReminder(ctx context.Context, req *pb.CreateReminderRequ
 	}
 
 	reminder := &pb.Reminder{
-		Id:         id.String(),
-		UserId:     userID,
-		Title:      req.Title,
+		Id:          id.String(),
+		UserId:      userID,
+		Title:       req.Title,
 		Description: req.Description,
-		RemindAt:   req.RemindAt,
-		RepeatRule: repeatRule,
-		IsActive:   true,
-		CreatedAt:  timestamppb.New(createdAt),
-		UpdatedAt:  timestamppb.New(updatedAt),
+		RemindAt:    req.RemindAt,
+		RepeatRule:  repeatRule,
+		IsActive:    true,
+		CreatedAt:   timestamppb.New(createdAt),
+		UpdatedAt:   timestamppb.New(updatedAt),
 	}
 	if familyID != nil {
 		reminder.FamilyId = familyID.String()

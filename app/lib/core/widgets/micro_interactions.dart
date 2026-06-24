@@ -2,12 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Haptic feedback intensity levels for tap interactions.
-enum HapticType {
-  none,
-  selectionClick,
-  lightImpact,
-  mediumImpact,
-}
+enum HapticType { none, selectionClick, lightImpact, mediumImpact }
 
 /// A pure visual wrapper that adds a subtle scale-down effect on press.
 ///
@@ -20,11 +15,7 @@ class TapScale extends StatefulWidget {
   final Widget child;
   final double scaleFactor;
 
-  const TapScale({
-    super.key,
-    required this.child,
-    this.scaleFactor = 0.96,
-  });
+  const TapScale({super.key, required this.child, this.scaleFactor = 0.96});
 
   @override
   State<TapScale> createState() => _TapScaleState();
@@ -43,9 +34,10 @@ class _TapScaleState extends State<TapScale>
       duration: const Duration(milliseconds: 100),
       reverseDuration: const Duration(milliseconds: 150),
     );
-    _scaleAnim = Tween(begin: 1.0, end: widget.scaleFactor).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _scaleAnim = Tween(
+      begin: 1.0,
+      end: widget.scaleFactor,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -63,17 +55,17 @@ class _TapScaleState extends State<TapScale>
       onPointerDown: (_) => _ctrl.forward(),
       onPointerUp: (_) => _ctrl.reverse(),
       onPointerCancel: (_) => _ctrl.reverse(),
-      child: ScaleTransition(
-        scale: _scaleAnim,
-        child: widget.child,
-      ),
+      child: ScaleTransition(scale: _scaleAnim, child: widget.child),
     );
   }
 }
 
 /// Helper: wraps onTap with haptic feedback.
 /// Use inside InkWell.onTap when TapScale is the outer wrapper.
-void withHaptic(VoidCallback callback, {HapticType haptic = HapticType.selectionClick}) {
+void withHaptic(
+  VoidCallback callback, {
+  HapticType haptic = HapticType.selectionClick,
+}) {
   switch (haptic) {
     case HapticType.none:
       break;
@@ -119,10 +111,7 @@ class _SlideInItemState extends State<SlideInItem>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
+    _ctrl = AnimationController(vsync: this, duration: widget.duration);
     _slideAnim = Tween(
       begin: const Offset(0, 0.08),
       end: Offset.zero,
@@ -164,10 +153,7 @@ class _SlideInItemState extends State<SlideInItem>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _fadeAnim,
-      child: SlideTransition(
-        position: _slideAnim,
-        child: widget.child,
-      ),
+      child: SlideTransition(position: _slideAnim, child: widget.child),
     );
   }
 }
@@ -229,11 +215,7 @@ class PulsingDot extends StatefulWidget {
   final Color color;
   final double size;
 
-  const PulsingDot({
-    super.key,
-    required this.color,
-    this.size = 8,
-  });
+  const PulsingDot({super.key, required this.color, this.size = 8});
 
   @override
   State<PulsingDot> createState() => _PulsingDotState();
@@ -261,16 +243,14 @@ class _PulsingDotState extends State<PulsingDot>
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
-      opacity: Tween(begin: 0.4, end: 1.0).animate(
-        CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-      ),
+      opacity: Tween(
+        begin: 0.4,
+        end: 1.0,
+      ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut)),
       child: Container(
         width: widget.size,
         height: widget.size,
-        decoration: BoxDecoration(
-          color: widget.color,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: widget.color, shape: BoxShape.circle),
       ),
     );
   }
@@ -296,8 +276,8 @@ class AnimatedProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bgColor = backgroundColor ??
-        theme.colorScheme.onSurface.withValues(alpha: 0.08);
+    final bgColor =
+        backgroundColor ?? theme.colorScheme.onSurface.withValues(alpha: 0.08);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(height / 2),

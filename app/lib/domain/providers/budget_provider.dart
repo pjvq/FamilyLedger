@@ -16,10 +16,7 @@ class CategoryBudgetItem {
   final String categoryId;
   final int amount; // cents
 
-  const CategoryBudgetItem({
-    required this.categoryId,
-    required this.amount,
-  });
+  const CategoryBudgetItem({required this.categoryId, required this.amount});
 }
 
 class BudgetExecutionData {
@@ -89,22 +86,23 @@ class BudgetState {
     bool clearExecution = false,
     bool clearAnnualExecution = false,
     bool clearError = false,
-  }) =>
-      BudgetState(
-        currentBudget:
-            clearCurrentBudget ? null : (currentBudget ?? this.currentBudget),
-        annualBudget:
-            clearAnnualBudget ? null : (annualBudget ?? this.annualBudget),
-        budgets: budgets ?? this.budgets,
-        currentCategoryBudgets:
-            currentCategoryBudgets ?? this.currentCategoryBudgets,
-        execution: clearExecution ? null : (execution ?? this.execution),
-        annualExecution: clearAnnualExecution
-            ? null
-            : (annualExecution ?? this.annualExecution),
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => BudgetState(
+    currentBudget: clearCurrentBudget
+        ? null
+        : (currentBudget ?? this.currentBudget),
+    annualBudget: clearAnnualBudget
+        ? null
+        : (annualBudget ?? this.annualBudget),
+    budgets: budgets ?? this.budgets,
+    currentCategoryBudgets:
+        currentCategoryBudgets ?? this.currentCategoryBudgets,
+    execution: clearExecution ? null : (execution ?? this.execution),
+    annualExecution: clearAnnualExecution
+        ? null
+        : (annualExecution ?? this.annualExecution),
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 // ── Notifier ──
@@ -114,11 +112,10 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
   final BudgetServiceClient _client;
   final String? _userId;
   final String _familyId;
-  static final _callOpts = CallOptions(
-      timeout: const Duration(seconds: 5));
+  static final _callOpts = CallOptions(timeout: const Duration(seconds: 5));
 
   BudgetNotifier(this._db, this._client, this._userId, this._familyId)
-      : super(const BudgetState()) {
+    : super(const BudgetState()) {
     if (_userId != null) {
       loadCurrentMonth();
       loadAnnualBudget();
@@ -136,28 +133,41 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
 
     try {
       // Try gRPC first
-      dev.log('[Budget] loadCurrentMonth: listBudgets gRPC...', name: 'BudgetProvider');
+      dev.log(
+        '[Budget] loadCurrentMonth: listBudgets gRPC...',
+        name: 'BudgetProvider',
+      );
       final resp = await _client.listBudgets(
         pb.ListBudgetsRequest()
           ..familyId = _familyId
           ..year = year,
         options: _callOpts,
       );
-      dev.log('[Budget] loadCurrentMonth: listBudgets OK, ${resp.budgets.length} budgets', name: 'BudgetProvider');
+      dev.log(
+        '[Budget] loadCurrentMonth: listBudgets OK, ${resp.budgets.length} budgets',
+        name: 'BudgetProvider',
+      );
 
       // Cache all budgets locally
       for (final b in resp.budgets) {
         // Clean up duplicates before caching
         await _db.deleteBudgetDuplicates(
-            _userId, b.year, b.month, _familyId, keepId: b.id);
-        await _db.insertBudget(db.BudgetsCompanion.insert(
-          id: b.id,
-          userId: _userId,
-          familyId: Value(_familyId),
-          year: b.year,
-          month: b.month,
-          totalAmount: b.totalAmount.toInt(),
-        ));
+          _userId,
+          b.year,
+          b.month,
+          _familyId,
+          keepId: b.id,
+        );
+        await _db.insertBudget(
+          db.BudgetsCompanion.insert(
+            id: b.id,
+            userId: _userId,
+            familyId: Value(_familyId),
+            year: b.year,
+            month: b.month,
+            totalAmount: b.totalAmount.toInt(),
+          ),
+        );
         // Cache category budgets
         await _db.deleteCategoryBudgets(b.id);
         for (final cb in b.categoryBudgets) {
@@ -172,22 +182,35 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
         }
       }
 
-      final budgetsList = await _db.getBudgetsByYear(_userId, year,
-          familyId: _familyId);
-      final current = await _db.getBudgetByMonth(_userId, year, month,
-          familyId: _familyId);
+      final budgetsList = await _db.getBudgetsByYear(
+        _userId,
+        year,
+        familyId: _familyId,
+      );
+      final current = await _db.getBudgetByMonth(
+        _userId,
+        year,
+        month,
+        familyId: _familyId,
+      );
       List<db.CategoryBudgetsTableData> catBudgets = [];
 
       if (current != null) {
         catBudgets = await _db.getCategoryBudgets(current.id);
         // Fetch execution from gRPC
         try {
-          dev.log('[Budget] loadCurrentMonth: getBudgetExecution gRPC...', name: 'BudgetProvider');
+          dev.log(
+            '[Budget] loadCurrentMonth: getBudgetExecution gRPC...',
+            name: 'BudgetProvider',
+          );
           final execResp = await _client.getBudgetExecution(
             pb.GetBudgetExecutionRequest()..budgetId = current.id,
             options: _callOpts,
           );
-          dev.log('[Budget] loadCurrentMonth: getBudgetExecution OK', name: 'BudgetProvider');
+          dev.log(
+            '[Budget] loadCurrentMonth: getBudgetExecution OK',
+            name: 'BudgetProvider',
+          );
           final exec = execResp.execution;
 
           // Build parent→children map to aggregate parent spent from all children
@@ -202,18 +225,24 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
 
           // Get actual expenses per category for proper aggregation
           final categoryExpenses = await _db.getMonthCategoryExpenses(
-              _userId, now.year, now.month, familyId: _familyId);
+            _userId,
+            now.year,
+            now.month,
+            familyId: _familyId,
+          );
 
           final rawCatExecs = exec.categoryExecutions
-              .map((ce) => CategoryExecutionData(
-                    categoryId: ce.categoryId,
-                    categoryName: ce.categoryName.isNotEmpty
-                        ? ce.categoryName
-                        : (catMap[ce.categoryId]?.name ?? '未知'),
-                    budgetAmount: ce.budgetAmount.toInt(),
-                    spentAmount: ce.spentAmount.toInt(),
-                    executionRate: ce.executionRate,
-                  ))
+              .map(
+                (ce) => CategoryExecutionData(
+                  categoryId: ce.categoryId,
+                  categoryName: ce.categoryName.isNotEmpty
+                      ? ce.categoryName
+                      : (catMap[ce.categoryId]?.name ?? '未知'),
+                  budgetAmount: ce.budgetAmount.toInt(),
+                  spentAmount: ce.spentAmount.toInt(),
+                  executionRate: ce.executionRate,
+                ),
+              )
               .toList();
 
           // Patch parent categories: aggregate children's spent
@@ -253,31 +282,56 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
             ),
             isLoading: false,
           );
-          dev.log('[Budget] loadCurrentMonth: DONE via gRPC execution, isLoading=false', name: 'BudgetProvider');
+          dev.log(
+            '[Budget] loadCurrentMonth: DONE via gRPC execution, isLoading=false',
+            name: 'BudgetProvider',
+          );
           return;
         } catch (e) {
-          dev.log('[Budget] loadCurrentMonth: getBudgetExecution failed: $e', name: 'BudgetProvider');
+          dev.log(
+            '[Budget] loadCurrentMonth: getBudgetExecution failed: $e',
+            name: 'BudgetProvider',
+          );
         }
       }
 
       // Local execution calculation
-      dev.log('[Budget] loadCurrentMonth: falling back to local execution', name: 'BudgetProvider');
+      dev.log(
+        '[Budget] loadCurrentMonth: falling back to local execution',
+        name: 'BudgetProvider',
+      );
       await _loadLocalExecution(current, budgetsList, catBudgets);
-      dev.log('[Budget] loadCurrentMonth: DONE via local, isLoading=${state.isLoading}', name: 'BudgetProvider');
+      dev.log(
+        '[Budget] loadCurrentMonth: DONE via local, isLoading=${state.isLoading}',
+        name: 'BudgetProvider',
+      );
     } catch (e) {
-      dev.log('[Budget] loadCurrentMonth: outer catch: $e', name: 'BudgetProvider');
+      dev.log(
+        '[Budget] loadCurrentMonth: outer catch: $e',
+        name: 'BudgetProvider',
+      );
       await _loadFromLocal(year, month);
-      dev.log('[Budget] loadCurrentMonth: DONE via _loadFromLocal, isLoading=${state.isLoading}', name: 'BudgetProvider');
+      dev.log(
+        '[Budget] loadCurrentMonth: DONE via _loadFromLocal, isLoading=${state.isLoading}',
+        name: 'BudgetProvider',
+      );
     }
   }
 
   Future<void> _loadFromLocal(int year, int month) async {
     if (_userId == null) return;
     try {
-      final budgetsList = await _db.getBudgetsByYear(_userId, year,
-          familyId: _familyId);
-      final current = await _db.getBudgetByMonth(_userId, year, month,
-          familyId: _familyId);
+      final budgetsList = await _db.getBudgetsByYear(
+        _userId,
+        year,
+        familyId: _familyId,
+      );
+      final current = await _db.getBudgetByMonth(
+        _userId,
+        year,
+        month,
+        familyId: _familyId,
+      );
       List<db.CategoryBudgetsTableData> catBudgets = [];
       if (current != null) {
         catBudgets = await _db.getCategoryBudgets(current.id);
@@ -299,9 +353,14 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
     if (current != null) {
       final now = DateTime.now();
       final categoryExpenses = await _db.getMonthCategoryExpenses(
-          _userId, now.year, now.month);
-      final totalSpent =
-          categoryExpenses.values.fold<int>(0, (sum, v) => sum + v);
+        _userId,
+        now.year,
+        now.month,
+      );
+      final totalSpent = categoryExpenses.values.fold<int>(
+        0,
+        (sum, v) => sum + v,
+      );
       final totalBudget = current.totalAmount;
       final rate = totalBudget > 0 ? totalSpent / totalBudget : 0.0;
 
@@ -366,8 +425,12 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
 
     try {
       // Check if annual budget exists in local cache (month=0)
-      final annual = await _db.getBudgetByMonth(_userId, year, 0,
-          familyId: _familyId);
+      final annual = await _db.getBudgetByMonth(
+        _userId,
+        year,
+        0,
+        familyId: _familyId,
+      );
 
       if (annual != null) {
         // Try to get execution from server
@@ -411,19 +474,26 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
           );
           return;
         } catch (e) {
-          dev.log('[Budget] loadAnnualBudget: execution fetch failed: $e',
-              name: 'BudgetProvider');
+          dev.log(
+            '[Budget] loadAnnualBudget: execution fetch failed: $e',
+            name: 'BudgetProvider',
+          );
         }
 
         // Fallback: local calculation using DB
         int localSpent = 0;
         try {
           final monthlyData = await _db.getMonthlyExpensesForYear(
-            _userId, year, familyId: _familyId);
+            _userId,
+            year,
+            familyId: _familyId,
+          );
           localSpent = monthlyData.fold<int>(0, (sum, v) => sum + v);
         } catch (e) {
-          dev.log('[Budget] local yearly expense calc failed: $e',
-              name: 'BudgetProvider');
+          dev.log(
+            '[Budget] local yearly expense calc failed: $e',
+            name: 'BudgetProvider',
+          );
         }
         state = state.copyWith(
           annualBudget: annual,
@@ -437,7 +507,10 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
           ),
         );
       } else {
-        state = state.copyWith(clearAnnualBudget: true, clearAnnualExecution: true);
+        state = state.copyWith(
+          clearAnnualBudget: true,
+          clearAnnualExecution: true,
+        );
       }
     } catch (e) {
       dev.log('[Budget] loadAnnualBudget error: $e', name: 'BudgetProvider');
@@ -467,23 +540,27 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
           ..month = month
           ..totalAmount = Int64(totalAmount)
           ..categoryBudgets.addAll(
-            categoryBudgets.map((cb) => pb.CategoryBudget()
-              ..categoryId = cb.categoryId
-              ..amount = Int64(cb.amount)),
+            categoryBudgets.map(
+              (cb) => pb.CategoryBudget()
+                ..categoryId = cb.categoryId
+                ..amount = Int64(cb.amount),
+            ),
           ),
         options: _callOpts,
       );
 
       final b = resp.budget;
       // Cache locally
-      await _db.insertBudget(db.BudgetsCompanion.insert(
-        id: b.id,
-        userId: _userId,
-        familyId: Value(_familyId),
-        year: b.year,
-        month: b.month,
-        totalAmount: b.totalAmount.toInt(),
-      ));
+      await _db.insertBudget(
+        db.BudgetsCompanion.insert(
+          id: b.id,
+          userId: _userId,
+          familyId: Value(_familyId),
+          year: b.year,
+          month: b.month,
+          totalAmount: b.totalAmount.toInt(),
+        ),
+      );
       await _db.deleteCategoryBudgets(b.id);
       for (final cb in b.categoryBudgets) {
         await _db.insertCategoryBudget(
@@ -499,16 +576,17 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       // Offline: save locally
       final id = const Uuid().v4();
       // Remove any existing budget for same month to prevent duplicates
-      await _db.deleteBudgetDuplicates(
-          _userId, year, month, _familyId);
-      await _db.insertBudget(db.BudgetsCompanion.insert(
-        id: id,
-        userId: _userId,
-        familyId: Value(_familyId),
-        year: year,
-        month: month,
-        totalAmount: totalAmount,
-      ));
+      await _db.deleteBudgetDuplicates(_userId, year, month, _familyId);
+      await _db.insertBudget(
+        db.BudgetsCompanion.insert(
+          id: id,
+          userId: _userId,
+          familyId: Value(_familyId),
+          year: year,
+          month: month,
+          totalAmount: totalAmount,
+        ),
+      );
       for (final cb in categoryBudgets) {
         await _db.insertCategoryBudget(
           db.CategoryBudgetsTableCompanion.insert(
@@ -530,7 +608,10 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
     List<CategoryBudgetItem>? categoryBudgets,
   }) async {
     if (_userId == null) return;
-    dev.log('[Budget] updateBudget START id=$id amount=$totalAmount', name: 'BudgetProvider');
+    dev.log(
+      '[Budget] updateBudget START id=$id amount=$totalAmount',
+      name: 'BudgetProvider',
+    );
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
@@ -538,9 +619,11 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       if (totalAmount != null) req.totalAmount = Int64(totalAmount);
       if (categoryBudgets != null) {
         req.categoryBudgets.addAll(
-          categoryBudgets.map((cb) => pb.CategoryBudget()
-            ..categoryId = cb.categoryId
-            ..amount = Int64(cb.amount)),
+          categoryBudgets.map(
+            (cb) => pb.CategoryBudget()
+              ..categoryId = cb.categoryId
+              ..amount = Int64(cb.amount),
+          ),
         );
       }
       dev.log('[Budget] updateBudget gRPC call...', name: 'BudgetProvider');
@@ -553,14 +636,16 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
     dev.log('[Budget] updateBudget local update...', name: 'BudgetProvider');
     final existing = await _db.getBudgetById(id);
     if (existing != null) {
-      await _db.insertBudget(db.BudgetsCompanion.insert(
-        id: id,
-        userId: _userId,
-        familyId: Value(_familyId),
-        year: existing.year,
-        month: existing.month,
-        totalAmount: totalAmount ?? existing.totalAmount,
-      ));
+      await _db.insertBudget(
+        db.BudgetsCompanion.insert(
+          id: id,
+          userId: _userId,
+          familyId: Value(_familyId),
+          year: existing.year,
+          month: existing.month,
+          totalAmount: totalAmount ?? existing.totalAmount,
+        ),
+      );
       if (categoryBudgets != null) {
         await _db.deleteCategoryBudgets(id);
         for (final cb in categoryBudgets) {
@@ -575,19 +660,31 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
         }
       }
     } else {
-      dev.log('[Budget] updateBudget: existing budget not found in DB!', name: 'BudgetProvider');
+      dev.log(
+        '[Budget] updateBudget: existing budget not found in DB!',
+        name: 'BudgetProvider',
+      );
     }
 
-    dev.log('[Budget] updateBudget -> loadCurrentMonth...', name: 'BudgetProvider');
+    dev.log(
+      '[Budget] updateBudget -> loadCurrentMonth...',
+      name: 'BudgetProvider',
+    );
     await loadCurrentMonth();
-    dev.log('[Budget] updateBudget DONE, isLoading=${state.isLoading}', name: 'BudgetProvider');
+    dev.log(
+      '[Budget] updateBudget DONE, isLoading=${state.isLoading}',
+      name: 'BudgetProvider',
+    );
   }
 
   Future<void> deleteBudget(String id) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _client.deleteBudget(pb.DeleteBudgetRequest()..budgetId = id, options: _callOpts);
+      await _client.deleteBudget(
+        pb.DeleteBudgetRequest()..budgetId = id,
+        options: _callOpts,
+      );
     } catch (_) {
       // offline
     }
@@ -600,8 +697,9 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
 
 // ── Provider ──
 
-final budgetProvider =
-    StateNotifierProvider<BudgetNotifier, BudgetState>((ref) {
+final budgetProvider = StateNotifierProvider<BudgetNotifier, BudgetState>((
+  ref,
+) {
   final database = ref.watch(databaseProvider);
   final client = ref.watch(budgetClientProvider);
   final userId = ref.watch(currentUserIdProvider);

@@ -26,14 +26,14 @@ type prepaymentInput struct {
 // prepaymentCalcResult holds the pure-computation results of a prepayment
 // schedule recalculation, shared by Simulate and Execute.
 type prepaymentCalcResult struct {
-	newSchedule         []scheduleItem
-	newPrincipal        int64
-	newTotalMonths      int32
-	totalInterestBefore int64
-	totalInterestAfter  int64
-	interestSaved       int64
-	monthsReduced       int32
-	displayMonthlyPayment   int64
+	newSchedule           []scheduleItem
+	newPrincipal          int64
+	newTotalMonths        int32
+	totalInterestBefore   int64
+	totalInterestAfter    int64
+	interestSaved         int64
+	monthsReduced         int32
+	displayMonthlyPayment int64
 }
 
 // ── Pure Computation ─────────────────────────────────────────────────────────
@@ -114,14 +114,14 @@ func calcPrepaymentSchedule(in prepaymentInput) prepaymentCalcResult {
 	}
 
 	return prepaymentCalcResult{
-		newSchedule:         newSchedule,
-		newPrincipal:        newPrincipal,
-		newTotalMonths:      newTotalMonths,
-		totalInterestBefore: totalInterestBefore,
-		totalInterestAfter:  totalInterestAfter,
-		interestSaved:       interestSaved,
-		monthsReduced:       monthsReduced,
-		displayMonthlyPayment:   displayMonthlyPayment,
+		newSchedule:           newSchedule,
+		newPrincipal:          newPrincipal,
+		newTotalMonths:        newTotalMonths,
+		totalInterestBefore:   totalInterestBefore,
+		totalInterestAfter:    totalInterestAfter,
+		interestSaved:         interestSaved,
+		monthsReduced:         monthsReduced,
+		displayMonthlyPayment: displayMonthlyPayment,
 	}
 }
 

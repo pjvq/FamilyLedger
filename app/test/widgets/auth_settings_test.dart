@@ -7,9 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart'
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drift/native.dart';
 
+import 'package:familyledger/data/local/database.dart' hide Notification;
 import 'package:familyledger/data/local/database.dart'
-    hide Notification;
-import 'package:familyledger/data/local/database.dart' as db show Notification, Family;
+    as db
+    show Notification, Family;
 import 'package:familyledger/domain/providers/app_providers.dart';
 import 'package:familyledger/domain/providers/auth_provider.dart';
 import 'package:familyledger/domain/providers/theme_provider.dart';
@@ -145,16 +146,27 @@ Widget _wrapPage(
   return ProviderScope(
     overrides: overrides,
     child: MaterialApp.router(
-      theme: theme ?? ThemeData.light(useMaterial3: true).copyWith(
-        extensions: const [AppSemanticColors.light],
-      ),
+      theme:
+          theme ??
+          ThemeData.light(
+            useMaterial3: true,
+          ).copyWith(extensions: const [AppSemanticColors.light]),
       routerConfig: GoRouter(
         initialLocation: '/',
         routes: [
           GoRoute(path: '/', builder: (context, state) => child),
-          GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
-          GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-          GoRoute(path: '/overview', builder: (context, state) => const Scaffold(body: Text('Overview'))),
+          GoRoute(
+            path: '/register',
+            builder: (context, state) => const RegisterPage(),
+          ),
+          GoRoute(
+            path: '/login',
+            builder: (context, state) => const LoginPage(),
+          ),
+          GoRoute(
+            path: '/overview',
+            builder: (context, state) => const Scaffold(body: Text('Overview')),
+          ),
         ],
       ),
     ),
@@ -183,14 +195,15 @@ List<Override> _baseOverrides({
     if (accountState != null)
       accountProvider.overrideWith((_) => _FakeAccountNotifier(accountState)),
     if (syncState != null)
-      syncStatusProvider
-          .overrideWith((_) => _FakeSyncStatusNotifier(syncState)),
+      syncStatusProvider.overrideWith(
+        (_) => _FakeSyncStatusNotifier(syncState),
+      ),
     if (themeMode != null)
-      themeModeProvider
-          .overrideWith((_) => _FakeThemeModeNotifier(themeMode)),
+      themeModeProvider.overrideWith((_) => _FakeThemeModeNotifier(themeMode)),
     if (notificationState != null)
-      notificationProvider
-          .overrideWith((_) => _FakeNotificationNotifier(notificationState)),
+      notificationProvider.overrideWith(
+        (_) => _FakeNotificationNotifier(notificationState),
+      ),
     if (currentUserId != null)
       currentUserIdProvider.overrideWith((_) => currentUserId),
   ];
@@ -308,7 +321,7 @@ class _FakeSyncStatusNotifier extends StateNotifier<SyncState>
   @override
   void updateWsConnected(bool connected) {}
   @override
-    void updateServerReachable(bool reachable) {}
+  void updateServerReachable(bool reachable) {}
   @override
   void markSyncStopped() {}
   @override
@@ -352,12 +365,14 @@ void main() {
 
   group('LoginPage', () {
     testWidgets('renders all UI elements', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const LoginPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+      await tester.pumpWidget(
+        _wrapPage(
+          const LoginPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Logo / app name
@@ -381,12 +396,14 @@ void main() {
     });
 
     testWidgets('empty fields → validation errors on submit', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const LoginPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+      await tester.pumpWidget(
+        _wrapPage(
+          const LoginPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Tap login with empty fields
@@ -398,18 +415,24 @@ void main() {
     });
 
     testWidgets('invalid email → shows format error', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const LoginPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+      await tester.pumpWidget(
+        _wrapPage(
+          const LoginPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, '邮箱'), 'bad-email');
+        find.widgetWithText(TextFormField, '邮箱'),
+        'bad-email',
+      );
       await tester.enterText(
-          find.widgetWithText(TextFormField, '密码'), '123456');
+        find.widgetWithText(TextFormField, '密码'),
+        '123456',
+      );
       await tester.tap(find.widgetWithText(ElevatedButton, '登录'));
       await tester.pumpAndSettle();
 
@@ -417,38 +440,48 @@ void main() {
     });
 
     testWidgets('short password → shows length error', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const LoginPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+      await tester.pumpWidget(
+        _wrapPage(
+          const LoginPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, '邮箱'), 'test@test.com');
-      await tester.enterText(
-          find.widgetWithText(TextFormField, '密码'), '123');
+        find.widgetWithText(TextFormField, '邮箱'),
+        'test@test.com',
+      );
+      await tester.enterText(find.widgetWithText(TextFormField, '密码'), '123');
       await tester.tap(find.widgetWithText(ElevatedButton, '登录'));
       await tester.pumpAndSettle();
 
       expect(find.text('密码至少 6 位'), findsOneWidget);
     });
 
-    testWidgets('valid input → no validation errors, triggers login',
-        (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const LoginPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+    testWidgets('valid input → no validation errors, triggers login', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrapPage(
+          const LoginPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, '邮箱'), 'test@test.com');
+        find.widgetWithText(TextFormField, '邮箱'),
+        'test@test.com',
+      );
       await tester.enterText(
-          find.widgetWithText(TextFormField, '密码'), '123456');
+        find.widgetWithText(TextFormField, '密码'),
+        '123456',
+      );
       await tester.tap(find.widgetWithText(ElevatedButton, '登录'));
       await tester.pump();
 
@@ -463,12 +496,14 @@ void main() {
     });
 
     testWidgets('password field is obscured', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const LoginPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+      await tester.pumpWidget(
+        _wrapPage(
+          const LoginPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Find the EditableText descendant of the password field — check obscureText
@@ -481,29 +516,31 @@ void main() {
     });
 
     testWidgets('loading state disables login button', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const LoginPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.loading),
+      await tester.pumpWidget(
+        _wrapPage(
+          const LoginPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.loading),
+          ),
         ),
-      ));
+      );
       // Don't use pumpAndSettle — CircularProgressIndicator never settles
       await tester.pump();
 
-      final button = tester.widget<ElevatedButton>(
-        find.byType(ElevatedButton),
-      );
+      final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
       expect(button.onPressed, isNull);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
     testWidgets('register link navigates to register page', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const LoginPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+      await tester.pumpWidget(
+        _wrapPage(
+          const LoginPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('没有账号？注册'));
@@ -517,12 +554,14 @@ void main() {
 
   group('RegisterPage', () {
     testWidgets('renders all UI elements', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const RegisterPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+      await tester.pumpWidget(
+        _wrapPage(
+          const RegisterPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('创建账号'), findsOneWidget);
@@ -534,12 +573,14 @@ void main() {
     });
 
     testWidgets('empty fields → validation errors', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const RegisterPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+      await tester.pumpWidget(
+        _wrapPage(
+          const RegisterPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(ElevatedButton, '注册'));
@@ -550,20 +591,28 @@ void main() {
     });
 
     testWidgets('invalid email → error', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const RegisterPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+      await tester.pumpWidget(
+        _wrapPage(
+          const RegisterPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, '邮箱'), 'no-at-sign');
+        find.widgetWithText(TextFormField, '邮箱'),
+        'no-at-sign',
+      );
       await tester.enterText(
-          find.widgetWithText(TextFormField, '密码'), '123456');
+        find.widgetWithText(TextFormField, '密码'),
+        '123456',
+      );
       await tester.enterText(
-          find.widgetWithText(TextFormField, '确认密码'), '123456');
+        find.widgetWithText(TextFormField, '确认密码'),
+        '123456',
+      );
       await tester.tap(find.widgetWithText(ElevatedButton, '注册'));
       await tester.pumpAndSettle();
 
@@ -571,20 +620,22 @@ void main() {
     });
 
     testWidgets('short password → error', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const RegisterPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+      await tester.pumpWidget(
+        _wrapPage(
+          const RegisterPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, '邮箱'), 'a@b.com');
-      await tester.enterText(
-          find.widgetWithText(TextFormField, '密码'), '12');
-      await tester.enterText(
-          find.widgetWithText(TextFormField, '确认密码'), '12');
+        find.widgetWithText(TextFormField, '邮箱'),
+        'a@b.com',
+      );
+      await tester.enterText(find.widgetWithText(TextFormField, '密码'), '12');
+      await tester.enterText(find.widgetWithText(TextFormField, '确认密码'), '12');
       await tester.tap(find.widgetWithText(ElevatedButton, '注册'));
       await tester.pumpAndSettle();
 
@@ -592,20 +643,28 @@ void main() {
     });
 
     testWidgets('password mismatch → error', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const RegisterPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+      await tester.pumpWidget(
+        _wrapPage(
+          const RegisterPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, '邮箱'), 'a@b.com');
+        find.widgetWithText(TextFormField, '邮箱'),
+        'a@b.com',
+      );
       await tester.enterText(
-          find.widgetWithText(TextFormField, '密码'), '123456');
+        find.widgetWithText(TextFormField, '密码'),
+        '123456',
+      );
       await tester.enterText(
-          find.widgetWithText(TextFormField, '确认密码'), '654321');
+        find.widgetWithText(TextFormField, '确认密码'),
+        '654321',
+      );
       await tester.tap(find.widgetWithText(ElevatedButton, '注册'));
       await tester.pumpAndSettle();
 
@@ -613,20 +672,28 @@ void main() {
     });
 
     testWidgets('valid input → no errors', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const RegisterPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+      await tester.pumpWidget(
+        _wrapPage(
+          const RegisterPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.enterText(
-          find.widgetWithText(TextFormField, '邮箱'), 'a@b.com');
+        find.widgetWithText(TextFormField, '邮箱'),
+        'a@b.com',
+      );
       await tester.enterText(
-          find.widgetWithText(TextFormField, '密码'), '123456');
+        find.widgetWithText(TextFormField, '密码'),
+        '123456',
+      );
       await tester.enterText(
-          find.widgetWithText(TextFormField, '确认密码'), '123456');
+        find.widgetWithText(TextFormField, '确认密码'),
+        '123456',
+      );
       await tester.tap(find.widgetWithText(ElevatedButton, '注册'));
       await tester.pump();
 
@@ -641,12 +708,14 @@ void main() {
     });
 
     testWidgets('all password fields are obscured', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const RegisterPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+      await tester.pumpWidget(
+        _wrapPage(
+          const RegisterPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       final editableTexts = tester.widgetList<EditableText>(
@@ -661,28 +730,30 @@ void main() {
     });
 
     testWidgets('loading state disables register button', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const RegisterPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.loading),
+      await tester.pumpWidget(
+        _wrapPage(
+          const RegisterPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.loading),
+          ),
         ),
-      ));
+      );
       // Don't use pumpAndSettle — CircularProgressIndicator never settles
       await tester.pump();
 
-      final button = tester.widget<ElevatedButton>(
-        find.byType(ElevatedButton),
-      );
+      final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
       expect(button.onPressed, isNull);
     });
 
     testWidgets('back button is present', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const RegisterPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(status: AuthStatus.unauthenticated),
+      await tester.pumpWidget(
+        _wrapPage(
+          const RegisterPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(status: AuthStatus.unauthenticated),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.byTooltip('返回'), findsOneWidget);
@@ -693,18 +764,20 @@ void main() {
 
   group('SettingsPage', () {
     testWidgets('renders basic UI with user info', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const SettingsPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-            status: AuthStatus.authenticated,
-            userId: 'user@test.com',
+      await tester.pumpWidget(
+        _wrapPage(
+          const SettingsPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'user@test.com',
+            ),
+            familyState: const FamilyState(),
+            syncState: const SyncState(status: SyncStatus.synced),
+            themeMode: ThemeMode.system,
           ),
-          familyState: const FamilyState(),
-          syncState: const SyncState(status: SyncStatus.synced),
-          themeMode: ThemeMode.system,
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('设置'), findsOneWidget);
@@ -713,49 +786,58 @@ void main() {
     });
 
     testWidgets('shows create/join family when no family', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const SettingsPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-            status: AuthStatus.authenticated,
-            userId: 'user_1',
+      await tester.pumpWidget(
+        _wrapPage(
+          const SettingsPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'user_1',
+            ),
+            familyState: const FamilyState(),
+            syncState: const SyncState(status: SyncStatus.synced),
+            themeMode: ThemeMode.system,
           ),
-          familyState: const FamilyState(),
-          syncState: const SyncState(status: SyncStatus.synced),
-          themeMode: ThemeMode.system,
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('创建家庭'), findsOneWidget);
       expect(find.text('加入家庭'), findsOneWidget);
     });
 
-    testWidgets('shows family info + invite/leave when family exists',
-        (tester) async {
+    testWidgets('shows family info + invite/leave when family exists', (
+      tester,
+    ) async {
       final family = _makeFamily(name: '我的家');
       final members = [
         _makeFamilyMember(userId: 'user_1', role: 'owner'),
         _makeFamilyMember(
-            id: 'fm_2', userId: 'user_2', email: 'b@b.com', role: 'member'),
+          id: 'fm_2',
+          userId: 'user_2',
+          email: 'b@b.com',
+          role: 'member',
+        ),
       ];
 
-      await tester.pumpWidget(_wrapPage(
-        const SettingsPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-            status: AuthStatus.authenticated,
-            userId: 'user_1',
+      await tester.pumpWidget(
+        _wrapPage(
+          const SettingsPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'user_1',
+            ),
+            familyState: FamilyState(
+              currentFamily: family,
+              families: [family],
+              members: members,
+            ),
+            syncState: const SyncState(status: SyncStatus.synced),
+            themeMode: ThemeMode.system,
           ),
-          familyState: FamilyState(
-            currentFamily: family,
-            families: [family],
-            members: members,
-          ),
-          syncState: const SyncState(status: SyncStatus.synced),
-          themeMode: ThemeMode.system,
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('我的家'), findsOneWidget);
@@ -765,18 +847,20 @@ void main() {
     });
 
     testWidgets('theme mode tile shows SegmentedButton', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const SettingsPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-            status: AuthStatus.authenticated,
-            userId: 'u',
+      await tester.pumpWidget(
+        _wrapPage(
+          const SettingsPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'u',
+            ),
+            familyState: const FamilyState(),
+            syncState: const SyncState(status: SyncStatus.synced),
+            themeMode: ThemeMode.system,
           ),
-          familyState: const FamilyState(),
-          syncState: const SyncState(status: SyncStatus.synced),
-          themeMode: ThemeMode.system,
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('外观模式'), findsOneWidget);
@@ -785,33 +869,43 @@ void main() {
     });
 
     testWidgets('sync status shows synced state', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const SettingsPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-              status: AuthStatus.authenticated, userId: 'u'),
-          familyState: const FamilyState(),
-          syncState: const SyncState(status: SyncStatus.synced),
-          themeMode: ThemeMode.system,
+      await tester.pumpWidget(
+        _wrapPage(
+          const SettingsPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'u',
+            ),
+            familyState: const FamilyState(),
+            syncState: const SyncState(status: SyncStatus.synced),
+            themeMode: ThemeMode.system,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('已同步'), findsOneWidget);
     });
 
     testWidgets('sync status shows pending state', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const SettingsPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-              status: AuthStatus.authenticated, userId: 'u'),
-          familyState: const FamilyState(),
-          syncState: const SyncState(
-              status: SyncStatus.pending, pendingCount: 5),
-          themeMode: ThemeMode.system,
+      await tester.pumpWidget(
+        _wrapPage(
+          const SettingsPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'u',
+            ),
+            familyState: const FamilyState(),
+            syncState: const SyncState(
+              status: SyncStatus.pending,
+              pendingCount: 5,
+            ),
+            themeMode: ThemeMode.system,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('待同步'), findsOneWidget);
@@ -819,32 +913,40 @@ void main() {
     });
 
     testWidgets('sync status shows offline state', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const SettingsPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-              status: AuthStatus.authenticated, userId: 'u'),
-          familyState: const FamilyState(),
-          syncState: const SyncState(status: SyncStatus.offline),
-          themeMode: ThemeMode.system,
+      await tester.pumpWidget(
+        _wrapPage(
+          const SettingsPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'u',
+            ),
+            familyState: const FamilyState(),
+            syncState: const SyncState(status: SyncStatus.offline),
+            themeMode: ThemeMode.system,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('离线模式'), findsOneWidget);
     });
 
     testWidgets('logout shows confirmation dialog', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const SettingsPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-              status: AuthStatus.authenticated, userId: 'u'),
-          familyState: const FamilyState(),
-          syncState: const SyncState(status: SyncStatus.synced),
-          themeMode: ThemeMode.system,
+      await tester.pumpWidget(
+        _wrapPage(
+          const SettingsPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'u',
+            ),
+            familyState: const FamilyState(),
+            syncState: const SyncState(status: SyncStatus.synced),
+            themeMode: ThemeMode.system,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Scroll down to make "退出登录" visible
@@ -860,16 +962,20 @@ void main() {
     });
 
     testWidgets('logout dialog cancel dismisses', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const SettingsPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-              status: AuthStatus.authenticated, userId: 'u'),
-          familyState: const FamilyState(),
-          syncState: const SyncState(status: SyncStatus.synced),
-          themeMode: ThemeMode.system,
+      await tester.pumpWidget(
+        _wrapPage(
+          const SettingsPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'u',
+            ),
+            familyState: const FamilyState(),
+            syncState: const SyncState(status: SyncStatus.synced),
+            themeMode: ThemeMode.system,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Scroll down to make "退出登录" visible
@@ -887,16 +993,20 @@ void main() {
     });
 
     testWidgets('create family dialog appears on tap', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const SettingsPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-              status: AuthStatus.authenticated, userId: 'u'),
-          familyState: const FamilyState(),
-          syncState: const SyncState(status: SyncStatus.synced),
-          themeMode: ThemeMode.system,
+      await tester.pumpWidget(
+        _wrapPage(
+          const SettingsPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'u',
+            ),
+            familyState: const FamilyState(),
+            syncState: const SyncState(status: SyncStatus.synced),
+            themeMode: ThemeMode.system,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('创建家庭'));
@@ -906,16 +1016,20 @@ void main() {
     });
 
     testWidgets('join family dialog appears on tap', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const SettingsPage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-              status: AuthStatus.authenticated, userId: 'u'),
-          familyState: const FamilyState(),
-          syncState: const SyncState(status: SyncStatus.synced),
-          themeMode: ThemeMode.system,
+      await tester.pumpWidget(
+        _wrapPage(
+          const SettingsPage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'u',
+            ),
+            familyState: const FamilyState(),
+            syncState: const SyncState(status: SyncStatus.synced),
+            themeMode: ThemeMode.system,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('加入家庭'));
@@ -929,13 +1043,15 @@ void main() {
 
   group('FamilyMembersPage', () {
     testWidgets('shows empty state when no members', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const FamilyMembersPage(),
-        overrides: _baseOverrides(
-          familyState: const FamilyState(members: []),
-          currentUserId: 'user_1',
+      await tester.pumpWidget(
+        _wrapPage(
+          const FamilyMembersPage(),
+          overrides: _baseOverrides(
+            familyState: const FamilyState(members: []),
+            currentUserId: 'user_1',
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('家庭成员'), findsOneWidget);
@@ -964,16 +1080,18 @@ void main() {
         ),
       ];
 
-      await tester.pumpWidget(_wrapPage(
-        const FamilyMembersPage(),
-        overrides: _baseOverrides(
-          familyState: FamilyState(
-            currentFamily: _makeFamily(),
-            members: members,
+      await tester.pumpWidget(
+        _wrapPage(
+          const FamilyMembersPage(),
+          overrides: _baseOverrides(
+            familyState: FamilyState(
+              currentFamily: _makeFamily(),
+              members: members,
+            ),
+            currentUserId: 'user_1',
           ),
-          currentUserId: 'user_1',
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('owner'), findsOneWidget);
@@ -993,16 +1111,18 @@ void main() {
         ),
       ];
 
-      await tester.pumpWidget(_wrapPage(
-        const FamilyMembersPage(),
-        overrides: _baseOverrides(
-          familyState: FamilyState(
-            currentFamily: _makeFamily(),
-            members: members,
+      await tester.pumpWidget(
+        _wrapPage(
+          const FamilyMembersPage(),
+          overrides: _baseOverrides(
+            familyState: FamilyState(
+              currentFamily: _makeFamily(),
+              members: members,
+            ),
+            currentUserId: 'user_1',
           ),
-          currentUserId: 'user_1',
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('(我)'), findsOneWidget);
@@ -1023,16 +1143,18 @@ void main() {
         ),
       ];
 
-      await tester.pumpWidget(_wrapPage(
-        const FamilyMembersPage(),
-        overrides: _baseOverrides(
-          familyState: FamilyState(
-            currentFamily: _makeFamily(),
-            members: members,
+      await tester.pumpWidget(
+        _wrapPage(
+          const FamilyMembersPage(),
+          overrides: _baseOverrides(
+            familyState: FamilyState(
+              currentFamily: _makeFamily(),
+              members: members,
+            ),
+            currentUserId: 'user_1',
           ),
-          currentUserId: 'user_1',
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Settings icon should be visible for non-self member
@@ -1069,16 +1191,18 @@ void main() {
         ),
       ];
 
-      await tester.pumpWidget(_wrapPage(
-        const FamilyMembersPage(),
-        overrides: _baseOverrides(
-          familyState: FamilyState(
-            currentFamily: _makeFamily(),
-            members: members,
+      await tester.pumpWidget(
+        _wrapPage(
+          const FamilyMembersPage(),
+          overrides: _baseOverrides(
+            familyState: FamilyState(
+              currentFamily: _makeFamily(),
+              members: members,
+            ),
+            currentUserId: 'user_1',
           ),
-          currentUserId: 'user_1',
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('target'));
@@ -1095,12 +1219,12 @@ void main() {
 
   group('AddAccountPage', () {
     testWidgets('renders all UI elements', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const AddAccountPage(),
-        overrides: _baseOverrides(
-          accountState: const AccountState(),
+      await tester.pumpWidget(
+        _wrapPage(
+          const AddAccountPage(),
+          overrides: _baseOverrides(accountState: const AccountState()),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('添加账户'), findsOneWidget);
@@ -1113,12 +1237,12 @@ void main() {
     });
 
     testWidgets('shows all account type chips', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const AddAccountPage(),
-        overrides: _baseOverrides(
-          accountState: const AccountState(),
+      await tester.pumpWidget(
+        _wrapPage(
+          const AddAccountPage(),
+          overrides: _baseOverrides(accountState: const AccountState()),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // All 7 types
@@ -1132,12 +1256,12 @@ void main() {
     });
 
     testWidgets('tapping type chip selects it', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const AddAccountPage(),
-        overrides: _baseOverrides(
-          accountState: const AccountState(),
+      await tester.pumpWidget(
+        _wrapPage(
+          const AddAccountPage(),
+          overrides: _baseOverrides(accountState: const AccountState()),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Tap 银行卡
@@ -1153,12 +1277,12 @@ void main() {
     });
 
     testWidgets('number pad keys update amount', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const AddAccountPage(),
-        overrides: _baseOverrides(
-          accountState: const AccountState(),
+      await tester.pumpWidget(
+        _wrapPage(
+          const AddAccountPage(),
+          overrides: _baseOverrides(accountState: const AccountState()),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Tap "1", "5", "0" on number pad
@@ -1173,12 +1297,12 @@ void main() {
     });
 
     testWidgets('delete key removes last digit', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const AddAccountPage(),
-        overrides: _baseOverrides(
-          accountState: const AccountState(),
+      await tester.pumpWidget(
+        _wrapPage(
+          const AddAccountPage(),
+          overrides: _baseOverrides(accountState: const AccountState()),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(ElevatedButton, '1'));
@@ -1203,12 +1327,14 @@ void main() {
         _makeAccount(id: 'a2', name: '银行卡', balance: 100000),
       ];
 
-      await tester.pumpWidget(_wrapPage(
-        const TransferPage(),
-        overrides: _baseOverrides(
-          accountState: AccountState(accounts: accounts),
+      await tester.pumpWidget(
+        _wrapPage(
+          const TransferPage(),
+          overrides: _baseOverrides(
+            accountState: AccountState(accounts: accounts),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('转账'), findsOneWidget);
@@ -1224,12 +1350,14 @@ void main() {
         _makeAccount(id: 'a3', name: '支付宝'),
       ];
 
-      await tester.pumpWidget(_wrapPage(
-        const TransferPage(),
-        overrides: _baseOverrides(
-          accountState: AccountState(accounts: accounts),
+      await tester.pumpWidget(
+        _wrapPage(
+          const TransferPage(),
+          overrides: _baseOverrides(
+            accountState: AccountState(accounts: accounts),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Find the "选择账户" hints (two dropdowns)
@@ -1242,12 +1370,14 @@ void main() {
         _makeAccount(id: 'a2', name: '银行卡'),
       ];
 
-      await tester.pumpWidget(_wrapPage(
-        const TransferPage(),
-        overrides: _baseOverrides(
-          accountState: AccountState(accounts: accounts),
+      await tester.pumpWidget(
+        _wrapPage(
+          const TransferPage(),
+          overrides: _baseOverrides(
+            accountState: AccountState(accounts: accounts),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(ElevatedButton, '5'));
@@ -1261,14 +1391,16 @@ void main() {
     });
 
     testWidgets('note field is present', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const TransferPage(),
-        overrides: _baseOverrides(
-          accountState: AccountState(accounts: [
-            _makeAccount(id: 'a1', name: '现金'),
-          ]),
+      await tester.pumpWidget(
+        _wrapPage(
+          const TransferPage(),
+          overrides: _baseOverrides(
+            accountState: AccountState(
+              accounts: [_makeAccount(id: 'a1', name: '现金')],
+            ),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('备注（可选）'), findsOneWidget);
@@ -1279,18 +1411,20 @@ void main() {
 
   group('MorePage', () {
     testWidgets('renders all sections and menu items', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const MorePage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-            status: AuthStatus.authenticated,
-            userId: 'user_1',
+      await tester.pumpWidget(
+        _wrapPage(
+          const MorePage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'user_1',
+            ),
+            familyState: const FamilyState(),
+            syncState: const SyncState(status: SyncStatus.synced),
+            themeMode: ThemeMode.system,
           ),
-          familyState: const FamilyState(),
-          syncState: const SyncState(status: SyncStatus.synced),
-          themeMode: ThemeMode.system,
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Top of the page
@@ -1302,24 +1436,20 @@ void main() {
       expect(find.text('投资管理'), findsOneWidget);
 
       // Scroll incrementally to see Data section items
-      await tester.scrollUntilVisible(
-          find.text('交易报表'), 100);
+      await tester.scrollUntilVisible(find.text('交易报表'), 100);
       await tester.pumpAndSettle();
       expect(find.text('交易报表'), findsOneWidget);
 
-      await tester.scrollUntilVisible(
-          find.text('账单导入'), 100);
+      await tester.scrollUntilVisible(find.text('账单导入'), 100);
       await tester.pumpAndSettle();
       expect(find.text('账单导入'), findsOneWidget);
 
       // Scroll to see Settings section
-      await tester.scrollUntilVisible(
-          find.text('通知设置'), 100);
+      await tester.scrollUntilVisible(find.text('通知设置'), 100);
       await tester.pumpAndSettle();
       expect(find.text('通知设置'), findsOneWidget);
 
-      await tester.scrollUntilVisible(
-          find.text('退出登录'), 100);
+      await tester.scrollUntilVisible(find.text('退出登录'), 100);
       await tester.pumpAndSettle();
       expect(find.text('退出登录'), findsOneWidget);
     });
@@ -1332,21 +1462,20 @@ void main() {
         _makeFamilyMember(id: 'fm_3', userId: 'user_3', role: 'member'),
       ];
 
-      await tester.pumpWidget(_wrapPage(
-        const MorePage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-            status: AuthStatus.authenticated,
-            userId: 'user_1',
+      await tester.pumpWidget(
+        _wrapPage(
+          const MorePage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'user_1',
+            ),
+            familyState: FamilyState(currentFamily: family, members: members),
+            syncState: const SyncState(status: SyncStatus.synced),
+            themeMode: ThemeMode.system,
           ),
-          familyState: FamilyState(
-            currentFamily: family,
-            members: members,
-          ),
-          syncState: const SyncState(status: SyncStatus.synced),
-          themeMode: ThemeMode.system,
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Family info shown in user card
@@ -1359,18 +1488,20 @@ void main() {
     });
 
     testWidgets('shows create/join family when no family', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const MorePage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-            status: AuthStatus.authenticated,
-            userId: 'u',
+      await tester.pumpWidget(
+        _wrapPage(
+          const MorePage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'u',
+            ),
+            familyState: const FamilyState(),
+            syncState: const SyncState(status: SyncStatus.synced),
+            themeMode: ThemeMode.system,
           ),
-          familyState: const FamilyState(),
-          syncState: const SyncState(status: SyncStatus.synced),
-          themeMode: ThemeMode.system,
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Scroll to family section
@@ -1382,18 +1513,20 @@ void main() {
     });
 
     testWidgets('logout shows confirmation dialog', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const MorePage(),
-        overrides: _baseOverrides(
-          authState: const AuthState(
-            status: AuthStatus.authenticated,
-            userId: 'u',
+      await tester.pumpWidget(
+        _wrapPage(
+          const MorePage(),
+          overrides: _baseOverrides(
+            authState: const AuthState(
+              status: AuthStatus.authenticated,
+              userId: 'u',
+            ),
+            familyState: const FamilyState(),
+            syncState: const SyncState(status: SyncStatus.synced),
+            themeMode: ThemeMode.system,
           ),
-          familyState: const FamilyState(),
-          syncState: const SyncState(status: SyncStatus.synced),
-          themeMode: ThemeMode.system,
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Scroll down to "退出登录"
@@ -1411,12 +1544,14 @@ void main() {
 
   group('NotificationsPage', () {
     testWidgets('shows empty state when no notifications', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const NotificationsPage(),
-        overrides: _baseOverrides(
-          notificationState: const NotificationState(),
+      await tester.pumpWidget(
+        _wrapPage(
+          const NotificationsPage(),
+          overrides: _baseOverrides(
+            notificationState: const NotificationState(),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('通知'), findsOneWidget);
@@ -1424,14 +1559,17 @@ void main() {
       expect(find.text('新的通知会出现在这里'), findsOneWidget);
     });
 
-    testWidgets('shows loading indicator when loading and empty',
-        (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const NotificationsPage(),
-        overrides: _baseOverrides(
-          notificationState: const NotificationState(isLoading: true),
+    testWidgets('shows loading indicator when loading and empty', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrapPage(
+          const NotificationsPage(),
+          overrides: _baseOverrides(
+            notificationState: const NotificationState(isLoading: true),
+          ),
         ),
-      ));
+      );
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
@@ -1464,15 +1602,17 @@ void main() {
         ),
       ];
 
-      await tester.pumpWidget(_wrapPage(
-        const NotificationsPage(),
-        overrides: _baseOverrides(
-          notificationState: NotificationState(
-            notifications: notifications,
-            unreadCount: 2,
+      await tester.pumpWidget(
+        _wrapPage(
+          const NotificationsPage(),
+          overrides: _baseOverrides(
+            notificationState: NotificationState(
+              notifications: notifications,
+              unreadCount: 2,
+            ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('餐饮超支'), findsOneWidget);
@@ -1481,12 +1621,14 @@ void main() {
     });
 
     testWidgets('settings button is in app bar', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const NotificationsPage(),
-        overrides: _baseOverrides(
-          notificationState: const NotificationState(),
+      await tester.pumpWidget(
+        _wrapPage(
+          const NotificationsPage(),
+          overrides: _baseOverrides(
+            notificationState: const NotificationState(),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.byTooltip('通知设置'), findsOneWidget);
@@ -1497,20 +1639,22 @@ void main() {
 
   group('NotificationSettingsPage', () {
     testWidgets('renders all toggle switches', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const NotificationSettingsPage(),
-        overrides: _baseOverrides(
-          notificationState: const NotificationState(
-            settings: NotificationSettingsModel(
-              budgetAlert: true,
-              budgetWarning: true,
-              dailySummary: false,
-              loanReminder: true,
-              reminderDaysBefore: 3,
+      await tester.pumpWidget(
+        _wrapPage(
+          const NotificationSettingsPage(),
+          overrides: _baseOverrides(
+            notificationState: const NotificationState(
+              settings: NotificationSettingsModel(
+                budgetAlert: true,
+                budgetWarning: true,
+                dailySummary: false,
+                loanReminder: true,
+                reminderDaysBefore: 3,
+              ),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('通知设置'), findsOneWidget);
@@ -1529,19 +1673,22 @@ void main() {
       expect(find.byType(SwitchListTile), findsNWidgets(4));
     });
 
-    testWidgets('shows reminder days slider when loanReminder is on',
-        (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const NotificationSettingsPage(),
-        overrides: _baseOverrides(
-          notificationState: const NotificationState(
-            settings: NotificationSettingsModel(
-              loanReminder: true,
-              reminderDaysBefore: 3,
+    testWidgets('shows reminder days slider when loanReminder is on', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrapPage(
+          const NotificationSettingsPage(),
+          overrides: _baseOverrides(
+            notificationState: const NotificationState(
+              settings: NotificationSettingsModel(
+                loanReminder: true,
+                reminderDaysBefore: 3,
+              ),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('提前提醒天数'), findsOneWidget);
@@ -1552,16 +1699,16 @@ void main() {
     });
 
     testWidgets('hides slider when loanReminder is off', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const NotificationSettingsPage(),
-        overrides: _baseOverrides(
-          notificationState: const NotificationState(
-            settings: NotificationSettingsModel(
-              loanReminder: false,
+      await tester.pumpWidget(
+        _wrapPage(
+          const NotificationSettingsPage(),
+          overrides: _baseOverrides(
+            notificationState: const NotificationState(
+              settings: NotificationSettingsModel(loanReminder: false),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('提前提醒天数'), findsNothing);
@@ -1569,19 +1716,21 @@ void main() {
     });
 
     testWidgets('toggling a switch updates state', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const NotificationSettingsPage(),
-        overrides: _baseOverrides(
-          notificationState: const NotificationState(
-            settings: NotificationSettingsModel(
-              budgetAlert: true,
-              budgetWarning: true,
-              dailySummary: false,
-              loanReminder: false,
+      await tester.pumpWidget(
+        _wrapPage(
+          const NotificationSettingsPage(),
+          overrides: _baseOverrides(
+            notificationState: const NotificationState(
+              settings: NotificationSettingsModel(
+                budgetAlert: true,
+                budgetWarning: true,
+                dailySummary: false,
+                loanReminder: false,
+              ),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       // Find the dailySummary switch (3rd one, currently off)
@@ -1597,14 +1746,16 @@ void main() {
     });
 
     testWidgets('subtitles are shown for each setting', (tester) async {
-      await tester.pumpWidget(_wrapPage(
-        const NotificationSettingsPage(),
-        overrides: _baseOverrides(
-          notificationState: const NotificationState(
-            settings: NotificationSettingsModel(loanReminder: false),
+      await tester.pumpWidget(
+        _wrapPage(
+          const NotificationSettingsPage(),
+          overrides: _baseOverrides(
+            notificationState: const NotificationState(
+              settings: NotificationSettingsModel(loanReminder: false),
+            ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('支出超过预算金额时通知'), findsOneWidget);

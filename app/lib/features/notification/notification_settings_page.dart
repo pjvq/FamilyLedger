@@ -18,9 +18,7 @@ class NotificationSettingsPage extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('通知设置'),
-      ),
+      appBar: AppBar(title: const Text('通知设置')),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
@@ -33,8 +31,7 @@ class NotificationSettingsPage extends ConsumerWidget {
             subtitle: '支出超过预算金额时通知',
             value: settings.budgetAlert,
             isDark: isDark,
-            onChanged: (v) =>
-                updateSetting(settings.copyWith(budgetAlert: v)),
+            onChanged: (v) => updateSetting(settings.copyWith(budgetAlert: v)),
           ),
           _SettingSwitchTile(
             icon: Icons.trending_up_rounded,
@@ -56,8 +53,7 @@ class NotificationSettingsPage extends ConsumerWidget {
             subtitle: '每天晚上推送今日支出概览',
             value: settings.dailySummary,
             isDark: isDark,
-            onChanged: (v) =>
-                updateSetting(settings.copyWith(dailySummary: v)),
+            onChanged: (v) => updateSetting(settings.copyWith(dailySummary: v)),
           ),
           _SettingSwitchTile(
             icon: Icons.event_rounded,
@@ -66,8 +62,7 @@ class NotificationSettingsPage extends ConsumerWidget {
             subtitle: '信用卡/借贷还款日前提醒',
             value: settings.loanReminder,
             isDark: isDark,
-            onChanged: (v) =>
-                updateSetting(settings.copyWith(loanReminder: v)),
+            onChanged: (v) => updateSetting(settings.copyWith(loanReminder: v)),
           ),
 
           // Reminder days slider
@@ -94,12 +89,15 @@ class NotificationSettingsPage extends ConsumerWidget {
                             label: '提前${settings.reminderDaysBefore}天提醒',
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 4),
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                color: (isDark
-                                        ? ColorTokens.primaryLight
-                                        : ColorTokens.primary)
-                                    .withValues(alpha: 0.12),
+                                color:
+                                    (isDark
+                                            ? ColorTokens.primaryLight
+                                            : ColorTokens.primary)
+                                        .withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -122,13 +120,11 @@ class NotificationSettingsPage extends ConsumerWidget {
                         divisions: 6,
                         label: '${settings.reminderDaysBefore}天',
                         onChanged: (v) => updateSetting(
-                          settings.copyWith(
-                              reminderDaysBefore: v.round()),
+                          settings.copyWith(reminderDaysBefore: v.round()),
                         ),
                       ),
                       Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             '1天',
@@ -228,7 +224,8 @@ class _SettingSwitchTile extends StatelessWidget {
           value: value,
           onChanged: onChanged,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16)),
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
       ),
     );

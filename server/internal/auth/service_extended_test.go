@@ -26,9 +26,9 @@ func TestRegister_InvalidEmailFormat(t *testing.T) {
 
 	// ValidateEmail only checks: non-empty + contains "@" + contains "."
 	cases := []string{
-		"notanemail",        // no @ or .
-		"missing-at-sign",   // no @
-		"nodot@example",     // no .
+		"notanemail",      // no @ or .
+		"missing-at-sign", // no @
+		"nodot@example",   // no .
 	}
 
 	for _, email := range cases {

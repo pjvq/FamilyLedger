@@ -122,13 +122,19 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
     final isDark = theme.brightness == Brightness.dark;
     final screenHeight = MediaQuery.of(context).size.height;
     final accounts = ref.watch(accountProvider).accounts;
-    final selectedAccount = accounts.where((a) => a.id == _selectedAccountId).firstOrNull;
+    final selectedAccount = accounts
+        .where((a) => a.id == _selectedAccountId)
+        .firstOrNull;
 
     return Container(
       height: screenHeight * 0.92,
       decoration: BoxDecoration(
-        color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral0,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(RadiusTokens.xl)),
+        color: isDark
+            ? NeutralColorsDark.neutral1
+            : NeutralColorsLight.neutral0,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(RadiusTokens.xl),
+        ),
       ),
       child: Column(
         children: [
@@ -162,10 +168,12 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
                             '${_date.month}月${_date.day}日 ${_date.hour.toString().padLeft(2, '0')}:${_date.minute.toString().padLeft(2, '0')}',
                             style: const TextStyle(fontSize: 12),
                           ),
-                          onDeleted: () => setState(() => _date = DateTime.now()),
+                          onDeleted: () =>
+                              setState(() => _date = DateTime.now()),
                           deleteIcon: const Icon(Icons.close, size: 14),
                           visualDensity: VisualDensity.compact,
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                         ),
                       ),
                     ],
@@ -203,7 +211,8 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
                   child: QuickCategorySelector(
                     typeIndex: _typeIndex,
                     selectedCategoryId: _selectedCategoryId,
-                    onSelected: (id) => setState(() => _selectedCategoryId = id),
+                    onSelected: (id) =>
+                        setState(() => _selectedCategoryId = id),
                   ),
                 ),
 
@@ -218,7 +227,9 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
                   onDateTap: _showDatePicker,
                   onOperator: _onOperator,
                   confirmEnabled: _canSubmit,
-                  confirmLabel: _isSubmitting ? '...' : (_isEditMode ? '保存' : (_continuousMode ? '下一笔' : '完成')),
+                  confirmLabel: _isSubmitting
+                      ? '...'
+                      : (_isEditMode ? '保存' : (_continuousMode ? '下一笔' : '完成')),
                 ),
               ],
             ),
@@ -284,7 +295,8 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
       } else {
         // Limit decimal places to 2
         final lastSegment = _expression.split(RegExp(r'[+\-]')).last;
-        if (lastSegment.contains('.') && lastSegment.split('.').last.length >= 2) {
+        if (lastSegment.contains('.') &&
+            lastSegment.split('.').last.length >= 2) {
           return;
         }
         _updateExpression(_expression + digit);
@@ -294,9 +306,13 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
 
   void _onOperator(String op) {
     setState(() {
-      final lastChar = _expression.isNotEmpty ? _expression[_expression.length - 1] : '';
+      final lastChar = _expression.isNotEmpty
+          ? _expression[_expression.length - 1]
+          : '';
       if (lastChar == '+' || lastChar == '-') {
-        _updateExpression(_expression.substring(0, _expression.length - 1) + op);
+        _updateExpression(
+          _expression.substring(0, _expression.length - 1) + op,
+        );
       } else if (_expression != '0') {
         _updateExpression(_expression + op);
       }
@@ -318,7 +334,6 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
   }
   // ─── Actions ─────────────────────────────────────────────────────
 
-
   bool get _isEditMode => widget.existingTransaction != null;
 
   Future<void> _onConfirm() async {
@@ -330,24 +345,28 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
       final type = _typeIndex == 0 ? 'expense' : 'income';
 
       if (_isEditMode) {
-        await ref.read(transactionProvider.notifier).updateTransaction(
-          id: widget.existingTransaction!.id,
-          categoryId: _selectedCategoryId!,
-          amount: amountCents,
-          type: type,
-          note: _note,
-          txnDate: _date,
-          accountId: _selectedAccountId,
-        );
+        await ref
+            .read(transactionProvider.notifier)
+            .updateTransaction(
+              id: widget.existingTransaction!.id,
+              categoryId: _selectedCategoryId!,
+              amount: amountCents,
+              type: type,
+              note: _note,
+              txnDate: _date,
+              accountId: _selectedAccountId,
+            );
       } else {
-        await ref.read(transactionProvider.notifier).addTransaction(
-          categoryId: _selectedCategoryId!,
-          accountId: _selectedAccountId,
-          amount: amountCents,
-          type: type,
-          note: _note,
-          txnDate: _date,
-        );
+        await ref
+            .read(transactionProvider.notifier)
+            .addTransaction(
+              categoryId: _selectedCategoryId!,
+              accountId: _selectedAccountId,
+              amount: amountCents,
+              type: type,
+              note: _note,
+              txnDate: _date,
+            );
       }
 
       // Refresh dashboard
@@ -378,9 +397,9 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
     } catch (e) {
       if (mounted) {
         setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
       }
     }
   }
@@ -399,8 +418,11 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
       );
       setState(() {
         _date = DateTime(
-          picked.year, picked.month, picked.day,
-          time?.hour ?? _date.hour, time?.minute ?? _date.minute,
+          picked.year,
+          picked.month,
+          picked.day,
+          time?.hour ?? _date.hour,
+          time?.minute ?? _date.minute,
         );
       });
     }
@@ -432,25 +454,33 @@ class _QuickAddSheetState extends ConsumerState<QuickAddSheet>
           children: [
             const Padding(
               padding: EdgeInsets.all(SpacingTokens.base),
-              child: Text('选择账户', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              child: Text(
+                '选择账户',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
             ),
             if (accounts.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(SpacingTokens.xl),
-                child: Text('暂无账户，请先在资产页创建', style: TextStyle(color: Colors.grey)),
+                child: Text(
+                  '暂无账户，请先在资产页创建',
+                  style: TextStyle(color: Colors.grey),
+                ),
               )
             else
-              ...accounts.map((account) => ListTile(
-                leading: const Icon(Icons.account_balance_wallet_outlined),
-                title: Text(account.name),
-                trailing: account.id == _selectedAccountId
-                    ? const Icon(Icons.check, color: ColorTokens.primary)
-                    : null,
-                onTap: () {
-                  setState(() => _selectedAccountId = account.id);
-                  Navigator.of(ctx).pop();
-                },
-              )),
+              ...accounts.map(
+                (account) => ListTile(
+                  leading: const Icon(Icons.account_balance_wallet_outlined),
+                  title: Text(account.name),
+                  trailing: account.id == _selectedAccountId
+                      ? const Icon(Icons.check, color: ColorTokens.primary)
+                      : null,
+                  onTap: () {
+                    setState(() => _selectedAccountId = account.id);
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+              ),
             const SizedBox(height: SpacingTokens.base),
           ],
         ),
@@ -469,10 +499,7 @@ class _NoteInputSheet extends StatefulWidget {
   final String initialNote;
   final ValueChanged<String> onConfirm;
 
-  const _NoteInputSheet({
-    required this.initialNote,
-    required this.onConfirm,
-  });
+  const _NoteInputSheet({required this.initialNote, required this.onConfirm});
 
   @override
   State<_NoteInputSheet> createState() => _NoteInputSheetState();
@@ -600,7 +627,9 @@ class _ContinuousModeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = isDark ? ColorTokens.primaryLight : ColorTokens.primary;
+    final primaryColor = isDark
+        ? ColorTokens.primaryLight
+        : ColorTokens.primary;
     final onSurface = Theme.of(context).colorScheme.onSurface;
     final inactiveColor = onSurface.withValues(alpha: 0.4);
     final borderInactive = onSurface.withValues(alpha: 0.2);
@@ -616,7 +645,9 @@ class _ContinuousModeToggle extends StatelessWidget {
           vertical: SpacingTokens.xs,
         ),
         decoration: BoxDecoration(
-          color: isActive ? primaryColor.withValues(alpha: 0.1) : Colors.transparent,
+          color: isActive
+              ? primaryColor.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(RadiusTokens.full),
           border: Border.all(
             color: isActive ? primaryColor : borderInactive,

@@ -190,7 +190,8 @@ List<Override> budgetOverrides({
   TransactionState? txnState,
 }) {
   final bState = budgetState ?? const BudgetState(isLoading: false);
-  final tState = txnState ??
+  final tState =
+      txnState ??
       TransactionState(
         isLoading: false,
         expenseCategories: [
@@ -198,18 +199,13 @@ List<Override> budgetOverrides({
           makeCategory(id: 'cat-transport', name: '交通'),
         ],
         incomeCategories: [
-          makeCategory(
-              id: 'cat-salary', name: '工资', type: 'income'),
+          makeCategory(id: 'cat-salary', name: '工资', type: 'income'),
         ],
       );
 
   return [
-    budgetProvider.overrideWith(
-      (ref) => FakeBudgetNotifier(bState),
-    ),
-    transactionProvider.overrideWith(
-      (ref) => FakeTransactionNotifier(tState),
-    ),
+    budgetProvider.overrideWith((ref) => FakeBudgetNotifier(bState)),
+    transactionProvider.overrideWith((ref) => FakeTransactionNotifier(tState)),
   ];
 }
 
@@ -218,22 +214,17 @@ List<Override> loanOverrides({
   AccountState? accountState,
 }) {
   final ls = loanState ?? const LoanState(isLoading: false);
-  final as_ = accountState ?? const AccountState(accounts: [], isLoading: false);
+  final as_ =
+      accountState ?? const AccountState(accounts: [], isLoading: false);
 
   return [
-    loanProvider.overrideWith(
-      (ref) => FakeLoanNotifier(ls),
-    ),
-    accountProvider.overrideWith(
-      (ref) => FakeAccountNotifier(as_),
-    ),
+    loanProvider.overrideWith((ref) => FakeLoanNotifier(ls)),
+    accountProvider.overrideWith((ref) => FakeAccountNotifier(as_)),
     transactionProvider.overrideWith(
       (ref) => FakeTransactionNotifier(
         TransactionState(
           isLoading: false,
-          expenseCategories: [
-            makeCategory(id: 'cat-food', name: '餐饮'),
-          ],
+          expenseCategories: [makeCategory(id: 'cat-food', name: '餐饮')],
           incomeCategories: [],
         ),
       ),
@@ -322,11 +313,14 @@ class FakeLoanNotifier extends StateNotifier<LoanState>
     if (schedule.isEmpty) return 0;
     return schedule.first.payment;
   }
+
   @override
   Future<List<LoanScheduleDisplayItem>> getScheduleForLoan(
-      String loanId) async {
+    String loanId,
+  ) async {
     return [];
   }
+
   @override
   Future<void> deleteLoan(String loanId) async {}
   @override
@@ -407,11 +401,9 @@ void main() {
     }
 
     testWidgets('rate=0%: shows 0%, green color zone', (tester) async {
-      await tester.pumpWidget(buildCard(
-        executionRate: 0.0,
-        totalBudget: 1000000,
-        totalSpent: 0,
-      ));
+      await tester.pumpWidget(
+        buildCard(executionRate: 0.0, totalBudget: 1000000, totalSpent: 0),
+      );
       await tester.pumpAndSettle();
       expect(find.text('0%'), findsOneWidget);
       expect(find.textContaining('¥0.00'), findsWidgets);
@@ -419,43 +411,48 @@ void main() {
     });
 
     testWidgets('rate=50%: shows 50%', (tester) async {
-      await tester.pumpWidget(buildCard(
-        executionRate: 0.5,
-        totalBudget: 1000000,
-        totalSpent: 500000,
-      ));
+      await tester.pumpWidget(
+        buildCard(executionRate: 0.5, totalBudget: 1000000, totalSpent: 500000),
+      );
       await tester.pumpAndSettle();
       expect(find.text('50%'), findsOneWidget);
     });
 
     testWidgets('rate=99%: shows 99%', (tester) async {
-      await tester.pumpWidget(buildCard(
-        executionRate: 0.99,
-        totalBudget: 1000000,
-        totalSpent: 990000,
-      ));
+      await tester.pumpWidget(
+        buildCard(
+          executionRate: 0.99,
+          totalBudget: 1000000,
+          totalSpent: 990000,
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('99%'), findsOneWidget);
     });
 
     testWidgets('rate=100%: shows 100%', (tester) async {
-      await tester.pumpWidget(buildCard(
-        executionRate: 1.0,
-        totalBudget: 1000000,
-        totalSpent: 1000000,
-      ));
+      await tester.pumpWidget(
+        buildCard(
+          executionRate: 1.0,
+          totalBudget: 1000000,
+          totalSpent: 1000000,
+        ),
+      );
       // Pulse animation is infinite at rate>=1.0, pump a few frames only
       await tester.pump(const Duration(milliseconds: 200));
       expect(find.text('100%'), findsOneWidget);
     });
 
-    testWidgets('rate=150% (overspend): shows 150%, pulse animation',
-        (tester) async {
-      await tester.pumpWidget(buildCard(
-        executionRate: 1.5,
-        totalBudget: 1000000,
-        totalSpent: 1500000,
-      ));
+    testWidgets('rate=150% (overspend): shows 150%, pulse animation', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildCard(
+          executionRate: 1.5,
+          totalBudget: 1000000,
+          totalSpent: 1500000,
+        ),
+      );
       await tester.pump(const Duration(milliseconds: 200));
       expect(find.text('150%'), findsOneWidget);
       // Pump more frames to make sure pulse doesn't crash
@@ -464,31 +461,26 @@ void main() {
     });
 
     testWidgets('semantics label present', (tester) async {
-      await tester.pumpWidget(buildCard(
-        executionRate: 0.5,
-        totalBudget: 1000000,
-        totalSpent: 500000,
-      ));
+      await tester.pumpWidget(
+        buildCard(executionRate: 0.5, totalBudget: 1000000, totalSpent: 500000),
+      );
       await tester.pumpAndSettle();
       expect(find.bySemanticsLabel(RegExp('预算执行率')), findsOneWidget);
     });
 
     testWidgets('spent/budget text renders', (tester) async {
-      await tester.pumpWidget(buildCard(
-        executionRate: 0.5,
-        totalBudget: 500000,
-        totalSpent: 250000,
-      ));
+      await tester.pumpWidget(
+        buildCard(executionRate: 0.5, totalBudget: 500000, totalSpent: 250000),
+      );
       await tester.pumpAndSettle();
       expect(find.textContaining('已用'), findsOneWidget);
       expect(find.textContaining('预算'), findsOneWidget);
     });
 
     testWidgets('dark theme renders', (tester) async {
-      await tester.pumpWidget(buildCard(
-        executionRate: 0.5,
-        theme: darkTheme(),
-      ));
+      await tester.pumpWidget(
+        buildCard(executionRate: 0.5, theme: darkTheme()),
+      );
       await tester.pumpAndSettle();
       expect(find.text('50%'), findsOneWidget);
     });
@@ -512,12 +504,14 @@ void main() {
 
   group('BudgetPage', () {
     testWidgets('empty budget: shows empty state + "设置预算"', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const BudgetPage(),
-        overrides: budgetOverrides(
-          budgetState: const BudgetState(isLoading: false),
+      await tester.pumpWidget(
+        buildTestApp(
+          const BudgetPage(),
+          overrides: budgetOverrides(
+            budgetState: const BudgetState(isLoading: false),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       // AppBar title is '{month}月预算', body also has '设置每月预算，掌控支出'
       expect(find.textContaining('月预算'), findsWidgets);
@@ -526,69 +520,74 @@ void main() {
     });
 
     testWidgets('loading: shows CircularProgressIndicator', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const BudgetPage(),
-        overrides: budgetOverrides(
-          budgetState: const BudgetState(isLoading: true),
+      await tester.pumpWidget(
+        buildTestApp(
+          const BudgetPage(),
+          overrides: budgetOverrides(
+            budgetState: const BudgetState(isLoading: true),
+          ),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('with budget: shows execution card + "编辑预算"',
-        (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const BudgetPage(),
-        overrides: budgetOverrides(
-          budgetState: BudgetState(
-            isLoading: false,
-            currentBudget: makeBudget(),
-            execution: const BudgetExecutionData(
-              totalBudget: 1000000,
-              totalSpent: 300000,
-              executionRate: 0.3,
-              categoryExecutions: [],
+    testWidgets('with budget: shows execution card + "编辑预算"', (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          const BudgetPage(),
+          overrides: budgetOverrides(
+            budgetState: BudgetState(
+              isLoading: false,
+              currentBudget: makeBudget(),
+              execution: const BudgetExecutionData(
+                totalBudget: 1000000,
+                totalSpent: 300000,
+                executionRate: 0.3,
+                categoryExecutions: [],
+              ),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.byType(BudgetExecutionCard), findsOneWidget);
       expect(find.text('编辑预算'), findsOneWidget);
     });
 
     testWidgets('with category executions: shows tiles', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const BudgetPage(),
-        overrides: budgetOverrides(
-          budgetState: BudgetState(
-            isLoading: false,
-            currentBudget: makeBudget(),
-            execution: const BudgetExecutionData(
-              totalBudget: 1000000,
-              totalSpent: 500000,
-              executionRate: 0.5,
-              categoryExecutions: [
-                CategoryExecutionData(
-                  categoryId: 'cat-food',
-                  categoryName: '餐饮',
-                  budgetAmount: 500000,
-                  spentAmount: 300000,
-                  executionRate: 0.6,
-                ),
-                CategoryExecutionData(
-                  categoryId: 'cat-transport',
-                  categoryName: '交通',
-                  budgetAmount: 200000,
-                  spentAmount: 50000,
-                  executionRate: 0.25,
-                ),
-              ],
+      await tester.pumpWidget(
+        buildTestApp(
+          const BudgetPage(),
+          overrides: budgetOverrides(
+            budgetState: BudgetState(
+              isLoading: false,
+              currentBudget: makeBudget(),
+              execution: const BudgetExecutionData(
+                totalBudget: 1000000,
+                totalSpent: 500000,
+                executionRate: 0.5,
+                categoryExecutions: [
+                  CategoryExecutionData(
+                    categoryId: 'cat-food',
+                    categoryName: '餐饮',
+                    budgetAmount: 500000,
+                    spentAmount: 300000,
+                    executionRate: 0.6,
+                  ),
+                  CategoryExecutionData(
+                    categoryId: 'cat-transport',
+                    categoryName: '交通',
+                    budgetAmount: 200000,
+                    spentAmount: 50000,
+                    executionRate: 0.25,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.text('分类预算'), findsOneWidget);
       expect(find.text('餐饮'), findsOneWidget);
@@ -596,22 +595,24 @@ void main() {
     });
 
     testWidgets('dark theme', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const BudgetPage(),
-        overrides: budgetOverrides(
-          budgetState: BudgetState(
-            isLoading: false,
-            currentBudget: makeBudget(),
-            execution: const BudgetExecutionData(
-              totalBudget: 1000000,
-              totalSpent: 0,
-              executionRate: 0.0,
-              categoryExecutions: [],
+      await tester.pumpWidget(
+        buildTestApp(
+          const BudgetPage(),
+          overrides: budgetOverrides(
+            budgetState: BudgetState(
+              isLoading: false,
+              currentBudget: makeBudget(),
+              execution: const BudgetExecutionData(
+                totalBudget: 1000000,
+                totalSpent: 0,
+                executionRate: 0.0,
+                categoryExecutions: [],
+              ),
             ),
           ),
+          theme: darkTheme(),
         ),
-        theme: darkTheme(),
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.byType(BudgetExecutionCard), findsOneWidget);
     });
@@ -693,44 +694,52 @@ void main() {
 
   group('LoansPage', () {
     testWidgets('empty state', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoansPage(),
-        overrides: loanOverrides(
-          loanState: const LoanState(isLoading: false, loans: [], loanGroups: []),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoansPage(),
+          overrides: loanOverrides(
+            loanState: const LoanState(
+              isLoading: false,
+              loans: [],
+              loanGroups: [],
+            ),
+          ),
+          routes: {'/loans/add': (_) => const Scaffold()},
         ),
-        routes: {'/loans/add': (_) => const Scaffold()},
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.textContaining('贷款'), findsWidgets);
     });
 
     testWidgets('loading', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoansPage(),
-        overrides: loanOverrides(
-          loanState: const LoanState(isLoading: true),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoansPage(),
+          overrides: loanOverrides(loanState: const LoanState(isLoading: true)),
+          routes: {'/loans/add': (_) => const Scaffold()},
         ),
-        routes: {'/loans/add': (_) => const Scaffold()},
-      ));
+      );
       await tester.pump();
       expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('standalone loans', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoansPage(),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            loans: [makeLoan(name: '我的房贷')],
-            loanGroups: [],
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoansPage(),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              loans: [makeLoan(name: '我的房贷')],
+              loanGroups: [],
+            ),
           ),
+          routes: {
+            '/loans/detail': (_) => const Scaffold(),
+            '/loans/add': (_) => const Scaffold(),
+          },
         ),
-        routes: {
-          '/loans/detail': (_) => const Scaffold(),
-          '/loans/add': (_) => const Scaffold(),
-        },
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.text('我的房贷'), findsOneWidget);
     });
@@ -748,40 +757,44 @@ void main() {
         overallProgress: 0.1,
       );
 
-      await tester.pumpWidget(buildTestApp(
-        const LoansPage(),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            loans: [],
-            loanGroups: [displayGroup],
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoansPage(),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              loans: [],
+              loanGroups: [displayGroup],
+            ),
           ),
+          routes: {
+            '/loans/group-detail': (_) => const Scaffold(),
+            '/loans/add': (_) => const Scaffold(),
+          },
         ),
-        routes: {
-          '/loans/group-detail': (_) => const Scaffold(),
-          '/loans/add': (_) => const Scaffold(),
-        },
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.text('首套组合贷'), findsOneWidget);
     });
 
     testWidgets('dark theme', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoansPage(),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            loans: [makeLoan()],
-            loanGroups: [],
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoansPage(),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              loans: [makeLoan()],
+              loanGroups: [],
+            ),
           ),
+          theme: darkTheme(),
+          routes: {
+            '/loans/detail': (_) => const Scaffold(),
+            '/loans/add': (_) => const Scaffold(),
+          },
         ),
-        theme: darkTheme(),
-        routes: {
-          '/loans/detail': (_) => const Scaffold(),
-          '/loans/add': (_) => const Scaffold(),
-        },
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.byType(LoansPage), findsOneWidget);
     });
@@ -793,10 +806,9 @@ void main() {
 
   group('AddLoanPage', () {
     testWidgets('initial state: category selector visible', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const AddLoanPage(),
-        overrides: loanOverrides(),
-      ));
+      await tester.pumpWidget(
+        buildTestApp(const AddLoanPage(), overrides: loanOverrides()),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('添加贷款'), findsOneWidget);
@@ -807,10 +819,9 @@ void main() {
     });
 
     testWidgets('can switch loan categories', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const AddLoanPage(),
-        overrides: loanOverrides(),
-      ));
+      await tester.pumpWidget(
+        buildTestApp(const AddLoanPage(), overrides: loanOverrides()),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.textContaining('公积金贷款'));
@@ -823,10 +834,9 @@ void main() {
     });
 
     testWidgets('shows loan type chips', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const AddLoanPage(),
-        overrides: loanOverrides(),
-      ));
+      await tester.pumpWidget(
+        buildTestApp(const AddLoanPage(), overrides: loanOverrides()),
+      );
       await tester.pumpAndSettle();
 
       // Loan type selector renders emoji and label in separate Text widgets
@@ -835,20 +845,18 @@ void main() {
     });
 
     testWidgets('shows loan name field', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const AddLoanPage(),
-        overrides: loanOverrides(),
-      ));
+      await tester.pumpWidget(
+        buildTestApp(const AddLoanPage(), overrides: loanOverrides()),
+      );
       await tester.pumpAndSettle();
 
       expect(find.textContaining('贷款名称'), findsOneWidget);
     });
 
     testWidgets('can enter loan name', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const AddLoanPage(),
-        overrides: loanOverrides(),
-      ));
+      await tester.pumpWidget(
+        buildTestApp(const AddLoanPage(), overrides: loanOverrides()),
+      );
       await tester.pumpAndSettle();
 
       final nameField = find.widgetWithText(TextField, '');
@@ -862,11 +870,13 @@ void main() {
     });
 
     testWidgets('dark theme', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const AddLoanPage(),
-        overrides: loanOverrides(),
-        theme: darkTheme(),
-      ));
+      await tester.pumpWidget(
+        buildTestApp(
+          const AddLoanPage(),
+          overrides: loanOverrides(),
+          theme: darkTheme(),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.byType(AddLoanPage), findsOneWidget);
     });
@@ -878,41 +888,46 @@ void main() {
 
   group('LoanDetailPage', () {
     testWidgets('loading state', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoanDetailPage(loanId: 'loan-1'),
-        overrides: loanOverrides(
-          loanState: const LoanState(isLoading: true),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoanDetailPage(loanId: 'loan-1'),
+          overrides: loanOverrides(loanState: const LoanState(isLoading: true)),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('贷款详情'), findsOneWidget);
       expect(find.byType(SkeletonList), findsOneWidget);
     });
 
     testWidgets('null loan: shows error', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoanDetailPage(loanId: 'loan-1'),
-        overrides: loanOverrides(
-          loanState: const LoanState(isLoading: false, error: '贷款不存在'),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoanDetailPage(loanId: 'loan-1'),
+          overrides: loanOverrides(
+            loanState: const LoanState(isLoading: false, error: '贷款不存在'),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.text('贷款不存在'), findsOneWidget);
     });
 
-    testWidgets('shows loan detail + action buttons + schedule',
-        (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoanDetailPage(loanId: 'loan-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentLoan: makeLoan(),
-            schedule: makeSchedule(months: 5, paidMonths: 2),
+    testWidgets('shows loan detail + action buttons + schedule', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoanDetailPage(loanId: 'loan-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              currentLoan: makeLoan(),
+              schedule: makeSchedule(months: 5, paidMonths: 2),
+            ),
           ),
+          routes: {'/loans/prepayment': (_) => const Scaffold()},
         ),
-        routes: {'/loans/prepayment': (_) => const Scaffold()},
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('提前还款'), findsOneWidget);
@@ -922,17 +937,19 @@ void main() {
     });
 
     testWidgets('progress ring shows correct %', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoanDetailPage(loanId: 'loan-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentLoan: makeLoan(paidMonths: 120, totalMonths: 360),
-            schedule: makeSchedule(),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoanDetailPage(loanId: 'loan-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              currentLoan: makeLoan(paidMonths: 120, totalMonths: 360),
+              schedule: makeSchedule(),
+            ),
           ),
+          routes: {'/loans/prepayment': (_) => const Scaffold()},
         ),
-        routes: {'/loans/prepayment': (_) => const Scaffold()},
-      ));
+      );
       await tester.pumpAndSettle();
       // progress = (principal - remainingPrincipal) / principal
       // makeLoan defaults: principal=100_000_000, remainingPrincipal=80_000_000
@@ -941,67 +958,75 @@ void main() {
     });
 
     testWidgets('equal_principal repayment method text', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoanDetailPage(loanId: 'loan-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentLoan: makeLoan(repaymentMethod: 'equal_principal'),
-            schedule: makeSchedule(),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoanDetailPage(loanId: 'loan-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              currentLoan: makeLoan(repaymentMethod: 'equal_principal'),
+              schedule: makeSchedule(),
+            ),
           ),
+          routes: {'/loans/prepayment': (_) => const Scaffold()},
         ),
-        routes: {'/loans/prepayment': (_) => const Scaffold()},
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.text('等额本金'), findsOneWidget);
     });
 
     testWidgets('equal_installment repayment method text', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoanDetailPage(loanId: 'loan-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentLoan: makeLoan(repaymentMethod: 'equal_installment'),
-            schedule: makeSchedule(),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoanDetailPage(loanId: 'loan-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              currentLoan: makeLoan(repaymentMethod: 'equal_installment'),
+              schedule: makeSchedule(),
+            ),
           ),
+          routes: {'/loans/prepayment': (_) => const Scaffold()},
         ),
-        routes: {'/loans/prepayment': (_) => const Scaffold()},
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.text('等额本息'), findsOneWidget);
     });
 
     testWidgets('semantics: summary card', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoanDetailPage(loanId: 'loan-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentLoan: makeLoan(),
-            schedule: makeSchedule(),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoanDetailPage(loanId: 'loan-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              currentLoan: makeLoan(),
+              schedule: makeSchedule(),
+            ),
           ),
+          routes: {'/loans/prepayment': (_) => const Scaffold()},
         ),
-        routes: {'/loans/prepayment': (_) => const Scaffold()},
-      ));
+      );
       await tester.pumpAndSettle();
       // Summary card + schedule items all carry semantics with '剩余本金'
       expect(find.bySemanticsLabel(RegExp('剩余本金')), findsWidgets);
     });
 
     testWidgets('dark theme', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoanDetailPage(loanId: 'loan-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentLoan: makeLoan(),
-            schedule: makeSchedule(),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoanDetailPage(loanId: 'loan-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              currentLoan: makeLoan(),
+              schedule: makeSchedule(),
+            ),
           ),
+          theme: darkTheme(),
+          routes: {'/loans/prepayment': (_) => const Scaffold()},
         ),
-        theme: darkTheme(),
-        routes: {'/loans/prepayment': (_) => const Scaffold()},
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.byType(LoanDetailPage), findsOneWidget);
     });
@@ -1026,12 +1051,12 @@ void main() {
     }
 
     testWidgets('loading state', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoanGroupDetailPage(groupId: 'group-1'),
-        overrides: loanOverrides(
-          loanState: const LoanState(isLoading: true),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoanGroupDetailPage(groupId: 'group-1'),
+          overrides: loanOverrides(loanState: const LoanState(isLoading: true)),
         ),
-      ));
+      );
       await tester.pump();
       expect(find.text('贷款详情'), findsOneWidget);
       expect(find.byType(SkeletonList), findsOneWidget);
@@ -1040,31 +1065,37 @@ void main() {
     });
 
     testWidgets('null group: error', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoanGroupDetailPage(groupId: 'group-1'),
-        overrides: loanOverrides(
-          loanState: const LoanState(isLoading: false, error: '贷款组不存在'),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoanGroupDetailPage(groupId: 'group-1'),
+          overrides: loanOverrides(
+            loanState: const LoanState(isLoading: false, error: '贷款组不存在'),
+          ),
         ),
-      ));
+      );
       await tester.pump(); // first frame, triggers addPostFrameCallback
-      await tester.pump(const Duration(milliseconds: 300)); // flush 200ms delayed timer
+      await tester.pump(
+        const Duration(milliseconds: 300),
+      ); // flush 200ms delayed timer
       expect(find.text('贷款组不存在'), findsOneWidget);
     });
 
     testWidgets('shows group detail with tabs', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoanGroupDetailPage(groupId: 'group-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentGroup: buildGroupDisplay(),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoanGroupDetailPage(groupId: 'group-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              currentGroup: buildGroupDisplay(),
+            ),
           ),
+          routes: {
+            '/loans/prepayment': (_) => const Scaffold(),
+            '/loans/detail': (_) => const Scaffold(),
+          },
         ),
-        routes: {
-          '/loans/prepayment': (_) => const Scaffold(),
-          '/loans/detail': (_) => const Scaffold(),
-        },
-      ));
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('首套房贷'), findsOneWidget);
@@ -1076,19 +1107,21 @@ void main() {
     });
 
     testWidgets('sub-loan rate texts', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoanGroupDetailPage(groupId: 'group-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentGroup: buildGroupDisplay(),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoanGroupDetailPage(groupId: 'group-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              currentGroup: buildGroupDisplay(),
+            ),
           ),
+          routes: {
+            '/loans/prepayment': (_) => const Scaffold(),
+            '/loans/detail': (_) => const Scaffold(),
+          },
         ),
-        routes: {
-          '/loans/prepayment': (_) => const Scaffold(),
-          '/loans/detail': (_) => const Scaffold(),
-        },
-      ));
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.textContaining('4.20%'), findsWidgets);
@@ -1096,19 +1129,21 @@ void main() {
     });
 
     testWidgets('tab switching', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoanGroupDetailPage(groupId: 'group-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentGroup: buildGroupDisplay(),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoanGroupDetailPage(groupId: 'group-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              currentGroup: buildGroupDisplay(),
+            ),
           ),
+          routes: {
+            '/loans/prepayment': (_) => const Scaffold(),
+            '/loans/detail': (_) => const Scaffold(),
+          },
         ),
-        routes: {
-          '/loans/prepayment': (_) => const Scaffold(),
-          '/loans/detail': (_) => const Scaffold(),
-        },
-      ));
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
@@ -1117,22 +1152,19 @@ void main() {
       final tabBarFinder = find.byType(AnimatedTabBar);
       expect(tabBarFinder, findsOneWidget);
 
-      await tester.tap(find.descendant(
-        of: tabBarFinder,
-        matching: find.text('商贷'),
-      ));
+      await tester.tap(
+        find.descendant(of: tabBarFinder, matching: find.text('商贷')),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      await tester.tap(find.descendant(
-        of: tabBarFinder,
-        matching: find.text('公积金'),
-      ));
+      await tester.tap(
+        find.descendant(of: tabBarFinder, matching: find.text('公积金')),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      await tester.tap(find.descendant(
-        of: tabBarFinder,
-        matching: find.text('总览'),
-      ));
+      await tester.tap(
+        find.descendant(of: tabBarFinder, matching: find.text('总览')),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
@@ -1140,19 +1172,21 @@ void main() {
     });
 
     testWidgets('action buttons present', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const LoanGroupDetailPage(groupId: 'group-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentGroup: buildGroupDisplay(),
+      await tester.pumpWidget(
+        buildTestApp(
+          const LoanGroupDetailPage(groupId: 'group-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              currentGroup: buildGroupDisplay(),
+            ),
           ),
+          routes: {
+            '/loans/prepayment': (_) => const Scaffold(),
+            '/loans/detail': (_) => const Scaffold(),
+          },
         ),
-        routes: {
-          '/loans/prepayment': (_) => const Scaffold(),
-          '/loans/detail': (_) => const Scaffold(),
-        },
-      ));
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('提前还款'), findsOneWidget);
@@ -1166,15 +1200,14 @@ void main() {
 
   group('PrepaymentPage', () {
     testWidgets('title and strategy selector', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const PrepaymentPage(loanId: 'loan-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentLoan: makeLoan(),
+      await tester.pumpWidget(
+        buildTestApp(
+          const PrepaymentPage(loanId: 'loan-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(isLoading: false, currentLoan: makeLoan()),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.text('提前还款'), findsOneWidget);
       expect(find.text('缩短期限'), findsWidgets);
@@ -1182,38 +1215,42 @@ void main() {
     });
 
     testWidgets('shows loan info', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const PrepaymentPage(loanId: 'loan-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentLoan: makeLoan(remainingPrincipal: 80000000),
+      await tester.pumpWidget(
+        buildTestApp(
+          const PrepaymentPage(loanId: 'loan-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              currentLoan: makeLoan(remainingPrincipal: 80000000),
+            ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.textContaining('剩余本金'), findsWidgets);
     });
 
     testWidgets('shows simulation result', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const PrepaymentPage(loanId: 'loan-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentLoan: makeLoan(),
-            simulation: PrepaymentSimulationResult(
-              prepaymentAmount: 10000000,
-              totalInterestBefore: 50000000,
-              totalInterestAfter: 35000000,
-              interestSaved: 15000000,
-              monthsReduced: 60,
-              newMonthlyPayment: 400000,
-              newSchedule: makeSchedule(months: 2),
+      await tester.pumpWidget(
+        buildTestApp(
+          const PrepaymentPage(loanId: 'loan-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(
+              isLoading: false,
+              currentLoan: makeLoan(),
+              simulation: PrepaymentSimulationResult(
+                prepaymentAmount: 10000000,
+                totalInterestBefore: 50000000,
+                totalInterestAfter: 35000000,
+                interestSaved: 15000000,
+                monthsReduced: 60,
+                newMonthlyPayment: 400000,
+                newSchedule: makeSchedule(months: 2),
+              ),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       // Simulation results are below the fold in the ListView;
       // scroll down to bring them into the viewport.
@@ -1223,31 +1260,29 @@ void main() {
     });
 
     testWidgets('no simulation initially', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const PrepaymentPage(loanId: 'loan-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentLoan: makeLoan(),
+      await tester.pumpWidget(
+        buildTestApp(
+          const PrepaymentPage(loanId: 'loan-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(isLoading: false, currentLoan: makeLoan()),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       // Simulation card should not be there yet
       expect(find.textContaining('节省利息'), findsNothing);
     });
 
     testWidgets('dark theme', (tester) async {
-      await tester.pumpWidget(buildTestApp(
-        const PrepaymentPage(loanId: 'loan-1'),
-        overrides: loanOverrides(
-          loanState: LoanState(
-            isLoading: false,
-            currentLoan: makeLoan(),
+      await tester.pumpWidget(
+        buildTestApp(
+          const PrepaymentPage(loanId: 'loan-1'),
+          overrides: loanOverrides(
+            loanState: LoanState(isLoading: false, currentLoan: makeLoan()),
           ),
+          theme: darkTheme(),
         ),
-        theme: darkTheme(),
-      ));
+      );
       await tester.pumpAndSettle();
       expect(find.byType(PrepaymentPage), findsOneWidget);
     });
@@ -1272,7 +1307,8 @@ void main() {
           ),
         ),
         overrides: loanOverrides(
-          loanState: loanState ??
+          loanState:
+              loanState ??
               LoanState(
                 isLoading: false,
                 currentLoan: makeLoan(annualRate: 4.2),
@@ -1360,7 +1396,8 @@ void main() {
 
   group('LoanCalculator', () {
     test('equalInstallment: zero rate', () {
-      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_installment', 
+      final schedule = LoanCalculator.calculate(
+        repaymentMethod: 'equal_installment',
         principal: 120000,
         annualRate: 0.0,
         totalMonths: 12,
@@ -1375,7 +1412,8 @@ void main() {
     });
 
     test('equalInstallment: standard rate', () {
-      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_installment', 
+      final schedule = LoanCalculator.calculate(
+        repaymentMethod: 'equal_installment',
         principal: 100000000,
         annualRate: 4.2,
         totalMonths: 360,
@@ -1387,13 +1425,17 @@ void main() {
       expect(schedule.first.payment, greaterThan(400000));
       expect(schedule.first.payment, lessThan(600000));
       // First month interest > principal
-      expect(schedule.first.interestPart, greaterThan(schedule.first.principalPart));
+      expect(
+        schedule.first.interestPart,
+        greaterThan(schedule.first.principalPart),
+      );
       // Last remaining should be 0
       expect(schedule.last.remainingPrincipal, 0);
     });
 
     test('equalPrincipal: payments decrease over time', () {
-      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_principal', 
+      final schedule = LoanCalculator.calculate(
+        repaymentMethod: 'equal_principal',
         principal: 120000,
         annualRate: 12.0,
         totalMonths: 12,
@@ -1431,7 +1473,8 @@ void main() {
     });
 
     test('paidMonths marks items as paid', () {
-      final schedule = LoanCalculator.calculate(repaymentMethod: 'equal_installment', 
+      final schedule = LoanCalculator.calculate(
+        repaymentMethod: 'equal_installment',
         principal: 120000,
         annualRate: 4.0,
         totalMonths: 12,
@@ -1460,8 +1503,7 @@ void main() {
       expect(result.monthsReduced, greaterThan(0));
     });
 
-    test('simulateReducePayment: new monthly payment < original',
-        () {
+    test('simulateReducePayment: new monthly payment < original', () {
       final result = LoanCalculator.simulateReducePayment(
         remainingPrincipal: 80000000,
         annualRate: 4.2,

@@ -16,9 +16,7 @@ const _defaultPerAttemptTimeout = Duration(seconds: 8);
 /// Creates [CallOptions] with a per-attempt deadline.
 /// If the caller already set a timeout, their value wins.
 CallOptions callOptionsWithTimeout({Duration? timeout}) {
-  return CallOptions(
-    timeout: timeout ?? _defaultPerAttemptTimeout,
-  );
+  return CallOptions(timeout: timeout ?? _defaultPerAttemptTimeout);
 }
 
 /// Invokes a gRPC unary RPC with retry, per-attempt timeout, and structured logging.

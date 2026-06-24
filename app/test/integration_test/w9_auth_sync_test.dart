@@ -53,9 +53,11 @@ void main() {
 
   group('W9 Auth E2E', () {
     test('A-001: Register → returns userId + tokens', () async {
-      final resp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = testEmail
-        ..password = testPassword);
+      final resp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = testEmail
+          ..password = testPassword,
+      );
 
       expect(resp.userId, isNotEmpty);
       expect(resp.accessToken, isNotEmpty);
@@ -68,9 +70,11 @@ void main() {
     });
 
     test('A-002: Login with same credentials → new tokens', () async {
-      final resp = await authClient.login(auth_pb.LoginRequest()
-        ..email = testEmail
-        ..password = testPassword);
+      final resp = await authClient.login(
+        auth_pb.LoginRequest()
+          ..email = testEmail
+          ..password = testPassword,
+      );
 
       expect(resp.userId, isNotEmpty);
       expect(resp.accessToken, isNotEmpty);
@@ -82,28 +86,34 @@ void main() {
       );
     });
 
-    test('A-003: Authenticated API call succeeds (PullChanges with token)',
-        () async {
-      final resp = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest()
-          ..since = ts_pb.Timestamp(seconds: Int64(0)),
-        options: harness.authOptions,
-      );
+    test(
+      'A-003: Authenticated API call succeeds (PullChanges with token)',
+      () async {
+        final resp = await syncClient.pullChanges(
+          sync_pb.PullChangesRequest()
+            ..since = ts_pb.Timestamp(seconds: Int64(0)),
+          options: harness.authOptions,
+        );
 
-      // Should return empty changes for a fresh user
-      expect(resp, isNotNull);
-      expect(resp.operations, isEmpty);
-    });
+        // Should return empty changes for a fresh user
+        expect(resp, isNotNull);
+        expect(resp.operations, isEmpty);
+      },
+    );
 
     test('A-004: Unauthenticated call → UNAUTHENTICATED error', () async {
       expect(
-        () => syncClient.pullChanges(sync_pb.PullChangesRequest()
-          ..since = ts_pb.Timestamp(seconds: Int64(0))),
-        throwsA(isA<GrpcError>().having(
-          (e) => e.code,
-          'code',
-          StatusCode.unauthenticated,
-        )),
+        () => syncClient.pullChanges(
+          sync_pb.PullChangesRequest()
+            ..since = ts_pb.Timestamp(seconds: Int64(0)),
+        ),
+        throwsA(
+          isA<GrpcError>().having(
+            (e) => e.code,
+            'code',
+            StatusCode.unauthenticated,
+          ),
+        ),
       );
     });
 
@@ -117,19 +127,23 @@ void main() {
             ..since = ts_pb.Timestamp(seconds: Int64(0)),
           options: badOptions,
         ),
-        throwsA(isA<GrpcError>().having(
-          (e) => e.code,
-          'code',
-          StatusCode.unauthenticated,
-        )),
+        throwsA(
+          isA<GrpcError>().having(
+            (e) => e.code,
+            'code',
+            StatusCode.unauthenticated,
+          ),
+        ),
       );
     });
 
     test('A-006: Duplicate registration → error', () async {
       expect(
-        () => authClient.register(auth_pb.RegisterRequest()
-          ..email = testEmail
-          ..password = testPassword),
+        () => authClient.register(
+          auth_pb.RegisterRequest()
+            ..email = testEmail
+            ..password = testPassword,
+        ),
         throwsA(isA<GrpcError>()),
       );
     });
@@ -151,35 +165,39 @@ void main() {
       // Create account
       await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = preAccountId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': preAccountId,
-              'name': 'Dep Account',
-              'type': 'cash',
-              'balance': 100000,
-              'currency': 'CNY',
-            })
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'account'
+              ..entityId = preAccountId
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = jsonEncode({
+                'id': preAccountId,
+                'name': 'Dep Account',
+                'type': 'cash',
+                'balance': 100000,
+                'currency': 'CNY',
+              })
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
 
       // Create category
       await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'category'
-            ..entityId = preCategoryId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': preCategoryId,
-              'name': 'Dep Category',
-              'type': 'expense',
-              'icon': '📦',
-            })
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'category'
+              ..entityId = preCategoryId
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = jsonEncode({
+                'id': preCategoryId,
+                'name': 'Dep Category',
+                'type': 'expense',
+                'icon': '📦',
+              })
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
     });
@@ -196,75 +214,95 @@ void main() {
     ];
 
     for (final entityType in entityTypes) {
-      test('S-${entityTypes.indexOf(entityType) + 1}: $entityType CREATE → Push → Pull → consistent',
-          () async {
-        final entityId = _uuid();
-        final clientId = _uuid();
-        // For transaction, use the pre-created account/category IDs
-        Map<String, dynamic> payloadMap;
-        if (entityType == 'transaction') {
-          payloadMap = {
-            'id': entityId,
-            'account_id': preAccountId,
-            'category_id': preCategoryId,
-            'amount': 5000,
-            'amount_cny': 5000,
-            'currency': 'CNY',
-            'exchange_rate': 1.0,
-            'type': 'expense',
-            'note': 'W9 E2E transaction',
-            'txn_date': DateTime.now().toIso8601String(),
-          };
-        } else {
-          payloadMap = _samplePayload(entityType, entityId);
-        }
-        final payload = jsonEncode(payloadMap);
-
-        // Push CREATE
-        final pushResp = await syncClient.pushOperations(
-          sync_pb.PushOperationsRequest()
-            ..operations.add(sync_pb.SyncOperation()
-              ..entityType = entityType
-              ..entityId = entityId
-              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-              ..payload = payload
-              ..clientId = clientId),
-          options: harness.authOptions,
-        );
-
-        expect(pushResp.acceptedCount, equals(1),
-            reason: '$entityType CREATE should be accepted');
-        expect(pushResp.failedIds, isEmpty);
-
-        // Pull back
-        final pullResp = await syncClient.pullChanges(
-          sync_pb.PullChangesRequest()
-            ..since = ts_pb.Timestamp(seconds: Int64(0)),
-          options: harness.authOptions,
-        );
-
-        final found = pullResp.operations.where(
-          (op) => op.entityId == entityId && op.entityType == entityType,
-        );
-        expect(found, isNotEmpty,
-            reason: '$entityType should appear in PullChanges');
-
-        // P1#2: Verify Pull payload content matches Push payload
-        final pulledPayload = found.first.payload;
-        if (entityType == 'transaction') {
-          expect(pulledPayload, contains('W9 E2E transaction'),
-              reason: '$entityType Pull payload should contain pushed note value');
-          expect(pulledPayload, contains('5000'),
-              reason: '$entityType Pull payload should contain pushed amount');
-        } else {
-          // All non-transaction entities have a 'name' field in _samplePayload
-          final expectedName = _samplePayload(entityType, entityId)['name'];
-          if (expectedName != null) {
-            expect(pulledPayload, contains(expectedName as String),
-                reason: '$entityType Pull payload should contain pushed name');
+      test(
+        'S-${entityTypes.indexOf(entityType) + 1}: $entityType CREATE → Push → Pull → consistent',
+        () async {
+          final entityId = _uuid();
+          final clientId = _uuid();
+          // For transaction, use the pre-created account/category IDs
+          Map<String, dynamic> payloadMap;
+          if (entityType == 'transaction') {
+            payloadMap = {
+              'id': entityId,
+              'account_id': preAccountId,
+              'category_id': preCategoryId,
+              'amount': 5000,
+              'amount_cny': 5000,
+              'currency': 'CNY',
+              'exchange_rate': 1.0,
+              'type': 'expense',
+              'note': 'W9 E2E transaction',
+              'txn_date': DateTime.now().toIso8601String(),
+            };
+          } else {
+            payloadMap = _samplePayload(entityType, entityId);
           }
-        }
-      });
+          final payload = jsonEncode(payloadMap);
+
+          // Push CREATE
+          final pushResp = await syncClient.pushOperations(
+            sync_pb.PushOperationsRequest()
+              ..operations.add(
+                sync_pb.SyncOperation()
+                  ..entityType = entityType
+                  ..entityId = entityId
+                  ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+                  ..payload = payload
+                  ..clientId = clientId,
+              ),
+            options: harness.authOptions,
+          );
+
+          expect(
+            pushResp.acceptedCount,
+            equals(1),
+            reason: '$entityType CREATE should be accepted',
+          );
+          expect(pushResp.failedIds, isEmpty);
+
+          // Pull back
+          final pullResp = await syncClient.pullChanges(
+            sync_pb.PullChangesRequest()
+              ..since = ts_pb.Timestamp(seconds: Int64(0)),
+            options: harness.authOptions,
+          );
+
+          final found = pullResp.operations.where(
+            (op) => op.entityId == entityId && op.entityType == entityType,
+          );
+          expect(
+            found,
+            isNotEmpty,
+            reason: '$entityType should appear in PullChanges',
+          );
+
+          // P1#2: Verify Pull payload content matches Push payload
+          final pulledPayload = found.first.payload;
+          if (entityType == 'transaction') {
+            expect(
+              pulledPayload,
+              contains('W9 E2E transaction'),
+              reason:
+                  '$entityType Pull payload should contain pushed note value',
+            );
+            expect(
+              pulledPayload,
+              contains('5000'),
+              reason: '$entityType Pull payload should contain pushed amount',
+            );
+          } else {
+            // All non-transaction entities have a 'name' field in _samplePayload
+            final expectedName = _samplePayload(entityType, entityId)['name'];
+            if (expectedName != null) {
+              expect(
+                pulledPayload,
+                contains(expectedName as String),
+                reason: '$entityType Pull payload should contain pushed name',
+              );
+            }
+          }
+        },
+      );
     }
   });
 
@@ -289,12 +327,14 @@ void main() {
 
       final resp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = acctId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = payload
-            ..clientId = acctClientId),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'account'
+              ..entityId = acctId
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = payload
+              ..clientId = acctClientId,
+          ),
         options: harness.authOptions,
       );
       expect(resp.acceptedCount, equals(1));
@@ -311,12 +351,14 @@ void main() {
 
       final resp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = acctId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
-            ..payload = payload
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'account'
+              ..entityId = acctId
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
+              ..payload = payload
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
       expect(resp.acceptedCount, equals(1));
@@ -325,12 +367,14 @@ void main() {
     test('L-003: DELETE account → Push succeeds', () async {
       final resp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = acctId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_DELETE
-            ..payload = '{}'
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'account'
+              ..entityId = acctId
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_DELETE
+              ..payload = '{}'
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
       expect(resp.acceptedCount, equals(1));
@@ -348,8 +392,11 @@ void main() {
             op.entityId == acctId &&
             op.opType == sync_enum.OperationType.OPERATION_TYPE_DELETE,
       );
-      expect(deleteOps, isNotEmpty,
-          reason: 'DELETE op should be visible in Pull');
+      expect(
+        deleteOps,
+        isNotEmpty,
+        reason: 'DELETE op should be visible in Pull',
+      );
     });
   });
 
@@ -358,89 +405,104 @@ void main() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   group('W9 Sync E2E — DELETE terminal state', () {
-    test('D-001: A deletes → B updates (later timestamp) → Pull still deleted',
-        () async {
-      // Create entity
-      final entityId = _uuid();
-      final createPayload = jsonEncode({
-        'id': entityId,
-        'name': 'Doomed Account',
-        'type': 'bank_card',
-        'balance': 5000,
-        'currency': 'CNY',
-      });
+    test(
+      'D-001: A deletes → B updates (later timestamp) → Pull still deleted',
+      () async {
+        // Create entity
+        final entityId = _uuid();
+        final createPayload = jsonEncode({
+          'id': entityId,
+          'name': 'Doomed Account',
+          'type': 'bank_card',
+          'balance': 5000,
+          'currency': 'CNY',
+        });
 
-      await syncClient.pushOperations(
-        sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = entityId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = createPayload
-            ..clientId = _uuid()),
-        options: harness.authOptions,
-      );
+        await syncClient.pushOperations(
+          sync_pb.PushOperationsRequest()
+            ..operations.add(
+              sync_pb.SyncOperation()
+                ..entityType = 'account'
+                ..entityId = entityId
+                ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+                ..payload = createPayload
+                ..clientId = _uuid(),
+            ),
+          options: harness.authOptions,
+        );
 
-      // Delete (simulating user A)
-      await syncClient.pushOperations(
-        sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = entityId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_DELETE
-            ..payload = '{}'
-            ..clientId = _uuid()),
-        options: harness.authOptions,
-      );
+        // Delete (simulating user A)
+        await syncClient.pushOperations(
+          sync_pb.PushOperationsRequest()
+            ..operations.add(
+              sync_pb.SyncOperation()
+                ..entityType = 'account'
+                ..entityId = entityId
+                ..opType = sync_enum.OperationType.OPERATION_TYPE_DELETE
+                ..payload = '{}'
+                ..clientId = _uuid(),
+            ),
+          options: harness.authOptions,
+        );
 
-      // Update with later timestamp (simulating user B, arrives after delete)
-      final updatePayload = jsonEncode({
-        'id': entityId,
-        'name': 'Resurrected Account',
-        'type': 'bank_card',
-        'balance': 9999,
-        'currency': 'CNY',
-      });
+        // Update with later timestamp (simulating user B, arrives after delete)
+        final updatePayload = jsonEncode({
+          'id': entityId,
+          'name': 'Resurrected Account',
+          'type': 'bank_card',
+          'balance': 9999,
+          'currency': 'CNY',
+        });
 
-      final updateResp = await syncClient.pushOperations(
-        sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = entityId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
-            ..payload = updatePayload
-            ..clientId = _uuid()),
-        options: harness.authOptions,
-      );
+        final updateResp = await syncClient.pushOperations(
+          sync_pb.PushOperationsRequest()
+            ..operations.add(
+              sync_pb.SyncOperation()
+                ..entityType = 'account'
+                ..entityId = entityId
+                ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
+                ..payload = updatePayload
+                ..clientId = _uuid(),
+            ),
+          options: harness.authOptions,
+        );
 
-      // Server should reject or accept-but-not-apply (no-op for deleted entity)
-      // Either acceptedCount=0 or the entity remains deleted in Pull
-      final pullResp = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest()
-          ..since = ts_pb.Timestamp(seconds: Int64(0)),
-        options: harness.authOptions,
-      );
+        // Server should reject or accept-but-not-apply (no-op for deleted entity)
+        // Either acceptedCount=0 or the entity remains deleted in Pull
+        final pullResp = await syncClient.pullChanges(
+          sync_pb.PullChangesRequest()
+            ..since = ts_pb.Timestamp(seconds: Int64(0)),
+          options: harness.authOptions,
+        );
 
-      // The latest op for this entity should be DELETE, not UPDATE
-      final entityOps = pullResp.operations
-          .where((op) => op.entityId == entityId)
-          .toList();
+        // The latest op for this entity should be DELETE, not UPDATE
+        final entityOps = pullResp.operations
+            .where((op) => op.entityId == entityId)
+            .toList();
 
-      // Find the last op (by position in list, which is chronological)
-      final lastOp = entityOps.isNotEmpty ? entityOps.last : null;
-      if (updateResp.acceptedCount == 0) {
-        // Server correctly rejected the update on a deleted entity ✅
-        // (failedIds contains op.id which we didn't set, so just check count)
-        expect(updateResp.acceptedCount, equals(0),
-            reason: 'DELETE is terminal — update after delete should be rejected');
-      } else {
-        // Server accepted but entity should still be deleted in Pull
-        // (no-op behavior: UPDATE on deleted entity does nothing)
-        expect(lastOp?.opType,
+        // Find the last op (by position in list, which is chronological)
+        final lastOp = entityOps.isNotEmpty ? entityOps.last : null;
+        if (updateResp.acceptedCount == 0) {
+          // Server correctly rejected the update on a deleted entity ✅
+          // (failedIds contains op.id which we didn't set, so just check count)
+          expect(
+            updateResp.acceptedCount,
+            equals(0),
+            reason:
+                'DELETE is terminal — update after delete should be rejected',
+          );
+        } else {
+          // Server accepted but entity should still be deleted in Pull
+          // (no-op behavior: UPDATE on deleted entity does nothing)
+          expect(
+            lastOp?.opType,
             equals(sync_enum.OperationType.OPERATION_TYPE_DELETE),
-            reason: 'DELETE is terminal — update after delete should not resurrect');
-      }
-    });
+            reason:
+                'DELETE is terminal — update after delete should not resurrect',
+          );
+        }
+      },
+    );
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -448,53 +510,58 @@ void main() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   group('W9 Sync E2E — idempotency', () {
-    test('I-001: Same clientId pushed twice → only 1 accepted (dedup)',
-        () async {
-      final entityId = _uuid();
-      final clientId = _uuid();
-      final payload = jsonEncode({
-        'id': entityId,
-        'name': 'Idempotent Account',
-        'type': 'cash',
-        'balance': 100,
-        'currency': 'CNY',
-      });
+    test(
+      'I-001: Same clientId pushed twice → only 1 accepted (dedup)',
+      () async {
+        final entityId = _uuid();
+        final clientId = _uuid();
+        final payload = jsonEncode({
+          'id': entityId,
+          'name': 'Idempotent Account',
+          'type': 'cash',
+          'balance': 100,
+          'currency': 'CNY',
+        });
 
-      final op = sync_pb.SyncOperation()
-        ..entityType = 'account'
-        ..entityId = entityId
-        ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-        ..payload = payload
-        ..clientId = clientId;
+        final op = sync_pb.SyncOperation()
+          ..entityType = 'account'
+          ..entityId = entityId
+          ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+          ..payload = payload
+          ..clientId = clientId;
 
-      // First push
-      final resp1 = await syncClient.pushOperations(
-        sync_pb.PushOperationsRequest()..operations.add(op),
-        options: harness.authOptions,
-      );
-      expect(resp1.acceptedCount, equals(1));
+        // First push
+        final resp1 = await syncClient.pushOperations(
+          sync_pb.PushOperationsRequest()..operations.add(op),
+          options: harness.authOptions,
+        );
+        expect(resp1.acceptedCount, equals(1));
 
-      // Second push (same clientId)
-      final resp2 = await syncClient.pushOperations(
-        sync_pb.PushOperationsRequest()..operations.add(op),
-        options: harness.authOptions,
-      );
-      // Server should deduplicate — either acceptedCount=0 or =1 (idempotent)
-      // Both are valid: 0 = rejected dup, 1 = accepted idempotently
-      expect(resp2.acceptedCount, anyOf(equals(0), equals(1)));
-      // The key check: Pull should only show ONE op for this clientId
-      final pullResp = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest()
-          ..since = ts_pb.Timestamp(seconds: Int64(0)),
-        options: harness.authOptions,
-      );
+        // Second push (same clientId)
+        final resp2 = await syncClient.pushOperations(
+          sync_pb.PushOperationsRequest()..operations.add(op),
+          options: harness.authOptions,
+        );
+        // Server should deduplicate — either acceptedCount=0 or =1 (idempotent)
+        // Both are valid: 0 = rejected dup, 1 = accepted idempotently
+        expect(resp2.acceptedCount, anyOf(equals(0), equals(1)));
+        // The key check: Pull should only show ONE op for this clientId
+        final pullResp = await syncClient.pullChanges(
+          sync_pb.PullChangesRequest()
+            ..since = ts_pb.Timestamp(seconds: Int64(0)),
+          options: harness.authOptions,
+        );
 
-      final matchingOps = pullResp.operations
-          .where((op) => op.entityId == entityId)
-          .toList();
-      expect(matchingOps.length, equals(1),
-          reason: 'Duplicate clientId should not create duplicate ops');
-    });
+        final matchingOps = pullResp.operations
+            .where((op) => op.entityId == entityId)
+            .toList();
+        expect(
+          matchingOps.length,
+          equals(1),
+          reason: 'Duplicate clientId should not create duplicate ops',
+        );
+      },
+    );
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -502,47 +569,57 @@ void main() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   group('W9 Sync E2E — pagination', () {
-    test('P-001: Push many ops → Pull with pageSize → paginated response',
-        () async {
-      // Push 5 operations
-      final ops = List.generate(5, (i) {
-        final id = _uuid();
-        return sync_pb.SyncOperation()
-          ..entityType = 'category'
-          ..entityId = id
-          ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-          ..payload = jsonEncode({'id': id, 'name': 'Cat $i', 'type': 'expense', 'icon': '📁'})
-          ..clientId = _uuid();
-      });
+    test(
+      'P-001: Push many ops → Pull with pageSize → paginated response',
+      () async {
+        // Push 5 operations
+        final ops = List.generate(5, (i) {
+          final id = _uuid();
+          return sync_pb.SyncOperation()
+            ..entityType = 'category'
+            ..entityId = id
+            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+            ..payload = jsonEncode({
+              'id': id,
+              'name': 'Cat $i',
+              'type': 'expense',
+              'icon': '📁',
+            })
+            ..clientId = _uuid();
+        });
 
-      await syncClient.pushOperations(
-        sync_pb.PushOperationsRequest()..operations.addAll(ops),
-        options: harness.authOptions,
-      );
+        await syncClient.pushOperations(
+          sync_pb.PushOperationsRequest()..operations.addAll(ops),
+          options: harness.authOptions,
+        );
 
-      // Pull with small page size
-      final resp = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest()
-          ..since = ts_pb.Timestamp(seconds: Int64(0))
-          ..pageSize = 2,
-        options: harness.authOptions,
-      );
+        // Pull with small page size
+        final resp = await syncClient.pullChanges(
+          sync_pb.PullChangesRequest()
+            ..since = ts_pb.Timestamp(seconds: Int64(0))
+            ..pageSize = 2,
+          options: harness.authOptions,
+        );
 
-      // Should get ≤2 results + nextPageToken
-      expect(resp.operations.length, lessThanOrEqualTo(2));
-      expect(resp.nextPageToken, isNotEmpty,
-          reason: 'Should have nextPageToken when more data exists');
+        // Should get ≤2 results + nextPageToken
+        expect(resp.operations.length, lessThanOrEqualTo(2));
+        expect(
+          resp.nextPageToken,
+          isNotEmpty,
+          reason: 'Should have nextPageToken when more data exists',
+        );
 
-      // Follow pagination
-      final page2 = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest()
-          ..since = ts_pb.Timestamp(seconds: Int64(0))
-          ..pageSize = 2
-          ..pageToken = resp.nextPageToken,
-        options: harness.authOptions,
-      );
-      expect(page2.operations, isNotEmpty);
-    });
+        // Follow pagination
+        final page2 = await syncClient.pullChanges(
+          sync_pb.PullChangesRequest()
+            ..since = ts_pb.Timestamp(seconds: Int64(0))
+            ..pageSize = 2
+            ..pageToken = resp.nextPageToken,
+          options: harness.authOptions,
+        );
+        expect(page2.operations, isNotEmpty);
+      },
+    );
   });
 }
 
@@ -560,7 +637,8 @@ Map<String, dynamic> _samplePayload(String entityType, String entityId) {
     case 'transaction':
       return {
         'id': entityId,
-        'account_id': '00000000-0000-0000-0000-000000000001', // will be created separately
+        'account_id':
+            '00000000-0000-0000-0000-000000000001', // will be created separately
         'category_id': '00000000-0000-0000-0000-000000000002',
         'amount': 5000,
         'amount_cny': 5000,
@@ -594,10 +672,7 @@ Map<String, dynamic> _samplePayload(String entityType, String entityId) {
         'term_months': 12,
       };
     case 'loan_group':
-      return {
-        'id': entityId,
-        'name': 'W9 Test Loan Group',
-      };
+      return {'id': entityId, 'name': 'W9 Test Loan Group'};
     case 'investment':
       return {
         'id': entityId,

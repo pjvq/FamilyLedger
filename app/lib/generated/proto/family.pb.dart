@@ -46,43 +46,55 @@ class MemberPermissions extends $pb.GeneratedMessage {
     return $result;
   }
   MemberPermissions._() : super();
-  factory MemberPermissions.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory MemberPermissions.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory MemberPermissions.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory MemberPermissions.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'MemberPermissions', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'MemberPermissions',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'canView')
     ..aOB(2, _omitFieldNames ? '' : 'canCreate')
     ..aOB(3, _omitFieldNames ? '' : 'canEdit')
     ..aOB(4, _omitFieldNames ? '' : 'canDelete')
     ..aOB(5, _omitFieldNames ? '' : 'canManageAccounts')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   MemberPermissions clone() => MemberPermissions()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  MemberPermissions copyWith(void Function(MemberPermissions) updates) => super.copyWith((message) => updates(message as MemberPermissions)) as MemberPermissions;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  MemberPermissions copyWith(void Function(MemberPermissions) updates) =>
+      super.copyWith((message) => updates(message as MemberPermissions))
+          as MemberPermissions;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static MemberPermissions create() => MemberPermissions._();
   MemberPermissions createEmptyInstance() => create();
-  static $pb.PbList<MemberPermissions> createRepeated() => $pb.PbList<MemberPermissions>();
+  static $pb.PbList<MemberPermissions> createRepeated() =>
+      $pb.PbList<MemberPermissions>();
   @$core.pragma('dart2js:noInline')
-  static MemberPermissions getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<MemberPermissions>(create);
+  static MemberPermissions getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<MemberPermissions>(create);
   static MemberPermissions? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.bool get canView => $_getBF(0);
   @$pb.TagNumber(1)
-  set canView($core.bool v) { $_setBool(0, v); }
+  set canView($core.bool v) {
+    $_setBool(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasCanView() => $_has(0);
   @$pb.TagNumber(1)
@@ -91,7 +103,10 @@ class MemberPermissions extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool get canCreate => $_getBF(1);
   @$pb.TagNumber(2)
-  set canCreate($core.bool v) { $_setBool(1, v); }
+  set canCreate($core.bool v) {
+    $_setBool(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasCanCreate() => $_has(1);
   @$pb.TagNumber(2)
@@ -100,7 +115,10 @@ class MemberPermissions extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.bool get canEdit => $_getBF(2);
   @$pb.TagNumber(3)
-  set canEdit($core.bool v) { $_setBool(2, v); }
+  set canEdit($core.bool v) {
+    $_setBool(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasCanEdit() => $_has(2);
   @$pb.TagNumber(3)
@@ -109,7 +127,10 @@ class MemberPermissions extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool get canDelete => $_getBF(3);
   @$pb.TagNumber(4)
-  set canDelete($core.bool v) { $_setBool(3, v); }
+  set canDelete($core.bool v) {
+    $_setBool(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasCanDelete() => $_has(3);
   @$pb.TagNumber(4)
@@ -118,7 +139,10 @@ class MemberPermissions extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.bool get canManageAccounts => $_getBF(4);
   @$pb.TagNumber(5)
-  set canManageAccounts($core.bool v) { $_setBool(4, v); }
+  set canManageAccounts($core.bool v) {
+    $_setBool(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasCanManageAccounts() => $_has(4);
   @$pb.TagNumber(5)
@@ -160,30 +184,39 @@ class Family extends $pb.GeneratedMessage {
     return $result;
   }
   Family._() : super();
-  factory Family.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory Family.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory Family.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory Family.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Family', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Family',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'name')
     ..aOS(3, _omitFieldNames ? '' : 'ownerId')
     ..aOS(4, _omitFieldNames ? '' : 'inviteCode')
-    ..aOM<$1.Timestamp>(5, _omitFieldNames ? '' : 'inviteExpiresAt', subBuilder: $1.Timestamp.create)
-    ..aOM<$1.Timestamp>(6, _omitFieldNames ? '' : 'createdAt', subBuilder: $1.Timestamp.create)
-    ..aOM<$1.Timestamp>(7, _omitFieldNames ? '' : 'updatedAt', subBuilder: $1.Timestamp.create)
-    ..hasRequiredFields = false
-  ;
+    ..aOM<$1.Timestamp>(5, _omitFieldNames ? '' : 'inviteExpiresAt',
+        subBuilder: $1.Timestamp.create)
+    ..aOM<$1.Timestamp>(6, _omitFieldNames ? '' : 'createdAt',
+        subBuilder: $1.Timestamp.create)
+    ..aOM<$1.Timestamp>(7, _omitFieldNames ? '' : 'updatedAt',
+        subBuilder: $1.Timestamp.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   Family clone() => Family()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  Family copyWith(void Function(Family) updates) => super.copyWith((message) => updates(message as Family)) as Family;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  Family copyWith(void Function(Family) updates) =>
+      super.copyWith((message) => updates(message as Family)) as Family;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -192,13 +225,17 @@ class Family extends $pb.GeneratedMessage {
   Family createEmptyInstance() => create();
   static $pb.PbList<Family> createRepeated() => $pb.PbList<Family>();
   @$core.pragma('dart2js:noInline')
-  static Family getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Family>(create);
+  static Family getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Family>(create);
   static Family? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
@@ -207,7 +244,10 @@ class Family extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get name => $_getSZ(1);
   @$pb.TagNumber(2)
-  set name($core.String v) { $_setString(1, v); }
+  set name($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasName() => $_has(1);
   @$pb.TagNumber(2)
@@ -216,7 +256,10 @@ class Family extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get ownerId => $_getSZ(2);
   @$pb.TagNumber(3)
-  set ownerId($core.String v) { $_setString(2, v); }
+  set ownerId($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasOwnerId() => $_has(2);
   @$pb.TagNumber(3)
@@ -225,7 +268,10 @@ class Family extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.String get inviteCode => $_getSZ(3);
   @$pb.TagNumber(4)
-  set inviteCode($core.String v) { $_setString(3, v); }
+  set inviteCode($core.String v) {
+    $_setString(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasInviteCode() => $_has(3);
   @$pb.TagNumber(4)
@@ -234,7 +280,10 @@ class Family extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $1.Timestamp get inviteExpiresAt => $_getN(4);
   @$pb.TagNumber(5)
-  set inviteExpiresAt($1.Timestamp v) { setField(5, v); }
+  set inviteExpiresAt($1.Timestamp v) {
+    setField(5, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasInviteExpiresAt() => $_has(4);
   @$pb.TagNumber(5)
@@ -245,7 +294,10 @@ class Family extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $1.Timestamp get createdAt => $_getN(5);
   @$pb.TagNumber(6)
-  set createdAt($1.Timestamp v) { setField(6, v); }
+  set createdAt($1.Timestamp v) {
+    setField(6, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasCreatedAt() => $_has(5);
   @$pb.TagNumber(6)
@@ -256,7 +308,10 @@ class Family extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $1.Timestamp get updatedAt => $_getN(6);
   @$pb.TagNumber(7)
-  set updatedAt($1.Timestamp v) { setField(7, v); }
+  set updatedAt($1.Timestamp v) {
+    setField(7, v);
+  }
+
   @$pb.TagNumber(7)
   $core.bool hasUpdatedAt() => $_has(6);
   @$pb.TagNumber(7)
@@ -296,44 +351,61 @@ class FamilyMember extends $pb.GeneratedMessage {
     return $result;
   }
   FamilyMember._() : super();
-  factory FamilyMember.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory FamilyMember.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory FamilyMember.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory FamilyMember.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'FamilyMember', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'FamilyMember',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'userId')
     ..aOS(3, _omitFieldNames ? '' : 'email')
-    ..e<FamilyRole>(4, _omitFieldNames ? '' : 'role', $pb.PbFieldType.OE, defaultOrMaker: FamilyRole.FAMILY_ROLE_UNSPECIFIED, valueOf: FamilyRole.valueOf, enumValues: FamilyRole.values)
-    ..aOM<MemberPermissions>(5, _omitFieldNames ? '' : 'permissions', subBuilder: MemberPermissions.create)
-    ..aOM<$1.Timestamp>(6, _omitFieldNames ? '' : 'joinedAt', subBuilder: $1.Timestamp.create)
-    ..hasRequiredFields = false
-  ;
+    ..e<FamilyRole>(4, _omitFieldNames ? '' : 'role', $pb.PbFieldType.OE,
+        defaultOrMaker: FamilyRole.FAMILY_ROLE_UNSPECIFIED,
+        valueOf: FamilyRole.valueOf,
+        enumValues: FamilyRole.values)
+    ..aOM<MemberPermissions>(5, _omitFieldNames ? '' : 'permissions',
+        subBuilder: MemberPermissions.create)
+    ..aOM<$1.Timestamp>(6, _omitFieldNames ? '' : 'joinedAt',
+        subBuilder: $1.Timestamp.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   FamilyMember clone() => FamilyMember()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  FamilyMember copyWith(void Function(FamilyMember) updates) => super.copyWith((message) => updates(message as FamilyMember)) as FamilyMember;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  FamilyMember copyWith(void Function(FamilyMember) updates) =>
+      super.copyWith((message) => updates(message as FamilyMember))
+          as FamilyMember;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static FamilyMember create() => FamilyMember._();
   FamilyMember createEmptyInstance() => create();
-  static $pb.PbList<FamilyMember> createRepeated() => $pb.PbList<FamilyMember>();
+  static $pb.PbList<FamilyMember> createRepeated() =>
+      $pb.PbList<FamilyMember>();
   @$core.pragma('dart2js:noInline')
-  static FamilyMember getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<FamilyMember>(create);
+  static FamilyMember getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<FamilyMember>(create);
   static FamilyMember? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
@@ -342,7 +414,10 @@ class FamilyMember extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get userId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set userId($core.String v) { $_setString(1, v); }
+  set userId($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasUserId() => $_has(1);
   @$pb.TagNumber(2)
@@ -351,7 +426,10 @@ class FamilyMember extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get email => $_getSZ(2);
   @$pb.TagNumber(3)
-  set email($core.String v) { $_setString(2, v); }
+  set email($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasEmail() => $_has(2);
   @$pb.TagNumber(3)
@@ -360,7 +438,10 @@ class FamilyMember extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   FamilyRole get role => $_getN(3);
   @$pb.TagNumber(4)
-  set role(FamilyRole v) { setField(4, v); }
+  set role(FamilyRole v) {
+    setField(4, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasRole() => $_has(3);
   @$pb.TagNumber(4)
@@ -369,7 +450,10 @@ class FamilyMember extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   MemberPermissions get permissions => $_getN(4);
   @$pb.TagNumber(5)
-  set permissions(MemberPermissions v) { setField(5, v); }
+  set permissions(MemberPermissions v) {
+    setField(5, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasPermissions() => $_has(4);
   @$pb.TagNumber(5)
@@ -380,7 +464,10 @@ class FamilyMember extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $1.Timestamp get joinedAt => $_getN(5);
   @$pb.TagNumber(6)
-  set joinedAt($1.Timestamp v) { setField(6, v); }
+  set joinedAt($1.Timestamp v) {
+    setField(6, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasJoinedAt() => $_has(5);
   @$pb.TagNumber(6)
@@ -401,39 +488,51 @@ class CreateFamilyRequest extends $pb.GeneratedMessage {
     return $result;
   }
   CreateFamilyRequest._() : super();
-  factory CreateFamilyRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory CreateFamilyRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory CreateFamilyRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory CreateFamilyRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateFamilyRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CreateFamilyRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'name')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   CreateFamilyRequest clone() => CreateFamilyRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  CreateFamilyRequest copyWith(void Function(CreateFamilyRequest) updates) => super.copyWith((message) => updates(message as CreateFamilyRequest)) as CreateFamilyRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  CreateFamilyRequest copyWith(void Function(CreateFamilyRequest) updates) =>
+      super.copyWith((message) => updates(message as CreateFamilyRequest))
+          as CreateFamilyRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static CreateFamilyRequest create() => CreateFamilyRequest._();
   CreateFamilyRequest createEmptyInstance() => create();
-  static $pb.PbList<CreateFamilyRequest> createRepeated() => $pb.PbList<CreateFamilyRequest>();
+  static $pb.PbList<CreateFamilyRequest> createRepeated() =>
+      $pb.PbList<CreateFamilyRequest>();
   @$core.pragma('dart2js:noInline')
-  static CreateFamilyRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateFamilyRequest>(create);
+  static CreateFamilyRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CreateFamilyRequest>(create);
   static CreateFamilyRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get name => $_getSZ(0);
   @$pb.TagNumber(1)
-  set name($core.String v) { $_setString(0, v); }
+  set name($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasName() => $_has(0);
   @$pb.TagNumber(1)
@@ -451,39 +550,52 @@ class CreateFamilyResponse extends $pb.GeneratedMessage {
     return $result;
   }
   CreateFamilyResponse._() : super();
-  factory CreateFamilyResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory CreateFamilyResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory CreateFamilyResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory CreateFamilyResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateFamilyResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CreateFamilyResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOM<Family>(1, _omitFieldNames ? '' : 'family', subBuilder: Family.create)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  CreateFamilyResponse clone() => CreateFamilyResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  CreateFamilyResponse copyWith(void Function(CreateFamilyResponse) updates) => super.copyWith((message) => updates(message as CreateFamilyResponse)) as CreateFamilyResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  CreateFamilyResponse clone() =>
+      CreateFamilyResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  CreateFamilyResponse copyWith(void Function(CreateFamilyResponse) updates) =>
+      super.copyWith((message) => updates(message as CreateFamilyResponse))
+          as CreateFamilyResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static CreateFamilyResponse create() => CreateFamilyResponse._();
   CreateFamilyResponse createEmptyInstance() => create();
-  static $pb.PbList<CreateFamilyResponse> createRepeated() => $pb.PbList<CreateFamilyResponse>();
+  static $pb.PbList<CreateFamilyResponse> createRepeated() =>
+      $pb.PbList<CreateFamilyResponse>();
   @$core.pragma('dart2js:noInline')
-  static CreateFamilyResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateFamilyResponse>(create);
+  static CreateFamilyResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CreateFamilyResponse>(create);
   static CreateFamilyResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   Family get family => $_getN(0);
   @$pb.TagNumber(1)
-  set family(Family v) { setField(1, v); }
+  set family(Family v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFamily() => $_has(0);
   @$pb.TagNumber(1)
@@ -504,39 +616,51 @@ class JoinFamilyRequest extends $pb.GeneratedMessage {
     return $result;
   }
   JoinFamilyRequest._() : super();
-  factory JoinFamilyRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory JoinFamilyRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory JoinFamilyRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory JoinFamilyRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'JoinFamilyRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'JoinFamilyRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'inviteCode')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   JoinFamilyRequest clone() => JoinFamilyRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  JoinFamilyRequest copyWith(void Function(JoinFamilyRequest) updates) => super.copyWith((message) => updates(message as JoinFamilyRequest)) as JoinFamilyRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  JoinFamilyRequest copyWith(void Function(JoinFamilyRequest) updates) =>
+      super.copyWith((message) => updates(message as JoinFamilyRequest))
+          as JoinFamilyRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static JoinFamilyRequest create() => JoinFamilyRequest._();
   JoinFamilyRequest createEmptyInstance() => create();
-  static $pb.PbList<JoinFamilyRequest> createRepeated() => $pb.PbList<JoinFamilyRequest>();
+  static $pb.PbList<JoinFamilyRequest> createRepeated() =>
+      $pb.PbList<JoinFamilyRequest>();
   @$core.pragma('dart2js:noInline')
-  static JoinFamilyRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<JoinFamilyRequest>(create);
+  static JoinFamilyRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<JoinFamilyRequest>(create);
   static JoinFamilyRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get inviteCode => $_getSZ(0);
   @$pb.TagNumber(1)
-  set inviteCode($core.String v) { $_setString(0, v); }
+  set inviteCode($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasInviteCode() => $_has(0);
   @$pb.TagNumber(1)
@@ -554,39 +678,51 @@ class JoinFamilyResponse extends $pb.GeneratedMessage {
     return $result;
   }
   JoinFamilyResponse._() : super();
-  factory JoinFamilyResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory JoinFamilyResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory JoinFamilyResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory JoinFamilyResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'JoinFamilyResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'JoinFamilyResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOM<Family>(1, _omitFieldNames ? '' : 'family', subBuilder: Family.create)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   JoinFamilyResponse clone() => JoinFamilyResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  JoinFamilyResponse copyWith(void Function(JoinFamilyResponse) updates) => super.copyWith((message) => updates(message as JoinFamilyResponse)) as JoinFamilyResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  JoinFamilyResponse copyWith(void Function(JoinFamilyResponse) updates) =>
+      super.copyWith((message) => updates(message as JoinFamilyResponse))
+          as JoinFamilyResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static JoinFamilyResponse create() => JoinFamilyResponse._();
   JoinFamilyResponse createEmptyInstance() => create();
-  static $pb.PbList<JoinFamilyResponse> createRepeated() => $pb.PbList<JoinFamilyResponse>();
+  static $pb.PbList<JoinFamilyResponse> createRepeated() =>
+      $pb.PbList<JoinFamilyResponse>();
   @$core.pragma('dart2js:noInline')
-  static JoinFamilyResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<JoinFamilyResponse>(create);
+  static JoinFamilyResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<JoinFamilyResponse>(create);
   static JoinFamilyResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   Family get family => $_getN(0);
   @$pb.TagNumber(1)
-  set family(Family v) { setField(1, v); }
+  set family(Family v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFamily() => $_has(0);
   @$pb.TagNumber(1)
@@ -607,39 +743,51 @@ class GetFamilyRequest extends $pb.GeneratedMessage {
     return $result;
   }
   GetFamilyRequest._() : super();
-  factory GetFamilyRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetFamilyRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetFamilyRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GetFamilyRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetFamilyRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetFamilyRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'familyId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   GetFamilyRequest clone() => GetFamilyRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetFamilyRequest copyWith(void Function(GetFamilyRequest) updates) => super.copyWith((message) => updates(message as GetFamilyRequest)) as GetFamilyRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GetFamilyRequest copyWith(void Function(GetFamilyRequest) updates) =>
+      super.copyWith((message) => updates(message as GetFamilyRequest))
+          as GetFamilyRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static GetFamilyRequest create() => GetFamilyRequest._();
   GetFamilyRequest createEmptyInstance() => create();
-  static $pb.PbList<GetFamilyRequest> createRepeated() => $pb.PbList<GetFamilyRequest>();
+  static $pb.PbList<GetFamilyRequest> createRepeated() =>
+      $pb.PbList<GetFamilyRequest>();
   @$core.pragma('dart2js:noInline')
-  static GetFamilyRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetFamilyRequest>(create);
+  static GetFamilyRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetFamilyRequest>(create);
   static GetFamilyRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get familyId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set familyId($core.String v) { $_setString(0, v); }
+  set familyId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFamilyId() => $_has(0);
   @$pb.TagNumber(1)
@@ -661,40 +809,53 @@ class GetFamilyResponse extends $pb.GeneratedMessage {
     return $result;
   }
   GetFamilyResponse._() : super();
-  factory GetFamilyResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetFamilyResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetFamilyResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GetFamilyResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetFamilyResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetFamilyResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOM<Family>(1, _omitFieldNames ? '' : 'family', subBuilder: Family.create)
-    ..pc<FamilyMember>(2, _omitFieldNames ? '' : 'members', $pb.PbFieldType.PM, subBuilder: FamilyMember.create)
-    ..hasRequiredFields = false
-  ;
+    ..pc<FamilyMember>(2, _omitFieldNames ? '' : 'members', $pb.PbFieldType.PM,
+        subBuilder: FamilyMember.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   GetFamilyResponse clone() => GetFamilyResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetFamilyResponse copyWith(void Function(GetFamilyResponse) updates) => super.copyWith((message) => updates(message as GetFamilyResponse)) as GetFamilyResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GetFamilyResponse copyWith(void Function(GetFamilyResponse) updates) =>
+      super.copyWith((message) => updates(message as GetFamilyResponse))
+          as GetFamilyResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static GetFamilyResponse create() => GetFamilyResponse._();
   GetFamilyResponse createEmptyInstance() => create();
-  static $pb.PbList<GetFamilyResponse> createRepeated() => $pb.PbList<GetFamilyResponse>();
+  static $pb.PbList<GetFamilyResponse> createRepeated() =>
+      $pb.PbList<GetFamilyResponse>();
   @$core.pragma('dart2js:noInline')
-  static GetFamilyResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetFamilyResponse>(create);
+  static GetFamilyResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetFamilyResponse>(create);
   static GetFamilyResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   Family get family => $_getN(0);
   @$pb.TagNumber(1)
-  set family(Family v) { setField(1, v); }
+  set family(Family v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFamily() => $_has(0);
   @$pb.TagNumber(1)
@@ -718,39 +879,53 @@ class GenerateInviteCodeRequest extends $pb.GeneratedMessage {
     return $result;
   }
   GenerateInviteCodeRequest._() : super();
-  factory GenerateInviteCodeRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GenerateInviteCodeRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GenerateInviteCodeRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GenerateInviteCodeRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GenerateInviteCodeRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GenerateInviteCodeRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'familyId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GenerateInviteCodeRequest clone() => GenerateInviteCodeRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GenerateInviteCodeRequest copyWith(void Function(GenerateInviteCodeRequest) updates) => super.copyWith((message) => updates(message as GenerateInviteCodeRequest)) as GenerateInviteCodeRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  GenerateInviteCodeRequest clone() =>
+      GenerateInviteCodeRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GenerateInviteCodeRequest copyWith(
+          void Function(GenerateInviteCodeRequest) updates) =>
+      super.copyWith((message) => updates(message as GenerateInviteCodeRequest))
+          as GenerateInviteCodeRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static GenerateInviteCodeRequest create() => GenerateInviteCodeRequest._();
   GenerateInviteCodeRequest createEmptyInstance() => create();
-  static $pb.PbList<GenerateInviteCodeRequest> createRepeated() => $pb.PbList<GenerateInviteCodeRequest>();
+  static $pb.PbList<GenerateInviteCodeRequest> createRepeated() =>
+      $pb.PbList<GenerateInviteCodeRequest>();
   @$core.pragma('dart2js:noInline')
-  static GenerateInviteCodeRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GenerateInviteCodeRequest>(create);
+  static GenerateInviteCodeRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GenerateInviteCodeRequest>(create);
   static GenerateInviteCodeRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get familyId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set familyId($core.String v) { $_setString(0, v); }
+  set familyId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFamilyId() => $_has(0);
   @$pb.TagNumber(1)
@@ -772,40 +947,56 @@ class GenerateInviteCodeResponse extends $pb.GeneratedMessage {
     return $result;
   }
   GenerateInviteCodeResponse._() : super();
-  factory GenerateInviteCodeResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GenerateInviteCodeResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GenerateInviteCodeResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GenerateInviteCodeResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GenerateInviteCodeResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GenerateInviteCodeResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'inviteCode')
-    ..aOM<$1.Timestamp>(2, _omitFieldNames ? '' : 'expiresAt', subBuilder: $1.Timestamp.create)
-    ..hasRequiredFields = false
-  ;
+    ..aOM<$1.Timestamp>(2, _omitFieldNames ? '' : 'expiresAt',
+        subBuilder: $1.Timestamp.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GenerateInviteCodeResponse clone() => GenerateInviteCodeResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GenerateInviteCodeResponse copyWith(void Function(GenerateInviteCodeResponse) updates) => super.copyWith((message) => updates(message as GenerateInviteCodeResponse)) as GenerateInviteCodeResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  GenerateInviteCodeResponse clone() =>
+      GenerateInviteCodeResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GenerateInviteCodeResponse copyWith(
+          void Function(GenerateInviteCodeResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as GenerateInviteCodeResponse))
+          as GenerateInviteCodeResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static GenerateInviteCodeResponse create() => GenerateInviteCodeResponse._();
   GenerateInviteCodeResponse createEmptyInstance() => create();
-  static $pb.PbList<GenerateInviteCodeResponse> createRepeated() => $pb.PbList<GenerateInviteCodeResponse>();
+  static $pb.PbList<GenerateInviteCodeResponse> createRepeated() =>
+      $pb.PbList<GenerateInviteCodeResponse>();
   @$core.pragma('dart2js:noInline')
-  static GenerateInviteCodeResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GenerateInviteCodeResponse>(create);
+  static GenerateInviteCodeResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GenerateInviteCodeResponse>(create);
   static GenerateInviteCodeResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get inviteCode => $_getSZ(0);
   @$pb.TagNumber(1)
-  set inviteCode($core.String v) { $_setString(0, v); }
+  set inviteCode($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasInviteCode() => $_has(0);
   @$pb.TagNumber(1)
@@ -814,7 +1005,10 @@ class GenerateInviteCodeResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $1.Timestamp get expiresAt => $_getN(1);
   @$pb.TagNumber(2)
-  set expiresAt($1.Timestamp v) { setField(2, v); }
+  set expiresAt($1.Timestamp v) {
+    setField(2, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasExpiresAt() => $_has(1);
   @$pb.TagNumber(2)
@@ -843,41 +1037,57 @@ class SetMemberRoleRequest extends $pb.GeneratedMessage {
     return $result;
   }
   SetMemberRoleRequest._() : super();
-  factory SetMemberRoleRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SetMemberRoleRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory SetMemberRoleRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory SetMemberRoleRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetMemberRoleRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetMemberRoleRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'familyId')
     ..aOS(2, _omitFieldNames ? '' : 'userId')
-    ..e<FamilyRole>(3, _omitFieldNames ? '' : 'role', $pb.PbFieldType.OE, defaultOrMaker: FamilyRole.FAMILY_ROLE_UNSPECIFIED, valueOf: FamilyRole.valueOf, enumValues: FamilyRole.values)
-    ..hasRequiredFields = false
-  ;
+    ..e<FamilyRole>(3, _omitFieldNames ? '' : 'role', $pb.PbFieldType.OE,
+        defaultOrMaker: FamilyRole.FAMILY_ROLE_UNSPECIFIED,
+        valueOf: FamilyRole.valueOf,
+        enumValues: FamilyRole.values)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  SetMemberRoleRequest clone() => SetMemberRoleRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  SetMemberRoleRequest copyWith(void Function(SetMemberRoleRequest) updates) => super.copyWith((message) => updates(message as SetMemberRoleRequest)) as SetMemberRoleRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  SetMemberRoleRequest clone() =>
+      SetMemberRoleRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  SetMemberRoleRequest copyWith(void Function(SetMemberRoleRequest) updates) =>
+      super.copyWith((message) => updates(message as SetMemberRoleRequest))
+          as SetMemberRoleRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static SetMemberRoleRequest create() => SetMemberRoleRequest._();
   SetMemberRoleRequest createEmptyInstance() => create();
-  static $pb.PbList<SetMemberRoleRequest> createRepeated() => $pb.PbList<SetMemberRoleRequest>();
+  static $pb.PbList<SetMemberRoleRequest> createRepeated() =>
+      $pb.PbList<SetMemberRoleRequest>();
   @$core.pragma('dart2js:noInline')
-  static SetMemberRoleRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetMemberRoleRequest>(create);
+  static SetMemberRoleRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetMemberRoleRequest>(create);
   static SetMemberRoleRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get familyId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set familyId($core.String v) { $_setString(0, v); }
+  set familyId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFamilyId() => $_has(0);
   @$pb.TagNumber(1)
@@ -886,7 +1096,10 @@ class SetMemberRoleRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get userId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set userId($core.String v) { $_setString(1, v); }
+  set userId($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasUserId() => $_has(1);
   @$pb.TagNumber(2)
@@ -895,7 +1108,10 @@ class SetMemberRoleRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   FamilyRole get role => $_getN(2);
   @$pb.TagNumber(3)
-  set role(FamilyRole v) { setField(3, v); }
+  set role(FamilyRole v) {
+    setField(3, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasRole() => $_has(2);
   @$pb.TagNumber(3)
@@ -905,32 +1121,43 @@ class SetMemberRoleRequest extends $pb.GeneratedMessage {
 class SetMemberRoleResponse extends $pb.GeneratedMessage {
   factory SetMemberRoleResponse() => create();
   SetMemberRoleResponse._() : super();
-  factory SetMemberRoleResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SetMemberRoleResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory SetMemberRoleResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory SetMemberRoleResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetMemberRoleResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetMemberRoleResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  SetMemberRoleResponse clone() => SetMemberRoleResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  SetMemberRoleResponse copyWith(void Function(SetMemberRoleResponse) updates) => super.copyWith((message) => updates(message as SetMemberRoleResponse)) as SetMemberRoleResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  SetMemberRoleResponse clone() =>
+      SetMemberRoleResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  SetMemberRoleResponse copyWith(
+          void Function(SetMemberRoleResponse) updates) =>
+      super.copyWith((message) => updates(message as SetMemberRoleResponse))
+          as SetMemberRoleResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static SetMemberRoleResponse create() => SetMemberRoleResponse._();
   SetMemberRoleResponse createEmptyInstance() => create();
-  static $pb.PbList<SetMemberRoleResponse> createRepeated() => $pb.PbList<SetMemberRoleResponse>();
+  static $pb.PbList<SetMemberRoleResponse> createRepeated() =>
+      $pb.PbList<SetMemberRoleResponse>();
   @$core.pragma('dart2js:noInline')
-  static SetMemberRoleResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetMemberRoleResponse>(create);
+  static SetMemberRoleResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetMemberRoleResponse>(create);
   static SetMemberRoleResponse? _defaultInstance;
 }
 
@@ -954,41 +1181,58 @@ class SetMemberPermissionsRequest extends $pb.GeneratedMessage {
     return $result;
   }
   SetMemberPermissionsRequest._() : super();
-  factory SetMemberPermissionsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SetMemberPermissionsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory SetMemberPermissionsRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory SetMemberPermissionsRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetMemberPermissionsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetMemberPermissionsRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'familyId')
     ..aOS(2, _omitFieldNames ? '' : 'userId')
-    ..aOM<MemberPermissions>(3, _omitFieldNames ? '' : 'permissions', subBuilder: MemberPermissions.create)
-    ..hasRequiredFields = false
-  ;
+    ..aOM<MemberPermissions>(3, _omitFieldNames ? '' : 'permissions',
+        subBuilder: MemberPermissions.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  SetMemberPermissionsRequest clone() => SetMemberPermissionsRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  SetMemberPermissionsRequest copyWith(void Function(SetMemberPermissionsRequest) updates) => super.copyWith((message) => updates(message as SetMemberPermissionsRequest)) as SetMemberPermissionsRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  SetMemberPermissionsRequest clone() =>
+      SetMemberPermissionsRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  SetMemberPermissionsRequest copyWith(
+          void Function(SetMemberPermissionsRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as SetMemberPermissionsRequest))
+          as SetMemberPermissionsRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static SetMemberPermissionsRequest create() => SetMemberPermissionsRequest._();
+  static SetMemberPermissionsRequest create() =>
+      SetMemberPermissionsRequest._();
   SetMemberPermissionsRequest createEmptyInstance() => create();
-  static $pb.PbList<SetMemberPermissionsRequest> createRepeated() => $pb.PbList<SetMemberPermissionsRequest>();
+  static $pb.PbList<SetMemberPermissionsRequest> createRepeated() =>
+      $pb.PbList<SetMemberPermissionsRequest>();
   @$core.pragma('dart2js:noInline')
-  static SetMemberPermissionsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetMemberPermissionsRequest>(create);
+  static SetMemberPermissionsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetMemberPermissionsRequest>(create);
   static SetMemberPermissionsRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get familyId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set familyId($core.String v) { $_setString(0, v); }
+  set familyId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFamilyId() => $_has(0);
   @$pb.TagNumber(1)
@@ -997,7 +1241,10 @@ class SetMemberPermissionsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get userId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set userId($core.String v) { $_setString(1, v); }
+  set userId($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasUserId() => $_has(1);
   @$pb.TagNumber(2)
@@ -1006,7 +1253,10 @@ class SetMemberPermissionsRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   MemberPermissions get permissions => $_getN(2);
   @$pb.TagNumber(3)
-  set permissions(MemberPermissions v) { setField(3, v); }
+  set permissions(MemberPermissions v) {
+    setField(3, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasPermissions() => $_has(2);
   @$pb.TagNumber(3)
@@ -1018,32 +1268,45 @@ class SetMemberPermissionsRequest extends $pb.GeneratedMessage {
 class SetMemberPermissionsResponse extends $pb.GeneratedMessage {
   factory SetMemberPermissionsResponse() => create();
   SetMemberPermissionsResponse._() : super();
-  factory SetMemberPermissionsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SetMemberPermissionsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory SetMemberPermissionsResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory SetMemberPermissionsResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SetMemberPermissionsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetMemberPermissionsResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  SetMemberPermissionsResponse clone() => SetMemberPermissionsResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  SetMemberPermissionsResponse copyWith(void Function(SetMemberPermissionsResponse) updates) => super.copyWith((message) => updates(message as SetMemberPermissionsResponse)) as SetMemberPermissionsResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  SetMemberPermissionsResponse clone() =>
+      SetMemberPermissionsResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  SetMemberPermissionsResponse copyWith(
+          void Function(SetMemberPermissionsResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as SetMemberPermissionsResponse))
+          as SetMemberPermissionsResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static SetMemberPermissionsResponse create() => SetMemberPermissionsResponse._();
+  static SetMemberPermissionsResponse create() =>
+      SetMemberPermissionsResponse._();
   SetMemberPermissionsResponse createEmptyInstance() => create();
-  static $pb.PbList<SetMemberPermissionsResponse> createRepeated() => $pb.PbList<SetMemberPermissionsResponse>();
+  static $pb.PbList<SetMemberPermissionsResponse> createRepeated() =>
+      $pb.PbList<SetMemberPermissionsResponse>();
   @$core.pragma('dart2js:noInline')
-  static SetMemberPermissionsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SetMemberPermissionsResponse>(create);
+  static SetMemberPermissionsResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetMemberPermissionsResponse>(create);
   static SetMemberPermissionsResponse? _defaultInstance;
 }
 
@@ -1059,39 +1322,53 @@ class ListFamilyMembersRequest extends $pb.GeneratedMessage {
     return $result;
   }
   ListFamilyMembersRequest._() : super();
-  factory ListFamilyMembersRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListFamilyMembersRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ListFamilyMembersRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ListFamilyMembersRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListFamilyMembersRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListFamilyMembersRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'familyId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ListFamilyMembersRequest clone() => ListFamilyMembersRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListFamilyMembersRequest copyWith(void Function(ListFamilyMembersRequest) updates) => super.copyWith((message) => updates(message as ListFamilyMembersRequest)) as ListFamilyMembersRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ListFamilyMembersRequest clone() =>
+      ListFamilyMembersRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ListFamilyMembersRequest copyWith(
+          void Function(ListFamilyMembersRequest) updates) =>
+      super.copyWith((message) => updates(message as ListFamilyMembersRequest))
+          as ListFamilyMembersRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ListFamilyMembersRequest create() => ListFamilyMembersRequest._();
   ListFamilyMembersRequest createEmptyInstance() => create();
-  static $pb.PbList<ListFamilyMembersRequest> createRepeated() => $pb.PbList<ListFamilyMembersRequest>();
+  static $pb.PbList<ListFamilyMembersRequest> createRepeated() =>
+      $pb.PbList<ListFamilyMembersRequest>();
   @$core.pragma('dart2js:noInline')
-  static ListFamilyMembersRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListFamilyMembersRequest>(create);
+  static ListFamilyMembersRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListFamilyMembersRequest>(create);
   static ListFamilyMembersRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get familyId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set familyId($core.String v) { $_setString(0, v); }
+  set familyId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFamilyId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1109,33 +1386,45 @@ class ListFamilyMembersResponse extends $pb.GeneratedMessage {
     return $result;
   }
   ListFamilyMembersResponse._() : super();
-  factory ListFamilyMembersResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListFamilyMembersResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ListFamilyMembersResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ListFamilyMembersResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListFamilyMembersResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
-    ..pc<FamilyMember>(1, _omitFieldNames ? '' : 'members', $pb.PbFieldType.PM, subBuilder: FamilyMember.create)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListFamilyMembersResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
+    ..pc<FamilyMember>(1, _omitFieldNames ? '' : 'members', $pb.PbFieldType.PM,
+        subBuilder: FamilyMember.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ListFamilyMembersResponse clone() => ListFamilyMembersResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListFamilyMembersResponse copyWith(void Function(ListFamilyMembersResponse) updates) => super.copyWith((message) => updates(message as ListFamilyMembersResponse)) as ListFamilyMembersResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ListFamilyMembersResponse clone() =>
+      ListFamilyMembersResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ListFamilyMembersResponse copyWith(
+          void Function(ListFamilyMembersResponse) updates) =>
+      super.copyWith((message) => updates(message as ListFamilyMembersResponse))
+          as ListFamilyMembersResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ListFamilyMembersResponse create() => ListFamilyMembersResponse._();
   ListFamilyMembersResponse createEmptyInstance() => create();
-  static $pb.PbList<ListFamilyMembersResponse> createRepeated() => $pb.PbList<ListFamilyMembersResponse>();
+  static $pb.PbList<ListFamilyMembersResponse> createRepeated() =>
+      $pb.PbList<ListFamilyMembersResponse>();
   @$core.pragma('dart2js:noInline')
-  static ListFamilyMembersResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListFamilyMembersResponse>(create);
+  static ListFamilyMembersResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListFamilyMembersResponse>(create);
   static ListFamilyMembersResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -1154,39 +1443,51 @@ class LeaveFamilyRequest extends $pb.GeneratedMessage {
     return $result;
   }
   LeaveFamilyRequest._() : super();
-  factory LeaveFamilyRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory LeaveFamilyRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory LeaveFamilyRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory LeaveFamilyRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'LeaveFamilyRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LeaveFamilyRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'familyId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   LeaveFamilyRequest clone() => LeaveFamilyRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  LeaveFamilyRequest copyWith(void Function(LeaveFamilyRequest) updates) => super.copyWith((message) => updates(message as LeaveFamilyRequest)) as LeaveFamilyRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  LeaveFamilyRequest copyWith(void Function(LeaveFamilyRequest) updates) =>
+      super.copyWith((message) => updates(message as LeaveFamilyRequest))
+          as LeaveFamilyRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static LeaveFamilyRequest create() => LeaveFamilyRequest._();
   LeaveFamilyRequest createEmptyInstance() => create();
-  static $pb.PbList<LeaveFamilyRequest> createRepeated() => $pb.PbList<LeaveFamilyRequest>();
+  static $pb.PbList<LeaveFamilyRequest> createRepeated() =>
+      $pb.PbList<LeaveFamilyRequest>();
   @$core.pragma('dart2js:noInline')
-  static LeaveFamilyRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<LeaveFamilyRequest>(create);
+  static LeaveFamilyRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LeaveFamilyRequest>(create);
   static LeaveFamilyRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get familyId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set familyId($core.String v) { $_setString(0, v); }
+  set familyId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFamilyId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1196,32 +1497,41 @@ class LeaveFamilyRequest extends $pb.GeneratedMessage {
 class LeaveFamilyResponse extends $pb.GeneratedMessage {
   factory LeaveFamilyResponse() => create();
   LeaveFamilyResponse._() : super();
-  factory LeaveFamilyResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory LeaveFamilyResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory LeaveFamilyResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory LeaveFamilyResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'LeaveFamilyResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LeaveFamilyResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   LeaveFamilyResponse clone() => LeaveFamilyResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  LeaveFamilyResponse copyWith(void Function(LeaveFamilyResponse) updates) => super.copyWith((message) => updates(message as LeaveFamilyResponse)) as LeaveFamilyResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  LeaveFamilyResponse copyWith(void Function(LeaveFamilyResponse) updates) =>
+      super.copyWith((message) => updates(message as LeaveFamilyResponse))
+          as LeaveFamilyResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static LeaveFamilyResponse create() => LeaveFamilyResponse._();
   LeaveFamilyResponse createEmptyInstance() => create();
-  static $pb.PbList<LeaveFamilyResponse> createRepeated() => $pb.PbList<LeaveFamilyResponse>();
+  static $pb.PbList<LeaveFamilyResponse> createRepeated() =>
+      $pb.PbList<LeaveFamilyResponse>();
   @$core.pragma('dart2js:noInline')
-  static LeaveFamilyResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<LeaveFamilyResponse>(create);
+  static LeaveFamilyResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LeaveFamilyResponse>(create);
   static LeaveFamilyResponse? _defaultInstance;
 }
 
@@ -1241,40 +1551,54 @@ class TransferOwnershipRequest extends $pb.GeneratedMessage {
     return $result;
   }
   TransferOwnershipRequest._() : super();
-  factory TransferOwnershipRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory TransferOwnershipRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory TransferOwnershipRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory TransferOwnershipRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TransferOwnershipRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'TransferOwnershipRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'familyId')
     ..aOS(2, _omitFieldNames ? '' : 'newOwnerId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  TransferOwnershipRequest clone() => TransferOwnershipRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  TransferOwnershipRequest copyWith(void Function(TransferOwnershipRequest) updates) => super.copyWith((message) => updates(message as TransferOwnershipRequest)) as TransferOwnershipRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  TransferOwnershipRequest clone() =>
+      TransferOwnershipRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  TransferOwnershipRequest copyWith(
+          void Function(TransferOwnershipRequest) updates) =>
+      super.copyWith((message) => updates(message as TransferOwnershipRequest))
+          as TransferOwnershipRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static TransferOwnershipRequest create() => TransferOwnershipRequest._();
   TransferOwnershipRequest createEmptyInstance() => create();
-  static $pb.PbList<TransferOwnershipRequest> createRepeated() => $pb.PbList<TransferOwnershipRequest>();
+  static $pb.PbList<TransferOwnershipRequest> createRepeated() =>
+      $pb.PbList<TransferOwnershipRequest>();
   @$core.pragma('dart2js:noInline')
-  static TransferOwnershipRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TransferOwnershipRequest>(create);
+  static TransferOwnershipRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TransferOwnershipRequest>(create);
   static TransferOwnershipRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get familyId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set familyId($core.String v) { $_setString(0, v); }
+  set familyId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFamilyId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1283,7 +1607,10 @@ class TransferOwnershipRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get newOwnerId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set newOwnerId($core.String v) { $_setString(1, v); }
+  set newOwnerId($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasNewOwnerId() => $_has(1);
   @$pb.TagNumber(2)
@@ -1293,32 +1620,43 @@ class TransferOwnershipRequest extends $pb.GeneratedMessage {
 class TransferOwnershipResponse extends $pb.GeneratedMessage {
   factory TransferOwnershipResponse() => create();
   TransferOwnershipResponse._() : super();
-  factory TransferOwnershipResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory TransferOwnershipResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory TransferOwnershipResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory TransferOwnershipResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'TransferOwnershipResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'TransferOwnershipResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  TransferOwnershipResponse clone() => TransferOwnershipResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  TransferOwnershipResponse copyWith(void Function(TransferOwnershipResponse) updates) => super.copyWith((message) => updates(message as TransferOwnershipResponse)) as TransferOwnershipResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  TransferOwnershipResponse clone() =>
+      TransferOwnershipResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  TransferOwnershipResponse copyWith(
+          void Function(TransferOwnershipResponse) updates) =>
+      super.copyWith((message) => updates(message as TransferOwnershipResponse))
+          as TransferOwnershipResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static TransferOwnershipResponse create() => TransferOwnershipResponse._();
   TransferOwnershipResponse createEmptyInstance() => create();
-  static $pb.PbList<TransferOwnershipResponse> createRepeated() => $pb.PbList<TransferOwnershipResponse>();
+  static $pb.PbList<TransferOwnershipResponse> createRepeated() =>
+      $pb.PbList<TransferOwnershipResponse>();
   @$core.pragma('dart2js:noInline')
-  static TransferOwnershipResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<TransferOwnershipResponse>(create);
+  static TransferOwnershipResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TransferOwnershipResponse>(create);
   static TransferOwnershipResponse? _defaultInstance;
 }
 
@@ -1334,39 +1672,51 @@ class DeleteFamilyRequest extends $pb.GeneratedMessage {
     return $result;
   }
   DeleteFamilyRequest._() : super();
-  factory DeleteFamilyRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory DeleteFamilyRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory DeleteFamilyRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory DeleteFamilyRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeleteFamilyRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeleteFamilyRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'familyId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   DeleteFamilyRequest clone() => DeleteFamilyRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  DeleteFamilyRequest copyWith(void Function(DeleteFamilyRequest) updates) => super.copyWith((message) => updates(message as DeleteFamilyRequest)) as DeleteFamilyRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  DeleteFamilyRequest copyWith(void Function(DeleteFamilyRequest) updates) =>
+      super.copyWith((message) => updates(message as DeleteFamilyRequest))
+          as DeleteFamilyRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static DeleteFamilyRequest create() => DeleteFamilyRequest._();
   DeleteFamilyRequest createEmptyInstance() => create();
-  static $pb.PbList<DeleteFamilyRequest> createRepeated() => $pb.PbList<DeleteFamilyRequest>();
+  static $pb.PbList<DeleteFamilyRequest> createRepeated() =>
+      $pb.PbList<DeleteFamilyRequest>();
   @$core.pragma('dart2js:noInline')
-  static DeleteFamilyRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteFamilyRequest>(create);
+  static DeleteFamilyRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeleteFamilyRequest>(create);
   static DeleteFamilyRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get familyId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set familyId($core.String v) { $_setString(0, v); }
+  set familyId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFamilyId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1376,32 +1726,42 @@ class DeleteFamilyRequest extends $pb.GeneratedMessage {
 class DeleteFamilyResponse extends $pb.GeneratedMessage {
   factory DeleteFamilyResponse() => create();
   DeleteFamilyResponse._() : super();
-  factory DeleteFamilyResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory DeleteFamilyResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory DeleteFamilyResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory DeleteFamilyResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeleteFamilyResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeleteFamilyResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  DeleteFamilyResponse clone() => DeleteFamilyResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  DeleteFamilyResponse copyWith(void Function(DeleteFamilyResponse) updates) => super.copyWith((message) => updates(message as DeleteFamilyResponse)) as DeleteFamilyResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  DeleteFamilyResponse clone() =>
+      DeleteFamilyResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  DeleteFamilyResponse copyWith(void Function(DeleteFamilyResponse) updates) =>
+      super.copyWith((message) => updates(message as DeleteFamilyResponse))
+          as DeleteFamilyResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static DeleteFamilyResponse create() => DeleteFamilyResponse._();
   DeleteFamilyResponse createEmptyInstance() => create();
-  static $pb.PbList<DeleteFamilyResponse> createRepeated() => $pb.PbList<DeleteFamilyResponse>();
+  static $pb.PbList<DeleteFamilyResponse> createRepeated() =>
+      $pb.PbList<DeleteFamilyResponse>();
   @$core.pragma('dart2js:noInline')
-  static DeleteFamilyResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteFamilyResponse>(create);
+  static DeleteFamilyResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeleteFamilyResponse>(create);
   static DeleteFamilyResponse? _defaultInstance;
 }
 
@@ -1429,42 +1789,54 @@ class GetAuditLogRequest extends $pb.GeneratedMessage {
     return $result;
   }
   GetAuditLogRequest._() : super();
-  factory GetAuditLogRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetAuditLogRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetAuditLogRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GetAuditLogRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetAuditLogRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetAuditLogRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'familyId')
     ..a<$core.int>(2, _omitFieldNames ? '' : 'pageSize', $pb.PbFieldType.O3)
     ..aOS(3, _omitFieldNames ? '' : 'pageToken')
     ..aOS(4, _omitFieldNames ? '' : 'entityType')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   GetAuditLogRequest clone() => GetAuditLogRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetAuditLogRequest copyWith(void Function(GetAuditLogRequest) updates) => super.copyWith((message) => updates(message as GetAuditLogRequest)) as GetAuditLogRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GetAuditLogRequest copyWith(void Function(GetAuditLogRequest) updates) =>
+      super.copyWith((message) => updates(message as GetAuditLogRequest))
+          as GetAuditLogRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static GetAuditLogRequest create() => GetAuditLogRequest._();
   GetAuditLogRequest createEmptyInstance() => create();
-  static $pb.PbList<GetAuditLogRequest> createRepeated() => $pb.PbList<GetAuditLogRequest>();
+  static $pb.PbList<GetAuditLogRequest> createRepeated() =>
+      $pb.PbList<GetAuditLogRequest>();
   @$core.pragma('dart2js:noInline')
-  static GetAuditLogRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetAuditLogRequest>(create);
+  static GetAuditLogRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetAuditLogRequest>(create);
   static GetAuditLogRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get familyId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set familyId($core.String v) { $_setString(0, v); }
+  set familyId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFamilyId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1473,7 +1845,10 @@ class GetAuditLogRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.int get pageSize => $_getIZ(1);
   @$pb.TagNumber(2)
-  set pageSize($core.int v) { $_setSignedInt32(1, v); }
+  set pageSize($core.int v) {
+    $_setSignedInt32(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasPageSize() => $_has(1);
   @$pb.TagNumber(2)
@@ -1482,7 +1857,10 @@ class GetAuditLogRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get pageToken => $_getSZ(2);
   @$pb.TagNumber(3)
-  set pageToken($core.String v) { $_setString(2, v); }
+  set pageToken($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasPageToken() => $_has(2);
   @$pb.TagNumber(3)
@@ -1491,7 +1869,10 @@ class GetAuditLogRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.String get entityType => $_getSZ(3);
   @$pb.TagNumber(4)
-  set entityType($core.String v) { $_setString(3, v); }
+  set entityType($core.String v) {
+    $_setString(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasEntityType() => $_has(3);
   @$pb.TagNumber(4)
@@ -1513,34 +1894,44 @@ class GetAuditLogResponse extends $pb.GeneratedMessage {
     return $result;
   }
   GetAuditLogResponse._() : super();
-  factory GetAuditLogResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetAuditLogResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetAuditLogResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GetAuditLogResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetAuditLogResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
-    ..pc<AuditEntry>(1, _omitFieldNames ? '' : 'entries', $pb.PbFieldType.PM, subBuilder: AuditEntry.create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetAuditLogResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
+    ..pc<AuditEntry>(1, _omitFieldNames ? '' : 'entries', $pb.PbFieldType.PM,
+        subBuilder: AuditEntry.create)
     ..aOS(2, _omitFieldNames ? '' : 'nextPageToken')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   GetAuditLogResponse clone() => GetAuditLogResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetAuditLogResponse copyWith(void Function(GetAuditLogResponse) updates) => super.copyWith((message) => updates(message as GetAuditLogResponse)) as GetAuditLogResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GetAuditLogResponse copyWith(void Function(GetAuditLogResponse) updates) =>
+      super.copyWith((message) => updates(message as GetAuditLogResponse))
+          as GetAuditLogResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static GetAuditLogResponse create() => GetAuditLogResponse._();
   GetAuditLogResponse createEmptyInstance() => create();
-  static $pb.PbList<GetAuditLogResponse> createRepeated() => $pb.PbList<GetAuditLogResponse>();
+  static $pb.PbList<GetAuditLogResponse> createRepeated() =>
+      $pb.PbList<GetAuditLogResponse>();
   @$core.pragma('dart2js:noInline')
-  static GetAuditLogResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetAuditLogResponse>(create);
+  static GetAuditLogResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetAuditLogResponse>(create);
   static GetAuditLogResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -1549,7 +1940,10 @@ class GetAuditLogResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get nextPageToken => $_getSZ(1);
   @$pb.TagNumber(2)
-  set nextPageToken($core.String v) { $_setString(1, v); }
+  set nextPageToken($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasNextPageToken() => $_has(1);
   @$pb.TagNumber(2)
@@ -1595,10 +1989,18 @@ class AuditEntry extends $pb.GeneratedMessage {
     return $result;
   }
   AuditEntry._() : super();
-  factory AuditEntry.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory AuditEntry.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory AuditEntry.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory AuditEntry.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'AuditEntry', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AuditEntry',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'userId')
     ..aOS(3, _omitFieldNames ? '' : 'userName')
@@ -1607,19 +2009,17 @@ class AuditEntry extends $pb.GeneratedMessage {
     ..aOS(6, _omitFieldNames ? '' : 'entityId')
     ..aOS(7, _omitFieldNames ? '' : 'changesJson')
     ..aInt64(8, _omitFieldNames ? '' : 'createdAt')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   AuditEntry clone() => AuditEntry()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  AuditEntry copyWith(void Function(AuditEntry) updates) => super.copyWith((message) => updates(message as AuditEntry)) as AuditEntry;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  AuditEntry copyWith(void Function(AuditEntry) updates) =>
+      super.copyWith((message) => updates(message as AuditEntry)) as AuditEntry;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1628,13 +2028,17 @@ class AuditEntry extends $pb.GeneratedMessage {
   AuditEntry createEmptyInstance() => create();
   static $pb.PbList<AuditEntry> createRepeated() => $pb.PbList<AuditEntry>();
   @$core.pragma('dart2js:noInline')
-  static AuditEntry getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<AuditEntry>(create);
+  static AuditEntry getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AuditEntry>(create);
   static AuditEntry? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1643,7 +2047,10 @@ class AuditEntry extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get userId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set userId($core.String v) { $_setString(1, v); }
+  set userId($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasUserId() => $_has(1);
   @$pb.TagNumber(2)
@@ -1652,7 +2059,10 @@ class AuditEntry extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get userName => $_getSZ(2);
   @$pb.TagNumber(3)
-  set userName($core.String v) { $_setString(2, v); }
+  set userName($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasUserName() => $_has(2);
   @$pb.TagNumber(3)
@@ -1661,7 +2071,10 @@ class AuditEntry extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.String get action => $_getSZ(3);
   @$pb.TagNumber(4)
-  set action($core.String v) { $_setString(3, v); }
+  set action($core.String v) {
+    $_setString(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasAction() => $_has(3);
   @$pb.TagNumber(4)
@@ -1670,7 +2083,10 @@ class AuditEntry extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.String get entityType => $_getSZ(4);
   @$pb.TagNumber(5)
-  set entityType($core.String v) { $_setString(4, v); }
+  set entityType($core.String v) {
+    $_setString(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasEntityType() => $_has(4);
   @$pb.TagNumber(5)
@@ -1679,7 +2095,10 @@ class AuditEntry extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.String get entityId => $_getSZ(5);
   @$pb.TagNumber(6)
-  set entityId($core.String v) { $_setString(5, v); }
+  set entityId($core.String v) {
+    $_setString(5, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasEntityId() => $_has(5);
   @$pb.TagNumber(6)
@@ -1688,7 +2107,10 @@ class AuditEntry extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $core.String get changesJson => $_getSZ(6);
   @$pb.TagNumber(7)
-  set changesJson($core.String v) { $_setString(6, v); }
+  set changesJson($core.String v) {
+    $_setString(6, v);
+  }
+
   @$pb.TagNumber(7)
   $core.bool hasChangesJson() => $_has(6);
   @$pb.TagNumber(7)
@@ -1697,7 +2119,10 @@ class AuditEntry extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $fixnum.Int64 get createdAt => $_getI64(7);
   @$pb.TagNumber(8)
-  set createdAt($fixnum.Int64 v) { $_setInt64(7, v); }
+  set createdAt($fixnum.Int64 v) {
+    $_setInt64(7, v);
+  }
+
   @$pb.TagNumber(8)
   $core.bool hasCreatedAt() => $_has(7);
   @$pb.TagNumber(8)
@@ -1708,32 +2133,43 @@ class AuditEntry extends $pb.GeneratedMessage {
 class ListMyFamiliesRequest extends $pb.GeneratedMessage {
   factory ListMyFamiliesRequest() => create();
   ListMyFamiliesRequest._() : super();
-  factory ListMyFamiliesRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListMyFamiliesRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ListMyFamiliesRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ListMyFamiliesRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListMyFamiliesRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListMyFamiliesRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ListMyFamiliesRequest clone() => ListMyFamiliesRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListMyFamiliesRequest copyWith(void Function(ListMyFamiliesRequest) updates) => super.copyWith((message) => updates(message as ListMyFamiliesRequest)) as ListMyFamiliesRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ListMyFamiliesRequest clone() =>
+      ListMyFamiliesRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ListMyFamiliesRequest copyWith(
+          void Function(ListMyFamiliesRequest) updates) =>
+      super.copyWith((message) => updates(message as ListMyFamiliesRequest))
+          as ListMyFamiliesRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ListMyFamiliesRequest create() => ListMyFamiliesRequest._();
   ListMyFamiliesRequest createEmptyInstance() => create();
-  static $pb.PbList<ListMyFamiliesRequest> createRepeated() => $pb.PbList<ListMyFamiliesRequest>();
+  static $pb.PbList<ListMyFamiliesRequest> createRepeated() =>
+      $pb.PbList<ListMyFamiliesRequest>();
   @$core.pragma('dart2js:noInline')
-  static ListMyFamiliesRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListMyFamiliesRequest>(create);
+  static ListMyFamiliesRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListMyFamiliesRequest>(create);
   static ListMyFamiliesRequest? _defaultInstance;
 }
 
@@ -1752,34 +2188,48 @@ class ListMyFamiliesResponse extends $pb.GeneratedMessage {
     return $result;
   }
   ListMyFamiliesResponse._() : super();
-  factory ListMyFamiliesResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListMyFamiliesResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ListMyFamiliesResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ListMyFamiliesResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListMyFamiliesResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.family.v1'), createEmptyInstance: create)
-    ..pc<Family>(1, _omitFieldNames ? '' : 'families', $pb.PbFieldType.PM, subBuilder: Family.create)
-    ..pc<FamilyMember>(2, _omitFieldNames ? '' : 'memberships', $pb.PbFieldType.PM, subBuilder: FamilyMember.create)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListMyFamiliesResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.family.v1'),
+      createEmptyInstance: create)
+    ..pc<Family>(1, _omitFieldNames ? '' : 'families', $pb.PbFieldType.PM,
+        subBuilder: Family.create)
+    ..pc<FamilyMember>(
+        2, _omitFieldNames ? '' : 'memberships', $pb.PbFieldType.PM,
+        subBuilder: FamilyMember.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ListMyFamiliesResponse clone() => ListMyFamiliesResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListMyFamiliesResponse copyWith(void Function(ListMyFamiliesResponse) updates) => super.copyWith((message) => updates(message as ListMyFamiliesResponse)) as ListMyFamiliesResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ListMyFamiliesResponse clone() =>
+      ListMyFamiliesResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ListMyFamiliesResponse copyWith(
+          void Function(ListMyFamiliesResponse) updates) =>
+      super.copyWith((message) => updates(message as ListMyFamiliesResponse))
+          as ListMyFamiliesResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ListMyFamiliesResponse create() => ListMyFamiliesResponse._();
   ListMyFamiliesResponse createEmptyInstance() => create();
-  static $pb.PbList<ListMyFamiliesResponse> createRepeated() => $pb.PbList<ListMyFamiliesResponse>();
+  static $pb.PbList<ListMyFamiliesResponse> createRepeated() =>
+      $pb.PbList<ListMyFamiliesResponse>();
   @$core.pragma('dart2js:noInline')
-  static ListMyFamiliesResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListMyFamiliesResponse>(create);
+  static ListMyFamiliesResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListMyFamiliesResponse>(create);
   static ListMyFamiliesResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -1789,6 +2239,6 @@ class ListMyFamiliesResponse extends $pb.GeneratedMessage {
   $core.List<FamilyMember> get memberships => $_getList(1);
 }
 
-
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
-const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');
+const _omitMessageNames =
+    $core.bool.fromEnvironment('protobuf.omit_message_names');

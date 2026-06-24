@@ -32,11 +32,11 @@ abstract final class MergeType {
 
   /// 从 PairType 推导 MergeType（exhaustive switch expression — MAJOR #C）
   static String fromPairType(PairType pairType) => switch (pairType) {
-        PairType.sameParent => simple,
-        PairType.crossParent => crossParent,
-        PairType.parent => parentMerge,
-        PairType.parentVsLeaf => moveOnly,
-      };
+    PairType.sameParent => simple,
+    PairType.crossParent => crossParent,
+    PairType.parent => parentMerge,
+    PairType.parentVsLeaf => moveOnly,
+  };
 }
 
 /// 撤销失败：已撤销过
@@ -72,8 +72,8 @@ class CategoryMergeExecutor {
   CategoryMergeExecutor({
     required AppDatabase db,
     required CategoryUsageProfiler profiler,
-  })  : _db = db,
-        _profiler = profiler;
+  }) : _db = db,
+       _profiler = profiler;
 
   /// 执行合并
   ///
@@ -103,27 +103,30 @@ class CategoryMergeExecutor {
       }
 
       // 1. 记录被 reparent 的子分类 ID（持久化到 merge_log）
-      final reparentedChildren = await (_db.select(_db.categories)
-            ..where((c) => c.parentId.equals(sourceCategoryId))
-            ..where((c) => c.deletedAt.isNull()))
-          .get();
+      final reparentedChildren =
+          await (_db.select(_db.categories)
+                ..where((c) => c.parentId.equals(sourceCategoryId))
+                ..where((c) => c.deletedAt.isNull()))
+              .get();
       final reparentedChildIds = reparentedChildren.map((c) => c.id).toList();
 
       // 2. 写入合并日志（含 reparentedChildIds）
-      await _db.into(_db.categoryMergeLog).insert(
-        CategoryMergeLogCompanion.insert(
-          id: mergeLogId,
-          sourceCategoryId: sourceCategoryId,
-          targetCategoryId: targetCategoryId,
-          sourceCategoryName: source.name,
-          sourceIconKey: Value(source.iconKey),
-          sourceParentId: Value(source.parentId),
-          reparentedChildIds: Value(jsonEncode(reparentedChildIds)),
-          mergeType: Value(mergeType),
-          mergedAt: Value(now),
-          expiresAt: now.add(_undoWindow),
-        ),
-      );
+      await _db
+          .into(_db.categoryMergeLog)
+          .insert(
+            CategoryMergeLogCompanion.insert(
+              id: mergeLogId,
+              sourceCategoryId: sourceCategoryId,
+              targetCategoryId: targetCategoryId,
+              sourceCategoryName: source.name,
+              sourceIconKey: Value(source.iconKey),
+              sourceParentId: Value(source.parentId),
+              reparentedChildIds: Value(jsonEncode(reparentedChildIds)),
+              mergeType: Value(mergeType),
+              mergedAt: Value(now),
+              expiresAt: now.add(_undoWindow),
+            ),
+          );
 
       // 3. 重映射交易
       final affected = await _remapTransactions(
@@ -135,9 +138,7 @@ class CategoryMergeExecutor {
       // 4. 更新 affectedCount
       await (_db.update(_db.categoryMergeLog)
             ..where((l) => l.id.equals(mergeLogId)))
-          .write(CategoryMergeLogCompanion(
-        affectedCount: Value(affected),
-      ));
+          .write(CategoryMergeLogCompanion(affectedCount: Value(affected)));
 
       // 5. 移动子分类
       if (reparentedChildIds.isNotEmpty) {
@@ -166,9 +167,9 @@ class CategoryMergeExecutor {
 
   /// 撤销合并
   Future<void> undoMerge(String mergeLogId) async {
-    final log = await (_db.select(_db.categoryMergeLog)
-          ..where((l) => l.id.equals(mergeLogId)))
-        .getSingleOrNull();
+    final log = await (_db.select(
+      _db.categoryMergeLog,
+    )..where((l) => l.id.equals(mergeLogId))).getSingleOrNull();
 
     if (log == null) throw StateError('合并日志不存在: $mergeLogId');
     if (log.undoneAt != null) throw AlreadyUndoneException();
@@ -180,8 +181,8 @@ class CategoryMergeExecutor {
     // 解析持久化的 reparentedChildIds
     List<String> reparentedChildIds;
     try {
-      reparentedChildIds =
-          (jsonDecode(log.reparentedChildIds) as List).cast<String>();
+      reparentedChildIds = (jsonDecode(log.reparentedChildIds) as List)
+          .cast<String>();
     } catch (_) {
       reparentedChildIds = [];
     }
@@ -208,8 +209,10 @@ class CategoryMergeExecutor {
       // 3. 精确恢复子分类（只恢复 merge 时记录的那些）
       if (reparentedChildIds.isNotEmpty) {
         // 用 IN 子句恢复精确的子分类 parentId
-        final placeholders =
-            List.generate(reparentedChildIds.length, (_) => '?').join(', ');
+        final placeholders = List.generate(
+          reparentedChildIds.length,
+          (_) => '?',
+        ).join(', ');
         await _db.customUpdate(
           'UPDATE categories '
           'SET parent_id = ? '
@@ -226,9 +229,7 @@ class CategoryMergeExecutor {
       // 4. 标记已撤销
       await (_db.update(_db.categoryMergeLog)
             ..where((l) => l.id.equals(mergeLogId)))
-          .write(CategoryMergeLogCompanion(
-        undoneAt: Value(DateTime.now()),
-      ));
+          .write(CategoryMergeLogCompanion(undoneAt: Value(DateTime.now())));
     });
 
     // 5. 重建统计
@@ -297,10 +298,7 @@ class CategoryMergeExecutor {
       'UPDATE categories '
       'SET parent_id = ? '
       'WHERE parent_id = ? AND deleted_at IS NULL',
-      variables: [
-        Variable.withString(targetId),
-        Variable.withString(sourceId),
-      ],
+      variables: [Variable.withString(targetId), Variable.withString(sourceId)],
       updates: {_db.categories},
       updateKind: UpdateKind.update,
     );
@@ -329,12 +327,12 @@ class CategoryMergeExecutor {
   }
 
   Future<void> _cleanupUsageStats(String categoryId) async {
-    await (_db.delete(_db.categoryUsageSlots)
-          ..where((s) => s.categoryId.equals(categoryId)))
-        .go();
-    await (_db.delete(_db.categoryUsageSummary)
-          ..where((s) => s.categoryId.equals(categoryId)))
-        .go();
+    await (_db.delete(
+      _db.categoryUsageSlots,
+    )..where((s) => s.categoryId.equals(categoryId))).go();
+    await (_db.delete(
+      _db.categoryUsageSummary,
+    )..where((s) => s.categoryId.equals(categoryId))).go();
   }
 
   @visibleForTesting

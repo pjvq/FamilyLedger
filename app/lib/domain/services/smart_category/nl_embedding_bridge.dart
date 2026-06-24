@@ -8,9 +8,8 @@ import 'package:flutter/services.dart';
 class NLEmbeddingBridge {
   final MethodChannel _channel;
 
-  NLEmbeddingBridge({
-    MethodChannel? channel,
-  }) : _channel = channel ?? const MethodChannel('familyledger/nl_embedding');
+  NLEmbeddingBridge({MethodChannel? channel})
+    : _channel = channel ?? const MethodChannel('familyledger/nl_embedding');
 
   /// 检查平台是否支持语义嵌入
   Future<bool> checkAvailable() async {

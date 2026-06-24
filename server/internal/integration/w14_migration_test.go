@@ -218,8 +218,8 @@ func TestW14_Migration_SkipVersion(t *testing.T) {
 
 	// Tables created by migrations 026-042
 	lateTables := []string{
-		"loan_groups",    // ~028
-		"audit_logs",     // 038
+		"loan_groups",      // ~028
+		"audit_logs",       // 038
 		"custom_reminders", // 036
 	}
 	for _, table := range lateTables {

@@ -50,16 +50,19 @@ class FakeExportClient implements ExportServiceClient {
 
   @override
   ResponseFuture<pb.ExportResponse> exportTransactions(
-    pb.ExportRequest request, {CallOptions? options}) {
+    pb.ExportRequest request, {
+    CallOptions? options,
+  }) {
     if (exportError != null) {
       return FakeResponseFuture.error(exportError!);
     }
     return FakeResponseFuture.value(
-      exportResponse ?? pb.ExportResponse(
-        data: utf8.encode('日期,类型\n2025-01-01,支出'),
-        filename: 'export.csv',
-        contentType: 'text/csv',
-      ),
+      exportResponse ??
+          pb.ExportResponse(
+            data: utf8.encode('日期,类型\n2025-01-01,支出'),
+            filename: 'export.csv',
+            contentType: 'text/csv',
+          ),
     );
   }
 
@@ -73,44 +76,52 @@ class FakeExportClient implements ExportServiceClient {
 Future<AppDatabase> _setupDb({bool addTransactions = true}) async {
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   await db.customStatement(
-      "INSERT OR IGNORE INTO users (id, email, created_at) "
-      "VALUES ('user1', 'test@test.com', "
-      "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
-  await db.insertAccount(AccountsCompanion.insert(
-    id: 'acc1',
-    userId: 'user1',
-    name: '招商银行',
-    familyId: const Value(''),
-    accountType: const Value('bank_card'),
-  ));
+    "INSERT OR IGNORE INTO users (id, email, created_at) "
+    "VALUES ('user1', 'test@test.com', "
+    "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+  );
+  await db.insertAccount(
+    AccountsCompanion.insert(
+      id: 'acc1',
+      userId: 'user1',
+      name: '招商银行',
+      familyId: const Value(''),
+      accountType: const Value('bank_card'),
+    ),
+  );
   // Insert a default category
   await db.customStatement(
-      "INSERT OR IGNORE INTO categories (id, name, type, icon_key) "
-      "VALUES ('cat_food', '餐饮', 'expense', 'restaurant')");
+    "INSERT OR IGNORE INTO categories (id, name, type, icon_key) "
+    "VALUES ('cat_food', '餐饮', 'expense', 'restaurant')",
+  );
 
   if (addTransactions) {
-    await db.insertTransaction(TransactionsCompanion.insert(
-      id: 'txn1',
-      userId: 'user1',
-      accountId: 'acc1',
-      categoryId: 'cat_food',
-      amount: 5000, // 50.00 元
-      amountCny: 5000,
-      type: 'expense',
-      note: const Value('午餐'),
-      txnDate: DateTime(2025, 3, 15),
-    ));
-    await db.insertTransaction(TransactionsCompanion.insert(
-      id: 'txn2',
-      userId: 'user1',
-      accountId: 'acc1',
-      categoryId: 'cat_food',
-      amount: 3000, // 30.00 元
-      amountCny: 3000,
-      type: 'expense',
-      note: const Value('含,逗号和"引号'),
-      txnDate: DateTime(2025, 3, 20),
-    ));
+    await db.insertTransaction(
+      TransactionsCompanion.insert(
+        id: 'txn1',
+        userId: 'user1',
+        accountId: 'acc1',
+        categoryId: 'cat_food',
+        amount: 5000, // 50.00 元
+        amountCny: 5000,
+        type: 'expense',
+        note: const Value('午餐'),
+        txnDate: DateTime(2025, 3, 15),
+      ),
+    );
+    await db.insertTransaction(
+      TransactionsCompanion.insert(
+        id: 'txn2',
+        userId: 'user1',
+        accountId: 'acc1',
+        categoryId: 'cat_food',
+        amount: 3000, // 30.00 元
+        amountCny: 3000,
+        type: 'expense',
+        note: const Value('含,逗号和"引号'),
+        txnDate: DateTime(2025, 3, 20),
+      ),
+    );
   }
   return db;
 }
@@ -250,7 +261,11 @@ void main() {
         );
 
         expect(result, isNotNull);
-        final lines = utf8.decode(result!).split('\n').where((l) => l.trim().isNotEmpty).toList();
+        final lines = utf8
+            .decode(result!)
+            .split('\n')
+            .where((l) => l.trim().isNotEmpty)
+            .toList();
         expect(lines.length, 1); // Only header
         expect(lines[0].trim(), '日期,类型,分类,金额(元),账户,备注');
 
@@ -271,7 +286,11 @@ void main() {
         );
 
         expect(result, isNotNull);
-        final lines = utf8.decode(result!).split('\n').where((l) => l.trim().isNotEmpty).toList();
+        final lines = utf8
+            .decode(result!)
+            .split('\n')
+            .where((l) => l.trim().isNotEmpty)
+            .toList();
         expect(lines.length, 2); // header + 1 transaction
         expect(lines[1], contains('午餐'));
 

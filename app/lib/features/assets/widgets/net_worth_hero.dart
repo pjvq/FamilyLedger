@@ -17,7 +17,9 @@ class NetWorthHero extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final isUp = netWorth.changeFromLastMonth >= 0;
     final totalAssets =
-        netWorth.cashAndBank + netWorth.investmentValue + netWorth.fixedAssetValue;
+        netWorth.cashAndBank +
+        netWorth.investmentValue +
+        netWorth.fixedAssetValue;
     final totalLiabilities = netWorth.loanBalance.abs();
     // Guard against NaN/Infinity (review #2)
     final safeChangePercent = netWorth.changePercent.isFinite
@@ -25,7 +27,8 @@ class NetWorthHero extends StatelessWidget {
         : 0.0;
 
     return Semantics(
-      label: '净资产${formatCentsWan(netWorth.total)}，'
+      label:
+          '净资产${formatCentsWan(netWorth.total)}，'
           '总资产${formatCentsWan(totalAssets)}，负债${formatCentsWan(totalLiabilities)}，'
           '较上月${isUp ? "增加" : "减少"}${formatCentsWan(netWorth.changeFromLastMonth.abs())}',
       child: Container(
@@ -41,7 +44,10 @@ class NetWorthHero extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
-                ? [DarkCardGradients.netWorthStart, DarkCardGradients.netWorthEnd]
+                ? [
+                    DarkCardGradients.netWorthStart,
+                    DarkCardGradients.netWorthEnd,
+                  ]
                 : [ColorTokens.primary, GradientTokens.primaryGradientSoft],
           ),
           borderRadius: BorderRadius.circular(RadiusTokens.xl),
@@ -52,7 +58,8 @@ class NetWorthHero extends StatelessWidget {
             Text(
               '净资产',
               style: TypographyTokens.bodySm(
-                  color: Colors.white.withValues(alpha: 0.7)),
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
             ),
             const SizedBox(height: SpacingTokens.xs),
             AnimatedCounter(
@@ -90,7 +97,9 @@ class NetWorthHero extends StatelessWidget {
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
@@ -168,13 +177,11 @@ class _AssetLiabilityBar extends StatelessWidget {
           children: [
             Expanded(
               flex: (assetRatio * 100).round().clamp(1, 99),
-              child: Container(
-                  color: Colors.white.withValues(alpha: 0.9)),
+              child: Container(color: Colors.white.withValues(alpha: 0.9)),
             ),
             Expanded(
               flex: ((1 - assetRatio) * 100).round().clamp(1, 99),
-              child: Container(
-                  color: Colors.white.withValues(alpha: 0.3)),
+              child: Container(color: Colors.white.withValues(alpha: 0.3)),
             ),
           ],
         ),

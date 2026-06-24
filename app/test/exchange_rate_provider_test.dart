@@ -150,8 +150,11 @@ void main() {
 
     test('currencySymbols has symbol for each supported currency', () {
       for (final c in supportedCurrencies) {
-        expect(currencySymbols.containsKey(c), isTrue,
-            reason: '$c should have a symbol');
+        expect(
+          currencySymbols.containsKey(c),
+          isTrue,
+          reason: '$c should have a symbol',
+        );
       }
     });
   });

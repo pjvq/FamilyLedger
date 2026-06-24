@@ -32,13 +32,11 @@ class _FamilyMembersPageState extends ConsumerState<FamilyMembersPage> {
     final currentMember = familyState.members
         .where((m) => m.userId == currentUserId)
         .firstOrNull;
-    final isAdmin = currentMember?.role == 'owner' ||
-        currentMember?.role == 'admin';
+    final isAdmin =
+        currentMember?.role == 'owner' || currentMember?.role == 'admin';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('家庭成员'),
-      ),
+      appBar: AppBar(title: const Text('家庭成员')),
       body: familyState.members.isEmpty
           ? _EmptyState(theme: theme)
           : ListView.builder(
@@ -60,7 +58,10 @@ class _FamilyMembersPageState extends ConsumerState<FamilyMembersPage> {
   }
 
   void _showMemberSheet(
-      BuildContext context, WidgetRef ref, FamilyMember member) {
+    BuildContext context,
+    WidgetRef ref,
+    FamilyMember member,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -174,13 +175,13 @@ class _MemberTile extends StatelessWidget {
           trailing: canManage
               ? Icon(
                   Icons.settings_rounded,
-                  color:
-                      theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   size: 20,
                 )
               : null,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           onTap: onTap,
         ),
       ),
@@ -277,8 +278,7 @@ class _MemberManageSheetState extends State<_MemberManageSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color:
-                      theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -358,10 +358,7 @@ class _MemberManageSheetState extends State<_MemberManageSheet> {
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
-                onPressed: _save,
-                child: const Text('保存'),
-              ),
+              child: FilledButton(onPressed: _save, child: const Text('保存')),
             ),
             const SizedBox(height: 16),
           ],

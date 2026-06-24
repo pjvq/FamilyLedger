@@ -38,8 +38,7 @@ class SectionHeader extends StatelessWidget {
             onTap: onTap,
             borderRadius: BorderRadius.circular(RadiusTokens.sm),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  vertical: SpacingTokens.xs),
+              padding: const EdgeInsets.symmetric(vertical: SpacingTokens.xs),
               child: Row(
                 children: [
                   Container(
@@ -71,10 +70,9 @@ class SectionHeader extends StatelessWidget {
                   Icon(
                     Icons.chevron_right_rounded,
                     size: 20,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.3),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                 ],
               ),

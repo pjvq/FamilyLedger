@@ -66,10 +66,9 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
   void _onSearchChanged(String query) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
-      ref.read(marketDataProvider.notifier).searchSymbol(
-            query,
-            marketType: _selectedMarket,
-          );
+      ref
+          .read(marketDataProvider.notifier)
+          .searchSymbol(query, marketType: _selectedMarket);
     });
   }
 
@@ -87,16 +86,20 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
       _selectedSymbol = result;
       _isLoadingPrice = true;
     });
-    ref.read(marketDataProvider.notifier).getQuote(result.symbol, result.marketType).then((quote) {
-      if (mounted) {
-        setState(() => _isLoadingPrice = false);
-        // 仅在交易日期是今天时才用实时价预填；历史日期不能用当前价
-        // 当作成交价（否则成本=数量×今日价，盈亏永远 0）。
-        if (quote != null && _isToday(_tradeDate)) {
-          _priceController.text = (quote.currentPrice / 100).toStringAsFixed(2);
-        }
-      }
-    });
+    ref
+        .read(marketDataProvider.notifier)
+        .getQuote(result.symbol, result.marketType)
+        .then((quote) {
+          if (mounted) {
+            setState(() => _isLoadingPrice = false);
+            // 仅在交易日期是今天时才用实时价预填；历史日期不能用当前价
+            // 当作成交价（否则成本=数量×今日价，盈亏永远 0）。
+            if (quote != null && _isToday(_tradeDate)) {
+              _priceController.text = (quote.currentPrice / 100)
+                  .toStringAsFixed(2);
+            }
+          }
+        });
     FocusScope.of(context).unfocus();
   }
 
@@ -126,24 +129,26 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
           .read(marketDataProvider.notifier)
           .getQuote(sym.symbol, sym.marketType)
           .then((quote) {
-        if (!mounted) return;
-        setState(() {
-          _isLoadingPrice = false;
-          if (quote != null && _isToday(_tradeDate)) {
-            _priceController.text =
-                (quote.currentPrice / 100).toStringAsFixed(2);
-          }
-        });
-      });
+            if (!mounted) return;
+            setState(() {
+              _isLoadingPrice = false;
+              if (quote != null && _isToday(_tradeDate)) {
+                _priceController.text = (quote.currentPrice / 100)
+                    .toStringAsFixed(2);
+              }
+            });
+          });
     }
   }
 
   void _selectPreciousMetal(_PreciousMetalOption pm) {
-    _selectSymbol(SymbolSearchResult(
-      symbol: pm.symbol,
-      name: pm.name,
-      marketType: 'precious_metal',
-    ));
+    _selectSymbol(
+      SymbolSearchResult(
+        symbol: pm.symbol,
+        name: pm.name,
+        marketType: 'precious_metal',
+      ),
+    );
   }
 
   void _clearSelection() {
@@ -168,9 +173,12 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
       return;
     }
 
-    if (priceYuan <= 0 && _selectedMarket == 'precious_metal' && _isToday(_tradeDate)) {
-      final quote = await ref.read(marketDataProvider.notifier).getQuote(
-            _selectedSymbol!.symbol, _selectedSymbol!.marketType);
+    if (priceYuan <= 0 &&
+        _selectedMarket == 'precious_metal' &&
+        _isToday(_tradeDate)) {
+      final quote = await ref
+          .read(marketDataProvider.notifier)
+          .getQuote(_selectedSymbol!.symbol, _selectedSymbol!.marketType);
       if (quote != null && quote.currentPrice > 0) {
         priceYuan = quote.currentPrice / 100;
       } else {
@@ -185,7 +193,9 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
     final priceCents = (priceYuan * 100).round();
     final feeCents = (feeYuan * 100).round();
 
-    await ref.read(investmentProvider.notifier).createInvestment(
+    await ref
+        .read(investmentProvider.notifier)
+        .createInvestment(
           symbol: _selectedSymbol!.symbol,
           name: _selectedSymbol!.name,
           marketType: _selectedSymbol!.marketType,
@@ -198,7 +208,9 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
         .firstOrNull;
 
     if (newInv != null) {
-      await ref.read(investmentProvider.notifier).recordTrade(
+      await ref
+          .read(investmentProvider.notifier)
+          .recordTrade(
             investmentId: newInv.id,
             tradeType: 'buy',
             quantity: quantity,
@@ -227,10 +239,7 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('添加投资'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('添加投资'), centerTitle: true),
       body: _selectedSymbol == null
           ? _buildSelectionStep(theme, isDark, marketState)
           : _buildTradeForm(theme, isDark),
@@ -239,15 +248,17 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
 
   // ─── Step 1: Select Asset ───────────────────────────────────────────────────
 
-  Widget _buildSelectionStep(ThemeData theme, bool isDark, MarketDataState marketState) {
+  Widget _buildSelectionStep(
+    ThemeData theme,
+    bool isDark,
+    MarketDataState marketState,
+  ) {
     return Column(
       children: [
         // Scope selector
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: FamilyScopeSelector(
-            onChanged: (fid) => _scopeFamilyId = fid,
-          ),
+          child: FamilyScopeSelector(onChanged: (fid) => _scopeFamilyId = fid),
         ),
 
         // Market type chips (scrollable row)
@@ -290,7 +301,11 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
     );
   }
 
-  Widget _buildSearchView(ThemeData theme, bool isDark, MarketDataState marketState) {
+  Widget _buildSearchView(
+    ThemeData theme,
+    bool isDark,
+    MarketDataState marketState,
+  ) {
     return Column(
       children: [
         // Search bar
@@ -303,12 +318,17 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
               hintText: '搜索代码或名称',
               prefixIcon: const Icon(Icons.search_rounded, size: 20),
               filled: true,
-              fillColor: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
+              fillColor: isDark
+                  ? NeutralColorsDark.neutral2
+                  : NeutralColorsLight.neutral2,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.close_rounded, size: 18),
@@ -334,39 +354,43 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
           child: marketState.isLoading
               ? const Center(child: CircularProgressIndicator.adaptive())
               : marketState.searchResults.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.search_rounded,
-                            size: 48,
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            _searchController.text.isEmpty
-                                ? '输入代码或名称开始搜索'
-                                : '未找到相关结果',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                            ),
-                          ),
-                        ],
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.search_rounded,
+                        size: 48,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.2,
+                        ),
                       ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: marketState.searchResults.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final result = marketState.searchResults[index];
-                        return _SearchResultTile(
-                          result: result,
-                          onTap: () => _selectSymbol(result),
-                        );
-                      },
-                    ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _searchController.text.isEmpty
+                            ? '输入代码或名称开始搜索'
+                            : '未找到相关结果',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: marketState.searchResults.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final result = marketState.searchResults[index];
+                    return _SearchResultTile(
+                      result: result,
+                      onTap: () => _selectSymbol(result),
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -408,7 +432,8 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
   // ─── Step 2: Trade Form ─────────────────────────────────────────────────────
 
   Widget _buildTradeForm(ThemeData theme, bool isDark) {
-    final total = (double.tryParse(_quantityController.text) ?? 0) *
+    final total =
+        (double.tryParse(_quantityController.text) ?? 0) *
             (double.tryParse(_priceController.text) ?? 0) +
         (double.tryParse(_feeController.text) ?? 0);
 
@@ -491,9 +516,14 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
 
                 // Total
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
                   decoration: BoxDecoration(
-                    color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral1,
+                    color: isDark
+                        ? NeutralColorsDark.neutral1
+                        : NeutralColorsLight.neutral1,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -502,7 +532,9 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
                       Text(
                         '总金额',
                         style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                       Text(
@@ -534,7 +566,10 @@ class _AddInvestmentPageState extends ConsumerState<AddInvestmentPage> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: const Text('确认买入', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                child: const Text(
+                  '确认买入',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ),
@@ -561,18 +596,18 @@ class _PreciousMetalOption {
   const _PreciousMetalOption(this.symbol, this.name, this.metal);
 
   Color get color => switch (metal) {
-        'gold' => CommodityColors.gold,
-        'silver' => CommodityColors.silver,
-        'platinum' => CommodityColors.platinum,
-        _ => CommodityColors.fallback,
-      };
+    'gold' => CommodityColors.gold,
+    'silver' => CommodityColors.silver,
+    'platinum' => CommodityColors.platinum,
+    _ => CommodityColors.fallback,
+  };
 
   IconData get icon => switch (metal) {
-        'gold' => Icons.hexagon_rounded,
-        'silver' => Icons.hexagon_outlined,
-        'platinum' => Icons.diamond_rounded,
-        _ => Icons.circle,
-      };
+    'gold' => Icons.hexagon_rounded,
+    'silver' => Icons.hexagon_outlined,
+    'platinum' => Icons.diamond_rounded,
+    _ => Icons.circle,
+  };
 }
 
 class _PreciousMetalCard extends StatelessWidget {
@@ -601,7 +636,9 @@ class _PreciousMetalCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral3,
+              color: isDark
+                  ? NeutralColorsDark.neutral3
+                  : NeutralColorsLight.neutral3,
             ),
           ),
           child: Row(
@@ -615,7 +652,10 @@ class _PreciousMetalCard extends StatelessWidget {
                   children: [
                     Text(
                       option.name,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
@@ -708,10 +748,14 @@ class _AssetHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
       decoration: BoxDecoration(
-        color: isDark ? NeutralColorsDark.neutral1 : NeutralColorsLight.neutral0,
+        color: isDark
+            ? NeutralColorsDark.neutral1
+            : NeutralColorsLight.neutral0,
         border: Border(
           bottom: BorderSide(
-            color: isDark ? NeutralColorsDark.neutral3 : NeutralColorsLight.neutral2,
+            color: isDark
+                ? NeutralColorsDark.neutral3
+                : NeutralColorsLight.neutral2,
           ),
         ),
       ),
@@ -734,14 +778,21 @@ class _AssetHeader extends StatelessWidget {
                     Text(
                       symbol.symbol,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+                        color: theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.5,
+                        ),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -828,12 +879,17 @@ class _FormField extends StatelessWidget {
             prefixText: prefix != null ? '$prefix ' : null,
             suffixText: suffix,
             filled: true,
-            fillColor: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
+            fillColor: isDark
+                ? NeutralColorsDark.neutral2
+                : NeutralColorsLight.neutral2,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
+            ),
           ),
           onChanged: (_) => onChanged(),
         ),
@@ -870,13 +926,18 @@ class _DateField extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
-              color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2,
+              color: isDark
+                  ? NeutralColorsDark.neutral2
+                  : NeutralColorsLight.neutral2,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               children: [
-                Icon(Icons.calendar_today_rounded, size: 16,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: 16,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
                 const SizedBox(width: 8),
                 Text(
                   '${date.month}/${date.day}',

@@ -54,9 +54,11 @@ void main() {
     late String refreshToken;
 
     test('R-001: Register and store refresh token', () async {
-      final resp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w9_refresh_$ts@test.com'
-        ..password = 'RefreshTest123!');
+      final resp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w9_refresh_$ts@test.com'
+          ..password = 'RefreshTest123!',
+      );
 
       expect(resp.refreshToken, isNotEmpty);
       refreshToken = resp.refreshToken;
@@ -105,9 +107,11 @@ void main() {
 
   group('W9 Batch Push E2E', () {
     test('B-001: Register user for batch tests', () async {
-      final resp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w9_batch_$ts@test.com'
-        ..password = 'BatchTest123!');
+      final resp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w9_batch_$ts@test.com'
+          ..password = 'BatchTest123!',
+      );
       harness.setTokens(
         accessToken: resp.accessToken,
         refreshToken: resp.refreshToken,
@@ -159,10 +163,7 @@ void main() {
           ..entityType = 'transaction'
           ..entityId = _uuid()
           ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-          ..payload = jsonEncode({
-            'amount': 100,
-            'type': 'expense',
-          })
+          ..payload = jsonEncode({'amount': 100, 'type': 'expense'})
           ..clientId = _uuid(),
       ];
 
@@ -182,9 +183,11 @@ void main() {
 
   group('W9 Incremental Pull E2E', () {
     test('IP-001: Register user for incremental tests', () async {
-      final resp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w9_incremental_$ts@test.com'
-        ..password = 'IncrTest123!');
+      final resp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w9_incremental_$ts@test.com'
+          ..password = 'IncrTest123!',
+      );
       harness.setTokens(
         accessToken: resp.accessToken,
         refreshToken: resp.refreshToken,
@@ -195,17 +198,19 @@ void main() {
       final id = _uuid();
       await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'category'
-            ..entityId = id
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': id,
-              'name': 'Before Marker',
-              'type': 'expense',
-              'icon': '⏰',
-            })
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'category'
+              ..entityId = id
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = jsonEncode({
+                'id': id,
+                'name': 'Before Marker',
+                'type': 'expense',
+                'icon': '⏰',
+              })
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
 
@@ -219,50 +224,56 @@ void main() {
       expect(pullResp.serverTime, isNotNull);
     });
 
-    test('IP-003: Push after checkpoint → Pull since serverTime → only new ops',
-        () async {
-      // First pull to get serverTime as checkpoint
-      final checkpoint = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest()
-          ..since = ts_pb.Timestamp(seconds: Int64(0)),
-        options: harness.authOptions,
-      );
-      final serverTime = checkpoint.serverTime;
+    test(
+      'IP-003: Push after checkpoint → Pull since serverTime → only new ops',
+      () async {
+        // First pull to get serverTime as checkpoint
+        final checkpoint = await syncClient.pullChanges(
+          sync_pb.PullChangesRequest()
+            ..since = ts_pb.Timestamp(seconds: Int64(0)),
+          options: harness.authOptions,
+        );
+        final serverTime = checkpoint.serverTime;
 
-      // Wait a tiny bit to ensure timestamp difference
-      await Future.delayed(const Duration(milliseconds: 50));
+        // Wait a tiny bit to ensure timestamp difference
+        await Future.delayed(const Duration(milliseconds: 50));
 
-      // Push new op AFTER checkpoint
-      final newId = _uuid();
-      await syncClient.pushOperations(
-        sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'category'
-            ..entityId = newId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': newId,
-              'name': 'After Checkpoint',
-              'type': 'income',
-              'icon': '🆕',
-            })
-            ..clientId = _uuid()),
-        options: harness.authOptions,
-      );
+        // Push new op AFTER checkpoint
+        final newId = _uuid();
+        await syncClient.pushOperations(
+          sync_pb.PushOperationsRequest()
+            ..operations.add(
+              sync_pb.SyncOperation()
+                ..entityType = 'category'
+                ..entityId = newId
+                ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+                ..payload = jsonEncode({
+                  'id': newId,
+                  'name': 'After Checkpoint',
+                  'type': 'income',
+                  'icon': '🆕',
+                })
+                ..clientId = _uuid(),
+            ),
+          options: harness.authOptions,
+        );
 
-      // Pull since checkpoint → should only return the new op
-      final incr = await syncClient.pullChanges(
-        sync_pb.PullChangesRequest()..since = serverTime,
-        options: harness.authOptions,
-      );
+        // Pull since checkpoint → should only return the new op
+        final incr = await syncClient.pullChanges(
+          sync_pb.PullChangesRequest()..since = serverTime,
+          options: harness.authOptions,
+        );
 
-      expect(incr.operations, isNotEmpty);
-      // All returned ops should have the new entity
-      final hasNewOp =
-          incr.operations.any((op) => op.entityId == newId);
-      expect(hasNewOp, isTrue,
-          reason: 'Incremental pull should include ops after checkpoint');
-    });
+        expect(incr.operations, isNotEmpty);
+        // All returned ops should have the new entity
+        final hasNewOp = incr.operations.any((op) => op.entityId == newId);
+        expect(
+          hasNewOp,
+          isTrue,
+          reason: 'Incremental pull should include ops after checkpoint',
+        );
+      },
+    );
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -275,16 +286,20 @@ void main() {
     late String userAEntityId;
 
     test('MU-001: Register User A', () async {
-      final resp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w9_userA_$ts@test.com'
-        ..password = 'UserATest123!');
+      final resp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w9_userA_$ts@test.com'
+          ..password = 'UserATest123!',
+      );
       userAToken = resp.accessToken;
     });
 
     test('MU-002: Register User B', () async {
-      final resp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w9_userB_$ts@test.com'
-        ..password = 'UserBTest123!');
+      final resp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w9_userB_$ts@test.com'
+          ..password = 'UserBTest123!',
+      );
       userBToken = resp.accessToken;
     });
 
@@ -296,18 +311,20 @@ void main() {
 
       final resp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = userAEntityId
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': userAEntityId,
-              'name': 'User A Secret Account',
-              'type': 'cash',
-              'balance': 99999,
-              'currency': 'CNY',
-            })
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'account'
+              ..entityId = userAEntityId
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = jsonEncode({
+                'id': userAEntityId,
+                'name': 'User A Secret Account',
+                'type': 'cash',
+                'balance': 99999,
+                'currency': 'CNY',
+              })
+              ..clientId = _uuid(),
+          ),
         options: options,
       );
       expect(resp.acceptedCount, equals(1));
@@ -327,8 +344,11 @@ void main() {
       final leaked = resp.operations
           .where((op) => op.entityId == userAEntityId)
           .toList();
-      expect(leaked, isEmpty,
-          reason: 'User B must NOT see User A personal data');
+      expect(
+        leaked,
+        isEmpty,
+        reason: 'User B must NOT see User A personal data',
+      );
     });
 
     test('MU-005: User A can see own data in Pull', () async {
@@ -345,8 +365,7 @@ void main() {
       final own = resp.operations
           .where((op) => op.entityId == userAEntityId)
           .toList();
-      expect(own, isNotEmpty,
-          reason: 'User A should see own data');
+      expect(own, isNotEmpty, reason: 'User A should see own data');
     });
   });
 
@@ -360,16 +379,20 @@ void main() {
     late String familyId;
 
     test('FS-001: Register family owner', () async {
-      final resp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w9_owner_$ts@test.com'
-        ..password = 'OwnerTest123!');
+      final resp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w9_owner_$ts@test.com'
+          ..password = 'OwnerTest123!',
+      );
       ownerToken = resp.accessToken;
     });
 
     test('FS-002: Register family member', () async {
-      final resp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w9_member_$ts@test.com'
-        ..password = 'MemberTest123!');
+      final resp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w9_member_$ts@test.com'
+          ..password = 'MemberTest123!',
+      );
       memberToken = resp.accessToken;
     });
 
@@ -416,19 +439,21 @@ void main() {
       final id = _uuid();
       final resp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = id
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': id,
-              'name': 'Family Shared Account',
-              'type': 'bank_card',
-              'balance': 50000,
-              'currency': 'CNY',
-              'family_id': familyId,
-            })
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'account'
+              ..entityId = id
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = jsonEncode({
+                'id': id,
+                'name': 'Family Shared Account',
+                'type': 'bank_card',
+                'balance': 50000,
+                'currency': 'CNY',
+                'family_id': familyId,
+              })
+              ..clientId = _uuid(),
+          ),
         options: options,
       );
       expect(resp.acceptedCount, equals(1));
@@ -451,15 +476,21 @@ void main() {
       final familyOps = pullResp.operations.where(
         (op) => op.payload.contains('Family Shared Account'),
       );
-      expect(familyOps, isNotEmpty,
-          reason: 'Member should see owner\'s family-scoped op via Pull');
+      expect(
+        familyOps,
+        isNotEmpty,
+        reason: 'Member should see owner\'s family-scoped op via Pull',
+      );
     });
 
     test('FS-007: Non-member cannot see family-scoped ops', () async {
       // Register a stranger
-      final strangerResp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w9_stranger_${DateTime.now().millisecondsSinceEpoch}@test.com'
-        ..password = 'StrangerTest123!');
+      final strangerResp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email =
+              'w9_stranger_${DateTime.now().millisecondsSinceEpoch}@test.com'
+          ..password = 'StrangerTest123!',
+      );
       final strangerOptions = CallOptions(
         metadata: {'authorization': 'Bearer ${strangerResp.accessToken}'},
       );
@@ -472,11 +503,13 @@ void main() {
             ..familyId = familyId,
           options: strangerOptions,
         ),
-        throwsA(isA<GrpcError>().having(
-          (e) => e.code,
-          'code',
-          StatusCode.permissionDenied,
-        )),
+        throwsA(
+          isA<GrpcError>().having(
+            (e) => e.code,
+            'code',
+            StatusCode.permissionDenied,
+          ),
+        ),
       );
     });
   });
@@ -487,9 +520,11 @@ void main() {
 
   group('W9 Edge Cases E2E', () {
     test('EC-001: Register user for edge case tests', () async {
-      final resp = await authClient.register(auth_pb.RegisterRequest()
-        ..email = 'w9_edge_$ts@test.com'
-        ..password = 'EdgeTest123!');
+      final resp = await authClient.register(
+        auth_pb.RegisterRequest()
+          ..email = 'w9_edge_$ts@test.com'
+          ..password = 'EdgeTest123!',
+      );
       harness.setTokens(
         accessToken: resp.accessToken,
         refreshToken: resp.refreshToken,
@@ -507,12 +542,14 @@ void main() {
     test('EC-003: Push with unknown entity type → rejected', () async {
       final resp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'nonexistent_entity'
-            ..entityId = _uuid()
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({'foo': 'bar'})
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'nonexistent_entity'
+              ..entityId = _uuid()
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = jsonEncode({'foo': 'bar'})
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
       // Server should either reject (acceptedCount=0) or skip unknown types
@@ -522,62 +559,84 @@ void main() {
     test('EC-004: Push with malformed JSON payload → rejected', () async {
       final resp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = _uuid()
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = 'this is {not valid json'
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'account'
+              ..entityId = _uuid()
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = 'this is {not valid json'
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
-      expect(resp.acceptedCount, equals(0),
-          reason: 'Malformed JSON should be rejected');
+      expect(
+        resp.acceptedCount,
+        equals(0),
+        reason: 'Malformed JSON should be rejected',
+      );
     });
 
     test('EC-005: Push UPDATE for non-existent entity → rejected', () async {
       final resp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = _uuid() // doesn't exist
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
-            ..payload = jsonEncode({
-              'name': 'Ghost Account',
-              'type': 'cash',
-            })
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'account'
+              ..entityId =
+                  _uuid() // doesn't exist
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_UPDATE
+              ..payload = jsonEncode({'name': 'Ghost Account', 'type': 'cash'})
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
-      expect(resp.acceptedCount, equals(0),
-          reason: 'UPDATE on non-existent entity should fail');
+      expect(
+        resp.acceptedCount,
+        equals(0),
+        reason: 'UPDATE on non-existent entity should fail',
+      );
     });
 
     test('EC-006: Push DELETE for non-existent entity → rejected', () async {
       final resp = await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = _uuid() // doesn't exist
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_DELETE
-            ..payload = '{}'
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'account'
+              ..entityId =
+                  _uuid() // doesn't exist
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_DELETE
+              ..payload = '{}'
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
-      expect(resp.acceptedCount, equals(0),
-          reason: 'DELETE on non-existent entity should fail');
+      expect(
+        resp.acceptedCount,
+        equals(0),
+        reason: 'DELETE on non-existent entity should fail',
+      );
     });
 
     test('EC-007: Pull with future timestamp → empty results', () async {
       final future = ts_pb.Timestamp(
-        seconds: Int64(DateTime.now().add(const Duration(days: 365)).millisecondsSinceEpoch ~/ 1000),
+        seconds: Int64(
+          DateTime.now()
+                  .add(const Duration(days: 365))
+                  .millisecondsSinceEpoch ~/
+              1000,
+        ),
       );
 
       final resp = await syncClient.pullChanges(
         sync_pb.PullChangesRequest()..since = future,
         options: harness.authOptions,
       );
-      expect(resp.operations, isEmpty,
-          reason: 'Pull with future timestamp should return nothing');
+      expect(
+        resp.operations,
+        isEmpty,
+        reason: 'Pull with future timestamp should return nothing',
+      );
     });
 
     test('EC-008: Large payload (10KB) → accepted', () async {
@@ -587,19 +646,21 @@ void main() {
       // Create account first (for FK)
       await syncClient.pushOperations(
         sync_pb.PushOperationsRequest()
-          ..operations.add(sync_pb.SyncOperation()
-            ..entityType = 'account'
-            ..entityId = id
-            ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-            ..payload = jsonEncode({
-              'id': id,
-              'name': 'Large Payload Account',
-              'type': 'cash',
-              'balance': 0,
-              'currency': 'CNY',
-              'note': largeNote,
-            })
-            ..clientId = _uuid()),
+          ..operations.add(
+            sync_pb.SyncOperation()
+              ..entityType = 'account'
+              ..entityId = id
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = jsonEncode({
+                'id': id,
+                'name': 'Large Payload Account',
+                'type': 'cash',
+                'balance': 0,
+                'currency': 'CNY',
+                'note': largeNote,
+              })
+              ..clientId = _uuid(),
+          ),
         options: harness.authOptions,
       );
 

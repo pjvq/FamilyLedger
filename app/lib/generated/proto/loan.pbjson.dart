@@ -124,27 +124,101 @@ const Loan$json = {
     {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
     {'1': 'user_id', '3': 2, '4': 1, '5': 9, '10': 'userId'},
     {'1': 'name', '3': 3, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'loan_type', '3': 4, '4': 1, '5': 14, '6': '.familyledger.loan.v1.LoanType', '10': 'loanType'},
+    {
+      '1': 'loan_type',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.LoanType',
+      '10': 'loanType'
+    },
     {'1': 'principal', '3': 5, '4': 1, '5': 3, '10': 'principal'},
-    {'1': 'remaining_principal', '3': 6, '4': 1, '5': 3, '10': 'remainingPrincipal'},
+    {
+      '1': 'remaining_principal',
+      '3': 6,
+      '4': 1,
+      '5': 3,
+      '10': 'remainingPrincipal'
+    },
     {'1': 'annual_rate', '3': 7, '4': 1, '5': 1, '10': 'annualRate'},
     {'1': 'total_months', '3': 8, '4': 1, '5': 5, '10': 'totalMonths'},
     {'1': 'paid_months', '3': 9, '4': 1, '5': 5, '10': 'paidMonths'},
-    {'1': 'repayment_method', '3': 10, '4': 1, '5': 14, '6': '.familyledger.loan.v1.RepaymentMethod', '10': 'repaymentMethod'},
+    {
+      '1': 'repayment_method',
+      '3': 10,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.RepaymentMethod',
+      '10': 'repaymentMethod'
+    },
     {'1': 'payment_day', '3': 11, '4': 1, '5': 5, '10': 'paymentDay'},
-    {'1': 'start_date', '3': 12, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'startDate'},
-    {'1': 'created_at', '3': 13, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'updated_at', '3': 14, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+    {
+      '1': 'start_date',
+      '3': 12,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'startDate'
+    },
+    {
+      '1': 'created_at',
+      '3': 13,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
+    {
+      '1': 'updated_at',
+      '3': 14,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'updatedAt'
+    },
     {'1': 'account_id', '3': 15, '4': 1, '5': 9, '10': 'accountId'},
     {'1': 'group_id', '3': 16, '4': 1, '5': 9, '10': 'groupId'},
-    {'1': 'sub_type', '3': 17, '4': 1, '5': 14, '6': '.familyledger.loan.v1.LoanSubType', '10': 'subType'},
-    {'1': 'rate_type', '3': 18, '4': 1, '5': 14, '6': '.familyledger.loan.v1.RateType', '10': 'rateType'},
+    {
+      '1': 'sub_type',
+      '3': 17,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.LoanSubType',
+      '10': 'subType'
+    },
+    {
+      '1': 'rate_type',
+      '3': 18,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.RateType',
+      '10': 'rateType'
+    },
     {'1': 'lpr_base', '3': 19, '4': 1, '5': 1, '10': 'lprBase'},
     {'1': 'lpr_spread', '3': 20, '4': 1, '5': 1, '10': 'lprSpread'},
-    {'1': 'rate_adjust_month', '3': 21, '4': 1, '5': 5, '10': 'rateAdjustMonth'},
+    {
+      '1': 'rate_adjust_month',
+      '3': 21,
+      '4': 1,
+      '5': 5,
+      '10': 'rateAdjustMonth'
+    },
     {'1': 'family_id', '3': 22, '4': 1, '5': 9, '10': 'familyId'},
-    {'1': 'repayment_category_id', '3': 23, '4': 1, '5': 9, '10': 'repaymentCategoryId'},
-    {'1': 'interest_calc_method', '3': 24, '4': 1, '5': 14, '6': '.familyledger.loan.v1.InterestCalcMethod', '10': 'interestCalcMethod'},
+    {
+      '1': 'repayment_category_id',
+      '3': 23,
+      '4': 1,
+      '5': 9,
+      '10': 'repaymentCategoryId'
+    },
+    {
+      '1': 'interest_calc_method',
+      '3': 24,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.InterestCalcMethod',
+      '10': 'interestCalcMethod'
+    },
   ],
 };
 
@@ -179,10 +253,30 @@ const LoanScheduleItem$json = {
     {'1': 'payment', '3': 2, '4': 1, '5': 3, '10': 'payment'},
     {'1': 'principal_part', '3': 3, '4': 1, '5': 3, '10': 'principalPart'},
     {'1': 'interest_part', '3': 4, '4': 1, '5': 3, '10': 'interestPart'},
-    {'1': 'remaining_principal', '3': 5, '4': 1, '5': 3, '10': 'remainingPrincipal'},
+    {
+      '1': 'remaining_principal',
+      '3': 5,
+      '4': 1,
+      '5': 3,
+      '10': 'remainingPrincipal'
+    },
     {'1': 'is_paid', '3': 6, '4': 1, '5': 8, '10': 'isPaid'},
-    {'1': 'due_date', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'dueDate'},
-    {'1': 'paid_date', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'paidDate'},
+    {
+      '1': 'due_date',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'dueDate'
+    },
+    {
+      '1': 'paid_date',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'paidDate'
+    },
   ],
 };
 
@@ -200,13 +294,44 @@ final $typed_data.Uint8List loanScheduleItemDescriptor = $convert.base64Decode(
 const PrepaymentSimulation$json = {
   '1': 'PrepaymentSimulation',
   '2': [
-    {'1': 'prepayment_amount', '3': 1, '4': 1, '5': 3, '10': 'prepaymentAmount'},
-    {'1': 'total_interest_before', '3': 2, '4': 1, '5': 3, '10': 'totalInterestBefore'},
-    {'1': 'total_interest_after', '3': 3, '4': 1, '5': 3, '10': 'totalInterestAfter'},
+    {
+      '1': 'prepayment_amount',
+      '3': 1,
+      '4': 1,
+      '5': 3,
+      '10': 'prepaymentAmount'
+    },
+    {
+      '1': 'total_interest_before',
+      '3': 2,
+      '4': 1,
+      '5': 3,
+      '10': 'totalInterestBefore'
+    },
+    {
+      '1': 'total_interest_after',
+      '3': 3,
+      '4': 1,
+      '5': 3,
+      '10': 'totalInterestAfter'
+    },
     {'1': 'interest_saved', '3': 4, '4': 1, '5': 3, '10': 'interestSaved'},
     {'1': 'months_reduced', '3': 5, '4': 1, '5': 5, '10': 'monthsReduced'},
-    {'1': 'new_monthly_payment', '3': 6, '4': 1, '5': 3, '10': 'newMonthlyPayment'},
-    {'1': 'new_schedule', '3': 7, '4': 3, '5': 11, '6': '.familyledger.loan.v1.LoanScheduleItem', '10': 'newSchedule'},
+    {
+      '1': 'new_monthly_payment',
+      '3': 6,
+      '4': 1,
+      '5': 3,
+      '10': 'newMonthlyPayment'
+    },
+    {
+      '1': 'new_schedule',
+      '3': 7,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.loan.v1.LoanScheduleItem',
+      '10': 'newSchedule'
+    },
   ],
 };
 
@@ -225,16 +350,44 @@ const CreateLoanRequest$json = {
   '1': 'CreateLoanRequest',
   '2': [
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'loan_type', '3': 2, '4': 1, '5': 14, '6': '.familyledger.loan.v1.LoanType', '10': 'loanType'},
+    {
+      '1': 'loan_type',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.LoanType',
+      '10': 'loanType'
+    },
     {'1': 'principal', '3': 3, '4': 1, '5': 3, '10': 'principal'},
     {'1': 'annual_rate', '3': 4, '4': 1, '5': 1, '10': 'annualRate'},
     {'1': 'total_months', '3': 5, '4': 1, '5': 5, '10': 'totalMonths'},
-    {'1': 'repayment_method', '3': 6, '4': 1, '5': 14, '6': '.familyledger.loan.v1.RepaymentMethod', '10': 'repaymentMethod'},
+    {
+      '1': 'repayment_method',
+      '3': 6,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.RepaymentMethod',
+      '10': 'repaymentMethod'
+    },
     {'1': 'payment_day', '3': 7, '4': 1, '5': 5, '10': 'paymentDay'},
-    {'1': 'start_date', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'startDate'},
+    {
+      '1': 'start_date',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'startDate'
+    },
     {'1': 'account_id', '3': 9, '4': 1, '5': 9, '10': 'accountId'},
     {'1': 'family_id', '3': 10, '4': 1, '5': 9, '10': 'familyId'},
-    {'1': 'interest_calc_method', '3': 11, '4': 1, '5': 14, '6': '.familyledger.loan.v1.InterestCalcMethod', '10': 'interestCalcMethod'},
+    {
+      '1': 'interest_calc_method',
+      '3': 11,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.InterestCalcMethod',
+      '10': 'interestCalcMethod'
+    },
   ],
 };
 
@@ -260,8 +413,8 @@ const GetLoanRequest$json = {
 };
 
 /// Descriptor for `GetLoanRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getLoanRequestDescriptor = $convert.base64Decode(
-    'Cg5HZXRMb2FuUmVxdWVzdBIXCgdsb2FuX2lkGAEgASgJUgZsb2FuSWQ=');
+final $typed_data.Uint8List getLoanRequestDescriptor = $convert
+    .base64Decode('Cg5HZXRMb2FuUmVxdWVzdBIXCgdsb2FuX2lkGAEgASgJUgZsb2FuSWQ=');
 
 @$core.Deprecated('Use listLoansRequestDescriptor instead')
 const ListLoansRequest$json = {
@@ -279,7 +432,14 @@ final $typed_data.Uint8List listLoansRequestDescriptor = $convert.base64Decode(
 const ListLoansResponse$json = {
   '1': 'ListLoansResponse',
   '2': [
-    {'1': 'loans', '3': 1, '4': 3, '5': 11, '6': '.familyledger.loan.v1.Loan', '10': 'loans'},
+    {
+      '1': 'loans',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.loan.v1.Loan',
+      '10': 'loans'
+    },
   ],
 };
 
@@ -296,7 +456,13 @@ const UpdateLoanRequest$json = {
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
     {'1': 'payment_day', '3': 3, '4': 1, '5': 5, '10': 'paymentDay'},
     {'1': 'account_id', '3': 4, '4': 1, '5': 9, '10': 'accountId'},
-    {'1': 'repayment_category_id', '3': 5, '4': 1, '5': 9, '10': 'repaymentCategoryId'},
+    {
+      '1': 'repayment_category_id',
+      '3': 5,
+      '4': 1,
+      '5': 9,
+      '10': 'repaymentCategoryId'
+    },
   ],
 };
 
@@ -328,14 +494,22 @@ const GetLoanScheduleRequest$json = {
 };
 
 /// Descriptor for `GetLoanScheduleRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getLoanScheduleRequestDescriptor = $convert.base64Decode(
-    'ChZHZXRMb2FuU2NoZWR1bGVSZXF1ZXN0EhcKB2xvYW5faWQYASABKAlSBmxvYW5JZA==');
+final $typed_data.Uint8List getLoanScheduleRequestDescriptor =
+    $convert.base64Decode(
+        'ChZHZXRMb2FuU2NoZWR1bGVSZXF1ZXN0EhcKB2xvYW5faWQYASABKAlSBmxvYW5JZA==');
 
 @$core.Deprecated('Use loanScheduleResponseDescriptor instead')
 const LoanScheduleResponse$json = {
   '1': 'LoanScheduleResponse',
   '2': [
-    {'1': 'items', '3': 1, '4': 3, '5': 11, '6': '.familyledger.loan.v1.LoanScheduleItem', '10': 'items'},
+    {
+      '1': 'items',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.loan.v1.LoanScheduleItem',
+      '10': 'items'
+    },
   ],
 };
 
@@ -349,8 +523,21 @@ const SimulatePrepaymentRequest$json = {
   '1': 'SimulatePrepaymentRequest',
   '2': [
     {'1': 'loan_id', '3': 1, '4': 1, '5': 9, '10': 'loanId'},
-    {'1': 'prepayment_amount', '3': 2, '4': 1, '5': 3, '10': 'prepaymentAmount'},
-    {'1': 'strategy', '3': 3, '4': 1, '5': 14, '6': '.familyledger.loan.v1.PrepaymentStrategy', '10': 'strategy'},
+    {
+      '1': 'prepayment_amount',
+      '3': 2,
+      '4': 1,
+      '5': 3,
+      '10': 'prepaymentAmount'
+    },
+    {
+      '1': 'strategy',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.PrepaymentStrategy',
+      '10': 'strategy'
+    },
   ],
 };
 
@@ -367,7 +554,14 @@ const RecordRateChangeRequest$json = {
   '2': [
     {'1': 'loan_id', '3': 1, '4': 1, '5': 9, '10': 'loanId'},
     {'1': 'new_rate', '3': 2, '4': 1, '5': 1, '10': 'newRate'},
-    {'1': 'effective_date', '3': 3, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'effectiveDate'},
+    {
+      '1': 'effective_date',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'effectiveDate'
+    },
   ],
 };
 
@@ -401,15 +595,62 @@ const LoanGroup$json = {
     {'1': 'group_type', '3': 4, '4': 1, '5': 9, '10': 'groupType'},
     {'1': 'total_principal', '3': 5, '4': 1, '5': 3, '10': 'totalPrincipal'},
     {'1': 'payment_day', '3': 6, '4': 1, '5': 5, '10': 'paymentDay'},
-    {'1': 'start_date', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'startDate'},
+    {
+      '1': 'start_date',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'startDate'
+    },
     {'1': 'account_id', '3': 8, '4': 1, '5': 9, '10': 'accountId'},
-    {'1': 'sub_loans', '3': 9, '4': 3, '5': 11, '6': '.familyledger.loan.v1.Loan', '10': 'subLoans'},
-    {'1': 'total_monthly_payment', '3': 10, '4': 1, '5': 3, '10': 'totalMonthlyPayment'},
-    {'1': 'created_at', '3': 11, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'updated_at', '3': 12, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
-    {'1': 'loan_type', '3': 13, '4': 1, '5': 14, '6': '.familyledger.loan.v1.LoanType', '10': 'loanType'},
+    {
+      '1': 'sub_loans',
+      '3': 9,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.loan.v1.Loan',
+      '10': 'subLoans'
+    },
+    {
+      '1': 'total_monthly_payment',
+      '3': 10,
+      '4': 1,
+      '5': 3,
+      '10': 'totalMonthlyPayment'
+    },
+    {
+      '1': 'created_at',
+      '3': 11,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
+    {
+      '1': 'updated_at',
+      '3': 12,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'updatedAt'
+    },
+    {
+      '1': 'loan_type',
+      '3': 13,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.LoanType',
+      '10': 'loanType'
+    },
     {'1': 'family_id', '3': 14, '4': 1, '5': 9, '10': 'familyId'},
-    {'1': 'repayment_category_id', '3': 15, '4': 1, '5': 9, '10': 'repaymentCategoryId'},
+    {
+      '1': 'repayment_category_id',
+      '3': 15,
+      '4': 1,
+      '5': 9,
+      '10': 'repaymentCategoryId'
+    },
   ],
 };
 
@@ -433,16 +674,50 @@ const SubLoanSpec$json = {
   '1': 'SubLoanSpec',
   '2': [
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'sub_type', '3': 2, '4': 1, '5': 14, '6': '.familyledger.loan.v1.LoanSubType', '10': 'subType'},
+    {
+      '1': 'sub_type',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.LoanSubType',
+      '10': 'subType'
+    },
     {'1': 'principal', '3': 3, '4': 1, '5': 3, '10': 'principal'},
     {'1': 'annual_rate', '3': 4, '4': 1, '5': 1, '10': 'annualRate'},
     {'1': 'total_months', '3': 5, '4': 1, '5': 5, '10': 'totalMonths'},
-    {'1': 'repayment_method', '3': 6, '4': 1, '5': 14, '6': '.familyledger.loan.v1.RepaymentMethod', '10': 'repaymentMethod'},
-    {'1': 'rate_type', '3': 7, '4': 1, '5': 14, '6': '.familyledger.loan.v1.RateType', '10': 'rateType'},
+    {
+      '1': 'repayment_method',
+      '3': 6,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.RepaymentMethod',
+      '10': 'repaymentMethod'
+    },
+    {
+      '1': 'rate_type',
+      '3': 7,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.RateType',
+      '10': 'rateType'
+    },
     {'1': 'lpr_base', '3': 8, '4': 1, '5': 1, '10': 'lprBase'},
     {'1': 'lpr_spread', '3': 9, '4': 1, '5': 1, '10': 'lprSpread'},
-    {'1': 'rate_adjust_month', '3': 10, '4': 1, '5': 5, '10': 'rateAdjustMonth'},
-    {'1': 'interest_calc_method', '3': 11, '4': 1, '5': 14, '6': '.familyledger.loan.v1.InterestCalcMethod', '10': 'interestCalcMethod'},
+    {
+      '1': 'rate_adjust_month',
+      '3': 10,
+      '4': 1,
+      '5': 5,
+      '10': 'rateAdjustMonth'
+    },
+    {
+      '1': 'interest_calc_method',
+      '3': 11,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.InterestCalcMethod',
+      '10': 'interestCalcMethod'
+    },
   ],
 };
 
@@ -466,10 +741,31 @@ const CreateLoanGroupRequest$json = {
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
     {'1': 'group_type', '3': 2, '4': 1, '5': 9, '10': 'groupType'},
     {'1': 'payment_day', '3': 3, '4': 1, '5': 5, '10': 'paymentDay'},
-    {'1': 'start_date', '3': 4, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'startDate'},
+    {
+      '1': 'start_date',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'startDate'
+    },
     {'1': 'account_id', '3': 5, '4': 1, '5': 9, '10': 'accountId'},
-    {'1': 'sub_loans', '3': 6, '4': 3, '5': 11, '6': '.familyledger.loan.v1.SubLoanSpec', '10': 'subLoans'},
-    {'1': 'loan_type', '3': 7, '4': 1, '5': 14, '6': '.familyledger.loan.v1.LoanType', '10': 'loanType'},
+    {
+      '1': 'sub_loans',
+      '3': 6,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.loan.v1.SubLoanSpec',
+      '10': 'subLoans'
+    },
+    {
+      '1': 'loan_type',
+      '3': 7,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.LoanType',
+      '10': 'loanType'
+    },
     {'1': 'family_id', '3': 8, '4': 1, '5': 9, '10': 'familyId'},
   ],
 };
@@ -493,8 +789,9 @@ const GetLoanGroupRequest$json = {
 };
 
 /// Descriptor for `GetLoanGroupRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getLoanGroupRequestDescriptor = $convert.base64Decode(
-    'ChNHZXRMb2FuR3JvdXBSZXF1ZXN0EhkKCGdyb3VwX2lkGAEgASgJUgdncm91cElk');
+final $typed_data.Uint8List getLoanGroupRequestDescriptor =
+    $convert.base64Decode(
+        'ChNHZXRMb2FuR3JvdXBSZXF1ZXN0EhkKCGdyb3VwX2lkGAEgASgJUgdncm91cElk');
 
 @$core.Deprecated('Use listLoanGroupsRequestDescriptor instead')
 const ListLoanGroupsRequest$json = {
@@ -512,14 +809,22 @@ final $typed_data.Uint8List listLoanGroupsRequestDescriptor = $convert.base64Dec
 const ListLoanGroupsResponse$json = {
   '1': 'ListLoanGroupsResponse',
   '2': [
-    {'1': 'groups', '3': 1, '4': 3, '5': 11, '6': '.familyledger.loan.v1.LoanGroup', '10': 'groups'},
+    {
+      '1': 'groups',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.loan.v1.LoanGroup',
+      '10': 'groups'
+    },
   ],
 };
 
 /// Descriptor for `ListLoanGroupsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listLoanGroupsResponseDescriptor = $convert.base64Decode(
-    'ChZMaXN0TG9hbkdyb3Vwc1Jlc3BvbnNlEjcKBmdyb3VwcxgBIAMoCzIfLmZhbWlseWxlZGdlci'
-    '5sb2FuLnYxLkxvYW5Hcm91cFIGZ3JvdXBz');
+final $typed_data.Uint8List listLoanGroupsResponseDescriptor =
+    $convert.base64Decode(
+        'ChZMaXN0TG9hbkdyb3Vwc1Jlc3BvbnNlEjcKBmdyb3VwcxgBIAMoCzIfLmZhbWlseWxlZGdlci'
+        '5sb2FuLnYxLkxvYW5Hcm91cFIGZ3JvdXBz');
 
 @$core.Deprecated('Use simulateGroupPrepaymentRequestDescriptor instead')
 const SimulateGroupPrepaymentRequest$json = {
@@ -527,25 +832,52 @@ const SimulateGroupPrepaymentRequest$json = {
   '2': [
     {'1': 'group_id', '3': 1, '4': 1, '5': 9, '10': 'groupId'},
     {'1': 'target_loan_id', '3': 2, '4': 1, '5': 9, '10': 'targetLoanId'},
-    {'1': 'prepayment_amount', '3': 3, '4': 1, '5': 3, '10': 'prepaymentAmount'},
-    {'1': 'strategy', '3': 4, '4': 1, '5': 14, '6': '.familyledger.loan.v1.PrepaymentStrategy', '10': 'strategy'},
+    {
+      '1': 'prepayment_amount',
+      '3': 3,
+      '4': 1,
+      '5': 3,
+      '10': 'prepaymentAmount'
+    },
+    {
+      '1': 'strategy',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.PrepaymentStrategy',
+      '10': 'strategy'
+    },
   ],
 };
 
 /// Descriptor for `SimulateGroupPrepaymentRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List simulateGroupPrepaymentRequestDescriptor = $convert.base64Decode(
-    'Ch5TaW11bGF0ZUdyb3VwUHJlcGF5bWVudFJlcXVlc3QSGQoIZ3JvdXBfaWQYASABKAlSB2dyb3'
-    'VwSWQSJAoOdGFyZ2V0X2xvYW5faWQYAiABKAlSDHRhcmdldExvYW5JZBIrChFwcmVwYXltZW50'
-    'X2Ftb3VudBgDIAEoA1IQcHJlcGF5bWVudEFtb3VudBJECghzdHJhdGVneRgEIAEoDjIoLmZhbW'
-    'lseWxlZGdlci5sb2FuLnYxLlByZXBheW1lbnRTdHJhdGVneVIIc3RyYXRlZ3k=');
+final $typed_data.Uint8List simulateGroupPrepaymentRequestDescriptor =
+    $convert.base64Decode(
+        'Ch5TaW11bGF0ZUdyb3VwUHJlcGF5bWVudFJlcXVlc3QSGQoIZ3JvdXBfaWQYASABKAlSB2dyb3'
+        'VwSWQSJAoOdGFyZ2V0X2xvYW5faWQYAiABKAlSDHRhcmdldExvYW5JZBIrChFwcmVwYXltZW50'
+        'X2Ftb3VudBgDIAEoA1IQcHJlcGF5bWVudEFtb3VudBJECghzdHJhdGVneRgEIAEoDjIoLmZhbW'
+        'lseWxlZGdlci5sb2FuLnYxLlByZXBheW1lbnRTdHJhdGVneVIIc3RyYXRlZ3k=');
 
 @$core.Deprecated('Use groupPrepaymentSimulationDescriptor instead')
 const GroupPrepaymentSimulation$json = {
   '1': 'GroupPrepaymentSimulation',
   '2': [
     {'1': 'target_loan_id', '3': 1, '4': 1, '5': 9, '10': 'targetLoanId'},
-    {'1': 'target_sim', '3': 2, '4': 1, '5': 11, '6': '.familyledger.loan.v1.PrepaymentSimulation', '10': 'targetSim'},
-    {'1': 'total_interest_saved', '3': 3, '4': 1, '5': 3, '10': 'totalInterestSaved'},
+    {
+      '1': 'target_sim',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.loan.v1.PrepaymentSimulation',
+      '10': 'targetSim'
+    },
+    {
+      '1': 'total_interest_saved',
+      '3': 3,
+      '4': 1,
+      '5': 3,
+      '10': 'totalInterestSaved'
+    },
   ],
 };
 
@@ -561,8 +893,21 @@ const ExecutePrepaymentRequest$json = {
   '1': 'ExecutePrepaymentRequest',
   '2': [
     {'1': 'loan_id', '3': 1, '4': 1, '5': 9, '10': 'loanId'},
-    {'1': 'prepayment_amount', '3': 2, '4': 1, '5': 3, '10': 'prepaymentAmount'},
-    {'1': 'strategy', '3': 3, '4': 1, '5': 14, '6': '.familyledger.loan.v1.PrepaymentStrategy', '10': 'strategy'},
+    {
+      '1': 'prepayment_amount',
+      '3': 2,
+      '4': 1,
+      '5': 3,
+      '10': 'prepaymentAmount'
+    },
+    {
+      '1': 'strategy',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.PrepaymentStrategy',
+      '10': 'strategy'
+    },
   ],
 };
 
@@ -577,9 +922,30 @@ final $typed_data.Uint8List executePrepaymentRequestDescriptor = $convert.base64
 const ExecutePrepaymentResponse$json = {
   '1': 'ExecutePrepaymentResponse',
   '2': [
-    {'1': 'loan', '3': 1, '4': 1, '5': 11, '6': '.familyledger.loan.v1.Loan', '10': 'loan'},
-    {'1': 'simulation', '3': 2, '4': 1, '5': 11, '6': '.familyledger.loan.v1.PrepaymentSimulation', '10': 'simulation'},
-    {'1': 'new_schedule', '3': 3, '4': 3, '5': 11, '6': '.familyledger.loan.v1.LoanScheduleItem', '10': 'newSchedule'},
+    {
+      '1': 'loan',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.loan.v1.Loan',
+      '10': 'loan'
+    },
+    {
+      '1': 'simulation',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.loan.v1.PrepaymentSimulation',
+      '10': 'simulation'
+    },
+    {
+      '1': 'new_schedule',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.loan.v1.LoanScheduleItem',
+      '10': 'newSchedule'
+    },
   ],
 };
 
@@ -597,8 +963,21 @@ const ExecuteGroupPrepaymentRequest$json = {
   '2': [
     {'1': 'group_id', '3': 1, '4': 1, '5': 9, '10': 'groupId'},
     {'1': 'target_loan_id', '3': 2, '4': 1, '5': 9, '10': 'targetLoanId'},
-    {'1': 'prepayment_amount', '3': 3, '4': 1, '5': 3, '10': 'prepaymentAmount'},
-    {'1': 'strategy', '3': 4, '4': 1, '5': 14, '6': '.familyledger.loan.v1.PrepaymentStrategy', '10': 'strategy'},
+    {
+      '1': 'prepayment_amount',
+      '3': 3,
+      '4': 1,
+      '5': 3,
+      '10': 'prepaymentAmount'
+    },
+    {
+      '1': 'strategy',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.loan.v1.PrepaymentStrategy',
+      '10': 'strategy'
+    },
   ],
 };
 
@@ -614,9 +993,30 @@ const ExecuteGroupPrepaymentResponse$json = {
   '1': 'ExecuteGroupPrepaymentResponse',
   '2': [
     {'1': 'target_loan_id', '3': 1, '4': 1, '5': 9, '10': 'targetLoanId'},
-    {'1': 'loan', '3': 2, '4': 1, '5': 11, '6': '.familyledger.loan.v1.Loan', '10': 'loan'},
-    {'1': 'simulation', '3': 3, '4': 1, '5': 11, '6': '.familyledger.loan.v1.PrepaymentSimulation', '10': 'simulation'},
-    {'1': 'new_schedule', '3': 4, '4': 3, '5': 11, '6': '.familyledger.loan.v1.LoanScheduleItem', '10': 'newSchedule'},
+    {
+      '1': 'loan',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.loan.v1.Loan',
+      '10': 'loan'
+    },
+    {
+      '1': 'simulation',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.loan.v1.PrepaymentSimulation',
+      '10': 'simulation'
+    },
+    {
+      '1': 'new_schedule',
+      '3': 4,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.loan.v1.LoanScheduleItem',
+      '10': 'newSchedule'
+    },
   ],
 };
 
@@ -627,4 +1027,3 @@ final $typed_data.Uint8List executeGroupPrepaymentResponseDescriptor = $convert.
     'blIEbG9hbhJKCgpzaW11bGF0aW9uGAMgASgLMiouZmFtaWx5bGVkZ2VyLmxvYW4udjEuUHJlcG'
     'F5bWVudFNpbXVsYXRpb25SCnNpbXVsYXRpb24SSQoMbmV3X3NjaGVkdWxlGAQgAygLMiYuZmFt'
     'aWx5bGVkZ2VyLmxvYW4udjEuTG9hblNjaGVkdWxlSXRlbVILbmV3U2NoZWR1bGU=');
-

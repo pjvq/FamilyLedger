@@ -47,10 +47,7 @@ class TransactionTile extends StatelessWidget {
                     : NeutralColorsLight.neutral2,
                 child: const Icon(Icons.receipt_outlined, size: 20),
               ),
-        title: Text(
-          category?.name ?? '未分类',
-          style: TypographyTokens.bodyMd(),
-        ),
+        title: Text(category?.name ?? '未分类', style: TypographyTokens.bodyMd()),
         subtitle: Text(
           [
             if (creatorName != null && creatorName!.isNotEmpty) creatorName!,

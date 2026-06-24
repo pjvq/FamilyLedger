@@ -70,8 +70,11 @@ class _PortfolioChartState extends ConsumerState<PortfolioChart> {
                                 setState(() => _touchedIndex = null);
                                 return;
                               }
-                              setState(() => _touchedIndex = response
-                                  .touchedSection!.touchedSectionIndex);
+                              setState(
+                                () => _touchedIndex = response
+                                    .touchedSection!
+                                    .touchedSectionIndex,
+                              );
                             },
                           ),
                           sections: _buildSections(portfolio, isDark),
@@ -90,14 +93,16 @@ class _PortfolioChartState extends ConsumerState<PortfolioChart> {
                         children: portfolio.holdings
                             .asMap()
                             .entries
-                            .map((e) => _LegendItem(
-                                  color:
-                                      _chartColors[e.key % _chartColors.length],
-                                  label: e.value.symbol,
-                                  percent: e.value.weight * 100,
-                                  isHighlighted: _touchedIndex == e.key,
-                                  theme: theme,
-                                ))
+                            .map(
+                              (e) => _LegendItem(
+                                color:
+                                    _chartColors[e.key % _chartColors.length],
+                                label: e.value.symbol,
+                                percent: e.value.weight * 100,
+                                isHighlighted: _touchedIndex == e.key,
+                                theme: theme,
+                              ),
+                            )
                             .toList(),
                       ),
                     ),
@@ -121,7 +126,9 @@ class _PortfolioChartState extends ConsumerState<PortfolioChart> {
   }
 
   List<PieChartSectionData> _buildSections(
-      PortfolioSummary portfolio, bool isDark) {
+    PortfolioSummary portfolio,
+    bool isDark,
+  ) {
     return portfolio.holdings.asMap().entries.map((e) {
       final index = e.key;
       final holding = e.value;
@@ -133,9 +140,7 @@ class _PortfolioChartState extends ConsumerState<PortfolioChart> {
       return PieChartSectionData(
         color: color,
         value: holding.weight * 100,
-        title: isTouched
-            ? '${(holding.weight * 100).toStringAsFixed(1)}%'
-            : '',
+        title: isTouched ? '${(holding.weight * 100).toStringAsFixed(1)}%' : '',
         radius: radius,
         titleStyle: TextStyle(
           fontSize: fontSize,
@@ -172,10 +177,7 @@ class _LegendItem extends StatelessWidget {
           Container(
             width: 10,
             height: 10,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 6),
           Expanded(
@@ -219,9 +221,7 @@ class _HoldingDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.semanticColors;
     final isPositive = holding.returnRate >= 0;
-    final retColor = isPositive
-        ? colors.income
-        : colors.expense;
+    final retColor = isPositive ? colors.income : colors.expense;
 
     return Container(
       margin: const EdgeInsets.only(top: 12),

@@ -22,16 +22,16 @@ func TestApplyLoanOp_Create(t *testing.T) {
 	entityID := uuid.New()
 
 	payload := loanPayload{
-		Name:             "房贷",
-		LoanType:         "commercial",
-		Principal:        1000000,
+		Name:               "房贷",
+		LoanType:           "commercial",
+		Principal:          1000000,
 		RemainingPrincipal: 900000,
-		AnnualRate:       4.5,
-		TotalMonths:      360,
-		PaidMonths:       12,
-		RepaymentMethod:  "equal_payment",
-		PaymentDay:       15,
-		StartDate:        "2025-01-01",
+		AnnualRate:         4.5,
+		TotalMonths:        360,
+		PaidMonths:         12,
+		RepaymentMethod:    "equal_payment",
+		PaymentDay:         15,
+		StartDate:          "2025-01-01",
 	}
 	payloadJSON, _ := json.Marshal(payload)
 

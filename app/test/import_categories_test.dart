@@ -28,12 +28,15 @@ void main() {
   // ─── Exact replicas of import_page.dart logic ───
 
   /// Simulates _loadCategories()
-  Future<({
-    Map<String, Category> catByName,
-    Map<String, Category> catByNameType,
-    List<Category> allCategories,
-    Category? defaultCategory,
-  })> loadCategories(AppDatabase database) async {
+  Future<
+    ({
+      Map<String, Category> catByName,
+      Map<String, Category> catByNameType,
+      List<Category> allCategories,
+      Category? defaultCategory,
+    })
+  >
+  loadCategories(AppDatabase database) async {
     final allCats = await database.getAllCategories();
     final catByName = <String, Category>{};
     final catByNameType = <String, Category>{};
@@ -67,17 +70,19 @@ void main() {
     if (byName != null) return byName;
 
     // DB check — first top-level, then any (including subcategories)
-    var dbExisting = await (database.select(database.categories)
-          ..where((c) => c.name.equals(name))
-          ..where((c) => c.type.equals(type))
-          ..where((c) => c.parentId.isNull())
-          ..limit(1))
-        .getSingleOrNull();
-    dbExisting ??= await (database.select(database.categories)
-          ..where((c) => c.name.equals(name))
-          ..where((c) => c.type.equals(type))
-          ..limit(1))
-        .getSingleOrNull();
+    var dbExisting =
+        await (database.select(database.categories)
+              ..where((c) => c.name.equals(name))
+              ..where((c) => c.type.equals(type))
+              ..where((c) => c.parentId.isNull())
+              ..limit(1))
+            .getSingleOrNull();
+    dbExisting ??=
+        await (database.select(database.categories)
+              ..where((c) => c.name.equals(name))
+              ..where((c) => c.type.equals(type))
+              ..limit(1))
+            .getSingleOrNull();
     if (dbExisting != null) {
       catByName[name] = dbExisting;
       catByNameType['$name|${dbExisting.type}'] = dbExisting;
@@ -86,11 +91,7 @@ void main() {
     }
 
     final id = const Uuid().v4();
-    await database.upsertCategory(
-      id: id,
-      name: name,
-      type: type,
-    );
+    await database.upsertCategory(id: id, name: name, type: type);
     final newCat = Category(
       id: id,
       name: name,
@@ -125,11 +126,12 @@ void main() {
       return existing;
     }
 
-    final dbExisting = await (database.select(database.categories)
-          ..where((c) => c.name.equals(name))
-          ..where((c) => c.parentId.equals(parentId))
-          ..limit(1))
-        .getSingleOrNull();
+    final dbExisting =
+        await (database.select(database.categories)
+              ..where((c) => c.name.equals(name))
+              ..where((c) => c.parentId.equals(parentId))
+              ..limit(1))
+            .getSingleOrNull();
     if (dbExisting != null) {
       catByName[name] = dbExisting;
       allCategories.add(dbExisting);
@@ -194,12 +196,17 @@ void main() {
         // Tag not found — auto-create parent + child
         if (parentName.isNotEmpty) {
           final parentCat = await getOrCreateCategory(
-            database, catByName, catByNameType, allCategories,
+            database,
+            catByName,
+            catByNameType,
+            allCategories,
             name: parentName,
             type: t.type,
           );
           final childCat = await getOrCreateChildCategory(
-            database, catByName, allCategories,
+            database,
+            catByName,
+            allCategories,
             name: tag,
             type: t.type,
             parentId: parentCat.id,
@@ -212,7 +219,10 @@ void main() {
       // Fallback: match or create parent category
       if (parentName.isNotEmpty) {
         final parentCat = await getOrCreateCategory(
-          database, catByName, catByNameType, allCategories,
+          database,
+          catByName,
+          catByNameType,
+          allCategories,
           name: parentName,
           type: t.type,
         );
@@ -238,8 +248,10 @@ void main() {
     }
     return groups.entries
         .where((e) => e.value.length > 1)
-        .map((e) =>
-            '${e.key} → ${e.value.length} copies (ids: ${e.value.map((c) => c.id.substring(0, 8)).join(", ")})')
+        .map(
+          (e) =>
+              '${e.key} → ${e.value.length} copies (ids: ${e.value.map((c) => c.id.substring(0, 8)).join(", ")})',
+        )
         .toList();
   }
 
@@ -258,8 +270,11 @@ void main() {
       final all = await db.getAllCategories();
       final parents = all.where((c) => c.parentId == null).toList();
       for (final p in parents) {
-        expect(p.iconKey, isNotEmpty,
-            reason: '${p.name} (${p.type}) missing iconKey');
+        expect(
+          p.iconKey,
+          isNotEmpty,
+          reason: '${p.name} (${p.type}) missing iconKey',
+        );
       }
     });
 
@@ -276,11 +291,13 @@ void main() {
       final file = File('test/fixtures/synthetic_import_data.json');
       final json = jsonDecode(file.readAsStringSync()) as List;
       importData = json
-          .map((e) => (
-                type: e['type'] as String,
-                parent: e['parent'] as String,
-                tag: e['tag'] as String,
-              ))
+          .map(
+            (e) => (
+              type: e['type'] as String,
+              parent: e['parent'] as String,
+              tag: e['tag'] as String,
+            ),
+          )
           .toList();
     });
 
@@ -301,8 +318,11 @@ void main() {
       );
 
       final dupes = await findDuplicates(db);
-      expect(dupes, isEmpty,
-          reason: 'Import created duplicates:\n${dupes.join("\n")}');
+      expect(
+        dupes,
+        isEmpty,
+        reason: 'Import created duplicates:\n${dupes.join("\n")}',
+      );
     });
 
     test('double import (simulating the bug) produces no duplicates', () async {
@@ -332,17 +352,22 @@ void main() {
       );
 
       final countAfterSecond = (await db.getAllCategories()).length;
-      expect(countAfterSecond, countAfterFirst,
-          reason:
-              'Second call created ${countAfterSecond - countAfterFirst} extra categories');
+      expect(
+        countAfterSecond,
+        countAfterFirst,
+        reason:
+            'Second call created ${countAfterSecond - countAfterFirst} extra categories',
+      );
 
       final dupes = await findDuplicates(db);
-      expect(dupes, isEmpty,
-          reason: 'Double-call created duplicates:\n${dupes.join("\n")}');
+      expect(
+        dupes,
+        isEmpty,
+        reason: 'Double-call created duplicates:\n${dupes.join("\n")}',
+      );
     });
 
-    test('concurrent double import (race condition) is prevented by fix',
-        () async {
+    test('concurrent double import (race condition) is prevented by fix', () async {
       // BEFORE FIX: _parseBaishiAA called _matchBaishiCategories() without await,
       // then _parseFile called await _matchBaishiCategories() — two concurrent runs
       // sharing the same in-memory cache but creating separate DB rows → duplicates.
@@ -364,40 +389,49 @@ void main() {
       );
 
       final dupes = await findDuplicates(db);
-      expect(dupes, isEmpty,
-          reason: 'Single sequential call created duplicates:\n${dupes.join("\n")}');
+      expect(
+        dupes,
+        isEmpty,
+        reason:
+            'Single sequential call created duplicates:\n${dupes.join("\n")}',
+      );
     });
 
-    test('re-import after app restart (fresh cache) produces no duplicates',
-        () async {
-      // First import
-      var cats = await loadCategories(db);
-      await matchBaishiCategories(
-        db,
-        cats.catByName,
-        cats.catByNameType,
-        cats.allCategories,
-        cats.defaultCategory,
-        importData,
-      );
-      final countAfterFirst = (await db.getAllCategories()).length;
+    test(
+      're-import after app restart (fresh cache) produces no duplicates',
+      () async {
+        // First import
+        var cats = await loadCategories(db);
+        await matchBaishiCategories(
+          db,
+          cats.catByName,
+          cats.catByNameType,
+          cats.allCategories,
+          cats.defaultCategory,
+          importData,
+        );
+        final countAfterFirst = (await db.getAllCategories()).length;
 
-      // Simulate app restart: fresh cache from DB
-      cats = await loadCategories(db);
-      await matchBaishiCategories(
-        db,
-        cats.catByName,
-        cats.catByNameType,
-        cats.allCategories,
-        cats.defaultCategory,
-        importData,
-      );
-      final countAfterSecond = (await db.getAllCategories()).length;
+        // Simulate app restart: fresh cache from DB
+        cats = await loadCategories(db);
+        await matchBaishiCategories(
+          db,
+          cats.catByName,
+          cats.catByNameType,
+          cats.allCategories,
+          cats.defaultCategory,
+          importData,
+        );
+        final countAfterSecond = (await db.getAllCategories()).length;
 
-      expect(countAfterSecond, countAfterFirst,
+        expect(
+          countAfterSecond,
+          countAfterFirst,
           reason:
-              'Re-import after restart created ${countAfterSecond - countAfterFirst} extra categories');
-    });
+              'Re-import after restart created ${countAfterSecond - countAfterFirst} extra categories',
+        );
+      },
+    );
   });
 
   group('Specific category edge cases', () {
@@ -420,9 +454,12 @@ void main() {
       // "住宿" should not be duplicated
       final all = await db.getAllCategories();
       final zhusu = all.where((c) => c.name == '住宿').toList();
-      expect(zhusu.length, 1,
-          reason:
-              '"住宿" duplicated: ${zhusu.map((c) => "parent=${c.parentId}").join(", ")}');
+      expect(
+        zhusu.length,
+        1,
+        reason:
+            '"住宿" duplicated: ${zhusu.map((c) => "parent=${c.parentId}").join(", ")}',
+      );
     });
 
     test('衣服 (preset subcategory of 服饰) used as parent in import', () async {
@@ -439,44 +476,51 @@ void main() {
 
       final all = await db.getAllCategories();
       final yifu = all.where((c) => c.name == '衣服').toList();
-      expect(yifu.length, 1,
-          reason:
-              '"衣服" duplicated: ${yifu.map((c) => "parent=${c.parentId}").join(", ")}');
-    });
-
-    test('catByName last-write-wins does not cause wrong parent assignment',
-        () async {
-      final cats = await loadCategories(db);
-
-      // Import "餐饮|水果" — but catByName["水果"] might point to
-      // preset "水果零食" (different name) so no collision here.
-      // Actually check if "水果" exists as a preset:
-      final presetFruit = cats.allCategories
-          .where((c) => c.name == '水果')
-          .firstOrNull;
-
-      await matchBaishiCategories(
-        db,
-        cats.catByName,
-        cats.catByNameType,
-        cats.allCategories,
-        cats.defaultCategory,
-        [(type: 'expense', parent: '餐饮', tag: '水果')],
+      expect(
+        yifu.length,
+        1,
+        reason:
+            '"衣服" duplicated: ${yifu.map((c) => "parent=${c.parentId}").join(", ")}',
       );
-
-      final all = await db.getAllCategories();
-      final fruits = all.where((c) => c.name == '水果').toList();
-
-      if (presetFruit != null) {
-        // If there was a preset "水果", should still be just 1
-        expect(fruits.length, 1);
-      } else {
-        // Created new — should be 1 under 餐饮
-        expect(fruits.length, 1);
-        final food = all.where((c) => c.name == '餐饮' && c.parentId == null).first;
-        expect(fruits.first.parentId, food.id);
-      }
     });
+
+    test(
+      'catByName last-write-wins does not cause wrong parent assignment',
+      () async {
+        final cats = await loadCategories(db);
+
+        // Import "餐饮|水果" — but catByName["水果"] might point to
+        // preset "水果零食" (different name) so no collision here.
+        // Actually check if "水果" exists as a preset:
+        final presetFruit = cats.allCategories
+            .where((c) => c.name == '水果')
+            .firstOrNull;
+
+        await matchBaishiCategories(
+          db,
+          cats.catByName,
+          cats.catByNameType,
+          cats.allCategories,
+          cats.defaultCategory,
+          [(type: 'expense', parent: '餐饮', tag: '水果')],
+        );
+
+        final all = await db.getAllCategories();
+        final fruits = all.where((c) => c.name == '水果').toList();
+
+        if (presetFruit != null) {
+          // If there was a preset "水果", should still be just 1
+          expect(fruits.length, 1);
+        } else {
+          // Created new — should be 1 under 餐饮
+          expect(fruits.length, 1);
+          final food = all
+              .where((c) => c.name == '餐饮' && c.parentId == null)
+              .first;
+          expect(fruits.first.parentId, food.id);
+        }
+      },
+    );
 
     test('话费 tag matches preset subcategory under 通讯', () async {
       final cats = await loadCategories(db);
@@ -492,8 +536,7 @@ void main() {
 
       final all = await db.getAllCategories();
       final huafei = all.where((c) => c.name == '话费').toList();
-      expect(huafei.length, 1,
-          reason: '"话费" duplicated: ${huafei.length}');
+      expect(huafei.length, 1, reason: '"话费" duplicated: ${huafei.length}');
     });
   });
 }

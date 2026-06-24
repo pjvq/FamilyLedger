@@ -70,7 +70,8 @@ class FakeTransactionClient implements pbgrpc.TransactionServiceClient {
   }) {
     if (listError != null) return FakeResponseFuture.error(listError!);
     return FakeResponseFuture.value(
-        pb.ListTransactionsResponse(transactions: [], nextPageToken: ''));
+      pb.ListTransactionsResponse(transactions: [], nextPageToken: ''),
+    );
   }
 
   @override
@@ -79,18 +80,20 @@ class FakeTransactionClient implements pbgrpc.TransactionServiceClient {
     CallOptions? options,
   }) {
     if (createError != null) return FakeResponseFuture.error(createError!);
-    return FakeResponseFuture.value(pb.CreateTransactionResponse(
-      transaction: pb.Transaction(
-        id: 'server_txn_id',
-        userId: 'user1',
-        accountId: request.accountId,
-        categoryId: request.categoryId,
-        amount: request.amount,
-        amountCny: request.amountCny,
-        type: request.type,
-        note: request.note,
+    return FakeResponseFuture.value(
+      pb.CreateTransactionResponse(
+        transaction: pb.Transaction(
+          id: 'server_txn_id',
+          userId: 'user1',
+          accountId: request.accountId,
+          categoryId: request.categoryId,
+          amount: request.amount,
+          amountCny: request.amountCny,
+          type: request.type,
+          note: request.note,
+        ),
       ),
-    ));
+    );
   }
 
   @override
@@ -113,7 +116,8 @@ class FakeTransactionClient implements pbgrpc.TransactionServiceClient {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-      '${invocation.memberName} not implemented in fake');
+    '${invocation.memberName} not implemented in fake',
+  );
 }
 
 // ─── Fake FamilyServiceClient ────────────────────────────────
@@ -125,44 +129,52 @@ class FakeFamilyClient implements pb_family_grpc.FamilyServiceClient {
 
   @override
   ResponseFuture<pb_model.CreateFamilyResponse> createFamily(
-      pb_model.CreateFamilyRequest request,
-      {CallOptions? options}) {
+    pb_model.CreateFamilyRequest request, {
+    CallOptions? options,
+  }) {
     if (createError != null) return FakeResponseFuture.error(createError!);
-    return FakeResponseFuture.value(pb_model.CreateFamilyResponse(
-      family: pb_model.Family(
-        id: 'server_fam_1',
-        name: request.name,
-        ownerId: 'user1',
+    return FakeResponseFuture.value(
+      pb_model.CreateFamilyResponse(
+        family: pb_model.Family(
+          id: 'server_fam_1',
+          name: request.name,
+          ownerId: 'user1',
+        ),
       ),
-    ));
+    );
   }
 
   @override
   ResponseFuture<pb_model.JoinFamilyResponse> joinFamily(
-      pb_model.JoinFamilyRequest request,
-      {CallOptions? options}) {
+    pb_model.JoinFamilyRequest request, {
+    CallOptions? options,
+  }) {
     if (joinError != null) return FakeResponseFuture.error(joinError!);
-    return FakeResponseFuture.value(pb_model.JoinFamilyResponse(
-      family: pb_model.Family(
-        id: 'joined_fam',
-        name: 'Test Family',
-        ownerId: 'owner1',
+    return FakeResponseFuture.value(
+      pb_model.JoinFamilyResponse(
+        family: pb_model.Family(
+          id: 'joined_fam',
+          name: 'Test Family',
+          ownerId: 'owner1',
+        ),
       ),
-    ));
+    );
   }
 
   @override
   ResponseFuture<pb_model.LeaveFamilyResponse> leaveFamily(
-      pb_model.LeaveFamilyRequest request,
-      {CallOptions? options}) {
+    pb_model.LeaveFamilyRequest request, {
+    CallOptions? options,
+  }) {
     if (leaveError != null) return FakeResponseFuture.error(leaveError!);
     return FakeResponseFuture.value(pb_model.LeaveFamilyResponse());
   }
 
   @override
   ResponseFuture<pb_model.ListFamilyMembersResponse> listFamilyMembers(
-      pb_model.ListFamilyMembersRequest request,
-      {CallOptions? options}) {
+    pb_model.ListFamilyMembersRequest request, {
+    CallOptions? options,
+  }) {
     return FakeResponseFuture.value(pb_model.ListFamilyMembersResponse());
   }
 
@@ -178,16 +190,18 @@ class FakeSyncClient implements SyncServiceClient {
 
   @override
   ResponseFuture<sync_pb.PushOperationsResponse> pushOperations(
-      sync_pb.PushOperationsRequest request,
-      {CallOptions? options}) {
+    sync_pb.PushOperationsRequest request, {
+    CallOptions? options,
+  }) {
     if (pushError != null) return FakeResponseFuture.error(pushError!);
     return FakeResponseFuture.value(sync_pb.PushOperationsResponse());
   }
 
   @override
   ResponseFuture<sync_pb.PullChangesResponse> pullChanges(
-      sync_pb.PullChangesRequest request,
-      {CallOptions? options}) {
+    sync_pb.PullChangesRequest request, {
+    CallOptions? options,
+  }) {
     return FakeResponseFuture.value(sync_pb.PullChangesResponse());
   }
 
@@ -197,32 +211,36 @@ class FakeSyncClient implements SyncServiceClient {
 }
 // ─── Mock Connectivity ───────────────────────────────────────
 
-
 // ─── Test Helpers ────────────────────────────────────────────
 
 Future<AppDatabase> _setupDb({bool withFamilyAccount = false}) async {
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   await db.customStatement(
-      "INSERT OR IGNORE INTO users (id, email, created_at) "
-      "VALUES ('user1', 'test@test.com', "
-      "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
+    "INSERT OR IGNORE INTO users (id, email, created_at) "
+    "VALUES ('user1', 'test@test.com', "
+    "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+  );
 
   if (withFamilyAccount) {
-    await db.insertAccount(AccountsCompanion.insert(
-      id: 'acc_fam',
-      userId: 'user1',
-      name: 'Family Account',
-      familyId: const Value('fam1'),
-      accountType: const Value('bank_card'),
-    ));
+    await db.insertAccount(
+      AccountsCompanion.insert(
+        id: 'acc_fam',
+        userId: 'user1',
+        name: 'Family Account',
+        familyId: const Value('fam1'),
+        accountType: const Value('bank_card'),
+      ),
+    );
   } else {
-    await db.insertAccount(AccountsCompanion.insert(
-      id: 'acc1',
-      userId: 'user1',
-      name: 'Personal Account',
-      familyId: const Value(''),
-      accountType: const Value('bank_card'),
-    ));
+    await db.insertAccount(
+      AccountsCompanion.insert(
+        id: 'acc1',
+        userId: 'user1',
+        name: 'Personal Account',
+        familyId: const Value(''),
+        accountType: const Value('bank_card'),
+      ),
+    );
   }
 
   // Insert default categories
@@ -247,24 +265,29 @@ Future<AppDatabase> _setupDb({bool withFamilyAccount = false}) async {
 Future<AppDatabase> _setupDbWithFamily() async {
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   await db.customStatement(
-      "INSERT OR IGNORE INTO users (id, email, created_at) "
-      "VALUES ('user1', 'test@test.com', "
-      "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
-  await db.insertFamily(FamiliesCompanion.insert(
-    id: 'existing_family',
-    name: '测试家庭',
-    ownerId: 'other_owner',
-  ));
-  await db.insertFamilyMember(FamilyMembersCompanion.insert(
-    id: 'member_1',
-    familyId: 'existing_family',
-    userId: 'user1',
-    role: const Value('member'),
-    canView: const Value(true),
-    canCreate: const Value(true),
-    canEdit: const Value(false),
-    canDelete: const Value(false),
-  ));
+    "INSERT OR IGNORE INTO users (id, email, created_at) "
+    "VALUES ('user1', 'test@test.com', "
+    "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+  );
+  await db.insertFamily(
+    FamiliesCompanion.insert(
+      id: 'existing_family',
+      name: '测试家庭',
+      ownerId: 'other_owner',
+    ),
+  );
+  await db.insertFamilyMember(
+    FamilyMembersCompanion.insert(
+      id: 'member_1',
+      familyId: 'existing_family',
+      userId: 'user1',
+      role: const Value('member'),
+      canView: const Value(true),
+      canCreate: const Value(true),
+      canEdit: const Value(false),
+      canDelete: const Value(false),
+    ),
+  );
   return db;
 }
 
@@ -305,144 +328,178 @@ void main() {
         await db.close();
       });
 
-      test('Unauthenticated (code 16): falls back to local + queues sync op',
-          () async {
-        // Behavior: identical to Unavailable — generic catch-all, no special handling
-        final client = FakeTransactionClient()
-          ..createError = GrpcError.unauthenticated('token expired');
+      test(
+        'Unauthenticated (code 16): falls back to local + queues sync op',
+        () async {
+          // Behavior: identical to Unavailable — generic catch-all, no special handling
+          final client = FakeTransactionClient()
+            ..createError = GrpcError.unauthenticated('token expired');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            null,
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.addTransaction(
-          categoryId: 'cat1',
-          amount: 1000,
-          type: 'expense',
-          note: 'unauthenticated test',
-        );
+          await notifier.addTransaction(
+            categoryId: 'cat1',
+            amount: 1000,
+            type: 'expense',
+            note: 'unauthenticated test',
+          );
 
-        // Should not crash, transaction created locally
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops, hasLength(1));
-        expect(ops.first.opType, 'create');
+          // Should not crash, transaction created locally
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops, hasLength(1));
+          expect(ops.first.opType, 'create');
 
-        final payload = jsonDecode(ops.first.payload) as Map<String, dynamic>;
-        final txn = await db.getTransactionById(payload['id'] as String);
-        expect(txn, isNotNull);
-        expect(txn!.amount, 1000);
-        // No error state set on TransactionNotifier for add failures
-        // (error is silently caught and local fallback used)
-        expect(notifier.state.error, isNull);
+          final payload = jsonDecode(ops.first.payload) as Map<String, dynamic>;
+          final txn = await db.getTransactionById(payload['id'] as String);
+          expect(txn, isNotNull);
+          expect(txn!.amount, 1000);
+          // No error state set on TransactionNotifier for add failures
+          // (error is silently caught and local fallback used)
+          expect(notifier.state.error, isNull);
 
-        await Future.delayed(const Duration(milliseconds: 300));
-        notifier.dispose();
-      });
+          await Future.delayed(const Duration(milliseconds: 300));
+          notifier.dispose();
+        },
+      );
 
-      test('PermissionDenied (code 7): falls back to local + queues sync op',
-          () async {
-        // NOTE: Current architecture doesn't distinguish PermissionDenied.
-        // A future improvement might reject the operation and show error to user.
-        final client = FakeTransactionClient()
-          ..createError = GrpcError.permissionDenied('no access');
+      test(
+        'PermissionDenied (code 7): falls back to local + queues sync op',
+        () async {
+          // NOTE: Current architecture doesn't distinguish PermissionDenied.
+          // A future improvement might reject the operation and show error to user.
+          final client = FakeTransactionClient()
+            ..createError = GrpcError.permissionDenied('no access');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            null,
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.addTransaction(
-          categoryId: 'cat1',
-          amount: 2000,
-          type: 'expense',
-          note: 'permission denied test',
-        );
+          await notifier.addTransaction(
+            categoryId: 'cat1',
+            amount: 2000,
+            type: 'expense',
+            note: 'permission denied test',
+          );
 
-        // Treated same as offline — local fallback
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops, hasLength(1));
-        expect(ops.first.opType, 'create');
-        expect(notifier.state.error, isNull);
+          // Treated same as offline — local fallback
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops, hasLength(1));
+          expect(ops.first.opType, 'create');
+          expect(notifier.state.error, isNull);
 
-        await Future.delayed(const Duration(milliseconds: 300));
-        notifier.dispose();
-      });
+          await Future.delayed(const Duration(milliseconds: 300));
+          notifier.dispose();
+        },
+      );
 
-      test('DeadlineExceeded (code 4): falls back to local + queues sync op',
-          () async {
-        // DeadlineExceeded is a timeout — same behavior as Unavailable
-        final client = FakeTransactionClient()
-          ..createError = GrpcError.deadlineExceeded('timeout');
+      test(
+        'DeadlineExceeded (code 4): falls back to local + queues sync op',
+        () async {
+          // DeadlineExceeded is a timeout — same behavior as Unavailable
+          final client = FakeTransactionClient()
+            ..createError = GrpcError.deadlineExceeded('timeout');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            null,
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.addTransaction(
-          categoryId: 'cat1',
-          amount: 3000,
-          type: 'expense',
-          note: 'deadline exceeded test',
-        );
+          await notifier.addTransaction(
+            categoryId: 'cat1',
+            amount: 3000,
+            type: 'expense',
+            note: 'deadline exceeded test',
+          );
 
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops, hasLength(1));
-        expect(ops.first.opType, 'create');
-        expect(notifier.state.error, isNull);
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops, hasLength(1));
+          expect(ops.first.opType, 'create');
+          expect(notifier.state.error, isNull);
 
-        await Future.delayed(const Duration(milliseconds: 300));
-        notifier.dispose();
-      });
+          await Future.delayed(const Duration(milliseconds: 300));
+          notifier.dispose();
+        },
+      );
 
-      test('Internal (code 13): falls back to local + queues sync op',
-          () async {
-        final client = FakeTransactionClient()
-          ..createError = GrpcError.internal('server crash');
+      test(
+        'Internal (code 13): falls back to local + queues sync op',
+        () async {
+          final client = FakeTransactionClient()
+            ..createError = GrpcError.internal('server crash');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            null,
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.addTransaction(
-          categoryId: 'cat1',
-          amount: 4000,
-          type: 'expense',
-          note: 'internal error test',
-        );
+          await notifier.addTransaction(
+            categoryId: 'cat1',
+            amount: 4000,
+            type: 'expense',
+            note: 'internal error test',
+          );
 
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops, hasLength(1));
-        expect(ops.first.opType, 'create');
-        expect(notifier.state.error, isNull);
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops, hasLength(1));
+          expect(ops.first.opType, 'create');
+          expect(notifier.state.error, isNull);
 
-        await Future.delayed(const Duration(milliseconds: 300));
-        notifier.dispose();
-      });
+          await Future.delayed(const Duration(milliseconds: 300));
+          notifier.dispose();
+        },
+      );
 
-      test('InvalidArgument (code 3): falls back to local + queues sync op',
-          () async {
-        // NOTE: Ideally, InvalidArgument should NOT silently fall back,
-        // because the data is bad and syncing later will also fail.
-        // Current code treats it the same as other errors.
-        final client = FakeTransactionClient()
-          ..createError = GrpcError.invalidArgument('invalid category_id');
+      test(
+        'InvalidArgument (code 3): falls back to local + queues sync op',
+        () async {
+          // NOTE: Ideally, InvalidArgument should NOT silently fall back,
+          // because the data is bad and syncing later will also fail.
+          // Current code treats it the same as other errors.
+          final client = FakeTransactionClient()
+            ..createError = GrpcError.invalidArgument('invalid category_id');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            null,
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.addTransaction(
-          categoryId: 'cat1',
-          amount: 500,
-          type: 'expense',
-          note: 'invalid argument test',
-        );
+          await notifier.addTransaction(
+            categoryId: 'cat1',
+            amount: 500,
+            type: 'expense',
+            note: 'invalid argument test',
+          );
 
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops, hasLength(1));
-        expect(ops.first.opType, 'create');
-        expect(notifier.state.error, isNull);
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops, hasLength(1));
+          expect(ops.first.opType, 'create');
+          expect(notifier.state.error, isNull);
 
-        await Future.delayed(const Duration(milliseconds: 300));
-        notifier.dispose();
-      });
+          await Future.delayed(const Duration(milliseconds: 300));
+          notifier.dispose();
+        },
+      );
 
-      test('NotFound (code 5): falls back to local + queues sync op',
-          () async {
+      test('NotFound (code 5): falls back to local + queues sync op', () async {
         final client = FakeTransactionClient()
           ..createError = GrpcError.notFound('account not found');
 
@@ -471,96 +528,116 @@ void main() {
       setUp(() async {
         db = await _setupDb();
         // Pre-insert a transaction for update tests
-        await db.insertTransaction(TransactionsCompanion.insert(
-          id: 'txn_update_test',
-          userId: 'user1',
-          accountId: 'acc1',
-          categoryId: 'cat1',
-          amount: 1000,
-          amountCny: 1000,
-          type: 'expense',
-          note: Value('original'),
-          txnDate: DateTime(2025, 6, 1),
-        ));
+        await db.insertTransaction(
+          TransactionsCompanion.insert(
+            id: 'txn_update_test',
+            userId: 'user1',
+            accountId: 'acc1',
+            categoryId: 'cat1',
+            amount: 1000,
+            amountCny: 1000,
+            type: 'expense',
+            note: Value('original'),
+            txnDate: DateTime(2025, 6, 1),
+          ),
+        );
       });
 
       tearDown(() async {
         await db.close();
       });
 
-      test('Unauthenticated (code 16): updates locally + queues sync op',
-          () async {
-        final client = FakeTransactionClient()
-          ..updateError = GrpcError.unauthenticated('token expired');
+      test(
+        'Unauthenticated (code 16): updates locally + queues sync op',
+        () async {
+          final client = FakeTransactionClient()
+            ..updateError = GrpcError.unauthenticated('token expired');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            null,
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.updateTransaction(
-          id: 'txn_update_test',
-          amount: 2000,
-          note: 'updated with auth error',
-        );
+          await notifier.updateTransaction(
+            id: 'txn_update_test',
+            amount: 2000,
+            note: 'updated with auth error',
+          );
 
-        // Local update should succeed
-        final txn = await db.getTransactionById('txn_update_test');
-        expect(txn!.amount, 2000);
-        expect(txn.note, 'updated with auth error');
+          // Local update should succeed
+          final txn = await db.getTransactionById('txn_update_test');
+          expect(txn!.amount, 2000);
+          expect(txn.note, 'updated with auth error');
 
-        // Sync op queued
-        final ops = await db.getPendingSyncOps(10);
-        final updateOps = ops.where((o) => o.opType == 'update').toList();
-        expect(updateOps, hasLength(1));
-        expect(updateOps.first.entityId, 'txn_update_test');
+          // Sync op queued
+          final ops = await db.getPendingSyncOps(10);
+          final updateOps = ops.where((o) => o.opType == 'update').toList();
+          expect(updateOps, hasLength(1));
+          expect(updateOps.first.entityId, 'txn_update_test');
 
-        notifier.dispose();
-      });
+          notifier.dispose();
+        },
+      );
 
-      test('PermissionDenied (code 7): updates locally + queues sync op',
-          () async {
-        // NOTE: Current behavior allows local update even if server denies permission.
-        // The sync op will likely fail again when retried.
-        final client = FakeTransactionClient()
-          ..updateError = GrpcError.permissionDenied('not allowed');
+      test(
+        'PermissionDenied (code 7): updates locally + queues sync op',
+        () async {
+          // NOTE: Current behavior allows local update even if server denies permission.
+          // The sync op will likely fail again when retried.
+          final client = FakeTransactionClient()
+            ..updateError = GrpcError.permissionDenied('not allowed');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            null,
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.updateTransaction(
-          id: 'txn_update_test',
-          note: 'permission denied update',
-        );
+          await notifier.updateTransaction(
+            id: 'txn_update_test',
+            note: 'permission denied update',
+          );
 
-        final txn = await db.getTransactionById('txn_update_test');
-        expect(txn!.note, 'permission denied update');
+          final txn = await db.getTransactionById('txn_update_test');
+          expect(txn!.note, 'permission denied update');
 
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops.where((o) => o.opType == 'update'), hasLength(1));
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops.where((o) => o.opType == 'update'), hasLength(1));
 
-        notifier.dispose();
-      });
+          notifier.dispose();
+        },
+      );
 
-      test('DeadlineExceeded (code 4): updates locally + queues sync op',
-          () async {
-        final client = FakeTransactionClient()
-          ..updateError = GrpcError.deadlineExceeded('timeout');
+      test(
+        'DeadlineExceeded (code 4): updates locally + queues sync op',
+        () async {
+          final client = FakeTransactionClient()
+            ..updateError = GrpcError.deadlineExceeded('timeout');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            null,
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.updateTransaction(
-          id: 'txn_update_test',
-          amount: 5000,
-        );
+          await notifier.updateTransaction(id: 'txn_update_test', amount: 5000);
 
-        final txn = await db.getTransactionById('txn_update_test');
-        expect(txn!.amount, 5000);
+          final txn = await db.getTransactionById('txn_update_test');
+          expect(txn!.amount, 5000);
 
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops.where((o) => o.opType == 'update'), hasLength(1));
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops.where((o) => o.opType == 'update'), hasLength(1));
 
-        notifier.dispose();
-      });
+          notifier.dispose();
+        },
+      );
 
       test('NotFound (code 5): updates locally + queues sync op', () async {
         // NOTE: NotFound on update means server doesn't have this record.
@@ -593,10 +670,7 @@ void main() {
         final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
         await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.updateTransaction(
-          id: 'txn_update_test',
-          amount: 9999,
-        );
+        await notifier.updateTransaction(id: 'txn_update_test', amount: 9999);
 
         final txn = await db.getTransactionById('txn_update_test');
         expect(txn!.amount, 9999);
@@ -607,27 +681,34 @@ void main() {
         notifier.dispose();
       });
 
-      test('InvalidArgument (code 3): updates locally + queues sync op',
-          () async {
-        final client = FakeTransactionClient()
-          ..updateError = GrpcError.invalidArgument('bad data');
+      test(
+        'InvalidArgument (code 3): updates locally + queues sync op',
+        () async {
+          final client = FakeTransactionClient()
+            ..updateError = GrpcError.invalidArgument('bad data');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            null,
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.updateTransaction(
-          id: 'txn_update_test',
-          note: 'invalid arg update',
-        );
+          await notifier.updateTransaction(
+            id: 'txn_update_test',
+            note: 'invalid arg update',
+          );
 
-        final txn = await db.getTransactionById('txn_update_test');
-        expect(txn!.note, 'invalid arg update');
+          final txn = await db.getTransactionById('txn_update_test');
+          expect(txn!.note, 'invalid arg update');
 
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops.where((o) => o.opType == 'update'), hasLength(1));
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops.where((o) => o.opType == 'update'), hasLength(1));
 
-        notifier.dispose();
-      });
+          notifier.dispose();
+        },
+      );
     });
 
     group('TransactionNotifier.deleteTransaction — error code coverage', () {
@@ -635,17 +716,19 @@ void main() {
 
       setUp(() async {
         db = await _setupDb();
-        await db.insertTransaction(TransactionsCompanion.insert(
-          id: 'txn_del_test',
-          userId: 'user1',
-          accountId: 'acc1',
-          categoryId: 'cat1',
-          amount: 3000,
-          amountCny: 3000,
-          type: 'expense',
-          note: Value('to delete'),
-          txnDate: DateTime(2025, 6, 1),
-        ));
+        await db.insertTransaction(
+          TransactionsCompanion.insert(
+            id: 'txn_del_test',
+            userId: 'user1',
+            accountId: 'acc1',
+            categoryId: 'cat1',
+            amount: 3000,
+            amountCny: 3000,
+            type: 'expense',
+            note: Value('to delete'),
+            txnDate: DateTime(2025, 6, 1),
+          ),
+        );
         await db.updateAccountBalance('acc1', -3000);
       });
 
@@ -653,65 +736,86 @@ void main() {
         await db.close();
       });
 
-      test('Unauthenticated (code 16): deletes locally + queues sync op',
-          () async {
-        final client = FakeTransactionClient()
-          ..deleteError = GrpcError.unauthenticated('token expired');
+      test(
+        'Unauthenticated (code 16): deletes locally + queues sync op',
+        () async {
+          final client = FakeTransactionClient()
+            ..deleteError = GrpcError.unauthenticated('token expired');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            null,
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.deleteTransaction('txn_del_test');
+          await notifier.deleteTransaction('txn_del_test');
 
-        final txn = await db.getTransactionById('txn_del_test');
-        expect(txn!.deletedAt, isNotNull);
+          final txn = await db.getTransactionById('txn_del_test');
+          expect(txn!.deletedAt, isNotNull);
 
-        final acc = await db.getAccountById('acc1');
-        expect(acc!.balance, 0); // restored
+          final acc = await db.getAccountById('acc1');
+          expect(acc!.balance, 0); // restored
 
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops.where((o) => o.opType == 'delete'), hasLength(1));
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops.where((o) => o.opType == 'delete'), hasLength(1));
 
-        notifier.dispose();
-      });
+          notifier.dispose();
+        },
+      );
 
-      test('PermissionDenied (code 7): deletes locally + queues sync op',
-          () async {
-        final client = FakeTransactionClient()
-          ..deleteError = GrpcError.permissionDenied('no permission');
+      test(
+        'PermissionDenied (code 7): deletes locally + queues sync op',
+        () async {
+          final client = FakeTransactionClient()
+            ..deleteError = GrpcError.permissionDenied('no permission');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            null,
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.deleteTransaction('txn_del_test');
+          await notifier.deleteTransaction('txn_del_test');
 
-        final txn = await db.getTransactionById('txn_del_test');
-        expect(txn!.deletedAt, isNotNull);
+          final txn = await db.getTransactionById('txn_del_test');
+          expect(txn!.deletedAt, isNotNull);
 
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops.where((o) => o.opType == 'delete'), hasLength(1));
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops.where((o) => o.opType == 'delete'), hasLength(1));
 
-        notifier.dispose();
-      });
+          notifier.dispose();
+        },
+      );
 
-      test('DeadlineExceeded (code 4): deletes locally + queues sync op',
-          () async {
-        final client = FakeTransactionClient()
-          ..deleteError = GrpcError.deadlineExceeded('timeout');
+      test(
+        'DeadlineExceeded (code 4): deletes locally + queues sync op',
+        () async {
+          final client = FakeTransactionClient()
+            ..deleteError = GrpcError.deadlineExceeded('timeout');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            null,
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.deleteTransaction('txn_del_test');
+          await notifier.deleteTransaction('txn_del_test');
 
-        final txn = await db.getTransactionById('txn_del_test');
-        expect(txn!.deletedAt, isNotNull);
+          final txn = await db.getTransactionById('txn_del_test');
+          expect(txn!.deletedAt, isNotNull);
 
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops.where((o) => o.opType == 'delete'), hasLength(1));
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops.where((o) => o.opType == 'delete'), hasLength(1));
 
-        notifier.dispose();
-      });
+          notifier.dispose();
+        },
+      );
 
       test('NotFound (code 5): deletes locally + queues sync op', () async {
         // Server says not found — item may already be deleted remotely.
@@ -753,70 +857,98 @@ void main() {
     });
 
     group('TransactionNotifier._load (family mode) — error code coverage', () {
-      test('Unauthenticated on listTransactions: loads local data without crash',
-          () async {
-        final db = await _setupDb(withFamilyAccount: true);
-        final client = FakeTransactionClient()
-          ..listError = GrpcError.unauthenticated('expired');
+      test(
+        'Unauthenticated on listTransactions: loads local data without crash',
+        () async {
+          final db = await _setupDb(withFamilyAccount: true);
+          final client = FakeTransactionClient()
+            ..listError = GrpcError.unauthenticated('expired');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
-        await Future.delayed(const Duration(milliseconds: 300));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            'fam1',
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 300));
 
-        expect(notifier.state.isLoading, false);
-        expect(notifier.state.error, isNull);
-        expect(notifier.state.expenseCategories, isNotEmpty);
+          expect(notifier.state.isLoading, false);
+          expect(notifier.state.error, isNull);
+          expect(notifier.state.expenseCategories, isNotEmpty);
 
-        notifier.dispose();
-        await db.close();
-      });
+          notifier.dispose();
+          await db.close();
+        },
+      );
 
-      test('PermissionDenied on listTransactions: loads local data without crash',
-          () async {
-        final db = await _setupDb(withFamilyAccount: true);
-        final client = FakeTransactionClient()
-          ..listError = GrpcError.permissionDenied('not a family member');
+      test(
+        'PermissionDenied on listTransactions: loads local data without crash',
+        () async {
+          final db = await _setupDb(withFamilyAccount: true);
+          final client = FakeTransactionClient()
+            ..listError = GrpcError.permissionDenied('not a family member');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
-        await Future.delayed(const Duration(milliseconds: 300));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            'fam1',
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 300));
 
-        expect(notifier.state.isLoading, false);
-        expect(notifier.state.error, isNull);
+          expect(notifier.state.isLoading, false);
+          expect(notifier.state.error, isNull);
 
-        notifier.dispose();
-        await db.close();
-      });
+          notifier.dispose();
+          await db.close();
+        },
+      );
 
-      test('DeadlineExceeded on listTransactions: loads local data without crash',
-          () async {
-        final db = await _setupDb(withFamilyAccount: true);
-        final client = FakeTransactionClient()
-          ..listError = GrpcError.deadlineExceeded('slow network');
+      test(
+        'DeadlineExceeded on listTransactions: loads local data without crash',
+        () async {
+          final db = await _setupDb(withFamilyAccount: true);
+          final client = FakeTransactionClient()
+            ..listError = GrpcError.deadlineExceeded('slow network');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
-        await Future.delayed(const Duration(milliseconds: 300));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            'fam1',
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 300));
 
-        expect(notifier.state.isLoading, false);
-        expect(notifier.state.error, isNull);
+          expect(notifier.state.isLoading, false);
+          expect(notifier.state.error, isNull);
 
-        notifier.dispose();
-        await db.close();
-      });
+          notifier.dispose();
+          await db.close();
+        },
+      );
 
-      test('Internal on listTransactions: loads local data without crash',
-          () async {
-        final db = await _setupDb(withFamilyAccount: true);
-        final client = FakeTransactionClient()
-          ..listError = GrpcError.internal('server panic');
+      test(
+        'Internal on listTransactions: loads local data without crash',
+        () async {
+          final db = await _setupDb(withFamilyAccount: true);
+          final client = FakeTransactionClient()
+            ..listError = GrpcError.internal('server panic');
 
-        final notifier = TransactionNotifier.fromDb(db, 'user1', 'fam1', client);
-        await Future.delayed(const Duration(milliseconds: 300));
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            'fam1',
+            client,
+          );
+          await Future.delayed(const Duration(milliseconds: 300));
 
-        expect(notifier.state.isLoading, false);
-        expect(notifier.state.error, isNull);
+          expect(notifier.state.isLoading, false);
+          expect(notifier.state.error, isNull);
 
-        notifier.dispose();
-        await db.close();
-      });
+          notifier.dispose();
+          await db.close();
+        },
+      );
     });
 
     group('FamilyNotifier.joinFamily — error code coverage', () {
@@ -929,49 +1061,52 @@ void main() {
     });
 
     group('FamilyNotifier.leaveFamily — error code coverage', () {
-      test('Unauthenticated (code 16): sets error, does not remove locally',
-          () async {
-        final db = await _setupDbWithFamily();
-        final client = FakeFamilyClient()
-          ..leaveError = GrpcError.unauthenticated('re-login required');
+      test(
+        'Unauthenticated (code 16): sets error, does not remove locally',
+        () async {
+          final db = await _setupDbWithFamily();
+          final client = FakeFamilyClient()
+            ..leaveError = GrpcError.unauthenticated('re-login required');
 
-        final notifier = FamilyNotifier(db, 'user1', client);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = FamilyNotifier(db, 'user1', client);
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.leaveFamily();
-        await Future.delayed(const Duration(milliseconds: 100));
+          await notifier.leaveFamily();
+          await Future.delayed(const Duration(milliseconds: 100));
 
-        expect(notifier.state.error, contains('退出家庭失败'));
-        // Member not removed from local DB
-        final members = await db.getFamilyMembers('existing_family');
-        expect(members.where((m) => m.userId == 'user1'), isNotEmpty);
+          expect(notifier.state.error, contains('退出家庭失败'));
+          // Member not removed from local DB
+          final members = await db.getFamilyMembers('existing_family');
+          expect(members.where((m) => m.userId == 'user1'), isNotEmpty);
 
-        notifier.dispose();
-        await db.close();
-      });
+          notifier.dispose();
+          await db.close();
+        },
+      );
 
-      test('PermissionDenied (code 7): sets error, does not remove locally',
-          () async {
-        final db = await _setupDbWithFamily();
-        final client = FakeFamilyClient()
-          ..leaveError = GrpcError.permissionDenied('cannot leave');
+      test(
+        'PermissionDenied (code 7): sets error, does not remove locally',
+        () async {
+          final db = await _setupDbWithFamily();
+          final client = FakeFamilyClient()
+            ..leaveError = GrpcError.permissionDenied('cannot leave');
 
-        final notifier = FamilyNotifier(db, 'user1', client);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = FamilyNotifier(db, 'user1', client);
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        await notifier.leaveFamily();
-        await Future.delayed(const Duration(milliseconds: 100));
+          await notifier.leaveFamily();
+          await Future.delayed(const Duration(milliseconds: 100));
 
-        expect(notifier.state.error, contains('退出家庭失败'));
-        final members = await db.getFamilyMembers('existing_family');
-        expect(members.where((m) => m.userId == 'user1'), isNotEmpty);
+          expect(notifier.state.error, contains('退出家庭失败'));
+          final members = await db.getFamilyMembers('existing_family');
+          expect(members.where((m) => m.userId == 'user1'), isNotEmpty);
 
-        notifier.dispose();
-        await db.close();
-      });
+          notifier.dispose();
+          await db.close();
+        },
+      );
 
-      test('Internal (code 13): sets error, does not remove locally',
-          () async {
+      test('Internal (code 13): sets error, does not remove locally', () async {
         final db = await _setupDbWithFamily();
         final client = FakeFamilyClient()
           ..leaveError = GrpcError.internal('server error');
@@ -990,8 +1125,7 @@ void main() {
     });
 
     group('FamilyNotifier.createFamily — error code coverage', () {
-      test('Unauthenticated (code 16): falls back to local creation',
-          () async {
+      test('Unauthenticated (code 16): falls back to local creation', () async {
         // createFamily has a fallback: if gRPC fails, create locally
         final db = await _setupDb();
         final client = FakeFamilyClient()
@@ -1011,8 +1145,7 @@ void main() {
         await db.close();
       });
 
-      test('PermissionDenied (code 7): falls back to local creation',
-          () async {
+      test('PermissionDenied (code 7): falls back to local creation', () async {
         final db = await _setupDb();
         final client = FakeFamilyClient()
           ..createError = GrpcError.permissionDenied('quota exceeded');
@@ -1057,90 +1190,91 @@ void main() {
       late SharedPreferences prefs;
 
       setUp(() async {
-        SharedPreferences.setMockInitialValues({
-          'user_id': 'user1',
-        });
+        SharedPreferences.setMockInitialValues({'user_id': 'user1'});
         prefs = await SharedPreferences.getInstance();
         db = await _setupDb();
         // Insert a pending sync op
-        await db.insertSyncOp(SyncQueueCompanion.insert(
-          id: 'op_1',
-          entityType: 'transaction',
-          entityId: 'txn_1',
-          opType: 'create',
-          payload: jsonEncode({
-            'id': 'txn_1',
-            'account_id': 'acc1',
-            'category_id': 'cat1',
-            'amount': 1000,
-            'type': 'expense',
-          }),
-          clientId: 'client_user1',
-          timestamp: DateTime.now(),
-        ));
+        await db.insertSyncOp(
+          SyncQueueCompanion.insert(
+            id: 'op_1',
+            entityType: 'transaction',
+            entityId: 'txn_1',
+            opType: 'create',
+            payload: jsonEncode({
+              'id': 'txn_1',
+              'account_id': 'acc1',
+              'category_id': 'cat1',
+              'amount': 1000,
+              'type': 'expense',
+            }),
+            clientId: 'client_user1',
+            timestamp: DateTime.now(),
+          ),
+        );
       });
 
       tearDown(() async {
         await db.close();
       });
 
-      test('Unauthenticated (code 16): does not crash, ops remain in queue',
-          () async {
-        final syncClient = FakeSyncClient()
-          ..pushError = GrpcError.unauthenticated('expired token');
+      test(
+        'Unauthenticated (code 16): does not crash, ops remain in queue',
+        () async {
+          final syncClient = FakeSyncClient()
+            ..pushError = GrpcError.unauthenticated('expired token');
 
-        final engine = SyncEngine(db, syncClient, prefs,
-            );
+          final engine = SyncEngine(db, syncClient, prefs);
 
-        // Manually trigger push (normally done by timer)
-        await engine.syncNow();
+          // Manually trigger push (normally done by timer)
+          await engine.syncNow();
 
-        // Should not throw — ops remain for retry
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops, hasLength(1)); // still there, not marked uploaded
+          // Should not throw — ops remain for retry
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops, hasLength(1)); // still there, not marked uploaded
 
-        engine.dispose();
-      });
+          engine.dispose();
+        },
+      );
 
-      test('PermissionDenied (code 7): does not crash, ops remain in queue',
-          () async {
-        final syncClient = FakeSyncClient()
-          ..pushError = GrpcError.permissionDenied('no access');
+      test(
+        'PermissionDenied (code 7): does not crash, ops remain in queue',
+        () async {
+          final syncClient = FakeSyncClient()
+            ..pushError = GrpcError.permissionDenied('no access');
 
-        final engine = SyncEngine(db, syncClient, prefs,
-            );
+          final engine = SyncEngine(db, syncClient, prefs);
 
-        await engine.syncNow();
+          await engine.syncNow();
 
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops, hasLength(1));
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops, hasLength(1));
 
-        engine.dispose();
-      });
+          engine.dispose();
+        },
+      );
 
-      test('DeadlineExceeded (code 4): does not crash, ops remain in queue',
-          () async {
-        final syncClient = FakeSyncClient()
-          ..pushError = GrpcError.deadlineExceeded('timeout');
+      test(
+        'DeadlineExceeded (code 4): does not crash, ops remain in queue',
+        () async {
+          final syncClient = FakeSyncClient()
+            ..pushError = GrpcError.deadlineExceeded('timeout');
 
-        final engine = SyncEngine(db, syncClient, prefs,
-            );
+          final engine = SyncEngine(db, syncClient, prefs);
 
-        await engine.syncNow();
+          await engine.syncNow();
 
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops, hasLength(1));
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops, hasLength(1));
 
-        engine.dispose();
-      });
+          engine.dispose();
+        },
+      );
 
-      test('Internal (code 13): does not crash, ops remain in queue',
-          () async {
+      test('Internal (code 13): does not crash, ops remain in queue', () async {
         final syncClient = FakeSyncClient()
           ..pushError = GrpcError.internal('server error');
 
-        final engine = SyncEngine(db, syncClient, prefs,
-            );
+        final engine = SyncEngine(db, syncClient, prefs);
 
         await engine.syncNow();
 
@@ -1150,37 +1284,39 @@ void main() {
         engine.dispose();
       });
 
-      test('InvalidArgument (code 3): does not crash, ops remain in queue',
-          () async {
-        final syncClient = FakeSyncClient()
-          ..pushError = GrpcError.invalidArgument('malformed op');
+      test(
+        'InvalidArgument (code 3): does not crash, ops remain in queue',
+        () async {
+          final syncClient = FakeSyncClient()
+            ..pushError = GrpcError.invalidArgument('malformed op');
 
-        final engine = SyncEngine(db, syncClient, prefs,
-            );
+          final engine = SyncEngine(db, syncClient, prefs);
 
-        await engine.syncNow();
+          await engine.syncNow();
 
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops, hasLength(1));
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops, hasLength(1));
 
-        engine.dispose();
-      });
+          engine.dispose();
+        },
+      );
 
-      test('Unavailable (code 14): does not crash, ops remain in queue',
-          () async {
-        final syncClient = FakeSyncClient()
-          ..pushError = GrpcError.unavailable('offline');
+      test(
+        'Unavailable (code 14): does not crash, ops remain in queue',
+        () async {
+          final syncClient = FakeSyncClient()
+            ..pushError = GrpcError.unavailable('offline');
 
-        final engine = SyncEngine(db, syncClient, prefs,
-            );
+          final engine = SyncEngine(db, syncClient, prefs);
 
-        await engine.syncNow();
+          await engine.syncNow();
 
-        final ops = await db.getPendingSyncOps(10);
-        expect(ops, hasLength(1));
+          final ops = await db.getPendingSyncOps(10);
+          expect(ops, hasLength(1));
 
-        engine.dispose();
-      });
+          engine.dispose();
+        },
+      );
     });
 
     group('No unhandled exceptions — robustness check', () {
@@ -1207,7 +1343,12 @@ void main() {
 
         for (final error in errors) {
           final client = FakeTransactionClient()..createError = error;
-          final notifier = TransactionNotifier.fromDb(db, 'user1', null, client);
+          final notifier = TransactionNotifier.fromDb(
+            db,
+            'user1',
+            null,
+            client,
+          );
           await Future.delayed(const Duration(milliseconds: 100));
 
           // Should not throw
@@ -1218,8 +1359,12 @@ void main() {
             note: 'error: ${error.codeName}',
           );
 
-          expect(notifier.state.error, isNull,
-              reason: 'Error code ${error.codeName} should not set error state on add');
+          expect(
+            notifier.state.error,
+            isNull,
+            reason:
+                'Error code ${error.codeName} should not set error state on add',
+          );
 
           await Future.delayed(const Duration(milliseconds: 300));
           notifier.dispose();
@@ -1228,43 +1373,54 @@ void main() {
         await db.close();
       });
 
-      test('All error codes in joinFamily set error state without crash',
-          () async {
-        final errors = [
-          GrpcError.unauthenticated(),
-          GrpcError.permissionDenied(),
-          GrpcError.deadlineExceeded(),
-          GrpcError.notFound(),
-          GrpcError.internal(),
-          GrpcError.invalidArgument(),
-          GrpcError.unavailable(),
-          GrpcError.cancelled(),
-          GrpcError.unknown(),
-          GrpcError.resourceExhausted(),
-          GrpcError.aborted(),
-          GrpcError.unimplemented(),
-          GrpcError.dataLoss(),
-        ];
+      test(
+        'All error codes in joinFamily set error state without crash',
+        () async {
+          final errors = [
+            GrpcError.unauthenticated(),
+            GrpcError.permissionDenied(),
+            GrpcError.deadlineExceeded(),
+            GrpcError.notFound(),
+            GrpcError.internal(),
+            GrpcError.invalidArgument(),
+            GrpcError.unavailable(),
+            GrpcError.cancelled(),
+            GrpcError.unknown(),
+            GrpcError.resourceExhausted(),
+            GrpcError.aborted(),
+            GrpcError.unimplemented(),
+            GrpcError.dataLoss(),
+          ];
 
-        for (final error in errors) {
-          final db = await _setupDb();
-          final client = FakeFamilyClient()..joinError = error;
-          final notifier = FamilyNotifier(db, 'user1', client);
-          await Future.delayed(const Duration(milliseconds: 100));
+          for (final error in errors) {
+            final db = await _setupDb();
+            final client = FakeFamilyClient()..joinError = error;
+            final notifier = FamilyNotifier(db, 'user1', client);
+            await Future.delayed(const Duration(milliseconds: 100));
 
-          final result = await notifier.joinFamily('TEST');
+            final result = await notifier.joinFamily('TEST');
 
-          expect(result, isNull,
-              reason: 'joinFamily should return null on ${error.codeName}');
-          expect(notifier.state.error, isNotNull,
-              reason: 'joinFamily should set error on ${error.codeName}');
-          expect(notifier.state.isLoading, false,
-              reason: 'isLoading should be false after ${error.codeName}');
+            expect(
+              result,
+              isNull,
+              reason: 'joinFamily should return null on ${error.codeName}',
+            );
+            expect(
+              notifier.state.error,
+              isNotNull,
+              reason: 'joinFamily should set error on ${error.codeName}',
+            );
+            expect(
+              notifier.state.isLoading,
+              false,
+              reason: 'isLoading should be false after ${error.codeName}',
+            );
 
-          notifier.dispose();
-          await db.close();
-        }
-      });
+            notifier.dispose();
+            await db.close();
+          }
+        },
+      );
     });
   });
 }

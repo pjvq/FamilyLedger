@@ -95,8 +95,10 @@ class TransactionDetailsPanel extends StatelessWidget {
                 hintText: '备注',
                 prefixIcon: Icon(Icons.note_outlined, size: 18),
                 isDense: true,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
               ),
               style: const TextStyle(fontSize: 14),
               maxLines: 1,
@@ -106,13 +108,15 @@ class TransactionDetailsPanel extends StatelessWidget {
               spacing: 6,
               runSpacing: 4,
               children: [
-                ...tags.map((tag) => Chip(
-                      label: Text(tag, style: const TextStyle(fontSize: 12)),
-                      deleteIcon: const Icon(Icons.close, size: 14),
-                      onDeleted: () => onTagRemoved(tag),
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    )),
+                ...tags.map(
+                  (tag) => Chip(
+                    label: Text(tag, style: const TextStyle(fontSize: 12)),
+                    deleteIcon: const Icon(Icons.close, size: 14),
+                    onDeleted: () => onTagRemoved(tag),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
                 SizedBox(
                   width: 100,
                   height: 32,
@@ -121,8 +125,10 @@ class TransactionDetailsPanel extends StatelessWidget {
                     decoration: const InputDecoration(
                       hintText: '+标签',
                       isDense: true,
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
                       border: OutlineInputBorder(),
                     ),
                     style: const TextStyle(fontSize: 12),
@@ -137,45 +143,53 @@ class TransactionDetailsPanel extends StatelessWidget {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
-                  ...imagePaths.map((path) => Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: Image.file(
-                                File(path),
+                  ...imagePaths.map(
+                    (path) => Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.file(
+                              File(path),
+                              width: 56,
+                              height: 56,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
                                 width: 56,
                                 height: 56,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  width: 56,
-                                  height: 56,
-                                  color: Colors.grey.shade200,
-                                  child: const Icon(Icons.broken_image,
-                                      size: 24, color: Colors.grey),
+                                color: Colors.grey.shade200,
+                                child: const Icon(
+                                  Icons.broken_image,
+                                  size: 24,
+                                  color: Colors.grey,
                                 ),
                               ),
                             ),
-                            Positioned(
-                              top: -4,
-                              right: -4,
-                              child: GestureDetector(
-                                onTap: () => onImageRemoved(path),
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.close,
-                                      size: 12, color: Colors.white),
+                          ),
+                          Positioned(
+                            top: -4,
+                            right: -4,
+                            child: GestureDetector(
+                              onTap: () => onImageRemoved(path),
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  size: 12,
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      )),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   GestureDetector(
                     onTap: onPickImage,
                     child: Container(
@@ -184,14 +198,16 @@ class TransactionDetailsPanel extends StatelessWidget {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.2),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.2,
+                          ),
                         ),
                       ),
                       child: Icon(
                         Icons.add_photo_alternate_outlined,
-                        color:
-                            theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
                         size: 24,
                       ),
                     ),

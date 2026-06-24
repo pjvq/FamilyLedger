@@ -24,19 +24,16 @@ void main() {
     updatedAt: DateTime(2026, 1, 1),
   );
 
-  Widget buildPage({
-    String? accountId,
-    AccountState? accountState,
-  }) {
+  Widget buildPage({String? accountId, AccountState? accountState}) {
     final id = accountId ?? testAccount.id;
     return ProviderScope(
       overrides: testOverrides(
         account: accountState ?? AccountState(accounts: [testAccount]),
       ),
       child: MaterialApp.router(
-        theme: ThemeData.light(useMaterial3: true).copyWith(
-          extensions: const [AppSemanticColors.light],
-        ),
+        theme: ThemeData.light(
+          useMaterial3: true,
+        ).copyWith(extensions: const [AppSemanticColors.light]),
         routerConfig: GoRouter(
           initialLocation: '/detail/$id',
           routes: [
@@ -48,8 +45,7 @@ void main() {
             ),
             GoRoute(
               path: '/assets',
-              builder: (context, state) =>
-                  const Scaffold(body: Text('Assets')),
+              builder: (context, state) => const Scaffold(body: Text('Assets')),
             ),
           ],
         ),
@@ -67,10 +63,12 @@ void main() {
   });
 
   testWidgets('shows error when account does not exist', (tester) async {
-    await tester.pumpWidget(buildPage(
-      accountId: 'nonexistent',
-      accountState: const AccountState(accounts: []),
-    ));
+    await tester.pumpWidget(
+      buildPage(
+        accountId: 'nonexistent',
+        accountState: const AccountState(accounts: []),
+      ),
+    );
     await tester.pump();
 
     expect(find.text('账户不存在'), findsOneWidget);

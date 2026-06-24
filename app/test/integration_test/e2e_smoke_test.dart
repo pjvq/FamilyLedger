@@ -68,14 +68,16 @@ ts_pb.Timestamp _toTimestamp(DateTime dt) => ts_pb.Timestamp()
 
 /// Registers a user and returns (userId, accessToken, refreshToken).
 Future<({String userId, String accessToken, String refreshToken})>
-    _registerUser(
+_registerUser(
   auth_grpc.AuthServiceClient authClient,
   String email,
   String password,
 ) async {
-  final resp = await authClient.register(auth_pb.RegisterRequest()
-    ..email = email
-    ..password = password);
+  final resp = await authClient.register(
+    auth_pb.RegisterRequest()
+      ..email = email
+      ..password = password,
+  );
   return (
     userId: resp.userId,
     accessToken: resp.accessToken,
@@ -98,12 +100,14 @@ Future<sync_pb.PushOperationsResponse> _pushOp(
 }) async {
   return syncClient.pushOperations(
     sync_pb.PushOperationsRequest()
-      ..operations.add(sync_pb.SyncOperation()
-        ..entityType = entityType
-        ..entityId = entityId
-        ..opType = opType
-        ..payload = jsonEncode(payload)
-        ..clientId = _uuid.v4()),
+      ..operations.add(
+        sync_pb.SyncOperation()
+          ..entityType = entityType
+          ..entityId = entityId
+          ..opType = opType
+          ..payload = jsonEncode(payload)
+          ..clientId = _uuid.v4(),
+      ),
     options: opts,
   );
 }
@@ -180,56 +184,65 @@ void main() {
   // No cross-test state leakage.
   // ═══════════════════════════════════════════════════════════════════════════
 
-  e2eTest('GP-1: Register → Login → Auth call succeeds → Unauth fails',
-      () async {
-    final email = _testEmail('gp1');
-    const password = 'SecurePass!99';
+  e2eTest(
+    'GP-1: Register → Login → Auth call succeeds → Unauth fails',
+    () async {
+      final email = _testEmail('gp1');
+      const password = 'SecurePass!99';
 
-    // Step 1: Register
-    final regResult = await _registerUser(authClient, email, password);
-    expect(regResult.userId, isNotEmpty);
-    expect(regResult.userId.length, greaterThanOrEqualTo(36));
-    expect(regResult.accessToken, isNotEmpty);
-    expect(regResult.refreshToken, isNotEmpty);
+      // Step 1: Register
+      final regResult = await _registerUser(authClient, email, password);
+      expect(regResult.userId, isNotEmpty);
+      expect(regResult.userId.length, greaterThanOrEqualTo(36));
+      expect(regResult.accessToken, isNotEmpty);
+      expect(regResult.refreshToken, isNotEmpty);
 
-    // Step 2: Login with same credentials
-    final loginResp = await authClient.login(auth_pb.LoginRequest()
-      ..email = email
-      ..password = password);
-    expect(loginResp.userId, regResult.userId);
-    expect(loginResp.accessToken, isNotEmpty);
-    expect(loginResp.refreshToken, isNotEmpty);
+      // Step 2: Login with same credentials
+      final loginResp = await authClient.login(
+        auth_pb.LoginRequest()
+          ..email = email
+          ..password = password,
+      );
+      expect(loginResp.userId, regResult.userId);
+      expect(loginResp.accessToken, isNotEmpty);
+      expect(loginResp.refreshToken, isNotEmpty);
 
-    // Step 3: Authenticated call succeeds
-    final pullResp = await syncClient.pullChanges(
-      sync_pb.PullChangesRequest(),
-      options: _authOpts(loginResp.accessToken),
-    );
-    expect(pullResp, isNotNull);
+      // Step 3: Authenticated call succeeds
+      final pullResp = await syncClient.pullChanges(
+        sync_pb.PullChangesRequest(),
+        options: _authOpts(loginResp.accessToken),
+      );
+      expect(pullResp, isNotNull);
 
-    // Step 4: Unauthenticated call fails
-    try {
-      await syncClient.pullChanges(sync_pb.PullChangesRequest());
-      fail('Unauthenticated call should have thrown');
-    } on GrpcError catch (e) {
-      expect(e.code, StatusCode.unauthenticated);
-    }
-  });
+      // Step 4: Unauthenticated call fails
+      try {
+        await syncClient.pullChanges(sync_pb.PullChangesRequest());
+        fail('Unauthenticated call should have thrown');
+      } on GrpcError catch (e) {
+        expect(e.code, StatusCode.unauthenticated);
+      }
+    },
+  );
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GP-2: Create Transaction → PullChanges → Visible
   // ═══════════════════════════════════════════════════════════════════════════
 
   e2eTest(
-      'GP-2: CreateTransaction → PullChanges → transaction visible with correct payload',
-      () async {
-    // Setup: register + account + category
-    final auth =
-        await _registerUser(authClient, _testEmail('gp2'), 'Pass123!');
-    final opts = _authOpts(auth.accessToken);
+    'GP-2: CreateTransaction → PullChanges → transaction visible with correct payload',
+    () async {
+      // Setup: register + account + category
+      final auth = await _registerUser(
+        authClient,
+        _testEmail('gp2'),
+        'Pass123!',
+      );
+      final opts = _authOpts(auth.accessToken);
 
-    final accountId = _uuid.v4();
-    await _pushOp(syncClient, opts,
+      final accountId = _uuid.v4();
+      await _pushOp(
+        syncClient,
+        opts,
         entityType: 'account',
         entityId: accountId,
         opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
@@ -239,10 +252,13 @@ void main() {
           'type': 'bank',
           'balance': 1000000, // 10000.00 CNY — sufficient for expense
           'currency': 'CNY',
-        });
+        },
+      );
 
-    final categoryId = _uuid.v4();
-    await _pushOp(syncClient, opts,
+      final categoryId = _uuid.v4();
+      await _pushOp(
+        syncClient,
+        opts,
         entityType: 'category',
         entityId: categoryId,
         opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
@@ -251,76 +267,89 @@ void main() {
           'name': 'GP2 Food',
           'type': 'expense',
           'icon': '🍕',
-        });
+        },
+      );
 
-    // Act: Create transaction via dedicated RPC
-    final createResp = await txnClient.createTransaction(
-      txn_pb.CreateTransactionRequest()
-        ..accountId = accountId
-        ..categoryId = categoryId
-        ..amount = Int64(5000)
-        ..amountCny = Int64(5000)
-        ..type = txn_enum.TransactionType.TRANSACTION_TYPE_EXPENSE
-        ..note = 'GP-2 smoke test'
-        ..txnDate = _toTimestamp(DateTime.now()),
-      options: opts,
-    );
-    final txnId = createResp.transaction.id;
-    expect(txnId, isNotEmpty);
+      // Act: Create transaction via dedicated RPC
+      final createResp = await txnClient.createTransaction(
+        txn_pb.CreateTransactionRequest()
+          ..accountId = accountId
+          ..categoryId = categoryId
+          ..amount = Int64(5000)
+          ..amountCny = Int64(5000)
+          ..type = txn_enum.TransactionType.TRANSACTION_TYPE_EXPENSE
+          ..note = 'GP-2 smoke test'
+          ..txnDate = _toTimestamp(DateTime.now()),
+        options: opts,
+      );
+      final txnId = createResp.transaction.id;
+      expect(txnId, isNotEmpty);
 
-    // Assert: PullChanges returns it
-    final pullResp = await syncClient.pullChanges(
-      sync_pb.PullChangesRequest(),
-      options: opts,
-    );
-    final op = _findOp(pullResp.operations, txnId);
-    expect(op, isNotNull,
-        reason: 'Created transaction $txnId should appear in PullChanges');
+      // Assert: PullChanges returns it
+      final pullResp = await syncClient.pullChanges(
+        sync_pb.PullChangesRequest(),
+        options: opts,
+      );
+      final op = _findOp(pullResp.operations, txnId);
+      expect(
+        op,
+        isNotNull,
+        reason: 'Created transaction $txnId should appear in PullChanges',
+      );
 
-    // Verify payload integrity
-    final payload = jsonDecode(op!.payload) as Map<String, dynamic>;
-    expect(payload['account_id'], accountId);
-    expect(payload['category_id'], categoryId);
-    expect(payload['note'], 'GP-2 smoke test');
-  });
+      // Verify payload integrity
+      final payload = jsonDecode(op!.payload) as Map<String, dynamic>;
+      expect(payload['account_id'], accountId);
+      expect(payload['category_id'], categoryId);
+      expect(payload['note'], 'GP-2 smoke test');
+    },
+  );
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GP-3: Family — Create → Invite → Member Sees Shared Transaction
   // ═══════════════════════════════════════════════════════════════════════════
 
   e2eTest(
-      'GP-3: CreateFamily → Invite → Member PullChanges sees family transaction',
-      () async {
-    // Owner setup
-    final ownerAuth =
-        await _registerUser(authClient, _testEmail('gp3_owner'), 'Pass123!');
-    final ownerOpts = _authOpts(ownerAuth.accessToken);
+    'GP-3: CreateFamily → Invite → Member PullChanges sees family transaction',
+    () async {
+      // Owner setup
+      final ownerAuth = await _registerUser(
+        authClient,
+        _testEmail('gp3_owner'),
+        'Pass123!',
+      );
+      final ownerOpts = _authOpts(ownerAuth.accessToken);
 
-    // Create family
-    final familyResp = await familyClient.createFamily(
-      family_pb.CreateFamilyRequest()..name = 'GP3 Test Family',
-      options: ownerOpts,
-    );
-    final familyId = familyResp.family.id;
-    expect(familyId, isNotEmpty);
+      // Create family
+      final familyResp = await familyClient.createFamily(
+        family_pb.CreateFamilyRequest()..name = 'GP3 Test Family',
+        options: ownerOpts,
+      );
+      final familyId = familyResp.family.id;
+      expect(familyId, isNotEmpty);
 
-    // Generate invite + member joins
-    final inviteResp = await familyClient.generateInviteCode(
-      family_pb.GenerateInviteCodeRequest()..familyId = familyId,
-      options: ownerOpts,
-    );
-    expect(inviteResp.inviteCode, isNotEmpty);
+      // Generate invite + member joins
+      final inviteResp = await familyClient.generateInviteCode(
+        family_pb.GenerateInviteCodeRequest()..familyId = familyId,
+        options: ownerOpts,
+      );
+      expect(inviteResp.inviteCode, isNotEmpty);
 
-    final memberAuth =
-        await _registerUser(authClient, _testEmail('gp3_member'), 'Pass123!');
-    await familyClient.joinFamily(
-      family_pb.JoinFamilyRequest()..inviteCode = inviteResp.inviteCode,
-      options: _authOpts(memberAuth.accessToken),
-    );
+      final memberAuth = await _registerUser(
+        authClient,
+        _testEmail('gp3_member'),
+        'Pass123!',
+      );
+      await familyClient.joinFamily(
+        family_pb.JoinFamilyRequest()..inviteCode = inviteResp.inviteCode,
+        options: _authOpts(memberAuth.accessToken),
+      );
 
-    // Owner pushes family-scoped transaction
-    final accountId = _uuid.v4();
-    await _pushOp(syncClient, ownerOpts,
+      // Owner pushes family-scoped transaction
+      final accountId = _uuid.v4();
+      await _pushOp(
+        syncClient,
+        ownerOpts,
         entityType: 'account',
         entityId: accountId,
         opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
@@ -331,10 +360,13 @@ void main() {
           'balance': 0,
           'currency': 'CNY',
           'family_id': familyId,
-        });
+        },
+      );
 
-    final categoryId = _uuid.v4();
-    await _pushOp(syncClient, ownerOpts,
+      final categoryId = _uuid.v4();
+      await _pushOp(
+        syncClient,
+        ownerOpts,
         entityType: 'category',
         entityId: categoryId,
         opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
@@ -344,10 +376,13 @@ void main() {
           'type': 'expense',
           'icon': '🛒',
           'family_id': familyId,
-        });
+        },
+      );
 
-    final sharedTxnId = _uuid.v4();
-    await _pushOp(syncClient, ownerOpts,
+      final sharedTxnId = _uuid.v4();
+      await _pushOp(
+        syncClient,
+        ownerOpts,
         entityType: 'transaction',
         entityId: sharedTxnId,
         opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
@@ -361,32 +396,45 @@ void main() {
           'note': 'GP3 family purchase',
           'txn_date': DateTime.now().toIso8601String(),
           'family_id': familyId,
-        });
+        },
+      );
 
-    // Assert: Member can see it via family-scoped pull
-    final memberPull = await syncClient.pullChanges(
-      sync_pb.PullChangesRequest()..familyId = familyId,
-      options: _authOpts(memberAuth.accessToken),
-    );
-    final found = memberPull.operations
-        .any((op) => op.entityType == 'transaction' && op.entityId == sharedTxnId);
-    expect(found, true,
-        reason: 'Family member should see owner\'s transaction via familyId pull');
-  });
+      // Assert: Member can see it via family-scoped pull
+      final memberPull = await syncClient.pullChanges(
+        sync_pb.PullChangesRequest()..familyId = familyId,
+        options: _authOpts(memberAuth.accessToken),
+      );
+      final found = memberPull.operations.any(
+        (op) => op.entityType == 'transaction' && op.entityId == sharedTxnId,
+      );
+      expect(
+        found,
+        true,
+        reason:
+            'Family member should see owner\'s transaction via familyId pull',
+      );
+    },
+  );
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GP-4: Offline Create → Batch Push → Server Has It
   // ═══════════════════════════════════════════════════════════════════════════
 
-  e2eTest('GP-4: Batch push 3 offline-queued transactions → all accepted',
-      () async {
-    // Setup
-    final auth =
-        await _registerUser(authClient, _testEmail('gp4'), 'Pass123!');
-    final opts = _authOpts(auth.accessToken);
+  e2eTest(
+    'GP-4: Batch push 3 offline-queued transactions → all accepted',
+    () async {
+      // Setup
+      final auth = await _registerUser(
+        authClient,
+        _testEmail('gp4'),
+        'Pass123!',
+      );
+      final opts = _authOpts(auth.accessToken);
 
-    final accountId = _uuid.v4();
-    await _pushOp(syncClient, opts,
+      final accountId = _uuid.v4();
+      await _pushOp(
+        syncClient,
+        opts,
         entityType: 'account',
         entityId: accountId,
         opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
@@ -396,10 +444,13 @@ void main() {
           'type': 'cash',
           'balance': 0,
           'currency': 'CNY',
-        });
+        },
+      );
 
-    final categoryId = _uuid.v4();
-    await _pushOp(syncClient, opts,
+      final categoryId = _uuid.v4();
+      await _pushOp(
+        syncClient,
+        opts,
         entityType: 'category',
         entityId: categoryId,
         opType: sync_enum.OperationType.OPERATION_TYPE_CREATE,
@@ -408,58 +459,69 @@ void main() {
           'name': 'GP4 Transport',
           'type': 'expense',
           'icon': '🚕',
-        });
+        },
+      );
 
-    // Act: Simulate offline queue — push 3 transactions in one batch
-    final txnIds = List.generate(3, (_) => _uuid.v4());
-    final operations = txnIds
-        .map((id) => sync_pb.SyncOperation()
-          ..entityType = 'transaction'
-          ..entityId = id
-          ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
-          ..payload = jsonEncode({
-            'id': id,
-            'account_id': accountId,
-            'category_id': categoryId,
-            'amount': 1500,
-            'amount_cny': 1500,
-            'type': 'expense',
-            'note': 'GP4 offline txn',
-            'txn_date': DateTime.now().toIso8601String(),
-          })
-          ..clientId = _uuid.v4())
-        .toList();
+      // Act: Simulate offline queue — push 3 transactions in one batch
+      final txnIds = List.generate(3, (_) => _uuid.v4());
+      final operations = txnIds
+          .map(
+            (id) => sync_pb.SyncOperation()
+              ..entityType = 'transaction'
+              ..entityId = id
+              ..opType = sync_enum.OperationType.OPERATION_TYPE_CREATE
+              ..payload = jsonEncode({
+                'id': id,
+                'account_id': accountId,
+                'category_id': categoryId,
+                'amount': 1500,
+                'amount_cny': 1500,
+                'type': 'expense',
+                'note': 'GP4 offline txn',
+                'txn_date': DateTime.now().toIso8601String(),
+              })
+              ..clientId = _uuid.v4(),
+          )
+          .toList();
 
-    final pushResp = await syncClient.pushOperations(
-      sync_pb.PushOperationsRequest()..operations.addAll(operations),
-      options: opts,
-    );
-    expect(pushResp.acceptedCount, 3);
-    expect(pushResp.failedIds, isEmpty);
+      final pushResp = await syncClient.pushOperations(
+        sync_pb.PushOperationsRequest()..operations.addAll(operations),
+        options: opts,
+      );
+      expect(pushResp.acceptedCount, 3);
+      expect(pushResp.failedIds, isEmpty);
 
-    // Assert: PullChanges returns all 3
-    final pullResp = await syncClient.pullChanges(
-      sync_pb.PullChangesRequest(),
-      options: opts,
-    );
-    int foundCount = 0;
-    for (final id in txnIds) {
-      if (pullResp.operations
-          .any((op) => op.entityType == 'transaction' && op.entityId == id)) {
-        foundCount++;
+      // Assert: PullChanges returns all 3
+      final pullResp = await syncClient.pullChanges(
+        sync_pb.PullChangesRequest(),
+        options: opts,
+      );
+      int foundCount = 0;
+      for (final id in txnIds) {
+        if (pullResp.operations.any(
+          (op) => op.entityType == 'transaction' && op.entityId == id,
+        )) {
+          foundCount++;
+        }
       }
-    }
-    expect(foundCount, 3,
-        reason: 'All 3 offline-created transactions should be visible');
-  });
+      expect(
+        foundCount,
+        3,
+        reason: 'All 3 offline-created transactions should be visible',
+      );
+    },
+  );
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GP-5: Token Expired → Refresh → Request Succeeds + Rotation Enforced
   // ═══════════════════════════════════════════════════════════════════════════
 
   e2eTest('GP-5a: RefreshToken returns new valid access token', () async {
-    final auth =
-        await _registerUser(authClient, _testEmail('gp5a'), 'Pass123!');
+    final auth = await _registerUser(
+      authClient,
+      _testEmail('gp5a'),
+      'Pass123!',
+    );
 
     // Invalid token → UNAUTHENTICATED
     try {
@@ -487,8 +549,11 @@ void main() {
   });
 
   e2eTest('GP-5b: Refresh token rotation — old token invalidated', () async {
-    final auth =
-        await _registerUser(authClient, _testEmail('gp5b'), 'Pass123!');
+    final auth = await _registerUser(
+      authClient,
+      _testEmail('gp5b'),
+      'Pass123!',
+    );
     final originalRefresh = auth.refreshToken;
 
     // First refresh — consumes and rotates the token

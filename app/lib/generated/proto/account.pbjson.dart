@@ -44,14 +44,35 @@ const Account$json = {
     {'1': 'user_id', '3': 2, '4': 1, '5': 9, '10': 'userId'},
     {'1': 'family_id', '3': 3, '4': 1, '5': 9, '10': 'familyId'},
     {'1': 'name', '3': 4, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'type', '3': 5, '4': 1, '5': 14, '6': '.familyledger.account.v1.AccountType', '10': 'type'},
+    {
+      '1': 'type',
+      '3': 5,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.account.v1.AccountType',
+      '10': 'type'
+    },
     {'1': 'currency', '3': 6, '4': 1, '5': 9, '10': 'currency'},
     {'1': 'icon', '3': 7, '4': 1, '5': 9, '10': 'icon'},
     {'1': 'balance', '3': 8, '4': 1, '5': 3, '10': 'balance'},
     {'1': 'is_active', '3': 9, '4': 1, '5': 8, '10': 'isActive'},
     {'1': 'is_default', '3': 10, '4': 1, '5': 8, '10': 'isDefault'},
-    {'1': 'created_at', '3': 11, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
-    {'1': 'updated_at', '3': 12, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'updatedAt'},
+    {
+      '1': 'created_at',
+      '3': 11,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
+    {
+      '1': 'updated_at',
+      '3': 12,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'updatedAt'
+    },
   ],
 };
 
@@ -76,7 +97,14 @@ const Transfer$json = {
     {'1': 'to_account_id', '3': 4, '4': 1, '5': 9, '10': 'toAccountId'},
     {'1': 'amount', '3': 5, '4': 1, '5': 3, '10': 'amount'},
     {'1': 'note', '3': 6, '4': 1, '5': 9, '10': 'note'},
-    {'1': 'created_at', '3': 7, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
+    {
+      '1': 'created_at',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
   ],
 };
 
@@ -93,7 +121,14 @@ const CreateAccountRequest$json = {
   '1': 'CreateAccountRequest',
   '2': [
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'type', '3': 2, '4': 1, '5': 14, '6': '.familyledger.account.v1.AccountType', '10': 'type'},
+    {
+      '1': 'type',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.familyledger.account.v1.AccountType',
+      '10': 'type'
+    },
     {'1': 'currency', '3': 3, '4': 1, '5': 9, '10': 'currency'},
     {'1': 'icon', '3': 4, '4': 1, '5': 9, '10': 'icon'},
     {'1': 'initial_balance', '3': 5, '4': 1, '5': 3, '10': 'initialBalance'},
@@ -112,7 +147,14 @@ final $typed_data.Uint8List createAccountRequestDescriptor = $convert.base64Deco
 const CreateAccountResponse$json = {
   '1': 'CreateAccountResponse',
   '2': [
-    {'1': 'account', '3': 1, '4': 1, '5': 11, '6': '.familyledger.account.v1.Account', '10': 'account'},
+    {
+      '1': 'account',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.account.v1.Account',
+      '10': 'account'
+    },
   ],
 };
 
@@ -139,7 +181,14 @@ final $typed_data.Uint8List listAccountsRequestDescriptor = $convert.base64Decod
 const ListAccountsResponse$json = {
   '1': 'ListAccountsResponse',
   '2': [
-    {'1': 'accounts', '3': 1, '4': 3, '5': 11, '6': '.familyledger.account.v1.Account', '10': 'accounts'},
+    {
+      '1': 'accounts',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.account.v1.Account',
+      '10': 'accounts'
+    },
   ],
 };
 
@@ -164,7 +213,14 @@ final $typed_data.Uint8List getAccountRequestDescriptor = $convert.base64Decode(
 const GetAccountResponse$json = {
   '1': 'GetAccountResponse',
   '2': [
-    {'1': 'account', '3': 1, '4': 1, '5': 11, '6': '.familyledger.account.v1.Account', '10': 'account'},
+    {
+      '1': 'account',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.account.v1.Account',
+      '10': 'account'
+    },
   ],
 };
 
@@ -180,7 +236,15 @@ const UpdateAccountRequest$json = {
     {'1': 'account_id', '3': 1, '4': 1, '5': 9, '10': 'accountId'},
     {'1': 'name', '3': 2, '4': 1, '5': 9, '9': 0, '10': 'name', '17': true},
     {'1': 'icon', '3': 3, '4': 1, '5': 9, '9': 1, '10': 'icon', '17': true},
-    {'1': 'is_active', '3': 4, '4': 1, '5': 8, '9': 2, '10': 'isActive', '17': true},
+    {
+      '1': 'is_active',
+      '3': 4,
+      '4': 1,
+      '5': 8,
+      '9': 2,
+      '10': 'isActive',
+      '17': true
+    },
   ],
   '8': [
     {'1': '_name'},
@@ -200,7 +264,14 @@ final $typed_data.Uint8List updateAccountRequestDescriptor = $convert.base64Deco
 const UpdateAccountResponse$json = {
   '1': 'UpdateAccountResponse',
   '2': [
-    {'1': 'account', '3': 1, '4': 1, '5': 11, '6': '.familyledger.account.v1.Account', '10': 'account'},
+    {
+      '1': 'account',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.account.v1.Account',
+      '10': 'account'
+    },
   ],
 };
 
@@ -227,8 +298,8 @@ const DeleteAccountResponse$json = {
 };
 
 /// Descriptor for `DeleteAccountResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteAccountResponseDescriptor = $convert.base64Decode(
-    'ChVEZWxldGVBY2NvdW50UmVzcG9uc2U=');
+final $typed_data.Uint8List deleteAccountResponseDescriptor =
+    $convert.base64Decode('ChVEZWxldGVBY2NvdW50UmVzcG9uc2U=');
 
 @$core.Deprecated('Use transferBetweenRequestDescriptor instead')
 const TransferBetweenRequest$json = {
@@ -251,12 +322,19 @@ final $typed_data.Uint8List transferBetweenRequestDescriptor = $convert.base64De
 const TransferBetweenResponse$json = {
   '1': 'TransferBetweenResponse',
   '2': [
-    {'1': 'transfer', '3': 1, '4': 1, '5': 11, '6': '.familyledger.account.v1.Transfer', '10': 'transfer'},
+    {
+      '1': 'transfer',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.account.v1.Transfer',
+      '10': 'transfer'
+    },
   ],
 };
 
 /// Descriptor for `TransferBetweenResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List transferBetweenResponseDescriptor = $convert.base64Decode(
-    'ChdUcmFuc2ZlckJldHdlZW5SZXNwb25zZRI9Cgh0cmFuc2ZlchgBIAEoCzIhLmZhbWlseWxlZG'
-    'dlci5hY2NvdW50LnYxLlRyYW5zZmVyUgh0cmFuc2Zlcg==');
-
+final $typed_data.Uint8List transferBetweenResponseDescriptor =
+    $convert.base64Decode(
+        'ChdUcmFuc2ZlckJldHdlZW5SZXNwb25zZRI9Cgh0cmFuc2ZlchgBIAEoCzIhLmZhbWlseWxlZG'
+        'dlci5hY2NvdW50LnYxLlRyYW5zZmVyUgh0cmFuc2Zlcg==');

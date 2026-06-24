@@ -64,15 +64,16 @@ class FakeResponseFuture<T> implements ResponseFuture<T> {
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-
 // ─── Testable SyncEngine ─────────────────────────────────────
 
 /// Exposes internal methods for testing by directly calling the real engine
 /// with injected dependencies via the public constructor.
 class TestableSyncEngine extends SyncEngine {
-  TestableSyncEngine(AppDatabase db, SyncServiceClient client,
-      SharedPreferences prefs)
-      : super(db, client, prefs);
+  TestableSyncEngine(
+    AppDatabase db,
+    SyncServiceClient client,
+    SharedPreferences prefs,
+  ) : super(db, client, prefs);
 
   /// Public access to syncNow() for testing push + pull flow
   Future<void> testSyncNow() => syncNow();
@@ -83,43 +84,52 @@ class TestableSyncEngine extends SyncEngine {
 Future<AppDatabase> _setupDb() async {
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   await db.customStatement(
-      "INSERT OR IGNORE INTO users (id, email, created_at) "
-      "VALUES ('user1', 'test@test.com', "
-      "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
-  await db.insertAccount(AccountsCompanion.insert(
-    id: 'acc1',
-    userId: 'user1',
-    name: 'Test Account',
-    familyId: const Value(''),
-    accountType: const Value('bank_card'),
-  ));
+    "INSERT OR IGNORE INTO users (id, email, created_at) "
+    "VALUES ('user1', 'test@test.com', "
+    "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+  );
+  await db.insertAccount(
+    AccountsCompanion.insert(
+      id: 'acc1',
+      userId: 'user1',
+      name: 'Test Account',
+      familyId: const Value(''),
+      accountType: const Value('bank_card'),
+    ),
+  );
   return db;
 }
 
-Future<void> _insertPendingSyncOp(AppDatabase db, {
+Future<void> _insertPendingSyncOp(
+  AppDatabase db, {
   String id = 'op1',
   String entityType = 'transaction',
   String entityId = 'txn1',
   String opType = 'create',
   Map<String, dynamic>? payload,
 }) async {
-  await db.insertSyncOp(SyncQueueCompanion.insert(
-    id: id,
-    entityType: entityType,
-    entityId: entityId,
-    opType: opType,
-    payload: jsonEncode(payload ?? {
-      'id': entityId,
-      'account_id': 'acc1',
-      'category_id': 'cat1',
-      'amount': 1000,
-      'type': 'expense',
-      'note': 'test',
-      'txn_date': '2025-01-01T00:00:00',
-    }),
-    clientId: 'client_user1',
-    timestamp: DateTime.now(),
-  ));
+  await db.insertSyncOp(
+    SyncQueueCompanion.insert(
+      id: id,
+      entityType: entityType,
+      entityId: entityId,
+      opType: opType,
+      payload: jsonEncode(
+        payload ??
+            {
+              'id': entityId,
+              'account_id': 'acc1',
+              'category_id': 'cat1',
+              'amount': 1000,
+              'type': 'expense',
+              'note': 'test',
+              'txn_date': '2025-01-01T00:00:00',
+            },
+      ),
+      clientId: 'client_user1',
+      timestamp: DateTime.now(),
+    ),
+  );
 }
 
 // ─── Tests ───────────────────────────────────────────────────
@@ -155,10 +165,14 @@ void main() {
         await _insertPendingSyncOp(db, id: 'op_push_1', entityId: 'txn_push');
 
         // Mock push: success, no failures
-        when(() => mockClient.pushOperations(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.value(
-                  sync_pb.PushOperationsResponse(acceptedCount: 1),
-                ));
+        when(
+          () =>
+              mockClient.pushOperations(any(), options: any(named: 'options')),
+        ).thenAnswer(
+          (_) => FakeResponseFuture.value(
+            sync_pb.PushOperationsResponse(acceptedCount: 1),
+          ),
+        );
 
         // Mock pull: return one remote op
         final remoteOp = sync_pb.SyncOperation(
@@ -181,16 +195,20 @@ void main() {
             seconds: Int64(DateTime(2025, 3, 1).millisecondsSinceEpoch ~/ 1000),
           ),
         );
-        when(() => mockClient.pullChanges(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.value(
-                  sync_pb.PullChangesResponse(
-                    operations: [remoteOp],
-                    serverTime: proto_ts.Timestamp(
-                      seconds: Int64(
-                          DateTime(2025, 3, 1, 1).millisecondsSinceEpoch ~/ 1000),
-                    ),
-                  ),
-                ));
+        when(
+          () => mockClient.pullChanges(any(), options: any(named: 'options')),
+        ).thenAnswer(
+          (_) => FakeResponseFuture.value(
+            sync_pb.PullChangesResponse(
+              operations: [remoteOp],
+              serverTime: proto_ts.Timestamp(
+                seconds: Int64(
+                  DateTime(2025, 3, 1, 1).millisecondsSinceEpoch ~/ 1000,
+                ),
+              ),
+            ),
+          ),
+        );
 
         final engine = TestableSyncEngine(db, mockClient, prefs);
 
@@ -198,12 +216,15 @@ void main() {
         await engine.testSyncNow();
 
         // Assert: push was called
-        verify(() => mockClient.pushOperations(any(), options: any(named: 'options')))
-            .called(1);
+        verify(
+          () =>
+              mockClient.pushOperations(any(), options: any(named: 'options')),
+        ).called(1);
 
         // Assert: pull was called
-        verify(() => mockClient.pullChanges(any(), options: any(named: 'options')))
-            .called(1);
+        verify(
+          () => mockClient.pullChanges(any(), options: any(named: 'options')),
+        ).called(1);
 
         // Assert: remote op was applied locally
         final txn = await db.getTransactionById('txn_remote');
@@ -224,16 +245,20 @@ void main() {
         // Arrange
         await _insertPendingSyncOp(db, id: 'op_fail_1', entityId: 'txn_fail');
 
-        when(() => mockClient.pushOperations(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.error(
-                  GrpcError.unavailable('network down'),
-                ));
+        when(
+          () =>
+              mockClient.pushOperations(any(), options: any(named: 'options')),
+        ).thenAnswer(
+          (_) =>
+              FakeResponseFuture.error(GrpcError.unavailable('network down')),
+        );
 
         // Still need pull mock since syncNow calls both
-        when(() => mockClient.pullChanges(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.value(
-                  sync_pb.PullChangesResponse(),
-                ));
+        when(
+          () => mockClient.pullChanges(any(), options: any(named: 'options')),
+        ).thenAnswer(
+          (_) => FakeResponseFuture.value(sync_pb.PullChangesResponse()),
+        );
 
         final engine = TestableSyncEngine(db, mockClient, prefs);
 
@@ -251,14 +276,21 @@ void main() {
 
     group('pull with empty data stops', () {
       test('pull with no operations does not crash', () async {
-        when(() => mockClient.pushOperations(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.value(
-                  sync_pb.PushOperationsResponse(acceptedCount: 0),
-                ));
-        when(() => mockClient.pullChanges(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.value(
-                  sync_pb.PullChangesResponse(operations: []),
-                ));
+        when(
+          () =>
+              mockClient.pushOperations(any(), options: any(named: 'options')),
+        ).thenAnswer(
+          (_) => FakeResponseFuture.value(
+            sync_pb.PushOperationsResponse(acceptedCount: 0),
+          ),
+        );
+        when(
+          () => mockClient.pullChanges(any(), options: any(named: 'options')),
+        ).thenAnswer(
+          (_) => FakeResponseFuture.value(
+            sync_pb.PullChangesResponse(operations: []),
+          ),
+        );
 
         final engine = TestableSyncEngine(db, mockClient, prefs);
 
@@ -266,8 +298,9 @@ void main() {
         await engine.testSyncNow();
 
         // Verify pull was called once (no pagination in current impl)
-        verify(() => mockClient.pullChanges(any(), options: any(named: 'options')))
-            .called(1);
+        verify(
+          () => mockClient.pullChanges(any(), options: any(named: 'options')),
+        ).called(1);
 
         engine.dispose();
       });
@@ -277,14 +310,20 @@ void main() {
       test('push network error is caught gracefully', () async {
         await _insertPendingSyncOp(db, id: 'op_net', entityId: 'txn_net');
 
-        when(() => mockClient.pushOperations(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.error(
-                  GrpcError.unavailable('connection refused'),
-                ));
-        when(() => mockClient.pullChanges(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.error(
-                  GrpcError.deadlineExceeded('timeout'),
-                ));
+        when(
+          () =>
+              mockClient.pushOperations(any(), options: any(named: 'options')),
+        ).thenAnswer(
+          (_) => FakeResponseFuture.error(
+            GrpcError.unavailable('connection refused'),
+          ),
+        );
+        when(
+          () => mockClient.pullChanges(any(), options: any(named: 'options')),
+        ).thenAnswer(
+          (_) =>
+              FakeResponseFuture.error(GrpcError.deadlineExceeded('timeout')),
+        );
 
         final engine = TestableSyncEngine(db, mockClient, prefs);
 
@@ -299,14 +338,19 @@ void main() {
       });
 
       test('pull network error is caught gracefully', () async {
-        when(() => mockClient.pushOperations(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.value(
-                  sync_pb.PushOperationsResponse(acceptedCount: 0),
-                ));
-        when(() => mockClient.pullChanges(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.error(
-                  Exception('socket error'),
-                ));
+        when(
+          () =>
+              mockClient.pushOperations(any(), options: any(named: 'options')),
+        ).thenAnswer(
+          (_) => FakeResponseFuture.value(
+            sync_pb.PushOperationsResponse(acceptedCount: 0),
+          ),
+        );
+        when(
+          () => mockClient.pullChanges(any(), options: any(named: 'options')),
+        ).thenAnswer(
+          (_) => FakeResponseFuture.error(Exception('socket error')),
+        );
 
         final engine = TestableSyncEngine(db, mockClient, prefs);
 
@@ -318,60 +362,69 @@ void main() {
     });
 
     group('concurrent sync: _isSyncing guard prevents re-entry', () {
-      test('second syncNow during active push is effectively serialized',
-          () async {
-        // The _isSyncing guard is in _pushPendingOps. Since syncNow()
-        // awaits _pushPendingOps then _pullChanges sequentially,
-        // calling syncNow() twice concurrently should not cause issues.
-        await _insertPendingSyncOp(db, id: 'op_conc', entityId: 'txn_conc');
+      test(
+        'second syncNow during active push is effectively serialized',
+        () async {
+          // The _isSyncing guard is in _pushPendingOps. Since syncNow()
+          // awaits _pushPendingOps then _pullChanges sequentially,
+          // calling syncNow() twice concurrently should not cause issues.
+          await _insertPendingSyncOp(db, id: 'op_conc', entityId: 'txn_conc');
 
-        int pushCallCount = 0;
-        when(() => mockClient.pushOperations(any(), options: any(named: 'options')))
-            .thenAnswer((_) {
-          pushCallCount++;
-          return FakeResponseFuture.value(
-            sync_pb.PushOperationsResponse(acceptedCount: 1),
+          int pushCallCount = 0;
+          when(
+            () => mockClient.pushOperations(
+              any(),
+              options: any(named: 'options'),
+            ),
+          ).thenAnswer((_) {
+            pushCallCount++;
+            return FakeResponseFuture.value(
+              sync_pb.PushOperationsResponse(acceptedCount: 1),
+            );
+          });
+          when(
+            () => mockClient.pullChanges(any(), options: any(named: 'options')),
+          ).thenAnswer(
+            (_) => FakeResponseFuture.value(sync_pb.PullChangesResponse()),
           );
-        });
-        when(() => mockClient.pullChanges(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.value(
-                  sync_pb.PullChangesResponse(),
-                ));
 
-        final engine = TestableSyncEngine(db, mockClient, prefs);
+          final engine = TestableSyncEngine(db, mockClient, prefs);
 
-        // Act: call syncNow twice concurrently
-        final f1 = engine.testSyncNow();
-        final f2 = engine.testSyncNow();
-        await Future.wait([f1, f2]);
+          // Act: call syncNow twice concurrently
+          final f1 = engine.testSyncNow();
+          final f2 = engine.testSyncNow();
+          await Future.wait([f1, f2]);
 
-        // The _isSyncing flag should have prevented the second push
-        // from running concurrently. Due to await semantics, the second
-        // call sees _isSyncing=true and returns early from _pushPendingOps.
-        // So pushOperations should only be called once.
-        expect(pushCallCount, 1);
+          // The _isSyncing flag should have prevented the second push
+          // from running concurrently. Due to await semantics, the second
+          // call sees _isSyncing=true and returns early from _pushPendingOps.
+          // So pushOperations should only be called once.
+          expect(pushCallCount, 1);
 
-        engine.dispose();
-      });
+          engine.dispose();
+        },
+      );
     });
 
     group('offline op → sync → push', () {
       test('transaction created offline is pushed on next sync', () async {
         // Simulate an offline transaction by inserting directly into sync queue
-        await _insertPendingSyncOp(db,
-            id: 'op_offline',
-            entityType: 'transaction',
-            entityId: 'txn_offline',
-            opType: 'create',
-            payload: {
-              'id': 'txn_offline',
-              'account_id': 'acc1',
-              'category_id': 'cat1',
-              'amount': 5000,
-              'type': 'expense',
-              'note': 'offline created',
-              'txn_date': '2025-04-01T10:00:00',
-            });
+        await _insertPendingSyncOp(
+          db,
+          id: 'op_offline',
+          entityType: 'transaction',
+          entityId: 'txn_offline',
+          opType: 'create',
+          payload: {
+            'id': 'txn_offline',
+            'account_id': 'acc1',
+            'category_id': 'cat1',
+            'amount': 5000,
+            'type': 'expense',
+            'note': 'offline created',
+            'txn_date': '2025-04-01T10:00:00',
+          },
+        );
 
         // Verify it's pending
         final before = await db.getPendingSyncOps(10);
@@ -379,14 +432,19 @@ void main() {
         expect(before.first.entityId, 'txn_offline');
 
         // Mock successful push
-        when(() => mockClient.pushOperations(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.value(
-                  sync_pb.PushOperationsResponse(acceptedCount: 1),
-                ));
-        when(() => mockClient.pullChanges(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.value(
-                  sync_pb.PullChangesResponse(),
-                ));
+        when(
+          () =>
+              mockClient.pushOperations(any(), options: any(named: 'options')),
+        ).thenAnswer(
+          (_) => FakeResponseFuture.value(
+            sync_pb.PushOperationsResponse(acceptedCount: 1),
+          ),
+        );
+        when(
+          () => mockClient.pullChanges(any(), options: any(named: 'options')),
+        ).thenAnswer(
+          (_) => FakeResponseFuture.value(sync_pb.PullChangesResponse()),
+        );
 
         final engine = TestableSyncEngine(db, mockClient, prefs);
 
@@ -394,9 +452,12 @@ void main() {
         await engine.testSyncNow();
 
         // Assert: push was called with our op
-        final captured = verify(() =>
-                mockClient.pushOperations(captureAny(), options: any(named: 'options')))
-            .captured;
+        final captured = verify(
+          () => mockClient.pushOperations(
+            captureAny(),
+            options: any(named: 'options'),
+          ),
+        ).captured;
         expect(captured, hasLength(1));
         final request = captured.first as sync_pb.PushOperationsRequest;
         expect(request.operations, hasLength(1));
@@ -411,74 +472,100 @@ void main() {
     });
 
     group('push with partial failures', () {
-      test('only succeeded ops are marked uploaded; failed ops stay in queue for retry',
-          () async {
-        // Insert 2 pending ops
-        await _insertPendingSyncOp(db, id: 'op_ok', entityId: 'txn_ok');
-        await _insertPendingSyncOp(db, id: 'op_bad', entityId: 'txn_bad');
+      test(
+        'only succeeded ops are marked uploaded; failed ops stay in queue for retry',
+        () async {
+          // Insert 2 pending ops
+          await _insertPendingSyncOp(db, id: 'op_ok', entityId: 'txn_ok');
+          await _insertPendingSyncOp(db, id: 'op_bad', entityId: 'txn_bad');
 
-        // Server says op_bad failed
-        when(() => mockClient.pushOperations(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.value(
-                  sync_pb.PushOperationsResponse(
-                    acceptedCount: 1,
-                    failedIds: ['op_bad'],
-                  ),
-                ));
-        when(() => mockClient.pullChanges(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.value(
-                  sync_pb.PullChangesResponse(),
-                ));
+          // Server says op_bad failed
+          when(
+            () => mockClient.pushOperations(
+              any(),
+              options: any(named: 'options'),
+            ),
+          ).thenAnswer(
+            (_) => FakeResponseFuture.value(
+              sync_pb.PushOperationsResponse(
+                acceptedCount: 1,
+                failedIds: ['op_bad'],
+              ),
+            ),
+          );
+          when(
+            () => mockClient.pullChanges(any(), options: any(named: 'options')),
+          ).thenAnswer(
+            (_) => FakeResponseFuture.value(sync_pb.PullChangesResponse()),
+          );
 
-        final engine = TestableSyncEngine(db, mockClient, prefs);
-        await engine.testSyncNow();
+          final engine = TestableSyncEngine(db, mockClient, prefs);
+          await engine.testSyncNow();
 
-        // R7 fix: Only succeeded ops marked uploaded; failed ops remain for retry
-        // After failure, retryCount is incremented and nextRetryAt is set (exponential backoff).
-        // getPendingSyncOps respects nextRetryAt, so the op won't appear until backoff expires.
-        // Verify the op still exists (not uploaded) by querying without the time filter.
-        final allOps = await (db.select(db.syncQueue)
-              ..where((s) => s.uploaded.equals(false)))
-            .get();
-        expect(allOps, hasLength(1));
-        expect(allOps.first.id, equals('op_bad'));
-        expect(allOps.first.retryCount, equals(1));
-        expect(allOps.first.nextRetryAt, isNotNull);
+          // R7 fix: Only succeeded ops marked uploaded; failed ops remain for retry
+          // After failure, retryCount is incremented and nextRetryAt is set (exponential backoff).
+          // getPendingSyncOps respects nextRetryAt, so the op won't appear until backoff expires.
+          // Verify the op still exists (not uploaded) by querying without the time filter.
+          final allOps = await (db.select(
+            db.syncQueue,
+          )..where((s) => s.uploaded.equals(false))).get();
+          expect(allOps, hasLength(1));
+          expect(allOps.first.id, equals('op_bad'));
+          expect(allOps.first.retryCount, equals(1));
+          expect(allOps.first.nextRetryAt, isNotNull);
 
-        engine.dispose();
-      });
+          engine.dispose();
+        },
+      );
     });
 
     group('pull saves serverTime for next pull', () {
-      test('serverTime from response is persisted in SharedPreferences',
-          () async {
-        final serverTimeMs =
-            DateTime(2025, 5, 1, 12, 0, 0).millisecondsSinceEpoch;
+      test(
+        'serverTime from response is persisted in SharedPreferences',
+        () async {
+          final serverTimeMs = DateTime(
+            2025,
+            5,
+            1,
+            12,
+            0,
+            0,
+          ).millisecondsSinceEpoch;
 
-        when(() => mockClient.pushOperations(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.value(
-                  sync_pb.PushOperationsResponse(acceptedCount: 0),
-                ));
-        when(() => mockClient.pullChanges(any(), options: any(named: 'options')))
-            .thenAnswer((_) => FakeResponseFuture.value(
-                  sync_pb.PullChangesResponse(
-                    operations: [],
-                    serverTime: proto_ts.Timestamp(
-                      seconds: Int64(serverTimeMs ~/ 1000),
-                      nanos: (serverTimeMs % 1000) * 1000000,
-                    ),
-                  ),
-                ));
+          when(
+            () => mockClient.pushOperations(
+              any(),
+              options: any(named: 'options'),
+            ),
+          ).thenAnswer(
+            (_) => FakeResponseFuture.value(
+              sync_pb.PushOperationsResponse(acceptedCount: 0),
+            ),
+          );
+          when(
+            () => mockClient.pullChanges(any(), options: any(named: 'options')),
+          ).thenAnswer(
+            (_) => FakeResponseFuture.value(
+              sync_pb.PullChangesResponse(
+                operations: [],
+                serverTime: proto_ts.Timestamp(
+                  seconds: Int64(serverTimeMs ~/ 1000),
+                  nanos: (serverTimeMs % 1000) * 1000000,
+                ),
+              ),
+            ),
+          );
 
-        final engine = TestableSyncEngine(db, mockClient, prefs);
-        await engine.testSyncNow();
+          final engine = TestableSyncEngine(db, mockClient, prefs);
+          await engine.testSyncNow();
 
-        // Verify DB saved the timestamp (migrated from SharedPreferences)
-        final savedTs = await db.getSyncMetaInt('sync_last_pull_ts');
-        expect(savedTs, serverTimeMs);
+          // Verify DB saved the timestamp (migrated from SharedPreferences)
+          final savedTs = await db.getSyncMetaInt('sync_last_pull_ts');
+          expect(savedTs, serverTimeMs);
 
-        engine.dispose();
-      });
+          engine.dispose();
+        },
+      );
     });
   });
 }

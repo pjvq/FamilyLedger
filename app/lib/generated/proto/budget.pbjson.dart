@@ -23,8 +23,22 @@ const Budget$json = {
     {'1': 'year', '3': 4, '4': 1, '5': 5, '10': 'year'},
     {'1': 'month', '3': 5, '4': 1, '5': 5, '10': 'month'},
     {'1': 'total_amount', '3': 6, '4': 1, '5': 3, '10': 'totalAmount'},
-    {'1': 'category_budgets', '3': 7, '4': 3, '5': 11, '6': '.familyledger.budget.v1.CategoryBudget', '10': 'categoryBudgets'},
-    {'1': 'created_at', '3': 8, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '10': 'createdAt'},
+    {
+      '1': 'category_budgets',
+      '3': 7,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.budget.v1.CategoryBudget',
+      '10': 'categoryBudgets'
+    },
+    {
+      '1': 'created_at',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.google.protobuf.Timestamp',
+      '10': 'createdAt'
+    },
   ],
 };
 
@@ -58,7 +72,14 @@ const BudgetExecution$json = {
     {'1': 'total_budget', '3': 1, '4': 1, '5': 3, '10': 'totalBudget'},
     {'1': 'total_spent', '3': 2, '4': 1, '5': 3, '10': 'totalSpent'},
     {'1': 'execution_rate', '3': 3, '4': 1, '5': 1, '10': 'executionRate'},
-    {'1': 'category_executions', '3': 4, '4': 3, '5': 11, '6': '.familyledger.budget.v1.CategoryExecution', '10': 'categoryExecutions'},
+    {
+      '1': 'category_executions',
+      '3': 4,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.budget.v1.CategoryExecution',
+      '10': 'categoryExecutions'
+    },
   ],
 };
 
@@ -96,7 +117,14 @@ const CreateBudgetRequest$json = {
     {'1': 'year', '3': 2, '4': 1, '5': 5, '10': 'year'},
     {'1': 'month', '3': 3, '4': 1, '5': 5, '10': 'month'},
     {'1': 'total_amount', '3': 4, '4': 1, '5': 3, '10': 'totalAmount'},
-    {'1': 'category_budgets', '3': 5, '4': 3, '5': 11, '6': '.familyledger.budget.v1.CategoryBudget', '10': 'categoryBudgets'},
+    {
+      '1': 'category_budgets',
+      '3': 5,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.budget.v1.CategoryBudget',
+      '10': 'categoryBudgets'
+    },
   ],
 };
 
@@ -111,7 +139,14 @@ final $typed_data.Uint8List createBudgetRequestDescriptor = $convert.base64Decod
 const CreateBudgetResponse$json = {
   '1': 'CreateBudgetResponse',
   '2': [
-    {'1': 'budget', '3': 1, '4': 1, '5': 11, '6': '.familyledger.budget.v1.Budget', '10': 'budget'},
+    {
+      '1': 'budget',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.budget.v1.Budget',
+      '10': 'budget'
+    },
   ],
 };
 
@@ -136,8 +171,22 @@ final $typed_data.Uint8List getBudgetRequestDescriptor = $convert.base64Decode(
 const GetBudgetResponse$json = {
   '1': 'GetBudgetResponse',
   '2': [
-    {'1': 'budget', '3': 1, '4': 1, '5': 11, '6': '.familyledger.budget.v1.Budget', '10': 'budget'},
-    {'1': 'execution', '3': 2, '4': 1, '5': 11, '6': '.familyledger.budget.v1.BudgetExecution', '10': 'execution'},
+    {
+      '1': 'budget',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.budget.v1.Budget',
+      '10': 'budget'
+    },
+    {
+      '1': 'execution',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.budget.v1.BudgetExecution',
+      '10': 'execution'
+    },
   ],
 };
 
@@ -165,7 +214,14 @@ final $typed_data.Uint8List listBudgetsRequestDescriptor = $convert.base64Decode
 const ListBudgetsResponse$json = {
   '1': 'ListBudgetsResponse',
   '2': [
-    {'1': 'budgets', '3': 1, '4': 3, '5': 11, '6': '.familyledger.budget.v1.Budget', '10': 'budgets'},
+    {
+      '1': 'budgets',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.budget.v1.Budget',
+      '10': 'budgets'
+    },
   ],
 };
 
@@ -180,7 +236,14 @@ const UpdateBudgetRequest$json = {
   '2': [
     {'1': 'budget_id', '3': 1, '4': 1, '5': 9, '10': 'budgetId'},
     {'1': 'total_amount', '3': 2, '4': 1, '5': 3, '10': 'totalAmount'},
-    {'1': 'category_budgets', '3': 3, '4': 3, '5': 11, '6': '.familyledger.budget.v1.CategoryBudget', '10': 'categoryBudgets'},
+    {
+      '1': 'category_budgets',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.familyledger.budget.v1.CategoryBudget',
+      '10': 'categoryBudgets'
+    },
   ],
 };
 
@@ -195,7 +258,14 @@ final $typed_data.Uint8List updateBudgetRequestDescriptor = $convert.base64Decod
 const UpdateBudgetResponse$json = {
   '1': 'UpdateBudgetResponse',
   '2': [
-    {'1': 'budget', '3': 1, '4': 1, '5': 11, '6': '.familyledger.budget.v1.Budget', '10': 'budget'},
+    {
+      '1': 'budget',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.budget.v1.Budget',
+      '10': 'budget'
+    },
   ],
 };
 
@@ -213,8 +283,9 @@ const DeleteBudgetRequest$json = {
 };
 
 /// Descriptor for `DeleteBudgetRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteBudgetRequestDescriptor = $convert.base64Decode(
-    'ChNEZWxldGVCdWRnZXRSZXF1ZXN0EhsKCWJ1ZGdldF9pZBgBIAEoCVIIYnVkZ2V0SWQ=');
+final $typed_data.Uint8List deleteBudgetRequestDescriptor =
+    $convert.base64Decode(
+        'ChNEZWxldGVCdWRnZXRSZXF1ZXN0EhsKCWJ1ZGdldF9pZBgBIAEoCVIIYnVkZ2V0SWQ=');
 
 @$core.Deprecated('Use deleteBudgetResponseDescriptor instead')
 const DeleteBudgetResponse$json = {
@@ -222,8 +293,8 @@ const DeleteBudgetResponse$json = {
 };
 
 /// Descriptor for `DeleteBudgetResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List deleteBudgetResponseDescriptor = $convert.base64Decode(
-    'ChREZWxldGVCdWRnZXRSZXNwb25zZQ==');
+final $typed_data.Uint8List deleteBudgetResponseDescriptor =
+    $convert.base64Decode('ChREZWxldGVCdWRnZXRSZXNwb25zZQ==');
 
 @$core.Deprecated('Use getBudgetExecutionRequestDescriptor instead')
 const GetBudgetExecutionRequest$json = {
@@ -234,20 +305,28 @@ const GetBudgetExecutionRequest$json = {
 };
 
 /// Descriptor for `GetBudgetExecutionRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getBudgetExecutionRequestDescriptor = $convert.base64Decode(
-    'ChlHZXRCdWRnZXRFeGVjdXRpb25SZXF1ZXN0EhsKCWJ1ZGdldF9pZBgBIAEoCVIIYnVkZ2V0SW'
-    'Q=');
+final $typed_data.Uint8List getBudgetExecutionRequestDescriptor =
+    $convert.base64Decode(
+        'ChlHZXRCdWRnZXRFeGVjdXRpb25SZXF1ZXN0EhsKCWJ1ZGdldF9pZBgBIAEoCVIIYnVkZ2V0SW'
+        'Q=');
 
 @$core.Deprecated('Use getBudgetExecutionResponseDescriptor instead')
 const GetBudgetExecutionResponse$json = {
   '1': 'GetBudgetExecutionResponse',
   '2': [
-    {'1': 'execution', '3': 1, '4': 1, '5': 11, '6': '.familyledger.budget.v1.BudgetExecution', '10': 'execution'},
+    {
+      '1': 'execution',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.familyledger.budget.v1.BudgetExecution',
+      '10': 'execution'
+    },
   ],
 };
 
 /// Descriptor for `GetBudgetExecutionResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getBudgetExecutionResponseDescriptor = $convert.base64Decode(
-    'ChpHZXRCdWRnZXRFeGVjdXRpb25SZXNwb25zZRJFCglleGVjdXRpb24YASABKAsyJy5mYW1pbH'
-    'lsZWRnZXIuYnVkZ2V0LnYxLkJ1ZGdldEV4ZWN1dGlvblIJZXhlY3V0aW9u');
-
+final $typed_data.Uint8List getBudgetExecutionResponseDescriptor =
+    $convert.base64Decode(
+        'ChpHZXRCdWRnZXRFeGVjdXRpb25SZXNwb25zZRJFCglleGVjdXRpb24YASABKAsyJy5mYW1pbH'
+        'lsZWRnZXIuYnVkZ2V0LnYxLkJ1ZGdldEV4ZWN1dGlvblIJZXhlY3V0aW9u');

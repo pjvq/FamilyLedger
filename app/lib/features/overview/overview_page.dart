@@ -70,31 +70,33 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            SliverList.list(children: [
-              // Personal ↔ Family switcher
-              if (hasFamily)
-                _ModeSwitcher(
-                  isFamilyMode: familyId != null,
-                  familyName: familyState.currentFamily?.name ?? '',
-                  onToggle: _handleModeSwitch,
-                ),
-              // 1. Greeting
-              const GreetingHeader(),
-              // 2. Net Worth Hero
-              const NetWorthHeroCard(),
-              // 3. Quick Actions
-              const QuickActions(),
-              // 4. Monthly Summary (donut)
-              const MonthlySummaryCard(),
-              // 5. Budget Progress (Top 3)
-              const BudgetProgressCard(),
-              // 6. Smart Reminders
-              const RemindersCard(),
-              // 7. Category Cleanup Reminder
-              const CategoryCleanupReminderCard(),
-              // Bottom safe area padding
-              const SizedBox(height: SpacingTokens.xl4 + SpacingTokens.xl),
-            ]),
+            SliverList.list(
+              children: [
+                // Personal ↔ Family switcher
+                if (hasFamily)
+                  _ModeSwitcher(
+                    isFamilyMode: familyId != null,
+                    familyName: familyState.currentFamily?.name ?? '',
+                    onToggle: _handleModeSwitch,
+                  ),
+                // 1. Greeting
+                const GreetingHeader(),
+                // 2. Net Worth Hero
+                const NetWorthHeroCard(),
+                // 3. Quick Actions
+                const QuickActions(),
+                // 4. Monthly Summary (donut)
+                const MonthlySummaryCard(),
+                // 5. Budget Progress (Top 3)
+                const BudgetProgressCard(),
+                // 6. Smart Reminders
+                const RemindersCard(),
+                // 7. Category Cleanup Reminder
+                const CategoryCleanupReminderCard(),
+                // Bottom safe area padding
+                const SizedBox(height: SpacingTokens.xl4 + SpacingTokens.xl),
+              ],
+            ),
           ],
         ),
       ),
@@ -125,11 +127,14 @@ class _ModeSwitcher extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Semantics(
-      label: isFamilyMode
-          ? '当前为家庭模式，点击切换到个人模式'
-          : '当前为个人模式，点击切换到家庭模式',
+      label: isFamilyMode ? '当前为家庭模式，点击切换到个人模式' : '当前为个人模式，点击切换到家庭模式',
       child: Container(
-        margin: const EdgeInsets.fromLTRB(SpacingTokens.base, SpacingTokens.sm, SpacingTokens.base, 0),
+        margin: const EdgeInsets.fromLTRB(
+          SpacingTokens.base,
+          SpacingTokens.sm,
+          SpacingTokens.base,
+          0,
+        ),
         padding: const EdgeInsets.all(SpacingTokens.xs),
         decoration: BoxDecoration(
           color: isDark
@@ -186,7 +191,10 @@ class _SwitcherButton extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: SpacingTokens.md, horizontal: SpacingTokens.base),
+        padding: const EdgeInsets.symmetric(
+          vertical: SpacingTokens.md,
+          horizontal: SpacingTokens.base,
+        ),
         decoration: BoxDecoration(
           color: isActive
               ? (isDark ? NeutralColorsDark.neutral1 : Colors.white)
@@ -205,23 +213,26 @@ class _SwitcherButton extends StatelessWidget {
               color: isActive
                   ? (isDark ? ColorTokens.primaryLight : ColorTokens.primary)
                   : (isDark
-                      ? NeutralColorsDark.neutral4
-                      : NeutralColorsLight.neutral4),
+                        ? NeutralColorsDark.neutral4
+                        : NeutralColorsLight.neutral4),
             ),
             const SizedBox(width: SpacingTokens.sm),
             Flexible(
               child: Text(
                 label,
                 overflow: TextOverflow.ellipsis,
-                style: TypographyTokens.bodySm(
-                  color: isActive
-                      ? (isDark
-                          ? NeutralColorsDark.neutral7
-                          : NeutralColorsLight.neutral7)
-                      : (isDark
-                          ? NeutralColorsDark.neutral4
-                          : NeutralColorsLight.neutral4),
-                ).copyWith(fontWeight: isActive ? FontWeight.w600 : FontWeight.w400),
+                style:
+                    TypographyTokens.bodySm(
+                      color: isActive
+                          ? (isDark
+                                ? NeutralColorsDark.neutral7
+                                : NeutralColorsLight.neutral7)
+                          : (isDark
+                                ? NeutralColorsDark.neutral4
+                                : NeutralColorsLight.neutral4),
+                    ).copyWith(
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                    ),
               ),
             ),
           ],
@@ -240,10 +251,7 @@ class _NotificationBell extends StatelessWidget {
   final int unreadCount;
   final VoidCallback onTap;
 
-  const _NotificationBell({
-    required this.unreadCount,
-    required this.onTap,
-  });
+  const _NotificationBell({required this.unreadCount, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -258,11 +266,16 @@ class _NotificationBell extends StatelessWidget {
           isLabelVisible: unreadCount > 0,
           label: Text(
             unreadCount > 99 ? '99+' : '$unreadCount',
-            style: const TextStyle(fontSize: _badgeFontSize, color: Colors.white),
+            style: const TextStyle(
+              fontSize: _badgeFontSize,
+              color: Colors.white,
+            ),
           ),
           child: Icon(
             Icons.notifications_outlined,
-            color: theme.colorScheme.onSurface.withValues(alpha: _iconInactiveOpacity),
+            color: theme.colorScheme.onSurface.withValues(
+              alpha: _iconInactiveOpacity,
+            ),
           ),
         ),
       ),

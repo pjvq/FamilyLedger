@@ -6,8 +6,9 @@ import 'category_merge_provider.dart';
 import 'transaction_provider.dart';
 
 /// 推荐输入 — 用于 family provider
-final categoryRecommendInputProvider =
-    StateProvider<CategoryRecommendInput>((ref) {
+final categoryRecommendInputProvider = StateProvider<CategoryRecommendInput>((
+  ref,
+) {
   return const CategoryRecommendInput(typeIndex: 0);
 });
 
@@ -31,8 +32,9 @@ final sequenceScorerProvider = FutureProvider<SequenceScorer>((ref) async {
 });
 
 /// 分类推荐结果 — 响应式更新
-final categoryRecommendProvider =
-    FutureProvider<List<CategoryRecommendation>>((ref) async {
+final categoryRecommendProvider = FutureProvider<List<CategoryRecommendation>>((
+  ref,
+) async {
   final input = ref.watch(categoryRecommendInputProvider);
   final profiler = ref.watch(categoryUsageProfilerProvider);
 
@@ -66,8 +68,7 @@ final categoryRecommendProvider =
   };
 
   // 计算总交易量，决定用普通还是冷启动配置
-  final totalTxns =
-      profiles.fold<int>(0, (sum, p) => sum + p.totalCount);
+  final totalTxns = profiles.fold<int>(0, (sum, p) => sum + p.totalCount);
   final config = CategoryRecommender.coldStartConfig(totalTxns);
   final recommender = CategoryRecommender();
 

@@ -29,20 +29,18 @@ class NotificationsPage extends ConsumerWidget {
       body: notifState.isLoading && notifState.notifications.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : notifState.notifications.isEmpty
-              ? _EmptyState(theme: theme)
-              : RefreshIndicator(
-                  onRefresh: () => ref
-                      .read(notificationProvider.notifier)
-                      .loadNotifications(0),
-                  child: _NotificationList(
-                    notifications: notifState.notifications,
-                    isDark: isDark,
-                    theme: theme,
-                    onMarkRead: (id) => ref
-                        .read(notificationProvider.notifier)
-                        .markAsRead([id]),
-                  ),
-                ),
+          ? _EmptyState(theme: theme)
+          : RefreshIndicator(
+              onRefresh: () =>
+                  ref.read(notificationProvider.notifier).loadNotifications(0),
+              child: _NotificationList(
+                notifications: notifState.notifications,
+                isDark: isDark,
+                theme: theme,
+                onMarkRead: (id) =>
+                    ref.read(notificationProvider.notifier).markAsRead([id]),
+              ),
+            ),
     );
   }
 }
@@ -105,31 +103,37 @@ class _NotificationList extends StatelessWidget {
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
 
-    final today =
-        notifications.where((n) => n.createdAt.isAfter(todayStart)).toList();
-    final earlier =
-        notifications.where((n) => !n.createdAt.isAfter(todayStart)).toList();
+    final today = notifications
+        .where((n) => n.createdAt.isAfter(todayStart))
+        .toList();
+    final earlier = notifications
+        .where((n) => !n.createdAt.isAfter(todayStart))
+        .toList();
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 20),
       children: [
         if (today.isNotEmpty) ...[
           _SectionHeader(title: '今天', theme: theme),
-          ...today.map((n) => _NotificationTile(
-                notification: n,
-                isDark: isDark,
-                theme: theme,
-                onMarkRead: () => onMarkRead(n.id),
-              )),
+          ...today.map(
+            (n) => _NotificationTile(
+              notification: n,
+              isDark: isDark,
+              theme: theme,
+              onMarkRead: () => onMarkRead(n.id),
+            ),
+          ),
         ],
         if (earlier.isNotEmpty) ...[
           _SectionHeader(title: '更早', theme: theme),
-          ...earlier.map((n) => _NotificationTile(
-                notification: n,
-                isDark: isDark,
-                theme: theme,
-                onMarkRead: () => onMarkRead(n.id),
-              )),
+          ...earlier.map(
+            (n) => _NotificationTile(
+              notification: n,
+              isDark: isDark,
+              theme: theme,
+              onMarkRead: () => onMarkRead(n.id),
+            ),
+          ),
         ],
       ],
     );
@@ -217,7 +221,8 @@ class _NotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: '${notification.isRead ? "已读" : "未读"}通知：${notification.title}，${notification.body}',
+      label:
+          '${notification.isRead ? "已读" : "未读"}通知：${notification.title}，${notification.body}',
       child: Dismissible(
         key: ValueKey(notification.id),
         direction: notification.isRead
@@ -232,10 +237,7 @@ class _NotificationTile extends StatelessWidget {
             children: [
               Icon(Icons.done_rounded, color: ColorTokens.primary),
               const SizedBox(width: 8),
-              Text(
-                '标为已读',
-                style: TextStyle(color: ColorTokens.primary),
-              ),
+              Text('标为已读', style: TextStyle(color: ColorTokens.primary)),
             ],
           ),
         ),
@@ -246,12 +248,13 @@ class _NotificationTile extends StatelessWidget {
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
           decoration: BoxDecoration(
-            color: isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral0,
+            color: isDark
+                ? NeutralColorsDark.neutral2
+                : NeutralColorsLight.neutral0,
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color:
-                    Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
+                color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
                 blurRadius: 6,
                 offset: const Offset(0, 1),
               ),
@@ -260,82 +263,88 @@ class _NotificationTile extends StatelessWidget {
           child: Material(
             type: MaterialType.transparency,
             child: ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
               leading: Stack(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: _typeColor(context, notification.type)
-                        .withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _typeColor(
+                        context,
+                        notification.type,
+                      ).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      _typeIcon(notification.type),
+                      color: _typeColor(context, notification.type),
+                      size: 22,
+                    ),
                   ),
-                  child: Icon(
-                    _typeIcon(notification.type),
-                    color: _typeColor(context, notification.type),
-                    size: 22,
-                  ),
-                ),
-                // Unread dot
-                if (!notification.isRead)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: ColorTokens.primary,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isDark
-                              ? NeutralColorsDark.neutral2
-                              : NeutralColorsLight.neutral0,
-                          width: 1.5,
+                  // Unread dot
+                  if (!notification.isRead)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: ColorTokens.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDark
+                                ? NeutralColorsDark.neutral2
+                                : NeutralColorsLight.neutral0,
+                            width: 1.5,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            title: Text(
-              notification.title,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                fontWeight:
-                    notification.isRead ? FontWeight.w400 : FontWeight.w600,
+                ],
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                notification.body,
-                style: theme.textTheme.bodySmall?.copyWith(
+              title: Text(
+                notification.title,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: notification.isRead
+                      ? FontWeight.w400
+                      : FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  notification.body,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: isDark
+                        ? NeutralColorsDark.neutral5
+                        : NeutralColorsLight.neutral5,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              trailing: Text(
+                _formatTime(notification.createdAt),
+                style: theme.textTheme.labelSmall?.copyWith(
                   color: isDark
                       ? NeutralColorsDark.neutral5
                       : NeutralColorsLight.neutral5,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            trailing: Text(
-              _formatTime(notification.createdAt),
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: isDark
-                    ? NeutralColorsDark.neutral5
-                    : NeutralColorsLight.neutral5,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
               ),
+              onTap: () {
+                if (!notification.isRead) onMarkRead();
+              },
             ),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14)),
-            onTap: () {
-              if (!notification.isRead) onMarkRead();
-            },
-          ),
           ),
         ),
       ),

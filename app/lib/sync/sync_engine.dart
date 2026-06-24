@@ -70,8 +70,14 @@ class SyncEngine {
   static const _deadLetterRetryCycleInterval = 10;
 
   static const _knownEntityTypes = {
-    'transaction', 'account', 'category', 'loan',
-    'loan_group', 'investment', 'fixed_asset', 'budget',
+    'transaction',
+    'account',
+    'category',
+    'loan',
+    'loan_group',
+    'investment',
+    'fixed_asset',
+    'budget',
     'category_merge',
   };
 
@@ -93,29 +99,32 @@ class SyncEngine {
   /// 最后一次成功拉取的服务端时间戳(毫秒)
   static const _lastSyncTsKey = 'sync_last_pull_ts';
 
-  SyncEngine(AppDatabase db, SyncServiceClient syncClient, SharedPreferences prefs,
-      {TokenStorage? tokenStorage})
-      : _db = db,
-        _syncClient = syncClient,
-        _prefs = prefs,
-        _tokenStorage = tokenStorage;
+  SyncEngine(
+    AppDatabase db,
+    SyncServiceClient syncClient,
+    SharedPreferences prefs, {
+    TokenStorage? tokenStorage,
+  }) : _db = db,
+       _syncClient = syncClient,
+       _prefs = prefs,
+       _tokenStorage = tokenStorage;
 
   /// Inert engine that performs no operations.
   /// Used in production when no user is logged in (all methods are safe no-ops
   /// due to the `if (_disposed) return` / null guards).
   SyncEngine.inert()
-      : _db = null,
-        _syncClient = null,
-        _prefs = null,
-        _tokenStorage = null;
+    : _db = null,
+      _syncClient = null,
+      _prefs = null,
+      _tokenStorage = null;
 
   /// Test-only constructor: provides a real DB but no network.
   @visibleForTesting
   SyncEngine.forTesting(AppDatabase db)
-      : _db = db,
-        _syncClient = null,
-        _prefs = null,
-        _tokenStorage = null;
+    : _db = db,
+      _syncClient = null,
+      _prefs = null,
+      _tokenStorage = null;
 
   void start() {
     if (_disposed) return;
@@ -146,7 +155,8 @@ class SyncEngine {
       await _pullChanges();
 
       // Retry dead-letter ops on first cycle (startup) and every 10th cycle
-      if (_syncCycleCount == 1 || _syncCycleCount % _deadLetterRetryCycleInterval == 0) {
+      if (_syncCycleCount == 1 ||
+          _syncCycleCount % _deadLetterRetryCycleInterval == 0) {
         await _retryDeadLetterOps();
       }
     } finally {
@@ -176,8 +186,9 @@ class SyncEngine {
       // Note: empty-path early return is inside try so that finally{} always
       // releases the lock. This is intentional - no double-release risk because
       // _tryAcquireSyncLock() is a simple bool flag, not a reentrant counter.
-      final pendingOps =
-          await _db!.getPendingSyncOps(AppConstants.syncBatchSize);
+      final pendingOps = await _db!.getPendingSyncOps(
+        AppConstants.syncBatchSize,
+      );
       dev.log('[Sync] _pushPendingOps: pendingOps count=${pendingOps.length}');
       if (pendingOps.isEmpty) {
         _onSyncSuccess(); // Reset backoff - no pending ops is not a failure
@@ -209,7 +220,10 @@ class SyncEngine {
 
         // Mark transaction entities as synced for UI display
         final syncedTxnIds = pendingOps
-            .where((op) => !failedSet.contains(op.id) && op.entityType == 'transaction')
+            .where(
+              (op) =>
+                  !failedSet.contains(op.id) && op.entityType == 'transaction',
+            )
             .map((op) => op.entityId)
             .toList();
         if (syncedTxnIds.isNotEmpty) {
@@ -241,7 +255,9 @@ class SyncEngine {
         onSyncEvent?.call(PushFailed(failedIds.length));
       }
 
-      dev.log('[Sync] _pushPendingOps: pushed ${succeededIds.length}/${pendingOps.length} ops');
+      dev.log(
+        '[Sync] _pushPendingOps: pushed ${succeededIds.length}/${pendingOps.length} ops',
+      );
       onSyncEvent?.call(const SyncEvent.serverReachable());
       _onSyncSuccess();
     } catch (e) {
@@ -354,7 +370,7 @@ class SyncEngine {
               // Insert into dead-letter table (idempotent)
               final opTimestampMs = op.hasTimestamp()
                   ? op.timestamp.seconds.toInt() * 1000 +
-                      op.timestamp.nanos ~/ 1000000
+                        op.timestamp.nanos ~/ 1000000
                   : 0;
               await _db!.insertDeadLetterOp(
                 opId: op.id,
@@ -389,7 +405,8 @@ class SyncEngine {
             // in case a malformed op without timestamp appears at the tail.
             final maxOpMs = response.operations.fold<int>(0, (acc, op) {
               if (!op.hasTimestamp()) return acc;
-              final ms = op.timestamp.seconds.toInt() * 1000 +
+              final ms =
+                  op.timestamp.seconds.toInt() * 1000 +
                   op.timestamp.nanos ~/ 1000000;
               return max(acc, ms);
             });
@@ -398,11 +415,14 @@ class SyncEngine {
               int prev = 0;
               for (final op in response.operations) {
                 if (!op.hasTimestamp()) continue;
-                final ms = op.timestamp.seconds.toInt() * 1000 +
+                final ms =
+                    op.timestamp.seconds.toInt() * 1000 +
                     op.timestamp.nanos ~/ 1000000;
                 if (ms < prev) {
-                  dev.log('WARNING: ops not sorted by timestamp',
-                      name: 'SyncEngine');
+                  dev.log(
+                    'WARNING: ops not sorted by timestamp',
+                    name: 'SyncEngine',
+                  );
                   break;
                 }
                 prev = ms;
@@ -452,13 +472,18 @@ class SyncEngine {
 
     try {
       // Purge expired ops first
-      final purged = await _db!.purgeOldDeadLetterOps(days: _deadLetterPurgeDays);
+      final purged = await _db!.purgeOldDeadLetterOps(
+        days: _deadLetterPurgeDays,
+      );
       if (purged > 0) {
         dev.log('[Sync] _retryDeadLetterOps: purged $purged expired ops');
       }
 
       // Get ops eligible for retry (respects backoff via nextRetryAfter)
-      final ops = await _db!.getDeadLetterOps(maxRetries: _deadLetterMaxRetries, limit: _deadLetterBatchSize);
+      final ops = await _db!.getDeadLetterOps(
+        maxRetries: _deadLetterMaxRetries,
+        limit: _deadLetterBatchSize,
+      );
       if (ops.isEmpty) return;
 
       dev.log('[Sync] _retryDeadLetterOps: attempting ${ops.length} ops');
@@ -540,8 +565,7 @@ class SyncEngine {
   /// try-caught so failures go to the dead-letter table without blocking
   /// other ops.
   Future<void> _applyRemoteOp(sync_pb.SyncOperation op) async {
-    final isDelete =
-        op.opType == sync_enum.OperationType.OPERATION_TYPE_DELETE;
+    final isDelete = op.opType == sync_enum.OperationType.OPERATION_TYPE_DELETE;
 
     // For DELETE: skip payload parsing (payload may be empty/null).
     // For CREATE/UPDATE: decode payload + apply LWW/R9 checks.
@@ -577,8 +601,7 @@ class SyncEngine {
 
       // LWW check: skip if local data is newer
       final remoteTimestampMs = op.hasTimestamp()
-          ? op.timestamp.seconds.toInt() * 1000 +
-              op.timestamp.nanos ~/ 1000000
+          ? op.timestamp.seconds.toInt() * 1000 + op.timestamp.nanos ~/ 1000000
           : 0;
       if (state.updatedAt != null &&
           state.updatedAt!.millisecondsSinceEpoch > remoteTimestampMs) {
@@ -633,7 +656,9 @@ class SyncEngine {
   /// Returns both deletion status and updatedAt for LWW + R9 checks.
   /// updatedAt == null means entity doesn't exist locally.
   Future<({bool isDeleted, DateTime? updatedAt})> _getLocalEntityState(
-      String entityType, String entityId) async {
+    String entityType,
+    String entityId,
+  ) async {
     switch (entityType) {
       case 'transaction':
         final txn = await _db!.getTransactionById(entityId);
@@ -696,8 +721,8 @@ class SyncEngine {
         final existing = await _db!.getTransactionById(entityId);
         if (existing != null) break; // already applied
 
-        final txnDateCreate = DateTime.tryParse(payload['txn_date'] ?? '') ??
-            DateTime.now();
+        final txnDateCreate =
+            DateTime.tryParse(payload['txn_date'] ?? '') ?? DateTime.now();
         await _db!.insertOrUpdateTransaction(
           id: entityId,
           userId: payload['user_id'] ?? '',
@@ -713,8 +738,12 @@ class SyncEngine {
         final createAccountId = payload['account_id'] ?? '';
         final createAmountCny = (payload['amount_cny'] as num?)?.toInt() ?? 0;
         final createType = payload['type'] ?? 'expense';
-        if (createAccountId.isNotEmpty && createAmountCny != 0 && createType != 'transfer') {
-          final delta = createType == 'income' ? createAmountCny : -createAmountCny;
+        if (createAccountId.isNotEmpty &&
+            createAmountCny != 0 &&
+            createType != 'transfer') {
+          final delta = createType == 'income'
+              ? createAmountCny
+              : -createAmountCny;
           await _db!.updateAccountBalance(createAccountId, delta);
         }
         break;
@@ -723,8 +752,8 @@ class SyncEngine {
         // replaces the row, so oldTxn must be captured first for balance revert.
         final oldTxn = await _db!.getTransactionById(entityId);
 
-        final txnDateUpdate = DateTime.tryParse(payload['txn_date'] ?? '') ??
-            DateTime.now();
+        final txnDateUpdate =
+            DateTime.tryParse(payload['txn_date'] ?? '') ?? DateTime.now();
         final newAccountId = payload['account_id'] ?? '';
         final newAmountCny = (payload['amount_cny'] as num?)?.toInt() ?? 0;
         final newType = payload['type'] ?? 'expense';
@@ -744,19 +773,26 @@ class SyncEngine {
         // Idempotent balance adjustment: only revert/apply if the values
         // that affect balance actually changed (or txn is new). This makes
         // UPDATE replay-safe even without per-page checkpoint (defense-in-depth).
-        final bool shouldAdjustBalance = oldTxn == null ||
+        final bool shouldAdjustBalance =
+            oldTxn == null ||
             oldTxn.accountId != newAccountId ||
             oldTxn.amountCny != newAmountCny ||
             oldTxn.type != newType;
 
         if (shouldAdjustBalance) {
           // Revert old balance contribution (if old txn existed and was active)
-          if (oldTxn != null && oldTxn.deletedAt == null && oldTxn.type != 'transfer') {
-            final oldDelta = oldTxn.type == 'income' ? oldTxn.amountCny : -oldTxn.amountCny;
+          if (oldTxn != null &&
+              oldTxn.deletedAt == null &&
+              oldTxn.type != 'transfer') {
+            final oldDelta = oldTxn.type == 'income'
+                ? oldTxn.amountCny
+                : -oldTxn.amountCny;
             await _db!.updateAccountBalance(oldTxn.accountId, -oldDelta);
           }
           // Apply new balance delta
-          if (newAccountId.isNotEmpty && newAmountCny != 0 && newType != 'transfer') {
+          if (newAccountId.isNotEmpty &&
+              newAmountCny != 0 &&
+              newType != 'transfer') {
             final newDelta = newType == 'income' ? newAmountCny : -newAmountCny;
             await _db!.updateAccountBalance(newAccountId, newDelta);
           }
@@ -846,10 +882,11 @@ class SyncEngine {
     if (_db == null) return; // CRITICAL #4: guard null db
 
     // 幂等保护：检查 source 是否已删除
-    final source = await (_db!.select(_db!.categories)
-          ..where((c) => c.id.equals(sourceId))
-          ..where((c) => c.deletedAt.isNull()))
-        .getSingleOrNull();
+    final source =
+        await (_db!.select(_db!.categories)
+              ..where((c) => c.id.equals(sourceId))
+              ..where((c) => c.deletedAt.isNull()))
+            .getSingleOrNull();
     if (source == null) return; // 已处理过，跳过
 
     // CRITICAL #1: 用 customUpdate + updates 触发 Stream 通知
@@ -867,18 +904,21 @@ class SyncEngine {
     );
     await _db!.customUpdate(
       'UPDATE categories SET deleted_at = ? WHERE id = ?',
-      variables: [Variable.withDateTime(DateTime.now()), Variable.withString(sourceId)],
+      variables: [
+        Variable.withDateTime(DateTime.now()),
+        Variable.withString(sourceId),
+      ],
       updates: {_db!.categories},
       updateKind: UpdateKind.update,
     );
 
     // CRITICAL #5: 清理源分类的使用统计
-    await (_db!.delete(_db!.categoryUsageSlots)
-          ..where((s) => s.categoryId.equals(sourceId)))
-        .go();
-    await (_db!.delete(_db!.categoryUsageSummary)
-          ..where((s) => s.categoryId.equals(sourceId)))
-        .go();
+    await (_db!.delete(
+      _db!.categoryUsageSlots,
+    )..where((s) => s.categoryId.equals(sourceId))).go();
+    await (_db!.delete(
+      _db!.categoryUsageSummary,
+    )..where((s) => s.categoryId.equals(sourceId))).go();
   }
 
   // ─────────── Loan ops ───────────
@@ -891,29 +931,45 @@ class SyncEngine {
     switch (opType) {
       case sync_enum.OperationType.OPERATION_TYPE_CREATE:
       case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
-        await _db!.upsertLoan(LoansCompanion(
-          id: Value(entityId),
-          userId: Value(payload['user_id'] ?? ''),
-          familyId: Value(payload['family_id'] ?? ''),
-          name: Value(payload['name'] ?? 'Unknown Loan'),
-          loanType: Value(payload['loan_type'] ?? 'other'),
-          principal: Value((payload['principal'] as num?)?.toInt() ?? 0),
-          remainingPrincipal: Value((payload['remaining_principal'] as num?)?.toInt() ?? 0),
-          annualRate: Value((payload['annual_rate'] as num?)?.toDouble() ?? 0.0),
-          totalMonths: Value((payload['total_months'] as num?)?.toInt() ?? 0),
-          paidMonths: Value((payload['paid_months'] as num?)?.toInt() ?? 0),
-          repaymentMethod: Value(payload['repayment_method'] ?? 'equal_installment'),
-          paymentDay: Value((payload['payment_day'] as num?)?.toInt() ?? 1),
-          startDate: Value(DateTime.tryParse(payload['start_date'] ?? '') ?? DateTime.now()),
-          accountId: Value(payload['account_id'] ?? ''),
-          groupId: Value(payload['group_id'] ?? ''),
-          subType: Value(payload['sub_type'] ?? ''),
-          rateType: Value(payload['rate_type'] ?? 'fixed'),
-          lprBase: Value((payload['lpr_base'] as num?)?.toDouble() ?? 0.0),
-          lprSpread: Value((payload['lpr_spread'] as num?)?.toDouble() ?? 0.0),
-          rateAdjustMonth: Value((payload['rate_adjust_month'] as num?)?.toInt() ?? 1),
-          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
-        ));
+        await _db!.upsertLoan(
+          LoansCompanion(
+            id: Value(entityId),
+            userId: Value(payload['user_id'] ?? ''),
+            familyId: Value(payload['family_id'] ?? ''),
+            name: Value(payload['name'] ?? 'Unknown Loan'),
+            loanType: Value(payload['loan_type'] ?? 'other'),
+            principal: Value((payload['principal'] as num?)?.toInt() ?? 0),
+            remainingPrincipal: Value(
+              (payload['remaining_principal'] as num?)?.toInt() ?? 0,
+            ),
+            annualRate: Value(
+              (payload['annual_rate'] as num?)?.toDouble() ?? 0.0,
+            ),
+            totalMonths: Value((payload['total_months'] as num?)?.toInt() ?? 0),
+            paidMonths: Value((payload['paid_months'] as num?)?.toInt() ?? 0),
+            repaymentMethod: Value(
+              payload['repayment_method'] ?? 'equal_installment',
+            ),
+            paymentDay: Value((payload['payment_day'] as num?)?.toInt() ?? 1),
+            startDate: Value(
+              DateTime.tryParse(payload['start_date'] ?? '') ?? DateTime.now(),
+            ),
+            accountId: Value(payload['account_id'] ?? ''),
+            groupId: Value(payload['group_id'] ?? ''),
+            subType: Value(payload['sub_type'] ?? ''),
+            rateType: Value(payload['rate_type'] ?? 'fixed'),
+            lprBase: Value((payload['lpr_base'] as num?)?.toDouble() ?? 0.0),
+            lprSpread: Value(
+              (payload['lpr_spread'] as num?)?.toDouble() ?? 0.0,
+            ),
+            rateAdjustMonth: Value(
+              (payload['rate_adjust_month'] as num?)?.toInt() ?? 1,
+            ),
+            updatedAt: Value(
+              DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now(),
+            ),
+          ),
+        );
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
         await _db!.softDeleteLoan(entityId);
@@ -933,18 +989,26 @@ class SyncEngine {
     switch (opType) {
       case sync_enum.OperationType.OPERATION_TYPE_CREATE:
       case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
-        await _db!.upsertLoanGroup(LoanGroupsCompanion(
-          id: Value(entityId),
-          userId: Value(payload['user_id'] ?? ''),
-          familyId: Value(payload['family_id'] ?? ''),
-          name: Value(payload['name'] ?? 'Unknown Group'),
-          groupType: Value(payload['group_type'] ?? 'combined'),
-          totalPrincipal: Value((payload['total_principal'] as num?)?.toInt() ?? 0),
-          paymentDay: Value((payload['payment_day'] as num?)?.toInt() ?? 1),
-          startDate: Value(DateTime.tryParse(payload['start_date'] ?? '') ?? DateTime.now()),
-          loanType: Value(payload['loan_type'] ?? 'mortgage'),
-          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
-        ));
+        await _db!.upsertLoanGroup(
+          LoanGroupsCompanion(
+            id: Value(entityId),
+            userId: Value(payload['user_id'] ?? ''),
+            familyId: Value(payload['family_id'] ?? ''),
+            name: Value(payload['name'] ?? 'Unknown Group'),
+            groupType: Value(payload['group_type'] ?? 'combined'),
+            totalPrincipal: Value(
+              (payload['total_principal'] as num?)?.toInt() ?? 0,
+            ),
+            paymentDay: Value((payload['payment_day'] as num?)?.toInt() ?? 1),
+            startDate: Value(
+              DateTime.tryParse(payload['start_date'] ?? '') ?? DateTime.now(),
+            ),
+            loanType: Value(payload['loan_type'] ?? 'mortgage'),
+            updatedAt: Value(
+              DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now(),
+            ),
+          ),
+        );
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
         await _db!.softDeleteLoanGroup(entityId);
@@ -964,17 +1028,21 @@ class SyncEngine {
     switch (opType) {
       case sync_enum.OperationType.OPERATION_TYPE_CREATE:
       case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
-        await _db!.upsertInvestment(InvestmentsCompanion(
-          id: Value(entityId),
-          userId: Value(payload['user_id'] ?? ''),
-          familyId: Value(payload['family_id'] ?? ''),
-          symbol: Value(payload['symbol'] ?? ''),
-          name: Value(payload['name'] ?? 'Unknown'),
-          marketType: Value(payload['market_type'] ?? 'a_share'),
-          quantity: Value((payload['quantity'] as num?)?.toDouble() ?? 0.0),
-          costBasis: Value((payload['cost_basis'] as num?)?.toInt() ?? 0),
-          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
-        ));
+        await _db!.upsertInvestment(
+          InvestmentsCompanion(
+            id: Value(entityId),
+            userId: Value(payload['user_id'] ?? ''),
+            familyId: Value(payload['family_id'] ?? ''),
+            symbol: Value(payload['symbol'] ?? ''),
+            name: Value(payload['name'] ?? 'Unknown'),
+            marketType: Value(payload['market_type'] ?? 'a_share'),
+            quantity: Value((payload['quantity'] as num?)?.toDouble() ?? 0.0),
+            costBasis: Value((payload['cost_basis'] as num?)?.toInt() ?? 0),
+            updatedAt: Value(
+              DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now(),
+            ),
+          ),
+        );
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
         await _db!.softDeleteInvestment(entityId);
@@ -994,17 +1062,28 @@ class SyncEngine {
     switch (opType) {
       case sync_enum.OperationType.OPERATION_TYPE_CREATE:
       case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
-        await _db!.upsertFixedAsset(FixedAssetsCompanion(
-          id: Value(entityId),
-          userId: Value(payload['user_id'] ?? ''),
-          familyId: Value(payload['family_id'] ?? ''),
-          name: Value(payload['name'] ?? 'Unknown Asset'),
-          assetType: Value(payload['asset_type'] ?? 'other'),
-          purchasePrice: Value((payload['purchase_price'] as num?)?.toInt() ?? 0),
-          currentValue: Value((payload['current_value'] as num?)?.toInt() ?? 0),
-          purchaseDate: Value(DateTime.tryParse(payload['purchase_date'] ?? '') ?? DateTime.now()),
-          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
-        ));
+        await _db!.upsertFixedAsset(
+          FixedAssetsCompanion(
+            id: Value(entityId),
+            userId: Value(payload['user_id'] ?? ''),
+            familyId: Value(payload['family_id'] ?? ''),
+            name: Value(payload['name'] ?? 'Unknown Asset'),
+            assetType: Value(payload['asset_type'] ?? 'other'),
+            purchasePrice: Value(
+              (payload['purchase_price'] as num?)?.toInt() ?? 0,
+            ),
+            currentValue: Value(
+              (payload['current_value'] as num?)?.toInt() ?? 0,
+            ),
+            purchaseDate: Value(
+              DateTime.tryParse(payload['purchase_date'] ?? '') ??
+                  DateTime.now(),
+            ),
+            updatedAt: Value(
+              DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now(),
+            ),
+          ),
+        );
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
         await _db!.softDeleteFixedAsset(entityId);
@@ -1024,15 +1103,23 @@ class SyncEngine {
     switch (opType) {
       case sync_enum.OperationType.OPERATION_TYPE_CREATE:
       case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
-        await _db!.insertBudget(BudgetsCompanion(
-          id: Value(entityId),
-          userId: Value(payload['user_id'] ?? ''),
-          familyId: Value(payload['family_id'] ?? ''),
-          year: Value((payload['year'] as num?)?.toInt() ?? DateTime.now().year),
-          month: Value((payload['month'] as num?)?.toInt() ?? DateTime.now().month),
-          totalAmount: Value((payload['total_amount'] as num?)?.toInt() ?? 0),
-          updatedAt: Value(DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now()),
-        ));
+        await _db!.insertBudget(
+          BudgetsCompanion(
+            id: Value(entityId),
+            userId: Value(payload['user_id'] ?? ''),
+            familyId: Value(payload['family_id'] ?? ''),
+            year: Value(
+              (payload['year'] as num?)?.toInt() ?? DateTime.now().year,
+            ),
+            month: Value(
+              (payload['month'] as num?)?.toInt() ?? DateTime.now().month,
+            ),
+            totalAmount: Value((payload['total_amount'] as num?)?.toInt() ?? 0),
+            updatedAt: Value(
+              DateTime.tryParse(payload['updated_at'] ?? '') ?? DateTime.now(),
+            ),
+          ),
+        );
         break;
       case sync_enum.OperationType.OPERATION_TYPE_DELETE:
         await _db!.deleteBudget(entityId);
@@ -1070,9 +1157,7 @@ class SyncEngine {
       dev.log('[WS] connecting to $uri ...');
       _wsChannel = IOWebSocketChannel.connect(
         uri,
-        customClient: AppConstants.useTls
-            ? _createSecureHttpClient()
-            : null,
+        customClient: AppConstants.useTls ? _createSecureHttpClient() : null,
       );
 
       // Await the ready future to catch connection failures early
@@ -1255,11 +1340,14 @@ class SyncEngine {
     if (_disposed) return;
     _consecutiveFailures++;
     // Exponential backoff: 30s, 60s, 120s, 240s, capped at 300s
-    final backoff = (AppConstants.syncIntervalSeconds * pow(2, _consecutiveFailures - 1))
-        .clamp(AppConstants.syncIntervalSeconds, _maxBackoffSeconds)
-        .toInt();
+    final backoff =
+        (AppConstants.syncIntervalSeconds * pow(2, _consecutiveFailures - 1))
+            .clamp(AppConstants.syncIntervalSeconds, _maxBackoffSeconds)
+            .toInt();
     _rescheduleTimer(backoff);
-    dev.log('[Sync] backoff: $_consecutiveFailures consecutive failures, next retry in ${backoff}s');
+    dev.log(
+      '[Sync] backoff: $_consecutiveFailures consecutive failures, next retry in ${backoff}s',
+    );
   }
 
   void _rescheduleTimer(int seconds) {
@@ -1289,8 +1377,12 @@ class SyncEngine {
   void _scheduleReconnect() {
     if (_disposed) return;
 
-    final exponentialDelay = _wsReconnectBaseDelay * (1 << _reconnectAttempts.clamp(0, 6));
-    final delay = exponentialDelay.clamp(_wsReconnectBaseDelay, _wsReconnectMaxDelay);
+    final exponentialDelay =
+        _wsReconnectBaseDelay * (1 << _reconnectAttempts.clamp(0, 6));
+    final delay = exponentialDelay.clamp(
+      _wsReconnectBaseDelay,
+      _wsReconnectMaxDelay,
+    );
     final jitter = Random().nextInt((delay * 0.5).ceil() + 1);
     final totalDelay = (delay + jitter).clamp(0, _wsReconnectMaxTotalDelay);
 
@@ -1336,8 +1428,10 @@ class SyncEngine {
   /// Only works when engine is constructed with [SyncEngine.forTesting].
   @visibleForTesting
   Future<void> applyRemoteOpForTest(sync_pb.SyncOperation op) async {
-    assert(_db != null,
-        'applyRemoteOpForTest: engine must be constructed with forTesting(db)');
+    assert(
+      _db != null,
+      'applyRemoteOpForTest: engine must be constructed with forTesting(db)',
+    );
     await _applyRemoteOp(op);
   }
 
@@ -1423,7 +1517,8 @@ class SyncLifecycleObserver extends ConsumerStatefulWidget {
   const SyncLifecycleObserver({super.key, required this.child});
 
   @override
-  ConsumerState<SyncLifecycleObserver> createState() => _SyncLifecycleObserverState();
+  ConsumerState<SyncLifecycleObserver> createState() =>
+      _SyncLifecycleObserverState();
 }
 
 class _SyncLifecycleObserverState extends ConsumerState<SyncLifecycleObserver>

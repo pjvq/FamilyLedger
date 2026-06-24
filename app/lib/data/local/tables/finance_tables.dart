@@ -104,7 +104,9 @@ class DepreciationRules extends Table {
 
   TextColumn get id => text()();
   TextColumn get assetId => text().references(FixedAssets, #id)();
-  TextColumn get method => text().withDefault(const Constant('none'))(); // none, straight_line, declining_balance
+  TextColumn get method => text().withDefault(
+    const Constant('none'),
+  )(); // none, straight_line, declining_balance
   IntColumn get usefulLifeYears => integer().withDefault(const Constant(5))();
   RealColumn get salvageRate => real().withDefault(const Constant(0.05))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();

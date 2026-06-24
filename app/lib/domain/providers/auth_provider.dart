@@ -44,14 +44,13 @@ class AuthState {
     String? email,
     String? errorMessage,
     bool? isOfflineMode,
-  }) =>
-      AuthState(
-        status: status ?? this.status,
-        userId: userId ?? this.userId,
-        email: email ?? this.email,
-        errorMessage: errorMessage ?? this.errorMessage,
-        isOfflineMode: isOfflineMode ?? this.isOfflineMode,
-      );
+  }) => AuthState(
+    status: status ?? this.status,
+    userId: userId ?? this.userId,
+    email: email ?? this.email,
+    errorMessage: errorMessage ?? this.errorMessage,
+    isOfflineMode: isOfflineMode ?? this.isOfflineMode,
+  );
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
@@ -62,8 +61,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final Ref _ref;
   final AuthServiceClient _authClient;
 
-  AuthNotifier(this._db, this._prefs, this._tokenStorage, this._authInterceptor, this._ref, this._authClient)
-      : super(const AuthState()) {
+  AuthNotifier(
+    this._db,
+    this._prefs,
+    this._tokenStorage,
+    this._authInterceptor,
+    this._ref,
+    this._authClient,
+  ) : super(const AuthState()) {
     _init();
   }
 
@@ -118,9 +123,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       // Ensure preset categories exist for this user (with retry)
       await CategorySeedService(_db).seedForUser(userId);
-      final user = await (_db.select(_db.users)
-            ..where((u) => u.id.equals(userId)))
-          .getSingleOrNull();
+      final user = await (_db.select(
+        _db.users,
+      )..where((u) => u.id.equals(userId))).getSingleOrNull();
       if (user != null && user.email.isNotEmpty) {
         state = state.copyWith(email: user.email);
       }
@@ -130,7 +135,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// 注册 — 调用 gRPC，失败时降级到本地
   Future<void> register(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
-    developer.log('[Auth] register: attempting gRPC to ${AppConstants.serverHost}:${AppConstants.grpcPort} useTls=${AppConstants.useTls}');
+    developer.log(
+      '[Auth] register: attempting gRPC to ${AppConstants.serverHost}:${AppConstants.grpcPort} useTls=${AppConstants.useTls}',
+    );
     try {
       final resp = await _authClient.register(
         RegisterRequest()
@@ -143,7 +150,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // If switching to a different user, clear local data first
       final previousUserId = _prefs.getString(AppConstants.userIdKey);
       if (previousUserId != null && previousUserId != resp.userId) {
-        developer.log('[Auth] register: user switched ($previousUserId → ${resp.userId}), clearing local data');
+        developer.log(
+          '[Auth] register: user switched ($previousUserId → ${resp.userId}), clearing local data',
+        );
         await _db.clearAllData();
       }
 
@@ -153,38 +162,47 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _prefs.setString(AppConstants.userIdKey, resp.userId);
 
       // 本地也存一份 user（离线时需要）
-      await _db.into(_db.users).insertOnConflictUpdate(UsersCompanion.insert(
-            id: resp.userId,
-            email: email,
-          ));
+      await _db
+          .into(_db.users)
+          .insertOnConflictUpdate(
+            UsersCompanion.insert(id: resp.userId, email: email),
+          );
       // 服务端注册时已创建默认账户+分类，同步到本地
       developer.log('[Auth] register: syncing accounts from server...');
       try {
         final accClient = _ref.read(accountClientProvider);
-        final accResp = await accClient.listAccounts(acc_pb.ListAccountsRequest());
-        developer.log('[Auth] register: got ${accResp.accounts.length} accounts');
+        final accResp = await accClient.listAccounts(
+          acc_pb.ListAccountsRequest(),
+        );
+        developer.log(
+          '[Auth] register: got ${accResp.accounts.length} accounts',
+        );
         for (final a in accResp.accounts) {
-          await _db.into(_db.accounts).insertOnConflictUpdate(
-            AccountsCompanion.insert(
-              id: a.id,
-              userId: a.userId,
-              name: a.name,
-              balance: Value(a.balance.toInt()),
-              icon: Value(a.icon),
-              currency: Value(a.currency),
-              accountType: Value(AccountTypeHelper.fromProto(a.type)),
-              isActive: Value(a.isActive),
-            ),
-          );
+          await _db
+              .into(_db.accounts)
+              .insertOnConflictUpdate(
+                AccountsCompanion.insert(
+                  id: a.id,
+                  userId: a.userId,
+                  name: a.name,
+                  balance: Value(a.balance.toInt()),
+                  icon: Value(a.icon),
+                  currency: Value(a.currency),
+                  accountType: Value(AccountTypeHelper.fromProto(a.type)),
+                  isActive: Value(a.isActive),
+                ),
+              );
         }
       } catch (e) {
         developer.log('[Auth] register: listAccounts failed: $e');
         // Fallback: create minimal local account
-        await _db.insertAccount(AccountsCompanion.insert(
-          id: 'acc_default_${resp.userId}',
-          userId: resp.userId,
-          name: '默认账户',
-        ));
+        await _db.insertAccount(
+          AccountsCompanion.insert(
+            id: 'acc_default_${resp.userId}',
+            userId: resp.userId,
+            name: '默认账户',
+          ),
+        );
       }
 
       // 同步服务端分类（含子分类）
@@ -201,10 +219,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (savedFamId != null) {
         _ref.read(currentFamilyIdProvider.notifier).state = savedFamId;
       }
-      state = AuthState(status: AuthStatus.authenticated, userId: resp.userId, email: email);
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        userId: resp.userId,
+        email: email,
+      );
       await CategorySeedService(_db).seedForUser(resp.userId);
     } on GrpcError catch (e) {
-      developer.log('[Auth] register: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}');
+      developer.log(
+        '[Auth] register: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}',
+      );
       if (e.code == StatusCode.alreadyExists) {
         // 邮箱已注册，自动尝试登录
         try {
@@ -214,7 +238,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           // 登录也失败，降级本地
           await _registerLocal(email, password);
         }
-      } else if (e.code == StatusCode.unavailable || e.code == StatusCode.deadlineExceeded) {
+      } else if (e.code == StatusCode.unavailable ||
+          e.code == StatusCode.deadlineExceeded) {
         // 网络不通或超时，降级本地注册
         await _registerLocal(email, password);
       } else {
@@ -240,30 +265,35 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> _registerLocal(String email, String password) async {
     try {
       final userId = generateLocalUserId();
-      await _db.into(_db.users).insert(UsersCompanion.insert(
-            id: userId,
-            email: email,
-          ));
-      await _db.insertAccount(AccountsCompanion.insert(
-        id: const Uuid().v4(),
-        userId: userId,
-        name: '默认账户',
-      ));
+      await _db
+          .into(_db.users)
+          .insert(UsersCompanion.insert(id: userId, email: email));
+      await _db.insertAccount(
+        AccountsCompanion.insert(
+          id: const Uuid().v4(),
+          userId: userId,
+          name: '默认账户',
+        ),
+      );
       await _prefs.setString(AppConstants.userIdKey, userId);
       _ref.read(currentUserIdProvider.notifier).state = userId;
-      state = AuthState(status: AuthStatus.authenticated, userId: userId, email: email, isOfflineMode: true);
-    } catch (e) {
       state = AuthState(
-        status: AuthStatus.error,
-        errorMessage: '注册失败: $e',
+        status: AuthStatus.authenticated,
+        userId: userId,
+        email: email,
+        isOfflineMode: true,
       );
+    } catch (e) {
+      state = AuthState(status: AuthStatus.error, errorMessage: '注册失败: $e');
     }
   }
 
   /// 登录 — 调用 gRPC，失败时降级到本地
   Future<void> login(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
-    developer.log('[Auth] login: attempting gRPC to ${AppConstants.serverHost}:${AppConstants.grpcPort}');
+    developer.log(
+      '[Auth] login: attempting gRPC to ${AppConstants.serverHost}:${AppConstants.grpcPort}',
+    );
     try {
       final resp = await _authClient.login(
         LoginRequest()
@@ -276,7 +306,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // If switching to a different user, clear local data first
       final previousUserId = _prefs.getString(AppConstants.userIdKey);
       if (previousUserId != null && previousUserId != resp.userId) {
-        developer.log('[Auth] login: user switched ($previousUserId → ${resp.userId}), clearing local data');
+        developer.log(
+          '[Auth] login: user switched ($previousUserId → ${resp.userId}), clearing local data',
+        );
         await _db.clearAllData();
       }
 
@@ -285,10 +317,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _prefs.setString(AppConstants.userIdKey, resp.userId);
 
       // 本地缓存 user
-      await _db.into(_db.users).insertOnConflictUpdate(UsersCompanion.insert(
-            id: resp.userId,
-            email: email,
-          ));
+      await _db
+          .into(_db.users)
+          .insertOnConflictUpdate(
+            UsersCompanion.insert(id: resp.userId, email: email),
+          );
 
       // 先同步账户和分类，再设置 userId 触发 provider rebuild
       // 这样 TransactionNotifier rebuild 时分类已是服务端的
@@ -296,20 +329,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // 登录成功后同步服务端账户到本地
       try {
         final accClient = _ref.read(accountClientProvider);
-        final accResp = await accClient.listAccounts(acc_pb.ListAccountsRequest());
+        final accResp = await accClient.listAccounts(
+          acc_pb.ListAccountsRequest(),
+        );
         for (final a in accResp.accounts) {
-          await _db.into(_db.accounts).insertOnConflictUpdate(
-            AccountsCompanion.insert(
-              id: a.id,
-              userId: a.userId,
-              name: a.name,
-              balance: Value(a.balance.toInt()),
-              icon: Value(a.icon),
-              currency: Value(a.currency),
-              accountType: Value(AccountTypeHelper.fromProto(a.type)),
-              isActive: Value(a.isActive),
-            ),
-          );
+          await _db
+              .into(_db.accounts)
+              .insertOnConflictUpdate(
+                AccountsCompanion.insert(
+                  id: a.id,
+                  userId: a.userId,
+                  name: a.name,
+                  balance: Value(a.balance.toInt()),
+                  icon: Value(a.icon),
+                  currency: Value(a.currency),
+                  accountType: Value(AccountTypeHelper.fromProto(a.type)),
+                  isActive: Value(a.isActive),
+                ),
+              );
         }
       } catch (_) {}
 
@@ -326,11 +363,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (savedFamId != null) {
         _ref.read(currentFamilyIdProvider.notifier).state = savedFamId;
       }
-      state = AuthState(status: AuthStatus.authenticated, userId: resp.userId, email: email);
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        userId: resp.userId,
+        email: email,
+      );
       await CategorySeedService(_db).seedForUser(resp.userId);
     } on GrpcError catch (e) {
-      developer.log('[Auth] login: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}');
-      if (e.code == StatusCode.unavailable || e.code == StatusCode.deadlineExceeded) {
+      developer.log(
+        '[Auth] login: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}',
+      );
+      if (e.code == StatusCode.unavailable ||
+          e.code == StatusCode.deadlineExceeded) {
         // 网络不通，降级本地
         await _loginLocal(email, password);
       } else {
@@ -360,12 +404,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
       await _prefs.setString(AppConstants.userIdKey, user.id);
       _ref.read(currentUserIdProvider.notifier).state = user.id;
-      state = AuthState(status: AuthStatus.authenticated, userId: user.id, email: user.email, isOfflineMode: true);
-    } catch (e) {
       state = AuthState(
-        status: AuthStatus.error,
-        errorMessage: '登录失败: $e',
+        status: AuthStatus.authenticated,
+        userId: user.id,
+        email: user.email,
+        isOfflineMode: true,
       );
+    } catch (e) {
+      state = AuthState(status: AuthStatus.error, errorMessage: '登录失败: $e');
     }
   }
 
@@ -409,38 +455,45 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _prefs.setString(AppConstants.userIdKey, resp.userId);
 
       // Cache user locally
-      await _db.into(_db.users).insertOnConflictUpdate(UsersCompanion.insert(
-            id: resp.userId,
-            email: '$provider@oauth',
-          ));
+      await _db
+          .into(_db.users)
+          .insertOnConflictUpdate(
+            UsersCompanion.insert(id: resp.userId, email: '$provider@oauth'),
+          );
 
       // 同步服务端账户到本地（新用户服务端会自动创建默认账户）
       try {
         final accClient = _ref.read(accountClientProvider);
-        final accResp = await accClient.listAccounts(acc_pb.ListAccountsRequest());
+        final accResp = await accClient.listAccounts(
+          acc_pb.ListAccountsRequest(),
+        );
         for (final a in accResp.accounts) {
-          await _db.into(_db.accounts).insertOnConflictUpdate(
-            AccountsCompanion.insert(
-              id: a.id,
-              userId: a.userId,
-              name: a.name,
-              balance: Value(a.balance.toInt()),
-              icon: Value(a.icon),
-              currency: Value(a.currency),
-              accountType: Value(AccountTypeHelper.fromProto(a.type)),
-              isActive: Value(a.isActive),
-            ),
-          );
+          await _db
+              .into(_db.accounts)
+              .insertOnConflictUpdate(
+                AccountsCompanion.insert(
+                  id: a.id,
+                  userId: a.userId,
+                  name: a.name,
+                  balance: Value(a.balance.toInt()),
+                  icon: Value(a.icon),
+                  currency: Value(a.currency),
+                  accountType: Value(AccountTypeHelper.fromProto(a.type)),
+                  isActive: Value(a.isActive),
+                ),
+              );
         }
       } catch (_) {
         // Fallback: create minimal local account if server unreachable
         if (resp.isNewUser) {
           final fallbackId = const Uuid().v4();
-          await _db.insertAccount(AccountsCompanion.insert(
-            id: fallbackId,
-            userId: resp.userId,
-            name: '默认账户',
-          ));
+          await _db.insertAccount(
+            AccountsCompanion.insert(
+              id: fallbackId,
+              userId: resp.userId,
+              name: '默认账户',
+            ),
+          );
         }
       }
 
@@ -456,17 +509,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (savedFamId3 != null) {
         _ref.read(currentFamilyIdProvider.notifier).state = savedFamId3;
       }
-      state = AuthState(status: AuthStatus.authenticated, userId: resp.userId, email: '$provider@oauth');
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        userId: resp.userId,
+        email: '$provider@oauth',
+      );
     } on GrpcError catch (e) {
       state = AuthState(
         status: AuthStatus.error,
         errorMessage: '第三方登录失败: ${e.message}',
       );
     } catch (e) {
-      state = AuthState(
-        status: AuthStatus.error,
-        errorMessage: '第三方登录失败: $e',
-      );
+      state = AuthState(status: AuthStatus.error, errorMessage: '第三方登录失败: $e');
     }
   }
 
@@ -474,9 +528,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> _syncCategoriesToLocal() async {
     try {
       final txnClient = _ref.read(transactionClientProvider);
-      final catResp = await txnClient.getCategories(txn_pb.GetCategoriesRequest());
-      developer.log('[Auth] _syncCategoriesToLocal: got ${catResp.categories.length} root categories');
-      await (_db.delete(_db.categories)..where((c) => c.isPreset.equals(true))).go();
+      final catResp = await txnClient.getCategories(
+        txn_pb.GetCategoriesRequest(),
+      );
+      developer.log(
+        '[Auth] _syncCategoriesToLocal: got ${catResp.categories.length} root categories',
+      );
+      await (_db.delete(
+        _db.categories,
+      )..where((c) => c.isPreset.equals(true))).go();
       for (final c in catResp.categories) {
         await _insertCategoryRecursive(c, null);
       }
@@ -486,19 +546,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> _insertCategoryRecursive(txn_pb.Category c, String? parentId) async {
-    final typeStr = c.type == txn_enum.TransactionType.TRANSACTION_TYPE_INCOME ? 'income' : 'expense';
-    await _db.into(_db.categories).insertOnConflictUpdate(
-      CategoriesCompanion.insert(
-        id: c.id,
-        name: c.name,
-        type: typeStr,
-        isPreset: const Value(true),
-        sortOrder: Value(c.sortOrder),
-        parentId: Value(parentId ?? (c.parentId.isNotEmpty ? c.parentId : null)),
-        iconKey: Value(c.iconKey),
-      ),
-    );
+  Future<void> _insertCategoryRecursive(
+    txn_pb.Category c,
+    String? parentId,
+  ) async {
+    final typeStr = c.type == txn_enum.TransactionType.TRANSACTION_TYPE_INCOME
+        ? 'income'
+        : 'expense';
+    await _db
+        .into(_db.categories)
+        .insertOnConflictUpdate(
+          CategoriesCompanion.insert(
+            id: c.id,
+            name: c.name,
+            type: typeStr,
+            isPreset: const Value(true),
+            sortOrder: Value(c.sortOrder),
+            parentId: Value(
+              parentId ?? (c.parentId.isNotEmpty ? c.parentId : null),
+            ),
+            iconKey: Value(c.iconKey),
+          ),
+        );
     // Recursively insert children
     for (final child in c.children) {
       await _insertCategoryRecursive(child, c.id);
@@ -516,12 +585,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       for (int i = 0; i < resp.families.length; i++) {
         final f = resp.families[i];
-        await _db.insertFamily(FamiliesCompanion.insert(
-          id: f.id,
-          name: f.name,
-          ownerId: f.ownerId,
-          inviteCode: Value(f.inviteCode),
-        ));
+        await _db.insertFamily(
+          FamiliesCompanion.insert(
+            id: f.id,
+            name: f.name,
+            ownerId: f.ownerId,
+            inviteCode: Value(f.inviteCode),
+          ),
+        );
 
         // Insert user's own membership
         if (i < resp.memberships.length) {
@@ -531,17 +602,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
             fam_pb.FamilyRole.FAMILY_ROLE_ADMIN => 'admin',
             _ => 'member',
           };
-          await _db.insertFamilyMember(FamilyMembersCompanion.insert(
-            id: '${f.id}_${m.userId}',
-            familyId: f.id,
-            userId: m.userId,
-            role: Value(role),
-            canView: Value(m.permissions.canView),
-            canCreate: Value(m.permissions.canCreate),
-            canEdit: Value(m.permissions.canEdit),
-            canDelete: Value(m.permissions.canDelete),
-            canManageAccounts: Value(m.permissions.canManageAccounts),
-          ));
+          await _db.insertFamilyMember(
+            FamilyMembersCompanion.insert(
+              id: '${f.id}_${m.userId}',
+              familyId: f.id,
+              userId: m.userId,
+              role: Value(role),
+              canView: Value(m.permissions.canView),
+              canCreate: Value(m.permissions.canCreate),
+              canEdit: Value(m.permissions.canEdit),
+              canDelete: Value(m.permissions.canDelete),
+              canManageAccounts: Value(m.permissions.canManageAccounts),
+            ),
+          );
         }
 
         // Also sync all family members via GetFamily
@@ -556,18 +629,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
               fam_pb.FamilyRole.FAMILY_ROLE_ADMIN => 'admin',
               _ => 'member',
             };
-            await _db.insertFamilyMember(FamilyMembersCompanion.insert(
-              id: member.id.isNotEmpty ? member.id : '${f.id}_${member.userId}',
-              familyId: f.id,
-              userId: member.userId,
-              email: Value(member.email),
-              role: Value(memberRole),
-              canView: Value(member.permissions.canView),
-              canCreate: Value(member.permissions.canCreate),
-              canEdit: Value(member.permissions.canEdit),
-              canDelete: Value(member.permissions.canDelete),
-              canManageAccounts: Value(member.permissions.canManageAccounts),
-            ));
+            await _db.insertFamilyMember(
+              FamilyMembersCompanion.insert(
+                id: member.id.isNotEmpty
+                    ? member.id
+                    : '${f.id}_${member.userId}',
+                familyId: f.id,
+                userId: member.userId,
+                email: Value(member.email),
+                role: Value(memberRole),
+                canView: Value(member.permissions.canView),
+                canCreate: Value(member.permissions.canCreate),
+                canEdit: Value(member.permissions.canEdit),
+                canDelete: Value(member.permissions.canDelete),
+                canManageAccounts: Value(member.permissions.canManageAccounts),
+              ),
+            );
           }
         } catch (_) {}
       }
@@ -591,5 +668,12 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final tokenStorage = ref.watch(secureTokenStorageProvider);
   final authInterceptor = ref.watch(authInterceptorProvider);
   final authClient = ref.watch(authClientProvider);
-  return AuthNotifier(db, prefs, tokenStorage, authInterceptor, ref, authClient);
+  return AuthNotifier(
+    db,
+    prefs,
+    tokenStorage,
+    authInterceptor,
+    ref,
+    authClient,
+  );
 });

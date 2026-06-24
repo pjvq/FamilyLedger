@@ -1,4 +1,5 @@
 import 'package:familyledger/core/theme/tokens/semantic_theme_extension.dart';
+
 /// Shared test utilities for FamilyLedger widget tests.
 ///
 /// Provides fake StateNotifier implementations for all providers,
@@ -25,7 +26,7 @@ import 'package:familyledger/domain/providers/asset_provider.dart';
 class FakeAuthNotifier extends StateNotifier<AuthState>
     implements AuthNotifier {
   FakeAuthNotifier([AuthState? s])
-      : super(s ?? const AuthState(status: AuthStatus.unauthenticated));
+    : super(s ?? const AuthState(status: AuthStatus.unauthenticated));
   @override
   dynamic noSuchMethod(Invocation i) =>
       i.isMethod ? Future<void>.value() : null;
@@ -42,7 +43,7 @@ class FakeAccountNotifier extends StateNotifier<AccountState>
 class FakeTransactionNotifier extends StateNotifier<TransactionState>
     implements TransactionNotifier {
   FakeTransactionNotifier([TransactionState? s])
-      : super(s ?? const TransactionState());
+    : super(s ?? const TransactionState());
   @override
   dynamic noSuchMethod(Invocation i) =>
       i.isMethod ? Future<void>.value() : null;
@@ -67,7 +68,7 @@ class FakeLoanNotifier extends StateNotifier<LoanState>
 class FakeNotificationNotifier extends StateNotifier<NotificationState>
     implements NotificationNotifier {
   FakeNotificationNotifier([NotificationState? s])
-      : super(s ?? const NotificationState());
+    : super(s ?? const NotificationState());
   @override
   dynamic noSuchMethod(Invocation i) =>
       i.isMethod ? Future<void>.value() : null;
@@ -84,7 +85,7 @@ class FakeBudgetNotifier extends StateNotifier<BudgetState>
 class FakeDashboardNotifier extends StateNotifier<DashboardState>
     implements DashboardNotifier {
   FakeDashboardNotifier([DashboardState? s])
-      : super(s ?? const DashboardState());
+    : super(s ?? const DashboardState());
   @override
   dynamic noSuchMethod(Invocation i) =>
       i.isMethod ? Future<void>.value() : null;
@@ -93,7 +94,7 @@ class FakeDashboardNotifier extends StateNotifier<DashboardState>
 class FakeSyncNotifier extends StateNotifier<SyncState>
     implements SyncStatusNotifier {
   FakeSyncNotifier([SyncState? s])
-      : super(s ?? const SyncState(status: SyncStatus.synced));
+    : super(s ?? const SyncState(status: SyncStatus.synced));
   @override
   dynamic noSuchMethod(Invocation i) =>
       i.isMethod ? Future<void>.value() : null;
@@ -102,7 +103,7 @@ class FakeSyncNotifier extends StateNotifier<SyncState>
 class FakeInvestmentNotifier extends StateNotifier<InvestmentState>
     implements InvestmentNotifier {
   FakeInvestmentNotifier([InvestmentState? s])
-      : super(s ?? const InvestmentState());
+    : super(s ?? const InvestmentState());
   @override
   dynamic noSuchMethod(Invocation i) =>
       i.isMethod ? Future<void>.value() : null;
@@ -111,7 +112,7 @@ class FakeInvestmentNotifier extends StateNotifier<InvestmentState>
 class FakeMarketDataNotifier extends StateNotifier<MarketDataState>
     implements MarketDataNotifier {
   FakeMarketDataNotifier([MarketDataState? s])
-      : super(s ?? const MarketDataState());
+    : super(s ?? const MarketDataState());
 
   @override
   Future<QuoteDisplay?> getQuote(String symbol, String marketType) async {
@@ -153,19 +154,19 @@ List<Override> testOverrides({
   return [
     authProvider.overrideWith((_) => FakeAuthNotifier(auth)),
     accountProvider.overrideWith((_) => FakeAccountNotifier(account)),
-    transactionProvider
-        .overrideWith((_) => FakeTransactionNotifier(transaction)),
+    transactionProvider.overrideWith(
+      (_) => FakeTransactionNotifier(transaction),
+    ),
     familyProvider.overrideWith((_) => FakeFamilyNotifier(family)),
     loanProvider.overrideWith((_) => FakeLoanNotifier(loan)),
-    notificationProvider
-        .overrideWith((_) => FakeNotificationNotifier(notification)),
+    notificationProvider.overrideWith(
+      (_) => FakeNotificationNotifier(notification),
+    ),
     budgetProvider.overrideWith((_) => FakeBudgetNotifier(budget)),
     dashboardProvider.overrideWith((_) => FakeDashboardNotifier(dashboard)),
     syncStatusProvider.overrideWith((_) => FakeSyncNotifier(sync)),
-    investmentProvider
-        .overrideWith((_) => FakeInvestmentNotifier(investment)),
-    marketDataProvider
-        .overrideWith((_) => FakeMarketDataNotifier(marketData)),
+    investmentProvider.overrideWith((_) => FakeInvestmentNotifier(investment)),
+    marketDataProvider.overrideWith((_) => FakeMarketDataNotifier(marketData)),
     assetProvider.overrideWith((_) => FakeAssetNotifier(asset)),
   ];
 }
@@ -208,9 +209,11 @@ Widget wrapWithProviders(
       ...extra,
     ],
     child: MaterialApp(
-      theme: theme ?? ThemeData.light(useMaterial3: true).copyWith(
-        extensions: const [AppSemanticColors.light],
-      ),
+      theme:
+          theme ??
+          ThemeData.light(
+            useMaterial3: true,
+          ).copyWith(extensions: const [AppSemanticColors.light]),
       routes: routes ?? {},
       home: child,
     ),

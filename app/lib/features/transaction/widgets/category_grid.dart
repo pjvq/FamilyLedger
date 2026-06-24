@@ -68,8 +68,9 @@ class _CategoryGridState extends State<CategoryGrid> {
     if (selected.parentId != null) {
       _expandedParentId = selected.parentId;
     } else {
-      final hasChildren =
-          widget.categories.any((c) => c.parentId == selected.id);
+      final hasChildren = widget.categories.any(
+        (c) => c.parentId == selected.id,
+      );
       if (hasChildren) _expandedParentId = selected.id;
     }
   }
@@ -78,14 +79,14 @@ class _CategoryGridState extends State<CategoryGrid> {
       .where((c) => c.parentId == null && c.deletedAt == null)
       .toList();
 
-  List<Category> _getChildren(String parentId) => widget.categories
-      .where((c) => c.parentId == parentId && c.deletedAt == null)
-      .toList()
-    ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+  List<Category> _getChildren(String parentId) =>
+      widget.categories
+          .where((c) => c.parentId == parentId && c.deletedAt == null)
+          .toList()
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
   void _handleMainCategoryTap(Category cat) {
-    final hasChildren =
-        widget.categories.any((c) => c.parentId == cat.id);
+    final hasChildren = widget.categories.any((c) => c.parentId == cat.id);
     final canExpand = hasChildren || widget.onAddCategory != null;
 
     setState(() {
@@ -137,8 +138,7 @@ class _CategoryGridState extends State<CategoryGrid> {
               crossAxisSpacing: 8,
               childAspectRatio: 0.8,
             ),
-            itemCount:
-                mainCats.length + (widget.onAddCategory != null ? 1 : 0),
+            itemCount: mainCats.length + (widget.onAddCategory != null ? 1 : 0),
             itemBuilder: (context, index) {
               if (index == mainCats.length) {
                 return _AddCategoryButton(
@@ -150,11 +150,11 @@ class _CategoryGridState extends State<CategoryGrid> {
               final cat = mainCats[index];
               final isSelected =
                   cat.id == widget.selectedId || cat.id == _expandedParentId;
-              final hasChildren =
-                  widget.categories.any((c) => c.parentId == cat.id);
+              final hasChildren = widget.categories.any(
+                (c) => c.parentId == cat.id,
+              );
               final canExpand = hasChildren || widget.onAddCategory != null;
-              final iconKey =
-                  cat.iconKey.isNotEmpty ? cat.iconKey : 'other';
+              final iconKey = cat.iconKey.isNotEmpty ? cat.iconKey : 'other';
 
               return _MainCategoryItem(
                 iconKey: iconKey,
@@ -173,39 +173,40 @@ class _CategoryGridState extends State<CategoryGrid> {
           curve: _kAnimationCurve,
           child: _expandedParentId != null
               ? _isSubcategoryPanelExpanded
-                  ? _SubcategoryExpandedPanel(
-                      parentName: _mainCategories
-                              .where((c) => c.id == _expandedParentId)
-                              .firstOrNull
-                              ?.name ??
-                          '',
-                      children: children,
-                      selectedId: widget.selectedId,
-                      parentId: _expandedParentId!,
-                      onSelect: _handleSubcategorySelect,
-                      onSelectParent: () =>
-                          _handleSubcategorySelect(_expandedParentId!),
-                      onCollapse: _togglePanel,
-                      onAddSubcategory: widget.onAddCategory != null
-                          ? () => widget.onAddCategory
-                              ?.call(_expandedParentId)
-                          : null,
-                      theme: theme,
-                    )
-                  : _SubcategoryBar(
-                      children: children,
-                      selectedId: widget.selectedId,
-                      parentId: _expandedParentId!,
-                      onSelect: _handleSubcategorySelect,
-                      onSelectParent: () =>
-                          _handleSubcategorySelect(_expandedParentId!),
-                      onExpand: showExpandButton ? _togglePanel : null,
-                      onAddSubcategory: widget.onAddCategory != null
-                          ? () => widget.onAddCategory
-                              ?.call(_expandedParentId)
-                          : null,
-                      theme: theme,
-                    )
+                    ? _SubcategoryExpandedPanel(
+                        parentName:
+                            _mainCategories
+                                .where((c) => c.id == _expandedParentId)
+                                .firstOrNull
+                                ?.name ??
+                            '',
+                        children: children,
+                        selectedId: widget.selectedId,
+                        parentId: _expandedParentId!,
+                        onSelect: _handleSubcategorySelect,
+                        onSelectParent: () =>
+                            _handleSubcategorySelect(_expandedParentId!),
+                        onCollapse: _togglePanel,
+                        onAddSubcategory: widget.onAddCategory != null
+                            ? () =>
+                                  widget.onAddCategory?.call(_expandedParentId)
+                            : null,
+                        theme: theme,
+                      )
+                    : _SubcategoryBar(
+                        children: children,
+                        selectedId: widget.selectedId,
+                        parentId: _expandedParentId!,
+                        onSelect: _handleSubcategorySelect,
+                        onSelectParent: () =>
+                            _handleSubcategorySelect(_expandedParentId!),
+                        onExpand: showExpandButton ? _togglePanel : null,
+                        onAddSubcategory: widget.onAddCategory != null
+                            ? () =>
+                                  widget.onAddCategory?.call(_expandedParentId)
+                            : null,
+                        theme: theme,
+                      )
               : const SizedBox.shrink(),
         ),
       ],
@@ -245,7 +246,9 @@ class _MainCategoryItem extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
-            color: isSelected ? color.withValues(alpha: 0.12) : Colors.transparent,
+            color: isSelected
+                ? color.withValues(alpha: 0.12)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected ? color : Colors.transparent,
@@ -264,7 +267,10 @@ class _MainCategoryItem extends StatelessWidget {
                 ),
                 child: Center(
                   child: CategoryIconWidget(
-                      iconKey: iconKey, size: 22, showBackground: false),
+                    iconKey: iconKey,
+                    size: 22,
+                    showBackground: false,
+                  ),
                 ),
               ),
               const SizedBox(height: 2),
@@ -278,9 +284,12 @@ class _MainCategoryItem extends StatelessWidget {
                         fontSize: 11,
                         color: isSelected
                             ? color
-                            : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.normal,
+                            : theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -352,18 +361,12 @@ class _SubcategoryBar extends StatelessWidget {
       child: Row(
         children: [
           // Expand button
-          if (onExpand != null)
-            _ExpandButton(onTap: onExpand!, theme: theme),
+          if (onExpand != null) _ExpandButton(onTap: onExpand!, theme: theme),
           // Chip list
           Expanded(
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.fromLTRB(
-                onExpand != null ? 4 : 12,
-                8,
-                12,
-                8,
-              ),
+              padding: EdgeInsets.fromLTRB(onExpand != null ? 4 : 12, 8, 12, 8),
               itemCount: children.length + extraCount,
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
@@ -375,8 +378,7 @@ class _SubcategoryBar extends StatelessWidget {
                     theme: theme,
                   );
                 }
-                if (index == children.length + 1 &&
-                    onAddSubcategory != null) {
+                if (index == children.length + 1 && onAddSubcategory != null) {
                   return _SubcategoryChip(
                     label: '+ 新分类',
                     isSelected: false,
@@ -386,8 +388,9 @@ class _SubcategoryBar extends StatelessWidget {
                   );
                 }
                 final child = children[index - 1];
-                final iconKey =
-                    child.iconKey.isNotEmpty ? child.iconKey : 'other';
+                final iconKey = child.iconKey.isNotEmpty
+                    ? child.iconKey
+                    : 'other';
                 return _SubcategoryChip(
                   label: child.name,
                   iconKey: iconKey,
@@ -477,8 +480,7 @@ class _SubcategoryExpandedPanel extends StatelessWidget {
     final maxPanelHeight = screenHeight * _kExpandedPanelMaxHeightFraction;
 
     // +1 for "全部", +1 for "新分类" button (if provided)
-    final itemCount =
-        children.length + 1 + (onAddSubcategory != null ? 1 : 0);
+    final itemCount = children.length + 1 + (onAddSubcategory != null ? 1 : 0);
     // Estimate content height: header (40) + grid rows
     final gridRows = (itemCount / _kExpandedGridColumns).ceil();
     const itemHeight = 48.0;
@@ -537,8 +539,9 @@ class _SubcategoryExpandedPanel extends StatelessWidget {
                   );
                 }
                 final child = children[index - 1];
-                final iconKey =
-                    child.iconKey.isNotEmpty ? child.iconKey : 'other';
+                final iconKey = child.iconKey.isNotEmpty
+                    ? child.iconKey
+                    : 'other';
                 return _SubcategoryGridItem(
                   label: child.name,
                   iconKey: iconKey,
@@ -650,15 +653,15 @@ class _SubcategoryGridItem extends StatelessWidget {
             color: isAddButton
                 ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
                 : isSelected
-                    ? theme.colorScheme.primary.withValues(alpha: 0.12)
-                    : theme.colorScheme.surfaceContainerHigh,
+                ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                : theme.colorScheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isAddButton
                   ? theme.colorScheme.primary.withValues(alpha: 0.3)
                   : isSelected
-                      ? theme.colorScheme.primary
-                      : Colors.transparent,
+                  ? theme.colorScheme.primary
+                  : Colors.transparent,
               width: 1.5,
             ),
           ),
@@ -668,7 +671,10 @@ class _SubcategoryGridItem extends StatelessWidget {
             children: [
               if (iconKey != null) ...[
                 CategoryIconWidget(
-                    iconKey: iconKey!, size: 16, showBackground: false),
+                  iconKey: iconKey!,
+                  size: 16,
+                  showBackground: false,
+                ),
                 const SizedBox(width: 4),
               ],
               Flexible(
@@ -679,8 +685,8 @@ class _SubcategoryGridItem extends StatelessWidget {
                     color: isAddButton
                         ? theme.colorScheme.primary
                         : isSelected
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     fontWeight: isSelected || isAddButton
                         ? FontWeight.w600
                         : FontWeight.normal,
@@ -727,15 +733,15 @@ class _SubcategoryChip extends StatelessWidget {
           color: isAddButton
               ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
               : isSelected
-                  ? theme.colorScheme.primary.withValues(alpha: 0.12)
-                  : theme.colorScheme.surfaceContainerHigh,
+              ? theme.colorScheme.primary.withValues(alpha: 0.12)
+              : theme.colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isAddButton
                 ? theme.colorScheme.primary.withValues(alpha: 0.3)
                 : isSelected
-                    ? theme.colorScheme.primary
-                    : Colors.transparent,
+                ? theme.colorScheme.primary
+                : Colors.transparent,
             width: 1.5,
           ),
         ),
@@ -744,7 +750,10 @@ class _SubcategoryChip extends StatelessWidget {
           children: [
             if (iconKey != null) ...[
               CategoryIconWidget(
-                  iconKey: iconKey!, size: 16, showBackground: false),
+                iconKey: iconKey!,
+                size: 16,
+                showBackground: false,
+              ),
               const SizedBox(width: 4),
             ],
             Text(
@@ -754,8 +763,8 @@ class _SubcategoryChip extends StatelessWidget {
                 color: isAddButton
                     ? theme.colorScheme.primary
                     : isSelected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 fontWeight: isSelected || isAddButton
                     ? FontWeight.w600
                     : FontWeight.normal,

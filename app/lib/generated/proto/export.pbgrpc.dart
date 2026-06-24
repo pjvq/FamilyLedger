@@ -21,18 +21,20 @@ export 'export.pb.dart';
 
 @$pb.GrpcServiceName('familyledger.export.v1.ExportService')
 class ExportServiceClient extends $grpc.Client {
-  static final _$exportTransactions = $grpc.ClientMethod<$1.ExportRequest, $1.ExportResponse>(
-      '/familyledger.export.v1.ExportService/ExportTransactions',
-      ($1.ExportRequest value) => value.writeToBuffer(),
-      ($core.List<$core.int> value) => $1.ExportResponse.fromBuffer(value));
+  static final _$exportTransactions =
+      $grpc.ClientMethod<$1.ExportRequest, $1.ExportResponse>(
+          '/familyledger.export.v1.ExportService/ExportTransactions',
+          ($1.ExportRequest value) => value.writeToBuffer(),
+          ($core.List<$core.int> value) => $1.ExportResponse.fromBuffer(value));
 
   ExportServiceClient($grpc.ClientChannel channel,
       {$grpc.CallOptions? options,
       $core.Iterable<$grpc.ClientInterceptor>? interceptors})
-      : super(channel, options: options,
-        interceptors: interceptors);
+      : super(channel, options: options, interceptors: interceptors);
 
-  $grpc.ResponseFuture<$1.ExportResponse> exportTransactions($1.ExportRequest request, {$grpc.CallOptions? options}) {
+  $grpc.ResponseFuture<$1.ExportResponse> exportTransactions(
+      $1.ExportRequest request,
+      {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$exportTransactions, request, options: options);
   }
 }
@@ -51,9 +53,11 @@ abstract class ExportServiceBase extends $grpc.Service {
         ($1.ExportResponse value) => value.writeToBuffer()));
   }
 
-  $async.Future<$1.ExportResponse> exportTransactions_Pre($grpc.ServiceCall call, $async.Future<$1.ExportRequest> request) async {
+  $async.Future<$1.ExportResponse> exportTransactions_Pre(
+      $grpc.ServiceCall call, $async.Future<$1.ExportRequest> request) async {
     return exportTransactions(call, await request);
   }
 
-  $async.Future<$1.ExportResponse> exportTransactions($grpc.ServiceCall call, $1.ExportRequest request);
+  $async.Future<$1.ExportResponse> exportTransactions(
+      $grpc.ServiceCall call, $1.ExportRequest request);
 }

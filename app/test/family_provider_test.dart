@@ -54,38 +54,45 @@ class FakeFamilyClient implements pb.FamilyServiceClient {
 
   @override
   ResponseFuture<pb_model.CreateFamilyResponse> createFamily(
-      pb_model.CreateFamilyRequest request,
-      {CallOptions? options}) {
+    pb_model.CreateFamilyRequest request, {
+    CallOptions? options,
+  }) {
     if (createError != null) return FakeResponseFuture.error(createError!);
-    return FakeResponseFuture.value(createResponse ??
-        pb_model.CreateFamilyResponse(
-          family: pb_model.Family(
-            id: 'server_family_1',
-            name: request.name,
-            ownerId: 'user1',
+    return FakeResponseFuture.value(
+      createResponse ??
+          pb_model.CreateFamilyResponse(
+            family: pb_model.Family(
+              id: 'server_family_1',
+              name: request.name,
+              ownerId: 'user1',
+            ),
           ),
-        ));
+    );
   }
 
   @override
   ResponseFuture<pb_model.JoinFamilyResponse> joinFamily(
-      pb_model.JoinFamilyRequest request,
-      {CallOptions? options}) {
+    pb_model.JoinFamilyRequest request, {
+    CallOptions? options,
+  }) {
     if (joinError != null) return FakeResponseFuture.error(joinError!);
-    return FakeResponseFuture.value(joinResponse ??
-        pb_model.JoinFamilyResponse(
-          family: pb_model.Family(
-            id: 'joined_family',
-            name: '被邀请的家庭',
-            ownerId: 'owner_user',
+    return FakeResponseFuture.value(
+      joinResponse ??
+          pb_model.JoinFamilyResponse(
+            family: pb_model.Family(
+              id: 'joined_family',
+              name: '被邀请的家庭',
+              ownerId: 'owner_user',
+            ),
           ),
-        ));
+    );
   }
 
   @override
   ResponseFuture<pb_model.LeaveFamilyResponse> leaveFamily(
-      pb_model.LeaveFamilyRequest request,
-      {CallOptions? options}) {
+    pb_model.LeaveFamilyRequest request, {
+    CallOptions? options,
+  }) {
     leaveCalled = true;
     if (leaveError != null) return FakeResponseFuture.error(leaveError!);
     return FakeResponseFuture.value(pb_model.LeaveFamilyResponse());
@@ -93,10 +100,12 @@ class FakeFamilyClient implements pb.FamilyServiceClient {
 
   @override
   ResponseFuture<pb_model.ListFamilyMembersResponse> listFamilyMembers(
-      pb_model.ListFamilyMembersRequest request,
-      {CallOptions? options}) {
+    pb_model.ListFamilyMembersRequest request, {
+    CallOptions? options,
+  }) {
     return FakeResponseFuture.value(
-        membersResponse ?? pb_model.ListFamilyMembersResponse());
+      membersResponse ?? pb_model.ListFamilyMembersResponse(),
+    );
   }
 
   @override
@@ -109,26 +118,31 @@ class FakeFamilyClient implements pb.FamilyServiceClient {
 Future<AppDatabase> _setupDb({bool withFamily = false}) async {
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   await db.customStatement(
-      "INSERT OR IGNORE INTO users (id, email, created_at) "
-      "VALUES ('user1', 'test@test.com', "
-      "${DateTime.now().millisecondsSinceEpoch ~/ 1000})");
+    "INSERT OR IGNORE INTO users (id, email, created_at) "
+    "VALUES ('user1', 'test@test.com', "
+    "${DateTime.now().millisecondsSinceEpoch ~/ 1000})",
+  );
 
   if (withFamily) {
-    await db.insertFamily(FamiliesCompanion.insert(
-      id: 'existing_family',
-      name: '测试家庭',
-      ownerId: 'other_owner',
-    ));
-    await db.insertFamilyMember(FamilyMembersCompanion.insert(
-      id: 'member_1',
-      familyId: 'existing_family',
-      userId: 'user1',
-      role: const Value('member'),
-      canView: const Value(true),
-      canCreate: const Value(true),
-      canEdit: const Value(false),
-      canDelete: const Value(false),
-    ));
+    await db.insertFamily(
+      FamiliesCompanion.insert(
+        id: 'existing_family',
+        name: '测试家庭',
+        ownerId: 'other_owner',
+      ),
+    );
+    await db.insertFamilyMember(
+      FamilyMembersCompanion.insert(
+        id: 'member_1',
+        familyId: 'existing_family',
+        userId: 'user1',
+        role: const Value('member'),
+        canView: const Value(true),
+        canCreate: const Value(true),
+        canEdit: const Value(false),
+        canDelete: const Value(false),
+      ),
+    );
   }
 
   return db;
@@ -284,24 +298,26 @@ void main() {
         await db.close();
       });
 
-      test('member has limited permissions (canEdit=false, canDelete=false)',
-          () async {
-        final db = await _setupDb(withFamily: true);
+      test(
+        'member has limited permissions (canEdit=false, canDelete=false)',
+        () async {
+          final db = await _setupDb(withFamily: true);
 
-        final notifier = FamilyNotifier(db, 'user1', null);
-        await Future.delayed(const Duration(milliseconds: 200));
+          final notifier = FamilyNotifier(db, 'user1', null);
+          await Future.delayed(const Duration(milliseconds: 200));
 
-        expect(notifier.state.myPermissions, isNotNull);
-        expect(notifier.state.myPermissions!.canView, true);
-        expect(notifier.state.myPermissions!.canCreate, true);
-        expect(notifier.state.myPermissions!.canEdit, false);
-        expect(notifier.state.myPermissions!.canDelete, false);
-        expect(notifier.state.myPermissions!.canManageAccounts, false);
+          expect(notifier.state.myPermissions, isNotNull);
+          expect(notifier.state.myPermissions!.canView, true);
+          expect(notifier.state.myPermissions!.canCreate, true);
+          expect(notifier.state.myPermissions!.canEdit, false);
+          expect(notifier.state.myPermissions!.canDelete, false);
+          expect(notifier.state.myPermissions!.canManageAccounts, false);
 
-        await Future.delayed(const Duration(milliseconds: 100));
-        notifier.dispose();
-        await db.close();
-      });
+          await Future.delayed(const Duration(milliseconds: 100));
+          notifier.dispose();
+          await db.close();
+        },
+      );
     });
 
     group('leaveFamily', () {

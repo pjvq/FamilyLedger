@@ -22,7 +22,8 @@ import (
 // TestSecurity_HorizontalEscalation_CreateTransactionOnOthersAccount
 // AC-007: UserA should NOT be able to create a transaction using UserB's personal account.
 // BUG: getAccountFamilyID only checks the account exists, not that it belongs to the requesting user.
-//      When familyID="" (personal account), permission.Check returns nil immediately.
+//
+//	When familyID="" (personal account), permission.Check returns nil immediately.
 func TestSecurity_HorizontalEscalation_CreateTransactionOnOthersAccount(t *testing.T) {
 	db := getDB(t)
 	ctx := context.Background()
@@ -183,8 +184,9 @@ func TestSync_PushIdempotency_DuplicateClientID(t *testing.T) {
 // Two goroutines register with the same email simultaneously.
 // Expected: exactly one succeeds, the other gets AlreadyExists (not Internal error).
 // BUG: Code does SELECT EXISTS then INSERT — TOCTOU race. If both pass SELECT,
-//      the second INSERT triggers PG unique violation but returns codes.Internal
-//      instead of codes.AlreadyExists.
+//
+//	the second INSERT triggers PG unique violation but returns codes.Internal
+//	instead of codes.AlreadyExists.
 func TestAuth_ConcurrentRegistration_SameEmail(t *testing.T) {
 	db := getDB(t)
 	ctx := context.Background()

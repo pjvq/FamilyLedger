@@ -14,21 +14,24 @@ import 'dart:core' as $core;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 class TransactionType extends $pb.ProtobufEnum {
-  static const TransactionType TRANSACTION_TYPE_UNSPECIFIED = TransactionType._(0, _omitEnumNames ? '' : 'TRANSACTION_TYPE_UNSPECIFIED');
-  static const TransactionType TRANSACTION_TYPE_INCOME = TransactionType._(1, _omitEnumNames ? '' : 'TRANSACTION_TYPE_INCOME');
-  static const TransactionType TRANSACTION_TYPE_EXPENSE = TransactionType._(2, _omitEnumNames ? '' : 'TRANSACTION_TYPE_EXPENSE');
+  static const TransactionType TRANSACTION_TYPE_UNSPECIFIED = TransactionType._(
+      0, _omitEnumNames ? '' : 'TRANSACTION_TYPE_UNSPECIFIED');
+  static const TransactionType TRANSACTION_TYPE_INCOME =
+      TransactionType._(1, _omitEnumNames ? '' : 'TRANSACTION_TYPE_INCOME');
+  static const TransactionType TRANSACTION_TYPE_EXPENSE =
+      TransactionType._(2, _omitEnumNames ? '' : 'TRANSACTION_TYPE_EXPENSE');
 
-  static const $core.List<TransactionType> values = <TransactionType> [
+  static const $core.List<TransactionType> values = <TransactionType>[
     TRANSACTION_TYPE_UNSPECIFIED,
     TRANSACTION_TYPE_INCOME,
     TRANSACTION_TYPE_EXPENSE,
   ];
 
-  static final $core.Map<$core.int, TransactionType> _byValue = $pb.ProtobufEnum.initByValue(values);
+  static final $core.Map<$core.int, TransactionType> _byValue =
+      $pb.ProtobufEnum.initByValue(values);
   static TransactionType? valueOf($core.int value) => _byValue[value];
 
   const TransactionType._($core.int v, $core.String n) : super(v, n);
 }
-
 
 const _omitEnumNames = $core.bool.fromEnvironment('protobuf.omit_enum_names');

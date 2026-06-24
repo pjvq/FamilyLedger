@@ -23,7 +23,8 @@ class AppRouter {
   // ── Assets / Accounts ──
   static const accounts = '/assets/accounts';
   static const addAccount = '/assets/accounts/add';
-  static String accountDetail(String accountId) => '/assets/accounts/detail/$accountId';
+  static String accountDetail(String accountId) =>
+      '/assets/accounts/detail/$accountId';
 
   // ── Loans ──
   static const loans = '/assets/loans';

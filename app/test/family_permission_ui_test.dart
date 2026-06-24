@@ -20,7 +20,8 @@ ProviderContainer makeContainer({
     overrides: [
       currentFamilyIdProvider.overrideWith((ref) => familyId),
       familyProvider.overrideWith(
-          (_) => _FixedFamilyNotifier(FamilyState(myPermissions: permissions))),
+        (_) => _FixedFamilyNotifier(FamilyState(myPermissions: permissions)),
+      ),
     ],
   );
 }
@@ -48,8 +49,7 @@ void main() {
           ..canDelete = false
           ..canManageAccounts = false;
 
-        final container =
-            makeContainer(familyId: 'fam1', permissions: perms);
+        final container = makeContainer(familyId: 'fam1', permissions: perms);
         addTearDown(container.dispose);
 
         expect(container.read(canEditProvider), false);
@@ -66,8 +66,7 @@ void main() {
           ..canDelete = false
           ..canManageAccounts = false;
 
-        final container =
-            makeContainer(familyId: 'fam1', permissions: perms);
+        final container = makeContainer(familyId: 'fam1', permissions: perms);
         addTearDown(container.dispose);
 
         expect(container.read(canEditProvider), true);
@@ -83,8 +82,7 @@ void main() {
           ..canDelete = true
           ..canManageAccounts = false;
 
-        final container =
-            makeContainer(familyId: 'fam1', permissions: perms);
+        final container = makeContainer(familyId: 'fam1', permissions: perms);
         addTearDown(container.dispose);
 
         expect(container.read(canEditProvider), true);
@@ -102,8 +100,7 @@ void main() {
           ..canDelete = true
           ..canManageAccounts = true;
 
-        final container =
-            makeContainer(familyId: 'fam1', permissions: perms);
+        final container = makeContainer(familyId: 'fam1', permissions: perms);
         addTearDown(container.dispose);
 
         expect(container.read(canEditProvider), true);
@@ -115,8 +112,7 @@ void main() {
 
     group('Family mode - null permissions (fallback)', () {
       test('null permissions means no access in family mode', () {
-        final container =
-            makeContainer(familyId: 'fam1', permissions: null);
+        final container = makeContainer(familyId: 'fam1', permissions: null);
         addTearDown(container.dispose);
 
         expect(container.read(canEditProvider), false);
@@ -135,8 +131,7 @@ void main() {
           ..canDelete = false
           ..canManageAccounts = false;
 
-        final container =
-            makeContainer(familyId: 'fam1', permissions: perms);
+        final container = makeContainer(familyId: 'fam1', permissions: perms);
         addTearDown(container.dispose);
 
         expect(container.read(canCreateProvider), true);
@@ -153,8 +148,7 @@ void main() {
           ..canDelete = true
           ..canManageAccounts = false;
 
-        final container =
-            makeContainer(familyId: 'fam1', permissions: perms);
+        final container = makeContainer(familyId: 'fam1', permissions: perms);
         addTearDown(container.dispose);
 
         expect(container.read(canEditProvider), true);
@@ -227,8 +221,9 @@ class _PermissionTestWidget extends ConsumerWidget {
 
 void _widgetSmokeTests() {
   group('Widget smoke tests', () {
-    testWidgets('restricted member: no edit/delete/manage buttons',
-        (tester) async {
+    testWidgets('restricted member: no edit/delete/manage buttons', (
+      tester,
+    ) async {
       final perms = pb_model.MemberPermissions()
         ..canView = true
         ..canCreate = true
@@ -241,7 +236,8 @@ void _widgetSmokeTests() {
           overrides: [
             currentFamilyIdProvider.overrideWith((ref) => 'fam1'),
             familyProvider.overrideWith(
-                (_) => _FixedFamilyNotifier(FamilyState(myPermissions: perms))),
+              (_) => _FixedFamilyNotifier(FamilyState(myPermissions: perms)),
+            ),
           ],
           child: const _PermissionTestWidget(),
         ),
@@ -265,7 +261,8 @@ void _widgetSmokeTests() {
           overrides: [
             currentFamilyIdProvider.overrideWith((ref) => 'fam1'),
             familyProvider.overrideWith(
-                (_) => _FixedFamilyNotifier(FamilyState(myPermissions: perms))),
+              (_) => _FixedFamilyNotifier(FamilyState(myPermissions: perms)),
+            ),
           ],
           child: const _PermissionTestWidget(),
         ),
@@ -276,8 +273,9 @@ void _widgetSmokeTests() {
       expect(find.text('Manage'), findsOneWidget);
     });
 
-    testWidgets('mixed: canEdit=true, canDelete=false, canManage=false',
-        (tester) async {
+    testWidgets('mixed: canEdit=true, canDelete=false, canManage=false', (
+      tester,
+    ) async {
       final perms = pb_model.MemberPermissions()
         ..canView = true
         ..canCreate = true
@@ -290,7 +288,8 @@ void _widgetSmokeTests() {
           overrides: [
             currentFamilyIdProvider.overrideWith((ref) => 'fam1'),
             familyProvider.overrideWith(
-                (_) => _FixedFamilyNotifier(FamilyState(myPermissions: perms))),
+              (_) => _FixedFamilyNotifier(FamilyState(myPermissions: perms)),
+            ),
           ],
           child: const _PermissionTestWidget(),
         ),

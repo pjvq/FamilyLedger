@@ -79,13 +79,21 @@ void main() {
       final holdings = [
         const HoldingDisplayItem(
           investmentId: '1',
-          symbol: 'A', name: 'A', quantity: 1,
-          currentValue: 60000, weight: 0.6, returnRate: 0.2,
+          symbol: 'A',
+          name: 'A',
+          quantity: 1,
+          currentValue: 60000,
+          weight: 0.6,
+          returnRate: 0.2,
         ),
         const HoldingDisplayItem(
           investmentId: '2',
-          symbol: 'B', name: 'B', quantity: 1,
-          currentValue: 40000, weight: 0.4, returnRate: 0.1,
+          symbol: 'B',
+          name: 'B',
+          quantity: 1,
+          currentValue: 40000,
+          weight: 0.4,
+          returnRate: 0.1,
         ),
       ];
       final totalWeight = holdings.fold(0.0, (sum, h) => sum + h.weight);

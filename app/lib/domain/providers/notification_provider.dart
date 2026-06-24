@@ -29,14 +29,13 @@ class NotificationSettingsModel {
     bool? dailySummary,
     bool? loanReminder,
     int? reminderDaysBefore,
-  }) =>
-      NotificationSettingsModel(
-        budgetAlert: budgetAlert ?? this.budgetAlert,
-        budgetWarning: budgetWarning ?? this.budgetWarning,
-        dailySummary: dailySummary ?? this.dailySummary,
-        loanReminder: loanReminder ?? this.loanReminder,
-        reminderDaysBefore: reminderDaysBefore ?? this.reminderDaysBefore,
-      );
+  }) => NotificationSettingsModel(
+    budgetAlert: budgetAlert ?? this.budgetAlert,
+    budgetWarning: budgetWarning ?? this.budgetWarning,
+    dailySummary: dailySummary ?? this.dailySummary,
+    loanReminder: loanReminder ?? this.loanReminder,
+    reminderDaysBefore: reminderDaysBefore ?? this.reminderDaysBefore,
+  );
 }
 
 // ── State ──
@@ -63,14 +62,13 @@ class NotificationState {
     bool? isLoading,
     String? error,
     bool clearError = false,
-  }) =>
-      NotificationState(
-        notifications: notifications ?? this.notifications,
-        unreadCount: unreadCount ?? this.unreadCount,
-        settings: settings ?? this.settings,
-        isLoading: isLoading ?? this.isLoading,
-        error: clearError ? null : (error ?? this.error),
-      );
+  }) => NotificationState(
+    notifications: notifications ?? this.notifications,
+    unreadCount: unreadCount ?? this.unreadCount,
+    settings: settings ?? this.settings,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : (error ?? this.error),
+  );
 }
 
 // ── Notifier ──
@@ -81,7 +79,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   final String? _userId;
 
   NotificationNotifier(this._db, this._client, this._userId)
-      : super(const NotificationState()) {
+    : super(const NotificationState()) {
     if (_userId != null) {
       _init();
     }
@@ -108,24 +106,29 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
       // Cache locally
       for (final n in resp.notifications) {
-        await _db.insertNotification(db.NotificationsCompanion.insert(
-          id: n.id,
-          userId: _userId,
-          type: n.type,
-          title: n.title,
-          body: n.body,
-          dataJson: Value(n.dataJson),
-          isRead: Value(n.isRead),
-          createdAt: Value(n.createdAt.toDateTime()),
-        ));
+        await _db.insertNotification(
+          db.NotificationsCompanion.insert(
+            id: n.id,
+            userId: _userId,
+            type: n.type,
+            title: n.title,
+            body: n.body,
+            dataJson: Value(n.dataJson),
+            isRead: Value(n.isRead),
+            createdAt: Value(n.createdAt.toDateTime()),
+          ),
+        );
       }
     } catch (_) {
       // fallback to local
     }
 
     // Load from local DB
-    final notifications =
-        await _db.getNotifications(_userId, pageSize, page * pageSize);
+    final notifications = await _db.getNotifications(
+      _userId,
+      pageSize,
+      page * pageSize,
+    );
     final unread = await _db.getUnreadNotificationCount(_userId);
 
     state = state.copyWith(
@@ -253,8 +256,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
 final notificationProvider =
     StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
-  final database = ref.watch(databaseProvider);
-  final client = ref.watch(notifyClientProvider);
-  final userId = ref.watch(currentUserIdProvider);
-  return NotificationNotifier(database, client, userId);
-});
+      final database = ref.watch(databaseProvider);
+      final client = ref.watch(notifyClientProvider);
+      final userId = ref.watch(currentUserIdProvider);
+      return NotificationNotifier(database, client, userId);
+    });

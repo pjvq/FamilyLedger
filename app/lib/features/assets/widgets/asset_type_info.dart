@@ -18,6 +18,10 @@ const Map<String, AssetTypeInfo> assetTypeMap = {
   'collectible': AssetTypeInfo(icon: Icons.collections_rounded, label: '收藏品'),
 };
 
-const _defaultInfo = AssetTypeInfo(icon: Icons.inventory_2_rounded, label: '其他');
+const _defaultInfo = AssetTypeInfo(
+  icon: Icons.inventory_2_rounded,
+  label: '其他',
+);
 
-AssetTypeInfo getAssetTypeInfo(String type) => assetTypeMap[type] ?? _defaultInfo;
+AssetTypeInfo getAssetTypeInfo(String type) =>
+    assetTypeMap[type] ?? _defaultInfo;

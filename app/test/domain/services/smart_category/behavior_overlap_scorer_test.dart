@@ -50,14 +50,20 @@ void main() {
       final profileA = CategoryUsageProfile(
         categoryId: 'a',
         totalCount: 50,
-        hourDistribution: List.generate(24, (i) => (i >= 11 && i <= 13) ? 15 : 1),
+        hourDistribution: List.generate(
+          24,
+          (i) => (i >= 11 && i <= 13) ? 15 : 1,
+        ),
         weekdayDistribution: [2, 10, 10, 10, 10, 10, 2],
         amountBuckets: [5, 30, 10, 5, 0, 0],
       );
       final profileB = CategoryUsageProfile(
         categoryId: 'b',
         totalCount: 40,
-        hourDistribution: List.generate(24, (i) => (i >= 11 && i <= 13) ? 12 : 1),
+        hourDistribution: List.generate(
+          24,
+          (i) => (i >= 11 && i <= 13) ? 12 : 1,
+        ),
         weekdayDistribution: [3, 8, 8, 9, 8, 8, 3],
         amountBuckets: [8, 25, 7, 5, 0, 0],
       );

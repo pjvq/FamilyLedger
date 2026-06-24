@@ -20,8 +20,7 @@ class CustomRefreshIndicator extends StatefulWidget {
   });
 
   @override
-  State<CustomRefreshIndicator> createState() =>
-      _CustomRefreshIndicatorState();
+  State<CustomRefreshIndicator> createState() => _CustomRefreshIndicatorState();
 }
 
 class _CustomRefreshIndicatorState extends State<CustomRefreshIndicator>
@@ -72,17 +71,10 @@ class EasyRefresh extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final Widget child;
 
-  const EasyRefresh({
-    super.key,
-    required this.onRefresh,
-    required this.child,
-  });
+  const EasyRefresh({super.key, required this.onRefresh, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return CustomRefreshIndicator(
-      onRefresh: onRefresh,
-      child: child,
-    );
+    return CustomRefreshIndicator(onRefresh: onRefresh, child: child);
   }
 }

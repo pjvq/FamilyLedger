@@ -73,76 +73,71 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
     return Semantics(
       label: 'CSV导入页面',
       child: Scaffold(
-      appBar: AppBar(
-        title: const Text('CSV 导入'),
-      ),
-      body: Stepper(
-        currentStep: _currentStep,
-        onStepContinue: _onStepContinue,
-        onStepCancel:
-            _currentStep > 0 ? () => setState(() => _currentStep--) : null,
-        controlsBuilder: (context, details) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: Row(
-              children: [
-                if (_currentStep < 3)
-                  FilledButton(
-                    onPressed:
-                        _canContinue() ? details.onStepContinue : null,
-                    child: Text(_currentStep == 2 ? '开始导入' : '下一步'),
-                  ),
-                if (_currentStep == 3 && _importDone)
-                  FilledButton(
-                    onPressed: () => context.pop(),
-                    child: const Text('完成'),
-                  ),
-                if (_currentStep > 0 && _currentStep < 3) ...[
-                  const SizedBox(width: 12),
-                  TextButton(
-                    onPressed: details.onStepCancel,
-                    child: const Text('上一步'),
-                  ),
+        appBar: AppBar(title: const Text('CSV 导入')),
+        body: Stepper(
+          currentStep: _currentStep,
+          onStepContinue: _onStepContinue,
+          onStepCancel: _currentStep > 0
+              ? () => setState(() => _currentStep--)
+              : null,
+          controlsBuilder: (context, details) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Row(
+                children: [
+                  if (_currentStep < 3)
+                    FilledButton(
+                      onPressed: _canContinue() ? details.onStepContinue : null,
+                      child: Text(_currentStep == 2 ? '开始导入' : '下一步'),
+                    ),
+                  if (_currentStep == 3 && _importDone)
+                    FilledButton(
+                      onPressed: () => context.pop(),
+                      child: const Text('完成'),
+                    ),
+                  if (_currentStep > 0 && _currentStep < 3) ...[
+                    const SizedBox(width: 12),
+                    TextButton(
+                      onPressed: details.onStepCancel,
+                      child: const Text('上一步'),
+                    ),
+                  ],
                 ],
-              ],
+              ),
+            );
+          },
+          steps: [
+            // Step 1: Choose file
+            Step(
+              title: const Text('选择文件'),
+              content: _buildFileStep(theme),
+              isActive: _currentStep >= 0,
+              state: _currentStep > 0 ? StepState.complete : StepState.indexed,
             ),
-          );
-        },
-        steps: [
-          // Step 1: Choose file
-          Step(
-            title: const Text('选择文件'),
-            content: _buildFileStep(theme),
-            isActive: _currentStep >= 0,
-            state:
-                _currentStep > 0 ? StepState.complete : StepState.indexed,
-          ),
-          // Step 2: Preview
-          Step(
-            title: const Text('数据预览'),
-            content: _buildPreviewStep(theme),
-            isActive: _currentStep >= 1,
-            state:
-                _currentStep > 1 ? StepState.complete : StepState.indexed,
-          ),
-          // Step 3: Field mapping
-          Step(
-            title: const Text('字段映射'),
-            content: _buildMappingStep(theme),
-            isActive: _currentStep >= 2,
-            state:
-                _currentStep > 2 ? StepState.complete : StepState.indexed,
-          ),
-          // Step 4: Result
-          Step(
-            title: const Text('导入结果'),
-            content: _buildResultStep(theme),
-            isActive: _currentStep >= 3,
-            state: _importDone ? StepState.complete : StepState.indexed,
-          ),
-        ],
+            // Step 2: Preview
+            Step(
+              title: const Text('数据预览'),
+              content: _buildPreviewStep(theme),
+              isActive: _currentStep >= 1,
+              state: _currentStep > 1 ? StepState.complete : StepState.indexed,
+            ),
+            // Step 3: Field mapping
+            Step(
+              title: const Text('字段映射'),
+              content: _buildMappingStep(theme),
+              isActive: _currentStep >= 2,
+              state: _currentStep > 2 ? StepState.complete : StepState.indexed,
+            ),
+            // Step 4: Result
+            Step(
+              title: const Text('导入结果'),
+              content: _buildResultStep(theme),
+              isActive: _currentStep >= 3,
+              state: _importDone ? StepState.complete : StepState.indexed,
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -186,10 +181,10 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
           button: true,
           label: '选择CSV文件',
           child: OutlinedButton.icon(
-          onPressed: _pickFile,
-          icon: const Icon(Icons.upload_file_rounded),
-          label: const Text('选择 CSV 文件'),
-        ),
+            onPressed: _pickFile,
+            icon: const Icon(Icons.upload_file_rounded),
+            label: const Text('选择 CSV 文件'),
+          ),
         ),
         if (_pickedFile != null) ...[
           const SizedBox(height: 12),
@@ -198,8 +193,7 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  const Icon(Icons.description_rounded,
-                      color: Colors.green),
+                  const Icon(Icons.description_rounded, color: Colors.green),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -207,14 +201,16 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
                       children: [
                         Text(
                           _pickedFile!.name,
-                          style: theme.textTheme.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         Text(
                           _formatFileSize(_pickedFile!.size),
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
                       ],
@@ -271,29 +267,35 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
             dataRowMinHeight: 32,
             dataRowMaxHeight: 40,
             columns: _headers
-                .map((h) => DataColumn(
-                      label: Text(
-                        h,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
+                .map(
+                  (h) => DataColumn(
+                    label: Text(
+                      h,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
                       ),
-                    ))
+                    ),
+                  ),
+                )
                 .toList(),
             rows: _previewRows
-                .map((row) => DataRow(
-                      cells: row
-                          .map((cell) => DataCell(
-                                Text(
-                                  cell,
-                                  style: const TextStyle(fontSize: 12),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ))
-                          .toList(),
-                    ))
+                .map(
+                  (row) => DataRow(
+                    cells: row
+                        .map(
+                          (cell) => DataCell(
+                            Text(
+                              cell,
+                              style: const TextStyle(fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                )
                 .toList(),
           ),
         ),
@@ -315,8 +317,7 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
         ..._mappings.entries.map((entry) {
           final targetField = entry.key;
           final label = _targetFieldLabels[targetField] ?? targetField;
-          final isRequired =
-              targetField == 'date' || targetField == 'amount';
+          final isRequired = targetField == 'date' || targetField == 'amount';
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -343,19 +344,24 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
                     decoration: const InputDecoration(
                       isDense: true,
                       contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
                     items: [
                       const DropdownMenuItem<String?>(
                         value: null,
-                        child: Text('不映射',
-                            style: TextStyle(color: Colors.grey)),
+                        child: Text(
+                          '不映射',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ),
-                      ..._headers.map((h) => DropdownMenuItem(
-                            value: h,
-                            child: Text(h,
-                                style: const TextStyle(fontSize: 13)),
-                          )),
+                      ..._headers.map(
+                        (h) => DropdownMenuItem(
+                          value: h,
+                          child: Text(h, style: const TextStyle(fontSize: 13)),
+                        ),
+                      ),
                     ],
                     onChanged: (v) {
                       setState(() => _mappings[targetField] = v);
@@ -375,15 +381,19 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('导入摘要',
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  '导入摘要',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text('总行数: $_totalRows'),
                 ..._mappings.entries
                     .where((e) => e.value != null)
-                    .map((e) => Text(
-                        '${_targetFieldLabels[e.key]} → ${e.value}')),
+                    .map(
+                      (e) => Text('${_targetFieldLabels[e.key]} → ${e.value}'),
+                    ),
               ],
             ),
           ),
@@ -421,8 +431,9 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
         const SizedBox(height: 12),
         Text(
           '导入完成',
-          style: theme.textTheme.titleLarge
-              ?.copyWith(fontWeight: FontWeight.w600),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 8),
         _resultRow('成功导入', '$_importedCount 条', Colors.green),
@@ -431,26 +442,28 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
           const SizedBox(height: 8),
           Text(
             '错误详情:',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(fontWeight: FontWeight.w600),
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          ..._importErrors.take(10).map((e) => Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  '• $e',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.error,
+          ..._importErrors
+              .take(10)
+              .map(
+                (e) => Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    '• $e',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.error,
+                    ),
                   ),
                 ),
-              )),
+              ),
           if (_importErrors.length > 10)
             Text(
               '... 还有 ${_importErrors.length - 10} 个错误',
-              style: TextStyle(
-                fontSize: 12,
-                color: theme.colorScheme.error,
-              ),
+              style: TextStyle(fontSize: 12, color: theme.colorScheme.error),
             ),
         ],
       ],
@@ -486,7 +499,8 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
     if (result != null && result.files.isNotEmpty) {
       setState(() {
         _pickedFile = result.files.first;
-        _fileBytes = _pickedFile!.bytes ??
+        _fileBytes =
+            _pickedFile!.bytes ??
             (_pickedFile!.path != null
                 ? File(_pickedFile!.path!).readAsBytesSync()
                 : null);
@@ -504,14 +518,15 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
 
     try {
       final client = ref.read(importClientProvider);
-      final resp = await client.parseCSV(pb.ParseCSVRequest()
-        ..csvData = _fileBytes!
-        ..encoding = 'utf8');
+      final resp = await client.parseCSV(
+        pb.ParseCSVRequest()
+          ..csvData = _fileBytes!
+          ..encoding = 'utf8',
+      );
 
       setState(() {
         _headers = resp.headers.toList();
-        _previewRows =
-            resp.previewRows.map((r) => r.values.toList()).toList();
+        _previewRows = resp.previewRows.map((r) => r.values.toList()).toList();
         _totalRows = resp.totalRows;
         _sessionId = resp.sessionId;
         _isParsing = false;
@@ -545,15 +560,18 @@ class _CsvImportPageState extends ConsumerState<CsvImportPage> {
       final client = ref.read(importClientProvider);
       final fieldMappings = _mappings.entries
           .where((e) => e.value != null)
-          .map((e) => pb.FieldMapping()
-            ..csvColumn = e.value!
-            ..targetField = e.key)
+          .map(
+            (e) => pb.FieldMapping()
+              ..csvColumn = e.value!
+              ..targetField = e.key,
+          )
           .toList();
 
-      final resp =
-          await client.confirmImport(pb.ConfirmImportRequest()
-            ..sessionId = _sessionId
-            ..mappings.addAll(fieldMappings));
+      final resp = await client.confirmImport(
+        pb.ConfirmImportRequest()
+          ..sessionId = _sessionId
+          ..mappings.addAll(fieldMappings),
+      );
 
       setState(() {
         _importedCount = resp.importedCount;

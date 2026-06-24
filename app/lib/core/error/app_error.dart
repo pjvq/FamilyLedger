@@ -30,10 +30,7 @@ sealed class AppError {
 
     if (error is GrpcError) return _fromGrpc(error, context);
     if (error is SocketException || error is HttpException) {
-      return NetworkError(
-        message: '网络连接失败，请检查网络后重试',
-        cause: error,
-      );
+      return NetworkError(message: '网络连接失败，请检查网络后重试', cause: error);
     }
 
     return UnknownError(
@@ -46,27 +43,27 @@ sealed class AppError {
     return switch (error.code) {
       StatusCode.unauthenticated => AuthError(cause: error),
       StatusCode.permissionDenied => PermissionError(
-          message: context != null ? '$context：权限不足' : '权限不足',
-          cause: error,
-        ),
+        message: context != null ? '$context：权限不足' : '权限不足',
+        cause: error,
+      ),
       StatusCode.notFound => NotFoundError(
-          message: context != null ? '$context：未找到' : '数据未找到',
-          cause: error,
-        ),
+        message: context != null ? '$context：未找到' : '数据未找到',
+        cause: error,
+      ),
       StatusCode.unavailable || StatusCode.deadlineExceeded => NetworkError(
-          message: '网络连接失败，请检查网络后重试',
-          cause: error,
-        ),
+        message: '网络连接失败，请检查网络后重试',
+        cause: error,
+      ),
       StatusCode.resourceExhausted => RateLimitError(cause: error),
       StatusCode.invalidArgument ||
       StatusCode.failedPrecondition => ValidationError(
-          message: context != null ? '$context：参数无效' : '请求参数无效',
-          cause: error,
-        ),
+        message: context != null ? '$context：参数无效' : '请求参数无效',
+        cause: error,
+      ),
       _ => UnknownError(
-          message: context != null ? '$context失败' : '操作失败，请稍后重试',
-          cause: error,
-        ),
+        message: context != null ? '$context失败' : '操作失败，请稍后重试',
+        cause: error,
+      ),
     };
   }
 }
@@ -76,8 +73,7 @@ class AuthError extends AppError {
   @override
   bool get isRetryable => false;
 
-  const AuthError({super.cause})
-      : super._(message: '登录已过期，请重新登录');
+  const AuthError({super.cause}) : super._(message: '登录已过期，请重新登录');
 }
 
 /// Insufficient permissions for the operation.
@@ -102,7 +98,7 @@ class NetworkError extends AppError {
   bool get isRetryable => true;
 
   const NetworkError({super.message = '网络连接失败，请检查网络后重试', super.cause})
-      : super._();
+    : super._();
 }
 
 /// Server-side rate limiting.
@@ -110,8 +106,7 @@ class RateLimitError extends AppError {
   @override
   bool get isRetryable => true;
 
-  const RateLimitError({super.cause})
-      : super._(message: '操作过于频繁，请稍后再试');
+  const RateLimitError({super.cause}) : super._(message: '操作过于频繁，请稍后再试');
 }
 
 /// Input validation failed (client or server side).

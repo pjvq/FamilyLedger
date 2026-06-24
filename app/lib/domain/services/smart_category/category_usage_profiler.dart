@@ -49,14 +49,14 @@ class CategoryUsageProfiler {
   }
 
   Future<void> _doRebuildAll() async {
-    final categories = await (_db.select(_db.categories)
-          ..where((c) => c.deletedAt.isNull()))
-        .get();
+    final categories = await (_db.select(
+      _db.categories,
+    )..where((c) => c.deletedAt.isNull())).get();
     final categoryIds = categories.map((c) => c.id).toSet();
 
-    final allTxns = await (_db.select(_db.transactions)
-          ..where((t) => t.deletedAt.isNull()))
-        .get();
+    final allTxns = await (_db.select(
+      _db.transactions,
+    )..where((t) => t.deletedAt.isNull())).get();
 
     final now = DateTime.now();
     final sevenDaysAgo = now.subtract(const Duration(days: 7));
@@ -86,7 +86,9 @@ class CategoryUsageProfiler {
         for (final txn in txns) {
           hourCounts[txn.txnDate.hour]++;
           weekdayCounts[txn.txnDate.weekday % 7]++;
-          amountCounts[CategoryUsageProfile.amountToBucket(txn.amountCny.abs())]++;
+          amountCounts[CategoryUsageProfile.amountToBucket(
+            txn.amountCny.abs(),
+          )]++;
 
           if (txn.txnDate.isAfter(sevenDaysAgo)) last7d++;
           if (txn.txnDate.isAfter(thirtyDaysAgo)) last30d++;
@@ -142,16 +144,18 @@ class CategoryUsageProfiler {
 
         final keywords = extractTopKeywords(noteTexts);
 
-        await _db.into(_db.categoryUsageSummary).insert(
-          CategoryUsageSummaryCompanion.insert(
-            categoryId: catId,
-            totalCount: Value(txns.length),
-            last30dCount: Value(last30d),
-            last7dCount: Value(last7d),
-            topKeywords: Value(jsonEncode(keywords)),
-            lastUsedAt: Value(lastUsed),
-          ),
-        );
+        await _db
+            .into(_db.categoryUsageSummary)
+            .insert(
+              CategoryUsageSummaryCompanion.insert(
+                categoryId: catId,
+                totalCount: Value(txns.length),
+                last30dCount: Value(last30d),
+                last7dCount: Value(last7d),
+                topKeywords: Value(jsonEncode(keywords)),
+                lastUsedAt: Value(lastUsed),
+              ),
+            );
       }
     });
   }
@@ -193,7 +197,11 @@ class CategoryUsageProfiler {
   }
 
   /// Upsert slot — 使用 Drift insertOnConflictUpdate 保持原子性（MAJOR #A）
-  Future<void> _upsertSlot(String categoryId, String slotType, int slotIndex) async {
+  Future<void> _upsertSlot(
+    String categoryId,
+    String slotType,
+    int slotIndex,
+  ) async {
     assert(SlotType.all.contains(slotType), 'Invalid slotType: $slotType');
 
     // 先尝试 insertOnConflictUpdate，但因为需要 count+1 语义，
@@ -215,13 +223,13 @@ class CategoryUsageProfiler {
 
   /// 获取单个分类的使用画像
   Future<CategoryUsageProfile> getProfile(String categoryId) async {
-    final summary = await (_db.select(_db.categoryUsageSummary)
-          ..where((s) => s.categoryId.equals(categoryId)))
-        .getSingleOrNull();
+    final summary = await (_db.select(
+      _db.categoryUsageSummary,
+    )..where((s) => s.categoryId.equals(categoryId))).getSingleOrNull();
 
-    final slots = await (_db.select(_db.categoryUsageSlots)
-          ..where((s) => s.categoryId.equals(categoryId)))
-        .get();
+    final slots = await (_db.select(
+      _db.categoryUsageSlots,
+    )..where((s) => s.categoryId.equals(categoryId))).get();
 
     return _buildProfile(categoryId, summary, slots);
   }
@@ -301,9 +309,31 @@ class CategoryUsageProfiler {
   // ──────────── 关键词提取 ────────────
 
   static const _stopwords = {
-    '的', '了', '在', '是', '我', '一', '个', '不', '这', '那',
-    '有', '和', '与', '等', '到', '也', '就', '都', '而', '及',
-    '年', '月', '日', '号', '时',
+    '的',
+    '了',
+    '在',
+    '是',
+    '我',
+    '一',
+    '个',
+    '不',
+    '这',
+    '那',
+    '有',
+    '和',
+    '与',
+    '等',
+    '到',
+    '也',
+    '就',
+    '都',
+    '而',
+    '及',
+    '年',
+    '月',
+    '日',
+    '号',
+    '时',
   };
 
   static final _latinRegex = RegExp(r'[a-zA-Z]+');
@@ -314,7 +344,10 @@ class CategoryUsageProfiler {
 
   /// 从交易备注中提取高频关键词
   @visibleForTesting
-  static List<String> extractTopKeywords(List<String> allNotes, {int maxCount = 20}) {
+  static List<String> extractTopKeywords(
+    List<String> allNotes, {
+    int maxCount = 20,
+  }) {
     final freq = <String, int>{};
 
     for (final note in allNotes) {
@@ -376,8 +409,9 @@ class CategoryUsageProfiler {
     final thirtyDaysAgo = now.subtract(const Duration(days: 30));
 
     // 单条 SQL 完成所有分类的 7d/30d 计数
-    final rows = await _db.customSelect(
-      '''
+    final rows = await _db
+        .customSelect(
+          '''
       SELECT
         category_id,
         SUM(CASE WHEN txn_date >= ? THEN 1 ELSE 0 END) as cnt_7d,
@@ -386,13 +420,14 @@ class CategoryUsageProfiler {
       WHERE deleted_at IS NULL AND txn_date >= ?
       GROUP BY category_id
       ''',
-      variables: [
-        Variable.withDateTime(sevenDaysAgo),
-        Variable.withDateTime(thirtyDaysAgo),
-        Variable.withDateTime(thirtyDaysAgo),
-      ],
-      readsFrom: {_db.transactions},
-    ).get();
+          variables: [
+            Variable.withDateTime(sevenDaysAgo),
+            Variable.withDateTime(thirtyDaysAgo),
+            Variable.withDateTime(thirtyDaysAgo),
+          ],
+          readsFrom: {_db.transactions},
+        )
+        .get();
 
     final countMap = <String, (int, int)>{};
     for (final row in rows) {

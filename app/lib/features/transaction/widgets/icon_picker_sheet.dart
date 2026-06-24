@@ -12,10 +12,8 @@ Future<void> showIconPickerSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => _IconPickerSheet(
-      selectedKey: selectedKey,
-      onSelect: onSelect,
-    ),
+    builder: (_) =>
+        _IconPickerSheet(selectedKey: selectedKey, onSelect: onSelect),
   );
 }
 
@@ -46,10 +44,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
   void initState() {
     super.initState();
     _selected = widget.selectedKey;
-    _allTabLabels = [
-      ..._materialGroups.map((e) => e.key),
-      _emojiTabLabel,
-    ];
+    _allTabLabels = [..._materialGroups.map((e) => e.key), _emojiTabLabel];
     _tabController = TabController(length: _allTabLabels.length, vsync: this);
 
     // Auto-jump to selected icon's tab
@@ -103,9 +98,12 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                Text('选择图标',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  '选择图标',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.close, size: 20),
@@ -121,8 +119,10 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
             controller: _tabController,
             isScrollable: true,
             tabAlignment: TabAlignment.start,
-            labelStyle:
-                const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            labelStyle: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
             unselectedLabelStyle: const TextStyle(fontSize: 13),
             indicatorSize: TabBarIndicatorSize.label,
             dividerHeight: 0.5,
@@ -136,8 +136,9 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
               controller: _tabController,
               children: [
                 // Material Icons tabs
-                ..._materialGroups.map((group) => _buildMaterialGrid(
-                    group.value, theme)),
+                ..._materialGroups.map(
+                  (group) => _buildMaterialGrid(group.value, theme),
+                ),
                 // Emoji tab
                 _buildEmojiTab(theme),
               ],
@@ -201,8 +202,9 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
                     color: isSelected
                         ? color
                         : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -238,8 +240,10 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
             ),
           ),
           actions: [
@@ -300,7 +304,9 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                color: theme.colorScheme.primaryContainer.withValues(
+                  alpha: 0.3,
+                ),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: theme.colorScheme.primary.withValues(alpha: 0.2),
@@ -309,9 +315,11 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.keyboard,
-                      size: 18,
-                      color: theme.colorScheme.primary),
+                  Icon(
+                    Icons.keyboard,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     '输入自定义 Emoji',
@@ -339,13 +347,13 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
                 padding: const EdgeInsets.symmetric(horizontal: 3),
                 child: ChoiceChip(
                   label: Text(
-                      (selectedGroupIndex == index && index != _emojiSubIndex)
-                          ? '${emojiEntries[index].key} ●'
-                          : emojiEntries[index].key,
-                      style: const TextStyle(fontSize: 12)),
+                    (selectedGroupIndex == index && index != _emojiSubIndex)
+                        ? '${emojiEntries[index].key} ●'
+                        : emojiEntries[index].key,
+                    style: const TextStyle(fontSize: 12),
+                  ),
                   selected: isActive,
-                  onSelected: (_) =>
-                      setState(() => _emojiSubIndex = index),
+                  onSelected: (_) => setState(() => _emojiSubIndex = index),
                   visualDensity: VisualDensity.compact,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   showCheckmark: false,
@@ -384,8 +392,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet>
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                     border: isSelected
-                        ? Border.all(
-                            color: theme.colorScheme.primary, width: 2)
+                        ? Border.all(color: theme.colorScheme.primary, width: 2)
                         : null,
                   ),
                   alignment: Alignment.center,

@@ -35,7 +35,12 @@ class TransactionRepository implements ITransactionRepository {
     int limit = kTransactionPageSize,
     int offset = 0,
   }) {
-    return _db.watchTransactions(userId, familyId: familyId, limit: limit, offset: offset);
+    return _db.watchTransactions(
+      userId,
+      familyId: familyId,
+      limit: limit,
+      offset: offset,
+    );
   }
 
   /// Load a page of transactions (non-reactive, for infinite scroll).
@@ -45,7 +50,12 @@ class TransactionRepository implements ITransactionRepository {
     required int limit,
     required int offset,
   }) {
-    return _db.getTransactionPage(userId, familyId: familyId, limit: limit, offset: offset);
+    return _db.getTransactionPage(
+      userId,
+      familyId: familyId,
+      limit: limit,
+      offset: offset,
+    );
   }
 
   /// 全量搜索交易（非分页）——按备注 / 分类名 / 账户名模糊匹配。
@@ -57,11 +67,17 @@ class TransactionRepository implements ITransactionRepository {
     String? familyId,
     int limit = 1000,
   }) {
-    return _db.searchTransactions(userId, query, familyId: familyId, limit: limit);
+    return _db.searchTransactions(
+      userId,
+      query,
+      familyId: familyId,
+      limit: limit,
+    );
   }
 
   /// Get raw Drift Transaction by ID (legacy callers).
-  Future<Transaction?> getTransactionById(String id) => _db.getTransactionById(id);
+  Future<Transaction?> getTransactionById(String id) =>
+      _db.getTransactionById(id);
 
   /// ITransactionRepository: returns domain entity.
   @override
@@ -70,7 +86,10 @@ class TransactionRepository implements ITransactionRepository {
     return row == null ? null : _toEntity(row);
   }
 
-  Future<List<Category>> getCategoriesByType(String type, {required String userId}) {
+  Future<List<Category>> getCategoriesByType(
+    String type, {
+    required String userId,
+  }) {
     return _db.getCategoriesByType(type, userId: userId);
   }
 
@@ -182,7 +201,9 @@ class TransactionRepository implements ITransactionRepository {
     // Recompute balance delta
     final effectiveNewAmountCny = amountCny ?? amount ?? oldTxn.amountCny;
     final effectiveNewType = type ?? oldTxn.type;
-    final oldDelta = oldTxn.type == 'income' ? oldTxn.amountCny : -oldTxn.amountCny;
+    final oldDelta = oldTxn.type == 'income'
+        ? oldTxn.amountCny
+        : -oldTxn.amountCny;
     final newDelta = effectiveNewType == 'income'
         ? effectiveNewAmountCny
         : -effectiveNewAmountCny;
@@ -256,22 +277,30 @@ class TransactionRepository implements ITransactionRepository {
     String userId,
     List<CategoryChild> children,
   ) async {
-    await _db.into(_db.categories).insertOnConflictUpdate(
-      CategoriesCompanion.insert(
-        id: categoryId,
-        name: name,
-        type: type,
-        isPreset: const Value(true),
-        sortOrder: Value(sortOrder),
-        parentId: Value(parentId),
-        iconKey: Value(iconKey ?? ''),
-        userId: Value(userId),
-      ),
-    );
+    await _db
+        .into(_db.categories)
+        .insertOnConflictUpdate(
+          CategoriesCompanion.insert(
+            id: categoryId,
+            name: name,
+            type: type,
+            isPreset: const Value(true),
+            sortOrder: Value(sortOrder),
+            parentId: Value(parentId),
+            iconKey: Value(iconKey ?? ''),
+            userId: Value(userId),
+          ),
+        );
     for (final child in children) {
       await upsertCategoryTree(
-        child.id, child.name, type, child.sortOrder,
-        categoryId, child.iconKey, userId, child.children,
+        child.id,
+        child.name,
+        type,
+        child.sortOrder,
+        categoryId,
+        child.iconKey,
+        userId,
+        child.children,
       );
     }
   }
@@ -290,17 +319,19 @@ class TransactionRepository implements ITransactionRepository {
   Future<void> batchUpsert(List<TransactionEntity> transactions) async {
     if (transactions.isEmpty) return;
     final params = transactions
-        .map((t) => TransactionUpsertParams(
-              id: t.id,
-              userId: t.userId,
-              accountId: t.accountId,
-              categoryId: t.categoryId,
-              amount: t.amount,
-              amountCny: t.amountCny,
-              type: t.type,
-              note: t.note,
-              txnDate: t.txnDate,
-            ))
+        .map(
+          (t) => TransactionUpsertParams(
+            id: t.id,
+            userId: t.userId,
+            accountId: t.accountId,
+            categoryId: t.categoryId,
+            amount: t.amount,
+            amountCny: t.amountCny,
+            type: t.type,
+            note: t.note,
+            txnDate: t.txnDate,
+          ),
+        )
         .toList();
     await _db.batchUpsertTransactions(params);
   }
@@ -330,7 +361,11 @@ class TransactionRepository implements ITransactionRepository {
 
   // ─── Private ─────────────────────────────────────────────────────────
 
-  Future<void> _adjustBalance(String accountId, String type, int amountCny) async {
+  Future<void> _adjustBalance(
+    String accountId,
+    String type,
+    int amountCny,
+  ) async {
     final delta = type == 'income' ? amountCny : -amountCny;
     await _db.updateAccountBalance(accountId, delta);
   }
@@ -354,7 +389,12 @@ class TransactionRepository implements ITransactionRepository {
     int limit, {
     String? familyId,
   }) async {
-    final rows = await _db.getTransactionPage(userId, familyId: familyId, limit: limit, offset: 0);
+    final rows = await _db.getTransactionPage(
+      userId,
+      familyId: familyId,
+      limit: limit,
+      offset: 0,
+    );
     return rows.map(_toEntity).toList();
   }
 

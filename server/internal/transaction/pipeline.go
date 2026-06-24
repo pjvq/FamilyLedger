@@ -42,10 +42,10 @@ type PipelineState struct {
 	Parsed *createRequest
 
 	// ─── Transaction outputs ─────────────────────────────────────────────
-	Tx             pgx.Tx    // opened by PersistStage, committed at end
-	ResolvedCatID  uuid.UUID // after CategoryStage
-	AccountMeta    *accountMeta
-	BalanceDelta   int64
+	Tx            pgx.Tx    // opened by PersistStage, committed at end
+	ResolvedCatID uuid.UUID // after CategoryStage
+	AccountMeta   *accountMeta
+	BalanceDelta  int64
 
 	// ─── Result (set by PersistStage) ────────────────────────────────────
 	TxnID     uuid.UUID

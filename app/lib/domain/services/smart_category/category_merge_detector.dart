@@ -138,17 +138,19 @@ class CategoryMergeDetector {
     required CategoryUsageProfiler profiler,
     MergeWeights weights = const MergeWeights(),
     this.semanticScorer,
-  })  : _db = db,
-        _profiler = profiler,
-        _rawWeights = weights;
+  }) : _db = db,
+       _profiler = profiler,
+       _rawWeights = weights;
 
   /// 扫描所有分类，生成合并建议列表（按置信度降序）
   Future<List<MergeSuggestion>> scan() async {
-    final weights = _rawWeights.normalize(hasSemanticScorer: semanticScorer != null);
+    final weights = _rawWeights.normalize(
+      hasSemanticScorer: semanticScorer != null,
+    );
 
-    final categories = await (_db.select(_db.categories)
-          ..where((c) => c.deletedAt.isNull()))
-        .get();
+    final categories = await (_db.select(
+      _db.categories,
+    )..where((c) => c.deletedAt.isNull())).get();
 
     final dismissedPairs = await _getDismissedPairs();
     final profiles = await _profiler.getAllProfiles();
@@ -167,8 +169,12 @@ class CategoryMergeDetector {
       if (dismissedPairs.contains(pairKey)) continue;
       if (_isParentChild(pair.catA, pair.catB)) continue;
 
-      final profileA = profiles[pair.catA.id] ?? CategoryUsageProfile(categoryId: pair.catA.id);
-      final profileB = profiles[pair.catB.id] ?? CategoryUsageProfile(categoryId: pair.catB.id);
+      final profileA =
+          profiles[pair.catA.id] ??
+          CategoryUsageProfile(categoryId: pair.catA.id);
+      final profileB =
+          profiles[pair.catB.id] ??
+          CategoryUsageProfile(categoryId: pair.catB.id);
 
       final textScore = pair.textSim;
       double semanticScore = 0;
@@ -178,25 +184,29 @@ class CategoryMergeDetector {
       final behaviorScore = BehaviorOverlapScorer.score(profileA, profileB);
       final keywordScore = KeywordOverlapScorer.score(profileA, profileB);
 
-      final confidence = weights.text * textScore +
+      final confidence =
+          weights.text * textScore +
           weights.semantic * semanticScore +
           weights.behavior * behaviorScore +
           weights.keyword * keywordScore;
 
       if (confidence >= _confidenceThreshold) {
         final reasons = <String>[];
-        if (textScore >= _highSimilarityThreshold) reasons.add('名称相似(${(textScore * 100).round()}%)');
+        if (textScore >= _highSimilarityThreshold)
+          reasons.add('名称相似(${(textScore * 100).round()}%)');
         if (behaviorScore >= _behaviorReasonThreshold) reasons.add('使用模式相近');
         if (keywordScore >= _keywordReasonThreshold) reasons.add('关键词重叠');
         if (semanticScore >= _semanticReasonThreshold) reasons.add('语义相近');
 
-        suggestions.add(MergeSuggestion(
-          categoryA: pair.catA,
-          categoryB: pair.catB,
-          confidence: confidence,
-          pairType: pair.pairType,
-          reason: reasons.join(' + '),
-        ));
+        suggestions.add(
+          MergeSuggestion(
+            categoryA: pair.catA,
+            categoryB: pair.catB,
+            confidence: confidence,
+            pairType: pair.pairType,
+            reason: reasons.join(' + '),
+          ),
+        );
       }
     }
 
@@ -206,7 +216,7 @@ class CategoryMergeDetector {
 
   /// 创建分类时即时检测（只用 TextSimilarity，<1ms）
   /// 返回与新名称相似的已有分类列表（独立类型，不复用 MergeSuggestion）
-    /// 创建分类时即时检测（只用 TextSimilarity，<1ms）
+  /// 创建分类时即时检测（只用 TextSimilarity，<1ms）
   /// 返回与新名称相似的已有分类列表
   /// 可以作为实例方法或静态方法调用
   static List<InstantCheckHit> instantCheckStatic(
@@ -220,11 +230,13 @@ class CategoryMergeDetector {
       if (existing.type != newType) continue;
       final sim = TextSimilarityScorer.score(newName, existing.name);
       if (sim >= threshold) {
-        hits.add(InstantCheckHit(
-          existingCategory: existing,
-          similarity: sim,
-          reason: '与「${existing.name}」名称相似(${(sim * 100).round()}%)',
-        ));
+        hits.add(
+          InstantCheckHit(
+            existingCategory: existing,
+            similarity: sim,
+            reason: '与「${existing.name}」名称相似(${(sim * 100).round()}%)',
+          ),
+        );
       }
     }
     hits.sort((a, b) => b.similarity.compareTo(a.similarity));
@@ -330,7 +342,9 @@ class CategoryMergeDetector {
     }
 
     if (!aIsParent && !bIsParent) {
-      return a.parentId == b.parentId ? PairType.sameParent : PairType.crossParent;
+      return a.parentId == b.parentId
+          ? PairType.sameParent
+          : PairType.crossParent;
     }
 
     return PairType.parentVsLeaf;
@@ -340,9 +354,9 @@ class CategoryMergeDetector {
 
   Future<Set<String>> _getDismissedPairs() async {
     final now = DateTime.now();
-    final dismissals = await (_db.select(_db.categoryMergeDismissals)
-          ..where((d) => d.expiresAt.isBiggerOrEqualValue(now)))
-        .get();
+    final dismissals = await (_db.select(
+      _db.categoryMergeDismissals,
+    )..where((d) => d.expiresAt.isBiggerOrEqualValue(now))).get();
     return dismissals.map((d) => d.pairKey).toSet();
   }
 

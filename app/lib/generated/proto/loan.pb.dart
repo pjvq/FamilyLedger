@@ -122,47 +122,76 @@ class Loan extends $pb.GeneratedMessage {
     return $result;
   }
   Loan._() : super();
-  factory Loan.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory Loan.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory Loan.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory Loan.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'Loan', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Loan',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'userId')
     ..aOS(3, _omitFieldNames ? '' : 'name')
-    ..e<LoanType>(4, _omitFieldNames ? '' : 'loanType', $pb.PbFieldType.OE, defaultOrMaker: LoanType.LOAN_TYPE_UNSPECIFIED, valueOf: LoanType.valueOf, enumValues: LoanType.values)
+    ..e<LoanType>(4, _omitFieldNames ? '' : 'loanType', $pb.PbFieldType.OE,
+        defaultOrMaker: LoanType.LOAN_TYPE_UNSPECIFIED,
+        valueOf: LoanType.valueOf,
+        enumValues: LoanType.values)
     ..aInt64(5, _omitFieldNames ? '' : 'principal')
     ..aInt64(6, _omitFieldNames ? '' : 'remainingPrincipal')
-    ..a<$core.double>(7, _omitFieldNames ? '' : 'annualRate', $pb.PbFieldType.OD)
+    ..a<$core.double>(
+        7, _omitFieldNames ? '' : 'annualRate', $pb.PbFieldType.OD)
     ..a<$core.int>(8, _omitFieldNames ? '' : 'totalMonths', $pb.PbFieldType.O3)
     ..a<$core.int>(9, _omitFieldNames ? '' : 'paidMonths', $pb.PbFieldType.O3)
-    ..e<RepaymentMethod>(10, _omitFieldNames ? '' : 'repaymentMethod', $pb.PbFieldType.OE, defaultOrMaker: RepaymentMethod.REPAYMENT_METHOD_UNSPECIFIED, valueOf: RepaymentMethod.valueOf, enumValues: RepaymentMethod.values)
+    ..e<RepaymentMethod>(
+        10, _omitFieldNames ? '' : 'repaymentMethod', $pb.PbFieldType.OE,
+        defaultOrMaker: RepaymentMethod.REPAYMENT_METHOD_UNSPECIFIED,
+        valueOf: RepaymentMethod.valueOf,
+        enumValues: RepaymentMethod.values)
     ..a<$core.int>(11, _omitFieldNames ? '' : 'paymentDay', $pb.PbFieldType.O3)
-    ..aOM<$2.Timestamp>(12, _omitFieldNames ? '' : 'startDate', subBuilder: $2.Timestamp.create)
-    ..aOM<$2.Timestamp>(13, _omitFieldNames ? '' : 'createdAt', subBuilder: $2.Timestamp.create)
-    ..aOM<$2.Timestamp>(14, _omitFieldNames ? '' : 'updatedAt', subBuilder: $2.Timestamp.create)
+    ..aOM<$2.Timestamp>(12, _omitFieldNames ? '' : 'startDate',
+        subBuilder: $2.Timestamp.create)
+    ..aOM<$2.Timestamp>(13, _omitFieldNames ? '' : 'createdAt',
+        subBuilder: $2.Timestamp.create)
+    ..aOM<$2.Timestamp>(14, _omitFieldNames ? '' : 'updatedAt',
+        subBuilder: $2.Timestamp.create)
     ..aOS(15, _omitFieldNames ? '' : 'accountId')
     ..aOS(16, _omitFieldNames ? '' : 'groupId')
-    ..e<LoanSubType>(17, _omitFieldNames ? '' : 'subType', $pb.PbFieldType.OE, defaultOrMaker: LoanSubType.LOAN_SUB_TYPE_UNSPECIFIED, valueOf: LoanSubType.valueOf, enumValues: LoanSubType.values)
-    ..e<RateType>(18, _omitFieldNames ? '' : 'rateType', $pb.PbFieldType.OE, defaultOrMaker: RateType.RATE_TYPE_UNSPECIFIED, valueOf: RateType.valueOf, enumValues: RateType.values)
+    ..e<LoanSubType>(17, _omitFieldNames ? '' : 'subType', $pb.PbFieldType.OE,
+        defaultOrMaker: LoanSubType.LOAN_SUB_TYPE_UNSPECIFIED,
+        valueOf: LoanSubType.valueOf,
+        enumValues: LoanSubType.values)
+    ..e<RateType>(18, _omitFieldNames ? '' : 'rateType', $pb.PbFieldType.OE,
+        defaultOrMaker: RateType.RATE_TYPE_UNSPECIFIED,
+        valueOf: RateType.valueOf,
+        enumValues: RateType.values)
     ..a<$core.double>(19, _omitFieldNames ? '' : 'lprBase', $pb.PbFieldType.OD)
-    ..a<$core.double>(20, _omitFieldNames ? '' : 'lprSpread', $pb.PbFieldType.OD)
-    ..a<$core.int>(21, _omitFieldNames ? '' : 'rateAdjustMonth', $pb.PbFieldType.O3)
+    ..a<$core.double>(
+        20, _omitFieldNames ? '' : 'lprSpread', $pb.PbFieldType.OD)
+    ..a<$core.int>(
+        21, _omitFieldNames ? '' : 'rateAdjustMonth', $pb.PbFieldType.O3)
     ..aOS(22, _omitFieldNames ? '' : 'familyId')
     ..aOS(23, _omitFieldNames ? '' : 'repaymentCategoryId')
-    ..e<InterestCalcMethod>(24, _omitFieldNames ? '' : 'interestCalcMethod', $pb.PbFieldType.OE, defaultOrMaker: InterestCalcMethod.INTEREST_CALC_MONTHLY, valueOf: InterestCalcMethod.valueOf, enumValues: InterestCalcMethod.values)
-    ..hasRequiredFields = false
-  ;
+    ..e<InterestCalcMethod>(
+        24, _omitFieldNames ? '' : 'interestCalcMethod', $pb.PbFieldType.OE,
+        defaultOrMaker: InterestCalcMethod.INTEREST_CALC_MONTHLY,
+        valueOf: InterestCalcMethod.valueOf,
+        enumValues: InterestCalcMethod.values)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   Loan clone() => Loan()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  Loan copyWith(void Function(Loan) updates) => super.copyWith((message) => updates(message as Loan)) as Loan;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  Loan copyWith(void Function(Loan) updates) =>
+      super.copyWith((message) => updates(message as Loan)) as Loan;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -171,13 +200,17 @@ class Loan extends $pb.GeneratedMessage {
   Loan createEmptyInstance() => create();
   static $pb.PbList<Loan> createRepeated() => $pb.PbList<Loan>();
   @$core.pragma('dart2js:noInline')
-  static Loan getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Loan>(create);
+  static Loan getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Loan>(create);
   static Loan? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
@@ -186,7 +219,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get userId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set userId($core.String v) { $_setString(1, v); }
+  set userId($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasUserId() => $_has(1);
   @$pb.TagNumber(2)
@@ -195,7 +231,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get name => $_getSZ(2);
   @$pb.TagNumber(3)
-  set name($core.String v) { $_setString(2, v); }
+  set name($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasName() => $_has(2);
   @$pb.TagNumber(3)
@@ -204,7 +243,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   LoanType get loanType => $_getN(3);
   @$pb.TagNumber(4)
-  set loanType(LoanType v) { setField(4, v); }
+  set loanType(LoanType v) {
+    setField(4, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasLoanType() => $_has(3);
   @$pb.TagNumber(4)
@@ -213,7 +255,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $fixnum.Int64 get principal => $_getI64(4);
   @$pb.TagNumber(5)
-  set principal($fixnum.Int64 v) { $_setInt64(4, v); }
+  set principal($fixnum.Int64 v) {
+    $_setInt64(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasPrincipal() => $_has(4);
   @$pb.TagNumber(5)
@@ -222,7 +267,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $fixnum.Int64 get remainingPrincipal => $_getI64(5);
   @$pb.TagNumber(6)
-  set remainingPrincipal($fixnum.Int64 v) { $_setInt64(5, v); }
+  set remainingPrincipal($fixnum.Int64 v) {
+    $_setInt64(5, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasRemainingPrincipal() => $_has(5);
   @$pb.TagNumber(6)
@@ -231,7 +279,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $core.double get annualRate => $_getN(6);
   @$pb.TagNumber(7)
-  set annualRate($core.double v) { $_setDouble(6, v); }
+  set annualRate($core.double v) {
+    $_setDouble(6, v);
+  }
+
   @$pb.TagNumber(7)
   $core.bool hasAnnualRate() => $_has(6);
   @$pb.TagNumber(7)
@@ -240,7 +291,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $core.int get totalMonths => $_getIZ(7);
   @$pb.TagNumber(8)
-  set totalMonths($core.int v) { $_setSignedInt32(7, v); }
+  set totalMonths($core.int v) {
+    $_setSignedInt32(7, v);
+  }
+
   @$pb.TagNumber(8)
   $core.bool hasTotalMonths() => $_has(7);
   @$pb.TagNumber(8)
@@ -249,7 +303,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(9)
   $core.int get paidMonths => $_getIZ(8);
   @$pb.TagNumber(9)
-  set paidMonths($core.int v) { $_setSignedInt32(8, v); }
+  set paidMonths($core.int v) {
+    $_setSignedInt32(8, v);
+  }
+
   @$pb.TagNumber(9)
   $core.bool hasPaidMonths() => $_has(8);
   @$pb.TagNumber(9)
@@ -258,7 +315,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(10)
   RepaymentMethod get repaymentMethod => $_getN(9);
   @$pb.TagNumber(10)
-  set repaymentMethod(RepaymentMethod v) { setField(10, v); }
+  set repaymentMethod(RepaymentMethod v) {
+    setField(10, v);
+  }
+
   @$pb.TagNumber(10)
   $core.bool hasRepaymentMethod() => $_has(9);
   @$pb.TagNumber(10)
@@ -267,7 +327,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(11)
   $core.int get paymentDay => $_getIZ(10);
   @$pb.TagNumber(11)
-  set paymentDay($core.int v) { $_setSignedInt32(10, v); }
+  set paymentDay($core.int v) {
+    $_setSignedInt32(10, v);
+  }
+
   @$pb.TagNumber(11)
   $core.bool hasPaymentDay() => $_has(10);
   @$pb.TagNumber(11)
@@ -276,7 +339,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(12)
   $2.Timestamp get startDate => $_getN(11);
   @$pb.TagNumber(12)
-  set startDate($2.Timestamp v) { setField(12, v); }
+  set startDate($2.Timestamp v) {
+    setField(12, v);
+  }
+
   @$pb.TagNumber(12)
   $core.bool hasStartDate() => $_has(11);
   @$pb.TagNumber(12)
@@ -287,7 +353,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(13)
   $2.Timestamp get createdAt => $_getN(12);
   @$pb.TagNumber(13)
-  set createdAt($2.Timestamp v) { setField(13, v); }
+  set createdAt($2.Timestamp v) {
+    setField(13, v);
+  }
+
   @$pb.TagNumber(13)
   $core.bool hasCreatedAt() => $_has(12);
   @$pb.TagNumber(13)
@@ -298,7 +367,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(14)
   $2.Timestamp get updatedAt => $_getN(13);
   @$pb.TagNumber(14)
-  set updatedAt($2.Timestamp v) { setField(14, v); }
+  set updatedAt($2.Timestamp v) {
+    setField(14, v);
+  }
+
   @$pb.TagNumber(14)
   $core.bool hasUpdatedAt() => $_has(13);
   @$pb.TagNumber(14)
@@ -309,7 +381,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(15)
   $core.String get accountId => $_getSZ(14);
   @$pb.TagNumber(15)
-  set accountId($core.String v) { $_setString(14, v); }
+  set accountId($core.String v) {
+    $_setString(14, v);
+  }
+
   @$pb.TagNumber(15)
   $core.bool hasAccountId() => $_has(14);
   @$pb.TagNumber(15)
@@ -318,7 +393,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(16)
   $core.String get groupId => $_getSZ(15);
   @$pb.TagNumber(16)
-  set groupId($core.String v) { $_setString(15, v); }
+  set groupId($core.String v) {
+    $_setString(15, v);
+  }
+
   @$pb.TagNumber(16)
   $core.bool hasGroupId() => $_has(15);
   @$pb.TagNumber(16)
@@ -327,7 +405,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(17)
   LoanSubType get subType => $_getN(16);
   @$pb.TagNumber(17)
-  set subType(LoanSubType v) { setField(17, v); }
+  set subType(LoanSubType v) {
+    setField(17, v);
+  }
+
   @$pb.TagNumber(17)
   $core.bool hasSubType() => $_has(16);
   @$pb.TagNumber(17)
@@ -336,7 +417,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(18)
   RateType get rateType => $_getN(17);
   @$pb.TagNumber(18)
-  set rateType(RateType v) { setField(18, v); }
+  set rateType(RateType v) {
+    setField(18, v);
+  }
+
   @$pb.TagNumber(18)
   $core.bool hasRateType() => $_has(17);
   @$pb.TagNumber(18)
@@ -345,7 +429,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(19)
   $core.double get lprBase => $_getN(18);
   @$pb.TagNumber(19)
-  set lprBase($core.double v) { $_setDouble(18, v); }
+  set lprBase($core.double v) {
+    $_setDouble(18, v);
+  }
+
   @$pb.TagNumber(19)
   $core.bool hasLprBase() => $_has(18);
   @$pb.TagNumber(19)
@@ -354,7 +441,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(20)
   $core.double get lprSpread => $_getN(19);
   @$pb.TagNumber(20)
-  set lprSpread($core.double v) { $_setDouble(19, v); }
+  set lprSpread($core.double v) {
+    $_setDouble(19, v);
+  }
+
   @$pb.TagNumber(20)
   $core.bool hasLprSpread() => $_has(19);
   @$pb.TagNumber(20)
@@ -363,7 +453,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(21)
   $core.int get rateAdjustMonth => $_getIZ(20);
   @$pb.TagNumber(21)
-  set rateAdjustMonth($core.int v) { $_setSignedInt32(20, v); }
+  set rateAdjustMonth($core.int v) {
+    $_setSignedInt32(20, v);
+  }
+
   @$pb.TagNumber(21)
   $core.bool hasRateAdjustMonth() => $_has(20);
   @$pb.TagNumber(21)
@@ -372,7 +465,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(22)
   $core.String get familyId => $_getSZ(21);
   @$pb.TagNumber(22)
-  set familyId($core.String v) { $_setString(21, v); }
+  set familyId($core.String v) {
+    $_setString(21, v);
+  }
+
   @$pb.TagNumber(22)
   $core.bool hasFamilyId() => $_has(21);
   @$pb.TagNumber(22)
@@ -381,7 +477,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(23)
   $core.String get repaymentCategoryId => $_getSZ(22);
   @$pb.TagNumber(23)
-  set repaymentCategoryId($core.String v) { $_setString(22, v); }
+  set repaymentCategoryId($core.String v) {
+    $_setString(22, v);
+  }
+
   @$pb.TagNumber(23)
   $core.bool hasRepaymentCategoryId() => $_has(22);
   @$pb.TagNumber(23)
@@ -390,7 +489,10 @@ class Loan extends $pb.GeneratedMessage {
   @$pb.TagNumber(24)
   InterestCalcMethod get interestCalcMethod => $_getN(23);
   @$pb.TagNumber(24)
-  set interestCalcMethod(InterestCalcMethod v) { setField(24, v); }
+  set interestCalcMethod(InterestCalcMethod v) {
+    setField(24, v);
+  }
+
   @$pb.TagNumber(24)
   $core.bool hasInterestCalcMethod() => $_has(23);
   @$pb.TagNumber(24)
@@ -436,46 +538,60 @@ class LoanScheduleItem extends $pb.GeneratedMessage {
     return $result;
   }
   LoanScheduleItem._() : super();
-  factory LoanScheduleItem.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory LoanScheduleItem.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory LoanScheduleItem.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory LoanScheduleItem.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'LoanScheduleItem', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LoanScheduleItem',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..a<$core.int>(1, _omitFieldNames ? '' : 'monthNumber', $pb.PbFieldType.O3)
     ..aInt64(2, _omitFieldNames ? '' : 'payment')
     ..aInt64(3, _omitFieldNames ? '' : 'principalPart')
     ..aInt64(4, _omitFieldNames ? '' : 'interestPart')
     ..aInt64(5, _omitFieldNames ? '' : 'remainingPrincipal')
     ..aOB(6, _omitFieldNames ? '' : 'isPaid')
-    ..aOM<$2.Timestamp>(7, _omitFieldNames ? '' : 'dueDate', subBuilder: $2.Timestamp.create)
-    ..aOM<$2.Timestamp>(8, _omitFieldNames ? '' : 'paidDate', subBuilder: $2.Timestamp.create)
-    ..hasRequiredFields = false
-  ;
+    ..aOM<$2.Timestamp>(7, _omitFieldNames ? '' : 'dueDate',
+        subBuilder: $2.Timestamp.create)
+    ..aOM<$2.Timestamp>(8, _omitFieldNames ? '' : 'paidDate',
+        subBuilder: $2.Timestamp.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   LoanScheduleItem clone() => LoanScheduleItem()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  LoanScheduleItem copyWith(void Function(LoanScheduleItem) updates) => super.copyWith((message) => updates(message as LoanScheduleItem)) as LoanScheduleItem;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  LoanScheduleItem copyWith(void Function(LoanScheduleItem) updates) =>
+      super.copyWith((message) => updates(message as LoanScheduleItem))
+          as LoanScheduleItem;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static LoanScheduleItem create() => LoanScheduleItem._();
   LoanScheduleItem createEmptyInstance() => create();
-  static $pb.PbList<LoanScheduleItem> createRepeated() => $pb.PbList<LoanScheduleItem>();
+  static $pb.PbList<LoanScheduleItem> createRepeated() =>
+      $pb.PbList<LoanScheduleItem>();
   @$core.pragma('dart2js:noInline')
-  static LoanScheduleItem getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<LoanScheduleItem>(create);
+  static LoanScheduleItem getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LoanScheduleItem>(create);
   static LoanScheduleItem? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.int get monthNumber => $_getIZ(0);
   @$pb.TagNumber(1)
-  set monthNumber($core.int v) { $_setSignedInt32(0, v); }
+  set monthNumber($core.int v) {
+    $_setSignedInt32(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasMonthNumber() => $_has(0);
   @$pb.TagNumber(1)
@@ -484,7 +600,10 @@ class LoanScheduleItem extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $fixnum.Int64 get payment => $_getI64(1);
   @$pb.TagNumber(2)
-  set payment($fixnum.Int64 v) { $_setInt64(1, v); }
+  set payment($fixnum.Int64 v) {
+    $_setInt64(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasPayment() => $_has(1);
   @$pb.TagNumber(2)
@@ -493,7 +612,10 @@ class LoanScheduleItem extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $fixnum.Int64 get principalPart => $_getI64(2);
   @$pb.TagNumber(3)
-  set principalPart($fixnum.Int64 v) { $_setInt64(2, v); }
+  set principalPart($fixnum.Int64 v) {
+    $_setInt64(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasPrincipalPart() => $_has(2);
   @$pb.TagNumber(3)
@@ -502,7 +624,10 @@ class LoanScheduleItem extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $fixnum.Int64 get interestPart => $_getI64(3);
   @$pb.TagNumber(4)
-  set interestPart($fixnum.Int64 v) { $_setInt64(3, v); }
+  set interestPart($fixnum.Int64 v) {
+    $_setInt64(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasInterestPart() => $_has(3);
   @$pb.TagNumber(4)
@@ -511,7 +636,10 @@ class LoanScheduleItem extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $fixnum.Int64 get remainingPrincipal => $_getI64(4);
   @$pb.TagNumber(5)
-  set remainingPrincipal($fixnum.Int64 v) { $_setInt64(4, v); }
+  set remainingPrincipal($fixnum.Int64 v) {
+    $_setInt64(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasRemainingPrincipal() => $_has(4);
   @$pb.TagNumber(5)
@@ -520,7 +648,10 @@ class LoanScheduleItem extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.bool get isPaid => $_getBF(5);
   @$pb.TagNumber(6)
-  set isPaid($core.bool v) { $_setBool(5, v); }
+  set isPaid($core.bool v) {
+    $_setBool(5, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasIsPaid() => $_has(5);
   @$pb.TagNumber(6)
@@ -529,7 +660,10 @@ class LoanScheduleItem extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $2.Timestamp get dueDate => $_getN(6);
   @$pb.TagNumber(7)
-  set dueDate($2.Timestamp v) { setField(7, v); }
+  set dueDate($2.Timestamp v) {
+    setField(7, v);
+  }
+
   @$pb.TagNumber(7)
   $core.bool hasDueDate() => $_has(6);
   @$pb.TagNumber(7)
@@ -540,7 +674,10 @@ class LoanScheduleItem extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $2.Timestamp get paidDate => $_getN(7);
   @$pb.TagNumber(8)
-  set paidDate($2.Timestamp v) { setField(8, v); }
+  set paidDate($2.Timestamp v) {
+    setField(8, v);
+  }
+
   @$pb.TagNumber(8)
   $core.bool hasPaidDate() => $_has(7);
   @$pb.TagNumber(8)
@@ -584,45 +721,61 @@ class PrepaymentSimulation extends $pb.GeneratedMessage {
     return $result;
   }
   PrepaymentSimulation._() : super();
-  factory PrepaymentSimulation.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory PrepaymentSimulation.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory PrepaymentSimulation.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory PrepaymentSimulation.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'PrepaymentSimulation', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PrepaymentSimulation',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aInt64(1, _omitFieldNames ? '' : 'prepaymentAmount')
     ..aInt64(2, _omitFieldNames ? '' : 'totalInterestBefore')
     ..aInt64(3, _omitFieldNames ? '' : 'totalInterestAfter')
     ..aInt64(4, _omitFieldNames ? '' : 'interestSaved')
-    ..a<$core.int>(5, _omitFieldNames ? '' : 'monthsReduced', $pb.PbFieldType.O3)
+    ..a<$core.int>(
+        5, _omitFieldNames ? '' : 'monthsReduced', $pb.PbFieldType.O3)
     ..aInt64(6, _omitFieldNames ? '' : 'newMonthlyPayment')
-    ..pc<LoanScheduleItem>(7, _omitFieldNames ? '' : 'newSchedule', $pb.PbFieldType.PM, subBuilder: LoanScheduleItem.create)
-    ..hasRequiredFields = false
-  ;
+    ..pc<LoanScheduleItem>(
+        7, _omitFieldNames ? '' : 'newSchedule', $pb.PbFieldType.PM,
+        subBuilder: LoanScheduleItem.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  PrepaymentSimulation clone() => PrepaymentSimulation()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  PrepaymentSimulation copyWith(void Function(PrepaymentSimulation) updates) => super.copyWith((message) => updates(message as PrepaymentSimulation)) as PrepaymentSimulation;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  PrepaymentSimulation clone() =>
+      PrepaymentSimulation()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  PrepaymentSimulation copyWith(void Function(PrepaymentSimulation) updates) =>
+      super.copyWith((message) => updates(message as PrepaymentSimulation))
+          as PrepaymentSimulation;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static PrepaymentSimulation create() => PrepaymentSimulation._();
   PrepaymentSimulation createEmptyInstance() => create();
-  static $pb.PbList<PrepaymentSimulation> createRepeated() => $pb.PbList<PrepaymentSimulation>();
+  static $pb.PbList<PrepaymentSimulation> createRepeated() =>
+      $pb.PbList<PrepaymentSimulation>();
   @$core.pragma('dart2js:noInline')
-  static PrepaymentSimulation getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<PrepaymentSimulation>(create);
+  static PrepaymentSimulation getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PrepaymentSimulation>(create);
   static PrepaymentSimulation? _defaultInstance;
 
   @$pb.TagNumber(1)
   $fixnum.Int64 get prepaymentAmount => $_getI64(0);
   @$pb.TagNumber(1)
-  set prepaymentAmount($fixnum.Int64 v) { $_setInt64(0, v); }
+  set prepaymentAmount($fixnum.Int64 v) {
+    $_setInt64(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasPrepaymentAmount() => $_has(0);
   @$pb.TagNumber(1)
@@ -631,7 +784,10 @@ class PrepaymentSimulation extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $fixnum.Int64 get totalInterestBefore => $_getI64(1);
   @$pb.TagNumber(2)
-  set totalInterestBefore($fixnum.Int64 v) { $_setInt64(1, v); }
+  set totalInterestBefore($fixnum.Int64 v) {
+    $_setInt64(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasTotalInterestBefore() => $_has(1);
   @$pb.TagNumber(2)
@@ -640,7 +796,10 @@ class PrepaymentSimulation extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $fixnum.Int64 get totalInterestAfter => $_getI64(2);
   @$pb.TagNumber(3)
-  set totalInterestAfter($fixnum.Int64 v) { $_setInt64(2, v); }
+  set totalInterestAfter($fixnum.Int64 v) {
+    $_setInt64(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasTotalInterestAfter() => $_has(2);
   @$pb.TagNumber(3)
@@ -649,7 +808,10 @@ class PrepaymentSimulation extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $fixnum.Int64 get interestSaved => $_getI64(3);
   @$pb.TagNumber(4)
-  set interestSaved($fixnum.Int64 v) { $_setInt64(3, v); }
+  set interestSaved($fixnum.Int64 v) {
+    $_setInt64(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasInterestSaved() => $_has(3);
   @$pb.TagNumber(4)
@@ -658,7 +820,10 @@ class PrepaymentSimulation extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.int get monthsReduced => $_getIZ(4);
   @$pb.TagNumber(5)
-  set monthsReduced($core.int v) { $_setSignedInt32(4, v); }
+  set monthsReduced($core.int v) {
+    $_setSignedInt32(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasMonthsReduced() => $_has(4);
   @$pb.TagNumber(5)
@@ -667,7 +832,10 @@ class PrepaymentSimulation extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $fixnum.Int64 get newMonthlyPayment => $_getI64(5);
   @$pb.TagNumber(6)
-  set newMonthlyPayment($fixnum.Int64 v) { $_setInt64(5, v); }
+  set newMonthlyPayment($fixnum.Int64 v) {
+    $_setInt64(5, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasNewMonthlyPayment() => $_has(5);
   @$pb.TagNumber(6)
@@ -728,49 +896,74 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
     return $result;
   }
   CreateLoanRequest._() : super();
-  factory CreateLoanRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory CreateLoanRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory CreateLoanRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory CreateLoanRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateLoanRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CreateLoanRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'name')
-    ..e<LoanType>(2, _omitFieldNames ? '' : 'loanType', $pb.PbFieldType.OE, defaultOrMaker: LoanType.LOAN_TYPE_UNSPECIFIED, valueOf: LoanType.valueOf, enumValues: LoanType.values)
+    ..e<LoanType>(2, _omitFieldNames ? '' : 'loanType', $pb.PbFieldType.OE,
+        defaultOrMaker: LoanType.LOAN_TYPE_UNSPECIFIED,
+        valueOf: LoanType.valueOf,
+        enumValues: LoanType.values)
     ..aInt64(3, _omitFieldNames ? '' : 'principal')
-    ..a<$core.double>(4, _omitFieldNames ? '' : 'annualRate', $pb.PbFieldType.OD)
+    ..a<$core.double>(
+        4, _omitFieldNames ? '' : 'annualRate', $pb.PbFieldType.OD)
     ..a<$core.int>(5, _omitFieldNames ? '' : 'totalMonths', $pb.PbFieldType.O3)
-    ..e<RepaymentMethod>(6, _omitFieldNames ? '' : 'repaymentMethod', $pb.PbFieldType.OE, defaultOrMaker: RepaymentMethod.REPAYMENT_METHOD_UNSPECIFIED, valueOf: RepaymentMethod.valueOf, enumValues: RepaymentMethod.values)
+    ..e<RepaymentMethod>(
+        6, _omitFieldNames ? '' : 'repaymentMethod', $pb.PbFieldType.OE,
+        defaultOrMaker: RepaymentMethod.REPAYMENT_METHOD_UNSPECIFIED,
+        valueOf: RepaymentMethod.valueOf,
+        enumValues: RepaymentMethod.values)
     ..a<$core.int>(7, _omitFieldNames ? '' : 'paymentDay', $pb.PbFieldType.O3)
-    ..aOM<$2.Timestamp>(8, _omitFieldNames ? '' : 'startDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$2.Timestamp>(8, _omitFieldNames ? '' : 'startDate',
+        subBuilder: $2.Timestamp.create)
     ..aOS(9, _omitFieldNames ? '' : 'accountId')
     ..aOS(10, _omitFieldNames ? '' : 'familyId')
-    ..e<InterestCalcMethod>(11, _omitFieldNames ? '' : 'interestCalcMethod', $pb.PbFieldType.OE, defaultOrMaker: InterestCalcMethod.INTEREST_CALC_MONTHLY, valueOf: InterestCalcMethod.valueOf, enumValues: InterestCalcMethod.values)
-    ..hasRequiredFields = false
-  ;
+    ..e<InterestCalcMethod>(
+        11, _omitFieldNames ? '' : 'interestCalcMethod', $pb.PbFieldType.OE,
+        defaultOrMaker: InterestCalcMethod.INTEREST_CALC_MONTHLY,
+        valueOf: InterestCalcMethod.valueOf,
+        enumValues: InterestCalcMethod.values)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   CreateLoanRequest clone() => CreateLoanRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  CreateLoanRequest copyWith(void Function(CreateLoanRequest) updates) => super.copyWith((message) => updates(message as CreateLoanRequest)) as CreateLoanRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  CreateLoanRequest copyWith(void Function(CreateLoanRequest) updates) =>
+      super.copyWith((message) => updates(message as CreateLoanRequest))
+          as CreateLoanRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static CreateLoanRequest create() => CreateLoanRequest._();
   CreateLoanRequest createEmptyInstance() => create();
-  static $pb.PbList<CreateLoanRequest> createRepeated() => $pb.PbList<CreateLoanRequest>();
+  static $pb.PbList<CreateLoanRequest> createRepeated() =>
+      $pb.PbList<CreateLoanRequest>();
   @$core.pragma('dart2js:noInline')
-  static CreateLoanRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateLoanRequest>(create);
+  static CreateLoanRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CreateLoanRequest>(create);
   static CreateLoanRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get name => $_getSZ(0);
   @$pb.TagNumber(1)
-  set name($core.String v) { $_setString(0, v); }
+  set name($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasName() => $_has(0);
   @$pb.TagNumber(1)
@@ -779,7 +972,10 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   LoanType get loanType => $_getN(1);
   @$pb.TagNumber(2)
-  set loanType(LoanType v) { setField(2, v); }
+  set loanType(LoanType v) {
+    setField(2, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasLoanType() => $_has(1);
   @$pb.TagNumber(2)
@@ -788,7 +984,10 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $fixnum.Int64 get principal => $_getI64(2);
   @$pb.TagNumber(3)
-  set principal($fixnum.Int64 v) { $_setInt64(2, v); }
+  set principal($fixnum.Int64 v) {
+    $_setInt64(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasPrincipal() => $_has(2);
   @$pb.TagNumber(3)
@@ -797,7 +996,10 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.double get annualRate => $_getN(3);
   @$pb.TagNumber(4)
-  set annualRate($core.double v) { $_setDouble(3, v); }
+  set annualRate($core.double v) {
+    $_setDouble(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasAnnualRate() => $_has(3);
   @$pb.TagNumber(4)
@@ -806,7 +1008,10 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.int get totalMonths => $_getIZ(4);
   @$pb.TagNumber(5)
-  set totalMonths($core.int v) { $_setSignedInt32(4, v); }
+  set totalMonths($core.int v) {
+    $_setSignedInt32(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasTotalMonths() => $_has(4);
   @$pb.TagNumber(5)
@@ -815,7 +1020,10 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   RepaymentMethod get repaymentMethod => $_getN(5);
   @$pb.TagNumber(6)
-  set repaymentMethod(RepaymentMethod v) { setField(6, v); }
+  set repaymentMethod(RepaymentMethod v) {
+    setField(6, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasRepaymentMethod() => $_has(5);
   @$pb.TagNumber(6)
@@ -824,7 +1032,10 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $core.int get paymentDay => $_getIZ(6);
   @$pb.TagNumber(7)
-  set paymentDay($core.int v) { $_setSignedInt32(6, v); }
+  set paymentDay($core.int v) {
+    $_setSignedInt32(6, v);
+  }
+
   @$pb.TagNumber(7)
   $core.bool hasPaymentDay() => $_has(6);
   @$pb.TagNumber(7)
@@ -833,7 +1044,10 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $2.Timestamp get startDate => $_getN(7);
   @$pb.TagNumber(8)
-  set startDate($2.Timestamp v) { setField(8, v); }
+  set startDate($2.Timestamp v) {
+    setField(8, v);
+  }
+
   @$pb.TagNumber(8)
   $core.bool hasStartDate() => $_has(7);
   @$pb.TagNumber(8)
@@ -844,7 +1058,10 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(9)
   $core.String get accountId => $_getSZ(8);
   @$pb.TagNumber(9)
-  set accountId($core.String v) { $_setString(8, v); }
+  set accountId($core.String v) {
+    $_setString(8, v);
+  }
+
   @$pb.TagNumber(9)
   $core.bool hasAccountId() => $_has(8);
   @$pb.TagNumber(9)
@@ -853,7 +1070,10 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(10)
   $core.String get familyId => $_getSZ(9);
   @$pb.TagNumber(10)
-  set familyId($core.String v) { $_setString(9, v); }
+  set familyId($core.String v) {
+    $_setString(9, v);
+  }
+
   @$pb.TagNumber(10)
   $core.bool hasFamilyId() => $_has(9);
   @$pb.TagNumber(10)
@@ -862,7 +1082,10 @@ class CreateLoanRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(11)
   InterestCalcMethod get interestCalcMethod => $_getN(10);
   @$pb.TagNumber(11)
-  set interestCalcMethod(InterestCalcMethod v) { setField(11, v); }
+  set interestCalcMethod(InterestCalcMethod v) {
+    setField(11, v);
+  }
+
   @$pb.TagNumber(11)
   $core.bool hasInterestCalcMethod() => $_has(10);
   @$pb.TagNumber(11)
@@ -880,39 +1103,51 @@ class GetLoanRequest extends $pb.GeneratedMessage {
     return $result;
   }
   GetLoanRequest._() : super();
-  factory GetLoanRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetLoanRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetLoanRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GetLoanRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetLoanRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetLoanRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'loanId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   GetLoanRequest clone() => GetLoanRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetLoanRequest copyWith(void Function(GetLoanRequest) updates) => super.copyWith((message) => updates(message as GetLoanRequest)) as GetLoanRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GetLoanRequest copyWith(void Function(GetLoanRequest) updates) =>
+      super.copyWith((message) => updates(message as GetLoanRequest))
+          as GetLoanRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static GetLoanRequest create() => GetLoanRequest._();
   GetLoanRequest createEmptyInstance() => create();
-  static $pb.PbList<GetLoanRequest> createRepeated() => $pb.PbList<GetLoanRequest>();
+  static $pb.PbList<GetLoanRequest> createRepeated() =>
+      $pb.PbList<GetLoanRequest>();
   @$core.pragma('dart2js:noInline')
-  static GetLoanRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetLoanRequest>(create);
+  static GetLoanRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetLoanRequest>(create);
   static GetLoanRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get loanId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set loanId($core.String v) { $_setString(0, v); }
+  set loanId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasLoanId() => $_has(0);
   @$pb.TagNumber(1)
@@ -930,39 +1165,51 @@ class ListLoansRequest extends $pb.GeneratedMessage {
     return $result;
   }
   ListLoansRequest._() : super();
-  factory ListLoansRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListLoansRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ListLoansRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ListLoansRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListLoansRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListLoansRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'familyId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   ListLoansRequest clone() => ListLoansRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListLoansRequest copyWith(void Function(ListLoansRequest) updates) => super.copyWith((message) => updates(message as ListLoansRequest)) as ListLoansRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ListLoansRequest copyWith(void Function(ListLoansRequest) updates) =>
+      super.copyWith((message) => updates(message as ListLoansRequest))
+          as ListLoansRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ListLoansRequest create() => ListLoansRequest._();
   ListLoansRequest createEmptyInstance() => create();
-  static $pb.PbList<ListLoansRequest> createRepeated() => $pb.PbList<ListLoansRequest>();
+  static $pb.PbList<ListLoansRequest> createRepeated() =>
+      $pb.PbList<ListLoansRequest>();
   @$core.pragma('dart2js:noInline')
-  static ListLoansRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListLoansRequest>(create);
+  static ListLoansRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListLoansRequest>(create);
   static ListLoansRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get familyId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set familyId($core.String v) { $_setString(0, v); }
+  set familyId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFamilyId() => $_has(0);
   @$pb.TagNumber(1)
@@ -980,33 +1227,43 @@ class ListLoansResponse extends $pb.GeneratedMessage {
     return $result;
   }
   ListLoansResponse._() : super();
-  factory ListLoansResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListLoansResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ListLoansResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ListLoansResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListLoansResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
-    ..pc<Loan>(1, _omitFieldNames ? '' : 'loans', $pb.PbFieldType.PM, subBuilder: Loan.create)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListLoansResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
+    ..pc<Loan>(1, _omitFieldNames ? '' : 'loans', $pb.PbFieldType.PM,
+        subBuilder: Loan.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   ListLoansResponse clone() => ListLoansResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListLoansResponse copyWith(void Function(ListLoansResponse) updates) => super.copyWith((message) => updates(message as ListLoansResponse)) as ListLoansResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ListLoansResponse copyWith(void Function(ListLoansResponse) updates) =>
+      super.copyWith((message) => updates(message as ListLoansResponse))
+          as ListLoansResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ListLoansResponse create() => ListLoansResponse._();
   ListLoansResponse createEmptyInstance() => create();
-  static $pb.PbList<ListLoansResponse> createRepeated() => $pb.PbList<ListLoansResponse>();
+  static $pb.PbList<ListLoansResponse> createRepeated() =>
+      $pb.PbList<ListLoansResponse>();
   @$core.pragma('dart2js:noInline')
-  static ListLoansResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListLoansResponse>(create);
+  static ListLoansResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListLoansResponse>(create);
   static ListLoansResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -1040,43 +1297,55 @@ class UpdateLoanRequest extends $pb.GeneratedMessage {
     return $result;
   }
   UpdateLoanRequest._() : super();
-  factory UpdateLoanRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory UpdateLoanRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory UpdateLoanRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory UpdateLoanRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'UpdateLoanRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'UpdateLoanRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'loanId')
     ..aOS(2, _omitFieldNames ? '' : 'name')
     ..a<$core.int>(3, _omitFieldNames ? '' : 'paymentDay', $pb.PbFieldType.O3)
     ..aOS(4, _omitFieldNames ? '' : 'accountId')
     ..aOS(5, _omitFieldNames ? '' : 'repaymentCategoryId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   UpdateLoanRequest clone() => UpdateLoanRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  UpdateLoanRequest copyWith(void Function(UpdateLoanRequest) updates) => super.copyWith((message) => updates(message as UpdateLoanRequest)) as UpdateLoanRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  UpdateLoanRequest copyWith(void Function(UpdateLoanRequest) updates) =>
+      super.copyWith((message) => updates(message as UpdateLoanRequest))
+          as UpdateLoanRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static UpdateLoanRequest create() => UpdateLoanRequest._();
   UpdateLoanRequest createEmptyInstance() => create();
-  static $pb.PbList<UpdateLoanRequest> createRepeated() => $pb.PbList<UpdateLoanRequest>();
+  static $pb.PbList<UpdateLoanRequest> createRepeated() =>
+      $pb.PbList<UpdateLoanRequest>();
   @$core.pragma('dart2js:noInline')
-  static UpdateLoanRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<UpdateLoanRequest>(create);
+  static UpdateLoanRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<UpdateLoanRequest>(create);
   static UpdateLoanRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get loanId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set loanId($core.String v) { $_setString(0, v); }
+  set loanId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasLoanId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1085,7 +1354,10 @@ class UpdateLoanRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get name => $_getSZ(1);
   @$pb.TagNumber(2)
-  set name($core.String v) { $_setString(1, v); }
+  set name($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasName() => $_has(1);
   @$pb.TagNumber(2)
@@ -1094,7 +1366,10 @@ class UpdateLoanRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.int get paymentDay => $_getIZ(2);
   @$pb.TagNumber(3)
-  set paymentDay($core.int v) { $_setSignedInt32(2, v); }
+  set paymentDay($core.int v) {
+    $_setSignedInt32(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasPaymentDay() => $_has(2);
   @$pb.TagNumber(3)
@@ -1103,7 +1378,10 @@ class UpdateLoanRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.String get accountId => $_getSZ(3);
   @$pb.TagNumber(4)
-  set accountId($core.String v) { $_setString(3, v); }
+  set accountId($core.String v) {
+    $_setString(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasAccountId() => $_has(3);
   @$pb.TagNumber(4)
@@ -1112,7 +1390,10 @@ class UpdateLoanRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.String get repaymentCategoryId => $_getSZ(4);
   @$pb.TagNumber(5)
-  set repaymentCategoryId($core.String v) { $_setString(4, v); }
+  set repaymentCategoryId($core.String v) {
+    $_setString(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasRepaymentCategoryId() => $_has(4);
   @$pb.TagNumber(5)
@@ -1130,39 +1411,51 @@ class DeleteLoanRequest extends $pb.GeneratedMessage {
     return $result;
   }
   DeleteLoanRequest._() : super();
-  factory DeleteLoanRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory DeleteLoanRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory DeleteLoanRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory DeleteLoanRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'DeleteLoanRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeleteLoanRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'loanId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   DeleteLoanRequest clone() => DeleteLoanRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  DeleteLoanRequest copyWith(void Function(DeleteLoanRequest) updates) => super.copyWith((message) => updates(message as DeleteLoanRequest)) as DeleteLoanRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  DeleteLoanRequest copyWith(void Function(DeleteLoanRequest) updates) =>
+      super.copyWith((message) => updates(message as DeleteLoanRequest))
+          as DeleteLoanRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static DeleteLoanRequest create() => DeleteLoanRequest._();
   DeleteLoanRequest createEmptyInstance() => create();
-  static $pb.PbList<DeleteLoanRequest> createRepeated() => $pb.PbList<DeleteLoanRequest>();
+  static $pb.PbList<DeleteLoanRequest> createRepeated() =>
+      $pb.PbList<DeleteLoanRequest>();
   @$core.pragma('dart2js:noInline')
-  static DeleteLoanRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<DeleteLoanRequest>(create);
+  static DeleteLoanRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeleteLoanRequest>(create);
   static DeleteLoanRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get loanId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set loanId($core.String v) { $_setString(0, v); }
+  set loanId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasLoanId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1180,39 +1473,53 @@ class GetLoanScheduleRequest extends $pb.GeneratedMessage {
     return $result;
   }
   GetLoanScheduleRequest._() : super();
-  factory GetLoanScheduleRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetLoanScheduleRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetLoanScheduleRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GetLoanScheduleRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetLoanScheduleRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetLoanScheduleRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'loanId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GetLoanScheduleRequest clone() => GetLoanScheduleRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetLoanScheduleRequest copyWith(void Function(GetLoanScheduleRequest) updates) => super.copyWith((message) => updates(message as GetLoanScheduleRequest)) as GetLoanScheduleRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  GetLoanScheduleRequest clone() =>
+      GetLoanScheduleRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GetLoanScheduleRequest copyWith(
+          void Function(GetLoanScheduleRequest) updates) =>
+      super.copyWith((message) => updates(message as GetLoanScheduleRequest))
+          as GetLoanScheduleRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static GetLoanScheduleRequest create() => GetLoanScheduleRequest._();
   GetLoanScheduleRequest createEmptyInstance() => create();
-  static $pb.PbList<GetLoanScheduleRequest> createRepeated() => $pb.PbList<GetLoanScheduleRequest>();
+  static $pb.PbList<GetLoanScheduleRequest> createRepeated() =>
+      $pb.PbList<GetLoanScheduleRequest>();
   @$core.pragma('dart2js:noInline')
-  static GetLoanScheduleRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetLoanScheduleRequest>(create);
+  static GetLoanScheduleRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetLoanScheduleRequest>(create);
   static GetLoanScheduleRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get loanId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set loanId($core.String v) { $_setString(0, v); }
+  set loanId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasLoanId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1230,33 +1537,45 @@ class LoanScheduleResponse extends $pb.GeneratedMessage {
     return $result;
   }
   LoanScheduleResponse._() : super();
-  factory LoanScheduleResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory LoanScheduleResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory LoanScheduleResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory LoanScheduleResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'LoanScheduleResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
-    ..pc<LoanScheduleItem>(1, _omitFieldNames ? '' : 'items', $pb.PbFieldType.PM, subBuilder: LoanScheduleItem.create)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LoanScheduleResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
+    ..pc<LoanScheduleItem>(
+        1, _omitFieldNames ? '' : 'items', $pb.PbFieldType.PM,
+        subBuilder: LoanScheduleItem.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  LoanScheduleResponse clone() => LoanScheduleResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  LoanScheduleResponse copyWith(void Function(LoanScheduleResponse) updates) => super.copyWith((message) => updates(message as LoanScheduleResponse)) as LoanScheduleResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  LoanScheduleResponse clone() =>
+      LoanScheduleResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  LoanScheduleResponse copyWith(void Function(LoanScheduleResponse) updates) =>
+      super.copyWith((message) => updates(message as LoanScheduleResponse))
+          as LoanScheduleResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static LoanScheduleResponse create() => LoanScheduleResponse._();
   LoanScheduleResponse createEmptyInstance() => create();
-  static $pb.PbList<LoanScheduleResponse> createRepeated() => $pb.PbList<LoanScheduleResponse>();
+  static $pb.PbList<LoanScheduleResponse> createRepeated() =>
+      $pb.PbList<LoanScheduleResponse>();
   @$core.pragma('dart2js:noInline')
-  static LoanScheduleResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<LoanScheduleResponse>(create);
+  static LoanScheduleResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LoanScheduleResponse>(create);
   static LoanScheduleResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -1282,41 +1601,59 @@ class SimulatePrepaymentRequest extends $pb.GeneratedMessage {
     return $result;
   }
   SimulatePrepaymentRequest._() : super();
-  factory SimulatePrepaymentRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SimulatePrepaymentRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory SimulatePrepaymentRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory SimulatePrepaymentRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SimulatePrepaymentRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SimulatePrepaymentRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'loanId')
     ..aInt64(2, _omitFieldNames ? '' : 'prepaymentAmount')
-    ..e<PrepaymentStrategy>(3, _omitFieldNames ? '' : 'strategy', $pb.PbFieldType.OE, defaultOrMaker: PrepaymentStrategy.PREPAYMENT_STRATEGY_UNSPECIFIED, valueOf: PrepaymentStrategy.valueOf, enumValues: PrepaymentStrategy.values)
-    ..hasRequiredFields = false
-  ;
+    ..e<PrepaymentStrategy>(
+        3, _omitFieldNames ? '' : 'strategy', $pb.PbFieldType.OE,
+        defaultOrMaker: PrepaymentStrategy.PREPAYMENT_STRATEGY_UNSPECIFIED,
+        valueOf: PrepaymentStrategy.valueOf,
+        enumValues: PrepaymentStrategy.values)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  SimulatePrepaymentRequest clone() => SimulatePrepaymentRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  SimulatePrepaymentRequest copyWith(void Function(SimulatePrepaymentRequest) updates) => super.copyWith((message) => updates(message as SimulatePrepaymentRequest)) as SimulatePrepaymentRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  SimulatePrepaymentRequest clone() =>
+      SimulatePrepaymentRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  SimulatePrepaymentRequest copyWith(
+          void Function(SimulatePrepaymentRequest) updates) =>
+      super.copyWith((message) => updates(message as SimulatePrepaymentRequest))
+          as SimulatePrepaymentRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static SimulatePrepaymentRequest create() => SimulatePrepaymentRequest._();
   SimulatePrepaymentRequest createEmptyInstance() => create();
-  static $pb.PbList<SimulatePrepaymentRequest> createRepeated() => $pb.PbList<SimulatePrepaymentRequest>();
+  static $pb.PbList<SimulatePrepaymentRequest> createRepeated() =>
+      $pb.PbList<SimulatePrepaymentRequest>();
   @$core.pragma('dart2js:noInline')
-  static SimulatePrepaymentRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SimulatePrepaymentRequest>(create);
+  static SimulatePrepaymentRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SimulatePrepaymentRequest>(create);
   static SimulatePrepaymentRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get loanId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set loanId($core.String v) { $_setString(0, v); }
+  set loanId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasLoanId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1325,7 +1662,10 @@ class SimulatePrepaymentRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $fixnum.Int64 get prepaymentAmount => $_getI64(1);
   @$pb.TagNumber(2)
-  set prepaymentAmount($fixnum.Int64 v) { $_setInt64(1, v); }
+  set prepaymentAmount($fixnum.Int64 v) {
+    $_setInt64(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasPrepaymentAmount() => $_has(1);
   @$pb.TagNumber(2)
@@ -1334,7 +1674,10 @@ class SimulatePrepaymentRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   PrepaymentStrategy get strategy => $_getN(2);
   @$pb.TagNumber(3)
-  set strategy(PrepaymentStrategy v) { setField(3, v); }
+  set strategy(PrepaymentStrategy v) {
+    setField(3, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasStrategy() => $_has(2);
   @$pb.TagNumber(3)
@@ -1360,41 +1703,56 @@ class RecordRateChangeRequest extends $pb.GeneratedMessage {
     return $result;
   }
   RecordRateChangeRequest._() : super();
-  factory RecordRateChangeRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory RecordRateChangeRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory RecordRateChangeRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory RecordRateChangeRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RecordRateChangeRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RecordRateChangeRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'loanId')
     ..a<$core.double>(2, _omitFieldNames ? '' : 'newRate', $pb.PbFieldType.OD)
-    ..aOM<$2.Timestamp>(3, _omitFieldNames ? '' : 'effectiveDate', subBuilder: $2.Timestamp.create)
-    ..hasRequiredFields = false
-  ;
+    ..aOM<$2.Timestamp>(3, _omitFieldNames ? '' : 'effectiveDate',
+        subBuilder: $2.Timestamp.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  RecordRateChangeRequest clone() => RecordRateChangeRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  RecordRateChangeRequest copyWith(void Function(RecordRateChangeRequest) updates) => super.copyWith((message) => updates(message as RecordRateChangeRequest)) as RecordRateChangeRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  RecordRateChangeRequest clone() =>
+      RecordRateChangeRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  RecordRateChangeRequest copyWith(
+          void Function(RecordRateChangeRequest) updates) =>
+      super.copyWith((message) => updates(message as RecordRateChangeRequest))
+          as RecordRateChangeRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static RecordRateChangeRequest create() => RecordRateChangeRequest._();
   RecordRateChangeRequest createEmptyInstance() => create();
-  static $pb.PbList<RecordRateChangeRequest> createRepeated() => $pb.PbList<RecordRateChangeRequest>();
+  static $pb.PbList<RecordRateChangeRequest> createRepeated() =>
+      $pb.PbList<RecordRateChangeRequest>();
   @$core.pragma('dart2js:noInline')
-  static RecordRateChangeRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RecordRateChangeRequest>(create);
+  static RecordRateChangeRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RecordRateChangeRequest>(create);
   static RecordRateChangeRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get loanId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set loanId($core.String v) { $_setString(0, v); }
+  set loanId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasLoanId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1403,7 +1761,10 @@ class RecordRateChangeRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.double get newRate => $_getN(1);
   @$pb.TagNumber(2)
-  set newRate($core.double v) { $_setDouble(1, v); }
+  set newRate($core.double v) {
+    $_setDouble(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasNewRate() => $_has(1);
   @$pb.TagNumber(2)
@@ -1412,7 +1773,10 @@ class RecordRateChangeRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $2.Timestamp get effectiveDate => $_getN(2);
   @$pb.TagNumber(3)
-  set effectiveDate($2.Timestamp v) { setField(3, v); }
+  set effectiveDate($2.Timestamp v) {
+    setField(3, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasEffectiveDate() => $_has(2);
   @$pb.TagNumber(3)
@@ -1436,40 +1800,53 @@ class RecordPaymentRequest extends $pb.GeneratedMessage {
     return $result;
   }
   RecordPaymentRequest._() : super();
-  factory RecordPaymentRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory RecordPaymentRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory RecordPaymentRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory RecordPaymentRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'RecordPaymentRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RecordPaymentRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'loanId')
     ..a<$core.int>(2, _omitFieldNames ? '' : 'monthNumber', $pb.PbFieldType.O3)
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  RecordPaymentRequest clone() => RecordPaymentRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  RecordPaymentRequest copyWith(void Function(RecordPaymentRequest) updates) => super.copyWith((message) => updates(message as RecordPaymentRequest)) as RecordPaymentRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  RecordPaymentRequest clone() =>
+      RecordPaymentRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  RecordPaymentRequest copyWith(void Function(RecordPaymentRequest) updates) =>
+      super.copyWith((message) => updates(message as RecordPaymentRequest))
+          as RecordPaymentRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static RecordPaymentRequest create() => RecordPaymentRequest._();
   RecordPaymentRequest createEmptyInstance() => create();
-  static $pb.PbList<RecordPaymentRequest> createRepeated() => $pb.PbList<RecordPaymentRequest>();
+  static $pb.PbList<RecordPaymentRequest> createRepeated() =>
+      $pb.PbList<RecordPaymentRequest>();
   @$core.pragma('dart2js:noInline')
-  static RecordPaymentRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<RecordPaymentRequest>(create);
+  static RecordPaymentRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RecordPaymentRequest>(create);
   static RecordPaymentRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get loanId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set loanId($core.String v) { $_setString(0, v); }
+  set loanId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasLoanId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1478,7 +1855,10 @@ class RecordPaymentRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.int get monthNumber => $_getIZ(1);
   @$pb.TagNumber(2)
-  set monthNumber($core.int v) { $_setSignedInt32(1, v); }
+  set monthNumber($core.int v) {
+    $_setSignedInt32(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasMonthNumber() => $_has(1);
   @$pb.TagNumber(2)
@@ -1552,38 +1932,51 @@ class LoanGroup extends $pb.GeneratedMessage {
     return $result;
   }
   LoanGroup._() : super();
-  factory LoanGroup.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory LoanGroup.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory LoanGroup.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory LoanGroup.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'LoanGroup', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LoanGroup',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'id')
     ..aOS(2, _omitFieldNames ? '' : 'userId')
     ..aOS(3, _omitFieldNames ? '' : 'name')
     ..aOS(4, _omitFieldNames ? '' : 'groupType')
     ..aInt64(5, _omitFieldNames ? '' : 'totalPrincipal')
     ..a<$core.int>(6, _omitFieldNames ? '' : 'paymentDay', $pb.PbFieldType.O3)
-    ..aOM<$2.Timestamp>(7, _omitFieldNames ? '' : 'startDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$2.Timestamp>(7, _omitFieldNames ? '' : 'startDate',
+        subBuilder: $2.Timestamp.create)
     ..aOS(8, _omitFieldNames ? '' : 'accountId')
-    ..pc<Loan>(9, _omitFieldNames ? '' : 'subLoans', $pb.PbFieldType.PM, subBuilder: Loan.create)
+    ..pc<Loan>(9, _omitFieldNames ? '' : 'subLoans', $pb.PbFieldType.PM,
+        subBuilder: Loan.create)
     ..aInt64(10, _omitFieldNames ? '' : 'totalMonthlyPayment')
-    ..aOM<$2.Timestamp>(11, _omitFieldNames ? '' : 'createdAt', subBuilder: $2.Timestamp.create)
-    ..aOM<$2.Timestamp>(12, _omitFieldNames ? '' : 'updatedAt', subBuilder: $2.Timestamp.create)
-    ..e<LoanType>(13, _omitFieldNames ? '' : 'loanType', $pb.PbFieldType.OE, defaultOrMaker: LoanType.LOAN_TYPE_UNSPECIFIED, valueOf: LoanType.valueOf, enumValues: LoanType.values)
+    ..aOM<$2.Timestamp>(11, _omitFieldNames ? '' : 'createdAt',
+        subBuilder: $2.Timestamp.create)
+    ..aOM<$2.Timestamp>(12, _omitFieldNames ? '' : 'updatedAt',
+        subBuilder: $2.Timestamp.create)
+    ..e<LoanType>(13, _omitFieldNames ? '' : 'loanType', $pb.PbFieldType.OE,
+        defaultOrMaker: LoanType.LOAN_TYPE_UNSPECIFIED,
+        valueOf: LoanType.valueOf,
+        enumValues: LoanType.values)
     ..aOS(14, _omitFieldNames ? '' : 'familyId')
     ..aOS(15, _omitFieldNames ? '' : 'repaymentCategoryId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   LoanGroup clone() => LoanGroup()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  LoanGroup copyWith(void Function(LoanGroup) updates) => super.copyWith((message) => updates(message as LoanGroup)) as LoanGroup;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  LoanGroup copyWith(void Function(LoanGroup) updates) =>
+      super.copyWith((message) => updates(message as LoanGroup)) as LoanGroup;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1592,13 +1985,17 @@ class LoanGroup extends $pb.GeneratedMessage {
   LoanGroup createEmptyInstance() => create();
   static $pb.PbList<LoanGroup> createRepeated() => $pb.PbList<LoanGroup>();
   @$core.pragma('dart2js:noInline')
-  static LoanGroup getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<LoanGroup>(create);
+  static LoanGroup getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<LoanGroup>(create);
   static LoanGroup? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get id => $_getSZ(0);
   @$pb.TagNumber(1)
-  set id($core.String v) { $_setString(0, v); }
+  set id($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasId() => $_has(0);
   @$pb.TagNumber(1)
@@ -1607,7 +2004,10 @@ class LoanGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get userId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set userId($core.String v) { $_setString(1, v); }
+  set userId($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasUserId() => $_has(1);
   @$pb.TagNumber(2)
@@ -1616,7 +2016,10 @@ class LoanGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.String get name => $_getSZ(2);
   @$pb.TagNumber(3)
-  set name($core.String v) { $_setString(2, v); }
+  set name($core.String v) {
+    $_setString(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasName() => $_has(2);
   @$pb.TagNumber(3)
@@ -1625,7 +2028,10 @@ class LoanGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.String get groupType => $_getSZ(3);
   @$pb.TagNumber(4)
-  set groupType($core.String v) { $_setString(3, v); }
+  set groupType($core.String v) {
+    $_setString(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasGroupType() => $_has(3);
   @$pb.TagNumber(4)
@@ -1634,7 +2040,10 @@ class LoanGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $fixnum.Int64 get totalPrincipal => $_getI64(4);
   @$pb.TagNumber(5)
-  set totalPrincipal($fixnum.Int64 v) { $_setInt64(4, v); }
+  set totalPrincipal($fixnum.Int64 v) {
+    $_setInt64(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasTotalPrincipal() => $_has(4);
   @$pb.TagNumber(5)
@@ -1643,7 +2052,10 @@ class LoanGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $core.int get paymentDay => $_getIZ(5);
   @$pb.TagNumber(6)
-  set paymentDay($core.int v) { $_setSignedInt32(5, v); }
+  set paymentDay($core.int v) {
+    $_setSignedInt32(5, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasPaymentDay() => $_has(5);
   @$pb.TagNumber(6)
@@ -1652,7 +2064,10 @@ class LoanGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $2.Timestamp get startDate => $_getN(6);
   @$pb.TagNumber(7)
-  set startDate($2.Timestamp v) { setField(7, v); }
+  set startDate($2.Timestamp v) {
+    setField(7, v);
+  }
+
   @$pb.TagNumber(7)
   $core.bool hasStartDate() => $_has(6);
   @$pb.TagNumber(7)
@@ -1663,7 +2078,10 @@ class LoanGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $core.String get accountId => $_getSZ(7);
   @$pb.TagNumber(8)
-  set accountId($core.String v) { $_setString(7, v); }
+  set accountId($core.String v) {
+    $_setString(7, v);
+  }
+
   @$pb.TagNumber(8)
   $core.bool hasAccountId() => $_has(7);
   @$pb.TagNumber(8)
@@ -1675,7 +2093,10 @@ class LoanGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(10)
   $fixnum.Int64 get totalMonthlyPayment => $_getI64(9);
   @$pb.TagNumber(10)
-  set totalMonthlyPayment($fixnum.Int64 v) { $_setInt64(9, v); }
+  set totalMonthlyPayment($fixnum.Int64 v) {
+    $_setInt64(9, v);
+  }
+
   @$pb.TagNumber(10)
   $core.bool hasTotalMonthlyPayment() => $_has(9);
   @$pb.TagNumber(10)
@@ -1684,7 +2105,10 @@ class LoanGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(11)
   $2.Timestamp get createdAt => $_getN(10);
   @$pb.TagNumber(11)
-  set createdAt($2.Timestamp v) { setField(11, v); }
+  set createdAt($2.Timestamp v) {
+    setField(11, v);
+  }
+
   @$pb.TagNumber(11)
   $core.bool hasCreatedAt() => $_has(10);
   @$pb.TagNumber(11)
@@ -1695,7 +2119,10 @@ class LoanGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(12)
   $2.Timestamp get updatedAt => $_getN(11);
   @$pb.TagNumber(12)
-  set updatedAt($2.Timestamp v) { setField(12, v); }
+  set updatedAt($2.Timestamp v) {
+    setField(12, v);
+  }
+
   @$pb.TagNumber(12)
   $core.bool hasUpdatedAt() => $_has(11);
   @$pb.TagNumber(12)
@@ -1706,7 +2133,10 @@ class LoanGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(13)
   LoanType get loanType => $_getN(12);
   @$pb.TagNumber(13)
-  set loanType(LoanType v) { setField(13, v); }
+  set loanType(LoanType v) {
+    setField(13, v);
+  }
+
   @$pb.TagNumber(13)
   $core.bool hasLoanType() => $_has(12);
   @$pb.TagNumber(13)
@@ -1715,7 +2145,10 @@ class LoanGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(14)
   $core.String get familyId => $_getSZ(13);
   @$pb.TagNumber(14)
-  set familyId($core.String v) { $_setString(13, v); }
+  set familyId($core.String v) {
+    $_setString(13, v);
+  }
+
   @$pb.TagNumber(14)
   $core.bool hasFamilyId() => $_has(13);
   @$pb.TagNumber(14)
@@ -1724,7 +2157,10 @@ class LoanGroup extends $pb.GeneratedMessage {
   @$pb.TagNumber(15)
   $core.String get repaymentCategoryId => $_getSZ(14);
   @$pb.TagNumber(15)
-  set repaymentCategoryId($core.String v) { $_setString(14, v); }
+  set repaymentCategoryId($core.String v) {
+    $_setString(14, v);
+  }
+
   @$pb.TagNumber(15)
   $core.bool hasRepaymentCategoryId() => $_has(14);
   @$pb.TagNumber(15)
@@ -1782,34 +2218,57 @@ class SubLoanSpec extends $pb.GeneratedMessage {
     return $result;
   }
   SubLoanSpec._() : super();
-  factory SubLoanSpec.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SubLoanSpec.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory SubLoanSpec.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory SubLoanSpec.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SubLoanSpec', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SubLoanSpec',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'name')
-    ..e<LoanSubType>(2, _omitFieldNames ? '' : 'subType', $pb.PbFieldType.OE, defaultOrMaker: LoanSubType.LOAN_SUB_TYPE_UNSPECIFIED, valueOf: LoanSubType.valueOf, enumValues: LoanSubType.values)
+    ..e<LoanSubType>(2, _omitFieldNames ? '' : 'subType', $pb.PbFieldType.OE,
+        defaultOrMaker: LoanSubType.LOAN_SUB_TYPE_UNSPECIFIED,
+        valueOf: LoanSubType.valueOf,
+        enumValues: LoanSubType.values)
     ..aInt64(3, _omitFieldNames ? '' : 'principal')
-    ..a<$core.double>(4, _omitFieldNames ? '' : 'annualRate', $pb.PbFieldType.OD)
+    ..a<$core.double>(
+        4, _omitFieldNames ? '' : 'annualRate', $pb.PbFieldType.OD)
     ..a<$core.int>(5, _omitFieldNames ? '' : 'totalMonths', $pb.PbFieldType.O3)
-    ..e<RepaymentMethod>(6, _omitFieldNames ? '' : 'repaymentMethod', $pb.PbFieldType.OE, defaultOrMaker: RepaymentMethod.REPAYMENT_METHOD_UNSPECIFIED, valueOf: RepaymentMethod.valueOf, enumValues: RepaymentMethod.values)
-    ..e<RateType>(7, _omitFieldNames ? '' : 'rateType', $pb.PbFieldType.OE, defaultOrMaker: RateType.RATE_TYPE_UNSPECIFIED, valueOf: RateType.valueOf, enumValues: RateType.values)
+    ..e<RepaymentMethod>(
+        6, _omitFieldNames ? '' : 'repaymentMethod', $pb.PbFieldType.OE,
+        defaultOrMaker: RepaymentMethod.REPAYMENT_METHOD_UNSPECIFIED,
+        valueOf: RepaymentMethod.valueOf,
+        enumValues: RepaymentMethod.values)
+    ..e<RateType>(7, _omitFieldNames ? '' : 'rateType', $pb.PbFieldType.OE,
+        defaultOrMaker: RateType.RATE_TYPE_UNSPECIFIED,
+        valueOf: RateType.valueOf,
+        enumValues: RateType.values)
     ..a<$core.double>(8, _omitFieldNames ? '' : 'lprBase', $pb.PbFieldType.OD)
     ..a<$core.double>(9, _omitFieldNames ? '' : 'lprSpread', $pb.PbFieldType.OD)
-    ..a<$core.int>(10, _omitFieldNames ? '' : 'rateAdjustMonth', $pb.PbFieldType.O3)
-    ..e<InterestCalcMethod>(11, _omitFieldNames ? '' : 'interestCalcMethod', $pb.PbFieldType.OE, defaultOrMaker: InterestCalcMethod.INTEREST_CALC_MONTHLY, valueOf: InterestCalcMethod.valueOf, enumValues: InterestCalcMethod.values)
-    ..hasRequiredFields = false
-  ;
+    ..a<$core.int>(
+        10, _omitFieldNames ? '' : 'rateAdjustMonth', $pb.PbFieldType.O3)
+    ..e<InterestCalcMethod>(
+        11, _omitFieldNames ? '' : 'interestCalcMethod', $pb.PbFieldType.OE,
+        defaultOrMaker: InterestCalcMethod.INTEREST_CALC_MONTHLY,
+        valueOf: InterestCalcMethod.valueOf,
+        enumValues: InterestCalcMethod.values)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   SubLoanSpec clone() => SubLoanSpec()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  SubLoanSpec copyWith(void Function(SubLoanSpec) updates) => super.copyWith((message) => updates(message as SubLoanSpec)) as SubLoanSpec;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  SubLoanSpec copyWith(void Function(SubLoanSpec) updates) =>
+      super.copyWith((message) => updates(message as SubLoanSpec))
+          as SubLoanSpec;
 
   $pb.BuilderInfo get info_ => _i;
 
@@ -1818,13 +2277,17 @@ class SubLoanSpec extends $pb.GeneratedMessage {
   SubLoanSpec createEmptyInstance() => create();
   static $pb.PbList<SubLoanSpec> createRepeated() => $pb.PbList<SubLoanSpec>();
   @$core.pragma('dart2js:noInline')
-  static SubLoanSpec getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SubLoanSpec>(create);
+  static SubLoanSpec getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SubLoanSpec>(create);
   static SubLoanSpec? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get name => $_getSZ(0);
   @$pb.TagNumber(1)
-  set name($core.String v) { $_setString(0, v); }
+  set name($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasName() => $_has(0);
   @$pb.TagNumber(1)
@@ -1833,7 +2296,10 @@ class SubLoanSpec extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   LoanSubType get subType => $_getN(1);
   @$pb.TagNumber(2)
-  set subType(LoanSubType v) { setField(2, v); }
+  set subType(LoanSubType v) {
+    setField(2, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasSubType() => $_has(1);
   @$pb.TagNumber(2)
@@ -1842,7 +2308,10 @@ class SubLoanSpec extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $fixnum.Int64 get principal => $_getI64(2);
   @$pb.TagNumber(3)
-  set principal($fixnum.Int64 v) { $_setInt64(2, v); }
+  set principal($fixnum.Int64 v) {
+    $_setInt64(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasPrincipal() => $_has(2);
   @$pb.TagNumber(3)
@@ -1851,7 +2320,10 @@ class SubLoanSpec extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.double get annualRate => $_getN(3);
   @$pb.TagNumber(4)
-  set annualRate($core.double v) { $_setDouble(3, v); }
+  set annualRate($core.double v) {
+    $_setDouble(3, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasAnnualRate() => $_has(3);
   @$pb.TagNumber(4)
@@ -1860,7 +2332,10 @@ class SubLoanSpec extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.int get totalMonths => $_getIZ(4);
   @$pb.TagNumber(5)
-  set totalMonths($core.int v) { $_setSignedInt32(4, v); }
+  set totalMonths($core.int v) {
+    $_setSignedInt32(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasTotalMonths() => $_has(4);
   @$pb.TagNumber(5)
@@ -1869,7 +2344,10 @@ class SubLoanSpec extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   RepaymentMethod get repaymentMethod => $_getN(5);
   @$pb.TagNumber(6)
-  set repaymentMethod(RepaymentMethod v) { setField(6, v); }
+  set repaymentMethod(RepaymentMethod v) {
+    setField(6, v);
+  }
+
   @$pb.TagNumber(6)
   $core.bool hasRepaymentMethod() => $_has(5);
   @$pb.TagNumber(6)
@@ -1878,7 +2356,10 @@ class SubLoanSpec extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   RateType get rateType => $_getN(6);
   @$pb.TagNumber(7)
-  set rateType(RateType v) { setField(7, v); }
+  set rateType(RateType v) {
+    setField(7, v);
+  }
+
   @$pb.TagNumber(7)
   $core.bool hasRateType() => $_has(6);
   @$pb.TagNumber(7)
@@ -1887,7 +2368,10 @@ class SubLoanSpec extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $core.double get lprBase => $_getN(7);
   @$pb.TagNumber(8)
-  set lprBase($core.double v) { $_setDouble(7, v); }
+  set lprBase($core.double v) {
+    $_setDouble(7, v);
+  }
+
   @$pb.TagNumber(8)
   $core.bool hasLprBase() => $_has(7);
   @$pb.TagNumber(8)
@@ -1896,7 +2380,10 @@ class SubLoanSpec extends $pb.GeneratedMessage {
   @$pb.TagNumber(9)
   $core.double get lprSpread => $_getN(8);
   @$pb.TagNumber(9)
-  set lprSpread($core.double v) { $_setDouble(8, v); }
+  set lprSpread($core.double v) {
+    $_setDouble(8, v);
+  }
+
   @$pb.TagNumber(9)
   $core.bool hasLprSpread() => $_has(8);
   @$pb.TagNumber(9)
@@ -1905,7 +2392,10 @@ class SubLoanSpec extends $pb.GeneratedMessage {
   @$pb.TagNumber(10)
   $core.int get rateAdjustMonth => $_getIZ(9);
   @$pb.TagNumber(10)
-  set rateAdjustMonth($core.int v) { $_setSignedInt32(9, v); }
+  set rateAdjustMonth($core.int v) {
+    $_setSignedInt32(9, v);
+  }
+
   @$pb.TagNumber(10)
   $core.bool hasRateAdjustMonth() => $_has(9);
   @$pb.TagNumber(10)
@@ -1914,7 +2404,10 @@ class SubLoanSpec extends $pb.GeneratedMessage {
   @$pb.TagNumber(11)
   InterestCalcMethod get interestCalcMethod => $_getN(10);
   @$pb.TagNumber(11)
-  set interestCalcMethod(InterestCalcMethod v) { setField(11, v); }
+  set interestCalcMethod(InterestCalcMethod v) {
+    setField(11, v);
+  }
+
   @$pb.TagNumber(11)
   $core.bool hasInterestCalcMethod() => $_has(10);
   @$pb.TagNumber(11)
@@ -1960,46 +2453,65 @@ class CreateLoanGroupRequest extends $pb.GeneratedMessage {
     return $result;
   }
   CreateLoanGroupRequest._() : super();
-  factory CreateLoanGroupRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory CreateLoanGroupRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory CreateLoanGroupRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory CreateLoanGroupRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'CreateLoanGroupRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CreateLoanGroupRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'name')
     ..aOS(2, _omitFieldNames ? '' : 'groupType')
     ..a<$core.int>(3, _omitFieldNames ? '' : 'paymentDay', $pb.PbFieldType.O3)
-    ..aOM<$2.Timestamp>(4, _omitFieldNames ? '' : 'startDate', subBuilder: $2.Timestamp.create)
+    ..aOM<$2.Timestamp>(4, _omitFieldNames ? '' : 'startDate',
+        subBuilder: $2.Timestamp.create)
     ..aOS(5, _omitFieldNames ? '' : 'accountId')
-    ..pc<SubLoanSpec>(6, _omitFieldNames ? '' : 'subLoans', $pb.PbFieldType.PM, subBuilder: SubLoanSpec.create)
-    ..e<LoanType>(7, _omitFieldNames ? '' : 'loanType', $pb.PbFieldType.OE, defaultOrMaker: LoanType.LOAN_TYPE_UNSPECIFIED, valueOf: LoanType.valueOf, enumValues: LoanType.values)
+    ..pc<SubLoanSpec>(6, _omitFieldNames ? '' : 'subLoans', $pb.PbFieldType.PM,
+        subBuilder: SubLoanSpec.create)
+    ..e<LoanType>(7, _omitFieldNames ? '' : 'loanType', $pb.PbFieldType.OE,
+        defaultOrMaker: LoanType.LOAN_TYPE_UNSPECIFIED,
+        valueOf: LoanType.valueOf,
+        enumValues: LoanType.values)
     ..aOS(8, _omitFieldNames ? '' : 'familyId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  CreateLoanGroupRequest clone() => CreateLoanGroupRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  CreateLoanGroupRequest copyWith(void Function(CreateLoanGroupRequest) updates) => super.copyWith((message) => updates(message as CreateLoanGroupRequest)) as CreateLoanGroupRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  CreateLoanGroupRequest clone() =>
+      CreateLoanGroupRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  CreateLoanGroupRequest copyWith(
+          void Function(CreateLoanGroupRequest) updates) =>
+      super.copyWith((message) => updates(message as CreateLoanGroupRequest))
+          as CreateLoanGroupRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static CreateLoanGroupRequest create() => CreateLoanGroupRequest._();
   CreateLoanGroupRequest createEmptyInstance() => create();
-  static $pb.PbList<CreateLoanGroupRequest> createRepeated() => $pb.PbList<CreateLoanGroupRequest>();
+  static $pb.PbList<CreateLoanGroupRequest> createRepeated() =>
+      $pb.PbList<CreateLoanGroupRequest>();
   @$core.pragma('dart2js:noInline')
-  static CreateLoanGroupRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<CreateLoanGroupRequest>(create);
+  static CreateLoanGroupRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CreateLoanGroupRequest>(create);
   static CreateLoanGroupRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get name => $_getSZ(0);
   @$pb.TagNumber(1)
-  set name($core.String v) { $_setString(0, v); }
+  set name($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasName() => $_has(0);
   @$pb.TagNumber(1)
@@ -2008,7 +2520,10 @@ class CreateLoanGroupRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get groupType => $_getSZ(1);
   @$pb.TagNumber(2)
-  set groupType($core.String v) { $_setString(1, v); }
+  set groupType($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasGroupType() => $_has(1);
   @$pb.TagNumber(2)
@@ -2017,7 +2532,10 @@ class CreateLoanGroupRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $core.int get paymentDay => $_getIZ(2);
   @$pb.TagNumber(3)
-  set paymentDay($core.int v) { $_setSignedInt32(2, v); }
+  set paymentDay($core.int v) {
+    $_setSignedInt32(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasPaymentDay() => $_has(2);
   @$pb.TagNumber(3)
@@ -2026,7 +2544,10 @@ class CreateLoanGroupRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $2.Timestamp get startDate => $_getN(3);
   @$pb.TagNumber(4)
-  set startDate($2.Timestamp v) { setField(4, v); }
+  set startDate($2.Timestamp v) {
+    setField(4, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasStartDate() => $_has(3);
   @$pb.TagNumber(4)
@@ -2037,7 +2558,10 @@ class CreateLoanGroupRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $core.String get accountId => $_getSZ(4);
   @$pb.TagNumber(5)
-  set accountId($core.String v) { $_setString(4, v); }
+  set accountId($core.String v) {
+    $_setString(4, v);
+  }
+
   @$pb.TagNumber(5)
   $core.bool hasAccountId() => $_has(4);
   @$pb.TagNumber(5)
@@ -2049,7 +2573,10 @@ class CreateLoanGroupRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   LoanType get loanType => $_getN(6);
   @$pb.TagNumber(7)
-  set loanType(LoanType v) { setField(7, v); }
+  set loanType(LoanType v) {
+    setField(7, v);
+  }
+
   @$pb.TagNumber(7)
   $core.bool hasLoanType() => $_has(6);
   @$pb.TagNumber(7)
@@ -2058,7 +2585,10 @@ class CreateLoanGroupRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(8)
   $core.String get familyId => $_getSZ(7);
   @$pb.TagNumber(8)
-  set familyId($core.String v) { $_setString(7, v); }
+  set familyId($core.String v) {
+    $_setString(7, v);
+  }
+
   @$pb.TagNumber(8)
   $core.bool hasFamilyId() => $_has(7);
   @$pb.TagNumber(8)
@@ -2076,39 +2606,51 @@ class GetLoanGroupRequest extends $pb.GeneratedMessage {
     return $result;
   }
   GetLoanGroupRequest._() : super();
-  factory GetLoanGroupRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GetLoanGroupRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GetLoanGroupRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GetLoanGroupRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GetLoanGroupRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetLoanGroupRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'groupId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
   GetLoanGroupRequest clone() => GetLoanGroupRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GetLoanGroupRequest copyWith(void Function(GetLoanGroupRequest) updates) => super.copyWith((message) => updates(message as GetLoanGroupRequest)) as GetLoanGroupRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GetLoanGroupRequest copyWith(void Function(GetLoanGroupRequest) updates) =>
+      super.copyWith((message) => updates(message as GetLoanGroupRequest))
+          as GetLoanGroupRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static GetLoanGroupRequest create() => GetLoanGroupRequest._();
   GetLoanGroupRequest createEmptyInstance() => create();
-  static $pb.PbList<GetLoanGroupRequest> createRepeated() => $pb.PbList<GetLoanGroupRequest>();
+  static $pb.PbList<GetLoanGroupRequest> createRepeated() =>
+      $pb.PbList<GetLoanGroupRequest>();
   @$core.pragma('dart2js:noInline')
-  static GetLoanGroupRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GetLoanGroupRequest>(create);
+  static GetLoanGroupRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetLoanGroupRequest>(create);
   static GetLoanGroupRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get groupId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set groupId($core.String v) { $_setString(0, v); }
+  set groupId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasGroupId() => $_has(0);
   @$pb.TagNumber(1)
@@ -2126,39 +2668,53 @@ class ListLoanGroupsRequest extends $pb.GeneratedMessage {
     return $result;
   }
   ListLoanGroupsRequest._() : super();
-  factory ListLoanGroupsRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListLoanGroupsRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ListLoanGroupsRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ListLoanGroupsRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListLoanGroupsRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListLoanGroupsRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'familyId')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ListLoanGroupsRequest clone() => ListLoanGroupsRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListLoanGroupsRequest copyWith(void Function(ListLoanGroupsRequest) updates) => super.copyWith((message) => updates(message as ListLoanGroupsRequest)) as ListLoanGroupsRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ListLoanGroupsRequest clone() =>
+      ListLoanGroupsRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ListLoanGroupsRequest copyWith(
+          void Function(ListLoanGroupsRequest) updates) =>
+      super.copyWith((message) => updates(message as ListLoanGroupsRequest))
+          as ListLoanGroupsRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ListLoanGroupsRequest create() => ListLoanGroupsRequest._();
   ListLoanGroupsRequest createEmptyInstance() => create();
-  static $pb.PbList<ListLoanGroupsRequest> createRepeated() => $pb.PbList<ListLoanGroupsRequest>();
+  static $pb.PbList<ListLoanGroupsRequest> createRepeated() =>
+      $pb.PbList<ListLoanGroupsRequest>();
   @$core.pragma('dart2js:noInline')
-  static ListLoanGroupsRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListLoanGroupsRequest>(create);
+  static ListLoanGroupsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListLoanGroupsRequest>(create);
   static ListLoanGroupsRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get familyId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set familyId($core.String v) { $_setString(0, v); }
+  set familyId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasFamilyId() => $_has(0);
   @$pb.TagNumber(1)
@@ -2176,33 +2732,45 @@ class ListLoanGroupsResponse extends $pb.GeneratedMessage {
     return $result;
   }
   ListLoanGroupsResponse._() : super();
-  factory ListLoanGroupsResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ListLoanGroupsResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ListLoanGroupsResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ListLoanGroupsResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ListLoanGroupsResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
-    ..pc<LoanGroup>(1, _omitFieldNames ? '' : 'groups', $pb.PbFieldType.PM, subBuilder: LoanGroup.create)
-    ..hasRequiredFields = false
-  ;
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListLoanGroupsResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
+    ..pc<LoanGroup>(1, _omitFieldNames ? '' : 'groups', $pb.PbFieldType.PM,
+        subBuilder: LoanGroup.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ListLoanGroupsResponse clone() => ListLoanGroupsResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ListLoanGroupsResponse copyWith(void Function(ListLoanGroupsResponse) updates) => super.copyWith((message) => updates(message as ListLoanGroupsResponse)) as ListLoanGroupsResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ListLoanGroupsResponse clone() =>
+      ListLoanGroupsResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ListLoanGroupsResponse copyWith(
+          void Function(ListLoanGroupsResponse) updates) =>
+      super.copyWith((message) => updates(message as ListLoanGroupsResponse))
+          as ListLoanGroupsResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ListLoanGroupsResponse create() => ListLoanGroupsResponse._();
   ListLoanGroupsResponse createEmptyInstance() => create();
-  static $pb.PbList<ListLoanGroupsResponse> createRepeated() => $pb.PbList<ListLoanGroupsResponse>();
+  static $pb.PbList<ListLoanGroupsResponse> createRepeated() =>
+      $pb.PbList<ListLoanGroupsResponse>();
   @$core.pragma('dart2js:noInline')
-  static ListLoanGroupsResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ListLoanGroupsResponse>(create);
+  static ListLoanGroupsResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListLoanGroupsResponse>(create);
   static ListLoanGroupsResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
@@ -2232,42 +2800,62 @@ class SimulateGroupPrepaymentRequest extends $pb.GeneratedMessage {
     return $result;
   }
   SimulateGroupPrepaymentRequest._() : super();
-  factory SimulateGroupPrepaymentRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory SimulateGroupPrepaymentRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory SimulateGroupPrepaymentRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory SimulateGroupPrepaymentRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'SimulateGroupPrepaymentRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SimulateGroupPrepaymentRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'groupId')
     ..aOS(2, _omitFieldNames ? '' : 'targetLoanId')
     ..aInt64(3, _omitFieldNames ? '' : 'prepaymentAmount')
-    ..e<PrepaymentStrategy>(4, _omitFieldNames ? '' : 'strategy', $pb.PbFieldType.OE, defaultOrMaker: PrepaymentStrategy.PREPAYMENT_STRATEGY_UNSPECIFIED, valueOf: PrepaymentStrategy.valueOf, enumValues: PrepaymentStrategy.values)
-    ..hasRequiredFields = false
-  ;
+    ..e<PrepaymentStrategy>(
+        4, _omitFieldNames ? '' : 'strategy', $pb.PbFieldType.OE,
+        defaultOrMaker: PrepaymentStrategy.PREPAYMENT_STRATEGY_UNSPECIFIED,
+        valueOf: PrepaymentStrategy.valueOf,
+        enumValues: PrepaymentStrategy.values)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  SimulateGroupPrepaymentRequest clone() => SimulateGroupPrepaymentRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  SimulateGroupPrepaymentRequest copyWith(void Function(SimulateGroupPrepaymentRequest) updates) => super.copyWith((message) => updates(message as SimulateGroupPrepaymentRequest)) as SimulateGroupPrepaymentRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  SimulateGroupPrepaymentRequest clone() =>
+      SimulateGroupPrepaymentRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  SimulateGroupPrepaymentRequest copyWith(
+          void Function(SimulateGroupPrepaymentRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as SimulateGroupPrepaymentRequest))
+          as SimulateGroupPrepaymentRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static SimulateGroupPrepaymentRequest create() => SimulateGroupPrepaymentRequest._();
+  static SimulateGroupPrepaymentRequest create() =>
+      SimulateGroupPrepaymentRequest._();
   SimulateGroupPrepaymentRequest createEmptyInstance() => create();
-  static $pb.PbList<SimulateGroupPrepaymentRequest> createRepeated() => $pb.PbList<SimulateGroupPrepaymentRequest>();
+  static $pb.PbList<SimulateGroupPrepaymentRequest> createRepeated() =>
+      $pb.PbList<SimulateGroupPrepaymentRequest>();
   @$core.pragma('dart2js:noInline')
-  static SimulateGroupPrepaymentRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SimulateGroupPrepaymentRequest>(create);
+  static SimulateGroupPrepaymentRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SimulateGroupPrepaymentRequest>(create);
   static SimulateGroupPrepaymentRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get groupId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set groupId($core.String v) { $_setString(0, v); }
+  set groupId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasGroupId() => $_has(0);
   @$pb.TagNumber(1)
@@ -2276,7 +2864,10 @@ class SimulateGroupPrepaymentRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get targetLoanId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set targetLoanId($core.String v) { $_setString(1, v); }
+  set targetLoanId($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasTargetLoanId() => $_has(1);
   @$pb.TagNumber(2)
@@ -2285,7 +2876,10 @@ class SimulateGroupPrepaymentRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $fixnum.Int64 get prepaymentAmount => $_getI64(2);
   @$pb.TagNumber(3)
-  set prepaymentAmount($fixnum.Int64 v) { $_setInt64(2, v); }
+  set prepaymentAmount($fixnum.Int64 v) {
+    $_setInt64(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasPrepaymentAmount() => $_has(2);
   @$pb.TagNumber(3)
@@ -2294,7 +2888,10 @@ class SimulateGroupPrepaymentRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   PrepaymentStrategy get strategy => $_getN(3);
   @$pb.TagNumber(4)
-  set strategy(PrepaymentStrategy v) { setField(4, v); }
+  set strategy(PrepaymentStrategy v) {
+    setField(4, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasStrategy() => $_has(3);
   @$pb.TagNumber(4)
@@ -2320,41 +2917,56 @@ class GroupPrepaymentSimulation extends $pb.GeneratedMessage {
     return $result;
   }
   GroupPrepaymentSimulation._() : super();
-  factory GroupPrepaymentSimulation.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory GroupPrepaymentSimulation.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory GroupPrepaymentSimulation.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory GroupPrepaymentSimulation.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'GroupPrepaymentSimulation', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GroupPrepaymentSimulation',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'targetLoanId')
-    ..aOM<PrepaymentSimulation>(2, _omitFieldNames ? '' : 'targetSim', subBuilder: PrepaymentSimulation.create)
+    ..aOM<PrepaymentSimulation>(2, _omitFieldNames ? '' : 'targetSim',
+        subBuilder: PrepaymentSimulation.create)
     ..aInt64(3, _omitFieldNames ? '' : 'totalInterestSaved')
-    ..hasRequiredFields = false
-  ;
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  GroupPrepaymentSimulation clone() => GroupPrepaymentSimulation()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  GroupPrepaymentSimulation copyWith(void Function(GroupPrepaymentSimulation) updates) => super.copyWith((message) => updates(message as GroupPrepaymentSimulation)) as GroupPrepaymentSimulation;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  GroupPrepaymentSimulation clone() =>
+      GroupPrepaymentSimulation()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  GroupPrepaymentSimulation copyWith(
+          void Function(GroupPrepaymentSimulation) updates) =>
+      super.copyWith((message) => updates(message as GroupPrepaymentSimulation))
+          as GroupPrepaymentSimulation;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static GroupPrepaymentSimulation create() => GroupPrepaymentSimulation._();
   GroupPrepaymentSimulation createEmptyInstance() => create();
-  static $pb.PbList<GroupPrepaymentSimulation> createRepeated() => $pb.PbList<GroupPrepaymentSimulation>();
+  static $pb.PbList<GroupPrepaymentSimulation> createRepeated() =>
+      $pb.PbList<GroupPrepaymentSimulation>();
   @$core.pragma('dart2js:noInline')
-  static GroupPrepaymentSimulation getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<GroupPrepaymentSimulation>(create);
+  static GroupPrepaymentSimulation getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GroupPrepaymentSimulation>(create);
   static GroupPrepaymentSimulation? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get targetLoanId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set targetLoanId($core.String v) { $_setString(0, v); }
+  set targetLoanId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasTargetLoanId() => $_has(0);
   @$pb.TagNumber(1)
@@ -2363,7 +2975,10 @@ class GroupPrepaymentSimulation extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   PrepaymentSimulation get targetSim => $_getN(1);
   @$pb.TagNumber(2)
-  set targetSim(PrepaymentSimulation v) { setField(2, v); }
+  set targetSim(PrepaymentSimulation v) {
+    setField(2, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasTargetSim() => $_has(1);
   @$pb.TagNumber(2)
@@ -2374,7 +2989,10 @@ class GroupPrepaymentSimulation extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $fixnum.Int64 get totalInterestSaved => $_getI64(2);
   @$pb.TagNumber(3)
-  set totalInterestSaved($fixnum.Int64 v) { $_setInt64(2, v); }
+  set totalInterestSaved($fixnum.Int64 v) {
+    $_setInt64(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasTotalInterestSaved() => $_has(2);
   @$pb.TagNumber(3)
@@ -2400,41 +3018,59 @@ class ExecutePrepaymentRequest extends $pb.GeneratedMessage {
     return $result;
   }
   ExecutePrepaymentRequest._() : super();
-  factory ExecutePrepaymentRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ExecutePrepaymentRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ExecutePrepaymentRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ExecutePrepaymentRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ExecutePrepaymentRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ExecutePrepaymentRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'loanId')
     ..aInt64(2, _omitFieldNames ? '' : 'prepaymentAmount')
-    ..e<PrepaymentStrategy>(3, _omitFieldNames ? '' : 'strategy', $pb.PbFieldType.OE, defaultOrMaker: PrepaymentStrategy.PREPAYMENT_STRATEGY_UNSPECIFIED, valueOf: PrepaymentStrategy.valueOf, enumValues: PrepaymentStrategy.values)
-    ..hasRequiredFields = false
-  ;
+    ..e<PrepaymentStrategy>(
+        3, _omitFieldNames ? '' : 'strategy', $pb.PbFieldType.OE,
+        defaultOrMaker: PrepaymentStrategy.PREPAYMENT_STRATEGY_UNSPECIFIED,
+        valueOf: PrepaymentStrategy.valueOf,
+        enumValues: PrepaymentStrategy.values)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ExecutePrepaymentRequest clone() => ExecutePrepaymentRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ExecutePrepaymentRequest copyWith(void Function(ExecutePrepaymentRequest) updates) => super.copyWith((message) => updates(message as ExecutePrepaymentRequest)) as ExecutePrepaymentRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ExecutePrepaymentRequest clone() =>
+      ExecutePrepaymentRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ExecutePrepaymentRequest copyWith(
+          void Function(ExecutePrepaymentRequest) updates) =>
+      super.copyWith((message) => updates(message as ExecutePrepaymentRequest))
+          as ExecutePrepaymentRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ExecutePrepaymentRequest create() => ExecutePrepaymentRequest._();
   ExecutePrepaymentRequest createEmptyInstance() => create();
-  static $pb.PbList<ExecutePrepaymentRequest> createRepeated() => $pb.PbList<ExecutePrepaymentRequest>();
+  static $pb.PbList<ExecutePrepaymentRequest> createRepeated() =>
+      $pb.PbList<ExecutePrepaymentRequest>();
   @$core.pragma('dart2js:noInline')
-  static ExecutePrepaymentRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ExecutePrepaymentRequest>(create);
+  static ExecutePrepaymentRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ExecutePrepaymentRequest>(create);
   static ExecutePrepaymentRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get loanId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set loanId($core.String v) { $_setString(0, v); }
+  set loanId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasLoanId() => $_has(0);
   @$pb.TagNumber(1)
@@ -2443,7 +3079,10 @@ class ExecutePrepaymentRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $fixnum.Int64 get prepaymentAmount => $_getI64(1);
   @$pb.TagNumber(2)
-  set prepaymentAmount($fixnum.Int64 v) { $_setInt64(1, v); }
+  set prepaymentAmount($fixnum.Int64 v) {
+    $_setInt64(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasPrepaymentAmount() => $_has(1);
   @$pb.TagNumber(2)
@@ -2452,7 +3091,10 @@ class ExecutePrepaymentRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   PrepaymentStrategy get strategy => $_getN(2);
   @$pb.TagNumber(3)
-  set strategy(PrepaymentStrategy v) { setField(3, v); }
+  set strategy(PrepaymentStrategy v) {
+    setField(3, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasStrategy() => $_has(2);
   @$pb.TagNumber(3)
@@ -2478,41 +3120,58 @@ class ExecutePrepaymentResponse extends $pb.GeneratedMessage {
     return $result;
   }
   ExecutePrepaymentResponse._() : super();
-  factory ExecutePrepaymentResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ExecutePrepaymentResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ExecutePrepaymentResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ExecutePrepaymentResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ExecutePrepaymentResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ExecutePrepaymentResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOM<Loan>(1, _omitFieldNames ? '' : 'loan', subBuilder: Loan.create)
-    ..aOM<PrepaymentSimulation>(2, _omitFieldNames ? '' : 'simulation', subBuilder: PrepaymentSimulation.create)
-    ..pc<LoanScheduleItem>(3, _omitFieldNames ? '' : 'newSchedule', $pb.PbFieldType.PM, subBuilder: LoanScheduleItem.create)
-    ..hasRequiredFields = false
-  ;
+    ..aOM<PrepaymentSimulation>(2, _omitFieldNames ? '' : 'simulation',
+        subBuilder: PrepaymentSimulation.create)
+    ..pc<LoanScheduleItem>(
+        3, _omitFieldNames ? '' : 'newSchedule', $pb.PbFieldType.PM,
+        subBuilder: LoanScheduleItem.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ExecutePrepaymentResponse clone() => ExecutePrepaymentResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ExecutePrepaymentResponse copyWith(void Function(ExecutePrepaymentResponse) updates) => super.copyWith((message) => updates(message as ExecutePrepaymentResponse)) as ExecutePrepaymentResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ExecutePrepaymentResponse clone() =>
+      ExecutePrepaymentResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ExecutePrepaymentResponse copyWith(
+          void Function(ExecutePrepaymentResponse) updates) =>
+      super.copyWith((message) => updates(message as ExecutePrepaymentResponse))
+          as ExecutePrepaymentResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
   static ExecutePrepaymentResponse create() => ExecutePrepaymentResponse._();
   ExecutePrepaymentResponse createEmptyInstance() => create();
-  static $pb.PbList<ExecutePrepaymentResponse> createRepeated() => $pb.PbList<ExecutePrepaymentResponse>();
+  static $pb.PbList<ExecutePrepaymentResponse> createRepeated() =>
+      $pb.PbList<ExecutePrepaymentResponse>();
   @$core.pragma('dart2js:noInline')
-  static ExecutePrepaymentResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ExecutePrepaymentResponse>(create);
+  static ExecutePrepaymentResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ExecutePrepaymentResponse>(create);
   static ExecutePrepaymentResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   Loan get loan => $_getN(0);
   @$pb.TagNumber(1)
-  set loan(Loan v) { setField(1, v); }
+  set loan(Loan v) {
+    setField(1, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasLoan() => $_has(0);
   @$pb.TagNumber(1)
@@ -2523,7 +3182,10 @@ class ExecutePrepaymentResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   PrepaymentSimulation get simulation => $_getN(1);
   @$pb.TagNumber(2)
-  set simulation(PrepaymentSimulation v) { setField(2, v); }
+  set simulation(PrepaymentSimulation v) {
+    setField(2, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasSimulation() => $_has(1);
   @$pb.TagNumber(2)
@@ -2558,42 +3220,62 @@ class ExecuteGroupPrepaymentRequest extends $pb.GeneratedMessage {
     return $result;
   }
   ExecuteGroupPrepaymentRequest._() : super();
-  factory ExecuteGroupPrepaymentRequest.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ExecuteGroupPrepaymentRequest.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ExecuteGroupPrepaymentRequest.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ExecuteGroupPrepaymentRequest.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ExecuteGroupPrepaymentRequest', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ExecuteGroupPrepaymentRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'groupId')
     ..aOS(2, _omitFieldNames ? '' : 'targetLoanId')
     ..aInt64(3, _omitFieldNames ? '' : 'prepaymentAmount')
-    ..e<PrepaymentStrategy>(4, _omitFieldNames ? '' : 'strategy', $pb.PbFieldType.OE, defaultOrMaker: PrepaymentStrategy.PREPAYMENT_STRATEGY_UNSPECIFIED, valueOf: PrepaymentStrategy.valueOf, enumValues: PrepaymentStrategy.values)
-    ..hasRequiredFields = false
-  ;
+    ..e<PrepaymentStrategy>(
+        4, _omitFieldNames ? '' : 'strategy', $pb.PbFieldType.OE,
+        defaultOrMaker: PrepaymentStrategy.PREPAYMENT_STRATEGY_UNSPECIFIED,
+        valueOf: PrepaymentStrategy.valueOf,
+        enumValues: PrepaymentStrategy.values)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ExecuteGroupPrepaymentRequest clone() => ExecuteGroupPrepaymentRequest()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ExecuteGroupPrepaymentRequest copyWith(void Function(ExecuteGroupPrepaymentRequest) updates) => super.copyWith((message) => updates(message as ExecuteGroupPrepaymentRequest)) as ExecuteGroupPrepaymentRequest;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ExecuteGroupPrepaymentRequest clone() =>
+      ExecuteGroupPrepaymentRequest()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ExecuteGroupPrepaymentRequest copyWith(
+          void Function(ExecuteGroupPrepaymentRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as ExecuteGroupPrepaymentRequest))
+          as ExecuteGroupPrepaymentRequest;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static ExecuteGroupPrepaymentRequest create() => ExecuteGroupPrepaymentRequest._();
+  static ExecuteGroupPrepaymentRequest create() =>
+      ExecuteGroupPrepaymentRequest._();
   ExecuteGroupPrepaymentRequest createEmptyInstance() => create();
-  static $pb.PbList<ExecuteGroupPrepaymentRequest> createRepeated() => $pb.PbList<ExecuteGroupPrepaymentRequest>();
+  static $pb.PbList<ExecuteGroupPrepaymentRequest> createRepeated() =>
+      $pb.PbList<ExecuteGroupPrepaymentRequest>();
   @$core.pragma('dart2js:noInline')
-  static ExecuteGroupPrepaymentRequest getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ExecuteGroupPrepaymentRequest>(create);
+  static ExecuteGroupPrepaymentRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ExecuteGroupPrepaymentRequest>(create);
   static ExecuteGroupPrepaymentRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get groupId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set groupId($core.String v) { $_setString(0, v); }
+  set groupId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasGroupId() => $_has(0);
   @$pb.TagNumber(1)
@@ -2602,7 +3284,10 @@ class ExecuteGroupPrepaymentRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.String get targetLoanId => $_getSZ(1);
   @$pb.TagNumber(2)
-  set targetLoanId($core.String v) { $_setString(1, v); }
+  set targetLoanId($core.String v) {
+    $_setString(1, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasTargetLoanId() => $_has(1);
   @$pb.TagNumber(2)
@@ -2611,7 +3296,10 @@ class ExecuteGroupPrepaymentRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $fixnum.Int64 get prepaymentAmount => $_getI64(2);
   @$pb.TagNumber(3)
-  set prepaymentAmount($fixnum.Int64 v) { $_setInt64(2, v); }
+  set prepaymentAmount($fixnum.Int64 v) {
+    $_setInt64(2, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasPrepaymentAmount() => $_has(2);
   @$pb.TagNumber(3)
@@ -2620,7 +3308,10 @@ class ExecuteGroupPrepaymentRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   PrepaymentStrategy get strategy => $_getN(3);
   @$pb.TagNumber(4)
-  set strategy(PrepaymentStrategy v) { setField(4, v); }
+  set strategy(PrepaymentStrategy v) {
+    setField(4, v);
+  }
+
   @$pb.TagNumber(4)
   $core.bool hasStrategy() => $_has(3);
   @$pb.TagNumber(4)
@@ -2650,42 +3341,61 @@ class ExecuteGroupPrepaymentResponse extends $pb.GeneratedMessage {
     return $result;
   }
   ExecuteGroupPrepaymentResponse._() : super();
-  factory ExecuteGroupPrepaymentResponse.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
-  factory ExecuteGroupPrepaymentResponse.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
+  factory ExecuteGroupPrepaymentResponse.fromBuffer($core.List<$core.int> i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(i, r);
+  factory ExecuteGroupPrepaymentResponse.fromJson($core.String i,
+          [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(i, r);
 
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(_omitMessageNames ? '' : 'ExecuteGroupPrepaymentResponse', package: const $pb.PackageName(_omitMessageNames ? '' : 'familyledger.loan.v1'), createEmptyInstance: create)
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ExecuteGroupPrepaymentResponse',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'familyledger.loan.v1'),
+      createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'targetLoanId')
     ..aOM<Loan>(2, _omitFieldNames ? '' : 'loan', subBuilder: Loan.create)
-    ..aOM<PrepaymentSimulation>(3, _omitFieldNames ? '' : 'simulation', subBuilder: PrepaymentSimulation.create)
-    ..pc<LoanScheduleItem>(4, _omitFieldNames ? '' : 'newSchedule', $pb.PbFieldType.PM, subBuilder: LoanScheduleItem.create)
-    ..hasRequiredFields = false
-  ;
+    ..aOM<PrepaymentSimulation>(3, _omitFieldNames ? '' : 'simulation',
+        subBuilder: PrepaymentSimulation.create)
+    ..pc<LoanScheduleItem>(
+        4, _omitFieldNames ? '' : 'newSchedule', $pb.PbFieldType.PM,
+        subBuilder: LoanScheduleItem.create)
+    ..hasRequiredFields = false;
 
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
-  'Will be removed in next major version')
-  ExecuteGroupPrepaymentResponse clone() => ExecuteGroupPrepaymentResponse()..mergeFromMessage(this);
-  @$core.Deprecated(
-  'Using this can add significant overhead to your binary. '
-  'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
-  'Will be removed in next major version')
-  ExecuteGroupPrepaymentResponse copyWith(void Function(ExecuteGroupPrepaymentResponse) updates) => super.copyWith((message) => updates(message as ExecuteGroupPrepaymentResponse)) as ExecuteGroupPrepaymentResponse;
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.deepCopy] instead. '
+      'Will be removed in next major version')
+  ExecuteGroupPrepaymentResponse clone() =>
+      ExecuteGroupPrepaymentResponse()..mergeFromMessage(this);
+  @$core.Deprecated('Using this can add significant overhead to your binary. '
+      'Use [GeneratedMessageGenericExtensions.rebuild] instead. '
+      'Will be removed in next major version')
+  ExecuteGroupPrepaymentResponse copyWith(
+          void Function(ExecuteGroupPrepaymentResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as ExecuteGroupPrepaymentResponse))
+          as ExecuteGroupPrepaymentResponse;
 
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static ExecuteGroupPrepaymentResponse create() => ExecuteGroupPrepaymentResponse._();
+  static ExecuteGroupPrepaymentResponse create() =>
+      ExecuteGroupPrepaymentResponse._();
   ExecuteGroupPrepaymentResponse createEmptyInstance() => create();
-  static $pb.PbList<ExecuteGroupPrepaymentResponse> createRepeated() => $pb.PbList<ExecuteGroupPrepaymentResponse>();
+  static $pb.PbList<ExecuteGroupPrepaymentResponse> createRepeated() =>
+      $pb.PbList<ExecuteGroupPrepaymentResponse>();
   @$core.pragma('dart2js:noInline')
-  static ExecuteGroupPrepaymentResponse getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<ExecuteGroupPrepaymentResponse>(create);
+  static ExecuteGroupPrepaymentResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ExecuteGroupPrepaymentResponse>(create);
   static ExecuteGroupPrepaymentResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get targetLoanId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set targetLoanId($core.String v) { $_setString(0, v); }
+  set targetLoanId($core.String v) {
+    $_setString(0, v);
+  }
+
   @$pb.TagNumber(1)
   $core.bool hasTargetLoanId() => $_has(0);
   @$pb.TagNumber(1)
@@ -2694,7 +3404,10 @@ class ExecuteGroupPrepaymentResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   Loan get loan => $_getN(1);
   @$pb.TagNumber(2)
-  set loan(Loan v) { setField(2, v); }
+  set loan(Loan v) {
+    setField(2, v);
+  }
+
   @$pb.TagNumber(2)
   $core.bool hasLoan() => $_has(1);
   @$pb.TagNumber(2)
@@ -2705,7 +3418,10 @@ class ExecuteGroupPrepaymentResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   PrepaymentSimulation get simulation => $_getN(2);
   @$pb.TagNumber(3)
-  set simulation(PrepaymentSimulation v) { setField(3, v); }
+  set simulation(PrepaymentSimulation v) {
+    setField(3, v);
+  }
+
   @$pb.TagNumber(3)
   $core.bool hasSimulation() => $_has(2);
   @$pb.TagNumber(3)
@@ -2717,6 +3433,6 @@ class ExecuteGroupPrepaymentResponse extends $pb.GeneratedMessage {
   $core.List<LoanScheduleItem> get newSchedule => $_getList(3);
 }
 
-
 const _omitFieldNames = $core.bool.fromEnvironment('protobuf.omit_field_names');
-const _omitMessageNames = $core.bool.fromEnvironment('protobuf.omit_message_names');
+const _omitMessageNames =
+    $core.bool.fromEnvironment('protobuf.omit_message_names');

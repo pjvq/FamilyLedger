@@ -649,7 +649,7 @@ func TestValidateCreateLoanRequest(t *testing.T) {
 				Name: "test", LoanType: pb.LoanType_LOAN_TYPE_MORTGAGE,
 				Principal: 100000000, AnnualRate: 3.85, TotalMonths: 360,
 				RepaymentMethod: pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT,
-				PaymentDay: 15, StartDate: timestamppb.New(time.Now()),
+				PaymentDay:      15, StartDate: timestamppb.New(time.Now()),
 			},
 			wantErr: false,
 		},
@@ -667,7 +667,7 @@ func TestValidateCreateLoanRequest(t *testing.T) {
 				Name: "test", LoanType: pb.LoanType_LOAN_TYPE_MORTGAGE,
 				Principal: 100, AnnualRate: 3, TotalMonths: 12,
 				RepaymentMethod: pb.RepaymentMethod_REPAYMENT_METHOD_EQUAL_INSTALLMENT,
-				PaymentDay: 29,
+				PaymentDay:      29,
 			},
 			wantErr: true,
 		},
@@ -729,7 +729,6 @@ func TestAdvanceMonths(t *testing.T) {
 	d3 := advanceMonths(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), 1, 30)
 	assert.Equal(t, 28, d3.Day()) // Feb 2026 has 28 days
 }
-
 
 // ─── Daily Interest Calculation Tests ───────────────────────────────────────
 

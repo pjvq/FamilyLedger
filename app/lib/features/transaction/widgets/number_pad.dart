@@ -22,7 +22,9 @@ class NumberPad extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bgColor = isDark ? NeutralColorsDark.neutral2 : NeutralColorsLight.neutral2;
+    final bgColor = isDark
+        ? NeutralColorsDark.neutral2
+        : NeutralColorsLight.neutral2;
     final keyColor = isDark ? NeutralColorsDark.neutral3 : Colors.white;
 
     return Container(
@@ -55,14 +57,17 @@ class NumberPad extends StatelessWidget {
 
   Widget _row(List<String> keys, Color keyColor, ThemeData theme) {
     return Row(
-      children: keys
-          .expand((k) => [
-                _keyButton(k, keyColor, theme),
-                const SizedBox(width: 6),
-              ])
-          .toList()
-        ..removeLast()
-        ..add(const Spacer()), // 右边留空给确认按钮
+      children:
+          keys
+              .expand(
+                (k) => [
+                  _keyButton(k, keyColor, theme),
+                  const SizedBox(width: 6),
+                ],
+              )
+              .toList()
+            ..removeLast()
+            ..add(const Spacer()), // 右边留空给确认按钮
     );
   }
 
@@ -96,10 +101,12 @@ class NumberPad extends StatelessWidget {
         height: 52,
         child: ElevatedButton(
           onPressed: onDelete,
-          onLongPress: onClear ?? () {
-            // Default: trigger onDelete once (caller can override with onClear)
-            onDelete();
-          },
+          onLongPress:
+              onClear ??
+              () {
+                // Default: trigger onDelete once (caller can override with onClear)
+                onDelete();
+              },
           style: ElevatedButton.styleFrom(
             backgroundColor: keyColor,
             foregroundColor: theme.colorScheme.onSurface,
@@ -124,8 +131,9 @@ class NumberPad extends StatelessWidget {
         child: ElevatedButton(
           onPressed: confirmEnabled ? onConfirm : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor:
-                confirmEnabled ? ColorTokens.primary : ColorTokens.primary.withValues(alpha: 0.3),
+            backgroundColor: confirmEnabled
+                ? ColorTokens.primary
+                : ColorTokens.primary.withValues(alpha: 0.3),
             foregroundColor: Colors.white,
             elevation: 0,
             shape: RoundedRectangleBorder(

@@ -31,15 +31,17 @@ class CategoryRepository implements ICategoryRepository {
 
   @override
   Future<CategoryEntity?> getById(String id) async {
-    final rows = await (_db.select(_db.categories)
-          ..where((c) => c.id.equals(id)))
-        .get();
+    final rows = await (_db.select(
+      _db.categories,
+    )..where((c) => c.id.equals(id))).get();
     return rows.isEmpty ? null : _toEntity(rows.first);
   }
 
   @override
   Future<void> upsert(CategoryEntity entity) async {
-    await _db.into(_db.categories).insertOnConflictUpdate(
+    await _db
+        .into(_db.categories)
+        .insertOnConflictUpdate(
           CategoriesCompanion.insert(
             id: entity.id,
             name: entity.name,
@@ -87,12 +89,12 @@ class CategoryRepository implements ICategoryRepository {
 
   /// Convert Drift model to domain entity.
   static CategoryEntity _toEntity(Category row) => CategoryEntity(
-        id: row.id,
-        name: row.name,
-        type: row.type,
-        parentId: row.parentId,
-        iconKey: row.iconKey,
-        sortOrder: row.sortOrder,
-        isPreset: row.isPreset,
-      );
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    parentId: row.parentId,
+    iconKey: row.iconKey,
+    sortOrder: row.sortOrder,
+    isPreset: row.isPreset,
+  );
 }

@@ -20,7 +20,10 @@ class InMemoryAccountRepository implements IAccountRepository {
   @override
   Future<List<AccountEntity>> getActive(String userId) async {
     return _store
-        .where((a) => a.userId == userId && (a.familyId == null || a.familyId!.isEmpty))
+        .where(
+          (a) =>
+              a.userId == userId && (a.familyId == null || a.familyId!.isEmpty),
+        )
         .toList();
   }
 

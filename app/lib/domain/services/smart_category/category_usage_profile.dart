@@ -29,9 +29,11 @@ class CategoryUsageProfile {
     List<int>? amountBuckets,
     this.topKeywords = const [],
     this.lastUsedAt,
-  })  : hourDistribution = hourDistribution ?? List<int>.filled(hourSlotCount, 0),
-        weekdayDistribution = weekdayDistribution ?? List<int>.filled(weekdaySlotCount, 0),
-        amountBuckets = amountBuckets ?? List<int>.filled(amountBucketCount, 0);
+  }) : hourDistribution =
+           hourDistribution ?? List<int>.filled(hourSlotCount, 0),
+       weekdayDistribution =
+           weekdayDistribution ?? List<int>.filled(weekdaySlotCount, 0),
+       amountBuckets = amountBuckets ?? List<int>.filled(amountBucketCount, 0);
 
   /// 归一化的小时分布 (概率向量, sum=1)
   List<double> get hourProbability => _normalize(hourDistribution);
@@ -44,7 +46,8 @@ class CategoryUsageProfile {
 
   static List<double> _normalize(List<int> distribution) {
     final total = distribution.fold<int>(0, (a, b) => a + b);
-    if (total == 0) return List.filled(distribution.length, 1.0 / distribution.length);
+    if (total == 0)
+      return List.filled(distribution.length, 1.0 / distribution.length);
     return distribution.map((c) => c / total).toList();
   }
 

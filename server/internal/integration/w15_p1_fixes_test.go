@@ -16,6 +16,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/familyledger/server/internal/auth"
 	syncpkg "github.com/familyledger/server/internal/sync"
 	"github.com/familyledger/server/pkg/jwt"
@@ -23,11 +29,6 @@ import (
 	"github.com/familyledger/server/pkg/ws"
 	pbAuth "github.com/familyledger/server/proto/auth"
 	pbSync "github.com/familyledger/server/proto/sync"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ============================================================

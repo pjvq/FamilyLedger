@@ -27,7 +27,10 @@ class AccountPill extends StatelessWidget {
         onTap();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.base, vertical: SpacingTokens.sm),
+        padding: const EdgeInsets.symmetric(
+          horizontal: SpacingTokens.base,
+          vertical: SpacingTokens.sm,
+        ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
@@ -43,7 +46,11 @@ class AccountPill extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 16, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+              Icon(
+                icon,
+                size: 16,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
               const SizedBox(width: 6),
             ],
             Text(

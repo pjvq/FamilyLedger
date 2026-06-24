@@ -142,11 +142,11 @@ type Hub struct {
 type Client struct {
 	conn   *websocket.Conn
 	userID string
-	token  string     // original JWT — for periodic re-verification
+	token  string // original JWT — for periodic re-verification
 	send   chan []byte
 	done   chan struct{} // closed when client is unregistered
-	once   sync.Once    // ensures unregister logic runs only once
-	hub    *Hub         // back-reference for config access
+	once   sync.Once     // ensures unregister logic runs only once
+	hub    *Hub          // back-reference for config access
 }
 
 type ChangeNotification struct {

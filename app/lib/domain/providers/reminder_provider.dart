@@ -16,6 +16,7 @@ class Reminder {
   final String title;
   final String subtitle;
   final IconData icon;
+
   /// Semantic severity: true = error/critical, false = warning.
   final bool isCritical;
   final String? routeId;
@@ -42,8 +43,7 @@ class Reminder {
 /// separate loan/budget reminder providers to reduce recomputation.
 final reminderProvider = Provider<List<Reminder>>((ref) {
   final loans = ref.watch(loanProvider.select((s) => s.loans));
-  final budget = ref.watch(
-      dashboardProvider.select((s) => s.budgetSummary));
+  final budget = ref.watch(dashboardProvider.select((s) => s.budgetSummary));
   return buildReminders(loans, budget);
 });
 
@@ -65,33 +65,35 @@ List<Reminder> buildReminders(
     final daysUntil = daysUntilPayment(loan.paymentDay, effectiveNow);
 
     if (daysUntil <= 7) {
-      reminders.add(Reminder(
-        type: ReminderType.loanPayment,
-        title: loan.name,
-        subtitle: daysUntil == 0
-            ? '今天还款日'
-            : daysUntil == 1
-                ? '明天还款'
-                : '$daysUntil天后还款',
-        icon: Icons.account_balance_rounded,
-        isCritical: daysUntil <= 1,
-        routeId: loan.id,
-      ));
+      reminders.add(
+        Reminder(
+          type: ReminderType.loanPayment,
+          title: loan.name,
+          subtitle: daysUntil == 0
+              ? '今天还款日'
+              : daysUntil == 1
+              ? '明天还款'
+              : '$daysUntil天后还款',
+          icon: Icons.account_balance_rounded,
+          isCritical: daysUntil <= 1,
+          routeId: loan.id,
+        ),
+      );
     }
   }
 
   // Budget overrun warning
   if (budget.totalBudget > 0 && budget.executionRate >= 0.8) {
     final pct = (budget.executionRate * 100).toInt();
-    reminders.add(Reminder(
-      type: ReminderType.budgetWarning,
-      title: '预算预警',
-      subtitle: pct >= 100
-          ? '本月已超支'
-          : '已使用 $pct%',
-      icon: Icons.warning_amber_rounded,
-      isCritical: pct >= 100,
-    ));
+    reminders.add(
+      Reminder(
+        type: ReminderType.budgetWarning,
+        title: '预算预警',
+        subtitle: pct >= 100 ? '本月已超支' : '已使用 $pct%',
+        icon: Icons.warning_amber_rounded,
+        isCritical: pct >= 100,
+      ),
+    );
   }
 
   return reminders;

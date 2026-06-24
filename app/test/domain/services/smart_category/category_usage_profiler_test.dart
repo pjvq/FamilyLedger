@@ -38,13 +38,7 @@ void main() {
 
   group('CategoryUsageProfiler.extractTopKeywords', () {
     test('extracts frequent tokens', () {
-      final notes = [
-        '美团外卖',
-        '饿了么外卖',
-        '美团午餐',
-        '美团晚餐',
-        '外卖',
-      ];
+      final notes = ['美团外卖', '饿了么外卖', '美团午餐', '美团晚餐', '外卖'];
       final keywords = CategoryUsageProfiler.extractTopKeywords(notes);
       // '外卖' appears in bigrams of multiple notes, should be top
       expect(keywords, contains('外卖'));

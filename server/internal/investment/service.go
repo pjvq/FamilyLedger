@@ -1024,4 +1024,3 @@ func calculateXIRR(cashFlows []*pb.CashFlow) float64 {
 
 	return rate
 }
-

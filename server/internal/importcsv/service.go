@@ -18,7 +18,7 @@ import (
 
 	"github.com/familyledger/server/pkg/db"
 	"github.com/familyledger/server/pkg/logger"
-		"github.com/familyledger/server/pkg/middleware"
+	"github.com/familyledger/server/pkg/middleware"
 	pb "github.com/familyledger/server/proto/importpb"
 )
 

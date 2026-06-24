@@ -48,8 +48,7 @@ class LoanItem extends StatelessWidget {
                           backgroundColor: isDark
                               ? NeutralColorsDark.neutral3
                               : NeutralColorsLight.neutral3,
-                          valueColor:
-                              AlwaysStoppedAnimation(colors.liability),
+                          valueColor: AlwaysStoppedAnimation(colors.liability),
                         ),
                         Text(
                           '${(progress * 100).toInt()}%',
@@ -79,8 +78,9 @@ class LoanItem extends StatelessWidget {
                         Text(
                           '${loan.paidMonths}/${loan.totalMonths}期 · ${loan.annualRate.toStringAsFixed(2)}%',
                           style: TypographyTokens.caption(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
                       ],
@@ -100,8 +100,9 @@ class LoanItem extends StatelessWidget {
                       Text(
                         '剩余本金',
                         style: TypographyTokens.caption(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.4),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
                         ),
                       ),
                     ],

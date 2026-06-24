@@ -29,42 +29,61 @@ void main() {
       final now = DateTime.now();
 
       // Insert 3 offline operations into the sync queue
-      await db.into(db.syncQueue).insert(SyncQueueCompanion.insert(
-        id: 'op-001',
-        entityType: 'transaction',
-        entityId: 'txn-aaa',
-        opType: 'create',
-        payload: '{"amount":100,"note":"groceries"}',
-        clientId: 'device-1',
-        timestamp: now.subtract(const Duration(minutes: 3)),
-      ));
-      await db.into(db.syncQueue).insert(SyncQueueCompanion.insert(
-        id: 'op-002',
-        entityType: 'account',
-        entityId: 'acct-bbb',
-        opType: 'update',
-        payload: '{"name":"Updated Account"}',
-        clientId: 'device-1',
-        timestamp: now.subtract(const Duration(minutes: 2)),
-      ));
-      await db.into(db.syncQueue).insert(SyncQueueCompanion.insert(
-        id: 'op-003',
-        entityType: 'transaction',
-        entityId: 'txn-ccc',
-        opType: 'delete',
-        payload: '{}',
-        clientId: 'device-1',
-        timestamp: now.subtract(const Duration(minutes: 1)),
-      ));
+      await db
+          .into(db.syncQueue)
+          .insert(
+            SyncQueueCompanion.insert(
+              id: 'op-001',
+              entityType: 'transaction',
+              entityId: 'txn-aaa',
+              opType: 'create',
+              payload: '{"amount":100,"note":"groceries"}',
+              clientId: 'device-1',
+              timestamp: now.subtract(const Duration(minutes: 3)),
+            ),
+          );
+      await db
+          .into(db.syncQueue)
+          .insert(
+            SyncQueueCompanion.insert(
+              id: 'op-002',
+              entityType: 'account',
+              entityId: 'acct-bbb',
+              opType: 'update',
+              payload: '{"name":"Updated Account"}',
+              clientId: 'device-1',
+              timestamp: now.subtract(const Duration(minutes: 2)),
+            ),
+          );
+      await db
+          .into(db.syncQueue)
+          .insert(
+            SyncQueueCompanion.insert(
+              id: 'op-003',
+              entityType: 'transaction',
+              entityId: 'txn-ccc',
+              opType: 'delete',
+              payload: '{}',
+              clientId: 'device-1',
+              timestamp: now.subtract(const Duration(minutes: 1)),
+            ),
+          );
 
       // Verify entries exist
       var entries = await db.select(db.syncQueue).get();
-      expect(entries.length, 3, reason: 'Should have 3 queue entries before restart');
+      expect(
+        entries.length,
+        3,
+        reason: 'Should have 3 queue entries before restart',
+      );
 
       // Verify none are marked as uploaded
       for (final entry in entries) {
-        expect(entry.uploaded, false,
-            reason: 'Entries should be un-uploaded (offline)');
+        expect(
+          entry.uploaded,
+          false,
+          reason: 'Entries should be un-uploaded (offline)',
+        );
       }
 
       // Step 2: Close database (simulating app kill)
@@ -75,9 +94,12 @@ void main() {
 
       // Step 4: Verify all 3 entries survived
       entries = await db.select(db.syncQueue).get();
-      expect(entries.length, 3,
-          reason:
-              'BUG-006: All 3 queue entries must survive after database close/reopen');
+      expect(
+        entries.length,
+        3,
+        reason:
+            'BUG-006: All 3 queue entries must survive after database close/reopen',
+      );
 
       // Verify data integrity
       final op1 = entries.firstWhere((e) => e.id == 'op-001');
@@ -98,26 +120,33 @@ void main() {
       expect(op3.opType, 'delete');
 
       // Step 5: Mark one as uploaded, close, reopen, verify mixed state
-      await (db.update(db.syncQueue)
-            ..where((q) => q.id.equals('op-001')))
+      await (db.update(db.syncQueue)..where((q) => q.id.equals('op-001')))
           .write(const SyncQueueCompanion(uploaded: Value(true)));
 
       await db.close();
       db = AppDatabase.forTesting(NativeDatabase(File(dbPath)));
 
       entries = await db.select(db.syncQueue).get();
-      expect(entries.length, 3,
-          reason: 'BUG-006: Entries must persist after second restart');
+      expect(
+        entries.length,
+        3,
+        reason: 'BUG-006: Entries must persist after second restart',
+      );
 
       final op1After = entries.firstWhere((e) => e.id == 'op-001');
-      expect(op1After.uploaded, true,
-          reason: 'BUG-006: Upload status must persist across restart');
+      expect(
+        op1After.uploaded,
+        true,
+        reason: 'BUG-006: Upload status must persist across restart',
+      );
 
-      final pendingEntries =
-          entries.where((e) => !e.uploaded).toList();
-      expect(pendingEntries.length, 2,
-          reason:
-              'BUG-006: 2 entries should still be pending upload after restart');
+      final pendingEntries = entries.where((e) => !e.uploaded).toList();
+      expect(
+        pendingEntries.length,
+        2,
+        reason:
+            'BUG-006: 2 entries should still be pending upload after restart',
+      );
 
       // Cleanup
       await db.close();
@@ -126,57 +155,75 @@ void main() {
       } catch (_) {}
     });
 
-    test('SyncQueue entries are ordered by timestamp for correct replay',
-        () async {
-      final db = AppDatabase.forTesting(NativeDatabase.memory());
+    test(
+      'SyncQueue entries are ordered by timestamp for correct replay',
+      () async {
+        final db = AppDatabase.forTesting(NativeDatabase.memory());
 
-      final now = DateTime.now();
+        final now = DateTime.now();
 
-      // Insert entries out of order
-      await db.into(db.syncQueue).insert(SyncQueueCompanion.insert(
-        id: 'late-op',
-        entityType: 'transaction',
-        entityId: 'txn-late',
-        opType: 'create',
-        payload: '{}',
-        clientId: 'device-1',
-        timestamp: now.add(const Duration(minutes: 10)),
-      ));
-      await db.into(db.syncQueue).insert(SyncQueueCompanion.insert(
-        id: 'early-op',
-        entityType: 'transaction',
-        entityId: 'txn-early',
-        opType: 'create',
-        payload: '{}',
-        clientId: 'device-1',
-        timestamp: now.subtract(const Duration(minutes: 10)),
-      ));
-      await db.into(db.syncQueue).insert(SyncQueueCompanion.insert(
-        id: 'mid-op',
-        entityType: 'transaction',
-        entityId: 'txn-mid',
-        opType: 'create',
-        payload: '{}',
-        clientId: 'device-1',
-        timestamp: now,
-      ));
+        // Insert entries out of order
+        await db
+            .into(db.syncQueue)
+            .insert(
+              SyncQueueCompanion.insert(
+                id: 'late-op',
+                entityType: 'transaction',
+                entityId: 'txn-late',
+                opType: 'create',
+                payload: '{}',
+                clientId: 'device-1',
+                timestamp: now.add(const Duration(minutes: 10)),
+              ),
+            );
+        await db
+            .into(db.syncQueue)
+            .insert(
+              SyncQueueCompanion.insert(
+                id: 'early-op',
+                entityType: 'transaction',
+                entityId: 'txn-early',
+                opType: 'create',
+                payload: '{}',
+                clientId: 'device-1',
+                timestamp: now.subtract(const Duration(minutes: 10)),
+              ),
+            );
+        await db
+            .into(db.syncQueue)
+            .insert(
+              SyncQueueCompanion.insert(
+                id: 'mid-op',
+                entityType: 'transaction',
+                entityId: 'txn-mid',
+                opType: 'create',
+                payload: '{}',
+                clientId: 'device-1',
+                timestamp: now,
+              ),
+            );
 
-      // Query with timestamp ordering
-      final entries = await (db.select(db.syncQueue)
-            ..orderBy([
-              (q) => OrderingTerm.asc(q.timestamp),
-            ]))
-          .get();
+        // Query with timestamp ordering
+        final entries = await (db.select(
+          db.syncQueue,
+        )..orderBy([(q) => OrderingTerm.asc(q.timestamp)])).get();
 
-      expect(entries.length, 3);
-      expect(entries[0].id, 'early-op',
-          reason: 'BUG-006: Earliest entry must come first for correct replay');
-      expect(entries[1].id, 'mid-op');
-      expect(entries[2].id, 'late-op',
-          reason: 'BUG-006: Latest entry must come last');
+        expect(entries.length, 3);
+        expect(
+          entries[0].id,
+          'early-op',
+          reason: 'BUG-006: Earliest entry must come first for correct replay',
+        );
+        expect(entries[1].id, 'mid-op');
+        expect(
+          entries[2].id,
+          'late-op',
+          reason: 'BUG-006: Latest entry must come last',
+        );
 
-      await db.close();
-    });
+        await db.close();
+      },
+    );
 
     test('SyncQueue un-uploaded entries can be queried for retry', () async {
       final db = AppDatabase.forTesting(NativeDatabase.memory());
@@ -184,43 +231,60 @@ void main() {
       final now = DateTime.now();
 
       // Insert mix of uploaded and un-uploaded
-      await db.into(db.syncQueue).insert(SyncQueueCompanion.insert(
-        id: 'done-1',
-        entityType: 'transaction',
-        entityId: 'txn-done',
-        opType: 'create',
-        payload: '{}',
-        clientId: 'device-1',
-        timestamp: now,
-        uploaded: const Value(true),
-      ));
-      await db.into(db.syncQueue).insert(SyncQueueCompanion.insert(
-        id: 'pending-1',
-        entityType: 'account',
-        entityId: 'acct-pending',
-        opType: 'update',
-        payload: '{"name":"test"}',
-        clientId: 'device-1',
-        timestamp: now.add(const Duration(seconds: 1)),
-      ));
-      await db.into(db.syncQueue).insert(SyncQueueCompanion.insert(
-        id: 'pending-2',
-        entityType: 'transaction',
-        entityId: 'txn-pending',
-        opType: 'delete',
-        payload: '{}',
-        clientId: 'device-1',
-        timestamp: now.add(const Duration(seconds: 2)),
-      ));
+      await db
+          .into(db.syncQueue)
+          .insert(
+            SyncQueueCompanion.insert(
+              id: 'done-1',
+              entityType: 'transaction',
+              entityId: 'txn-done',
+              opType: 'create',
+              payload: '{}',
+              clientId: 'device-1',
+              timestamp: now,
+              uploaded: const Value(true),
+            ),
+          );
+      await db
+          .into(db.syncQueue)
+          .insert(
+            SyncQueueCompanion.insert(
+              id: 'pending-1',
+              entityType: 'account',
+              entityId: 'acct-pending',
+              opType: 'update',
+              payload: '{"name":"test"}',
+              clientId: 'device-1',
+              timestamp: now.add(const Duration(seconds: 1)),
+            ),
+          );
+      await db
+          .into(db.syncQueue)
+          .insert(
+            SyncQueueCompanion.insert(
+              id: 'pending-2',
+              entityType: 'transaction',
+              entityId: 'txn-pending',
+              opType: 'delete',
+              payload: '{}',
+              clientId: 'device-1',
+              timestamp: now.add(const Duration(seconds: 2)),
+            ),
+          );
 
       // Query only un-uploaded entries (what the sync engine does on restart)
-      final pending = await (db.select(db.syncQueue)
-            ..where((q) => q.uploaded.equals(false))
-            ..orderBy([(q) => OrderingTerm.asc(q.timestamp)]))
-          .get();
+      final pending =
+          await (db.select(db.syncQueue)
+                ..where((q) => q.uploaded.equals(false))
+                ..orderBy([(q) => OrderingTerm.asc(q.timestamp)]))
+              .get();
 
-      expect(pending.length, 2,
-          reason: 'BUG-006: Only un-uploaded entries should be returned for retry');
+      expect(
+        pending.length,
+        2,
+        reason:
+            'BUG-006: Only un-uploaded entries should be returned for retry',
+      );
       expect(pending[0].id, 'pending-1');
       expect(pending[1].id, 'pending-2');
 
