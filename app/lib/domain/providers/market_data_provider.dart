@@ -1,51 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fixnum/fixnum.dart';
+import 'package:http/http.dart' as http;
 import 'package:drift/drift.dart' show Value;
 import '../../data/local/database.dart' as db;
-import '../../data/remote/grpc_clients.dart';
-import '../../generated/proto/investment.pb.dart' as pb;
-import '../../generated/proto/investment.pbgrpc.dart';
-import '../../generated/proto/investment.pbenum.dart' as pb_enum;
-import '../../generated/proto/google/protobuf/timestamp.pb.dart' as ts_pb;
+import '../services/market/market_fetcher.dart';
 import 'app_providers.dart';
-
-pb_enum.MarketType _toProtoMarketType(String type) {
-  switch (type) {
-    case 'a_share':
-      return pb_enum.MarketType.MARKET_TYPE_A_SHARE;
-    case 'hk_stock':
-      return pb_enum.MarketType.MARKET_TYPE_HK_STOCK;
-    case 'us_stock':
-      return pb_enum.MarketType.MARKET_TYPE_US_STOCK;
-    case 'crypto':
-      return pb_enum.MarketType.MARKET_TYPE_CRYPTO;
-    case 'fund':
-      return pb_enum.MarketType.MARKET_TYPE_FUND;
-    case 'precious_metal':
-      return pb_enum.MarketType.MARKET_TYPE_PRECIOUS_METAL;
-    default:
-      return pb_enum.MarketType.MARKET_TYPE_A_SHARE;
-  }
-}
-
-String _fromProtoMarketType(pb_enum.MarketType type) {
-  switch (type) {
-    case pb_enum.MarketType.MARKET_TYPE_A_SHARE:
-      return 'a_share';
-    case pb_enum.MarketType.MARKET_TYPE_HK_STOCK:
-      return 'hk_stock';
-    case pb_enum.MarketType.MARKET_TYPE_US_STOCK:
-      return 'us_stock';
-    case pb_enum.MarketType.MARKET_TYPE_CRYPTO:
-      return 'crypto';
-    case pb_enum.MarketType.MARKET_TYPE_FUND:
-      return 'fund';
-    case pb_enum.MarketType.MARKET_TYPE_PRECIOUS_METAL:
-      return 'precious_metal';
-    default:
-      return 'a_share';
-  }
-}
 
 // ── Display models ──
 
@@ -138,22 +96,33 @@ class MarketDataState {
 
 // ── Notifier ──
 
+/// Market-data notifier backed by direct client-side HTTP fetches.
+///
+/// Quotes / K-line / search are pulled straight from the same public,
+/// auth-free sources the server used (EastMoney / Yahoo / CoinGecko / Sina) via
+/// [MarketFetcher] — no backend required ("去服务化" Phase 1, issue #142). The
+/// public interface (getQuote / batchGetQuotes / searchSymbol /
+/// getPriceHistory / batchLoadSparklines) is unchanged so callers are unaffected.
+///
+/// Caching is two-tiered: an in-memory 15-min TTL avoids redundant network hits
+/// within a session, and the Drift `market_quotes` table provides an offline
+/// fallback when a fetch fails.
 class MarketDataNotifier extends StateNotifier<MarketDataState> {
   final db.AppDatabase _db;
-  final MarketDataServiceClient _client;
+  final MarketFetcher _fetcher;
 
-  /// In-memory cache timestamps for 15-min TTL
+  /// In-memory cache timestamps for 15-min TTL.
   final Map<String, DateTime> _cacheTimes = {};
 
   static const _cacheDuration = Duration(minutes: 15);
 
-  MarketDataNotifier(this._db, this._client) : super(const MarketDataState());
+  MarketDataNotifier(this._db, this._fetcher) : super(const MarketDataState());
 
-  /// Get a single quote (cached 15 min)
+  /// Get a single quote (cached 15 min).
   Future<QuoteDisplay?> getQuote(String symbol, String marketType) async {
     final key = MarketDataState.quoteKey(symbol, marketType);
 
-    // Check in-memory cache
+    // Check in-memory cache.
     final cachedTime = _cacheTimes[key];
     if (cachedTime != null &&
         DateTime.now().difference(cachedTime) < _cacheDuration &&
@@ -162,31 +131,27 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
     }
 
     try {
-      final resp = await _client.getQuote(
-        pb.GetQuoteRequest()
-          ..symbol = symbol
-          ..marketType = _toProtoMarketType(marketType),
-      );
+      final data = await _fetcher.fetchQuote(symbol, marketType);
 
       final quote = QuoteDisplay(
-        symbol: resp.symbol,
-        name: resp.name,
-        marketType: _fromProtoMarketType(resp.marketType),
-        currentPrice: resp.currentPrice.toInt(),
-        changeAmount: resp.change.toInt(),
-        changePercent: resp.changePercent,
+        symbol: data.symbol,
+        name: data.name,
+        marketType: data.marketType,
+        currentPrice: data.currentPrice,
+        changeAmount: data.changeAmount,
+        changePercent: data.changePercent,
         updatedAt: DateTime.now(),
       );
 
-      // Save to local cache
+      // Save to local cache.
       await _db.upsertMarketQuote(
         db.MarketQuotesCompanion.insert(
           symbol: symbol,
           marketType: marketType,
-          name: Value(resp.name),
-          currentPrice: Value(resp.currentPrice.toInt()),
-          changeAmount: Value(resp.change.toInt()),
-          changePercent: Value(resp.changePercent),
+          name: Value(data.name),
+          currentPrice: Value(data.currentPrice),
+          changeAmount: Value(data.changeAmount),
+          changePercent: Value(data.changePercent),
           updatedAt: Value(DateTime.now()),
         ),
       );
@@ -197,7 +162,7 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
       state = state.copyWith(quotes: newQuotes);
       return quote;
     } catch (_) {
-      // Try local DB
+      // Try local DB.
       final cached = await _db.getMarketQuote(symbol, marketType);
       if (cached != null) {
         final quote = QuoteDisplay(
@@ -218,72 +183,92 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
     return null;
   }
 
-  /// Batch get quotes
+  /// Batch get quotes (per-symbol direct fetch; failures fall back to local DB).
   Future<void> batchGetQuotes(
     List<({String symbol, String marketType})> requests,
   ) async {
     if (requests.isEmpty) return;
 
-    try {
-      final pbRequests = requests.map(
-        (r) => pb.GetQuoteRequest()
-          ..symbol = r.symbol
-          ..marketType = _toProtoMarketType(r.marketType),
-      );
-      final resp = await _client.batchGetQuotes(
-        pb.BatchGetQuotesRequest()..requests.addAll(pbRequests),
-      );
+    final newQuotes = Map<String, QuoteDisplay>.from(state.quotes);
+    var anyFetched = false;
 
-      final newQuotes = Map<String, QuoteDisplay>.from(state.quotes);
-      for (final q in resp.quotes) {
-        final mt = _fromProtoMarketType(q.marketType);
-        final key = MarketDataState.quoteKey(q.symbol, mt);
-        final quote = QuoteDisplay(
-          symbol: q.symbol,
-          name: q.name,
-          marketType: mt,
-          currentPrice: q.currentPrice.toInt(),
-          changeAmount: q.change.toInt(),
-          changePercent: q.changePercent,
+    for (final r in requests) {
+      final key = MarketDataState.quoteKey(r.symbol, r.marketType);
+
+      // Honor the in-memory 15-min TTL to avoid redundant network hits.
+      final cachedTime = _cacheTimes[key];
+      if (cachedTime != null &&
+          DateTime.now().difference(cachedTime) < _cacheDuration &&
+          newQuotes.containsKey(key)) {
+        continue;
+      }
+
+      try {
+        final data = await _fetcher.fetchQuote(r.symbol, r.marketType);
+        newQuotes[key] = QuoteDisplay(
+          symbol: data.symbol,
+          name: data.name,
+          marketType: data.marketType,
+          currentPrice: data.currentPrice,
+          changeAmount: data.changeAmount,
+          changePercent: data.changePercent,
           updatedAt: DateTime.now(),
         );
-        newQuotes[key] = quote;
         _cacheTimes[key] = DateTime.now();
+        anyFetched = true;
 
         await _db.upsertMarketQuote(
           db.MarketQuotesCompanion.insert(
-            symbol: q.symbol,
-            marketType: mt,
-            name: Value(q.name),
-            currentPrice: Value(q.currentPrice.toInt()),
-            changeAmount: Value(q.change.toInt()),
-            changePercent: Value(q.changePercent),
+            symbol: r.symbol,
+            marketType: r.marketType,
+            name: Value(data.name),
+            currentPrice: Value(data.currentPrice),
+            changeAmount: Value(data.changeAmount),
+            changePercent: Value(data.changePercent),
             updatedAt: Value(DateTime.now()),
           ),
         );
+      } catch (_) {
+        // Per-symbol failure: fall back to local DB for this one.
+        final cached = await _db.getMarketQuote(r.symbol, r.marketType);
+        if (cached != null) {
+          newQuotes[key] = QuoteDisplay(
+            symbol: cached.symbol,
+            name: cached.name,
+            marketType: cached.marketType,
+            currentPrice: cached.currentPrice,
+            changeAmount: cached.changeAmount,
+            changePercent: cached.changePercent,
+            updatedAt: cached.updatedAt,
+          );
+        }
       }
-      state = state.copyWith(quotes: newQuotes);
-    } catch (_) {
-      // Load all from local DB as fallback
+    }
+
+    // If nothing was fetched (e.g. all offline), seed remaining from local DB.
+    if (!anyFetched) {
       final cached = await _db.getAllMarketQuotes();
-      final newQuotes = Map<String, QuoteDisplay>.from(state.quotes);
       for (final c in cached) {
         final key = MarketDataState.quoteKey(c.symbol, c.marketType);
-        newQuotes[key] = QuoteDisplay(
-          symbol: c.symbol,
-          name: c.name,
-          marketType: c.marketType,
-          currentPrice: c.currentPrice,
-          changeAmount: c.changeAmount,
-          changePercent: c.changePercent,
-          updatedAt: c.updatedAt,
+        newQuotes.putIfAbsent(
+          key,
+          () => QuoteDisplay(
+            symbol: c.symbol,
+            name: c.name,
+            marketType: c.marketType,
+            currentPrice: c.currentPrice,
+            changeAmount: c.changeAmount,
+            changePercent: c.changePercent,
+            updatedAt: c.updatedAt,
+          ),
         );
       }
-      state = state.copyWith(quotes: newQuotes);
     }
+
+    state = state.copyWith(quotes: newQuotes);
   }
 
-  /// Search symbols
+  /// Search symbols.
   Future<void> searchSymbol(String query, {String? marketType}) async {
     if (query.trim().isEmpty) {
       state = state.copyWith(clearSearch: true);
@@ -293,18 +278,13 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final req = pb.SearchSymbolRequest()..query = query;
-      if (marketType != null) {
-        req.marketType = _toProtoMarketType(marketType);
-      }
-      final resp = await _client.searchSymbol(req);
-
-      final results = resp.symbols
+      final data = await _fetcher.searchSymbol(query, marketType ?? '');
+      final results = data
           .map(
             (s) => SymbolSearchResult(
               symbol: s.symbol,
               name: s.name,
-              marketType: _fromProtoMarketType(s.marketType),
+              marketType: s.marketType,
             ),
           )
           .toList();
@@ -318,7 +298,7 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
     }
   }
 
-  /// Get price history for chart
+  /// Get price history for chart.
   Future<void> getPriceHistory(
     String symbol,
     String marketType, {
@@ -336,21 +316,14 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
     final end = endDate ?? now;
 
     try {
-      final resp = await _client.getPriceHistory(
-        pb.GetPriceHistoryRequest()
-          ..symbol = symbol
-          ..marketType = _toProtoMarketType(marketType)
-          ..startDate = _toTimestamp(start)
-          ..endDate = _toTimestamp(end),
+      final data = await _fetcher.fetchPriceHistory(
+        symbol,
+        marketType,
+        start,
+        end,
       );
-
-      final points = resp.points
-          .map(
-            (p) => PricePoint(
-              timestamp: _fromTimestamp(p.timestamp),
-              price: p.price.toInt(),
-            ),
-          )
+      final points = data
+          .map((p) => PricePoint(timestamp: p.timestamp, price: p.price))
           .toList();
       state = state.copyWith(priceHistory: points, isLoading: false);
     } catch (e) {
@@ -380,45 +353,41 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
     for (final r in uncached) {
       final key = MarketDataState.quoteKey(r.symbol, r.marketType);
       try {
-        final resp = await _client.getPriceHistory(
-          pb.GetPriceHistoryRequest()
-            ..symbol = r.symbol
-            ..marketType = _toProtoMarketType(r.marketType)
-            ..startDate = _toTimestamp(start)
-            ..endDate = _toTimestamp(now),
+        final data = await _fetcher.fetchPriceHistory(
+          r.symbol,
+          r.marketType,
+          start,
+          now,
         );
-
-        newCache[key] = resp.points
-            .map(
-              (p) => PricePoint(
-                timestamp: _fromTimestamp(p.timestamp),
-                price: p.price.toInt(),
-              ),
-            )
+        newCache[key] = data
+            .map((p) => PricePoint(timestamp: p.timestamp, price: p.price))
             .toList();
       } catch (_) {
-        // Skip this symbol; don't break the batch
+        // Skip this symbol; don't break the batch.
       }
     }
 
     state = state.copyWith(sparklineCache: newCache);
   }
-
-  ts_pb.Timestamp _toTimestamp(DateTime dt) {
-    final seconds = dt.millisecondsSinceEpoch ~/ 1000;
-    return ts_pb.Timestamp(seconds: Int64(seconds));
-  }
-
-  DateTime _fromTimestamp(ts_pb.Timestamp ts) {
-    return DateTime.fromMillisecondsSinceEpoch(ts.seconds.toInt() * 1000);
-  }
 }
 
 // ── Provider ──
 
+/// Shared HTTP client for direct market-data fetches.
+final marketHttpClientProvider = Provider<http.Client>((ref) {
+  final client = http.Client();
+  ref.onDispose(client.close);
+  return client;
+});
+
+/// Client-side market-data fetcher (direct public HTTP sources).
+final marketFetcherProvider = Provider<MarketFetcher>((ref) {
+  return MarketFetcher(ref.watch(marketHttpClientProvider));
+});
+
 final marketDataProvider =
     StateNotifierProvider<MarketDataNotifier, MarketDataState>((ref) {
       final database = ref.watch(databaseProvider);
-      final client = ref.watch(marketDataClientProvider);
-      return MarketDataNotifier(database, client);
+      final fetcher = ref.watch(marketFetcherProvider);
+      return MarketDataNotifier(database, fetcher);
     });
