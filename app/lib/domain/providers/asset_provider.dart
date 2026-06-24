@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:fixnum/fixnum.dart';
@@ -9,6 +8,7 @@ import '../../generated/proto/asset.pb.dart' as pb;
 import '../../generated/proto/asset.pbgrpc.dart';
 import '../../generated/proto/asset.pbenum.dart' as pb_enum;
 import '../../generated/proto/google/protobuf/timestamp.pb.dart' as ts_pb;
+import '../services/depreciation_calculator.dart';
 import 'app_providers.dart';
 
 // ── Display models ──
@@ -192,12 +192,26 @@ class AssetNotifier extends StateNotifier<AssetState> {
   final AssetServiceClient _assetClient;
   final String? _userId;
   final String? _familyId;
+  final DepreciationCalculator _depreciation;
 
-  AssetNotifier(this._db, this._assetClient, this._userId, this._familyId)
-    : super(const AssetState()) {
-    if (_userId != null) {
-      listAssets();
+  AssetNotifier(
+    this._db,
+    this._assetClient,
+    this._userId,
+    this._familyId, {
+    DepreciationCalculator depreciation = const DepreciationCalculator(),
+    bool autoInit = true,
+  }) : _depreciation = depreciation,
+       super(const AssetState()) {
+    if (_userId != null && autoInit) {
+      _init();
     }
+  }
+
+  /// Launch sequence: run any missing monthly depreciation locally, then load.
+  Future<void> _init() async {
+    await runDepreciationCatchUp();
+    await listAssets();
   }
 
   /// List all assets (gRPC first, local fallback)
@@ -241,15 +255,9 @@ class AssetNotifier extends StateNotifier<AssetState> {
         final years = rule?.usefulLifeYears ?? 5;
         final salvageRate = rule?.salvageRate ?? 0.05;
 
-        // Run local depreciation to get current value
-        final currentVal = _computeCurrentValue(
-          purchasePrice: asset.purchasePrice,
-          purchaseDate: asset.purchaseDate,
-          method: method,
-          usefulLifeYears: years,
-          salvageRate: salvageRate,
-          storedCurrentValue: asset.currentValue,
-        );
+        // current_value is kept up to date by runDepreciationCatchUp (run on
+        // launch) and by manual valuations, so it is authoritative here.
+        final currentVal = asset.currentValue;
 
         final depreciated = asset.purchasePrice - currentVal;
         final progress = asset.purchasePrice > 0
@@ -406,14 +414,8 @@ class AssetNotifier extends StateNotifier<AssetState> {
     final years = rule?.usefulLifeYears ?? 5;
     final salvageRate = rule?.salvageRate ?? 0.05;
 
-    final currentVal = _computeCurrentValue(
-      purchasePrice: asset.purchasePrice,
-      purchaseDate: asset.purchaseDate,
-      method: method,
-      usefulLifeYears: years,
-      salvageRate: salvageRate,
-      storedCurrentValue: asset.currentValue,
-    );
+    // Authoritative: kept current by runDepreciationCatchUp + manual updates.
+    final currentVal = asset.currentValue;
 
     final depreciated = asset.purchasePrice - currentVal;
     final progress = asset.purchasePrice > 0
@@ -576,108 +578,72 @@ class AssetNotifier extends StateNotifier<AssetState> {
 
   // ── Local depreciation computation ──
 
-  /// Compute current value based on depreciation method.
-  /// If method is 'none', return the stored current value (could be manually updated).
-  int _computeCurrentValue({
-    required int purchasePrice,
-    required DateTime purchaseDate,
-    required String method,
-    required int usefulLifeYears,
-    required double salvageRate,
-    required int storedCurrentValue,
-  }) {
-    if (method == 'none') return storedCurrentValue;
+  /// Detect months that have not yet been depreciated and persist them.
+  ///
+  /// Idempotent: each asset's prior `depreciation` valuations identify the
+  /// months already processed, so re-running within the same month (or after
+  /// multiple missed months) never double-depreciates. Runs purely on the
+  /// local DB — no server dependency. Safe to call on every app launch.
+  Future<void> runDepreciationCatchUp({DateTime? now}) async {
+    if (_userId == null) return;
+    final reference = now ?? DateTime.now();
 
-    final now = DateTime.now();
-    final elapsedDays = now.difference(purchaseDate).inDays;
-    final totalDays = usefulLifeYears * 365.25;
-    final salvageValue = (purchasePrice * salvageRate).round();
-    final depreciableAmount = purchasePrice - salvageValue;
-
-    if (elapsedDays <= 0) return purchasePrice;
-    if (elapsedDays >= totalDays) return salvageValue;
-
-    switch (method) {
-      case 'straight_line':
-        return _straightLineDepreciation(
-          purchasePrice: purchasePrice,
-          depreciableAmount: depreciableAmount,
-          elapsedDays: elapsedDays,
-          totalDays: totalDays,
-        );
-      case 'double_declining':
-        return _doubleDecliningDepreciation(
-          purchasePrice: purchasePrice,
-          salvageValue: salvageValue,
-          usefulLifeYears: usefulLifeYears,
-          purchaseDate: purchaseDate,
-        );
-      default:
-        return storedCurrentValue;
+    final List<db.FixedAsset> assets;
+    try {
+      assets = await _db.getFixedAssets(_userId, familyId: _familyId);
+    } catch (_) {
+      return;
     }
-  }
 
-  /// 直线法：每年等额折旧
-  int _straightLineDepreciation({
-    required int purchasePrice,
-    required int depreciableAmount,
-    required int elapsedDays,
-    required double totalDays,
-  }) {
-    final ratio = elapsedDays / totalDays;
-    final depreciated = (depreciableAmount * ratio).round();
-    return purchasePrice - depreciated;
-  }
+    for (final asset in assets) {
+      final rule = await _db.getDepreciationRule(asset.id);
+      if (rule == null) continue;
+      final method = rule.method;
+      if (method != 'straight_line' && method != 'double_declining') continue;
 
-  /// 双倍余额递减法：前期折旧快，后期慢
-  int _doubleDecliningDepreciation({
-    required int purchasePrice,
-    required int salvageValue,
-    required int usefulLifeYears,
-    required DateTime purchaseDate,
-  }) {
-    if (usefulLifeYears <= 0) return purchasePrice;
-
-    final rate = 2.0 / usefulLifeYears; // 双倍直线折旧率
-    final now = DateTime.now();
-
-    // Calculate by whole years elapsed
-    int yearsElapsed = now.year - purchaseDate.year;
-    if (now.month < purchaseDate.month ||
-        (now.month == purchaseDate.month && now.day < purchaseDate.day)) {
-      yearsElapsed--;
-    }
-    if (yearsElapsed < 0) yearsElapsed = 0;
-
-    double bookValue = purchasePrice.toDouble();
-
-    // Apply double-declining for most of the useful life
-    // Switch to straight-line for last 2 years (standard accounting practice)
-    final switchYear = math.max(usefulLifeYears - 2, 0);
-
-    for (int year = 0; year < yearsElapsed && year < usefulLifeYears; year++) {
-      if (year < switchYear) {
-        final depreciation = bookValue * rate;
-        bookValue -= depreciation;
-        if (bookValue < salvageValue) {
-          bookValue = salvageValue.toDouble();
-          break;
-        }
-      } else {
-        // Switch to straight-line for remaining years
-        final remainingYears = usefulLifeYears - year;
-        if (remainingYears > 0) {
-          final annualDep = (bookValue - salvageValue) / remainingYears;
-          bookValue -= annualDep;
-        }
-        if (bookValue < salvageValue) {
-          bookValue = salvageValue.toDouble();
-          break;
+      // Months already covered by a depreciation valuation = idempotency guard.
+      final valuations = await _db.getAssetValuations(asset.id);
+      final doneMonths = <DateTime>{};
+      for (final v in valuations) {
+        if (v.source == 'depreciation') {
+          doneMonths.add(DepreciationCalculator.monthKey(v.valuationDate));
         }
       }
-    }
 
-    return bookValue.round();
+      final steps = _depreciation.computeMissingSteps(
+        purchasePrice: asset.purchasePrice,
+        currentValue: asset.currentValue,
+        purchaseDate: asset.purchaseDate,
+        method: method,
+        usefulLifeYears: rule.usefulLifeYears,
+        salvageRate: rule.salvageRate,
+        alreadyDepreciatedMonths: doneMonths,
+        now: reference,
+      );
+
+      if (steps.isEmpty) continue;
+
+      for (final step in steps) {
+        await _db.insertAssetValuation(
+          db.AssetValuationsCompanion.insert(
+            id: const Uuid().v4(),
+            assetId: asset.id,
+            value: step.value,
+            source: const Value('depreciation'),
+            valuationDate: step.month,
+          ),
+        );
+      }
+
+      // Persist the final book value as the asset's current value.
+      await _db.updateFixedAssetFields(
+        asset.id,
+        db.FixedAssetsCompanion(
+          currentValue: Value(steps.last.value),
+          updatedAt: Value(reference),
+        ),
+      );
+    }
   }
 }
 
