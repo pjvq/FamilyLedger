@@ -8,7 +8,9 @@ import '../../data/local/database.dart' as db;
 import '../../data/remote/grpc_clients.dart';
 import '../../generated/proto/budget.pb.dart' as pb;
 import '../../generated/proto/budget.pbgrpc.dart';
+import '../services/notifications/budget_alert_service.dart';
 import 'app_providers.dart';
+import 'notification_service_provider.dart';
 
 // ── Models ──
 
@@ -112,10 +114,17 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
   final BudgetServiceClient _client;
   final String? _userId;
   final String _familyId;
+  final BudgetAlertService? _alertService;
   static final _callOpts = CallOptions(timeout: const Duration(seconds: 5));
 
-  BudgetNotifier(this._db, this._client, this._userId, this._familyId)
-    : super(const BudgetState()) {
+  BudgetNotifier(
+    this._db,
+    this._client,
+    this._userId,
+    this._familyId, {
+    BudgetAlertService? alertService,
+  }) : _alertService = alertService,
+       super(const BudgetState()) {
     if (_userId != null) {
       loadCurrentMonth();
       loadAnnualBudget();
@@ -286,6 +295,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
             '[Budget] loadCurrentMonth: DONE via gRPC execution, isLoading=false',
             name: 'BudgetProvider',
           );
+          await _maybeAlert(current, state.execution);
           return;
         } catch (e) {
           dev.log(
@@ -414,6 +424,33 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       isLoading: false,
       clearCurrentBudget: current == null,
       clearExecution: exec == null,
+    );
+
+    await _maybeAlert(current, exec);
+  }
+
+  /// Run the local budget overspend check for the current-month budget.
+  ///
+  /// Mirrors the server's `notify.CheckBudgets`: when the monthly execution
+  /// crosses 80% / 100% it writes a local notification record and fires an
+  /// on-device notification (deduped per budget/period/threshold). No-op when
+  /// there is no budget, no execution data, or no alert service wired in.
+  Future<void> _maybeAlert(
+    db.Budget? current,
+    BudgetExecutionData? exec,
+  ) async {
+    final svc = _alertService;
+    final userId = _userId;
+    if (svc == null || userId == null || current == null || exec == null) {
+      return;
+    }
+    await svc.checkBudget(
+      userId: userId,
+      budgetId: current.id,
+      year: current.year,
+      month: current.month,
+      totalBudget: exec.totalBudget,
+      totalSpent: exec.totalSpent,
     );
   }
 
@@ -704,5 +741,15 @@ final budgetProvider = StateNotifierProvider<BudgetNotifier, BudgetState>((
   final client = ref.watch(budgetClientProvider);
   final userId = ref.watch(currentUserIdProvider);
   final familyId = ref.watch(currentFamilyIdProvider) ?? '';
-  return BudgetNotifier(database, client, userId, familyId);
+  final alertService = BudgetAlertService(
+    database,
+    ref.watch(localNotificationServiceProvider),
+  );
+  return BudgetNotifier(
+    database,
+    client,
+    userId,
+    familyId,
+    alertService: alertService,
+  );
 });
