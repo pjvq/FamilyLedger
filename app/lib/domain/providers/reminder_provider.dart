@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/local/database.dart';
 import '../models/dashboard_models.dart';
+import '../services/notifications/loan_reminder_service.dart';
+import 'app_providers.dart';
 import 'dashboard_provider.dart';
 import 'loan_provider.dart';
+import 'notification_service_provider.dart';
 
 // ─── Models ───
 
@@ -124,3 +129,31 @@ int daysUntilPayment(int payDay, DateTime now) {
   final nextPayDate = DateTime(nextMonthYear, nextMonth, effectiveNextPayDay);
   return nextPayDate.difference(DateTime(now.year, now.month, now.day)).inDays;
 }
+
+// ─── Local notification scheduling (P1-F, issue #145) ───
+
+/// App-wide [LoanReminderService]: localizes the server's loan-payment and
+/// credit-card reminder jobs to date-based on-device notifications.
+final loanReminderServiceProvider = Provider<LoanReminderService>((ref) {
+  return LoanReminderService(
+    ref.watch(databaseProvider),
+    ref.watch(localNotificationServiceProvider),
+  );
+});
+
+/// Pre-schedules date-based loan-payment reminders for the current user's
+/// loans whenever the loan list changes.
+///
+/// Watch this provider (e.g. in a long-lived widget / app shell) to keep
+/// on-device reminders in sync with the local loan schedule. Scheduling is
+/// idempotent and deduped, so re-running on every loan change is safe.
+final loanReminderSchedulerProvider = Provider<void>((ref) {
+  final loans = ref.watch(loanProvider.select((s) => s.loans));
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null || loans.isEmpty) return;
+
+  final service = ref.watch(loanReminderServiceProvider);
+  // Fire-and-forget: scheduling must not block the provider graph, and the
+  // service swallows/logs its own errors.
+  unawaited(service.scheduleLoanReminders(userId: userId, loans: loans));
+});
