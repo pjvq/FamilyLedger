@@ -408,6 +408,51 @@ void main() {
         throwsA(isA<MarketFetchException>()),
       );
     });
+
+    test('non-UTF-8 JSON body throws (strict decode, no U+FFFD)', () async {
+      // A lone 0xFF is invalid UTF-8. Strict decoding must surface this as a
+      // MarketFetchException instead of silently substituting U+FFFD.
+      final f = MarketFetcher(_clientReturning('', bytes: const [0xff, 0xfe]));
+      await expectLater(
+        f.fetchQuote('600519', 'a_share'),
+        throwsA(
+          isA<MarketFetchException>().having(
+            (e) => e.message,
+            'message',
+            contains('non-UTF-8'),
+          ),
+        ),
+      );
+    });
+
+    test('HTTP 429 surfaces a clear rate-limit error', () async {
+      // CoinGecko free tier (~10-30 req/min) returns 429 when exceeded.
+      final f = MarketFetcher(_clientReturning('', status: 429));
+      await expectLater(
+        f.fetchQuote('bitcoin', 'crypto'),
+        throwsA(
+          isA<MarketFetchException>().having(
+            (e) => e.message,
+            'message',
+            contains('429'),
+          ),
+        ),
+      );
+    });
+
+    test('Yahoo HTTP 403 surfaces a distinct consent/crumb error', () async {
+      final f = MarketFetcher(_clientReturning('', status: 403));
+      await expectLater(
+        f.fetchQuote('AAPL', 'us_stock'),
+        throwsA(
+          isA<MarketFetchException>().having(
+            (e) => e.message,
+            'message',
+            allOf(contains('403'), contains('consent')),
+          ),
+        ),
+      );
+    });
   });
 
   test('value object types are exported', () {

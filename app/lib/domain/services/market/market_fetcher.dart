@@ -382,6 +382,10 @@ class MarketFetcher {
     return parseSinaPreciousMetal(symbol, code, body);
   }
 
+  /// Intentionally synchronous: precious-metal symbols are a fixed local
+  /// catalog ([preciousMetalList]), so search is a pure in-memory filter with
+  /// no network call. It still satisfies the `Future`-returning [searchSymbol]
+  /// switch arm because Dart implicitly wraps the returned list in a Future.
   List<SymbolInfoData> _searchPreciousMetal(String query) {
     final q = query.toLowerCase();
     return preciousMetalList
@@ -599,19 +603,61 @@ class MarketFetcher {
 
   // ── HTTP helpers ──────────────────────────────────────────────────────────
 
+  /// Fetches [uri] and decodes the body as **strict** UTF-8.
+  ///
+  /// Strict (no `allowMalformed`) is deliberate: every JSON source routed
+  /// through here (EastMoney / Yahoo / CoinGecko) serves UTF-8, so malformed
+  /// bytes mean the response is corrupt or not what we expect. We want that to
+  /// surface as a [MarketFetchException] rather than be silently rewritten to
+  /// U+FFFD and then fail later with a confusing parse error. The GBK-encoded
+  /// Sina precious-metal source does NOT go through here — it calls [_getBytes]
+  /// directly and decodes with `gbk.decode`.
   Future<String> _get(Uri uri, {Map<String, String>? headers}) async {
-    return utf8.decode(await _getBytes(uri, headers: headers),
-        allowMalformed: true);
+    final bytes = await _getBytes(uri, headers: headers);
+    try {
+      return utf8.decode(bytes); // strict: throws on malformed bytes
+    } on FormatException catch (e) {
+      throw MarketFetchException('GET ${uri.host} returned non-UTF-8 body: $e');
+    }
   }
 
   Future<List<int>> _getBytes(Uri uri, {Map<String, String>? headers}) async {
     final resp = await _client.get(uri, headers: headers).timeout(_timeout);
     if (resp.statusCode != 200) {
-      throw MarketFetchException(
-        'GET ${uri.host} returned status ${resp.statusCode}',
-      );
+      throw _statusException(uri, resp.statusCode);
     }
     return resp.bodyBytes;
+  }
+
+  /// Builds a [MarketFetchException] for a non-200 status, attaching extra
+  /// context for the two statuses our upstreams use to signal a specific
+  /// problem so callers / logs can distinguish them from a generic failure:
+  ///
+  ///   - **429** — rate limited. CoinGecko's free tier allows only ~10–30
+  ///     req/min (see the CoinGecko fetch/search/kline methods); a burst of
+  ///     quote refreshes can trip it. Surface it clearly instead of crashing.
+  ///   - **403** — forbidden. Yahoo's v8/v1 endpoints increasingly require a
+  ///     consent cookie / crumb; a bare 403 from a `*.finance.yahoo.com` host
+  ///     almost always means that, not a bad symbol.
+  static MarketFetchException _statusException(Uri uri, int status) {
+    final host = uri.host;
+    switch (status) {
+      case 429:
+        return MarketFetchException(
+          'GET $host rate-limited (HTTP 429) — upstream request quota '
+          'exceeded (CoinGecko free tier is ~10-30 req/min); retry later',
+        );
+      case 403:
+        if (host.endsWith('finance.yahoo.com')) {
+          return MarketFetchException(
+            'GET $host forbidden (HTTP 403) — Yahoo now requires a consent '
+            'cookie / crumb; this symbol cannot be fetched anonymously',
+          );
+        }
+        return MarketFetchException('GET $host forbidden (HTTP 403)');
+      default:
+        return MarketFetchException('GET $host returned status $status');
+    }
   }
 
   // ── Parsing helpers ─────────────────────────────────────────────────────────

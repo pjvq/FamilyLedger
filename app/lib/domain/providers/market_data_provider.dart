@@ -116,6 +116,11 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
 
   static const _cacheDuration = Duration(minutes: 15);
 
+  /// Max concurrent upstream fetches per batch chunk (see [batchGetQuotes] /
+  /// [batchLoadSparklines]). Caps fan-out so a large watchlist neither stalls
+  /// serially nor floods the public endpoints (CoinGecko free tier is low).
+  static const _batchConcurrency = 5;
+
   MarketDataNotifier(this._db, this._fetcher) : super(const MarketDataState());
 
   /// Get a single quote (cached 15 min).
@@ -183,7 +188,14 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
     return null;
   }
 
-  /// Batch get quotes (per-symbol direct fetch; failures fall back to local DB).
+  /// Batch get quotes (direct fetch; failures fall back to local DB).
+  ///
+  /// Requests are fetched **concurrently** in chunks of [_batchConcurrency] to
+  /// keep total latency low without hammering the upstreams (or tripping
+  /// CoinGecko's free-tier rate limit) with an unbounded fan-out. Each request
+  /// resolves independently, then the results are merged in the original
+  /// request order so the resulting map is deterministic regardless of which
+  /// network call finishes first.
   Future<void> batchGetQuotes(
     List<({String symbol, String marketType})> requests,
   ) async {
@@ -192,7 +204,11 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
     final newQuotes = Map<String, QuoteDisplay>.from(state.quotes);
     var anyFetched = false;
 
-    for (final r in requests) {
+    // Resolve one request: returns its quote (or null) and whether the value
+    // came from the network (vs in-memory TTL cache / local DB fallback).
+    Future<({String key, QuoteDisplay? quote, bool fetched})> resolve(
+      ({String symbol, String marketType}) r,
+    ) async {
       final key = MarketDataState.quoteKey(r.symbol, r.marketType);
 
       // Honor the in-memory 15-min TTL to avoid redundant network hits.
@@ -200,23 +216,11 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
       if (cachedTime != null &&
           DateTime.now().difference(cachedTime) < _cacheDuration &&
           newQuotes.containsKey(key)) {
-        continue;
+        return (key: key, quote: newQuotes[key], fetched: false);
       }
 
       try {
         final data = await _fetcher.fetchQuote(r.symbol, r.marketType);
-        newQuotes[key] = QuoteDisplay(
-          symbol: data.symbol,
-          name: data.name,
-          marketType: data.marketType,
-          currentPrice: data.currentPrice,
-          changeAmount: data.changeAmount,
-          changePercent: data.changePercent,
-          updatedAt: DateTime.now(),
-        );
-        _cacheTimes[key] = DateTime.now();
-        anyFetched = true;
-
         await _db.upsertMarketQuote(
           db.MarketQuotesCompanion.insert(
             symbol: r.symbol,
@@ -228,19 +232,55 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
             updatedAt: Value(DateTime.now()),
           ),
         );
+        return (
+          key: key,
+          quote: QuoteDisplay(
+            symbol: data.symbol,
+            name: data.name,
+            marketType: data.marketType,
+            currentPrice: data.currentPrice,
+            changeAmount: data.changeAmount,
+            changePercent: data.changePercent,
+            updatedAt: DateTime.now(),
+          ),
+          fetched: true,
+        );
       } catch (_) {
         // Per-symbol failure: fall back to local DB for this one.
         final cached = await _db.getMarketQuote(r.symbol, r.marketType);
         if (cached != null) {
-          newQuotes[key] = QuoteDisplay(
-            symbol: cached.symbol,
-            name: cached.name,
-            marketType: cached.marketType,
-            currentPrice: cached.currentPrice,
-            changeAmount: cached.changeAmount,
-            changePercent: cached.changePercent,
-            updatedAt: cached.updatedAt,
+          return (
+            key: key,
+            quote: QuoteDisplay(
+              symbol: cached.symbol,
+              name: cached.name,
+              marketType: cached.marketType,
+              currentPrice: cached.currentPrice,
+              changeAmount: cached.changeAmount,
+              changePercent: cached.changePercent,
+              updatedAt: cached.updatedAt,
+            ),
+            fetched: false,
           );
+        }
+        return (key: key, quote: null, fetched: false);
+      }
+    }
+
+    // Process in fixed-size chunks; within a chunk run concurrently.
+    for (var i = 0; i < requests.length; i += _batchConcurrency) {
+      final end = i + _batchConcurrency < requests.length
+          ? i + _batchConcurrency
+          : requests.length;
+      final chunk = requests.sublist(i, end);
+      final results = await Future.wait(chunk.map(resolve));
+      for (final res in results) {
+        if (res.fetched) {
+          _cacheTimes[res.key] = DateTime.now();
+          anyFetched = true;
+        }
+        if (res.quote != null) {
+          newQuotes[res.key] = res.quote!;
         }
       }
     }
@@ -332,7 +372,9 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
   }
 
   /// Batch load sparkline data for multiple symbols (30-day history).
-  /// Skips symbols already in cache. Failures are per-symbol.
+  /// Skips symbols already in cache. Failures are per-symbol. Fetches run
+  /// concurrently in chunks of [_batchConcurrency] (same rationale as
+  /// [batchGetQuotes]); cache writes are merged in request order.
   Future<void> batchLoadSparklines(
     List<({String symbol, String marketType})> requests,
   ) async {
@@ -350,7 +392,9 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
 
     final newCache = Map<String, List<PricePoint>>.from(state.sparklineCache);
 
-    for (final r in uncached) {
+    Future<({String key, List<PricePoint>? points})> resolve(
+      ({String symbol, String marketType}) r,
+    ) async {
       final key = MarketDataState.quoteKey(r.symbol, r.marketType);
       try {
         final data = await _fetcher.fetchPriceHistory(
@@ -359,11 +403,27 @@ class MarketDataNotifier extends StateNotifier<MarketDataState> {
           start,
           now,
         );
-        newCache[key] = data
-            .map((p) => PricePoint(timestamp: p.timestamp, price: p.price))
-            .toList();
+        return (
+          key: key,
+          points: data
+              .map((p) => PricePoint(timestamp: p.timestamp, price: p.price))
+              .toList(),
+        );
       } catch (_) {
         // Skip this symbol; don't break the batch.
+        return (key: key, points: null);
+      }
+    }
+
+    for (var i = 0; i < uncached.length; i += _batchConcurrency) {
+      final end = i + _batchConcurrency < uncached.length
+          ? i + _batchConcurrency
+          : uncached.length;
+      final results = await Future.wait(uncached.sublist(i, end).map(resolve));
+      for (final res in results) {
+        if (res.points != null) {
+          newCache[res.key] = res.points!;
+        }
       }
     }
 
