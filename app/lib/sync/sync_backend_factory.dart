@@ -1,3 +1,8 @@
+// MOBILE-ONLY: this file imports `dart:io` (for [Platform]) and is therefore
+// not Flutter Web compatible. There is no web target today; if one is ever
+// added, swap `dart:io` for a conditional import
+// (`platform_io.dart` / `platform_web.dart`) or a flag, since `dart:io` is
+// unavailable on Web.
 import 'dart:io' show Platform;
 
 import '../data/local/secure_token_storage.dart';

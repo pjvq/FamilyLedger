@@ -103,7 +103,9 @@ class SyncEngine {
   /// Engine with an explicitly chosen [SyncBackend].
   ///
   /// Used by [syncEngineProvider] to plug in the platform-selected backend
-  /// (gRPC on iOS, no-op on Android).
+  /// (gRPC on iOS, no-op on Android). Also the seam for unit tests: inject a
+  /// fake/mock [SyncBackend] to drive the engine's orchestration logic
+  /// (push/pull/realtime callbacks) without a real network transport.
   SyncEngine.withBackend(
     AppDatabase db,
     SyncBackend backend,
@@ -142,7 +144,7 @@ class SyncEngine {
       dev.log(
         '[Sync] heartbeat watermark ahead (server=$serverTimeMs, local=$localTs), pulling',
       );
-      _pullChanges();
+      unawaited(_pullChanges());
     }
   }
 
@@ -235,7 +237,7 @@ class SyncEngine {
       // Only mark succeeded ops as uploaded; failed ops remain in queue for retry.
       // R7 fix: previously marked ALL ops (including failed) which caused data loss.
       if (succeededIds.isNotEmpty) {
-        await _db!.markSyncOpsUploaded(succeededIds);
+        await _db.markSyncOpsUploaded(succeededIds);
 
         // Mark transaction entities as synced for UI display
         final syncedTxnIds = pendingOps
@@ -246,7 +248,7 @@ class SyncEngine {
             .map((op) => op.entityId)
             .toList();
         if (syncedTxnIds.isNotEmpty) {
-          await _db!.markTransactionsSynced(syncedTxnIds);
+          await _db.markTransactionsSynced(syncedTxnIds);
         }
       }
 
@@ -256,7 +258,7 @@ class SyncEngine {
           .map((op) => op.id)
           .toList();
       if (failedIds.isNotEmpty) {
-        await _db!.incrementSyncOpRetry(failedIds);
+        await _db.incrementSyncOpRetry(failedIds);
         // Mark corresponding transactions as failed if retries exhausted
         final deadTxnIds = <String>[];
         for (final op in pendingOps) {
@@ -269,7 +271,7 @@ class SyncEngine {
           }
         }
         if (deadTxnIds.isNotEmpty) {
-          await _db!.markTransactionsFailed(deadTxnIds);
+          await _db.markTransactionsFailed(deadTxnIds);
         }
         onSyncEvent?.call(PushFailed(failedIds.length));
       }
@@ -350,7 +352,7 @@ class SyncEngine {
         nanos: (lastTsMs % 1000) * 1000000,
       );
 
-      final familyId = _prefs!.getString(AppConstants.familyIdKey) ?? '';
+      final familyId = _prefs.getString(AppConstants.familyIdKey) ?? '';
 
       int totalPulled = 0;
       String pageToken = '';
@@ -376,7 +378,7 @@ class SyncEngine {
 
         // Apply ops individually with error isolation.
         // Failed ops go to dead-letter table; remaining ops + checkpoint still advance.
-        await _db!.transaction(() async {
+        await _db.transaction(() async {
           for (final op in response.operations) {
             try {
               await _applyRemoteOp(op);
@@ -391,7 +393,7 @@ class SyncEngine {
                   ? op.timestamp.seconds.toInt() * 1000 +
                         op.timestamp.nanos ~/ 1000000
                   : 0;
-              await _db!.insertDeadLetterOp(
+              await _db.insertDeadLetterOp(
                 opId: op.id,
                 entityType: op.entityType,
                 entityId: op.entityId,
@@ -412,7 +414,7 @@ class SyncEngine {
             final serverMs =
                 response.serverTime.seconds.toInt() * 1000 +
                 response.serverTime.nanos ~/ 1000000;
-            await _db!.setSyncMetaInt(_lastSyncTsKey, serverMs);
+            await _db.setSyncMetaInt(_lastSyncTsKey, serverMs);
             _lastSyncTsMs = serverMs;
           } else if (response.operations.isNotEmpty) {
             // Intermediate page — use max op timestamp as watermark.
@@ -451,7 +453,7 @@ class SyncEngine {
             // Subtract 1ms so next `> since` includes ops at maxOpMs.
             final checkpointMs = maxOpMs > 0 ? maxOpMs - 1 : 0;
             if (checkpointMs > _lastSyncTsMs) {
-              await _db!.setSyncMetaInt(_lastSyncTsKey, checkpointMs);
+              await _db.setSyncMetaInt(_lastSyncTsKey, checkpointMs);
               _lastSyncTsMs = checkpointMs;
             }
           }
@@ -468,7 +470,7 @@ class SyncEngine {
 
       // Emit dead-letter count: on first sync (UI bootstrap) or when something failed
       if (deadLetterDirty || _syncCycleCount == 1) {
-        final dlCount = await _db!.getDeadLetterCount();
+        final dlCount = await _db.getDeadLetterCount();
         onSyncEvent?.call(SyncEvent.deadLetterCountUpdated(dlCount));
       }
     } catch (e) {
@@ -491,7 +493,7 @@ class SyncEngine {
 
     try {
       // Purge expired ops first
-      final purged = await _db!.purgeOldDeadLetterOps(
+      final purged = await _db.purgeOldDeadLetterOps(
         days: _deadLetterPurgeDays,
       );
       if (purged > 0) {
@@ -499,7 +501,7 @@ class SyncEngine {
       }
 
       // Get ops eligible for retry (respects backoff via nextRetryAfter)
-      final ops = await _db!.getDeadLetterOps(
+      final ops = await _db.getDeadLetterOps(
         maxRetries: _deadLetterMaxRetries,
         limit: _deadLetterBatchSize,
       );
@@ -523,7 +525,7 @@ class SyncEngine {
               '[Sync] _retryDeadLetterOps: skipping ${deadOp.opId} — '
               'unresolvable opType "${deadOp.opType}"',
             );
-            await _db!.incrementDeadLetterRetry(deadOp.opId);
+            await _db.incrementDeadLetterRetry(deadOp.opId);
             continue;
           }
           final opProto = sync_pb.SyncOperation(
@@ -540,9 +542,9 @@ class SyncEngine {
               nanos: (deadOp.timestampMs % 1000) * 1000000,
             );
           }
-          await _db!.transaction(() async {
+          await _db.transaction(() async {
             await _applyRemoteOp(opProto);
-            await _db!.removeDeadLetterOp(deadOp.opId);
+            await _db.removeDeadLetterOp(deadOp.opId);
           });
           succeeded++;
           dev.log(
@@ -554,7 +556,7 @@ class SyncEngine {
           dev.log(
             '[Sync] _retryDeadLetterOps: op ${deadOp.opId} still failing: $e',
           );
-          await _db!.incrementDeadLetterRetry(deadOp.opId);
+          await _db.incrementDeadLetterRetry(deadOp.opId);
         }
       }
 
@@ -563,7 +565,7 @@ class SyncEngine {
       }
 
       // Emit updated count
-      final remaining = await _db!.getDeadLetterCount();
+      final remaining = await _db.getDeadLetterCount();
       onSyncEvent?.call(SyncEvent.deadLetterCountUpdated(remaining));
     } catch (e) {
       dev.log('[Sync] _retryDeadLetterOps: error: $e');
@@ -742,7 +744,7 @@ class SyncEngine {
 
         final txnDateCreate =
             DateTime.tryParse(payload['txn_date'] ?? '') ?? DateTime.now();
-        await _db!.insertOrUpdateTransaction(
+        await _db.insertOrUpdateTransaction(
           id: entityId,
           userId: payload['user_id'] ?? '',
           accountId: payload['account_id'] ?? '',
@@ -763,7 +765,7 @@ class SyncEngine {
           final delta = createType == 'income'
               ? createAmountCny
               : -createAmountCny;
-          await _db!.updateAccountBalance(createAccountId, delta);
+          await _db.updateAccountBalance(createAccountId, delta);
         }
         break;
       case sync_enum.OperationType.OPERATION_TYPE_UPDATE:
@@ -777,7 +779,7 @@ class SyncEngine {
         final newAmountCny = (payload['amount_cny'] as num?)?.toInt() ?? 0;
         final newType = payload['type'] ?? 'expense';
 
-        await _db!.insertOrUpdateTransaction(
+        await _db.insertOrUpdateTransaction(
           id: entityId,
           userId: payload['user_id'] ?? '',
           accountId: newAccountId,
@@ -806,14 +808,14 @@ class SyncEngine {
             final oldDelta = oldTxn.type == 'income'
                 ? oldTxn.amountCny
                 : -oldTxn.amountCny;
-            await _db!.updateAccountBalance(oldTxn.accountId, -oldDelta);
+            await _db.updateAccountBalance(oldTxn.accountId, -oldDelta);
           }
           // Apply new balance delta
           if (newAccountId.isNotEmpty &&
               newAmountCny != 0 &&
               newType != 'transfer') {
             final newDelta = newType == 'income' ? newAmountCny : -newAmountCny;
-            await _db!.updateAccountBalance(newAccountId, newDelta);
+            await _db.updateAccountBalance(newAccountId, newDelta);
           }
         }
         break;
@@ -823,9 +825,9 @@ class SyncEngine {
         if (txn != null && txn.deletedAt == null && txn.type != 'transfer') {
           // Revert balance contribution
           final delta = txn.type == 'income' ? txn.amountCny : -txn.amountCny;
-          await _db!.updateAccountBalance(txn.accountId, -delta);
+          await _db.updateAccountBalance(txn.accountId, -delta);
         }
-        await _db!.softDeleteTransaction(entityId);
+        await _db.softDeleteTransaction(entityId);
         break;
       default:
         break;
@@ -902,41 +904,41 @@ class SyncEngine {
 
     // 幂等保护：检查 source 是否已删除
     final source =
-        await (_db!.select(_db!.categories)
+        await (_db.select(_db.categories)
               ..where((c) => c.id.equals(sourceId))
               ..where((c) => c.deletedAt.isNull()))
             .getSingleOrNull();
     if (source == null) return; // 已处理过，跳过
 
     // CRITICAL #1: 用 customUpdate + updates 触发 Stream 通知
-    await _db!.customUpdate(
+    await _db.customUpdate(
       'UPDATE transactions SET category_id = ? WHERE category_id = ? AND deleted_at IS NULL',
       variables: [Variable.withString(targetId), Variable.withString(sourceId)],
-      updates: {_db!.transactions},
+      updates: {_db.transactions},
       updateKind: UpdateKind.update,
     );
-    await _db!.customUpdate(
+    await _db.customUpdate(
       'UPDATE categories SET parent_id = ? WHERE parent_id = ? AND deleted_at IS NULL',
       variables: [Variable.withString(targetId), Variable.withString(sourceId)],
-      updates: {_db!.categories},
+      updates: {_db.categories},
       updateKind: UpdateKind.update,
     );
-    await _db!.customUpdate(
+    await _db.customUpdate(
       'UPDATE categories SET deleted_at = ? WHERE id = ?',
       variables: [
         Variable.withDateTime(DateTime.now()),
         Variable.withString(sourceId),
       ],
-      updates: {_db!.categories},
+      updates: {_db.categories},
       updateKind: UpdateKind.update,
     );
 
     // CRITICAL #5: 清理源分类的使用统计
-    await (_db!.delete(
-      _db!.categoryUsageSlots,
+    await (_db.delete(
+      _db.categoryUsageSlots,
     )..where((s) => s.categoryId.equals(sourceId))).go();
-    await (_db!.delete(
-      _db!.categoryUsageSummary,
+    await (_db.delete(
+      _db.categoryUsageSummary,
     )..where((s) => s.categoryId.equals(sourceId))).go();
   }
 
