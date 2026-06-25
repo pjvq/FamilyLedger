@@ -1,3 +1,5 @@
+import 'dart:developer' as dev;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:fixnum/fixnum.dart';
@@ -193,6 +195,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
   final String? _userId;
   final String? _familyId;
   final DepreciationCalculator _depreciation;
+  final Uuid _uuid = const Uuid();
 
   AssetNotifier(
     this._db,
@@ -210,7 +213,18 @@ class AssetNotifier extends StateNotifier<AssetState> {
 
   /// Launch sequence: run any missing monthly depreciation locally, then load.
   Future<void> _init() async {
-    await runDepreciationCatchUp();
+    try {
+      await runDepreciationCatchUp();
+    } catch (e, st) {
+      // A depreciation write failure must never break asset loading — log it
+      // and continue to listAssets so the user still sees their assets.
+      dev.log(
+        'depreciation catch-up failed',
+        name: 'AssetNotifier',
+        error: e,
+        stackTrace: st,
+      );
+    }
     await listAssets();
   }
 
@@ -623,26 +637,32 @@ class AssetNotifier extends StateNotifier<AssetState> {
 
       if (steps.isEmpty) continue;
 
-      for (final step in steps) {
-        await _db.insertAssetValuation(
-          db.AssetValuationsCompanion.insert(
-            id: const Uuid().v4(),
-            assetId: asset.id,
-            value: step.value,
-            source: const Value('depreciation'),
-            valuationDate: step.month,
+      // Wrap this asset's writes (valuation inserts + current_value update) in
+      // a single Drift transaction to cut round-trips and keep the catch-up
+      // atomic per asset — idempotency is unchanged because the guard above is
+      // derived from already-committed `depreciation` valuations.
+      await _db.transaction(() async {
+        for (final step in steps) {
+          await _db.insertAssetValuation(
+            db.AssetValuationsCompanion.insert(
+              id: _uuid.v4(),
+              assetId: asset.id,
+              value: step.value,
+              source: const Value('depreciation'),
+              valuationDate: step.month,
+            ),
+          );
+        }
+
+        // Persist the final book value as the asset's current value.
+        await _db.updateFixedAssetFields(
+          asset.id,
+          db.FixedAssetsCompanion(
+            currentValue: Value(steps.last.value),
+            updatedAt: Value(reference),
           ),
         );
-      }
-
-      // Persist the final book value as the asset's current value.
-      await _db.updateFixedAssetFields(
-        asset.id,
-        db.FixedAssetsCompanion(
-          currentValue: Value(steps.last.value),
-          updatedAt: Value(reference),
-        ),
-      );
+      });
     }
   }
 }
