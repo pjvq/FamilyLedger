@@ -1488,6 +1488,21 @@ class AppDatabase extends _$AppDatabase {
             ..limit(limit, offset: offset))
           .get();
 
+  /// Notifications for [userId] of a single [type], newest first.
+  ///
+  /// Narrower than [getNotifications]: lets callers (e.g. budget alert dedup)
+  /// scan only the relevant rows instead of paging through every type.
+  Future<List<Notification>> getNotificationsByType(
+    String userId,
+    String type, {
+    int limit = 50,
+  }) =>
+      (select(notifications)
+            ..where((n) => n.userId.equals(userId) & n.type.equals(type))
+            ..orderBy([(n) => OrderingTerm.desc(n.createdAt)])
+            ..limit(limit))
+          .get();
+
   Future<int> getUnreadNotificationCount(String userId) async {
     final rows = await (select(
       notifications,

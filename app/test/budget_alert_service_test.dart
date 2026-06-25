@@ -238,6 +238,93 @@ void main() {
       expect(id1, greaterThanOrEqualTo(100000));
       expect(id1, lessThan(200000));
     });
+
+    test('dedup ignores a same-period notification of a different type',
+        () async {
+      // A warning for b1/2026-6 already exists.
+      await svc.checkBudget(
+        userId: _userId,
+        budgetId: 'b1',
+        year: 2026,
+        month: 6,
+        totalBudget: 100000,
+        totalSpent: 85000,
+      );
+      // An exceeded check for the same budget/period must still fire: the typed
+      // dedup query filters by type, so the warning record does not mask it.
+      await svc.checkBudget(
+        userId: _userId,
+        budgetId: 'b1',
+        year: 2026,
+        month: 6,
+        totalBudget: 100000,
+        totalSpent: 110000,
+      );
+
+      final warnings =
+          await db.getNotificationsByType(_userId, 'budget_warning');
+      final exceeded =
+          await db.getNotificationsByType(_userId, 'budget_exceeded');
+      expect(warnings, hasLength(1));
+      expect(exceeded, hasLength(1));
+    });
+  });
+
+  group('AppDatabase.getNotificationsByType', () {
+    late AppDatabase db;
+
+    setUp(() async {
+      db = AppDatabase.forTesting(NativeDatabase.memory());
+      await _seedUser(db);
+    });
+
+    tearDown(() async => db.close());
+
+    Future<void> insert(String id, String type, {DateTime? createdAt}) =>
+        db.insertNotification(
+          NotificationsCompanion.insert(
+            id: id,
+            userId: _userId,
+            type: type,
+            title: 't',
+            body: 'b',
+            createdAt:
+                createdAt == null ? const Value.absent() : Value(createdAt),
+          ),
+        );
+
+    test('returns only rows of the requested type, newest first', () async {
+      await insert('w1', 'budget_warning',
+          createdAt: DateTime(2026, 6, 1));
+      await insert('e1', 'budget_exceeded',
+          createdAt: DateTime(2026, 6, 2));
+      await insert('w2', 'budget_warning',
+          createdAt: DateTime(2026, 6, 3));
+
+      final warnings =
+          await db.getNotificationsByType(_userId, 'budget_warning');
+      expect(warnings.map((n) => n.id), ['w2', 'w1']);
+
+      final exceeded =
+          await db.getNotificationsByType(_userId, 'budget_exceeded');
+      expect(exceeded.map((n) => n.id), ['e1']);
+    });
+
+    test('honors the limit', () async {
+      await insert('w1', 'budget_warning');
+      await insert('w2', 'budget_warning');
+      await insert('w3', 'budget_warning');
+
+      final rows =
+          await db.getNotificationsByType(_userId, 'budget_warning', limit: 2);
+      expect(rows, hasLength(2));
+    });
+
+    test('empty when no rows of that type exist', () async {
+      await insert('e1', 'budget_exceeded');
+      final rows = await db.getNotificationsByType(_userId, 'budget_warning');
+      expect(rows, isEmpty);
+    });
   });
 
   group('BudgetNotifier integration (offline local execution)', () {

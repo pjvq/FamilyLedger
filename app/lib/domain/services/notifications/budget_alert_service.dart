@@ -57,6 +57,13 @@ class BudgetAlertService {
 
   /// Stable notification id within the budget band so repeated checks for the
   /// same budget/period/level reuse one OS notification slot.
+  ///
+  /// This id is *only* an OS notification-slot handle, never a persisted key:
+  /// the durable dedup key is the `data_json` `budget_id`/`year`/`month`/type
+  /// stored in the notifications table (see [_alreadyNotified]). Because the id
+  /// is ephemeral, `key.hashCode % band` is fine even though Dart's `hashCode`
+  /// is not stable across SDK versions or runs — a different value at most
+  /// reuses a different slot, it can never cause a duplicate or missed record.
   static int notificationId(
     String budgetId,
     int year,
@@ -94,7 +101,7 @@ class BudgetAlertService {
       }
 
       final pct = (rate * 100).round();
-      final (title, body) = _message(level, year, month, pct);
+      final (title, body) = _alertMessage(level, year, month, pct);
 
       await _db.insertNotification(
         db.NotificationsCompanion.insert(
@@ -139,10 +146,15 @@ class BudgetAlertService {
     int month,
     BudgetAlertLevel level,
   ) async {
-    // Page through recent notifications for this user; budget alerts are few.
-    final existing = await _db.getNotifications(userId, 200, 0);
+    // Scan only this user's notifications of the matching type; budget alerts
+    // are few, so a small limit covers any realistic backlog without paging
+    // through unrelated notification types.
+    final existing = await _db.getNotificationsByType(
+      userId,
+      level.notificationType,
+      limit: 200,
+    );
     for (final n in existing) {
-      if (n.type != level.notificationType) continue;
       if (n.dataJson.isEmpty) continue;
       try {
         final data = jsonDecode(n.dataJson) as Map<String, dynamic>;
@@ -158,7 +170,7 @@ class BudgetAlertService {
     return false;
   }
 
-  (String, String) _message(
+  (String, String) _alertMessage(
     BudgetAlertLevel level,
     int year,
     int month,
