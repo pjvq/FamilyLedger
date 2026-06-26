@@ -1,4 +1,6 @@
 import 'dart:developer' as dev;
+import '../../sync/sync_backend_factory.dart' show syncEnabled;
+import 'package:grpc/grpc.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -191,7 +193,11 @@ class AssetState {
 
 class AssetNotifier extends StateNotifier<AssetState> {
   final db.AppDatabase _db;
-  final AssetServiceClient _assetClient;
+  final AssetServiceClient? _assetClient;
+  /// gRPC client, or throws fast (caught by each method's offline
+  /// fallback) on local-only builds where [syncEnabled] is false.
+  AssetServiceClient _requireAssetClient() =>
+      _assetClient ?? (throw GrpcError.unavailable('local-only build'));
   final String? _userId;
   final String? _familyId;
   final DepreciationCalculator _depreciation;
@@ -238,7 +244,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
       if (_familyId != null && _familyId.isNotEmpty) {
         assetReq.familyId = _familyId;
       }
-      final resp = await _assetClient.listAssets(assetReq);
+      final resp = await _requireAssetClient().listAssets(assetReq);
       for (final asset in resp.assets) {
         await _db.upsertFixedAsset(
           db.FixedAssetsCompanion.insert(
@@ -325,7 +331,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
     String assetId = const Uuid().v4();
 
     try {
-      final resp = await _assetClient.createAsset(
+      final resp = await _requireAssetClient().createAsset(
         pb.CreateAssetRequest()
           ..name = name
           ..assetType = _stringToAssetType(assetType)
@@ -390,7 +396,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
       );
 
       try {
-        await _assetClient.setDepreciationRule(
+        await _requireAssetClient().setDepreciationRule(
           pb.SetDepreciationRuleRequest()
             ..assetId = assetId
             ..method = _stringToDepreciationMethod(depreciationMethod)
@@ -408,7 +414,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final resp = await _assetClient.listValuations(
+      final resp = await _requireAssetClient().listValuations(
         pb.ListValuationsRequest()..assetId = id,
       );
       // Store remote valuations if needed
@@ -478,7 +484,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _assetClient.updateAsset(
+      await _requireAssetClient().updateAsset(
         pb.UpdateAssetRequest()
           ..assetId = id
           ..name = name ?? ''
@@ -514,9 +520,13 @@ class AssetNotifier extends StateNotifier<AssetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _assetClient.deleteAsset(pb.DeleteAssetRequest()..assetId = id);
+      await _requireAssetClient().deleteAsset(pb.DeleteAssetRequest()..assetId = id);
     } catch (_) {}
 
+    // NOTE: the local soft-delete proceeds even if the remote delete failed,
+    // so on gRPC builds a server failure can leave local/remote diverged
+    // (pre-existing; always taken on local-only builds).
+    // TODO(sync): track deletes via the sync queue so they reconcile reliably.
     await _db.softDeleteFixedAsset(id);
     await listAssets();
   }
@@ -526,7 +536,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _assetClient.updateValuation(
+      await _requireAssetClient().updateValuation(
         pb.UpdateValuationRequest()
           ..assetId = assetId
           ..value = Int64(value)
@@ -567,7 +577,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _assetClient.setDepreciationRule(
+      await _requireAssetClient().setDepreciationRule(
         pb.SetDepreciationRuleRequest()
           ..assetId = assetId
           ..method = _stringToDepreciationMethod(method)
@@ -671,7 +681,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
 
 final assetProvider = StateNotifierProvider<AssetNotifier, AssetState>((ref) {
   final database = ref.watch(databaseProvider);
-  final client = ref.watch(assetClientProvider);
+  final client = (syncEnabled ? ref.watch(assetClientProvider) : null);
   final userId = ref.watch(currentUserIdProvider);
   final familyId = ref.watch(currentFamilyIdProvider);
   return AssetNotifier(database, client, userId, familyId);

@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../sync/sync_backend_factory.dart' show syncEnabled;
 import 'dart:developer' as dev;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
@@ -365,7 +366,7 @@ final accountProvider = StateNotifierProvider<AccountNotifier, AccountState>((
   final familyId = ref.watch(currentFamilyIdProvider);
   pb.AccountServiceClient? accountClient;
   try {
-    accountClient = ref.watch(accountClientProvider);
+    accountClient = (syncEnabled ? ref.watch(accountClientProvider) : null);
   } catch (_) {}
   return AccountNotifier(db, repo, userId ?? '', familyId, accountClient);
 });

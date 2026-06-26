@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../sync/sync_backend_factory.dart' show syncEnabled;
 import 'dart:developer' as dev;
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
 import 'package:drift/drift.dart';
@@ -498,7 +499,7 @@ final familyProvider = StateNotifierProvider<FamilyNotifier, FamilyState>((
   final userId = ref.watch(currentUserIdProvider);
   pb.FamilyServiceClient? familyClient;
   try {
-    familyClient = ref.watch(familyClientProvider);
+    familyClient = (syncEnabled ? ref.watch(familyClientProvider) : null);
   } catch (_) {}
   return FamilyNotifier(db, userId ?? '', familyClient, ref);
 });
