@@ -30,6 +30,11 @@ class ExchangeRateFetcher {
   static const _timeout = Duration(seconds: 10);
   static const _endpoint = 'https://open.er-api.com/v6/latest/CNY';
 
+  /// Closes the underlying HTTP client (releases its connection pool). Call
+  /// only when this fetcher owns the client — i.e. it wasn't constructed with
+  /// an injected/shared client.
+  void close() => _client.close();
+
   /// Fetches `X/CNY` rates (how many CNY per 1 unit of X) for each of
   /// [currencies] except CNY.
   ///

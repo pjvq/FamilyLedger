@@ -40,11 +40,24 @@ class ExchangeRateNotifier extends StateNotifier<Map<String, double>> {
   final AppDatabase _db;
   final ExchangeRateFetcher _fetcher;
 
+  /// True when we created the fetcher (and its HTTP client) ourselves and are
+  /// therefore responsible for closing it on dispose. An injected fetcher is
+  /// owned by the caller.
+  final bool _ownsFetcher;
+
   /// [fetcher] is injectable for tests; defaults to a real HTTP fetcher.
   ExchangeRateNotifier(this._db, {ExchangeRateFetcher? fetcher})
     : _fetcher = fetcher ?? ExchangeRateFetcher(http.Client()),
+      _ownsFetcher = fetcher == null,
       super({..._defaultRates}) {
     _loadFromDb();
+  }
+
+  @override
+  void dispose() {
+    // Release the HTTP connection pool if we own the client.
+    if (_ownsFetcher) _fetcher.close();
+    super.dispose();
   }
 
   Future<void> _loadFromDb() async {
