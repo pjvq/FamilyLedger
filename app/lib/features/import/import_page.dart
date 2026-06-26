@@ -20,14 +20,6 @@ import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/transaction_provider.dart';
 import '../../domain/providers/dashboard_provider.dart';
-import '../../data/remote/grpc_clients.dart';
-import '../../generated/proto/account.pb.dart' as pb_acc;
-import '../../generated/proto/account.pbenum.dart' as pb_acc_enum;
-import '../../generated/proto/transaction.pbgrpc.dart' as pb_txn;
-import '../../generated/proto/transaction.pbenum.dart' as pb_enum;
-import '../../generated/proto/google/protobuf/timestamp.pb.dart' as proto_ts;
-import 'package:grpc/grpc.dart';
-import 'package:fixnum/fixnum.dart';
 
 /// Import page - supports Alipay, WeChat, and generic CSV
 class ImportPage extends ConsumerStatefulWidget {
@@ -94,7 +86,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   List<_ParsedTransaction> _duplicates = [];
   List<_ParsedTransaction> _nonDuplicates = [];
   Map<int, bool> _dupSelection = {}; // index in _duplicates → import?
-  Set<String> _existingKeySet = {};
   Map<String, int> _existingKeyCounts = {};
   bool _hasDuplicateStep = false;
 
@@ -104,7 +95,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   bool _importDone = false;
   int _importedCount = 0;
   int _duplicateCount = 0;
-  int _syncedToServerCount = 0;
   int _importTotal = 0;
   int _importProgress = 0;
   List<String> _importErrors = [];
@@ -638,8 +628,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         const SizedBox(height: 8),
         _resultRow('成功导入', '$_importedCount 条', Colors.green),
         _resultRow('重复跳过', '$_duplicateCount 条', Colors.orange),
-        if (_syncedToServerCount > 0)
-          _resultRow('已同步服务器', '$_syncedToServerCount 条', Colors.blue),
         if (_importErrors.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
@@ -2030,64 +2018,24 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           } catch (_) {}
         }
         if (defaultAccId == null) {
-          // Auto-create a default family account via gRPC + local
+          // Auto-create a default family account locally (offline-first; sync
+          // propagates it when a sync backend is configured).
           try {
             if (familyId != null && familyId.isNotEmpty) {
               final newAccId = const Uuid().v4();
-              // Try gRPC first so other family members can see this account
-              bool serverCreated = false;
-              try {
-                final accClient = ref.read(accountClientProvider);
-                final resp = await accClient.createAccount(
-                  pb_acc.CreateAccountRequest()
-                    ..name = '家庭共享账户'
-                    ..type = pb_acc_enum.AccountType.ACCOUNT_TYPE_CASH
-                    ..currency = 'CNY'
-                    ..icon = '🏠'
-                    ..initialBalance = Int64.ZERO
-                    ..familyId = familyId,
-                  options: CallOptions(timeout: const Duration(seconds: 5)),
-                );
-                if (resp.hasAccount() && resp.account.id.isNotEmpty) {
-                  // Use server-assigned id
-                  await database.insertAccount(
-                    db.AccountsCompanion.insert(
-                      id: resp.account.id,
-                      userId: userId,
-                      name: '家庭共享账户',
-                      icon: Value('🏠'),
-                      balance: Value(0),
-                      familyId: Value(familyId),
-                      accountType: Value('cash'),
-                    ),
-                  );
-                  defaultAccId = resp.account.id;
-                  serverCreated = true;
-                  debugPrint(
-                    'Import: created family account on server: ${resp.account.id}',
-                  );
-                }
-              } catch (e) {
-                debugPrint('Import: gRPC createAccount failed: $e');
-              }
-              // Local-only fallback
-              if (!serverCreated) {
-                await database.insertAccount(
-                  db.AccountsCompanion.insert(
-                    id: newAccId,
-                    userId: userId,
-                    name: '家庭共享账户',
-                    icon: Value('🏠'),
-                    balance: Value(0),
-                    familyId: Value(familyId),
-                    accountType: Value('cash'),
-                  ),
-                );
-                defaultAccId = newAccId;
-                debugPrint(
-                  'Import: created family account locally only: $newAccId',
-                );
-              }
+              await database.insertAccount(
+                db.AccountsCompanion.insert(
+                  id: newAccId,
+                  userId: userId,
+                  name: '家庭共享账户',
+                  icon: Value('🏠'),
+                  balance: Value(0),
+                  familyId: Value(familyId),
+                  accountType: Value('cash'),
+                ),
+              );
+              defaultAccId = newAccId;
+              debugPrint('Import: created family account locally: $newAccId');
             }
           } catch (e) {
             debugPrint('Import: failed to auto-create family account: $e');
@@ -2124,148 +2072,16 @@ class _ImportPageState extends ConsumerState<ImportPage> {
 
       setState(() => _importTotal = toImport.length);
 
-      // Ensure all categories exist on server before creating transactions
-      final failedCatIds = <String>{}; // Track failed category IDs globally
-      {
-        final familyId = _importToFamily
-            ? (ref.read(currentFamilyIdProvider) ?? '')
-            : '';
-        setState(() {
-          _importPhase = '同步分类到服务器...';
-          _importProgress = 0;
-        });
-        final syncedCatIds = <String>{};
-        final txnClient = ref.read(transactionClientProvider);
-
-        // Collect unique category IDs from import data
-        final catIdsToSync = <String>{};
-        for (final t in toImport) {
-          final catId = t.matchedCategoryId ?? _defaultCategory?.id ?? '';
-          if (catId.isNotEmpty) catIdsToSync.add(catId);
-        }
-
-        // Query all categories from local DB (not cache)
-        final allLocalCats = await database.select(database.categories).get();
-        final catMap = {for (final c in allLocalCats) c.id: c};
-
-        // Separate parent and child categories, sync parents first
-        final parentCats = <db.Category>[];
-        final childCats = <db.Category>[];
-        for (final catId in catIdsToSync) {
-          final cat = catMap[catId];
-          if (cat == null) continue;
-          if (cat.parentId != null && cat.parentId!.isNotEmpty) {
-            childCats.add(cat);
-            // Also ensure the parent is synced
-            if (!catIdsToSync.contains(cat.parentId!)) {
-              final parent = catMap[cat.parentId!];
-              if (parent != null) parentCats.add(parent);
-            }
-          } else {
-            parentCats.add(cat);
-          }
-        }
-
-        final totalCats = parentCats.length + childCats.length;
-        int catSynced = 0;
-        setState(() => _importTotal = totalCats);
-
-        // Helper: sync a single category with up to 3 retries + exponential backoff
-        Future<bool> syncCategory(db.Category cat, {String? parentId}) async {
-          const maxRetries = 3;
-          for (int attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-              if (attempt > 0) {
-                await Future.delayed(
-                  Duration(milliseconds: 500 * (1 << (attempt - 1))),
-                );
-              }
-              final catReq = pb_txn.CreateCategoryRequest()
-                ..name = cat.name
-                ..iconKey = cat.iconKey.isNotEmpty ? cat.iconKey : 'category'
-                ..type = cat.type == 'income'
-                    ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
-                    : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE
-                ..familyId = familyId ?? '';
-              if (parentId != null && parentId.isNotEmpty) {
-                catReq.parentId = parentId;
-              }
-              await txnClient.createCategory(
-                catReq,
-                options: CallOptions(timeout: const Duration(seconds: 15)),
-              );
-              return true;
-            } catch (e) {
-              debugPrint(
-                'Import: ensure category ${cat.name} (${cat.id}) attempt ${attempt + 1} failed: $e',
-              );
-            }
-          }
-          return false;
-        }
-
-        // Round 1: sync ALL parent categories (no parentId)
-        final failedParentIds = <String>{};
-        for (final cat in parentCats) {
-          if (syncedCatIds.contains(cat.id)) continue;
-          syncedCatIds.add(cat.id);
-          final ok = await syncCategory(cat);
-          if (!ok) {
-            failedParentIds.add(cat.id);
-            failedCatIds.add(cat.id);
-          }
-          catSynced++;
-          setState(() => _importProgress = catSynced);
-        }
-
-        // Round 2: sync child categories (skip if parent failed)
-        for (final cat in childCats) {
-          if (syncedCatIds.contains(cat.id)) continue;
-          syncedCatIds.add(cat.id);
-
-          // Skip if parent sync failed — mark child as failed too
-          if (cat.parentId != null && failedParentIds.contains(cat.parentId!)) {
-            debugPrint(
-              'Import: skip child ${cat.name} — parent ${cat.parentId} failed',
-            );
-            failedCatIds.add(cat.id);
-            catSynced++;
-            setState(() => _importProgress = catSynced);
-            continue;
-          }
-
-          final ok = await syncCategory(cat, parentId: cat.parentId);
-          if (!ok) {
-            failedCatIds.add(cat.id);
-          }
-          catSynced++;
-          setState(() => _importProgress = catSynced);
-        }
-
-        if (failedCatIds.isNotEmpty) {
-          print(
-            '[Import] ${failedCatIds.length} categories FAILED to sync: $failedCatIds',
-          );
-        } else {
-          print('[Import] All categories synced OK (total=$totalCats)');
-        }
-      }
-
       int imported = 0;
-      int syncFailed = 0;
       final errors = <String>[];
-      if (failedCatIds.isNotEmpty) {
-        errors.add('⚠️ ${failedCatIds.length} 个分类同步失败，已用默认分类替代');
-      }
 
-      // Phase 1: Write all transactions to local DB
+      // Write all transactions to the local DB (offline-first; a sync backend,
+      // when configured, propagates them later — no server round-trip here).
       setState(() {
         _importPhase = '写入本地数据库...';
         _importProgress = 0;
         _importTotal = toImport.length;
       });
-      final localIds = <String>[];
-      final batchReqs = <pb_txn.CreateTransactionRequest>[];
 
       for (int idx = 0; idx < toImport.length; idx++) {
         final t = toImport[idx];
@@ -2274,9 +2090,7 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           final catId = t.matchedCategoryId ?? _defaultCategory?.id ?? '';
           final localId = uuid.v4();
 
-          await database
-              .into(database.transactions)
-              .insert(
+          await database.into(database.transactions).insert(
                 db.TransactionsCompanion.insert(
                   id: localId,
                   userId: userId,
@@ -2293,118 +2107,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
           final delta = t.type == 'income' ? amountCents : -amountCents;
           await database.updateAccountBalance(defaultAccId, delta);
           imported++;
-
-          // Always prepare batch request for server sync (both personal and family mode)
-          {
-            var serverCatId = catId;
-            if (failedCatIds.contains(catId)) {
-              serverCatId = _defaultCategory?.id ?? catId;
-            }
-            localIds.add(localId);
-            batchReqs.add(
-              pb_txn.CreateTransactionRequest()
-                ..accountId = defaultAccId
-                ..categoryId = serverCatId
-                ..amount = Int64(amountCents)
-                ..currency = 'CNY'
-                ..amountCny = Int64(amountCents)
-                ..exchangeRate = 1.0
-                ..type = t.type == 'income'
-                    ? pb_enum.TransactionType.TRANSACTION_TYPE_INCOME
-                    : pb_enum.TransactionType.TRANSACTION_TYPE_EXPENSE
-                ..note = t.note
-                ..txnDate = _toProtoTimestamp(t.date),
-            );
-          }
         } catch (e) {
           errors.add('行 ${t.note}: $e');
         }
         if (idx % 10 == 0 || idx == toImport.length - 1) {
           setState(() => _importProgress = idx + 1);
           await Future<void>.delayed(Duration.zero);
-        }
-      }
-
-      // Phase 2: Batch push to server (both personal and family mode)
-      if (batchReqs.isNotEmpty) {
-        print(
-          '[Import] Phase 2: pushing ${batchReqs.length} txns to server, accountId=$defaultAccId, toFamily=$_importToFamily',
-        );
-        setState(() {
-          _importPhase = '同步到服务器...';
-          _importProgress = 0;
-          _importTotal = batchReqs.length;
-        });
-        final txnClient = ref.read(transactionClientProvider);
-        const batchSize = 50;
-        int syncedCount = 0;
-        for (int i = 0; i < batchReqs.length; i += batchSize) {
-          final end = (i + batchSize).clamp(0, batchReqs.length);
-          final chunk = batchReqs.sublist(i, end);
-          final chunkLocalIds = localIds.sublist(i, end);
-          try {
-            final batchResp = await txnClient.batchCreateTransactions(
-              pb_txn.BatchCreateTransactionsRequest()
-                ..transactions.addAll(chunk)
-                ..accountId = defaultAccId,
-              options: CallOptions(timeout: const Duration(seconds: 60)),
-            );
-            for (
-              int j = 0;
-              j < batchResp.transactions.length && j < chunkLocalIds.length;
-              j++
-            ) {
-              final serverTxn = batchResp.transactions[j];
-              final oldId = chunkLocalIds[j];
-              if (serverTxn.id.isNotEmpty && serverTxn.id != oldId) {
-                try {
-                  await database.hardDeleteTransaction(oldId);
-                  await database
-                      .into(database.transactions)
-                      .insert(
-                        db.TransactionsCompanion.insert(
-                          id: serverTxn.id,
-                          userId: userId,
-                          accountId: defaultAccId,
-                          categoryId: chunk[j].categoryId,
-                          amount: chunk[j].amount.toInt(),
-                          amountCny: chunk[j].amountCny.toInt(),
-                          type:
-                              chunk[j].type ==
-                                  pb_enum
-                                      .TransactionType
-                                      .TRANSACTION_TYPE_INCOME
-                              ? 'income'
-                              : 'expense',
-                          txnDate: DateTime.fromMillisecondsSinceEpoch(
-                            chunk[j].txnDate.seconds.toInt() * 1000,
-                          ),
-                          note: Value(chunk[j].note),
-                          syncStatus: Value('synced'),
-                        ),
-                      );
-                } catch (_) {}
-              } else {
-                // Server returned same ID or empty — mark existing as synced
-                await database.markTransactionsSynced([oldId]);
-              }
-            }
-            print(
-              '[Import] batch ${i ~/ batchSize + 1} pushed ${batchResp.createdCount} txns, errors=${batchResp.errors.length}',
-            );
-            syncedCount += chunk.length;
-            if (batchResp.errors.isNotEmpty) {
-              syncFailed += batchResp.errors.length;
-              syncedCount -= batchResp.errors.length;
-              for (final err in batchResp.errors) {
-                print('[Import] batch error: $err');
-              }
-            }
-          } catch (e, st) {
-            syncFailed += chunk.length;
-            print('[Import] batch ${i ~/ batchSize + 1} FAILED: $e\n$st');
-          }
-          setState(() => _importProgress = syncedCount + syncFailed);
         }
       }
 
@@ -2416,13 +2124,9 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         _isImporting = false;
         _importDone = true;
         _importedCount = imported;
-        _syncedToServerCount = imported - syncFailed;
         _duplicateCount =
             _duplicates.length - _dupSelection.values.where((v) => v).length;
-        _importErrors = [
-          ...errors,
-          if (syncFailed > 0) '⚠️ $syncFailed 条未同步到服务端（已保存在本地）',
-        ];
+        _importErrors = [...errors];
       });
     } catch (e) {
       setState(() {
@@ -2432,14 +2136,6 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       });
     }
   }
-}
-
-proto_ts.Timestamp _toProtoTimestamp(DateTime dt) {
-  final seconds = dt.millisecondsSinceEpoch ~/ 1000;
-  final nanos = (dt.millisecondsSinceEpoch % 1000) * 1000000;
-  return proto_ts.Timestamp()
-    ..seconds = Int64(seconds)
-    ..nanos = nanos;
 }
 
 /// 根据分类名和类型智能匹配 iconKey
