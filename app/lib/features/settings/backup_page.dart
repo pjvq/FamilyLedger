@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -75,8 +76,12 @@ class _BackupPageState extends ConsumerState<BackupPage> {
       final name = 'familyledger-backup-${_stamp()}.flbk';
       final file = File('${dir.path}/$name');
       await file.writeAsBytes(bytes);
-      await ref.read(backupStatusProvider).markBackedUp(DateTime.now());
+      // Share first; only mark as backed up once the share sheet returns.
+      // (On Android the result can't reliably tell us the user actually saved,
+      // so this isn't perfect, but it avoids marking "backed up" if they back
+      // out of the sheet entirely.)
       await Share.shareXFiles([XFile(file.path)], subject: name);
+      await ref.read(backupStatusProvider).markBackedUp(DateTime.now());
       if (mounted) setState(() {}); // refresh "上次备份"
       _toast('备份已生成,请妥善保存文件');
     } catch (e) {
@@ -126,11 +131,20 @@ class _BackupPageState extends ConsumerState<BackupPage> {
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
           title: const Text('恢复完成'),
-          content: const Text('数据已恢复,请重启 App 以加载。'),
+          content: const Text(
+            '数据已恢复。需要关闭并重新打开 App 才能加载新数据'
+            '(当前界面仍是旧缓存)。',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('好'),
+              child: const Text('稍后手动重启'),
+            ),
+            FilledButton(
+              // Exit so the next launch reopens the DB and rebuilds all
+              // providers from the restored data (avoids showing stale cache).
+              onPressed: () => SystemNavigator.pop(),
+              child: const Text('退出 App'),
             ),
           ],
         ),
