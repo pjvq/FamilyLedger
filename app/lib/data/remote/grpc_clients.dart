@@ -12,13 +12,10 @@ import '../../generated/proto/sync.pbgrpc.dart';
 import '../../generated/proto/family.pbgrpc.dart';
 import '../../generated/proto/account.pbgrpc.dart';
 import '../../generated/proto/budget.pbgrpc.dart';
-import '../../generated/proto/notify.pbgrpc.dart';
 import '../../generated/proto/loan.pbgrpc.dart';
 import '../../generated/proto/investment.pbgrpc.dart';
 import '../../generated/proto/asset.pbgrpc.dart';
 import '../../generated/proto/dashboard.pbgrpc.dart';
-import '../../generated/proto/export.pbgrpc.dart';
-import '../../generated/proto/import.pbgrpc.dart';
 
 /// Cached CA certificate bytes, loaded at app startup.
 /// Late-initialized; access only after [loadTlsCertificate] completes.
@@ -233,7 +230,6 @@ final syncClientProvider = _grpcClientProvider(SyncServiceClient.new);
 final familyClientProvider = _grpcClientProvider(FamilyServiceClient.new);
 final accountClientProvider = _grpcClientProvider(AccountServiceClient.new);
 final budgetClientProvider = _grpcClientProvider(BudgetServiceClient.new);
-final notifyClientProvider = _grpcClientProvider(NotifyServiceClient.new);
 final loanClientProvider = _grpcClientProvider(LoanServiceClient.new);
 final investmentClientProvider = _grpcClientProvider(
   InvestmentServiceClient.new,
@@ -243,5 +239,3 @@ final marketDataClientProvider = _grpcClientProvider(
 );
 final assetClientProvider = _grpcClientProvider(AssetServiceClient.new);
 final dashboardClientProvider = _grpcClientProvider(DashboardServiceClient.new);
-final exportClientProvider = _grpcClientProvider(ExportServiceClient.new);
-final importClientProvider = _grpcClientProvider(ImportServiceClient.new);
