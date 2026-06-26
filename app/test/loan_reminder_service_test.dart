@@ -297,6 +297,36 @@ void main() {
       expect(await db.getNotifications(_userId, 100, 0), hasLength(1));
       expect(notifier.scheduled.length, 1);
     });
+
+    test('concurrent calls are serialized and do not double-schedule',
+        () async {
+      await _seedLoan(db, id: 'loan1', name: '房贷');
+      await _seedSchedule(
+        db,
+        id: 's1',
+        loanId: 'loan1',
+        monthNumber: 6,
+        payment: 500000,
+        dueDate: DateTime(year, 6, 10),
+      );
+
+      // Fire two runs without awaiting between them (mimics rapid provider
+      // rebuilds). The internal chain must serialize them so dedup holds.
+      final a = svc.scheduleLoanReminders(
+        userId: _userId,
+        loans: await loans(),
+        now: now,
+      );
+      final b = svc.scheduleLoanReminders(
+        userId: _userId,
+        loans: await loans(),
+        now: now,
+      );
+      await Future.wait([a, b]);
+
+      expect(await db.getNotifications(_userId, 100, 0), hasLength(1));
+      expect(notifier.scheduled.length, 1);
+    });
   });
 
   group('LoanReminderService.scheduleCreditCardReminder', () {

@@ -38,8 +38,9 @@ enum RepeatRule {
 /// testable.
 ///
 /// For [RepeatRule.none] the same instant is returned (the caller treats it as
-/// a one-shot). Month/year advances clamp the day to the target month length
-/// the same way `DateTime` arithmetic does for end-of-month dates.
+/// a one-shot). For monthly/yearly, day-of-month overflow follows Dart's
+/// `DateTime` normalization (e.g. Jan 31 + 1 month → Mar 3, not Feb 28) — this
+/// is overflow normalization, not clamping.
 DateTime nextOccurrence(DateTime current, RepeatRule rule) {
   switch (rule) {
     case RepeatRule.daily:
@@ -121,6 +122,11 @@ class LoanReminderService {
 
   static const _uuid = Uuid();
 
+  /// Serializes overlapping [scheduleLoanReminders] runs. The reactive
+  /// scheduler provider can rebuild rapidly (loan list changes); chaining
+  /// keeps runs sequential so they don't race on the dedup read + insert.
+  Future<void> _loanRun = Future<void>.value();
+
   /// Notification `type` for loan-payment reminders (matches the server).
   static const loanType = 'loan_reminder';
 
@@ -129,8 +135,13 @@ class LoanReminderService {
 
   /// Stable OS-notification-slot id within the loan band, keyed on loan + due
   /// date so re-scheduling the same payment reuses one slot. The durable dedup
-  /// key is the persisted `data_json` (see [_alreadyScheduled]); this id being
+  /// key is the persisted `data_json` (see [_existingKeys]); this id being
   /// ephemeral, `hashCode % band` is acceptable (see [BudgetAlertService]).
+  ///
+  /// NOTE: native-only invariant — `String.hashCode` differs between the Dart
+  /// VM and dart2js, so this slot id is only stable within a single platform.
+  /// FamilyLedger ships iOS/Android only; if Web is ever added, replace with a
+  /// deterministic hash (e.g. md5 low-32).
   static int loanNotificationId(String loanId, DateTime dueDate) {
     final key = '$loanId|${_dateKey(dueDate)}';
     final hash = key.hashCode & 0x7fffffff;
@@ -156,15 +167,41 @@ class LoanReminderService {
   /// notification [daysBefore] days before each unpaid `due_date` that is still
   /// in the future. Idempotent: dedup ensures each loan/due-date schedules once.
   ///
+  /// Dedup state is read ONCE per run into an in-memory key set (instead of a
+  /// DB query per schedule row), so cost is 1 query + N×M in-memory lookups.
+  /// Overlapping calls are serialized via [_loanRun].
+  ///
   /// [userId] owns the written notification records. [now] is injectable for
-  /// tests.
+  /// tests. The returned future completes when this run finishes (awaitable in
+  /// tests even though the scheduler provider fires it unawaited).
   Future<void> scheduleLoanReminders({
     required String userId,
     required List<db.Loan> loans,
     int daysBefore = defaultDaysBefore,
     DateTime? now,
+  }) {
+    final run = _loanRun.then(
+      (_) => _runLoanReminders(
+        userId: userId,
+        loans: loans,
+        daysBefore: daysBefore,
+        now: now ?? DateTime.now(),
+      ),
+    );
+    // Keep the chain alive but swallow errors so one failed run doesn't poison
+    // the next; per-loan errors are already logged inside the run.
+    _loanRun = run.catchError((_) {});
+    return run;
+  }
+
+  Future<void> _runLoanReminders({
+    required String userId,
+    required List<db.Loan> loans,
+    required int daysBefore,
+    required DateTime now,
   }) async {
-    final effectiveNow = now ?? DateTime.now();
+    // One read of existing loan-reminder keys for the whole run.
+    final seen = await _existingKeys(userId, loanType, 'loan_id');
     for (final loan in loans) {
       try {
         final schedules = await _db.getLoanSchedules(loan.id);
@@ -175,7 +212,8 @@ class LoanReminderService {
             loan: loan,
             schedule: s,
             daysBefore: daysBefore,
-            now: effectiveNow,
+            now: now,
+            seen: seen,
           );
         }
       } catch (e) {
@@ -194,6 +232,7 @@ class LoanReminderService {
     required db.LoanSchedule schedule,
     required int daysBefore,
     required DateTime now,
+    required Set<String> seen,
   }) async {
     final dueDate = schedule.dueDate;
     final fireAt = reminderFireTime(dueDate, daysBefore);
@@ -202,15 +241,8 @@ class LoanReminderService {
     if (!fireAt.isAfter(now)) return;
 
     final dueKey = _dateKey(dueDate);
-    if (await _alreadyScheduled(
-      userId: userId,
-      type: loanType,
-      matchKey: 'loan_id',
-      matchValue: loan.id,
-      dueDate: dueKey,
-    )) {
-      return;
-    }
+    final dedupKey = '${loan.id}|$dueKey';
+    if (!seen.add(dedupKey)) return; // already scheduled (persisted or this run)
 
     final amountYuan = (schedule.payment / 100).toStringAsFixed(2);
     const title = '贷款还款提醒';
@@ -344,6 +376,30 @@ class LoanReminderService {
           '您的信用卡「$accountName」即将到还款日（每月$dayOfMonth日），请及时还款',
         );
     }
+  }
+
+  /// Loads all existing `data_json` dedup keys (`matchValue|due_date`) for
+  /// notifications of [type] in ONE query, for in-memory O(1) dedup across a
+  /// whole scheduling run. Mirrors the server's `has*Notification` semantics.
+  Future<Set<String>> _existingKeys(
+    String userId,
+    String type,
+    String matchKey,
+  ) async {
+    final existing = await _db.getNotificationsByType(userId, type, limit: 1000);
+    final keys = <String>{};
+    for (final n in existing) {
+      if (n.dataJson.isEmpty) continue;
+      try {
+        final data = jsonDecode(n.dataJson) as Map<String, dynamic>;
+        final mv = data[matchKey];
+        final due = data['due_date'];
+        if (mv != null && due != null) keys.add('$mv|$due');
+      } catch (_) {
+        // Ignore malformed payloads.
+      }
+    }
+    return keys;
   }
 
   /// Dedup gate: returns whether a notification of [type] for this entity and
