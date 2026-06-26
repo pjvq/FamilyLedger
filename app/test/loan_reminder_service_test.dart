@@ -12,6 +12,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:familyledger/data/local/database.dart';
 import 'package:familyledger/domain/services/notifications/loan_reminder_service.dart';
+import 'package:familyledger/domain/services/notifications/local_notification_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'domain/local_notification_service_test.dart'
@@ -146,7 +147,10 @@ void main() {
     late AppDatabase db;
     late FakeLocalNotificationService notifier;
     late LoanReminderService svc;
-    final now = DateTime(2026, 6, 1, 8);
+    // Anchor to next year so scheduled fire-times are always in the real
+    // future (the fake notifier, like the real plugin, drops past triggers).
+    final year = DateTime.now().year + 1;
+    final now = DateTime(year, 6, 1, 8);
 
     setUp(() async {
       db = AppDatabase.forTesting(NativeDatabase.memory());
@@ -168,7 +172,7 @@ void main() {
         loanId: 'loan1',
         monthNumber: 6,
         payment: 500000,
-        dueDate: DateTime(2026, 6, 10),
+        dueDate: DateTime(year, 6, 10),
       );
 
       await svc.scheduleLoanReminders(
@@ -178,11 +182,11 @@ void main() {
         now: now,
       );
 
-      // Scheduled at 2026-06-07 09:00 (3 days before due, at reminder hour).
+      // Scheduled 3 days before due, at the reminder hour.
       final id =
-          LoanReminderService.loanNotificationId('loan1', DateTime(2026, 6, 10));
+          LoanReminderService.loanNotificationId('loan1', DateTime(year, 6, 10));
       expect(notifier.scheduled.containsKey(id), isTrue);
-      expect(notifier.scheduled[id]!.when, DateTime(2026, 6, 7, reminderHour));
+      expect(notifier.scheduled[id]!.when, DateTime(year, 6, 7, reminderHour));
       expect(notifier.scheduled[id]!.title, '贷款还款提醒');
       expect(notifier.scheduled[id]!.body, contains('第6期'));
       expect(notifier.scheduled[id]!.body, contains('¥5000.00'));
@@ -192,7 +196,7 @@ void main() {
       expect(records.single.type, 'loan_reminder');
       final data = jsonDecode(records.single.dataJson) as Map<String, dynamic>;
       expect(data['loan_id'], 'loan1');
-      expect(data['due_date'], '2026-06-10');
+      expect(data['due_date'], '$year-06-10');
       expect(data['month_number'], 6);
     });
 
@@ -204,7 +208,7 @@ void main() {
         loanId: 'loan1',
         monthNumber: 6,
         payment: 500000,
-        dueDate: DateTime(2026, 6, 10),
+        dueDate: DateTime(year, 6, 10),
         isPaid: true,
       );
 
@@ -226,7 +230,7 @@ void main() {
         loanId: 'loan1',
         monthNumber: 5,
         payment: 500000,
-        dueDate: DateTime(2026, 5, 10), // before `now`
+        dueDate: DateTime(year, 5, 10), // before `now`
       );
 
       await svc.scheduleLoanReminders(
@@ -248,7 +252,7 @@ void main() {
         loanId: 'loan1',
         monthNumber: 6,
         payment: 500000,
-        dueDate: DateTime(2026, 6, 10),
+        dueDate: DateTime(year, 6, 10),
       );
       await _seedSchedule(
         db,
@@ -256,7 +260,7 @@ void main() {
         loanId: 'loan1',
         monthNumber: 7,
         payment: 500000,
-        dueDate: DateTime(2026, 7, 10),
+        dueDate: DateTime(year, 7, 10),
       );
 
       await svc.scheduleLoanReminders(
@@ -278,10 +282,10 @@ void main() {
         loanId: 'loan1',
         monthNumber: 6,
         payment: 500000,
-        dueDate: DateTime(2026, 6, 10),
+        dueDate: DateTime(year, 6, 10),
       );
 
-      Future<void> run() => svc.scheduleLoanReminders(
+      Future<void> run() async => svc.scheduleLoanReminders(
             userId: _userId,
             loans: await loans(),
             now: now,
@@ -299,7 +303,8 @@ void main() {
     late AppDatabase db;
     late FakeLocalNotificationService notifier;
     late LoanReminderService svc;
-    final now = DateTime(2026, 6, 1, 8);
+    final year = DateTime.now().year + 1;
+    final now = DateTime(year, 6, 1, 8);
 
     setUp(() async {
       db = AppDatabase.forTesting(NativeDatabase.memory());
@@ -323,9 +328,9 @@ void main() {
       final id = LoanReminderService.creditCardNotificationId(
         'acc1',
         CreditCardReminderKind.billingDay,
-        DateTime(2026, 6, 18),
+        DateTime(year, 6, 18),
       );
-      expect(notifier.scheduled[id]!.when, DateTime(2026, 6, 18, reminderHour));
+      expect(notifier.scheduled[id]!.when, DateTime(year, 6, 18, reminderHour));
       final records =
           await db.getNotificationsByType(_userId, 'billing_day_reminder');
       expect(records, hasLength(1));
@@ -346,10 +351,10 @@ void main() {
       final id = LoanReminderService.creditCardNotificationId(
         'acc1',
         CreditCardReminderKind.paymentDue,
-        DateTime(2026, 6, 18),
+        DateTime(year, 6, 18),
       );
       // 3 days before the 18th = the 15th.
-      expect(notifier.scheduled[id]!.when, DateTime(2026, 6, 15, reminderHour));
+      expect(notifier.scheduled[id]!.when, DateTime(year, 6, 15, reminderHour));
       final records =
           await db.getNotificationsByType(_userId, 'payment_due_reminder');
       expect(records, hasLength(1));
