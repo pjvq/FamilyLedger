@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show Value, Variable;
 import 'package:drift/native.dart';
 import 'package:familyledger/data/local/database.dart';
 import 'package:familyledger/domain/services/backup/backup_codec.dart';
@@ -160,6 +160,29 @@ void main() {
         () => svc.restoreBackup(file, 'secret'),
         throwsA(isA<BackupException>()),
       );
+    });
+
+    test('blob column values survive the round-trip (base64 path)', () async {
+      // SQLite is loosely typed: store raw bytes in a column to exercise the
+      // _encodeRow/_decodeRow base64 wrapper (the schema has no blob column yet,
+      // so this guards the path defensively).
+      final blob = Uint8List.fromList([0, 1, 2, 250, 255, 42]);
+      await db.customStatement(
+        'INSERT INTO users (id, email) VALUES (?, ?)',
+        ['blobuser', blob],
+      );
+
+      final backup = await svc.exportBackup('secret');
+      await db.customStatement('DELETE FROM users');
+      await svc.restoreBackup(backup, 'secret');
+
+      final rows = await db
+          .customSelect(
+            'SELECT email FROM users WHERE id = ?',
+            variables: [Variable<String>('blobuser')],
+          )
+          .get();
+      expect(rows.single.data['email'], blob);
     });
   });
 }

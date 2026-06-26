@@ -62,31 +62,32 @@ class DatabaseBackupService {
     final snapshot = jsonDecode(utf8.decode(result.payload)) as Map;
     final tables = (snapshot['tables'] as Map).cast<String, dynamic>();
 
-    // FK enforcement must be toggled outside a transaction (SQLite ignores the
-    // pragma mid-transaction), so we wrap the whole replace.
-    await _db.customStatement('PRAGMA foreign_keys = OFF');
-    try {
-      await _db.transaction(() async {
-        for (final entry in tables.entries) {
-          final name = entry.key;
-          if (_excludedTables.contains(name)) continue;
-          await _db.customStatement('DELETE FROM "$name"');
-          for (final raw in (entry.value as List)) {
-            final row = _decodeRow((raw as Map).cast<String, dynamic>());
-            final cols = row.keys.toList();
-            if (cols.isEmpty) continue;
-            final colList = cols.map((c) => '"$c"').join(', ');
-            final placeholders = List.filled(cols.length, '?').join(', ');
-            await _db.customStatement(
-              'INSERT INTO "$name" ($colList) VALUES ($placeholders)',
-              cols.map((c) => row[c]).toList(),
-            );
-          }
+    // Table names come from a decrypted (user-supplyable) file — only ever
+    // touch real tables of THIS database, never an arbitrary name (the SQLite
+    // `"`-quoting wouldn't escape an embedded quote → injection).
+    final known = {for (final t in _db.allTables) t.actualTableName};
+
+    await _db.transaction(() async {
+      // The app runs with SQLite's default FK enforcement OFF (offline-first
+      // sync applies ops out of order), so a whole-DB clear+repopulate needs no
+      // parent-before-child ordering and no FK toggling.
+      for (final entry in tables.entries) {
+        final name = entry.key;
+        if (_excludedTables.contains(name) || !known.contains(name)) continue;
+        await _db.customStatement('DELETE FROM "$name"');
+        for (final raw in (entry.value as List)) {
+          final row = _decodeRow((raw as Map).cast<String, dynamic>());
+          final cols = row.keys.toList();
+          if (cols.isEmpty) continue;
+          final colList = cols.map((c) => '"$c"').join(', ');
+          final placeholders = List.filled(cols.length, '?').join(', ');
+          await _db.customStatement(
+            'INSERT INTO "$name" ($colList) VALUES ($placeholders)',
+            cols.map((c) => row[c]).toList(),
+          );
         }
-      });
-    } finally {
-      await _db.customStatement('PRAGMA foreign_keys = ON');
-    }
+      }
+    });
   }
 
   Future<Map<String, dynamic>> _snapshot() async {
@@ -109,11 +110,13 @@ class DatabaseBackupService {
     return out;
   }
 
-  /// Reverse of [_encodeRow]: base64 wrapper → Uint8List.
+  /// Reverse of [_encodeRow]: a single-key `{$b64: ...}` wrapper → Uint8List.
+  /// The single-key check avoids misreading a genuine JSON map column (e.g.
+  /// `data_json`) that merely happens to contain a `$b64` key.
   Map<String, Object?> _decodeRow(Map<String, dynamic> row) {
     final out = <String, Object?>{};
     row.forEach((k, v) {
-      if (v is Map && v.containsKey(_b64Key)) {
+      if (v is Map && v.length == 1 && v.containsKey(_b64Key)) {
         out[k] = base64Decode(v[_b64Key] as String);
       } else {
         out[k] = v;
