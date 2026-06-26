@@ -56,5 +56,6 @@ class AppRouter {
   static const budget = '/mine/budget';
   static const report = '/mine/report';
   static const export = '/mine/export';
+  static const backup = '/mine/settings/backup';
   static const csvImport = '/mine/import';
 }

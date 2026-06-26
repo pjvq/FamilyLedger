@@ -173,6 +173,9 @@ Widget _wrapPage(
   );
 }
 
+/// In-memory SharedPreferences shared by the widget tests (see setUpAll).
+late SharedPreferences _testPrefs;
+
 /// Common overrides that all provider-dependent tests need.
 List<Override> _baseOverrides({
   AuthState? authState,
@@ -187,7 +190,7 @@ List<Override> _baseOverrides({
 }) {
   return [
     if (db != null) databaseProvider.overrideWithValue(db),
-    if (prefs != null) sharedPreferencesProvider.overrideWithValue(prefs),
+    sharedPreferencesProvider.overrideWithValue(prefs ?? _testPrefs),
     if (authState != null)
       authProvider.overrideWith((_) => _FakeAuthNotifier(authState)),
     if (familyState != null)
@@ -361,6 +364,13 @@ class _FakeNotificationNotifier extends StateNotifier<NotificationState>
 // ─────────────────────────────────────────────────────────────────────
 
 void main() {
+  // SettingsPage reads backupStatusProvider → sharedPreferencesProvider at
+  // build, so provide an in-memory prefs for all widget tests here.
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    _testPrefs = await SharedPreferences.getInstance();
+  });
+
   // ─── 1. LoginPage ───────────────────────────────────────────────────
 
   group('LoginPage', () {

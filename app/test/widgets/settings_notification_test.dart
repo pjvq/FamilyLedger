@@ -276,8 +276,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Scroll down to reveal the logout button
-      await tester.drag(find.byType(ListView), const Offset(0, -500));
+      // Scroll down to reveal the logout button (a new "备份与恢复" tile pushed
+      // it further down, so drag a bit more than before).
+      await tester.drag(find.byType(ListView), const Offset(0, -800));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('退出登录'));

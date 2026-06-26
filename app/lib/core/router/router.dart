@@ -16,6 +16,7 @@ import '../../features/account/transfer_page.dart';
 import '../../features/budget/budget_page.dart';
 import '../../features/notification/notifications_page.dart';
 import '../../features/notification/notification_settings_page.dart';
+import '../../features/settings/backup_page.dart';
 import '../../features/loan/loans_page.dart';
 import '../../features/loan/add_loan_page.dart';
 import '../../features/loan/loan_detail_page.dart';
@@ -274,6 +275,11 @@ final routerProvider = AutoDisposeProvider<GoRouter>((ref) {
         parentNavigatorKey: rootNavigatorKey,
         path: '/mine/notifications/settings',
         builder: (_, __) => const NotificationSettingsPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/mine/settings/backup',
+        builder: (_, __) => const BackupPage(),
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
