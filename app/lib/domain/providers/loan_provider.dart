@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
-import 'package:grpc/grpc.dart' show CallOptions;
+import '../../sync/sync_backend_factory.dart' show syncEnabled;
+import 'package:grpc/grpc.dart' show CallOptions, GrpcError;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:fixnum/fixnum.dart';
@@ -17,7 +18,11 @@ import '../models/loan_proto_helpers.dart';
 
 class LoanNotifier extends StateNotifier<LoanState> {
   final db.AppDatabase _db;
-  final LoanServiceClient _client;
+  final LoanServiceClient? _client;
+  /// gRPC client, or throws fast (caught by each method's offline
+  /// fallback) on local-only builds where [syncEnabled] is false.
+  LoanServiceClient _require_client() =>
+      _client ?? (throw GrpcError.unavailable('local-only build'));
   final String? _userId;
   final String? _familyId;
 
@@ -51,7 +56,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
       if (_familyId != null && _familyId.isNotEmpty) {
         req.familyId = _familyId;
       }
-      final resp = await _client.listLoans(
+      final resp = await _require_client().listLoans(
         req,
         options: CallOptions(timeout: const Duration(seconds: 10)),
       );
@@ -95,7 +100,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
       if (_familyId != null && _familyId.isNotEmpty) {
         grpReq.familyId = _familyId;
       }
-      final resp = await _client.listLoanGroups(
+      final resp = await _require_client().listLoanGroups(
         grpReq,
         options: CallOptions(timeout: const Duration(seconds: 10)),
       );
@@ -242,7 +247,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     String loanId = const Uuid().v4();
 
     try {
-      final resp = await _client.createLoan(
+      final resp = await _require_client().createLoan(
         pb.CreateLoanRequest()
           ..name = name
           ..loanType = stringToLoanType(loanType)
@@ -361,7 +366,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
         );
       }
 
-      final resp = await _client.createLoanGroup(req);
+      final resp = await _require_client().createLoanGroup(req);
       await _db.upsertLoanGroup(
         db.LoanGroupsCompanion.insert(
           id: resp.id,
@@ -523,7 +528,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
 
       try {
         // Try gRPC
-        final resp = await _client.getLoanSchedule(
+        final resp = await _require_client().getLoanSchedule(
           pb.GetLoanScheduleRequest()..loanId = loanId,
         );
         schedule = resp.items
@@ -638,7 +643,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
           ? pb_enum.PrepaymentStrategy.PREPAYMENT_STRATEGY_REDUCE_MONTHS
           : pb_enum.PrepaymentStrategy.PREPAYMENT_STRATEGY_REDUCE_PAYMENT;
 
-      final resp = await _client.simulatePrepayment(
+      final resp = await _require_client().simulatePrepayment(
         pb.SimulatePrepaymentRequest()
           ..loanId = loanId
           ..prepaymentAmount = Int64(amount)
@@ -722,7 +727,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     }
 
     try {
-      await _client.recordRateChange(
+      await _require_client().recordRateChange(
         pb.RecordRateChangeRequest()
           ..loanId = loanId
           ..newRate = newRate
@@ -820,7 +825,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
           ? pb_enum.PrepaymentStrategy.PREPAYMENT_STRATEGY_REDUCE_MONTHS
           : pb_enum.PrepaymentStrategy.PREPAYMENT_STRATEGY_REDUCE_PAYMENT;
 
-      final resp = await _client.executePrepayment(
+      final resp = await _require_client().executePrepayment(
         pb.ExecutePrepaymentRequest()
           ..loanId = loanId
           ..prepaymentAmount = Int64(amount)
@@ -850,7 +855,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _client.recordPayment(
+      await _require_client().recordPayment(
         pb.RecordPaymentRequest()
           ..loanId = loanId
           ..monthNumber = monthNumber,
@@ -899,7 +904,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     String categoryId,
   ) async {
     try {
-      await _client.updateLoan(
+      await _require_client().updateLoan(
         pb.UpdateLoanRequest()
           ..loanId = loanId
           ..repaymentCategoryId = categoryId,
@@ -921,7 +926,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _client.deleteLoan(pb.DeleteLoanRequest()..loanId = loanId);
+      await _require_client().deleteLoan(pb.DeleteLoanRequest()..loanId = loanId);
     } catch (_) {
       // Offline
     }
@@ -1005,7 +1010,7 @@ class SubLoanInput {
 
 final loanProvider = StateNotifierProvider<LoanNotifier, LoanState>((ref) {
   final database = ref.watch(databaseProvider);
-  final client = ref.watch(loanClientProvider);
+  final client = (syncEnabled ? ref.watch(loanClientProvider) : null);
   final userId = ref.watch(currentUserIdProvider);
   final familyId = ref.watch(currentFamilyIdProvider);
   return LoanNotifier(database, client, userId, familyId);

@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../sync/sync_backend_factory.dart' show syncEnabled;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' show Value;
@@ -79,8 +80,15 @@ class DashboardState {
 
 class DashboardNotifier extends StateNotifier<DashboardState> {
   final db.AppDatabase _db;
-  final DashboardServiceClient _client;
-  final MarketDataServiceClient _marketClient;
+  final DashboardServiceClient? _client;
+  final MarketDataServiceClient? _marketClient;
+
+  /// gRPC clients, or throw fast (caught by each method's offline fallback)
+  /// on local-only builds where [syncEnabled] is false.
+  DashboardServiceClient _requireClient() =>
+      _client ?? (throw GrpcError.unavailable('local-only build'));
+  MarketDataServiceClient _requireMarketClient() =>
+      _marketClient ?? (throw GrpcError.unavailable('local-only build'));
   final String? _userId;
   final String? _familyId;
 
@@ -118,7 +126,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
           ..symbol = inv.symbol
           ..marketType = _toProtoMarketType(inv.marketType),
       );
-      final resp = await _marketClient.batchGetQuotes(
+      final resp = await _requireMarketClient().batchGetQuotes(
         inv_pb.BatchGetQuotesRequest()..requests.addAll(requests),
         options: _callOpts,
       );
@@ -205,7 +213,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   Future<void> _refreshNetWorthRemote() async {
     if (_userId == null) return;
     try {
-      final resp = await _client.getNetWorth(
+      final resp = await _requireClient().getNetWorth(
         pb.GetNetWorthRequest()..familyId = _familyId ?? '',
         options: _callOpts,
       );
@@ -365,7 +373,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   Future<void> _refreshTrendRemote(String period, int count) async {
     if (_userId == null) return;
     try {
-      final resp = await _client.getIncomeExpenseTrend(
+      final resp = await _requireClient().getIncomeExpenseTrend(
         pb.TrendRequest()
           ..userId = _userId
           ..familyId = _familyId ?? ''
@@ -477,7 +485,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   ) async {
     if (_userId == null) return;
     try {
-      final resp = await _client.getCategoryBreakdown(
+      final resp = await _requireClient().getCategoryBreakdown(
         pb.CategoryBreakdownRequest()
           ..userId = _userId
           ..familyId = _familyId ?? ''
@@ -636,7 +644,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     if (_userId == null) return;
     final now = DateTime.now();
     try {
-      final resp = await _client.getBudgetSummary(
+      final resp = await _requireClient().getBudgetSummary(
         pb.BudgetSummaryRequest()
           ..familyId = _familyId ?? ''
           ..year = now.year
@@ -698,7 +706,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   ]) async {
     if (_userId == null) return;
     try {
-      final resp = await _client.getNetWorthTrend(
+      final resp = await _requireClient().getNetWorthTrend(
         pb.TrendRequest()
           ..userId = _userId
           ..familyId = _familyId ?? ''
@@ -746,8 +754,8 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 final dashboardProvider =
     StateNotifierProvider<DashboardNotifier, DashboardState>((ref) {
       final database = ref.watch(databaseProvider);
-      final client = ref.watch(dashboardClientProvider);
-      final marketClient = ref.watch(marketDataClientProvider);
+      final client = (syncEnabled ? ref.watch(dashboardClientProvider) : null);
+      final marketClient = (syncEnabled ? ref.watch(marketDataClientProvider) : null);
       final userId = ref.watch(currentUserIdProvider);
       final familyId = ref.watch(currentFamilyIdProvider);
       return DashboardNotifier(

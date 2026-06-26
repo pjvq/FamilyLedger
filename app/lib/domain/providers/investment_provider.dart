@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../sync/sync_backend_factory.dart' show syncEnabled;
 import 'dart:developer' as dev;
 import 'dart:io' show SocketException;
 import 'dart:math' as math;
@@ -209,7 +210,11 @@ String marketTypeLabel(String type) => marketTypeLabels[type] ?? type;
 
 class InvestmentNotifier extends StateNotifier<InvestmentState> {
   final db.AppDatabase _db;
-  final InvestmentServiceClient _investmentClient;
+  final InvestmentServiceClient? _investmentClient;
+  /// gRPC client, or throws fast (caught by each method's offline
+  /// fallback) on local-only builds where [syncEnabled] is false.
+  InvestmentServiceClient _require_investmentClient() =>
+      _investmentClient ?? (throw GrpcError.unavailable('local-only build'));
   final OfflineSyncQueue _syncQueue;
   final String? _userId;
   final String? _familyId;
@@ -236,7 +241,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
       if (_familyId != null && _familyId.isNotEmpty) {
         invReq.familyId = _familyId;
       }
-      final resp = await _investmentClient.listInvestments(invReq);
+      final resp = await _require_investmentClient().listInvestments(invReq);
       for (final inv in resp.investments) {
         await _db.upsertInvestment(
           db.InvestmentsCompanion.insert(
@@ -284,7 +289,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
     String invId = const Uuid().v4();
 
     try {
-      final resp = await _investmentClient.createInvestment(
+      final resp = await _require_investmentClient().createInvestment(
         pb.CreateInvestmentRequest()
           ..symbol = symbol
           ..name = name
@@ -372,7 +377,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
     bool syncedToServer = false;
 
     try {
-      final resp = await _investmentClient.recordTrade(
+      final resp = await _require_investmentClient().recordTrade(
         pb.RecordTradeRequest()
           ..investmentId = investmentId
           ..tradeType = _stringToTradeType(tradeType)
@@ -476,7 +481,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
     // gone. The ListTrades RPC is the only way to recover them — so we must
     // persist the server response back into Drift, not discard it.
     try {
-      final resp = await _investmentClient.listTrades(
+      final resp = await _require_investmentClient().listTrades(
         pb.ListTradesRequest()..investmentId = investmentId,
       );
       for (final t in resp.trades) {
@@ -510,7 +515,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _investmentClient.deleteInvestment(
+      await _require_investmentClient().deleteInvestment(
         pb.DeleteInvestmentRequest()..investmentId = investmentId,
       );
     } catch (e) {
@@ -619,7 +624,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
 final investmentProvider =
     StateNotifierProvider<InvestmentNotifier, InvestmentState>((ref) {
       final database = ref.watch(databaseProvider);
-      final client = ref.watch(investmentClientProvider);
+      final client = (syncEnabled ? ref.watch(investmentClientProvider) : null);
       final syncQueue = ref.watch(offlineSyncQueueProvider);
       final userId = ref.watch(currentUserIdProvider);
       final familyId = ref.watch(currentFamilyIdProvider);

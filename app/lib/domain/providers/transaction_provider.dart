@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../sync/sync_backend_factory.dart' show syncEnabled;
 import 'dart:developer' as dev;
 
 import 'package:fixnum/fixnum.dart';
@@ -654,7 +655,7 @@ final transactionProvider =
 
       pb.TransactionServiceClient? txnClient;
       try {
-        txnClient = ref.watch(transactionClientProvider);
+        txnClient = (syncEnabled ? ref.watch(transactionClientProvider) : null);
       } catch (_) {}
 
       CategorySyncService? categorySvc;

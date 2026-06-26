@@ -1,4 +1,5 @@
 import 'dart:developer' as dev;
+import '../../sync/sync_backend_factory.dart' show syncEnabled;
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
@@ -111,7 +112,11 @@ class BudgetState {
 
 class BudgetNotifier extends StateNotifier<BudgetState> {
   final db.AppDatabase _db;
-  final BudgetServiceClient _client;
+  final BudgetServiceClient? _client;
+  /// gRPC client, or throws fast (caught by each method's offline
+  /// fallback) on local-only builds where [syncEnabled] is false.
+  BudgetServiceClient _require_client() =>
+      _client ?? (throw GrpcError.unavailable('local-only build'));
   final String? _userId;
   final String _familyId;
   final BudgetAlertService? _alertService;
@@ -146,7 +151,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
         '[Budget] loadCurrentMonth: listBudgets gRPC...',
         name: 'BudgetProvider',
       );
-      final resp = await _client.listBudgets(
+      final resp = await _require_client().listBudgets(
         pb.ListBudgetsRequest()
           ..familyId = _familyId
           ..year = year,
@@ -212,7 +217,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
             '[Budget] loadCurrentMonth: getBudgetExecution gRPC...',
             name: 'BudgetProvider',
           );
-          final execResp = await _client.getBudgetExecution(
+          final execResp = await _require_client().getBudgetExecution(
             pb.GetBudgetExecutionRequest()..budgetId = current.id,
             options: _callOpts,
           );
@@ -472,7 +477,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       if (annual != null) {
         // Try to get execution from server
         try {
-          final execResp = await _client.getBudgetExecution(
+          final execResp = await _require_client().getBudgetExecution(
             pb.GetBudgetExecutionRequest()..budgetId = annual.id,
             options: _callOpts,
           );
@@ -570,7 +575,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
 
     try {
       // Try gRPC first
-      final resp = await _client.createBudget(
+      final resp = await _require_client().createBudget(
         pb.CreateBudgetRequest()
           ..familyId = _familyId
           ..year = year
@@ -664,7 +669,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
         );
       }
       dev.log('[Budget] updateBudget gRPC call...', name: 'BudgetProvider');
-      await _client.updateBudget(req, options: _callOpts);
+      await _require_client().updateBudget(req, options: _callOpts);
       dev.log('[Budget] updateBudget gRPC OK', name: 'BudgetProvider');
     } catch (e) {
       dev.log('[Budget] updateBudget gRPC failed: $e', name: 'BudgetProvider');
@@ -718,7 +723,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _client.deleteBudget(
+      await _require_client().deleteBudget(
         pb.DeleteBudgetRequest()..budgetId = id,
         options: _callOpts,
       );
@@ -738,7 +743,7 @@ final budgetProvider = StateNotifierProvider<BudgetNotifier, BudgetState>((
   ref,
 ) {
   final database = ref.watch(databaseProvider);
-  final client = ref.watch(budgetClientProvider);
+  final client = (syncEnabled ? ref.watch(budgetClientProvider) : null);
   final userId = ref.watch(currentUserIdProvider);
   final familyId = ref.watch(currentFamilyIdProvider) ?? '';
   final alertService = BudgetAlertService(

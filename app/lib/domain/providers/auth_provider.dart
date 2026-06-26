@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../sync/sync_backend_factory.dart' show syncEnabled;
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:grpc/grpc.dart';
@@ -135,6 +136,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// 注册 — 调用 gRPC，失败时降级到本地
   Future<void> register(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
+    // Local-only build (Android): no server — register a local account directly,
+    // skipping the gRPC attempt + its timeout.
+    if (!syncEnabled) {
+      await _registerLocal(email, password);
+      return;
+    }
     developer.log(
       '[Auth] register: attempting gRPC to ${AppConstants.serverHost}:${AppConstants.grpcPort} useTls=${AppConstants.useTls}',
     );
@@ -291,6 +298,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// 登录 — 调用 gRPC，失败时降级到本地
   Future<void> login(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading);
+    // Local-only build (Android): no server — log in against the local user
+    // directly, skipping the gRPC attempt + its timeout.
+    if (!syncEnabled) {
+      await _loginLocal(email, password);
+      return;
+    }
     developer.log(
       '[Auth] login: attempting gRPC to ${AppConstants.serverHost}:${AppConstants.grpcPort}',
     );
