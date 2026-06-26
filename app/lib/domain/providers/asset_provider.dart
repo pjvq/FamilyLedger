@@ -196,7 +196,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
   final AssetServiceClient? _assetClient;
   /// gRPC client, or throws fast (caught by each method's offline
   /// fallback) on local-only builds where [syncEnabled] is false.
-  AssetServiceClient _require_assetClient() =>
+  AssetServiceClient _requireAssetClient() =>
       _assetClient ?? (throw GrpcError.unavailable('local-only build'));
   final String? _userId;
   final String? _familyId;
@@ -244,7 +244,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
       if (_familyId != null && _familyId.isNotEmpty) {
         assetReq.familyId = _familyId;
       }
-      final resp = await _require_assetClient().listAssets(assetReq);
+      final resp = await _requireAssetClient().listAssets(assetReq);
       for (final asset in resp.assets) {
         await _db.upsertFixedAsset(
           db.FixedAssetsCompanion.insert(
@@ -331,7 +331,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
     String assetId = const Uuid().v4();
 
     try {
-      final resp = await _require_assetClient().createAsset(
+      final resp = await _requireAssetClient().createAsset(
         pb.CreateAssetRequest()
           ..name = name
           ..assetType = _stringToAssetType(assetType)
@@ -396,7 +396,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
       );
 
       try {
-        await _require_assetClient().setDepreciationRule(
+        await _requireAssetClient().setDepreciationRule(
           pb.SetDepreciationRuleRequest()
             ..assetId = assetId
             ..method = _stringToDepreciationMethod(depreciationMethod)
@@ -414,7 +414,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final resp = await _require_assetClient().listValuations(
+      final resp = await _requireAssetClient().listValuations(
         pb.ListValuationsRequest()..assetId = id,
       );
       // Store remote valuations if needed
@@ -484,7 +484,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _require_assetClient().updateAsset(
+      await _requireAssetClient().updateAsset(
         pb.UpdateAssetRequest()
           ..assetId = id
           ..name = name ?? ''
@@ -520,9 +520,13 @@ class AssetNotifier extends StateNotifier<AssetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _require_assetClient().deleteAsset(pb.DeleteAssetRequest()..assetId = id);
+      await _requireAssetClient().deleteAsset(pb.DeleteAssetRequest()..assetId = id);
     } catch (_) {}
 
+    // NOTE: the local soft-delete proceeds even if the remote delete failed,
+    // so on gRPC builds a server failure can leave local/remote diverged
+    // (pre-existing; always taken on local-only builds).
+    // TODO(sync): track deletes via the sync queue so they reconcile reliably.
     await _db.softDeleteFixedAsset(id);
     await listAssets();
   }
@@ -532,7 +536,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _require_assetClient().updateValuation(
+      await _requireAssetClient().updateValuation(
         pb.UpdateValuationRequest()
           ..assetId = assetId
           ..value = Int64(value)
@@ -573,7 +577,7 @@ class AssetNotifier extends StateNotifier<AssetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _require_assetClient().setDepreciationRule(
+      await _requireAssetClient().setDepreciationRule(
         pb.SetDepreciationRuleRequest()
           ..assetId = assetId
           ..method = _stringToDepreciationMethod(method)

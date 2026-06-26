@@ -115,7 +115,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
   final BudgetServiceClient? _client;
   /// gRPC client, or throws fast (caught by each method's offline
   /// fallback) on local-only builds where [syncEnabled] is false.
-  BudgetServiceClient _require_client() =>
+  BudgetServiceClient _requireClient() =>
       _client ?? (throw GrpcError.unavailable('local-only build'));
   final String? _userId;
   final String _familyId;
@@ -151,7 +151,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
         '[Budget] loadCurrentMonth: listBudgets gRPC...',
         name: 'BudgetProvider',
       );
-      final resp = await _require_client().listBudgets(
+      final resp = await _requireClient().listBudgets(
         pb.ListBudgetsRequest()
           ..familyId = _familyId
           ..year = year,
@@ -217,7 +217,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
             '[Budget] loadCurrentMonth: getBudgetExecution gRPC...',
             name: 'BudgetProvider',
           );
-          final execResp = await _require_client().getBudgetExecution(
+          final execResp = await _requireClient().getBudgetExecution(
             pb.GetBudgetExecutionRequest()..budgetId = current.id,
             options: _callOpts,
           );
@@ -477,7 +477,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       if (annual != null) {
         // Try to get execution from server
         try {
-          final execResp = await _require_client().getBudgetExecution(
+          final execResp = await _requireClient().getBudgetExecution(
             pb.GetBudgetExecutionRequest()..budgetId = annual.id,
             options: _callOpts,
           );
@@ -575,7 +575,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
 
     try {
       // Try gRPC first
-      final resp = await _require_client().createBudget(
+      final resp = await _requireClient().createBudget(
         pb.CreateBudgetRequest()
           ..familyId = _familyId
           ..year = year
@@ -669,7 +669,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
         );
       }
       dev.log('[Budget] updateBudget gRPC call...', name: 'BudgetProvider');
-      await _require_client().updateBudget(req, options: _callOpts);
+      await _requireClient().updateBudget(req, options: _callOpts);
       dev.log('[Budget] updateBudget gRPC OK', name: 'BudgetProvider');
     } catch (e) {
       dev.log('[Budget] updateBudget gRPC failed: $e', name: 'BudgetProvider');
@@ -723,7 +723,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _require_client().deleteBudget(
+      await _requireClient().deleteBudget(
         pb.DeleteBudgetRequest()..budgetId = id,
         options: _callOpts,
       );

@@ -21,7 +21,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
   final LoanServiceClient? _client;
   /// gRPC client, or throws fast (caught by each method's offline
   /// fallback) on local-only builds where [syncEnabled] is false.
-  LoanServiceClient _require_client() =>
+  LoanServiceClient _requireClient() =>
       _client ?? (throw GrpcError.unavailable('local-only build'));
   final String? _userId;
   final String? _familyId;
@@ -56,7 +56,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
       if (_familyId != null && _familyId.isNotEmpty) {
         req.familyId = _familyId;
       }
-      final resp = await _require_client().listLoans(
+      final resp = await _requireClient().listLoans(
         req,
         options: CallOptions(timeout: const Duration(seconds: 10)),
       );
@@ -100,7 +100,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
       if (_familyId != null && _familyId.isNotEmpty) {
         grpReq.familyId = _familyId;
       }
-      final resp = await _require_client().listLoanGroups(
+      final resp = await _requireClient().listLoanGroups(
         grpReq,
         options: CallOptions(timeout: const Duration(seconds: 10)),
       );
@@ -247,7 +247,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     String loanId = const Uuid().v4();
 
     try {
-      final resp = await _require_client().createLoan(
+      final resp = await _requireClient().createLoan(
         pb.CreateLoanRequest()
           ..name = name
           ..loanType = stringToLoanType(loanType)
@@ -366,7 +366,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
         );
       }
 
-      final resp = await _require_client().createLoanGroup(req);
+      final resp = await _requireClient().createLoanGroup(req);
       await _db.upsertLoanGroup(
         db.LoanGroupsCompanion.insert(
           id: resp.id,
@@ -528,7 +528,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
 
       try {
         // Try gRPC
-        final resp = await _require_client().getLoanSchedule(
+        final resp = await _requireClient().getLoanSchedule(
           pb.GetLoanScheduleRequest()..loanId = loanId,
         );
         schedule = resp.items
@@ -643,7 +643,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
           ? pb_enum.PrepaymentStrategy.PREPAYMENT_STRATEGY_REDUCE_MONTHS
           : pb_enum.PrepaymentStrategy.PREPAYMENT_STRATEGY_REDUCE_PAYMENT;
 
-      final resp = await _require_client().simulatePrepayment(
+      final resp = await _requireClient().simulatePrepayment(
         pb.SimulatePrepaymentRequest()
           ..loanId = loanId
           ..prepaymentAmount = Int64(amount)
@@ -727,7 +727,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     }
 
     try {
-      await _require_client().recordRateChange(
+      await _requireClient().recordRateChange(
         pb.RecordRateChangeRequest()
           ..loanId = loanId
           ..newRate = newRate
@@ -825,7 +825,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
           ? pb_enum.PrepaymentStrategy.PREPAYMENT_STRATEGY_REDUCE_MONTHS
           : pb_enum.PrepaymentStrategy.PREPAYMENT_STRATEGY_REDUCE_PAYMENT;
 
-      final resp = await _require_client().executePrepayment(
+      final resp = await _requireClient().executePrepayment(
         pb.ExecutePrepaymentRequest()
           ..loanId = loanId
           ..prepaymentAmount = Int64(amount)
@@ -855,7 +855,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _require_client().recordPayment(
+      await _requireClient().recordPayment(
         pb.RecordPaymentRequest()
           ..loanId = loanId
           ..monthNumber = monthNumber,
@@ -904,7 +904,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     String categoryId,
   ) async {
     try {
-      await _require_client().updateLoan(
+      await _requireClient().updateLoan(
         pb.UpdateLoanRequest()
           ..loanId = loanId
           ..repaymentCategoryId = categoryId,
@@ -926,7 +926,7 @@ class LoanNotifier extends StateNotifier<LoanState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _require_client().deleteLoan(pb.DeleteLoanRequest()..loanId = loanId);
+      await _requireClient().deleteLoan(pb.DeleteLoanRequest()..loanId = loanId);
     } catch (_) {
       // Offline
     }

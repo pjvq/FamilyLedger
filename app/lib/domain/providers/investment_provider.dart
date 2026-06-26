@@ -213,7 +213,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
   final InvestmentServiceClient? _investmentClient;
   /// gRPC client, or throws fast (caught by each method's offline
   /// fallback) on local-only builds where [syncEnabled] is false.
-  InvestmentServiceClient _require_investmentClient() =>
+  InvestmentServiceClient _requireInvestmentClient() =>
       _investmentClient ?? (throw GrpcError.unavailable('local-only build'));
   final OfflineSyncQueue _syncQueue;
   final String? _userId;
@@ -241,7 +241,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
       if (_familyId != null && _familyId.isNotEmpty) {
         invReq.familyId = _familyId;
       }
-      final resp = await _require_investmentClient().listInvestments(invReq);
+      final resp = await _requireInvestmentClient().listInvestments(invReq);
       for (final inv in resp.investments) {
         await _db.upsertInvestment(
           db.InvestmentsCompanion.insert(
@@ -289,7 +289,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
     String invId = const Uuid().v4();
 
     try {
-      final resp = await _require_investmentClient().createInvestment(
+      final resp = await _requireInvestmentClient().createInvestment(
         pb.CreateInvestmentRequest()
           ..symbol = symbol
           ..name = name
@@ -377,7 +377,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
     bool syncedToServer = false;
 
     try {
-      final resp = await _require_investmentClient().recordTrade(
+      final resp = await _requireInvestmentClient().recordTrade(
         pb.RecordTradeRequest()
           ..investmentId = investmentId
           ..tradeType = _stringToTradeType(tradeType)
@@ -481,7 +481,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
     // gone. The ListTrades RPC is the only way to recover them — so we must
     // persist the server response back into Drift, not discard it.
     try {
-      final resp = await _require_investmentClient().listTrades(
+      final resp = await _requireInvestmentClient().listTrades(
         pb.ListTradesRequest()..investmentId = investmentId,
       );
       for (final t in resp.trades) {
@@ -515,7 +515,7 @@ class InvestmentNotifier extends StateNotifier<InvestmentState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _require_investmentClient().deleteInvestment(
+      await _requireInvestmentClient().deleteInvestment(
         pb.DeleteInvestmentRequest()..investmentId = investmentId,
       );
     } catch (e) {

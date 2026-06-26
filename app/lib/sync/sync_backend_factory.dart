@@ -28,6 +28,12 @@ const String _syncBackendMode = String.fromEnvironment(
 /// Resolves the compile-time [_syncBackendMode] against the current platform.
 /// Use this to gate sync-only setup (building a gRPC client, CRUD over gRPC,
 /// auth login) so a local-only build never touches the network.
+///
+/// This is an **app-lifecycle-immutable** decision: it depends only on a
+/// compile-time define and the platform, so providers read it once at build
+/// time. Runtime toggling of the sync mode is not supported and would require
+/// a restart. If dynamic switching is ever needed (e.g. Phase 3 iCloud opt-in),
+/// promote this to a Riverpod `syncEnabledProvider` that providers watch.
 bool get syncEnabled {
   switch (_syncBackendMode) {
     case 'none':
