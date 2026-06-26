@@ -1,5 +1,9 @@
+import 'dart:developer' as dev;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import '../../data/local/database.dart';
+import '../services/market/exchange_rate_fetcher.dart';
 import 'app_providers.dart';
 
 /// Default exchange rates (fallback)
@@ -34,8 +38,12 @@ final exchangeRateProvider =
 
 class ExchangeRateNotifier extends StateNotifier<Map<String, double>> {
   final AppDatabase _db;
+  final ExchangeRateFetcher _fetcher;
 
-  ExchangeRateNotifier(this._db) : super({..._defaultRates}) {
+  /// [fetcher] is injectable for tests; defaults to a real HTTP fetcher.
+  ExchangeRateNotifier(this._db, {ExchangeRateFetcher? fetcher})
+    : _fetcher = fetcher ?? ExchangeRateFetcher(http.Client()),
+      super({..._defaultRates}) {
     _loadFromDb();
   }
 
@@ -79,10 +87,22 @@ class ExchangeRateNotifier extends StateNotifier<Map<String, double>> {
     return (amountFen * rate).round();
   }
 
-  /// Refresh rates from network (TODO: call backend API)
+  /// Refresh rates from the network (open.er-api.com), persisting to the local
+  /// cache. On failure, keeps the existing cached/default rates.
   Future<void> refreshRates() async {
-    // For now, just reload from DB
-    await _loadFromDb();
+    try {
+      final fetched = await _fetcher.fetchCnyRates(supportedCurrencies);
+      if (fetched.isNotEmpty) {
+        await saveRates(fetched);
+      }
+    } catch (e) {
+      // Network/parse failure must not clear rates — fall back to the cache.
+      dev.log(
+        'exchange: refresh failed, keeping cached rates: $e',
+        name: 'ExchangeRateNotifier',
+      );
+      await _loadFromDb();
+    }
   }
 
   /// Save rates to local DB
