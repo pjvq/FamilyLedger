@@ -1,9 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
 import '../../data/local/database.dart' as db;
-import '../../data/remote/grpc_clients.dart';
-import '../../generated/proto/notify.pb.dart' as pb;
-import '../../generated/proto/notify.pbgrpc.dart';
 import 'app_providers.dart';
 
 // ── Settings Model ──
@@ -73,12 +70,18 @@ class NotificationState {
 
 // ── Notifier ──
 
+/// Local-first notification center.
+///
+/// Notifications are produced on-device by the localized budget / loan /
+/// billing reminder services (P1-E/F), which write into the local
+/// `notifications` table; this notifier only reads/marks them. Settings are
+/// stored locally too. No server / gRPC involvement ("去服务化" Phase 1,
+/// issue #147).
 class NotificationNotifier extends StateNotifier<NotificationState> {
   final db.AppDatabase _db;
-  final NotifyServiceClient _client;
   final String? _userId;
 
-  NotificationNotifier(this._db, this._client, this._userId)
+  NotificationNotifier(this._db, this._userId)
     : super(const NotificationState()) {
     if (_userId != null) {
       _init();
@@ -95,35 +98,6 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     const pageSize = 20;
-
-    try {
-      // Try gRPC first
-      final resp = await _client.listNotifications(
-        pb.ListNotificationsRequest()
-          ..page = page
-          ..pageSize = pageSize,
-      );
-
-      // Cache locally
-      for (final n in resp.notifications) {
-        await _db.insertNotification(
-          db.NotificationsCompanion.insert(
-            id: n.id,
-            userId: _userId,
-            type: n.type,
-            title: n.title,
-            body: n.body,
-            dataJson: Value(n.dataJson),
-            isRead: Value(n.isRead),
-            createdAt: Value(n.createdAt.toDateTime()),
-          ),
-        );
-      }
-    } catch (_) {
-      // fallback to local
-    }
-
-    // Load from local DB
     final notifications = await _db.getNotifications(
       _userId,
       pageSize,
@@ -142,14 +116,6 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   Future<void> markAsRead(List<String> ids) async {
     if (_userId == null || ids.isEmpty) return;
-
-    try {
-      await _client.markAsRead(
-        pb.MarkAsReadRequest()..notificationIds.addAll(ids),
-      );
-    } catch (_) {
-      // offline
-    }
 
     await _db.markNotificationsAsRead(ids);
 
@@ -177,66 +143,23 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   Future<void> loadSettings() async {
     if (_userId == null) return;
 
-    try {
-      final resp = await _client.getNotificationSettings(
-        pb.GetNotificationSettingsRequest(),
-      );
-      final s = resp.settings;
-      final model = NotificationSettingsModel(
-        budgetAlert: s.budgetAlert,
-        budgetWarning: s.budgetWarning,
-        dailySummary: s.dailySummary,
-        loanReminder: s.loanReminder,
-        reminderDaysBefore: s.reminderDaysBefore,
-      );
-
-      // Cache locally
-      await _db.upsertNotificationSettings(
-        db.NotificationSettingsTableCompanion.insert(
-          userId: _userId,
-          budgetAlert: Value(model.budgetAlert),
-          budgetWarning: Value(model.budgetWarning),
-          dailySummary: Value(model.dailySummary),
-          loanReminder: Value(model.loanReminder),
-          reminderDaysBefore: Value(model.reminderDaysBefore),
+    final local = await _db.getNotificationSettings(_userId);
+    if (local != null) {
+      state = state.copyWith(
+        settings: NotificationSettingsModel(
+          budgetAlert: local.budgetAlert,
+          budgetWarning: local.budgetWarning,
+          dailySummary: local.dailySummary,
+          loanReminder: local.loanReminder,
+          reminderDaysBefore: local.reminderDaysBefore,
         ),
       );
-      state = state.copyWith(settings: model);
-    } catch (_) {
-      // Load from local
-      final local = await _db.getNotificationSettings(_userId);
-      if (local != null) {
-        state = state.copyWith(
-          settings: NotificationSettingsModel(
-            budgetAlert: local.budgetAlert,
-            budgetWarning: local.budgetWarning,
-            dailySummary: local.dailySummary,
-            loanReminder: local.loanReminder,
-            reminderDaysBefore: local.reminderDaysBefore,
-          ),
-        );
-      }
     }
   }
 
   Future<void> updateSettings(NotificationSettingsModel settings) async {
     if (_userId == null) return;
 
-    try {
-      await _client.updateNotificationSettings(
-        pb.UpdateNotificationSettingsRequest()
-          ..settings = (pb.NotificationSettings()
-            ..budgetAlert = settings.budgetAlert
-            ..budgetWarning = settings.budgetWarning
-            ..dailySummary = settings.dailySummary
-            ..loanReminder = settings.loanReminder
-            ..reminderDaysBefore = settings.reminderDaysBefore),
-      );
-    } catch (_) {
-      // offline
-    }
-
-    // Save locally
     await _db.upsertNotificationSettings(
       db.NotificationSettingsTableCompanion.insert(
         userId: _userId,
@@ -257,7 +180,6 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 final notificationProvider =
     StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
       final database = ref.watch(databaseProvider);
-      final client = ref.watch(notifyClientProvider);
       final userId = ref.watch(currentUserIdProvider);
-      return NotificationNotifier(database, client, userId);
+      return NotificationNotifier(database, userId);
     });
