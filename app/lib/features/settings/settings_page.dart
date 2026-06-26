@@ -11,6 +11,7 @@ import '../../domain/providers/account_provider.dart';
 import '../../domain/providers/app_providers.dart';
 import '../../domain/providers/family_provider.dart';
 import '../../domain/providers/theme_provider.dart';
+import '../../domain/providers/backup_provider.dart';
 import '../../domain/providers/sync_status_provider.dart';
 import '../../sync/sync_engine.dart';
 
@@ -105,6 +106,17 @@ class SettingsPage extends ConsumerWidget {
             title: '通知设置',
             subtitle: '管理预算提醒和日常通知',
             onTap: () => context.push(AppRouter.notificationSettings),
+          ),
+          _SettingsTile(
+            icon: Icons.backup_outlined,
+            title: '备份与恢复',
+            subtitle: backupReminderDue(
+                  ref.watch(backupStatusProvider).lastBackupAt,
+                  DateTime.now(),
+                )
+                ? '建议尽快备份(数据仅存本地)'
+                : '导出加密备份 / 从文件恢复',
+            onTap: () => context.push(AppRouter.backup),
           ),
 
           const SizedBox(height: 24),
