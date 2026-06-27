@@ -100,6 +100,12 @@ class SyncStatusIndicator extends ConsumerWidget {
         Colors.green,
         true,
       ),
+      SyncStatus.localOnly => (
+        Icons.phone_android_rounded,
+        '本地',
+        Colors.green,
+        false,
+      ),
     };
   }
 
@@ -125,11 +131,13 @@ class SyncStatusIndicator extends ConsumerWidget {
       SyncStatus.pending => '${state.pendingCount} 条数据等待上传',
       SyncStatus.failed => '${state.failedCount} 条数据上传失败',
       SyncStatus.offline => '当前无网络连接',
+      SyncStatus.localOnly => '数据仅保存在本机',
     });
 
     if (state.wsConnected) {
       parts.add('实时连接正常');
-    } else if (state.status != SyncStatus.offline) {
+    } else if (state.status != SyncStatus.offline &&
+        state.status != SyncStatus.localOnly) {
       parts.add('实时连接断开');
     }
 
