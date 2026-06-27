@@ -827,6 +827,11 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         await _matchBaishiCategories();
       } else {
         await _matchCategories();
+        // For generic CSV (e.g. the app's own export format), also attempt
+        // parent+child matching via _baishiTag (populated from "二级分类").
+        if (_detectedFormat == ImportFormat.generic) {
+          await _matchBaishiCategories();
+        }
       }
       setState(() => _isParsing = false);
     } catch (e) {
