@@ -827,6 +827,11 @@ class _ImportPageState extends ConsumerState<ImportPage> {
         await _matchBaishiCategories();
       } else {
         await _matchCategories();
+        // For generic CSV (e.g. the app's own export format), also attempt
+        // parent+child matching via _baishiTag (populated from "二级分类").
+        if (_detectedFormat == ImportFormat.generic) {
+          await _matchBaishiCategories();
+        }
       }
       setState(() => _isParsing = false);
     } catch (e) {
@@ -1358,6 +1363,8 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       'merchant',
     ]);
     final catIdx = _findCol(headers, ['分类', 'category', '类别']);
+    //二级分类 (subcategory); mapped as 百事AA-style tag for downstream matching
+    final tagIdx = _findCol(headers, ['二级分类', '标签', 'tag', '子分类']);
 
     _parsed = [];
     _skippedRows = 0;
@@ -1402,21 +1409,32 @@ class _ImportPageState extends ConsumerState<ImportPage> {
       final rawCat = catIdx != -1 && cols.length > catIdx
           ? cols[catIdx].trim()
           : null;
+      final rawTag = tagIdx != -1 && cols.length > tagIdx
+          ? cols[tagIdx].trim()
+          : null;
       final counterparty =
           counterpartyIdx != -1 && cols.length > counterpartyIdx
           ? cols[counterpartyIdx].trim()
           : null;
+
+      // If the note column happens to be empty (or is the same as the
+      // subcategory column), prefer the subcategory as a note so 二级分类
+      // isn't silently lost.
+      final effectiveNote = note.isNotEmpty ? note : (rawTag ?? '');
 
       _parsed.add(
         _ParsedTransaction(
           date: date,
           type: type,
           amount: amount.abs(),
-          note: note,
+          note: effectiveNote,
           counterparty: counterparty,
           rawCategory: rawCat,
         ),
       );
+      if (rawTag != null && rawTag.isNotEmpty) {
+        _parsed.last._baishiTag = rawTag;
+      }
     }
   }
 
@@ -1717,7 +1735,12 @@ class _ImportPageState extends ConsumerState<ImportPage> {
   };
 
   // Keywords to skip (transfers, not real expenses)
-  static const _skipKeywords = ['转账', '红包', '还款', '信用卡还款', '余额宝', '理财'];
+  // Internal transfer / non-income-expense patterns. Only applied when the
+  // transaction type was NOT explicitly marked as 收入/支出, so a clear income
+  // or expense row is never skipped regardless of its note text. This avoids
+  // false-filtering rows whose memo happens to contain "红包"/"还款"/"理财"
+  // (e.g. "改口费红包" is income, not a transfer).
+  static const _skipKeywords = ['转账', '余额宝', '零钱通'];
 
   Future<void> _matchCategories() async {
     final database = ref.read(databaseProvider);
@@ -1732,11 +1755,14 @@ class _ImportPageState extends ConsumerState<ImportPage> {
     for (int i = 0; i < _parsed.length; i++) {
       final t = _parsed[i];
 
-      // Skip transfers
-      if (_skipKeywords.any((k) => t.note.contains(k))) {
+      // Skip internal transfers: only when the type is NOT explicitly income
+      // or expense. Once the CSV has a clear 收入/支出 column we never skip.
+      if (t.type != 'income' &&
+          t.type != 'expense' &&
+          _skipKeywords.any((k) => t.note.contains(k))) {
         toRemove.add(i);
         _skippedRows++;
-        _skippedDetails.add(_SkippedRow(0, t.note, '转账/还款等非收支交易'));
+        _skippedDetails.add(_SkippedRow(0, t.note, '转账等非收支交易'));
         continue;
       }
 

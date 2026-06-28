@@ -5,6 +5,7 @@
 library;
 
 import 'package:drift/native.dart';
+import 'package:familyledger/data/auth/category_seed_service.dart';
 import 'package:familyledger/data/local/database.dart';
 import 'package:familyledger/domain/providers/loan_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -45,5 +46,11 @@ void main() {
     // A local schedule was generated too.
     final schedules = await db.getLoanSchedules(loans.single.id);
     expect(schedules, isNotEmpty);
+  });
+
+  test('seedForUser creates preset categories on a fresh install', () async {
+    await CategorySeedService(db).seedForUser('u1');
+    final cats = await db.select(db.categories).get();
+    expect(cats, isNotEmpty);
   });
 }

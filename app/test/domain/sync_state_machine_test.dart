@@ -129,6 +129,7 @@ void main() {
 
     test('any → offline via connectivity loss', () {
       for (final status in SyncStatus.values) {
+        if (status == SyncStatus.localOnly) continue;
         if (status == SyncStatus.offline) continue;
         final state = SyncState(status: status);
         final next = SyncState.applyConnectivity(state, online: false);
@@ -160,6 +161,7 @@ void main() {
 
     test('SyncStopped is no-op when not syncing', () {
       for (final status in SyncStatus.values) {
+        if (status == SyncStatus.localOnly) continue;
         if (status == SyncStatus.syncing) continue;
         final state = SyncState(status: status);
         final next = SyncState.applyEvent(state, const SyncEvent.syncStopped());
@@ -173,6 +175,7 @@ void main() {
 
     test('WsStateChanged does not affect sync status', () {
       for (final status in SyncStatus.values) {
+        if (status == SyncStatus.localOnly) continue;
         final state = SyncState(status: status, wsConnected: false);
         final next = SyncState.applyEvent(
           state,
@@ -407,6 +410,7 @@ void main() {
   group('SyncStatus state machine — guard invariants', () {
     test('PushFailed always results in failed status', () {
       for (final status in SyncStatus.values) {
+        if (status == SyncStatus.localOnly) continue;
         final state = SyncState(status: status);
         final next = SyncState.applyEvent(state, const PushFailed(3));
         expect(next.status, SyncStatus.failed);
@@ -418,6 +422,7 @@ void main() {
       'SyncCompleted always results in synced regardless of previous state',
       () {
         for (final status in SyncStatus.values) {
+          if (status == SyncStatus.localOnly) continue;
           final state = SyncState(status: status);
           final next = SyncState.applyEvent(
             state,
@@ -428,6 +433,39 @@ void main() {
         }
       },
     );
+
+    test('localOnly is immutable — no event or connectivity change can move it',
+        () {
+      for (final event in <SyncEvent>[
+        const SyncEvent.syncStarted(),
+        const SyncEvent.syncStopped(),
+        const SyncEvent.syncCompleted(),
+        const SyncEvent.serverReachable(),
+        const SyncEvent.serverUnreachable(),
+        const SyncEvent.wsStateChanged(true),
+        const PushFailed(5),
+        const PendingCountUpdated(10),
+      ]) {
+        final s = const SyncState(status: SyncStatus.localOnly);
+        expect(SyncState.applyEvent(s, event).status, SyncStatus.localOnly,
+            reason: '$event must not change localOnly');
+      }
+      // Connectivity change also cannot move it.
+      expect(
+        SyncState.applyConnectivity(
+          const SyncState(status: SyncStatus.localOnly),
+          online: false,
+        ).status,
+        SyncStatus.localOnly,
+      );
+      expect(
+        SyncState.applyConnectivity(
+          const SyncState(status: SyncStatus.localOnly),
+          online: true,
+        ).status,
+        SyncStatus.localOnly,
+      );
+    });
 
     test('pendingCount is never negative after any event sequence', () {
       var state = const SyncState();

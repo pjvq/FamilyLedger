@@ -47,6 +47,12 @@ class SyncStatusTile extends ConsumerWidget {
         '${syncState.failedCount} 条操作上传失败，请检查网络',
         colors.error,
       ),
+      SyncStatus.localOnly => (
+        Icons.phone_android_rounded,
+        '本地模式',
+        '数据仅保存在本机,不连接服务器',
+        colors.success,
+      ),
     };
 
     return ListTile(

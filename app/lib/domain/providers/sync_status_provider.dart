@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/local/database.dart';
+import '../../sync/sync_backend_factory.dart' show syncEnabled;
 import '../../sync/sync_event.dart';
 import '../providers/app_providers.dart';
 
@@ -8,6 +9,7 @@ enum SyncStatus {
   synced, // 全部同步完成 + WS 正常
   syncing, // 正在 push 或 pull
   pending, // 有待同步（等待网络或下个周期）
+  localOnly, // 本地模式,不同步（Android 或 --dart-define=SYNC_BACKEND=none）
   failed, // 有操作多次失败
   offline, // 无网络
 }
@@ -68,6 +70,8 @@ class SyncState {
   /// any     →  synced  (SyncCompleted)
   /// ```
   static SyncState applyEvent(SyncState state, SyncEvent event) {
+    // On local-only builds the status is immutable — no sync events apply.
+    if (state.status == SyncStatus.localOnly) return state;
     switch (event) {
       case SyncStarted():
         // Guard: cannot start sync while offline
@@ -135,6 +139,7 @@ class SyncState {
   /// Separated from [applyEvent] because connectivity is an external
   /// system-level signal, not a domain event from the sync engine.
   static SyncState applyConnectivity(SyncState state, {required bool online}) {
+    if (state.status == SyncStatus.localOnly) return state;
     if (!online) {
       return state.copyWith(status: SyncStatus.offline);
     }
@@ -190,6 +195,10 @@ class SyncStatusNotifier extends StateNotifier<SyncState> {
   Timer? _pollTimer;
 
   SyncStatusNotifier(this._db) : super(const SyncState()) {
+    if (!syncEnabled) {
+      state = const SyncState(status: SyncStatus.localOnly);
+      return;
+    }
     _startMonitoring();
   }
 

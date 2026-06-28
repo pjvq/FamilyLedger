@@ -102,6 +102,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// force re-login instead of silently failing.
   Future<void> _verifyTokenAndRestore(String userId) async {
     try {
+      // Local-only builds (Android) have no token; skip verification.
+      if (!syncEnabled) {
+        state = AuthState(status: AuthStatus.authenticated, userId: userId);
+        _loadEmail(userId);
+        return;
+      }
       final token = await _tokenStorage.getAccessToken();
       if (token == null && _prefs.getString(AppConstants.userIdKey) != null) {
         developer.log(
@@ -231,7 +237,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
         userId: resp.userId,
         email: email,
       );
-      await CategorySeedService(_db).seedForUser(resp.userId);
+      try {
+        await CategorySeedService(_db).seedForUser(resp.userId);
+      } catch (e, st) {
+        developer.log(
+          '[Auth] register: category seed failed (non-fatal): $e\n$st',
+          name: 'auth',
+        );
+      }
     } on GrpcError catch (e) {
       developer.log(
         '[Auth] register: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}',
@@ -284,6 +297,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       await _prefs.setString(AppConstants.userIdKey, userId);
       _ref.read(currentUserIdProvider.notifier).state = userId;
+      // Seed preset categories so the user can start recording transactions
+      // immediately (mirrors the server register path). Failure is non-fatal:
+      // the user can still log in; re-seeding is retried on the next login.
+      try {
+        await CategorySeedService(_db).seedForUser(userId);
+      } catch (e, st) {
+        developer.log(
+          '[Auth] register: category seed failed (non-fatal): $e\n$st',
+          name: 'auth',
+        );
+      }
       state = AuthState(
         status: AuthStatus.authenticated,
         userId: userId,
@@ -381,7 +405,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
         userId: resp.userId,
         email: email,
       );
-      await CategorySeedService(_db).seedForUser(resp.userId);
+      try {
+        await CategorySeedService(_db).seedForUser(resp.userId);
+      } catch (e, st) {
+        developer.log(
+          '[Auth] login: category seed failed (non-fatal): $e\n$st',
+          name: 'auth',
+        );
+      }
     } on GrpcError catch (e) {
       developer.log(
         '[Auth] login: GrpcError code=${e.code} codeName=${e.codeName} message=${e.message}',
@@ -417,6 +448,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
       await _prefs.setString(AppConstants.userIdKey, user.id);
       _ref.read(currentUserIdProvider.notifier).state = user.id;
+      // Re-seed in case categories were wiped (idempotent; non-fatal).
+      try {
+        await CategorySeedService(_db).seedForUser(user.id);
+      } catch (e, st) {
+        developer.log(
+          '[Auth] login: category seed failed (non-fatal): $e\n$st',
+          name: 'auth',
+        );
+      }
       state = AuthState(
         status: AuthStatus.authenticated,
         userId: user.id,
