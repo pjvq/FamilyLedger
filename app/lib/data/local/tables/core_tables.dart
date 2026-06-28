@@ -28,6 +28,8 @@ class Accounts extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
+  IntColumn get hlc => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -43,6 +45,8 @@ class Categories extends Table {
   TextColumn get userId => text().nullable()();
   TextColumn get iconKey => text().withDefault(const Constant(''))();
   DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  IntColumn get hlc => integer().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -70,6 +74,8 @@ class Transactions extends Table {
   )(); // pending, synced, failed
   TextColumn get mergeLogId => text().nullable()(); // 合并日志 ID，用于撤销合并
   DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  IntColumn get hlc => integer().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

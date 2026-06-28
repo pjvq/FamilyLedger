@@ -40,6 +40,7 @@ part 'database.g.dart';
     CategoryUsageSummary,
     CategoryMergeLog,
     CategoryMergeDismissals,
+    CloudKitSyncState,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -48,7 +49,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 24;
+  int get schemaVersion => 25;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -205,6 +206,20 @@ class AppDatabase extends _$AppDatabase {
           categoryMergeLog,
           categoryMergeLog.reparentedChildIds,
         );
+      }
+      if (from < 25) {
+        // v24 → v25: Phase 3 prep — HLC field on all syncable entities,
+        // budget soft-delete, CloudKitSyncState table.
+        await _safeAddColumn(m, transactions, transactions.hlc);
+        await _safeAddColumn(m, accounts, accounts.hlc);
+        await _safeAddColumn(m, categories, categories.hlc);
+        await _safeAddColumn(m, loans, loans.hlc);
+        await _safeAddColumn(m, loanGroups, loanGroups.hlc);
+        await _safeAddColumn(m, investments, investments.hlc);
+        await _safeAddColumn(m, fixedAssets, fixedAssets.hlc);
+        await _safeAddColumn(m, budgets, budgets.hlc);
+        await _safeAddColumn(m, budgets, budgets.deletedAt);
+        await m.createTable(cloudKitSyncState);
       }
     },
     beforeOpen: (details) async {

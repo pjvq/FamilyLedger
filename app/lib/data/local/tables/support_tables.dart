@@ -13,6 +13,9 @@ class Budgets extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  IntColumn get hlc => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -132,4 +135,18 @@ class SyncMetadata extends Table {
 
   @override
   Set<Column> get primaryKey => {key};
+}
+
+/// Stores the CloudKit serverChangeToken (opaque binary, Base64-encoded) per
+/// zone, so incremental fetches resume from the correct point. Phase 3.
+class CloudKitSyncState extends Table {
+  @override
+  String get tableName => 'cloud_kit_sync_state';
+
+  TextColumn get zone => text()();
+  TextColumn get changeToken => text().nullable()();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {zone};
 }

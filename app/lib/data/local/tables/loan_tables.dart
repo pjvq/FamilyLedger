@@ -18,6 +18,8 @@ class LoanGroups extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
+  IntColumn get hlc => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -52,6 +54,8 @@ class Loans extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  IntColumn get hlc => integer().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
